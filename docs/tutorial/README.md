@@ -70,10 +70,14 @@
   <img src="./tutorial-zotero-script-import.png" alt="导入 Zotero 脚本" width="88%" />
 </p>
 
-在导入并启用该脚本之后，点开网页的zotero页面，就可以去一键保存了
-
-
+在导入并启用该脚本之后，点开论文页，若zotero图标发生了变化，就可以去一键保存了
 
 <p align="center">
   <img src="./tutorial-zotero-save-entry.png" alt="网页端一键保存到 Zotero" width="88%" />
+</p>
+
+保存成功后，在 Zotero 中可以看到自动生成的摘要笔记效果：
+
+<p align="center">
+  <img src="./tutorial-zotero-note-preview.png" alt="Zotero 自动生成摘要笔记预览" width="88%" />
 </p>
