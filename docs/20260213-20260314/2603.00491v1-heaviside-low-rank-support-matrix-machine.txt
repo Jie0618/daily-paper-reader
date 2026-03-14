@@ -1,0 +1,956 @@
+Title: Heaviside Low-Rank Support Matrix Machine
+
+URL Source: https://arxiv.org/pdf/2603.00491v1
+
+Published Time: Tue, 03 Mar 2026 01:33:32 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# Heaviside Low-Rank Support Matrix Machine 
+
+Xian-Chao Xiu 1, Sheng-Hao Sun 1, Xin-Rong Li 2* and Ji-Yuan Tao 3
+
+> 1
+
+School of Mechatronic Engineering and Automation, Shanghai University, Shanghai, 200400, China. 
+
+> 2*
+
+National Frontiers Science Center for Industrial Intelligence and Systems Optimization, Northeastern University, Shenyang, 110819, China. 
+
+> 3
+
+Department of Mathematics and Statistics, Loyola University Maryland, Baltimore, MD 21210, USA. *Corresponding author. E-mail: lixinrong@mail.neu.edu.cn; Contributing authors: xcxiu@shu.edu.cn; m15834069451@163.com; jtao@loyola.edu; 
+
+> †
+
+This paper was supported in part by the National Natural Science Foundation of China under Grant Nos. 12371306, 12501420. 
+
+Abstract 
+
+Support matrix machine (SMM) is an emerging classification framework that directly handles matrix-structured observations, thereby avoiding the spatial correlations destroyed by vectorization. However, most existing SMM vari-ants rely on convex or nonconvex surrogate loss functions, which may lead to high sensitivity to noise. To address this issue, we propose a novel Heav-iside low-rank SMM model called HL-SMM, which leverages the Heaviside loss instead of the common hinge or ramp losses for robustness. Moreover, the low-rank constraint is adopted to accurately characterize the inherent global structure. In theory, we analyze the Karush-Kuhn-Tucker (KKT) points and rigorously prove the su ffi cient and necessary conditions. In algorithms, we develop an e ff ective proximal alternating minimization (PAM) scheme, where all subproblems have closed-form solutions. Extensive experiments on benchmark datasets validate that the proposed HL-SMM achieves superior classification accuracy and robustness compared to state-of-the-art methods. 
+
+1
+
+> arXiv:2603.00491v1 [cs.LG] 28 Feb 2026
+
+2 Heaviside Low-Rank Support Matrix Machine   
+
+> Keywords: Classification, Support matrix machine, Heaviside loss, Proximal alternating minimization
+> Mathematics Subject Classification: 90C90 , 90C26 , 90C30
+
+# 1 Introduction 
+
+Classification is a fundamental task in machine learning and pattern recogni-tion, with extensive applications in signal and image processing. For example, in the medical field, classification has been shown to remarkably enhance the accuracy and e ffi ciency of diagnosing various diseases [1]. Traditional classification methods mainly include support vector machine (SVM) [2], k-nearest neighbors (KNN) [3], and logistic regression (LR) [4]. Among these, SVM stands out as a supervised learn-ing method with rigorous mathematical foundations and statistical learning theory, see, e.g., [5, 6] for recent surveys. Over the past few decades, SVM has evolved into a series of variants, which can be categorized into linear SVM [7], kernel SVM [8], and deep SVM [9]. By maximizing the separation margin between di ff erent classes, SVM exhibits strong generalization ability and excellent performance in processing high-dimensional fea-ture spaces. However, these SVM variants deal with input data represented in the vector form. In reality, most data in the world exists in the matrix form, such as med-ical images and facial images. As described in [10], converting matrices to vectors not only destroys the inherent spatial correlations but also significantly increases the computational complexity. Recently, the support matrix machine (SMM) was proposed and studied [11]. It directly processed matrix data with the help of the hinge loss and nuclear norm, ensur-ing the e ff ectiveness of classification while making full use of the data structure. After that, numerous variants have been developed to enhance its e ffi ciency and generaliza-tion. For example, Liang et al. [12] constructed the least-squares SMM (LS-SMM) by replacing the hinge loss with the least-squares loss for matrix-structured EEG clas-sification. Li et al. [13] introduced non-parallel hyperplanes and used small infrared thermal images for fault diagnosis. Li et al. [14] improved the generalization perfor-mance of SMM by extending the input matrix through an auto-correlation function transformation. In fact, the hinge loss function used in SMM is a convex approxima-tion of the Heaviside loss. While this simplifies computation, it makes the method more sensitive to noise. To address this limitation, Feng et al. [15] developed a new method with the pinball loss (Pin-SMM) that better captured the underlying data dis-tribution and significantly enhanced its resistance to noise near the decision boundary. Other variants, such as incorporating the truncated hinge loss [16] and the trun-cated pinball loss [17], are also introduced. Fig. 1 visualizes the coe ffi cient matrices obtained by di ff erent loss functions. The more localized and cleaner patterns indicate that the loss can better suppress noise and outliers. It can be seen that the Heaviside loss performs better than others. Heaviside Low-Rank Support Matrix Machine 30 1 2 3 4 5 6 7 8 9 
+
+> 0123456789-1 -0.5 00.5 1
+
+(a) Hinge loss 0 1 2 3 4 5 6 7 8 9  
+
+> 0123456789-1 -0.5 00.5 1
+
+(b) Pinball loss 0 1 2 3 4 5 6 7 8 9 
+
+> 0123456789-1 -0.5 00.5 1
+
+(c) Truncated pinball loss 0 1 2 3 4 5 6 7 8 9  
+
+> 0123456789-1 -0.5 00.5 1
+
+(d) Heaviside loss 
+
+Fig. 1 : Coe ffi cient matrices obtained by di ff erent loss functions. Although these aforementioned SMM methods have obtained excellent noise resistance, the inherent sparsity and low-rank characteristics of the input data were not fully considered, potentially leading to poor performance when dealing with com-plex intrinsic structures and data volumes [18, 19]. Zheng et al. [20] integrated the 
+
+ℓ1-norm with SMM to filter out redundant features, thus achieving more interpretable modeling. Wang et al. [21] employed a twin non-parallel hyperplane structure with the ℓ1-norm regularization to ensure sparsity and discriminativeness. Unlike the pre-vious two methods, Gu et al. [22] introduced the nonconvex ramp loss function to SMM called Ramp-SMM. Note that the rank in the objective function is often replaced with the nuclear norm for overcoming computational di ffi culties [23]. How-ever, this often tends to over-shrink singular values, and thus distort the underlying low-rank structure, especially when the true intrinsic dimension is small [24]. More importantly, as stated in [25], the solution to the nuclear norm minimization prob-lem is not necessarily the solution to the corresponding rank minimization problem. 
+
+A natural question arises: can we construct a new SMM variant that combines the Heaviside loss for robustness and the rank constraint for structure preservation? 
+
+This article provides a definitive answer and proposes a rank-constrained SMM with the Heaviside loss, termed HL-SMM. Specifically, the Heaviside loss improves robustness to noise and outliers, while the rank constraint explicitly enforces the low-dimensional representation. In fact, to our best knowledge, this is the first SMM variant that introducing the Heaviside loss. However, the resulting problem is nonconvex and nonsmooth. To this end, we establish the necessary and su ffi cient 4 Heaviside Low-Rank Support Matrix Machine 
+
+conditions for KKT points and develop an e ff ective PAM algorithm with closed-form updates for each subproblem. Furthermore, we conduct extensive experiments on six benchmark datasets, including robustness evaluation and parameter sensitivity analysis, to evaluate the performance of our proposed method. The remainder of this paper is organized as follows. Section 2 introduces the preliminaries. Section 3 presents the proposed model and optimization algo-rithm. Section 4 reports the experimental results and discussions. Finally, Section 5 concludes this paper. 
+
+# 2 Preliminaries 
+
+In this paper, matrices are represented by bold uppercase letters, vectors by bold lowercase letters, and scalars by lowercase letters. Let Rp×q and Rp be the sets of 
+
+p × q-dimensional matrices and p-dimensional vectors, respectively. For a matrix 
+
+W ∈ Rp×q, denote its transpose as W⊤. The inner product of two matrices W, Y ∈
+
+Rp×q is ⟨W, Y⟩ = tr( W⊤Y), where tr( ·) denotes the trace. The Frobenius norm of W
+
+is ∥W∥F = √⟨W, W⟩, and the nuclear norm is ∥W∥∗. In addition, the singular value decomposition (SVD) is denoted as W = U Σ(W) V⊤, where U ∈ O p and V ∈ O q are the orthogonal matrices, Σ(W) is the diagonal matrix, whose diagonal elements are called the singular values and reoresented by σi(W). Note that we let Wi be the i-th matrix sample within a given set of matrices. For a vector z ∈ Rp, the i-th element is denoted as ( z)i. Define the Euclidean norm as ∥z∥, the ℓ0-norm as ∥z∥0, which counts the number of nonzero elements in the vector z. For a scalar t ∈ R, define [ t]+ = max {t, 0}, thus z+ = ([( z)1]+, · · · , [( z)p]+)⊤.The Heaviside loss is 
+
+∥z+∥0 =
+
+> m
+
+X
+
+> i=1
+
+ℓ0/1(( z)i), ℓ0/1(( z)i) =
+
+
+
+1, (z)i > 0,
+
+0, (z)i ≤ 0.
+
+Let A : Rp×q → Rm be the linear operator defined by 
+
+A (W) = (⟨A1, W⟩, · · · , ⟨Am, W⟩)⊤,
+
+where each Ai ∈ Rp×q is the given matrix. The adjoint operator A ∗ : Rm → Rp×q is defined by 
+
+⟨A (W), λ⟩ = ⟨W, A ∗(λ)⟩, ∀ W ∈ Rp×q, λ ∈ Rm.
+
+It follows directly that 
+
+A ∗(λ) =
+
+> m
+
+X
+
+> i=1
+
+(λ)iAi.
+
+We will frequently use the a ffi ne constraint 
+
+z = 1 + A (W),
+
+and the a ffi ne set 
+
+L = {(W, z) ∈ Rp×q × Rm | 1 + A (W) = z},Heaviside Low-Rank Support Matrix Machine 5where 1 is the vector of all-ones in Rm. Furthermore, define the rank-constrained set 
+
+R = {W ∈ Rp×q | rank( W) ≤ r},
+
+where r < min {p, q} is the prescribed rank parameter. Then, the feasible region is 
+
+F = L ∩ R .In order to characterize the rank-constrained optimization, some explicit expres-sions related to the projection and the normal cone of R are given as follows, see [23] for details. 
+
+Lemma 1 (Projection of R) Given W ∈ Rp×q with singular values σ1(W) ≥ · · · ≥ σs(W) > 0, the (possibly set-valued) projection onto the rank-constrained set is 
+
+ΠR(W) = {U Diag( σ1(W), · · · , σ r(W), 0, · · · , 0) V⊤ | (U, V) ∈ O p,q(W)},
+
+when σr(W) > σ r+1(W) (or σr(W) = 0), the projection is single-valued. 
+
+From the above lemma, it can be seen that projecting a matrix onto the set R is equivalent to retaining its first r largest singular values and discarding the rest, which is essentially a hard thresholding operation on the singular values. In the following lemma, we will give the regular normal cone to R.
+
+Lemma 2 (Normal cone of R) Let W ∈ R with rank( W) = s ≤ r and SVD as above. The regular normal cone to R at W admits the representation NR(W) =
+
+UΓ⊥ 
+
+> p
+
+DV ⊤ 
+
+> Γ⊥
+> q
+
+| D ∈ R(p−r)×(q−r) , s = r,
+
+{0}, s < r,
+
+where Γp is the index set of nonzero singular values, Γ⊥ 
+
+> p
+
+= {1, . . . , p} \ Γp, UΓ⊥ 
+
+> p
+
+is the submatrix of U indexed by Γ⊥ 
+
+> p
+
+, and VΓ⊥ 
+
+> q
+
+is the submatrix of V indexed by Γ⊥ 
+
+> q
+
+.
+
+At the end of this section, the proximal operator of ∥(·)+∥0 is described, see [26] for details. 
+
+Lemma 3 (Proximal operator of ∥(·)+∥0) For γ > 0, define the proximal mapping of the function γ∥z+∥0 by Prox γ∥(·)+∥0 (x) = arg min  
+
+> z∈Rp
+
+{γ∥z+∥0 + 12 ∥z − x∥2}.
+
+The solution is [Prox γ∥(·)+∥0 (x)] i =
+
+
+
+0, 0 < (x)i ≤ p2γ, 
+
+(x)i, (x)i ≤ 0 or ( x)i > p2γ. 
+
+Here, Prox γ∥(·)+∥0 performs the hard thresholding on the positive entries of x, and this operator is separable across coordinates. 6 Heaviside Low-Rank Support Matrix Machine 
+
+# 3 The Proposed Method 
+
+3.1 New Formulation 
+
+Given training data ( Xi, yi), i = 1, · · · , m, where Xi∈Rp×q is the observation, 
+
+yi ∈ {− 1, 1} is the label. The SMM classification is to find a hyperplane, i.e., 
+
+yi = ⟨W, Xi⟩ + b,
+
+such that the data with di ff erent labels can be separated by the hyperplane. The original SMM problem can be mathematically expressed as min 
+
+> W,b
+
+12 ⟨W, W⟩
+
+s.t. yi(⟨W, Xi⟩ + b) ≥ 1, i = 1, · · · , m,
+
+rank( W) ≤ r,
+
+(1) where r is a positive integer satisfying r < min {p, q}. Problem (1) is based on the assumption that the two types of data can be successfully separated by the hyper-plane. However, in practice, this is usually not the case, and the rank constraint is a nonconvex problem, making the optimization generally challenging. A more prac-tical and popular method is the regularized penalty model, which incorporates the nuclear norm relaxation, defined as min 
+
+> W,b
+
+12 ⟨W, W⟩ + α∥W∥∗ + β
+
+> m
+
+X
+
+> i=1
+
+ϕ 1 − yi(⟨W, Xi⟩ + b) , (2) where α, β > 0 are the penalty parameters and ϕ corresponds to the loss function. For example, the classic Hinge-SMM [11] adopts ϕ with the hinge loss, and in this case, problem (2) becomes min 
+
+> W,b
+
+12 ⟨W, W⟩ + α∥W∥∗ + β
+
+> m
+
+X
+
+> i=1
+
+1 − yi(⟨W, Xi⟩ + b)+ .
+
+Naturally, other loss functions, such as the pinball loss and the ramp loss, can also be considered. While these loss functions have demonstrated promising performance in existing studies, they still deviate from the intrinsic nature of the problem to some extent. Motivated by these observations, this paper introduces the Heaviside loss function and the rank constraint to precisely characterize this problem as min 
+
+> W,b
+
+12 ⟨W, W⟩ + β
+
+> m
+
+X
+
+> i=1
+
+ℓ0/1
+
+1 − yi(⟨W, Xi⟩ + b)
+
+s.t. rank( W) ≤ r.
+
+(3) Heaviside Low-Rank Support Matrix Machine 7Let z = 1 − A (W) − by. According to Section 2, problem (3) has the following equivalent form min 
+
+> W,z,b
+
+12 ⟨W, W⟩ + β∥z+∥0
+
+s.t. z = 1 − A (W) − by,
+
+rank( W) ≤ r.
+
+(4) Without loss of generality, the bias term b could be inserted into W. Denote ˆW = [W⊤ be j]⊤, where e j ∈ Rq is the j-th standard basis vector (a column vec-tor with 1 at position j and 0 elsewhere). Furthermore, define the linear operator 
+
+A : R(p+1) ×q → Rm of ˆW, with a matrix Ai ∈ Rq×(p+1) . For each training sample, it has Ai = −yi[X⊤ 
+
+> i
+
+e j]. This construction ensures that 
+
+⟨ ˆW, Ai⟩ = −yi (⟨W, Xi⟩ + b) .
+
+Therefore, the original a ffi ne constraint z = 1 − A (W) − by can be rewritten as 
+
+z = 1 + A ( ˆ W), and thus problem (4) can be further presented by min 
+
+> ˆW,z
+
+12 ⟨ ˆW, ˆW⟩ + β∥z+∥0
+
+s.t. 1 + A ( ˆ W) = z,
+
+rank( ˆ W) ≤ r.
+
+(5) 
+
+3.2 Optimality Conditions 
+
+The Lagrangian function of problem (5) is 
+
+L ( ˆ W, z, λ) = 12 ⟨ ˆW, ˆW⟩ + β∥z+∥0 + ⟨λ, 1 + A ( ˆ W) − z⟩,
+
+where λ ∈ Rm is the Lagrangian multiplier. Let ∇ ˆWL ( ˆ W, z, λ) and ∇zL ( ˆ W, z, λ)stand for the gradients of L with respect to ˆ W and z, respectively, where 
+
+∇ ˆWL ( ˆ W, z, λ) = ˆW + A ∗(λ),∂zL ( ˆ W, z, λ) = β∂ ∥z+∥0 − λ.
+
+Recall that the function ∥(·)+∥0 : Rm → R is lower semicontinuous on Rm [27]. The regular subdi ff erentials of ∥z+∥0 at z enjoy the following property 
+
+∂∥z+∥0 =
+
+d ∈ Rm |
+
+
+
+0, (z)i , 0
+
+≥ 0, (z)i = 0
+
+ .
+
+Before discussing the optimality conditions, denote 
+
+L = {( ˆ W, z) ∈ R(p+1) ×q × Rm | 1 + A ( ˆ W) = z},
+
+R = { ˆW ∈ R(p+1) ×q | rank( ˆ W) ≤ r}.8 Heaviside Low-Rank Support Matrix Machine 
+
+Then, the feasible region of problem (5) is denoted by F = L ∩ R .
+
+Definition 1 A point ( ˆ W, z) is called a Karush–Kuhn–Tucker (KKT) point of problem (5) if there exists a Lagrangian multiplier λ such that 
+
+
+
+−∂( ˆ W,z)L ( ˆ W, z, λ) ∈ NF ( ˆ W, z),
+
+rank( ˆ W) ≤ r,
+
+1 + A ( ˆ W) − z = 0.
+
+Given the SVD ˆ W = U Σ( ˆ W) V⊤ and matrices A1, · · · , Am ∈ R(p+1) ×q, denote 
+
+TiˆW =
+
+
+
+U⊤ 
+
+> Γ
+
+AiVΓ U⊤ 
+
+> Γ
+
+AiVΓ⊥
+
+> q
+
+U⊤
+
+> Γ⊥
+> p
+
+AiVΓ O
+
+ , RiˆW = U⊤AiVΓ,
+
+for i = 1, · · · , m, where Γ is the index set of nonzero singular values. Following a similar line as [23], Assumption 1 can be obtained. 
+
+Assumption 1 When s = r, the matrices TiˆW, i = 1, 2, · · · , m, are linearly independent. When s < r, the matrices RiˆW, i = 1, 2, · · · , m, are linearly independent. 
+
+The following theorem illustrates that under a constraint qualification tailored to the rank constraint (Assumption 1), local minimizers satisfy a KKT point condition. 
+
+Theorem 1 (Necessary optimality condition) Suppose that Assumption 1 holds. Then a local minimizer of problem (5) is a KKT point. Proof Let T = ( ˆ W, z) be a local minimizer of problem (5) and denote f (T) as the objective function. Invoking the generalized Fermat’s theorem, it derives that −∂T f (T) ∈ NF (T). Then it has 
+
+−∇ ˆW f (T) ∈ NL∩R ( ˆ W),
+
+−∂z f (T) ∈ NL(z). (6) Next, consider the following two cases, which correspond to the two scenarios of Assumption 1 respectively. 
+
+(Case 1) If rank( ˆ W) = r, it derives that N L∩R ( ˆ W) = NL( ˆ W) + NR( ˆ W). Then, 
+
+−∇ ˆW f (T) ∈ NL( ˆ W) + NR( ˆ W).
+
+(Case 2) If rank( ˆ W) < r, it shows that N L∩R ( ˆ W) = NL( ˆ W). Note that NL( ˆ W) = {
+
+> m
+
+X
+
+> i=1
+
+(λ)iyiXi | (λ)i ∈ R, i = 1, · · · , m}.
+
+Relation (6) indicates that there exist λ such that −∇ ˆW f (T) + Pmi=1(λ)iyiXi ∈ NR( ˆ W). Then, 
+
+−∂ ˆWL (T, λ) = −∇ ˆW f (T) +
+
+> m
+
+X
+
+> i=1
+
+(λ)iyiXi ∈ NR( ˆ W). (7) Heaviside Low-Rank Support Matrix Machine 9
+
+Similarly, since N L(z) = Rm, relation (6) implies that 
+
+−∂zL (T, λ) ∈ NL(z). (8) Combing (7) and (8), it holds that 
+
+
+
+−∂ ˆWL (T, λ) ∈ NR( ˆ W),
+
+−∂zL (T, λ) ∈ NL(z).
+
+Therefore, it has 
+
+−∂( ˆ W,z)L ( ˆ W, z, λ) ∈ NF ( ˆ W, z).
+
+From Definition 1, it is concluded that T is a KKT point. The proof is completed. 
+
+Theorem 2 (Su ff cient optimality condition) A KKT point ( ˆ W∗, z∗) of problem (5) is also a local minimizer. Proof Let ( ˆ W∗, z∗) be a KKT point of problem (5) and λ∗ ∈ Rm be the corresponding Lagrangian multiplier, it can prove that ( ˆ W∗, z∗) is a local optimal solution by considering the following two cases. 
+
+(Case 1) If rank( ˆ W∗) = r, then ∇ ˆWL ( ˆ W∗, z∗, λ∗) ∈ NR( ˆ W∗). For any ˆW ∈ F ∩ U( ˆ W∗; δ1)with δ1 > 0, denoting the radius of an open ball neighborhood. By the orthogonality of the normal cone and the tangent cone, it has 
+
+⟨∇ ˆWL ( ˆ W∗, z∗, λ∗), ˆW − ˆW∗⟩ = 0. (9) 
+
+(Case 2) If rank( ˆ W∗) < r, then ∇ ˆWL ( ˆ W∗, z∗, λ∗) = 0. For any ˆ W ∈ R(p+1) ×q, it also has (9). Due to the lower semicontinuous of function ∥z+∥0, for any δ2 > 0, there is a neighborhood 
+
+U(z∗; δ2) of z∗ ∈ L such that 
+
+∥z+∥0 > ∥z∗
+
+> +
+
+∥0 − 12 .
+
+Since ∥z+∥0 and ∥z∗
+
+> +
+
+∥0 can only take integer values, then it should have 
+
+∥z+∥0 ≥ ∥ z∗
+
+> +
+
+∥0. (10) As f (T) is the objective function, thus for any T ∈ F ∩ U (T∗; min {δ1, δ 2}), it implies 
+
+f (T) − f (T∗) = L (T, λ∗) − L (T∗, λ∗)
+
+= 12 ⟨ ˆW − ˆW∗, ˆW − ˆW∗⟩ + β∥z+∥0 − β∥z∗
+
+> +
+
+∥0
+
+= L ( ˆ W, z∗, λ∗) − L ( ˆ W∗, z∗, λ∗) + β∥z+∥0 − β∥z∗
+
+> +
+
+∥0
+
+≥ ⟨∇ ˆWL ( ˆ W∗, z∗, λ∗), ˆW − ˆW∗⟩
+
+= 0,
+
+where the first inequality is due to the convexity of the Lagrangian function with respect to ˆ W
+
+and (10). Therefore, ( ˆ W∗, z∗) is also a local minimizer of problem (5). The proof is completed. 10 Heaviside Low-Rank Support Matrix Machine 
+
+Algorithm 1 Optimization algorithm for problem (11) 
+
+Input: Data {(Xi, yi)}mi=1, parameters β, σ, r, τ1, τ2, τ3.
+
+Output: W , z, b.
+
+For k = 1 to maxit do  
+
+> 1:
+
+Update Wk+1 by solving min  
+
+> W
+
+f (W, zk, bk) + τ1
+
+2 ∥W − Wk∥2F
+
+s.t. rank( W) ≤ r. 
+
+> 2:
+
+Update zk+1 by solving min  
+
+> z
+
+f (Wk+1, z, bk) + τ2
+
+2 ∥z − zk∥2F. 
+
+> 3:
+
+Update bk+1 by solving min  
+
+> b
+
+f (Wk+1, zk+1, b) + τ3
+
+2 ∥b − bk∥2.
+
+End for 
+
+3.3 Optimization Algorithm 
+
+This section develops a proximal alternating minimization (PAM) algorithm for solving problem (5). Consider the following equivalent optimization problem min  
+
+> W,z,b
+
+f (W, z, b) = 12 ⟨W, W⟩ + β∥z+∥0 + σ∥z − 1 + A (W) + by∥2
+
+s.t. rank( W) ≤ r,
+
+(11) where σ > 0 is the penalty parameter. Now we discuss the update rules for each subproblem in Algorithm 1, where τ1, τ 2, τ 3 > 0 are the parameters to balance the quadratic terms. 
+
+• The W-subproblem can be reduced to min 
+
+> W
+
+12 ⟨W, W⟩ + σ∥z − 1 + A (W) + by∥2 + τ1
+
+2 ∥W − Wk∥2F
+
+s.t. rank( W) ≤ r.
+
+(12) Denote the objection function as h(W), which is a continuous di ff erentiable function. Thus, problem (12) yields the following solution 
+
+Wk+1 = Π R(Wk − αk∇h(Wk)) ,
+
+where ∇h(Wk) = Wk + 2σ Pmi=1 yi(( zk)i − 1 + yi⟨Wk, Xi⟩ + bkyi)Xi.Heaviside Low-Rank Support Matrix Machine 11 
+
+• The z-subproblem can be simplified to min  
+
+> z
+
+β∥z+∥0 + σ∥z − 1 + A (W) + by∥2 + τ2
+
+2 ∥z − zk∥2. (13) Let v = 1 − A (W) − by. Then, the above problem is equivalent to min 
+
+> z
+
+2βσ + τ2
+
+∥z+∥0 + ∥z − 2σσ + τ2
+
+v − τ2
+
+σ + τ2
+
+zk∥2.
+
+By exploiting the hard thresholding operator, problem (13) has the solution 
+
+zk+1 = Prox 2βσ+τ2 ∥(·)+∥0 ( 2σσ + τ2
+
+v + τ2
+
+σ + τ2
+
+zk),
+
+where (zk+1)i =
+
+
+
+0, 0 < ( 2σσ+τ2 v + τ2 
+
+> σ+τ2
+
+zk)i ≤
+
+q 4βσ+τ2 ,
+
+( 2σσ+τ2 v + τ2 
+
+> σ+τ2
+
+zk)i, otherwise .
+
+• The b-subproblem is a convex quadratic programming problem min  
+
+> b
+
+σ∥z − 1 + A (W) + by∥2 + τ3
+
+2 ∥b − bk∥2.
+
+It has the first-order derivative 2σy⊤(zk+1 − 1 + A (Wk+1) + bk+1y) + τ3(bk+1 − bk) = 0,
+
+and thus 
+
+bk+1 = τ3bk − 2σy⊤(zk+1 − 1 + A (Wk+1)) 2σy⊤y + τ3
+
+.
+
+3.4 Convergence Analysis 
+
+This section provides convergence guarantees for Algorithm 1. Let Φ(W) be the indicator function defined as 
+
+Φ(W) =
+
+
+
+0, W ∈ R 
+
++∞, otherwise ,
+
+and 
+
+g(W, z, b) = 12 ⟨W, W⟩ + β∥z+∥0 + σ∥z − 1 + A (W) + by∥2 + Φ (W).12 Heaviside Low-Rank Support Matrix Machine 
+
+Table 1 : Summary of the selected six datasets. Datasets Dimensions Training Samples (#pos /#neg) Testing Samples (#pos /#neg) SPAMBASE 4601 × 57 2255 /966 966 /414 IONO 351 × 34 172 /74 74 /31 CIFAR10 32 × 32 3500 /1500 700 /300 CaltechFace 896 × 592 221 /94 94 /41 BCI 200 × 59 98 /42 42 /18 WDBC 596 × 30 279 /119 120 /51 
+
+Theorem 3 For the sequence {(Wk, zk, bk)} obtained by Algorithm 1, there exists τ > 0 that satisfies g(Wk, zk, bk) − g(Wk+1, zk+1, bk+1)
+
+≥ τ
+
+2 (∥Wk+1 − Wk∥2 
+
+> F
+
++ ∥zk+1 − zk∥2 + ∥bk+1 − bk∥2). (14) 
+
+Proof From the updates of Algorithm 1, it is seen that 
+
+g(Wk+1, zk, bk) + τ1
+
+2 ∥Wk+1 − Wk∥2F ≤ g(Wk, zk, bk),
+
+g(Wk+1, zk+1, bk) + τ2
+
+2 ∥zk+1 − zk∥2 ≤ g(Wk+1, zk, bk),
+
+g(Wk+1, zk+1, bk+1) + τ3
+
+2 ∥bk+1 − bk∥2 ≤ g(Wk+1, zk+1, bk).
+
+The above inequalities, together with the fact that there exists τ = max {τ1, τ 2, τ 3}, make (14) naturally hold. Therefore, the proof is completed. 
+
+Remark 1 Note that the convergence analysis of PAM relies on the Kurdyka-Łojasiewicz (KL) property of the objective function [28]. Although [29] demonstrates that the KL prop-erty is attainable when the objective function contains a continuously di ff erentiable component over a low-rank set, our formulation (11) presents a distinct theoretical challenge due to the Heaviside loss. The resulting jump discontinuities and vanishing subdi ff erentials almost every-where preclude the existence of a desingularizing function, thereby violating the KL inequality. Consequently, as the standard descent-based convergence cannot be theoretically derived, we provide numerical evidence in Section 4 to empirically validate the robust convergence and stability of the proposed algorithm. 
+
+To end this section, the computational complexity of our proposed PAM algorithm is analyzed. Updating W involves calculating the gradient ∇h(W) and pro-jecting the result onto the rank constraint set R, which require O(mpq ) and O(pqr ), respectively. Updating z and b require O(m) and O(mpq ), respectively. Therefore, the overall computational complexity of each iteration is O(mpq + pqr ). 
+
+# 4 Numerical Experiments 
+
+In this section, numerical experiments are conducted to evaluate the perfor-mance of our proposed HL-SMM on real-world datasets with state-of-the-art SMM Heaviside Low-Rank Support Matrix Machine 13 
+
+Table 2 : Classification accuracy (%) comparison of di ff erent methods. Datasets Hinge-SMM Pinball-SMM Ramp-SMM LS-SMM Linear-SVM RBF-SVM Poly-SVM HL-SMM SPAMBASE 88.97 87.83 88.71 86.30 87.75 71.16 90.43 90.96                                                 
+
+> IONO 85.90 82.10 71.05 80.00 86.71 64.67 84.76 86.48 CIFAR10 74.40 74.25 70.35 47.50 67.75 61.00 74.75 75.55
+> CaltechFace 96.50 96.13 94.75 91.24 100.00 60.37 96.31 99.08 BCI 50.67 51.00 49.67 45.00 45.00 46.67 48.33 56.00
+> WDBC 94.15 95.09 92.05 84.80 94.15 97.08 97.83 98.25
+> Average 81.77 81.07 77.76 72.47 80.23 66.83 82.07 84.39
+
+methods such as Hinge-SMM [11], Pinball-SMM [15], Ramp-SMM [22], and LS-SMM [12], as well as other SVM methods including Linear-SVM [2], RBF-SVM [30], and Poly-SVM [31]. All experiments are performed using MATLAB 2021b on an Intel i5-1135G7 CPU at 2.40 GHz with 16 GB RAM. Our code will be available at https: // github.com /xianchaoxiu /HL-SMM. 
+
+4.1 Experimental Setup 
+
+In the experiments, six real-world datasets are chosen, including SPAMBASE 1,IONO 2, CIFAR10 3, CaltechFace 4, BCI 5, and WDBC 6, see Table 1 for more details. For the CIFAR10 dataset, only the first two classes are used to construct binary clas-sification tasks. For the BCI dataset, the EEG signals are segmented into 4-second segments, each starting 0.5 seconds after the cue and downsampled by a factor of 20. Segments exceeding the recording boundaries are discarded, and shorter segments are zero-padded. For all image datasets, each sample is converted to grayscale and normalized to zero mean and unit variance. The hyperparameters are optimized on the following candidate sets: β ∈{0.01 , 0.1, 0.5}, σ ∈ { 0.01 , 0.1}, r ∈ { 4, 10 }, τ1, τ 2, τ 3 ∈ { 10 −4, 10 −3, 10 −2}, the maxi-mum iteration maxit = 1000. Note that β and r are the two key hyperparameters that balance margin maximization and classification error. A detailed sensitivity analy-sis will be presented in subsequent sections. For the remaining baseline methods, all hyperparameters are fixed to the values reported in their original papers. To evaluate the classification performance, it employs accuracy as the primary metric, which is defined as Accuracy = TP + TN TP + TN + FP + FN × 100% ,
+
+where TP , TN , FP, and FN represent true positives, true negatives, false positives, and false negatives, respectively. A higher classification accuracy indicates a better classification result. 
+
+> 1https: // archive.ics.uci.edu /dataset /94 /spambase
+> 2https: // archive.ics.uci.edu /dataset /52 /ionosphere
+> 3https: // www.cs.toronto.edu /~kriz /cifar.html
+> 4https: // www.vision.caltech.edu /Image_Datasets /faces /
+> 5https: // www.bbci.de /competition /iv /
+> 6https: // archive.ics.uci.edu /dataset /17 /breast +cancer +wisconsin +diagnostic
+
+14 Heaviside Low-Rank Support Matrix Machine 
+
+Table 3 : Classification accuracy (%) under di ff erent Gaussian noise levels. 
+
+Datasets Noise Hinge-SMM Pinball-SMM Ramp-SMM LS-SMM Linear-SVM RBF-SVM Poly-SVM HL-SMM SPAMBASE 0.00 88.97 88.07 89.61 86.30 87.75 71.16 90.43 90.96 
+
+0.05 89.19 88.03 89.00 86.09 87.51 70.25 89.91 90.86 
+
+0.10 88.86 88.12 87.00 86.12 87.58 65.07 89.83 90.74 
+
+0.15 88.88 88.09 88.30 86.09 87.10 60.68 88.64 90.49 
+
+0.20 88.61 88.17 87.35 85.33 87.29 60.58 88.64 90.55 
+
+IONO 0.00 86.10 82.10 74.86 80.00 86.67 64.76 84.76 86.48 0.05 85.90 82.10 81.52 80.57 86.48 63.81 86.86 86.67 0.10 85.90 82.29 78.86 80.76 85.90 62.67 87.62 85.71 0.15 86.29 81.33 68.76 82.29 86.48 61.90 86.86 85.71 0.20 86.67 81.71 71.62 82.29 85.33 61.90 84.38 85.52 CIFAR10 0.00 74.40 74.25 70.00 47.50 67.75 51.00 74.75 75.55 
+
+0.05 73.90 74.05 69.90 48.80 67.80 51.00 75.10 74.75 0.10 74.55 74.20 69.45 48.95 67.85 50.90 74.30 74.60 
+
+0.15 73.65 74.40 69.65 54.45 67.30 50.95 74.90 74.70 0.20 74.85 73.55 70.40 47.50 66.15 50.90 74.50 75.20 
+
+CaltechFace 0.00 95.67 96.41 95.39 91.24 100.00 60.37 96.31 98.71 0.05 96.04 95.21 95.48 91.24 100.00 60.37 95.48 98.53 0.10 95.02 95.39 92.35 91.34 100.00 60.37 95.02 98.53 0.15 96.13 95.85 87.10 91.43 100.00 60.37 95.02 98.25 0.20 95.85 96.13 93.46 90.32 100.00 60.37 94.65 98.34 BCI 0.00 50.67 51.00 49.67 45.00 45.00 46.67 48.33 56.00 
+
+0.05 52.00 50.33 49.00 45.67 45.67 46.33 49.33 53.33 
+
+0.10 52.00 50.33 50.33 45.67 46.00 47.00 48.33 53.33 
+
+0.15 51.67 51.00 50.67 46.67 45.00 48.00 48.33 54.33 
+
+0.20 52.33 49.33 48.67 48.33 49.00 49.00 48.33 50.00 WDBC 0.00 94.15 95.09 92.05 84.80 94.15 97.08 96.49 98.25 
+
+0.05 94.15 95.20 91.93 83.04 94.15 96.96 97.31 97.89 
+
+0.10 94.04 95.20 92.16 91.46 94.15 97.31 97.54 98.25 
+
+0.15 94.15 95.56 74.85 93.92 94.27 96.96 96.84 98.13 
+
+0.20 93.92 95.56 93.57 91.58 94.15 96.84 97.08 97.31 
+
+Average / 81.82 80.94 77.43 73.83 80.22 64.05 81.86 83.59 
+
+4.2 Experimental Results 
+
+Table 2 shows the classification accuracy of di ff erent methods on six datasets, with the best results highlighted in bold. It can be observed that our proposed HL-SMM achieves the best classification accuracy on average, improving upon the second-best by 2.32%. In particular, on the BCI dataset, HL-SMM significantly out-performs the best competing baseline methods, demonstrating the e ff ectiveness of the proposed robust low-rank formulation in challenging scenarios. On the SPAM-BASE and CIFAR10 datasets, HL-SMM also yields consistent improvements over the SMM variants with convex or nonconvex losses, indicating that the Heaviside loss function can better enhance the performance of SMM. On the IONO and Cal-techFace datasets, although Linear-SVM achieves the highest accuracy, HL-SMM still provides competitive performance, and significantly improves upon LS-SMM and other SMM baselines. Heaviside Low-Rank Support Matrix Machine 15 
+
+Table 4 : Classification accuracy (%) under di ff erent salt-and-pepper noise levels. 
+
+Datasets Noise Hinge-SMM Pinball-SMM Ramp-SMM LS-SMM Linear-SVM RBF-SVM Poly-SVM HL-SMM SPAMBASE 0.00 88.97 88.23 89.45 86.30 87.75 71.16 90.43 90.96 
+
+0.05 87.96 87.80 86.42 84.68 86.77 60.67 86.03 89.29 
+
+0.10 87.00 86.97 85.28 84.52 85.78 60.58 84.00 87.87 
+
+0.15 85.97 85.28 83.45 83.93 84.09 60.58 81.54 86.17 
+
+0.20 84.83 84.52 82.72 82.51 83.45 60.58 79.19 85.77 
+
+IONO 0.00 86.29 83.24 71.05 80.00 86.67 64.76 84.76 86.48 0.05 85.71 80.76 70.10 82.29 85.14 62.10 83.62 84.95 0.10 84.00 79.81 73.90 82.67 83.62 61.90 79.43 83.24 0.15 83.24 77.33 70.67 82.29 82.29 61.90 80.95 81.52 0.20 82.67 74.86 71.43 80.00 80.00 61.90 78.10 82.67 
+
+CIFAR10 0.00 74.50 73.75 70.65 47.50 67.75 51.00 74.75 75.55 
+
+0.05 74.65 73.80 70.75 52.30 69.35 50.65 73.30 74.50 0.10 73.70 74.40 70.25 49.10 66.70 50.55 71.75 74.50 
+
+0.15 73.60 74.30 69.65 50.40 68.65 50.00 70.85 73.60 0.20 73.25 72.95 68.75 51.70 68.70 50.00 70.35 73.95 
+
+CaltechFace 0.00 97.14 95.58 87.10 91.24 100.00 60.37 96.31 98.71 0.05 97.33 96.77 91.61 90.69 100.00 60.37 95.21 98.06 0.10 96.31 94.10 93.82 91.34 100.00 60.37 94.75 98.06 0.15 96.13 95.76 95.58 89.59 100.00 60.37 96.31 97.70 0.20 95.67 95.30 93.64 87.83 100.00 60.37 91.98 97.70 BCI 0.00 51.33 49.33 48.33 45.00 45.00 46.67 48.33 56.00 
+
+0.05 50.33 50.33 50.00 50.33 49.33 50.67 48.67 53.33 
+
+0.10 53.67 51.33 49.67 55.00 55.00 51.67 49.00 52.33 0.15 53.67 48.67 48.00 56.33 57.33 51.00 49.33 52.33 0.20 54.00 49.00 49.00 56.67 59.33 50.00 48.33 56.00 WDBC 0.00 94.15 95.32 92.16 84.80 94.15 97.08 96.49 98.25 
+
+0.05 93.68 95.79 92.28 93.33 93.80 96.61 96.14 97.78 
+
+0.10 93.80 95.20 92.63 94.85 92.98 96.73 96.37 96.96 
+
+0.15 92.98 95.91 92.05 94.04 92.40 96.96 95.91 95.20 0.20 93.33 95.91 91.11 94.39 91.46 96.02 96.14 96.02 Average / 81.33 80.08 76.72 75.19 80.58 63.79 79.61 82.52 
+
+To further evaluate robustness, Table 3 and Table 4 report classification results by injecting di ff erent Gaussian noise and salt-and-pepper noise, respectively. It can be concluded that as the noise level increases, most baseline methods exhibit notice-able performance degradation, especially vector-based SVM methods and LS-SMM. In contrast, our proposed HL-SMM maintains relatively stable accuracy across dif-ferent noise levels on multiple datasets. For example, on the SPAMBASE dataset, HL-SMM achieves accuracy above 90% for all noise levels, while RBF-SVM drops substantially under noise corruption. Similar robustness trends can also be seen on the WDBC and CaltechFace datasets, indicating that the proposed Heaviside loss can eff ectively suppress the influence of outliers, and the explicit rank constraint helps preserve the intrinsic low-dimensional structure of matrix data. Overall, these results validate that our proposed method is not only competitive in clean settings but also more robust in the presence of noise. 16 Heaviside Low-Rank Support Matrix Machine Hinge-SMM Pinball-SMM Ramp-SMM LS-SMM Linear-SVM RBF-SVM Poly-SVM HL-SMM 
+
+> 60 65 70 75 80 85 90
+> Accuracy (%)
+
+(a) SPAMBASE Hinge-SMM Pinball-SMM Ramp-SMM LS-SMM Linear-SVM RBF-SVM Poly-SVM HL-SMM  
+
+> 65 70 75 80 85
+> Accuracy (%)
+
+(b) IONO Hinge-SMM Pinball-SMM Ramp-SMM LS-SMM Linear-SVM RBF-SVM Poly-SVM HL-SMM  
+
+> 40 50 60 70
+> Accuracy (%)
+
+(c) CIFAR10 Hinge-SMM Pinball-SMM Ramp-SMM LS-SMM Linear-SVM RBF-SVM Poly-SVM HL-SMM 
+
+> 60 70 80 90 100
+> Accuracy (%)
+
+(d) CaltechFace Hinge-SMM Pinball-SMM Ramp-SMM LS-SMM Linear-SVM RBF-SVM Poly-SVM HL-SMM  
+
+> 44 46 48 50 52 54 56
+> Accuracy (%)
+
+(e) BCI Hinge-SMM Pinball-SMM Ramp-SMM LS-SMM Linear-SVM RBF-SVM Poly-SVM HL-SMM  
+
+> 86 88 90 92 94 96 98
+> Accuracy (%)
+
+(f) WDBC 
+
+Fig. 2 : Robustness comparison under 20% Gaussian noise. Fig. 2 presents boxplots of classification accuracy under 20% Gaussian noise. Generally speaking, our proposed HL-SMM obtains comparable median accuracy with a tighter interquartile range across datasets, indicating improved robustness and stability under severe corruption. In particular, on the SPAMBASE and CIFAR10 datasets, HL-SMM shows high and concentrated accuracy distributions, whereas several baselines exhibit noticeable performance degradation and larger variabil-ity. These results confirm that our proposed method generalizes more reliably than existing methods in high-noise scenarios. 
+
+4.3 Discussions 
+
+4.3.1 Parameter Analysis 
+
+Fig. 3 depicts the accuracy landscapes of our proposed HL-SMM over the rank constraint r and the regularization parameter β on six datasets. A clear high-performance plateau can be observed on all datasets, indicating that HL-SMM is not overly sensitive to hyperparameter tuning and yields consistently strong performance within a broad region of ( r, β ). It can be found that the best results are attained at moderate ranks, whereas too small r tends to restrict model capacity and degrade accuracy, and overly large r may weaken the low-rank inductive bias and reduce robustness. Regarding β, the performance typically peaks at intermediate values, while extreme choices may lead to either insu ffi cient margin enforcement or over-penalization. Therefore, the explicit rank constraint provides an e ff ective mechanism for controlling model complexity and contributes to stable generalization across di ff erent datasets. Heaviside Low-Rank Support Matrix Machine 17 40  
+
+> 210
+> 50
+> 60
+> 70
+> 4
+> Accuracy (%)
+> 80
+> 5
+> 90
+> 6
+> 100
+> 08
+> 50 55 60 65 70 75 80 85 90
+
+(a) SPAMBASE 40    
+
+> 210
+> 50
+> 60
+> 4
+> Accuracy (%)
+> 70
+> 5
+> 80
+> 6
+> 90
+> 80
+> 45 50 55 60 65 70 75 80 85
+
+(b) IONO 30   
+
+> 210
+> 40
+> 50
+> 60
+> 4
+> Accuracy (%)
+> 70
+> 5
+> 80
+> 6
+> 90
+> 08
+> 35 40 45 50 55 60 65 70 75 80
+
+(c) CIFAR10 50  
+
+> 210
+> 60
+> 70
+> 80
+> 4
+> Accuracy (%)
+> 90
+> 5
+> 100
+> 6
+> 110
+> 08
+> 55 60 65 70 75 80 85 90 95 100
+
+(d) CaltechFace 0  
+
+> 210 10
+> 20
+> 30
+> 4
+> Accuracy (%)
+> 40
+> 5
+> 50
+> 6
+> 60
+> 08
+> 10 15 20 25 30 35 40 45 50 55
+
+(e) BCI 50   
+
+> 210
+> 60
+> 70
+> 4
+> Accuracy (%)
+> 80
+> 5
+> 90
+> 6
+> 100
+> 08
+> 50 55 60 65 70 75 80 85 90 95 100
+
+(f) WDBC 
+
+Fig. 3 : Parameter sensitivity analysis of r and β.
+
+4.3.2 Convergence Visualization 
+
+Fig. 4 reports the convergence behavior of our proposed PAM algorithm on six datasets. The evolution of the iterative loss exhibits a rapid transient phase, followed by a clear tendency to saturate. This trend indicates that the norm ∥Wk+1 − Wk∥F
+
+decays with the number of iterations of Algorithm 1. This result, to some extent, proves that our proposed method can converge to the optimal stationary point. 
+
+# 5 Conclusion 
+
+This paper proposes a novel low-rank classification model called HL-SMM, which innovatively integrates the Heaviside loss with an explicit low-rank constraint. Unlike the existing work, the Heaviside loss is highly robust to noise and out-liers while preserving discriminative information from normal data. Furthermore, we establish the su ffi cient and necessary optimality conditions, thus designing an e ff ec-tive PAM algorithm where all subproblems have closed-form solutions. Numerical experimental results demonstrate the superior classification performance and noise robustness over state-of-the-art SMM and SVM variants. In the future, we are interested in developing more e ffi cient second-order optimization algorithms with rigorous sequence convergence. Besides, combining SMM with deep neural networks is a promising direction, which can not lnreduce dependence on hyperparameters and enhance the generalization ability [32]. 
+
+# References 
+
+[1] Yan, X., Qian, J.H., Ma, J., Zhang, A., Liu, S.E., Bland, M.P., Liu, K.J., Wang, 18 Heaviside Low-Rank Support Matrix Machine 0 200 400 600 800 1000 
+
+> Iteration number
+> 02468
+> Iterative loss
+> 10 -2
+
+(a) SPAMBASE 0 200 400 600 800 1000  
+
+> Iteration number
+> 00.5 11.5
+> Iterative loss
+> 10 -2
+
+(b) IONO 0 200 400 600 800 1000      
+
+> Iteration number
+> 0123
+> Iterative loss
+> 10 -1
+> 010 20 30 40
+> 0.05 0.1 0.15 0.2 0.25 0.3
+
+(c) CIFAR10 0 200 400 600 800 1000     
+
+> Iteration number
+> 0246
+> Iterative loss
+> 10 -1
+> 010 20 30 40
+> 0.1 0.2 0.3 0.4 0.5 0.6 0.7
+
+(d) CaltechFace 0 200 400 600 800 1000      
+
+> Iteration number
+> 0123456
+> Iterative loss
+> 10 -1
+> 010 20 30 40
+> 0.1 0.2 0.3 0.4 0.5
+
+(e) BCI 0 200 400 600 800 1000  
+
+> Iteration number
+> 00.5 11.5 22.5
+> Iterative loss
+> 10 -2
+
+(f) WDBC 
+
+Fig. 4 : Convergence curves of the proposed algorithm. X., Sangwan, V.K., Wang, H., et al. : Reconfigurable mixed-kernel heterojunc-tion transistors for personalized support vector machine classification. Nature Electronics 6(11), 862–869 (2023) [2] Cortes, C., Vapnik, V.: Support-vector networks. Machine Learning 20 (3), 273– 297 (1995) [3] Cover, T., Hart, P.: Nearest neighbor pattern classification. IEEE Transactions on Information Theory 13 (1), 21–27 (1967) [4] LaValley, M.P.: Logistic regression. Circulation 117 (18), 2395–2399 (2008) [5] Cervantes, J., Garcia-Lamont, F., Rodríguez-Mazahua, L., Lopez, A.: A com-prehensive survey on support vector machine classification: Applications, challenges and trends. Neurocomputing 408 , 189–215 (2020) [6] Tanveer, M., Rajani, T., Rastogi, R., Shao, Y.-H., Ganaie, M.: Comprehensive review on twin support vector machines. Annals of Operations Research 339 (3), 1223–1268 (2024) [7] Chen, Y.-N., Qi, K., Tang, L.-P.: An RML-based asymmetric loss support vec-tor machine for robust and imbalanced classification. Journal of the Operations Research Society of China, 1–55 (2026) Heaviside Low-Rank Support Matrix Machine 19 [8] Zhang, D., Sen, S.: The stochastic conjugate subgradient algorithm for ker-nel support vector machines. SIAM Journal on Optimization 35 (2), 1194–1215 (2025) [9] Okwuashi, O., Ndehedehe, C.E.: Deep support vector machine for hyperspec-tral image classification. Pattern Recognition 103 , 107298 (2020) [10] Kumari, A., Akhtar, M., Shah, R., Tanveer, M.: Support matrix machine: A review. Neural Networks 181 , 106767 (2025) [11] Luo, L., Xie, Y., Zhang, Z., Li, W.-J.: Support matrix machines. In: International Conference on Machine Learning, pp. 938–947 (2015). PMLR [12] Liang, S., Hang, W., Lei, B., Wang, J., Qin, J., Choi, K.-S., Zhang, Y.: Adap-tive multimodel knowledge transfer matrix machine for eeg classification. IEEE Transactions on Neural Networks and Learning Systems 35 (6), 7726–7739 (2022) [13] Li, X., Shao, H., Lu, S., Xiang, J., Cai, B.: Highly e ffi cient fault diagno-sis of rotating machinery under time-varying speeds using lsismm and small infrared thermal images. IEEE Transactions on Systems, Man, and Cybernetics: Systems 52 (12), 7328–7340 (2022) [14] Li, Y., Wang, D., Liu, F.: The auto-correlation function aided sparse support matrix machine for EEG-based fatigue detection. IEEE Transactions on Circuits and Systems II: Express Briefs 70 (2), 836–840 (2023) [15] Feng, R., Xu, Y.: Support matrix machine with pinball loss for classification. Neural Computing and Applications 34 (21), 18643–18661 (2022) [16] Qian, C., Tran-Dinh, Q., Fu, S., Zou, C., Liu, Y.: Robust multicategory support matrix machines. Mathematical Programming 176 (1), 429–463 (2019) [17] Li, H., Xu, Y.: Support matrix machine with truncated pinball loss for classifi-cation. Applied Soft Computing 154 , 111311 (2024) [18] Xiu, X., Pan, L., Yang, Y., Liu, W.: E ffi cient and fast joint sparse constrained canonical correlation analysis for fault detection. IEEE Transactions on Neural Networks and Learning Systems 35 (3), 4153–4163 (2024) [19] Xiu, X., Huang, C., Shang, P., Liu, W.: Bi-sparse unsupervised feature selection. IEEE Transactions on Image Processing 34 , 7407–7421 (2025) [20] Zheng, Q., Zhu, F., Qin, J., Chen, B., Heng, P.-A.: Sparse support matrix machine. Pattern Recognition 76 , 715–726 (2018) [21] Wang, M., Xu, H., Pan, H., Xie, N., Zheng, J.: Sparse norm matrix machine and its application in roller bearing fault diagnosis. Measurement Science and 20 Heaviside Low-Rank Support Matrix Machine 
+
+Technology 33 (11), 115114 (2022) [22] Gu, M., Zheng, J., Pan, H., Tong, J.: Ramp sparse support matrix machine and its application in roller bearing fault diagnosis. Applied Soft Computing 113 ,107928 (2021) [23] Li, X., Luo, Z.: Normal cones intersection rule and optimality analysis for low-rank matrix optimization with a ffi ne manifolds. SIAM Journal on Optimization 
+
+33 (3), 1333–1360 (2023) [24] Huang, Y.-M., Yan, H.-Y., Wen, Y.-W., Yang, X.: Rank minimization with applications to image noise removal. Information Sciences 429 , 147–163 (2018) [25] Zhang, H., Lin, Z., Zhang, C.: A counterexample for the validity of using nuclear norm as a convex surrogate of rank. In: Joint European Conference on Machine Learning and Knowledge Discovery in Databases, pp. 226–241 (2013). Springer [26] Wang, H., Shao, Y., Zhou, S., Zhang, C., Xiu, N.: Support vector machine classifier via L0/1 soft-margin loss. IEEE Transactions on Pattern Analysis and Machine Intelligence 44 (10), 7253–7265 (2022) [27] Pan, L., Xiu, N., Fan, J.: Optimality conditions for sparse nonlinear program-ming. Science China Mathematics 60 (5), 759–776 (2017) [28] Bolte, J., Sabach, S., Teboulle, M.: Proximal alternating linearized minimiza-tion for nonconvex and nonsmooth problems. Mathematical Programming 
+
+146 (1), 459–494 (2014) [29] Schneider, R., Uschmajew, A.: Convergence results for projected line-search methods on varieties of low-rank matrices via łojasiewicz inequality. SIAM Journal on Optimization 25 (1), 622–646 (2015) [30] Boser, B.E., Guyon, I.M., Vapnik, V.N.: A training algorithm for optimal margin classifiers. In: Proceedings of the Fifth Annual Workshop on Computational Learning Theory, pp. 144–152 (1992) [31] Shen, R., Zhang, H., Chai, B., Wang, W., Wang, G., Yan, B., Yu, J.: Bafl-svm: A blockchain-assisted federated learning-driven svm framework for smart agriculture. High-Confidence Computing 5(1), 100243 (2025) [32] Liu, J., Jin, J., Xiu, X., Zhang, J., Liu, W.: STAR-Net: an interpretable model-aided network for remote sensing image denoising. Pattern Recognition, 112496 (2026)

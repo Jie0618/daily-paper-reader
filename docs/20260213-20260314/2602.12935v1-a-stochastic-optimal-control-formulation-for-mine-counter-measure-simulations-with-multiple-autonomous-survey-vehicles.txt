@@ -1,0 +1,571 @@
+Title: A Stochastic Optimal Control Formulation for Mine Counter Measure Simulations with Multiple Autonomous Survey Vehicles
+
+URL Source: https://arxiv.org/pdf/2602.12935v1
+
+Published Time: Mon, 16 Feb 2026 01:50:16 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+A Stochastic Optimal Control Formulation for Mine Counter Measure 
+
+# Simulations with Multiple Autonomous Survey Vehicles 
+
+Philippe Blondeel, Royal Military Academy, Avenue de la Renaissance 30, 1000 Brussels, Belgium, 
+
+philippe.blondeel@mil.be, ORCID: 0000 -0002 -2322 -095X 
+
+Filip Van Utterbeeck, Royal Military Academy, Avenue de la Renaissance 30, 1000 Brussels, Belgium, 
+
+Filip.VanUtterbeeck@mil.be, ORCID: 0009 -0000 -5043 -6257 
+
+Ben Lauwens, Royal Military Academy, Avenue de la Renaissance 30, 1000 Brussels, Belgium, 
+
+Ben.Lauwens@mil.be, ORCID: 0000 -0003 -0761 -6265 ABSTRACT 
+
+Modelling and simulating mine counter measure search missions performed by autonomous vehicles equipped 
+
+with a sensor capable of detecting mines at sea is a challenging endeavour. To address this, we formulated 
+
+and implemented the problem as a stochastic o ptimal control model. Our implementation computes an optimal 
+
+path within a user chosen quadrilateral domain such that the mission duration is minimized for a given 
+
+residual risk of undetected sea mines. First, we compare the stochastic optimal control impl ementation against 
+
+the traditionally used boustrophedon implementation. We show that the mission duration in case of the 
+
+stochastic optimal control implementation is shorter. Then, by building on our previous work, we introduce a 
+
+novel mathematical approac h that enables multiple autonomous survey vehicles to investigate the domain 
+
+concurrently. We present results for up to six vehicles, including computed trajectories and an analysis of how 
+
+mission duration varies with the number of vehicles. Our findings s how that mission time decreases non -
+
+linearly, , i.e., we observe diminishing returns as more vehicles are added. 
+
+## 1.0 INTRODUCTION 
+
+Modelling and simulating mine countermeasures (MCM) search missions performed by autonomous vehicles 
+
+is a challenging endeavour. The goal of these simulations typically consist of computing an optimal trajectory 
+
+for the autonomous vehicle in a designated d omain where the presence of underwater sea mines is suspected. 
+
+This trajectory is such that the residual MCM risk in the domain is below a certain threshold , while it is 
+
+simultaneous ensured that the path time of the autonomous vehicle, i.e., the mission t ime , is below a certain 
+
+value . This type of problem is commonly referred to as a Coverage Path Planning (CPP) problem, see [1, 2, 3, 
+
+4, 5, 6, 7, 8] . In our previous work [9, 10] , we have chosen to model this problem in a stochastic optimal control 
+
+framework [11] , where we minimize the path time for a given residual MCM risk. An important constraint in 
+
+our implementation consists of the MCM residual risk constraint. This constraint is formulated as an expected 
+
+value integral over the quadrilateral search domain. In the present work, we first present a comparison between 
+
+our stochastic optimal control implementation and the traditionally used boustrophedon, i.e., lawnmower, 
+
+approach. Then, we extend our previous implementation to allow multiple autonomous vehi cles to be assigned 
+
+to the same domain, enabling them to survey the domain in parallel. The structure of this paper is as follows .
+
+First, we present our methodolog y where we give an overview of the governing equations of the sensor 
+
+attached to the autonomous vehicle. Hereafter, we introduce the mathematical formulation of the stochastic 
+
+optimal control MCM problem . Then, we extend o ur mathematical formulation in order to accommodate 
+
+multiple vehicles working in parallel in a domain. We conclude the methodo logy part by giving a short 
+
+description about the numerical implementation of the stochastic optimal control problem. Hereafter, we 
+
+present the comparison , and our results where we show the trajectories for up to six vehicles inspecting a 
+
+domain in parallel. Finally, we offer a conclusion. 2.0 METHODOLOGY 
+
+In this section, we present the methodology. First, we give a short overview of the sensor model. Hereafter ,
+
+we present the equations governing the stochastic optimal control model for one vehicle . Then, we present our 
+
+extension as to allow for multiple vehicles surveying the domain concurrently . Last, we give a short description 
+
+about the numerical implementation. 
+
+## 2.1 THE SENSOR MODEL 
+
+We briefly introduce the equations pertaining to the modelisation of a Forward Looking Sensor (FLS). A more 
+
+detailed description can be found i n [9, 12] .
+
+The sensor model is given by 
+
+γ(𝒙 (𝑡 ), 𝝎 ) ≔ λ 𝑝 (𝒙 (𝑡 ), 𝝎 ) 𝐹 α(𝒙 (𝑡 ), 𝝎 ) 𝐹 ε(𝒙 (𝑡 ), 𝝎 ),
+
+where  λ stands for the Poisson scan rate in  𝑠 −1.
+
+The sensor model consists of three parts. The first part consists of  𝑝 (𝒙 (𝑡 ), 𝛚 ) and is given by 
+
+𝑝 (𝒙 (𝑡 ), 𝝎 ) ≔ 𝚽 n (FOM − 20 log 10 (‖𝝎 − 𝒙 (𝑡 )‖ + 𝑎 ‖𝝎 − 𝑥 (𝑡 )‖)
+
+σ )
+
+where  𝚽 n(⋅) stands for the cumulative density function ( CDF) of the normal distribution, FOM is a parameter 
+
+related to the sonar characteristics,  𝑎  is the attenuation coefficient in dB/km, and  𝒙 (𝑡 ) is given in as  𝒙 (𝑡 ) ≔
+
+𝑓 (𝑥 (𝑡 ), 𝑦 (𝑡 ), 𝜓 (𝑡 ), 𝑟 (𝑡 )), and ‖𝝎 − 𝒙 (𝑡 )‖ ≔ √(𝜔 𝑥 − 𝑥 (𝑡 ))2 + √(𝜔 𝑦 − 𝑦 (𝑡 ))2
+
+where  𝝎  is defined as  𝝎 ≔
+
+(𝜔 𝑥 , 𝜔 𝑦 ), and stands for the position of the possible target, i.e., a sea mine. In  𝒙 (𝑡 ) ≔
+
+𝑓 (𝑥 (𝑡 ), 𝑦 (𝑡 ), 𝜓 (𝑡 ), 𝑟 (𝑡 )), 𝑥 (𝑡 ) is the position along the x -axis,  y(𝑡 ) is the position along the y -axis.,  𝜓 (𝑡 )
+
+represents the angle the autonomous vehicle has with respect to the horizontal axis in degrees, and  𝑟 (𝑡 ) stands 
+
+for the turn rate in degrees per seconds. This s econd part,  𝐹 α(𝒙 (𝑡 ), 𝝎 ), models the detection of the sensor in 
+
+front of the autonomous vehicle according to its Field Of View (FOV). The horizontal FOV is schematically 
+
+shown in  Figure 1.      
+
+> Figure 1:Top -down view of the autonomous survey vehicle where the Horizontal FOV is shown
+> in green and the water in blue.
+
+𝐹 α(𝒙 (𝑡 ), 𝝎 ) is given as 𝐹 α(𝒙 (𝑡 ), 𝝎 ) ≔ 1 
+
+> 1+𝑒 𝑝 α(−α𝐹𝑂𝑉
+> 2−α𝑏 (𝒙 (𝑡 ),𝝎 ))
+
++ 1  
+
+> 𝑒 𝑝 α(α𝑏 (𝒙 (𝑡 ),𝝎 )−α𝐹𝑂𝑉
+> 2)
+
+− 1,
+
+where  𝑝 𝛼  is a parameter used to adjust the slope of the sigmoidal curves, and 
+
+α𝑏 (𝒙 (𝑡 ), 𝝎 ) ≔ arctan 2 (𝑑 𝑥 𝑏 (𝒙 (𝑡 ), 𝝎 ), 𝑑 𝑦 𝑏 (𝒙 (𝑡 ), 𝝎 ))
+
+𝑑 𝑥 𝑏 (𝒙 (𝑡 ), 𝝎 ) ≔ (𝜔 𝑥  − 𝑥 (𝑡 ))cos (𝜓 (𝑡 )) + (𝜔 𝑦  − 𝑦 (𝑡 )) sin (𝜓 (𝑡 ))
+
+𝑑 𝑦 𝑏 (𝒙 (𝑡 ), 𝝎 ) ≔ −(𝜔 𝑥  − 𝑥 (𝑡 ))sin (𝜓 (𝑡 )) + (𝜔 𝑦  − 𝑦 (𝑡 )) cos (𝜓 (𝑡 )),
+
+where  α𝐹𝑂𝑉  is the Field Of View angle of the FLS in degrees. The third part,  𝐹 ε(𝒙 (𝑡 ), 𝛚 ) accounts for the 
+
+height  ℎ in meters above the ocean floor of the sensor attached to the autonomous vehicle. A schematic 
+
+representation is shown in  Figure 2.
+
+Figure 2: Schematic side view of the autonomous survey vehicle where the vertical FOV is shown in green 
+
+and the water in blue. 
+
+𝐹 ε(𝒙 (𝑡 ), 𝝎 ) is given as 
+
+𝐹 ε(𝒙 (𝑡 ), 𝝎 ) ≔ 1
+
+1 + 𝑒 𝑝 ε(ε𝐷𝐸 −ε𝐹𝑂𝑉  
+
+> 2−ε𝑏 (𝒙 (𝑡 ),𝝎 ))
+
++ 1
+
+1 + 𝑒 𝑝 ε(ε𝑏 (𝒙 (𝑡 ),𝝎 )−ε𝐷𝐸 −ε𝐹𝑂𝑉   
+
+> 2)
+
+− 1,
+
+where  𝑝 ε is a parameter used to adjust the slope of the sigmoidal curves, and 
+
+ε𝑏 (𝒙 (𝑡 ), 𝛚 ) ≔ arctan  ( −ℎ
+
+‖
+
+ω − 𝒙 (t)‖),
+
+where  ε𝐹𝑂𝑉  and  ε𝐷𝐸  respectively stand for the vertical FOV, and the downward elevation angle such that the 
+
+sensor can ensonify the sea floor. The final combination of all the different part s of the sens or equation is 
+
+shown in  Figure 3 when the autonomous survey vehicle is present at point (15,15). For a more thorough 
+
+description we refer to [9, 12] .Figure 3: Illustration of the forward looking detection pattern  𝜸 (𝒙 (𝒕 ), 𝝎 ) where the green area depicts the part    
+
+> that is seen by the onboard sensor . The autonomous survey vehicle is static at location (15,15) (represented
+> by the black dot).
+
+## 2.2 THE STOCHASTIC OPTIMAL CONTROL FORMULATION 
+
+Here and in our previous work [9, 10] , the optimization problem is formulated such that the path time of the 
+
+vehicle (the mission time ) 𝑇 𝐹  needed to survey a designated domain Ω is minimized for a given user defined 
+
+residual MCM risk, 
+
+min 𝑇 𝐹 
+
+subjected to 
+
+𝐸 [𝑞 (𝑇 𝐹 )] ≔ ∫ 𝑒 − ∫ 𝛾 (𝒙 (𝜏 ),𝝎 )𝑑𝜏 
+
+> 𝑇 𝐹
+> 0
+> Ω
+
+𝑓 𝒙 (𝝎 )𝑑 𝝎 ≤ residual MCM risk 
+
+where  γ represents the sensor function for the FLS and  𝑓 𝑥 (⋅) is the probability density function (PDF) of the 
+
+distribution against which we in tegrate. In this case we consider  𝑓 𝑥 (⋅) to be the PDF of the uniform distribution 
+
+on a bounded interval Ω ,
+
+𝑓 𝑥 (𝝎 ) = { 
+
+> 1
+> |Ω|
+
+, if 𝝎 ∈ Ω
+
+0, otherwise  ,
+
+where |Ω| stands for the area of the considered domain. This is because we conside r the locations of the 
+
+possible targets, i.e., the sea mines, to be uniformly distributed in a bounded domain. The position of the 
+
+autonomous vehicle,  𝒙 (𝑡 ) at time  𝑡  is governed by the following differential equations, 𝑑𝑥 (𝑡 )
+
+𝑑𝑡  = 𝑉 cos (𝜓 (𝑡 ))
+
+𝑑𝑦 (𝑡 )
+
+𝑑𝑡  = 𝑉 sin (𝜓 (𝑡 ))
+
+𝑑𝜓 (𝑡 )
+
+𝑑𝑡  = 𝑟 (𝑡 )
+
+𝑑𝑟 (𝑡 )
+
+𝑑𝑡  = 1
+
+𝑇 (𝐾𝑑 (𝑡 ) − 𝑟 (𝑡 ))
+
+where  𝑉  stands for the speed in  𝑚 𝑠 ⁄ , 𝐾  is the Nomoto gain constant with units  𝑠 −1 , 𝑇  is the Nomoto time 
+
+constant with units  𝑠 , and  𝑑 (𝑡 ) is the rudder deflection angle given in degrees. The optimization software [11] ,
+
+will control the values for the rudder deflection angle in order to compute a trajectory satisfying the target 
+
+function and the constraints. The parameters which will be used for all simulations are listed in  Table 1. 
+
+> Table 1: Parameters for the simulations.
+
+Param.  α𝐹𝑂𝑉  h σ λ 𝑎  ε𝐹𝑂𝑉  ε𝐷𝐸  FOM  𝑝 α 𝑝 ε 𝑉  𝑇  𝐾 
+
+Value  120.0  20.0  9.0  20.0  5. 2  5.0  -6.0  72.0  25.0  400.0  2.5  0.5  5.0 
+
+Unit  deg.  𝑚  dB  𝑠 −1 db/km  deg . deg . / / / 𝑚 𝑠 ⁄ 𝑠  𝑠 −1
+
+## 2.3 THE STOCHASTIC OPTIMAL CONTROL FORMULATION FOR 
+
+## MULTIPLE VEHICLES 
+
+In order to a llow for the computation of trajectories for multiple vehicles operating in parallel in the same 
+
+domain , the residual risk integral from the previous section is modified as follows for an arbitrary number of 
+
+vehicles  𝑘 ,
+
+E[𝑞 (𝑇 𝐹 )] ≔ ∑ ∫ 𝑒 − ∫ γ(𝒙 𝑛 (τ),𝝎 )𝑑 τ
+
+> 𝑇 𝐹
+> 0
+> Ω
+> 𝑘
+> 𝑛 =1
+
+𝑓 𝒙 (𝝎 )d𝝎 ≤ residual MCM risk 
+
+where  𝒙 𝑛 (𝑡 ) denote s the position of the  𝑛 𝑡 ℎ vehicle at the different times  𝑡 . Modifying the residual risk integral 
+
+also means that the governing di fferential equations need to be updated . Again for  𝑘  vehicles, the set of 
+
+differential equations is modified as follows, 
+
+𝑛 = 1,2, . . . , 𝑘  
+
+> 𝑑 𝑥 𝑛 (𝑡 )
+> 𝑑𝑡
+
+= 𝑉 𝑛 cos (𝜓 𝑛 (𝑡 )) 
+
+> 𝑑 𝑦 𝑛 (𝑡 )
+> 𝑑𝑡
+
+= 𝑉 𝑛 sin (𝜓 𝑛 (𝑡 )) 
+
+> 𝑑 𝜓 𝑛 (𝑡 )
+> 𝑑𝑡
+
+= 𝑟 𝑛 (𝑡 ) 
+
+> 𝑑 𝑟 𝑛 (𝑡 )
+> 𝑑𝑡
+
+= 1
+
+> 𝑇 𝑛
+
+(𝐾 𝑛 𝑑 𝑛 (𝑡 ) − 𝑟 𝑛 (𝑡 ))
+
+where the underlying assumption is that the speeds of all vehicles is equal, i.e.,  ∀𝑛 ∈ {1,2, … , 𝑘 }, 𝑉 𝑛 = 𝑉 , as 
+
+well as their Nomoto constants,  ∀𝑛 ∈ {1,2, … , 𝑘 }, 𝑇 𝑛 = 𝑇 , and  ∀𝑛 ∈ {1,2, … , 𝑘 }, 𝐾 𝑛 = 𝐾 .2.4 NUMERICAL IMPLEMENTATION 
+
+The numerical implementation has been done in the Julia programming language by means of the InfiniteOpt.jl 
+
+package [11] . Each integral in the residual MCM risk formulation is ap proximated by a quasi -Monte Carlo 
+
+integration scheme see [9, 10] as follows 
+
+∫ 𝑒 − ∫ γ(𝒙 (τ),𝛚 )𝑑 τ
+
+> 𝑇 𝐹
+> 0
+> Ω
+
+𝑓 𝑥 (𝝎 )d𝝎 = 1
+
+𝑅 ∑ 1
+
+𝑁 ∑ 𝑒 − ∫ γ(𝒙 (τ),𝑭 −1(𝒖 (𝑛 ,𝑟 )))𝑑 τ
+
+> 𝑇 𝐹
+> 0
+> 𝑁
+> 𝑛 =1
+> 𝑅
+> 𝑟 =1
+
+,
+
+wher e 𝒖 (𝑛 , 𝑟 )is a two -dimensional vector,  𝒖 (𝑛 , 𝑟 ) ≔ [𝑢 1
+
+> (𝑛 ,𝑟 )
+
+, 𝑢 2
+
+> (𝑛 ,𝑟 )
+
+] consisting of shifted qMC quadrature 
+
+points defined in the unit cube,  𝑭 −1(⋅)is the inverse uniform cumulative distribution function applied pointwise 
+
+to each component o f the vector  𝒖 (𝑛 ,𝑟 ) i.e.,  𝑭 −1(𝒖 (𝑛 ,𝑟 )) ≔ [𝐹 𝑥  
+
+> −1
+
+(𝑢 1
+
+> (𝑛 ,𝑟 )
+
+) , 𝐹 𝑥  
+
+> −1
+
+(𝑢 2
+
+> (𝑛 ,𝑟 )
+
+)], and  𝐹 𝑥 
+
+> −1
+
+(⋅) stands 
+
+for the univariate uniform distribution. 
+
+## 3.0 RESULTS 
+
+In this section, we first present a comparison between the boustrop hedon approach, i.e., the lawnmower 
+
+approach, an d the stochastic optimal control approach in case of one autonomous survey vehicle. Hereafter, 
+
+we present the results of our stochastic optimal control implementation for multiple autonomous survey 
+
+vehicles. We are able to simulate up to six individual vehicles operating concurrently in the same domain . All 
+
+simulations have been performed on a 16 core Intel i7 -12850HX processor with 32GB RAM. The different 
+
+parameters for our simulations are shown in  Table 1. We consider a domain  Ω ≔ [5 X 25 ]2
+
+## 3.1 THE BOUSTROPHEDON APPROACH COMPARED WITH THE 
+
+## STOCHASTIC OPTIMAL CONTROL APPROACH 
+
+In this section we present a comparison between the boustrophedon approach and the stochasti c optimal control 
+
+approach for the case of a single survey vehicle. For the boustrophedon approach, the starting point was chosen 
+
+as (4.0,7.8 ) such that , at start, the lower edge of the sensor swath in the y -direction lies entirely, yet just barely, 
+
+within the survey domain. In this approach, it is common practice for the survey vehicle to perform turns 
+
+outside of the survey area . As is the case with the stochastic optimal control approach, we require that the 
+
+survey vehicle returns to its starting point wh en the residual risk constraint is satisfied. For a residual risk of at 
+
+most 5% , the trajectories for the boustrophedon and the stochastic optimal control approach are shown in 
+
+Figure 4 and  Figure 5. The path times, i.e., the time it takes for the trajectory to be completed, are given in 
+
+Table 2.   
+
+> Table 2: Path times of the boustrophedon and stochastic optimal control approach.
+> Boustrophedon Stochastic Optimal Control
+> Path time [sec]
+> (Mission time)
+> 4500.00 2678.14
+
+As can be observed from the path times presented in  Table 2, the time needed for the survey vehicle to complete 
+
+a boustrophedon pattern is longer than in case of the stochastic optimal control formulation. For this specific 
+
+scenario, we observe a speedup of a factor of 1.68 in favour of the stochastic optimal control approach. Figure 4:Boustrophedon approach.  Figure 5: Stochastic Optimal Control approach .
+
+## 3.2 MULTIPLE SURVEY VEHICLES IN THE STOCHASTIC OPTIMAL 
+
+## CONTROL FRAMEWORK 
+
+In this section, we present the results of our extended stochastic optimal control implementation, which allows 
+
+the simulation of up to six vehicles in parallel.          
+
+> Figure 6:Trajectory of one vehicle. Figure 7:Trajectories of two vehicles. Figure 8:Trajectories of three vehicles. Figure 9:Trajectories of four vehicles.
+> Figure 10 :Trajectories of five vehicles. Figure 11 :Trajectories of six vehicles.
+
+In  Figure 6, Figure 7, Figure 8, Figure 9, Figure 10 , and  Figure 11 , we respectively show the trajectories for 
+
+one, two, three, four, five, and six vehicles surveying the domain in parallel when requesting a residual MCM 
+
+risk of at most 5%. The black lines depict the trajectories of the individual vehicles, the are a in green represents 
+
+the part of the domain that has been seen by the onboard sonar, and the are a in blue stands for the part of the 
+
+domain that has not been seen. 
+
+We also analyse how surveying the domain in parallel with multiple vehicles affects the overall path time 
+
+(mission time ). We assume for this scenario, that all vehicles start from the same location , i.e., point (5.1,5.1)We present the mission times in function of the number of vehicles in  Table 3 and visualize it in  Figure 12 . As 
+
+expected, we observe that the mission time decreases when additional vehicles are added to the domain. 
+
+However, this decrease is non -linea r. This means that the time savings decrease with each additional vehicle 
+
+added to the domain . For example, the decrease in time from one to two vehicles is more significant than from 
+
+two to three.              
+
+> Figure 12 :Path time in function of number of survey vehicles.
+> Table 3: Numerical values of the path time in function of the number of survey vehicles.
+> Number of survey vehicles
+> 123456
+> Path time [sec]
+> (Mission time)
+> 2678.14 1954.14 1693.3 1635.17 1602.26 1599.17
+
+## 4.0 CONCLUSION 
+
+In this work, we first performed a comparison between the boustrophedon and the stochastic optimal control 
+
+implementation, where we show that the stochastic optimal control approach yields a speedup of up to a factor 
+
+1.68 for the considered scenario . Hereafter, we introduced a novel approach for exploring a domain in parallel 
+
+using multiple autonomous vehicles, formulated within an optimal control framework. The approach was 
+
+implemented using the Julia programming language. We have shown the trajectories in a domain for up to six 
+
+vehicles working in parallel. Additionally, we have investigate d in what fashion the mission time decreases 
+
+when these additional vehicles are added to the domain . We observed a non -linear decrease in time , i.e., adding 
+
+more vehicles to the domain continues to decrease the time, but this decrease becomes less pronounced with 
+
+each additional vehicle . In future work, we plan to incorporate the current implementation in a larger 
+
+framework which will also allow us to compute an optimized schedule of all the different actions of a mine 
+
+counter measure mission. We plan to base this scheduler on the concept of combinatorial optimization. 
+
+Furthermore, we plan to incorporate some oceanographic characteristics in our stochastic optimal control 
+
+simulation such as for example sand ripples which impact the detection capabilities of the sensor. References 
+
+[1]  N. Abreu and A. Matos, “Minehunting mission planning for autonomous underwater systems using 
+
+evolutionary algorithms,” Unmanned Systems, vol. 02, p. 323 –349, 20214. 
+
+[2]  B. Ai, M. Jia, H. Xu, J. Xu, Z. Wen, B. Li and D. Zhang, “Coverage path planning for maritime search 
+
+and rescue using reinforcement learning. Ocean Engineering,” Ocean Engineering, vol. 241, no. 1, 
+
+2021. 
+
+[3]  C. Cai, J. Chen, Q. Yan, F. Liu and R. Zhou, “A prior information -based coverage path planner for 
+
+underwater search and rescue using autonomous underwater vehicle (auv) with side -scan sonar,” IET 
+
+Radar, Sonar & Navigation, vol. 16, no. 7, pp. 1225 -1239, 2022. 
+
+[4]  H. Choset, “Coverage of known spaces: The boustrophedon cellular decomposition,” Autonomous 
+
+Robots, vol. 9, pp. 247 -253, 2000. 
+
+[5]  E. Galceran and M. Carreras, “A survey on coverage path planning for robotics,” Robotics and 
+
+Autonomous Systems, vol. 61, no. 12, pp. 1258 -1276, 2013. 
+
+[6]  B. Nguyen and D. Hopkin, “Modeling autonomous underwater vehicle (auv) operations in mine 
+
+hunting,” Europe Oceans 2005, vol. 1, pp. 533 -538, 2005. 
+
+[7]  M. Wiig, T. Krogstad and Ø. Midtgaard, “Autonomous identification planning for mine 
+
+countermeasures,” IEEE/OES Autonomous Underwater Vehicles (AUV), pp. 1 -8, 2012. 
+
+[8]  V. Yordanova and B. Gips, “Coverage path planning with track spacing adaptation for autonomous 
+
+underwater vehicles,” IEEE Robotics and Automation Letters, vol. 5, no. 3, p. 4774 –4780, 2020. 
+
+[9]  P. Blondeel, F. Van Utterbeeck and B. Lauwens, “Application of quasi -Monte Carlo in Mine 
+
+Countermeasure Simulations with a Stochastic Optimal Control Framework,” in 16th International 
+
+Conference on Monte Carlo and Quasi -Monte Carlo Methods (MCQMC) in Scientific Computing ,
+
+Waterloo, Canada, 2024. 
+
+[10]  P. Blondeel, F. Van Utterbeeck and B. Lauwens, “Modeling sand ripples in mine countermeasure 
+
+simulations by means of stochastic optimal control,” in The 19th European Congress on 
+
+Computational Methods in Applied Sciences and Engineering, ECCOMAS , Lisbon, Portugal, 2024. 
+
+[11]  J. Pulsipher, W. Zhang, T. Hongisto and V. Zavala, “A unifying modeling abstraction for infinite -
+
+dimensional optimization,” Computers & Chemical Engineering, vol. 156, 2022. 
+
+[12]  S. Kragelund, C. Walton, I. Kaminer and V. Dobrokhodov, “Generalized optimal control for 
+
+autonomous mine countermeasures missions,” IEEE Journal of Oceanic Engineering 46, vol. 46, no. 
+
+2, pp. 466 -496, 2021.

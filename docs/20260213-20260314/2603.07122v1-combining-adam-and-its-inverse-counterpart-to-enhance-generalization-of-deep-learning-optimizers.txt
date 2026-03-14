@@ -1,0 +1,1020 @@
+Title: Combining Adam and its Inverse Counterpart to Enhance Generalization of Deep Learning Optimizers
+
+URL Source: https://arxiv.org/pdf/2603.07122v1
+
+Published Time: Tue, 10 Mar 2026 00:38:03 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+1
+
+# Combining Adam and its Inverse Counterpart to Enhance Generalization of Deep Learning Optimizers 
+
+Tao Shi, Liangming Chen, Long Jin, and Mengchu Zhou 
+
+Abstract—In the training of neural networks, adaptive mo-ment estimation (Adam) typically converges fast but exhibits suboptimal generalization performance. A widely accepted explanation for its defect in generalization is that it often tends to converge to sharp minima. To enhance its ability to find flat minima, we propose its new variant named inverse Adam (InvAdam). The key improvement of InvAdam lies in its parameter update mechanism, which is opposite to that of Adam. Specifically, it computes element-wise multiplication of the first-order and second-order moments, while Adam computes the element-wise division of these two moments. This modification aims to increase the step size of the parame-ter update when the elements in the second-order moments are large and vice versa, which helps the parameter escape sharp minima and stay at flat ones. However, InvAdam’s update mechanism may face challenges in convergence. To address this challenge, we propose dual Adam (DualAdam), which integrates the update mechanisms of both Adam and InvAdam, ensuring convergence while enhancing generalization performance. Additionally, we introduce the diffusion theory to mathematically demonstrate InvAdam’s ability to escape sharp minima. Extensive experiments are conducted on image clas-sification tasks and large language model (LLM) fine-tuning. The results validate that DualAdam outperforms Adam and its state-of-the-art variants in terms of generalization performance. The code is publicly available at https://github.com/LongJin-lab/DualAdam. Index Terms—Adaptive moment estimation (Adam), deep learning, generalization, neural networks, optimizer. 
+
+I. Introduction 
+
+# OPTIMIZERS play an important role in training deep neural networks [1], [2], significantly influencing their generalization performance [3]–[5]. Empirical and theoretical studies suggest a positive correlation between the generalization of neural networks and the flatness around the minimum in a loss landscape [6]–[8]. As shown in Fig. 1(a), a flat minimum in a loss landscape is a region where small perturbations on model parameter θ lead to insignificant changes in the loss value. These regions 
+
+This work was supported by the National Natural Science Foun-dation of China under Grants 62476115 and 62506148. (Tao Shi and Liangming Chen are co-first authors.) (Corresponding author: Long Jin.) Tao Shi, Liangming Chen, and Long Jin are with the School of Information Science and Engineering, Lanzhou University, Lanzhou 730000, China (e-mails: taoshi1999@foxmail.com, lm-chen@foxmail.com, jinlongsysu@foxmail.com). Mengchu Zhou is with the Helen and John C. Hartmann Depart-ment of Electrical and Computer Engineering, New Jersey Institute of Technology, Newark, NJ 07102, USA (e-mail: zhou@njit.edu). (b) (a) 
+
+θ
+
+Training 
+
+Test 
+
+(c) Loss  Early in Training:       
+
+> DualAdam
+> Use InvAdam to reach a flat basin.
+> Late in Training:
+> Switch to Adam for fast convergence.
+
+∆𝜽𝜽 𝑖𝑖 = �𝒎𝒎 𝑖𝑖 /�𝒗𝒗 𝑖𝑖 
+
+∆𝜽𝜽 𝑖𝑖 = �𝒎𝒎 𝑖𝑖 � � 𝒗𝒗 𝑖𝑖 
+
+InvAdam 
+
+Adam 
+
+Loss  Adam 
+
+InvAdam     
+
+> Sharp minima lead to poor generalization. Adam converges to sharp minima ,while InvAdam escapes them.
+> Sharp Minima Correspond to Large �𝒗𝒗 𝑖𝑖
+
+𝜽𝜽 𝟏𝟏 
+
+𝜽𝜽 𝟐𝟐 
+
+> Loss
+
+𝜽𝜽 𝟐𝟐  𝜽𝜽 𝟐𝟐 
+
+𝜽𝜽 𝟏𝟏 
+
+> Loss
+> Loss
+
+𝜽𝜽 𝟐𝟐  𝜽𝜽 𝟐𝟐 
+
+𝜽𝜽 𝟏𝟏 
+
+> Loss
+> Loss
+
+Fig. 1. Mian idea of DualAdam. (a) The relationship between sharp minimum ϕ and flat one ψ. χ is the saddle point between ϕ and 
+
+ψ; (b) The update mechanisms of Adam and InvAdam. ˆm and ˆv
+
+are the bias-corrected first- and second-order moments, respectively. Subscript i represents the i-th element in the vector. ∆θi is the i-th element in parameter update in one iteration; and (c) The update mechanism of DualAdam. 
+
+are believed to be associated with better generalization performance because models that converge to flat minima are less sensitive to variations in the data [9]. Conversely, a sharp minimum is characterized by steep loss contours, making models more susceptible to overfitting and less generalizable to unseen data. Among the various opti-mizers, adaptive moment estimation (Adam) [10] enjoys widespread popularity due to its fast convergence across different architectures [11]–[13]. However, despite its rapid convergence, it often faces challenges in terms of gener-alization. A widely accepted explanation for its defect in generalization is that it often converges to sharp minima [7], [14]. This is because the intuition behind its adaptive learning rate is to decrease the step size of the parameter update when the corresponding elements in the second-order moments are large and vice versa. This strategy helps alleviate oscillations in the parameter update and maintains effective update even when the gradient is close to zero [12]. While this approach enables Adam to converge quickly, it increases the probability of trapping into sharp minima [7]. This occurs because the elements in the second-order moments around sharp minima are 
+
+> arXiv:2603.07122v1 [cs.LG] 7 Mar 2026 2
+
+usually large, leading it to make small steps to navigate these regions. To address this limitation, we propose a new variant of Adam called inverse Adam (InvAdam). As shown in Fig. 1(b), InvAdam’s key idea lies in its update mechanism, where the first-order moment is multiplied element-wise by the second-order moment, instead of being divided as in Adam. This adjustment aims to increase the step size of the parameter update when the corresponding elements in the second-order moments are large and decrease it when the elements are small, which enhances InvAdam’s ability to escape sharp minima and settle in flat ones. To mathematically demonstrate that it has a good ability to escape sharp minima, this work introduces the diffusion theory [9]. However, while the modification in InvAdam improves the ability to find flat minima, it poses challenges in terms of convergence. This occurs because an increase in the step size of the parameters update may cause the parameters to oscillate, making it difficult for the parameters to converge. To ensure the final convergence, we propose an optimizer named dual Adam (DualAdam), which integrates the update mechanisms of both Adam and InvAdam. As mentioned above, Adam is characterized by rapid convergence, while InvAdam is characterized by a good exploration capability for flat minima. As shown in Fig. 1(c), by integrating these two distinct update mechanisms, DualAdam dynamically combines the strengths of both mechanisms to balance between convergence performance and generalization one. Specifically, DualAdam starts with InvAdam’s update mechanism to explore flat minima and linearly transitions to Adam’s update mechanism to ensure convergence. This transition is controlled by a switching rate, which determines the speed of the transition from InvAdam to Adam. In summary, this work aims to make the following novel contributions to the field of optimizers for deep learning: 1) We propose InvAdam, an optimizer with enhanced capabilities in escaping sharp minima; 2) We provide a theoretical foundation for InvAdam using the diffusion theory to analyze its ability to escape sharp minima; and 3) To overcome the convergence challenges of InvAdam, we propose DualAdam, which combines the update mechanisms of Adam and InvAdam to enhance Adam’s generalization performance while ensuring convergence. II. Related work Adam is one of the most popular optimizers for training neural networks due to its effectiveness in achieving fast and stable convergence [15], [16]. To enhance its generalization performance, its variants have been pre-sented. Moreover, some studies explore the combination of multiple optimizers’ update mechanisms to leverage their respective strengths, which provides new insights into optimization strategies. A. Adam Variants Adam with decoupled weight decay (AdamW) [17] introduces decoupled weight decay (WD) regularization, which separates WD from the gradient. This decoupling addresses the issue of WD interacting with adaptive learning rates, leading to better generalization perfor-mance than Adam. Due to its convenience and effective-ness, decoupled WD regularization is widely adopted in adaptive methods to enhance generalization performance. However, this modification is relatively minor, and its effect on generalization performance is limited. Rectified Adam (RAdam) [18] attempts to rectify the variance of adaptive learning rates by incorporating a variance rectification term. This modification helps stabilize the learning rate during the early stages of training, when the number of iterations is insufficient to estimate the variance accurately. As a result, RAdam generalizes better than Adam in practice, reducing the probability of converging to poor local minima due to the initial variance of the learning rate. However, its rectification term may slow down the convergence. Nesterov-accelerated Adam (NAdam) [19] incorporates Nesterov momentum into the Adam framework, enabling it to anticipate future gradient directions. This anticipation enhances the optimizer’s ability to adjust updates effectively, guiding the parameter to escape sharp minima. However, this mechanism does not effectively improve generalization. Adaptive Nesterov momentum (Adan) [20] utilizes a Nesterov momentum estimation method to estimate stable and accurate first-and second-order moments of the gradient in adaptive gradient algorithms for acceleration. Experiments show that Adan outperforms Adam and its variants in terms of generalization performance. However, its update mecha-nism is complex, which may lead to implementation and tuning challenges. Unlike the optimizers mentioned above, DualAdam combines the update mechanisms of both InvAdam and Adam to improve generalization performance while ensur-ing convergence, dynamically balancing the strengths of both mechanisms through a linear switching mechanism. B. Switching between Two Update Mechanisms Some studies focus on combining different optimizers. Switching from Adam to stochastic gradient descent (SWATS) [21] starts with Adam for fast convergence and switches to stochastic gradient descent (SGD) for better generalization. However, the challenge lies in determin-ing the optimal switching point, which requires extra computation overhead and makes SWATS less efficient. Moreover, its effectiveness is debatable. Our experiments indicate that SWATS often exhibits poorer generalization than Adam, an observation consistent with the results in [22]. Unlike SWATS, DualAdam uses a linear switch method for a smooth transition from InvAdam to Adam. Jiang et al. [23] introduce an adaptive policy for employing sharpness-aware minimization (SAM) that combines SAM and SGD. However, its complexity poses challenges in 3
+
+implementation, tuning, and computation. The switching mechanism of DualAdam is straightforward to implement, since it requires only a switching rate to control the speed of transition from InvAdam to Adam. This simplicity makes DualAdam practical for large-scale optimization in deep learning. Multiple integral Adam (MIAdam) [22] aims to improve generalization by using a multiple integral moment mechanism in the early stages of training and switching to Adam after a specific number of epochs. This hard switching mechanism may lead to instability during the transition. Differently, DualAdam employs a linear switching mechanism that ensures a smooth transition from InvAdam to Adam, enhancing the performance without compromising stability throughout the training process. Experiments show that DualAdam also outper-forms MIAdam in terms of generalization performance. Moreover, to the best of our knowledge, this work is the first to propose a linear switching mechanism between two distinct update rules for deep learning optimizers, which is enlightening and may be applied to other optimizers as well. III. Proposed Methods In this section, we first introduce the detailed implemen-tation of DualAdam. Next, we analyze its computational complexity. Following this, we theoretically analyze the ability of Adam and InvAdam to escape sharp minima. Finally, we analyze the convergence of DualAdam. A. DualAdam The training procedure of a neural network can be characterized as an optimization problem [24], i.e., 
+
+min  
+
+> θ
+
+L(x, y; θ), (1) where L(x, y; θ) is a loss function; θ is the parameter of a neural network; x and y are the input data and corresponding label. To solve (1), the gradient is calculated as: 
+
+gt,i = ∂L (θt,i )
+
+∂θt,i 
+
+, (2) where L(θ) = 1 /b ∑bk=1 L(xk, yk; θ) is the loss function over one batch; subscript k represents the k-th sample in a batch of data; b is batch size; subscripts t and i denote the 
+
+t-th iteration and the i-th element of the corresponding vector, respectively. Based on (2), the first- and second-order moments can be expressed as: 
+
+{ mt,i = β1mt−1,i + (1 − β1)gt,i , (3a) 
+
+vt,i = β2vt−1,i + (1 − β2)g2
+
+> t,i
+
+, (3b) where m is the first-order moment; v is the second-order moment; β1 and β2 are the exponential decay rates used to adjust the first- and second-order moments, respectively. Furthermore, Adam’s parameter update in one iteration can be calculated as: 
+
+ut,i = ˆmt,i 
+
+√ˆvt,i + ϵ , (4) where uAdam ,t,i is the i-th element of Adam’s parameter update in the t-th iteration; ˆmt,i = mt,i /(1 − βt
+
+> 1
+
+) and 
+
+ˆvt,i = vt,i /(1 − βt
+
+> 1
+
+) are the bias-corrected first-order and second-order moments, respectively; ϵ is a small positive value introduced to avoid division by zero. In contrast to Adam, which divides ˆmt,i by √ˆvt,i ,InvAdam multiplies these two terms to compute the parameter update. This update mechanism is given by: 
+
+˜ut,i = ˆmt,i 
+
+√ˆvt,i , (5) where ˜ut,i is the i-th element of InvAdam’s parameter update in the t-th iteration. By comparing the two mechanisms in (4) and (5), it is evident that as ˆvt,i 
+
+increases, |ut,i | decreases while |˜ut,i | increases. This indi-cates that Adam slows down the parameter update when the corresponding elements in the second-order moments are large, whereas InvAdam speeds it up in such situations. This difference highlights the distinct goals of the adaptive learning rate mechanism in Adam and InvAdam: Adam’s adaptive learning rate aims to alleviate oscillations in parameter update and maintains effective update even when the gradient is close to zero, while InvAdam’s adaptive learning rate seeks to escape sharp minima and find flat ones. By combining the update mechanisms of Adam and InvAdam described in (4) and (5), the parameter update of DualAdam in one iteration can be expressed as: 
+
+¯¯ut,i = α˜ut,i + (1 − α)ut,i , (6) where ¯¯ut,i is the i-th element of DualAdam’s parameter update in the t-th iteration; ξ is the switching rate that controls the speed of transition from InvAdam to Adam; and α = max(0 , 1 − ξt ) represents the proportion of InvAdam’s parameter update in DualAdam’s one. As seen in Algorithm 1, the proportion of InvAdam’s parame-ter update linearly decays as the number of iterations increases, while the proportion of Adam’s parameter update increases. After a specific number of iterations, the proportion of the former decays to zero, meaning that DualAdam completely transitions to Adam. The ability to escape sharp minima effectively enables DualAdam to reach a relatively flat region of the loss landscape at the initial stage of training. The transition to Adam leverages Adam’s strong convergence properties, ensuring the final convergence of DualAdam. B. Computational Complexity Analysis of DualAdam To quantitatively evaluate the computational efficiency of DualAdam, we decompose the floating-point operations (FLOPs) performed per parameter during a single training iteration. Let p denote the number of model parameters. The computational process for DualAdam can be broken down into five distinct steps: 1) Updating the first-order moment mt,i involves 2 multiplications and 1 addition, while the second-order moment vt,i requires 1 squaring, 2 multiplications, and 1 addition. This step contributes 7 FLOPs. 2) Computing the bias-corrected estimates ˆmt,i 4
+
+Algorithm 1 DualAdam Given: Learning rate: η;exponential decay rates: β1, β2;a small positive value: ϵ;switching rate: ξ;Initialize: Step time t ← 0; the first-order moment m0,i ← 0; the second-order moment v0,i ← 0;  
+
+> 1:
+
+while stopping criterion is not met do  
+
+> 2:
+
+t ← t + 1  
+
+> 3:
+
+Using (2) to get the gradient gt,i  
+
+> 4:
+
+Using (3a) to get the first-order moment mt,i  
+
+> 5:
+
+Using (3b) to get the second-order moment vt,i  
+
+> 6:
+
+ˆmt,i ← mt,i /(1 − βt
+
+> 1
+
+) 
+
+> 7:
+
+ˆvt,i ← vt,i /(1 − βt
+
+> 2
+
+) 
+
+> 8:
+
+α ← max(0 , 1 − tξ ) 
+
+> 9:
+
+ut,i ← ˆmt,i /(√ˆvt,i + ϵ) 
+
+> 10:
+
+˜ut,i ← ˆmt,i 
+
+√ˆvt,i  
+
+> 11:
+
+¯¯ut,i ← α˜ut,i + (1 − α)ut,i  
+
+> 12:
+
+θt,i ← θt−1,i − η¯¯ut,i  
+
+> 13:
+
+end while and ˆvt,i requires 2 division operations (2 FLOPs). 3) Calculating the standard term ut,i necessitates 1 square root, 1 addition (for ϵ), and 1 division. Subsequently, the dual term ˜ut,i reuses the square root term and requires 1 additional multiplication. This step contributes 4 FLOPs. 4) The fusion of terms ( ¯ut ← α˜ut + (1 − α)ut)involves 2 multiplications and 1 addition, contributing 3 FLOPs. 5) The final weight update requires 1 multipli-cation by the learning rate and 1 subtraction, adding 2 FLOPs. Aggregating these steps, DualAdam incurs a total theoretical cost of 18 p FLOPs per iteration. In comparison, Adam follows an identical procedure for steps 1) and 2) but simplifies steps 3) through 5) into a single update operation involving 1 square root, 1 addition, 1 division, 1 multiplication, and 1 subtraction, resulting in a total of 14 p FLOPs. While DualAdam introduces a marginal overhead of roughly 4p FLOPs, this increase is negligible in the context of large-scale deep learning. According to standard scaling laws [25], the dominant computational load stems from the forward and backward propagation, which scale as approximately 6bp FLOPs (where b is the batch size). Consequently, the ratio of the optimizer’s additional overhead to the total training compute is proportional to O(1 /b ). For typical batch sizes (b ≫ 1), the extra computational overhead introduced by DualAdam constitutes a vanishingly small fraction of the total computational budget. Moreover, the extra computation is only necessary during the early stages of DualAdam. As α decays to zero, DualAdam transitions fully into Adam, with the only remaining extra computation being the calculation of α
+
+and checking if it has reached zero. In our experiments on CIFAR-10 and CIFAR-100, we set the switching rate 
+
+ξ to 8 × 10 −5, resulting in a complete transition after 12,500 iterations. Given a batch size of 128 and a total of 200 epochs, the total number of iterations will be 78,200. Thus, the majority of the extra computation is required for only a brief portion (i.e., 15.98%) of the training process. Since the computational efficiency of Adam has been thoroughly studied by [10], we do not delve into further theoretical analysis here. However, we provide experimental comparisons of the computational time for DualAdam and Adam, demonstrating that their computational time is not much different. For example, when training ResNet-18 on CIFAR-100 with a batch size of 128 for 200 epochs, Adam takes 2197 seconds, while DualAdam takes 2214 seconds, indicating a negligible difference in computational time. C. Theoretical Analysis of Ability to Escape Sharp Min-ima In this section, we present a mathematical analysis of InvAdam’s ability to escape sharp minima using the diffusion theory framework and compare this ability to that of Adam. The diffusion theory employs the mean escape time as a metric to quantify the ability of optimizers to escape sharp minima. Specifically, asmall mean escape time corresponds to a strong ability to escape sharp minima. For the analysis of the mean escape time, three assumptions are stated by following [9]: Assumption 1 (Second Order Taylor Approximation). The loss function around point θ0 can be approximately written as         
+
+> L(θ) = L(θ0) + g(θ0)( θ−θ0) + 12 (θ−θ0)⊤H(θ0)( θ−θ0).
+
+where g(θ0) is the gradient at θ0 and H(θ0) is the Hessian matrix at θ0.Assumption 2 (Quasi-Equilibrium Approximation). A system is in quasi-equilibrium near minima, which means the distribution of the parameter θ can be described as a Boltzmann distribution. Assumption 3 (Low-Temperature Approximation). The escape dynamics is primarily governed by the shape and height of the potential barrier rather than thermal noise, i.e., the gradient noise is small in our context. If Assumption 1–3 hold, as illustrated in Fig. 1(a), we can formulate Adam’s mean escape time from sharp minimum ϕ through the saddle point χ as 
+
+log( τ ) = O 
+
+(
+
+2√b∆Lη√Hϕe 
+
+)
+
+, (7) where τ is the mean escape time of Adam, Hϕe is the eigenvalue of the Hessian matrix at the minimum 
+
+ϕ corresponding to the escape direction e, and ∆L =
+
+L(χ) − L(ϕ). The detailed proof of (7) can be found in [26]. Furthermore, for the mean escape time of InvAdam, we can derive Theorem 1 as follows: 5
+
+Theorem 1. If Assumptions 1–3 hold, and the dynamics is governed by InvAdam, then the mean escape time from minimum ϕ to the outside of ϕ is                      
+
+> ˜τ=π
+> √
+> 1 + 4ηb |Hϕe |32
+> (1 −β1)√b+ 1
+> |det( H−1
+> ϕHχ)|−14
+> |Hχe |
+> exp
+> 2b32∆Lη
+> sH32
+> ϕe
+> +1−s
+> |Hχe |32
+> ,(8)
+
+where Hχe is the eigenvalue of the Hessian matrix of the loss function at saddle point χ along escape direction e
+
+and s ∈ (0 , 1) is a path-dependent coefficient. 
+
+Proof . The diffusion theory views the process of escap-ing sharp minima as a Kramers escape problem [9]. The problem is a classic one in statistical mechanics, describing how a particle escapes from a potential well under the influence of thermal noise [27]. As is shown in Fig. 1(a), the problem is introduced here to describe a process of parameter θ escaping from sharp minimum ϕ, crossing saddle point χ, and finally converging to flat minimum ψ.The mean escape time is used in statistical physics and stochastic processes to measure the ability of particles to escape from a potential well in the Kramers escape problem [9]. The potential well can be analogized as a minimum of the loss landscape during the model training, and the position of the particle can be analogized as the parameter θ. The Langevin equation [28] is a stochastic differential equation used to describe the dynamics of a particle under the influence of both deterministic forces and random thermal noise. It is the theoretical basis of the Kramers escape problem and can be written as: 
+
+γ dθ
+
+dt = − dU (θ)dθ + r(t), (9) where γ is a damping coefficient, U (θ) is the potential energy function, and r(t) ∼ N (0 , σ 2I) (σ is a constant denoting standard deviation and I is an identity matrix) is a random force representing thermal noise. The diffusion theory analogizes U (θ) to L(θ), and r(t) to the gradient noise, allowing the use of the Kramers escape problem to study the process of parameter θ escaping from the minima. Similar to (9), the dynamics of SGD can be written as: 
+
+dθ = −∇ L(θ)d t + ( ηC (θ)) 12 dWt, (10) where dt is the differential of time, dWt ∼ N (0 , I dt), and 
+
+C(θ) is a gradient noise covariance matrix. The gradient noise is the difference between the stochastic gradient over one batch and the true gradient over the entire training dataset. It can be characterized by the gradient noise covariance matrix C(θ). C(θ) near a critical point can be calculated as            
+
+> C(θ) = 1
+> b
+> (
+> 1
+> m
+> m∑
+> j=1
+> ∇L(θ,xj)∇L(θ,xj)⊤− ∇ L(θ)∇L(θ)⊤
+> )
+> ≈1
+> bm
+> m∑
+> j=1
+> ∇L(θ,xj)∇L(θ,xj)⊤,(11)
+
+where m is the total number of data samples in the dataset, xj is a data sample from the dataset, and b
+
+is batch size. Based on (11), [9] further validates both theoretically and empirically that C(θ) ≈ H(θ)/b during the whole training process. The Fokker-Planck equation [29] is a partial differential equation that describes the time evolution of the prob-ability density function of a particle’s velocity under the influence of forces. It is widely used to model the dynamics of systems affected by random fluctuations. The escape rate can be derived by solving the Fokker-Planck equation for a particle in a double-well potential, where one well represents the trapped state and the other represents the escaped state. The solution helps determine how the probability density of the particle in a certain state evolves over time and how likely it is to cross the barrier separating these states. Therefore, to calculate the mean escape time of parameter θ in the Kramers escape problem, the Fokker-Planck equation can be written as 
+
+∂P (θ, t )
+
+∂t = ∇ · (P (θ, t )∇L(θ)) + ∇ · ∇ D(θ)P (θ, t ), (12) where P (θ, t ) is the probability density function of pa-rameter θ over time, ∇· is a divergence operator, D(θ) = 
+
+ηC (θ)/2 is the diffusion matrix and C(θ) is the gradient noise covariance matrix. Gauss’s divergence theorem states that the surface integral of a vector field over a closed surface (the flux) is equal to the volume integral of the divergence over the enclosed region. We denote the mean escape time as 
+
+ˆτ , the escape rate as ω, and the probability current as 
+
+J. Applying Gauss’s divergence theorem to the Fokker-Planck equation, we obtain: 
+
+∂P (θ, t )
+
+∂t = −∇ · J(θ, t ). (13) Then, the mean escape time can be formulated as 
+
+ˆτ = 1
+
+ω = P (θ ∈ Vϕ)
+
+∫ 
+
+> Sϕ
+
+JdS , (14) where P (θ ∈ Vϕ) = ∫ 
+
+> Vϕ
+
+P (θ)d V represents the probability of parameter θ within volume Vϕ enclosing minimum ϕ,
+
+J denotes the probability current arising from probability source P (θ ∈ Vϕ), and j = ∫ 
+
+> Sϕ
+
+JdS represents the probability flux, calculated as the surface integral of the probability current over surface Sϕ. Sϕ surrounds minimum ϕ, and Vϕ is the volume enclosed by Sϕ.For the analysis of the momentum mechanism’s dynam-ics, we first introduce the heavy ball method to describe the continuous-time momentum dynamics, i.e., 
+
+{
+
+mt = κ1mt−1 + κ2gt,
+
+θt+1 = θt − ηmt, (15) where κ1 and κ2 are the hyperparameters. If κ2 = 1 , it is the SGD-style momentum, and if κ2 = 1 − κ1, it is the Adam-style momentum. Then, the motion equation with 6
+
+the damping coefficient γ and the mass M can be written as {
+
+rt = (1 − γη )rt−1 + F 
+
+> M
+
+η, 
+
+θt+1 = θt + ηrt, (16) where rt = −mt, F = gt, 1 − γη = κ1 = β1, and η/M =
+
+κ2 = 1 − β1. Then, we can write the differential form of the motion equation, which describes the dynamics of the momentum as 
+
+M ¨θ = −γM ˙θ + F , (17) where ¨θ = d 2θ/dt2 and ˙θ = d θ/dt. As F corresponds to the stochastic gradient term, we can rewrite (17) as 
+
+M ¨θ = −γM ˙θ − ∂L (θ)
+
+∂θ dt + (2 D(θ)) 12 dW t. (18) The Fokker-Planck equation in the phase space ( θ − ˙θ
+
+space) is given as 
+
+∂P (θ, ˙θ, t )
+
+∂t 
+
+= −∇ θ · ( ˙θP (θ, ˙θ, t )) + ∇ ˙θ · (ω ˙θ + M −1∇θ L(∇θ )) P (θ, ˙θ, t )+ ∇ ˙θ M −2D(θ) · ∇ ˙θ P (θ, ˙θ, t ).
+
+(19) Under Assumption 2 (Quasi-Equilibrium Approximation), the distribution around minimum ϕ is 
+
+P (θ) = P (ϕ)exp( − γM 
+
+2 (θ − ϕ)⊤(D− 12 
+
+> ϕ
+
+HϕD− 12 
+
+> ϕ
+
+)( θ − ϕ)) ,
+
+(20) where Dϕ is the diffusion matrix D at the minimum ϕ,and Hϕ is the Hessian matrix at ϕ. Then we have 
+
+P (θ ∈ Vϕ)=
+
+∫
+
+> θ∈Vϕ
+
+P (θ)d V
+
+= P (ϕ)
+
+∫
+
+> θ∈Vϕ
+
+exp 
+
+(
+
+− γM 
+
+2 (θ − ϕ)⊤(D− 12 
+
+> ϕ
+
+HϕD− 12 
+
+> ϕ
+
+)( θ − ϕ)
+
+)
+
+dV, 
+
+≈ P (ϕ)
+
+∫
+
+> θ∈(−∞,+∞)
+
+exp 
+
+(
+
+− γM 
+
+2 (θ − ϕ)⊤(D− 12 
+
+> ϕ
+
+HϕD− 12 
+
+> ϕ
+
+)( θ − ϕ)
+
+)
+
+dV, 
+
+= P (ϕ) (2 πγM ) n
+
+> 2
+
+det( D−1 
+
+> ϕ
+
+Hϕ) 12
+
+.
+
+(21) For calculating probability flux j = ∫ 
+
+> Sϕ
+
+JdS, we first reduce (19) to a space-dependent Smoluchowski-like equa-tion, which is extended by an effective diffusion correction [26]: 
+
+ˆDi(θ) = Di(θ)
+
+(
+
+1 −
+
+√
+
+1 − 4Hi(θ)
+
+γ2M
+
+) ( 2Hi(θ)
+
+γ2M
+
+)−1
+
+, (22) where Di(θ) is the i-th eigenvalue of the diffusion matrix 
+
+D(θ) and Hi(θ) is the i-th eigenvalue of the Hessian ma-trix H(θ). Since our analysis is confined to the escape di-rection (an eigenvector direction), we simplify the problem by using the one-dimensional form of the Smoluchowski equation along this direction. For SGD, probability current 
+
+J1d can be expressed as the Smoluchowski equation in position space: 
+
+J1d = D(θ)exp 
+
+( −L(θ)
+
+T
+
+)
+
+∇
+
+(
+
+exp 
+
+( L(θ)
+
+T
+
+)
+
+P (θ)
+
+)
+
+, (23) where T is the temperature coefficient. Furthermore, for the momentum dynamics, probability current ˆJ1d can be expressed by transforming (23) into the position-space Smoluchowski-like form with the effective diffusion correction: 
+
+ˆJ1d = ˆD(θ)exp 
+
+( −L(θ)ˆT
+
+)
+
+∇
+
+(
+
+exp 
+
+( L(θ)ˆT
+
+)
+
+P (θ)
+
+)
+
+, (24) where ˆT = T / (γM ) and ˆD(θ) is the effective diffusion matrix with the eigenvalues corrected by (22). Let c represent a point on escape direction e from minimum ϕ to saddle point χ, where L(c) = (1 − s)L(ϕ) + 
+
+sL (χ). Temperature Tϕ determines the path ϕ to c, and temperature Tχ determines the path c to χ. Then we have 
+
+∇
+
+(
+
+exp 
+
+( L(θ) − L(c)
+
+T
+
+)
+
+P (θ)
+
+)
+
+= ˆJ1d ˆD−1exp 
+
+( L(θ) − L(s)
+
+T
+
+)
+
+.
+
+(25) For the left side of (25), we have 
+
+∇
+
+(
+
+exp 
+
+( L(θ) − L(c)
+
+T
+
+)
+
+P (θ)
+
+)
+
+=
+
+∫ χϕ
+
+∂∂θ 
+
+(
+
+exp 
+
+( L(θ) − L(c)
+
+T
+
+)
+
+P (θ)
+
+)
+
+dθ
+
+=
+
+∫ cϕ
+
+∂∂θ 
+
+(
+
+exp 
+
+( L(θ) − L(c)
+
+Tχ
+
+)
+
+P (θ)
+
+)
+
+dθ
+
++
+
+∫ χc
+
+∂∂θ 
+
+(
+
+exp 
+
+( L(θ) − L(c)
+
+Tϕ
+
+)
+
+P (θ)
+
+)
+
+dθ
+
+=
+
+(
+
+P (c) − exp 
+
+( L(χ) − L(c)
+
+Tχ
+
+)
+
+P (χ)
+
+)
+
++ (0 − P (c)) = −exp 
+
+( L(χ) − L(c)
+
+Tχ
+
+)
+
+(χ).
+
+(26) For the right side of (25), we have 
+
+ˆJ1d ˆD−1exp 
+
+( L(θ) − L(s)
+
+T
+
+)
+
+= − ˆJ1d
+
+∫ χϕ
+
+ˆD−1exp 
+
+( L(θ) − L(c)
+
+T
+
+)
+
+dθ. 
+
+(27) Then we have 
+
+ˆJ1d =exp 
+
+( L(χ)−L(c)
+
+> Tχ
+
+)
+
+(χ)
+
+∫ χϕ ˆD−1exp 
+
+( L(θ)−L(c)
+
+> T
+
+)
+
+dθ. (28) 7
+
+Based on the formula of the one-dimensional probabil-ity current and flux, the high-dimensional flux escaping through χ can be written as:                          
+
+> ∫
+> Sχ
+> JdS= ˆJ1d
+> ∫
+> Sχ
+> exp
+> (
+> −γM
+> 2(θ−χ)⊤(D−12
+> χHχD−12
+> χ)⊥e(θ−χ)
+> )
+> dS
+> = ˆJ1d
+> (2 πγM )n−12
+> (∏
+> i̸=eDχi −1Hχi )12
+> =exp
+> (L(ϕ)−L(c)
+> Tϕe
+> )
+> P(ϕ)(2 πγM )n−12
+> ˆD−1
+> χe exp
+> (L(χ)−L(c)
+> Tχe
+> ) √ 2πT χe
+> |Hχe |
+> (∏
+> i̸=e(D−1
+> χi Hχi )
+> )12
+> .
+> (29)
+
+where (·)⊥e represents the directions perpendicular to the escape direction e. Then the mean escape time from minimum ϕ to the outside of ϕ is given as: 
+
+ˆτ = P (θ ∈ Vϕ)
+
+∫ 
+
+> Sχ
+
+JdS
+
+= π
+
+(√ 
+
+1 + 4
+
+γ2M |Hχe | + 1 
+
+) 1
+
+|Hχe |
+
+exp 
+
+( 2γM b ∆Lη
+
+( sHϕe 
+
++ 1 − s
+
+|Hχe |
+
+)) 
+
+,
+
+(30) where subscript e indicates the escape direction, Hϕe and 
+
+Hχe are the eigenvalues of the Hessian matrix of the loss function at minimum ϕ and saddle point χ along escape direction e, and ∆L = L(χ) − L(ϕ). To prove Theorem 1, we can replace standard learning rate η with adaptive learning rate ˜η since InvAdam relies heavily on the momentum mechanism in the process of computing an update. The adaptive learning rate ˜η in the InvAdam can be written as 
+
+˜η = √V η, (31) where V = E (gtg⊤
+
+> t
+
+) is a matrix. This method of cal-culating V is used by [26] to simplify the theoretical analysis. V = E (gtg⊤
+
+> t
+
+) = C (θ) = H/b approximately holds near critical points, where H is the Hessian matrix. By replacing η in (30) with ˜η and setting γM = 1 to simplify the derivation, we can get the InvAdam’s mean escape time as: 
+
+˜τ = π
+
+(√ 
+
+1 + 4ηb |Hχe | 32
+
+(1 − β1) √b + 1 
+
+) |det( H−1 
+
+> ϕ
+
+Hχ)|− 14
+
+|He|
+
+exp 
+
+ 2b 32 ∆Lη
+
+ sH 32
+
+> ϕe
+
++ 1 − s
+
+|Hχe | 32
+
+ .
+
+(32) The proof is thus completed. ■
+
+Based on Theorem 1, we can write log (˜ τ ) as 
+
+log(˜ τ ) = O 
+
+ 2√b∆LηH 32
+
+> ϕe
+
+ . (33) Based on (7) and (33), we can write the further simplified approximations as follows: 
+
+{
+
+log( τ ) = O( H− 12 
+
+> ϕe
+
+),
+
+log(˜ τ ) = O( H− 32 
+
+> ϕe
+
+). (34) In the diffusion theory, the loss landscape’s sharpness around minimum ϕ is reflected by Hϕe , which is the eigenvalue of the Hessian matrix corresponding to the escape direction along an eigenvector. The relationship between the Hessian matrix’s eigenvalues and the sharp-ness of the loss landscape is also studied by [30] and [31]. Therefore, Eq. (34) shows that as Hϕe increases, i.e., the escaping direction becomes sharper, the mean escape time of InvAdam decreases faster than Adam, indicating that InvAdam has a better ability to escape sharp minima compared to Adam. As mentioned above, DualAdam combines the update mechanism of InvAdam with that of Adam to strike a balance between convergence and generalization. As shown in Algorithm 1, α ∈ [0 , 1] is the ratio of InvAdam, which decays linearly from 1 to 0 as the number of iterations increases during training. This means that at the initial stage of training, DualAdam’s parameter update is entirely based on InvAdam’s, which has a better ability to escape sharp minima than Adam. This allows InvAdam to explore the loss landscape more extensively in the early stages of the training, helping parameters reach regions near relatively flat minima. However, as the number of iterations increases, DualAdam’s update transitions lin-early to Adam’s. This transition ensures that DualAdam can effectively converge in the later stages of the training, aligning with our goal of balancing generalization and convergence. D. Convergence Analysis In analyzing convergence properties [32], foundational studies on neural network stability [33]–[35] provide a concrete theoretical basis, as neural network stability supports and enhances convergence rates in optimization processes. Given that the convergence of Adam has been rigorously analyzed by [11] and [36], and that DualAdam switches to Adam completely in later training stages, its convergence is guaranteed. Therefore, further proof is omitted here. However, it is important to note that InvAdam, when used solely, may encounter convergence challenges, to be demonstrated in the experiments. IV. Simulations and Experiments In this section, we perform extensive simulations and experiments to validate the performance of DualAdam and compare it with other optimizers, including Adam [10], AdamW [17], RAdam [18], SWATS [21], NAdam [19], Adan [20], and MIAdam [22]. Firstly, we conduct numerical simulations on 2-parameter loss landscapes [37] to evaluate InvAdam’s ability to escape sharp minima. Secondly, im-age classification experiments are performed using ResNet-18, ResNet-50 [38], VGG-16 [39], and ViT-Small [40] 8
+
+on CIFAR-10, CIFAR-100 [41], Tiny ImageNet [42], and ImageNet-1k [43]. Next, the fast computation method of Hessian information of loss landscapes presented in [44] is used to compare the density of the Hessian matrix’s eigenvalues around the solutions obtained by Adam and DualAdam. Moreover, we present the visualization of flatness near the solutions obtained by Adam and Dual-Adam. Finally, we conduct ablation studies to analyze the impact of the switching rates, switching mechanisms, and learning rate schedulers on DualAdam’s performance. The detailed settings of all the simulations and experiments are provided in Supplementary File. Additionally, we conduct experiments to investigate the impact of different learning rate schedulers on the performance of DualAdam, which is also included in Supplementary File. A. Numerical Simulations on 2-Parameter Loss Land-scapes In this section, we conduct numerical simulations on 2-parameter loss landscapes to demonstrate that InvAdam exhibits a better ability to escape sharp minima than Adam. The loss landscapes we use include a loss landscape determined by a custom function and a loss landscape determined by the Eggholder function [45]. As shown in Fig. 2, it is evident that Adam quickly gets trapped in a sharp minimum, whereas InvAdam explores the loss landscape more thoroughly and eventually converges to a flat minimum. These trajectories demonstrate that InvAdam has superior ability to find flat minima over Adam. However, the ablation studies on the switching rate indicate that the sole use of InvAdam may lead to non-convergence. This is why DualAdam uses InvAdam in the early stage of training and switches to Adam as the training progresses. 4 2 0 2 4 6       
+
+> x
+> 2.5
+> 0.0
+> 2.5
+> 5.0
+> y
+> Adam
+> InvAdam
+> 0
+> 8
+> 16
+> 24
+> 32
+> 40
+> 48
+> 56
+> 64
+> 72
+> (a) Custom Function 250 200 150 100 50 0
+> x
+> 0
+> 100
+> y
+> Adam
+> InvAdam
+> 200
+> 150
+> 100
+> 50
+> 0
+> 50
+> 100
+> 150
+> 200
+> 250 (b) Eggholder Function Fig. 2. Optimization trajectories of InvAdam and Adam on 2-parameter loss landscapes. The red stars represent the start points, and the black circles represent the end points.
+
+B. Image Classification on CIFAR-10 and CIFAR-100 We conduct experiments on the CIFAR-10 and CIFAR-100 datasets. The training data preprocessing involves randomly cropping the images to a size of 32 × 32 with a 4-pixel padding and performing random horizontal flips to augment the dataset. Subsequently, the images are normalized using mean and standard deviation values calculated from the dataset. Figure 3 shows the test ac-curacy over epochs for different optimizers using ResNet-18 and ViT-Small-4 on CIFAR-100. It demonstrates that DualAdam achieves higher test accuracy than Adam and its variants after the training is complete. Each optimizer is run three times on both CIFAR-10 and CIFAR-100 with different models, and the mean and standard deviation of test accuracies are reported in Table I, with the training time for each single run. As shown, DualAdam outperforms Adam and its state-of-the-art variants in terms of generalization, with nearly the same training time as Adam’s. The results validate that DualAdam effectively balances convergence and generalization by combining the update mechanisms of Adam and InvAdam. 0 25 50 75 100 125 150 175 200               
+
+> Epoch
+> 20
+> 40
+> 60
+> Accuracy (%)
+> 160 180 200
+> 70
+> 75
+> Adam
+> AdamW
+> RAdam
+> NAdam
+> DualAdam
+> SWATS
+> MIAdam
+> Adan
+> (a) ResNet-18 025 50 75 100 125 150 175 200
+> Epoch
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> Accuracy (%)
+> 160 180 200
+> 55.0
+> 57.5
+> Adam
+> AdamW
+> RAdam
+> NAdam
+> DualAdam
+> SWATS
+> MIAdam
+> Adan (b) ViT-Small-4 Fig. 3. Test accuracies over epochs on CIFAR-100.
+
+C. Image Classification on Tiny ImageNet We conduct experiments on Tiny ImageNet, a subset of ImageNet-1k comprising 200 classes with 500 training images, 50 validation images, and 50 test images per class. It is worth noting that Tiny ImageNet reduces the size of the images in ImageNet-1k to 64 × 64 (most of the images in ImageNet-1k are larger than 224 × 224 ), which makes them appear more blurry compared to the images in ImageNet-1k and therefore more difficult to classify. The training data preprocessing involves several steps to augment and standardize the images in Tiny ImageNet. Initially, a random horizontal flip is performed to enhance the variability in the training data. After that, the images are normalized using mean and standard deviation values calculated from the dataset. Each optimizer is run three times on Tiny ImageNet with different models, and the mean and standard deviation of test accuracies are re-ported in Table II. As shown, DualAdam also outperforms Adam and some of its variants on Tiny ImageNet. D. Image Classification on ImageNet-1k We conduct experiments on ImageNet-1k, a large-scale image classification dataset comprising 1,000 classes with 1.28 million training images and 50,000 testing images. The training data preprocessing involves several steps to augment and standardize the images. Initially, the images are randomly cropped to a size of 224 × 224 . After that, a random horizontal flip is performed to enhance variability in the training data. Then, the images are normalized using mean and standard deviation values calculated from the dataset. The test accuracies are reported in Table III. As shown, DualAdam outperforms Adam on a relatively large dataset. 9
+
+TABLE I Top-1 test accuracies (mean±std) and training times on CIFAR-10 and CIFAR-100 Model Optimizer CIFAR-10 CIFAR-100 Test Accuracy (%) Training Time Test Accuracy (%) Training Time ResNet-18 Adam [10] 93 .66 ±0.17 36min40s 72 .56 ±0.08 36min37s AdamW [17] 94 .09 ±0.04 36min43s 72 .81 ±0.10 37min10s SWATS [21] 92 .96 ±1.04 43min27s 71 .40 ±1.50 44min04s NAdam [19] 94 .01 ±0.02 37min12s 72 .06 ±0.43 37min35s RAdam [18] 94 .11 ±0.01 37min11s 74 .79 ±0.06 36min50s Adan [20] 94 .07 ±0.07 37min11s 73 .57 ±0.12 36min41s MIAdam [22] 94 .25 ±0.15 37min18s 74 .98 ±0.03 38min23s DualAdam (ours) 94 .99 ±0.13 37min06s 75 .29 ±0.21 36min54s ResNet-50 Adam [10] 94 .04 ±0.12 101min12s 74 .53 ±0.50 100min18s AdamW [17] 94 .30 ±0.02 103min01s 75 .40 ±0.31 102min18s SWATS [21] 90 .99 ±1.56 110min45s 71 .87 ±0.67 113min20s NAdam [19] 94 .26 ±0.28 103min19s 74 .74 ±0.11 104min25s RAdam [18] 94 .76 ±0.07 101min07s 76 .25 ±0.17 102min13s Adan [20] 94 .62 ±0.11 100min32s 75 .96 ±0.05 101min09s MIAdam [22] 94 .45 ±0.08 101min19s 76 .70 ±0.07 102min30s DualAdam (ours) 95 .27 ±0.08 101min34s 76 .84 ±0.16 102min15s VGG-16 Adam [10] 92 .98 ±0.15 29min03s 68 .66 ±0.13 28min31s AdamW [17] 92 .99 ±0.19 29min15s 68 .69 ±0.12 29min12s SWATS [21] 91 .41 ±1.49 35min21s 65 .56 ±1.40 33min23s NAdam [19] 92 .98 ±0.02 30min15s 69 .85 ±0.07 30min03s RAdam [18] 93 .36 ±0.25 31min08s 70 .49 ±0.17 31min22s Adan [20] 92 .88 ±0.03 32min01s 70 .04 ±0.16 31min06s MIAdam [22] 93 .13 ±0.11 30min33s 71 .92 ±0.11 30min03s DualAdam (ours) 93 .93 ±0.20 30min15s 72 .66 ±0.21 30min18s ViT-Small-4 Adam [10] 83 .30 ±0.42 66min40s 55 .43 ±0.09 67min10s AdamW [17] 83 .16 ±0.22 67min12s 54 .05 ±0.13 67min08s SWATS [21] 79 .29 ±1.10 75min13s 55 .95 ±0.03 72min43s NAdam [19] 83 .50 ±0.24 68min14s 53 .55 ±0.03 69min21s RAdam [18] 84 .15 ±0.05 68min06s 56 .95 ±0.33 68min12s Adan [20] 83 .71 ±0.04 66min15s 57 .16 ±0.07 70min45s MIAdam [22] 83 .45 ±0.18 67min32s 58 .01 ±0.11 71min12s DualAdam (ours) 85 .40 ±0.17 68min15s 58 .54 ±0.24 69min13s TABLE II Test accuracies (mean±std) on Tiny ImageNet Model Optimizer Test accuracy (%) Traning Time ResNet-18 Adam [10] 50 .98 ±0.42 537min24s AdamW [17] 51 .20 ±0.28 536min18s SWATS [21] 49 .55 ±0.45 601min18s NAdam [19] 51 .58 ±0.08 538min13s RAdam [18] 55 .04 ±0.32 537min06s Adan [20] 51 .97 ±0.21 540min18s MIAdam [22] 53 .06 ±0.34 536min14s DualAdam (ours) 57 .19 ±0.21 538min45s VGG-16 Adam [10] 48 .57 ±0.10 402min06s AdamW [17] 50 .53 ±0.14 405min21s SWATS [21] 44 .14 ±0.64 435min45s NAdam [19] 48 .80 ±0.08 406min18s RAdam [18] 53 .01 ±0.08 401min29s Adan [20] 51 .52 ±0.12 402min17s MIAdam [22] 53 .11 ±0.11 402min25s DualAdam (ours) 54 .42 ±0.11 403min33s ViT-Small-8 Adam [10] 30 .72 ±0.21 569min33s AdamW [17] 31 .20 ±0.13 567min40s SWATS [21] 28 .80 ±0.11 586min32s NAdam [19] 28 .56 ±0.03 572min08s RAdam [18] 34 .22 ±0.32 570min18s Adan [20] 33 .53 ±0.09 566min51s MIAdam [22] 35 .85 ±0.07 572min18s DualAdam (ours) 37 .90 ±0.22 568min19s TABLE III Test accuracies on ImageNet-1k Model Optimizer Test Accuracy (%) ResNet-18 Adam [10] 69 .55 
+
+AdamW [17] 71 .29 
+
+DualAdam (ours) 72 .61 
+
+ResNet-50 Adam [10] 70 .10 
+
+AdamW [17] 71 .23 
+
+DualAdam (ours) 73 .32 
+
+E. Fine-Tuning on Large Language Model To further evaluate the scalability and versatility of DualAdam on large-scale parameters and language mod-eling tasks, we conduct fine-tuning experiments on an large language model (LLM). We employ the OpenPangu-Embedded-1B model [46], a LLM with a billion pa-rameters. The model is fine-tuned on the Alpaca-GPT4-CN dataset 1, which consists of high-quality Chi-nese instruction-following data. We compare DualAdam against AdamW, which is the default optimizer for train-ing LLMs. Fig. 4 illustrates the comparison results. As shown, AdamW achieves a significantly lower training 
+
+> 1
+
+https://huggingface.co/datasets/surogate/alpaca-gpt4-data-zh 10 
+
+loss compared to DualAdam. However, despite the higher training loss, DualAdam achieves a remarkably lower and more stable validation perplexity (PPL) compared to AdamW. As training progresses, AdamW’s PPL begins to rise, a classic sign of overfitting. In contrast, DualAdam’s PPL continues to decrease or remains flat, demonstrating robust generalization. Moreover, the advantage of Du-alAdam is evident in the generalization gap, which is the difference between the validation loss and training loss. AdamW exhibits a rapidly increasing generalization gap, confirming severe overfitting. DualAdam maintains a generalization gap near zero, empirically validating our theoretical claim that DualAdam guides the parameters toward flat minima, which are robust to data variations. These results on OpenPangu-Embedded-1B confirm that DualAdam’s benefits extend beyond computer vision to natural language processing, effectively handling the over-fitting challenges inherent in LLM fine-tuning. F. Comparison of the Hessian Matrix’s Information We employ the method in [44] to compute the eigen-values of the Hessian matrix for the solutions obtained by Adam and DualAdam using ResNet-18 on CIFAR-100. As shown in Fig. 5, the Hessian eigenvalues of model parameters optimized by DualAdam are more concentrated around zero compared to those optimized by Adam, with smaller maximum eigenvalues and trace. This indicates that the model parameters optimized by DualAdma reside in a flatter basin of the loss landscape compared to those optimized by Adam. G. Visualizing Loss Landscape Flatness To measure the flatness of the loss landscape near the solutions obtained by the different optimizers, we use the method in [47] for visualization. We present a 1D visualization of solutions achieved by Adam and DualAdam using ResNet-18 on CIFAR-10. As illustrated in Fig. 6, it is evident that DualAdam obtains a flatter solution than Adam, indicating its better generalization performance [6]. H. Ablation Study We conduct ablation studies to investigate the impact of the switching rate and switching mechanisms on the per-formance of DualAdam. The experiments are conducted using ResNet-18 on CIFAR-100. The detailed settings of the experiments are provided in Supplementary File. 1) Switching Rate: We conduct ablation studies to investigate the impact of switching rate ξ on the perfor-mance of DualAdam. ξ determines how quickly DualAdam transitions from InvAdam to Adam during training. Small 
+
+ξ means slow transition, while large ξ means fast one. We perform experiments by using ResNet-18 on the CIFAR-100 training set with different values of ξ. 80% of the training set is used for training, and the remaining 20% is used for validation. The experiments are run three times,                                                                                   
+
+> TABLE IV Training losses (mean±std) and validation accuracies (mean±std) of DualAdam on CIFAR-100 using ResNet-18 with different switching rates Switching Rate Traning Loss Validation Accuracy (%) 04.58 ±0.01 2.0±0.04
+> 1×10 −55.4±0.35 ×10 −469 .04 ±0.08
+> 2×10 −55.5±0.77 ×10 −470 .30 ±0.26
+> 3×10 −54.8±0.07 ×10 −471 .04 ±0.08
+> 4×10 −55.1±0.35 ×10 −471 .49 ±0.21
+> 5×10 −54.8±0.14 ×10 −471 .52 ±0.28
+> 6×10 −54.5±0.42 ×10 −471 .59 ±0.49
+> 7×10 −54.7±0.07 ×10 −471 .38 ±0.02
+> 8×10 −54.5±0.06 ×10 −471 .79 ±0.28
+> 9×10 −54.3±0.14 ×10 −471 .50 ±0.33
+> 1×10 −44.9±0.07 ×10 −471 .48 ±0.28
+> TABLE V Test accuracies (mean±std) of DualAdam on CIFAR-100 using ResNet-18 with different switching mechanisms Linear Switching Switching Rate Test Accuracy (%)
+> 5×10 −575 .30 ±0.34
+> 8×10 −575 .29 ±0.21
+> 1×10 −475 .13 ±0.16
+> Exponential Switching Exponential Base Test Accuracy (%) 0.8 71 .45 ±0.47
+> 0.9 72 .82 ±0.09
+> 0.99 73 .33 ±0.39
+> Fixed Epoch Switching Switching Epoch Test Accuracy (%) 10 71 .33 ±0.56
+> 30 69 .03 ±0.31
+> 50 66 .96 ±0.46
+
+and the average values and standard deviations of the training losses and top-1 validation accuracies of the last epoch are reported in Table V. As shown, when ξ is set to 0, i.e., InvAdam is used solely, the model’s training may not converge. When ξ is set to 8 × 10 −5, DualAdam achieves the best test performance. Therefore, we set ξ to 
+
+8×10 −5 in the image classification experiments. Moreover, if ξ is too small or too large, the performance of DualAdam degrades. This indicates that an appropriate switching rate is crucial for balancing exploration and convergence in DualAdam. 2) Switching Mechanisms: We conduct ablation studies to investigate the impact of different switching mecha-nisms on DualAdam’s performance. We compare three switching mechanisms: linear, exponential, and fixed epoch ones. As shown in Table V, linear switching achieves the best performance among them. Exponential switching performs slightly worse than linear switching, while fixed epoch switching performs the worst. This indicates that a gradual transition from InvAdam to Adam is more effective than an abrupt transition. 11 1 5 10 15 20   
+
+> Epoch
+> 10 2
+> 10 1
+> 10 0
+> 10 1
+> Training Loss (Log Scale)  AdamW
+> DualAdam
+
+(a) Training Loss 1 5 10 15 20  
+
+> Epoch
+> 10 1
+> 10 2
+> 10 3
+> 10 4
+> Validation Perplexity (Log Scale)
+> AdamW
+> DualAdam
+
+(b) Validation Perplexity 1 5 10 15 20  
+
+> Epoch
+> 2
+> 1
+> 0
+> 1
+> Generalization Gap
+> AdamW
+> DualAdam
+
+(c) Generalization Gap Fig. 4. Comparisons of training loss, validation perplexity, and generalization gap of DualAdam and AdamW on the fine-tuning of OpenPangu-1B. 10 0 30 70 110 150 190 230 270 310 
+
+Eigenvlaue   
+
+> 10 5
+> 10 2
+> 10 1
+> Density (Log Scale)
+> Top Eigenvalue: 315.30 Hessian Matrix's Trace: 1678.71
+
+(a) Adam 10 0 30 70 110 150 190 230 270 310 
+
+Eigenvlaue    
+
+> 10 5
+> 10 2
+> 10 1
+> Density (Log Scale)
+> Top Eigenvalue: 28.74 Hessian Matrix's Trace: 356.32
+
+(b) DualAdam Fig. 5. Comparisons of top Hessian matrix’s eigenvalues, Hessian matrix’s traces, and Hessian matrix’s eigenvalue densities of loss landscapes on the CIFAR-100 dataset using ResNet18. 1.0 0.5 0.0 0.5 1.0 
+
+012345Loss Adam Training loss DualAdam Training loss Adam Test loss DualAdam Test loss 
+
+Fig. 6. Visualization of loss landscapes of Adam and DualAdam. The loss is defined as L(θ⋆ + ζl ), where ζ is a scalar that scales the random vector l drawn from a Gaussian distribution to perturb the optimal parameter θ⋆.
+
+V. Conclusions We have proposed a new optimizer, named InvAdam, and an enhanced version of it, called DualAdam. While InvAdam has a better ability to escape sharp minima than Adam theoretically, it faces potential challenges in achieving convergence. Therefore, we have proposed DualAdam, which combines both. The linear switching between them can effectively balance generalization and convergence. Then, we have provided a theoretical analysis to mathematically demonstrate that InvAdam has a better ability to escape sharp minima than Adam. Additionally, we have validated through extensive experiments that DualAdam has a better generalization performance than Adam and some of its state-of-the-art variants on both im-age classification and LLM fine-tuning tasks. In the future, we plan to explore more effective switching mechanisms and investigate the performance of the combination of InvAdam and other optimizers, such as SGD. References 
+
+[1] J. Xu, Y. Fei, J. Li, and Y. Li, “Optimization of persistent ex-citation level of training trajectories in deterministic learning,” IEEE Trans. Syst., Man, Cybern., vol. 55, no. 4, pp. 2924–2936, 2025. [2] X. Wen and M. Zhou, “Evolution and role of optimizers in training deep learning models,” IEEE/CAA J. Autom. Sinica, vol. 11, no. 10, pp. 2039–2042, 2024. [3] Z. Zeng and J. Wang, “Design and analysis of high-capacity associative memories based on a class of discrete-time recurrent neural networks,” IEEE Trans. Syst., Man, Cybern., vol. 38, no. 6, pp. 1525–1536, 2008. [4] L. Chen, L. Jin, M. Shang, and F.-Y. Wang, “Enhancing representation power of deep neural networks with negligible parameter growth for industrial applications,” IEEE Trans. Syst., Man, Cybern., vol. 54, no. 11, pp. 6837–6848, 2024. [5] Y. Jin, H. Yang, X. Wang, Y. Xu, and Z. Zhang, “Ape optimizer: A p-power adaptive filter-based approach for deep learning optimization,” IEEE Trans. Neural Netw. Learn. Syst. (Early Access), pp. 1–13, 2025. [Online]. Available: https://doi.org/10.1109/TNNLS.2025.3610665 [6] N. Yang, C. Tang, and Y. Tu, “Stochastic gradient descent intro-duces an effective landscape-dependent regularization favoring flat solutions,” Phys. Rev. Lett., vol. 130, no. 23, p. 237101, 2023. [7] P. Zhou, J. Feng, C. Ma, C. Xiong, S. Hoi, and W. E, “Towards theoretically understanding why SGD generalizes better than adam in deep learning,” Proc. Adv. Neural Inf. Proces. Syst. (NeurIPS), vol. 33, pp. 21 285–21 296, 2020. [8] G. Zeng, Q. Zhang, G. Zhang, and J. Lu, “Sharpness-aware cross-domain recommendation to cold-start users,” IEEE Trans. Syst., Man, Cybern., vol. 55, no. 6, pp. 4244–4257, 2025. [9] Z. Xie, I. Sato, and M. Sugiyama, “A diffusion theory for deep learning dynamics: Stochastic gradient descent exponentially favors flat minima,” in Proc. Int. Conf. Learn. Represent. (ICLR), 2021. [Online]. Available: https: //arxiv.org/pdf/1412.6980 [10] D. P. Kingma and J. Ba, “Adam: A method for stochastic optimization,” in Proc. Int. Conf. Learn. Represent. (ICLR), 2015. [Online]. Available: https://arxiv.org/pdf/1412.6980 [11] B. Wang, Y. Zhang, H. Zhang, Q. Meng, R. Sun, Z. Ma, T. Liu, Z. Luo, and W. Chen, “Provable adaptivity of Adam under non-uniform smoothness,” in Proc. ACM SIGKDD Int. Conf. Knowl. Discovery Data Mining (KDD), Barcelona, Spain, 2024, pp. 2960–2969. [12] X. Jia, X. Feng, H. Yong, and D. Meng, “Weight decay with tailored Adam on scale-invariant weights for better generaliza-tion,” IEEE Trans. Neural Netw. Learn. Syst., vol. 35, no. 5, pp. 6936–6947, 2024. 12 
+
+[13] J. Zheng, L. Zhou, L. Ye, and Z. Ge, “Deep co-training partial least squares model for semi-supervised industrial soft sensing,” IEEE Trans. Syst., Man, Cybern., vol. 55, no. 5, pp. 3363–3371, 2025. [14] X. Peng, C. Chang, F.-Y. Wang, and L. Li, “Robust multitask learning with sample gradient similarity,” IEEE Trans. Syst., Man, Cybern., vol. 54, no. 1, pp. 497–506, 2024. [15] N. Xiao, X. Hu, X. Liu, and K.-C. Toh, “Adam-family methods for nonsmooth optimization with convergence guarantees,” J. Mach. Learn. Res., vol. 25, no. 48, pp. 1–53, 2024. [16] X. Luo, J. Chen, Y. Yuan, and Z. Wang, “Pseudo gradient-adjusted particle swarm optimization for accurate adaptive la-tent factor analysis,” IEEE Trans. Syst., Man, Cybern., vol. 54, no. 4, pp. 2213–2226, 2024. [17] I. Loshchilov and F. Hutter, “Decoupled weight decay regularization,” Proc. Int. Conf. Learn. Represent. (ICLR), 2019. [Online]. Available: https://openreview.net/pdf?id= Bkg6RiCqY7 [18] L. Liu, H. Jiang, P. He, W. Chen, X. Liu, J. Gao, and J. Han, “On the variance of the adaptive learning rate and beyond,” Proc. Int. Conf. Learn. Represent. (ICLR), 2020. [Online]. Available: https://iclr.cc/virtual/2020/poster/1812 [19] T. Dozat, “Incorporating Nesterov momentum into Adam,” Proc. Int. Conf. Learn. Represent. (ICLR) Workshop, 2016. [Online]. Available: https://openreview.net/pdf?id= OM0jvwB8jIp57ZJjtNEZ [20] X. Xie, P. Zhou, H. Li, Z. Lin, and S. Yan, “Adan: Adaptive Nesterov momentum algorithm for faster optimizing deep mod-els,” IEEE Trans. Pattern Anal. Mach. Intell., vol. 46, no. 12, pp. 9508–9520, 2024. [21] N. S. Keskar and R. Socher, “Improving generalization per-formance by switching from Adam to SGD,” arXiv preprint arXiv:1712.07628, pp. 1–10, 2017. [22] L. Jin, H. Nong, L. Chen, and Z. Su, “A method for enhancing generalization of Adam by multiple integrations,” Proc. AAAI Conf. Artif. Intell., Philadelphia, Pennsylvania, USA, vol. 39, no. 4, pp. 4147–4155, 2025. [23] W. Jiang, H. Yang, Y. Zhang, and J. Kwok, “An adaptive policy to employ sharpness-aware minimization,” in Proc. Int. Conf. Learn. Represent. (ICLR), 2023. [Online]. Available: https://openreview.net/pdf?id=6Wl7-M2BC-[24] Y. Chen and R. Zhang, “Deep multiscale convolutional model with multihead self-attention for industrial process fault diag-nosis,” IEEE Trans. Syst., Man, Cybern., vol. 55, no. 4, pp. 2503–2512, 2025. [25] J. Kaplan, S. McCandlish, T. Henighan, T. B. Brown, B. Chess, R. Child, S. Gray, A. Radford, J. Wu, and D. Amodei, “Scaling laws for neural language models,” arXiv preprint arXiv:2001.08361, 2020. [26] Z. Xie, X. Wang, H. Zhang, I. Sato, and M. Sugiyama, “Adaptive inertia: Disentangling the effects of adaptive learning rate and momentum,” in Proc. Int. Conf. Mach. Learn. (ICML), Baltimore, MD, USA, vol. 162, 2022, pp. 24 430–24 459. [27] A. Berera, J. Mabillard, B. W. Mintz, and R. O. Ramos, “Formulating the kramers problem in field theory,” Phys. Rev. D, vol. 100, p. 076005, 2019. [28] A. Pacheco-Pozo, M. Balcerek, A. Wyłomanska, K. Burnecki, I. M. Sokolov, and D. Krapf, “Langevin equation in Hetero-geneous landscapes: How to choose the interpretation,” Phys. Rev. Lett., vol. 133, p. 067102, 2024. [29] N. M. Boffi and E. Vanden-Eijnden, “Probability flow solution of the Fokker-Planck equation,” Mach. Learn.: Sci. Technol., vol. 4, no. 3, p. 035012, 2023. [30] L. Dinh, R. Pascanu, S. Bengio, and Y. Bengio, “Sharp minima can generalize for deep nets,” in Proc. Int. Conf. Mach. Learn. (ICML), San Francisco, CA, USA, vol. 70, 2017, pp. 1019–1028. [31] A. S. Bosman, A. Engelbrecht, and M. Helbig, “Empirical loss landscape analysis of neural network activation functions,” in Proc. Genet. Evol. Comput. Conf. (GECCO), Lisbon, Portugal, 2023, pp. 2029–2037. [32] Q. Fan, L. Zhou, J. M. Zurada, J. Peng, H. Li, J. Wang, and D. Yang, “Convergence analysis of regularized elman neural networks under relaxed conditions,” IEEE Trans. Syst., Man, Cybern., vol. 55, no. 1, pp. 430–442, 2025. [33] Z. Zeng, J. Wang, and X. Liao, “Stability analysis of delayed cellular neural networks described using cloning templates,” IEEE Trans. Circuits Syst. I, Reg. Papers, vol. 51, no. 11, pp. 2313–2324, 2004. [34] Z. Zeng, J. Wang, and X. Liao, “Global exponential stability of a general class of recurrent neural networks with time-varying delays,” IEEE Trans. Circuits Syst. I: Fundam. Theory Appl., vol. 50, no. 10, pp. 1353–1358, 2003. [35] X. Gao, Y. Li, X. Liu, Y. Ye, and H. Fan, “Stability analysis of fractional bidirectional associative memory neural networks with multiple proportional delays and distributed delays,” IEEE Trans. Neural Netw. Learn. Syst., vol. 36, no. 1, pp. 738–752, 2025. [36] H. Li, A. Rakhlin, and A. Jadbabaie, “Convergence of Adam under relaxed assumptions,” in Proc. Adv. Neural Inf. Proces. Syst. (NeurIPS), New Orleans, LA, USA, vol. 36, 2023, pp. 52 166–52 196. [37] X. Yang, “Towards stochastic gradient variance reduction by solving a filtering problem,” in Proc. Int. Conf. Mach. Learn. (ICML), Honolulu, HI, USA, (Tiny Paper), 2023, pp. 1–8. [38] K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for image recognition,” in Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR), Las Vegas, NV, USA, 2016, pp. 770– 778. [39] K. Simonyan and A. Zisserman, “Very deep convolutional networks for large-scale image recognition,” in Proc. Int. Conf. Learn. Represent. (ICLR), 2015. [Online]. Available: https://arxiv.org/pdf/1409.1556 [40] H. Touvron, M. Cord, and H. Jégou, “DeiT III: Revenge of the ViT,” in Proc. Eur. Conf. Comput. Vis. (ECCV), Tel Aviv, Israel, 2022, pp. 516–533. [41] J. Qiao, Z. Zhang, X. Tan, Y. Qu, W. Zhang, Z. Han, and Y. Xie, “Gradient projection for continual parameter-efficient tuning,” IEEE Trans. Pattern Anal. Mach. Intell. (Eearly Access), pp. 1–15, 2025. [Online]. Available: https: //doi.org/10.1109/TPAMI.2025.3587032 [42] D. Su, J. Hou, G. Li, R. Togo, R. Song, T. Ogawa, and M. Haseyama, “Generative dataset distillation based on dif-fusion model,” in Proc. Eur. Conf. Comput. Vis. (ECCV) Workshop, Nicosia, Cyprus, 2025, pp. 83–94. [43] J. Deng, W. Dong, R. Socher, L.-J. Li, L. Kai, and F.-F. Li, “ImageNet: A large-scale hierarchical image database,” in Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR), Miami, Florida, USA, 2009, pp. 248–255. [44] Z. Yao, A. Gholami, K. Keutzer, and M. W. Mahoney, “Py-Hessian: Neural networks through the lens of the Hessian,” in Proc. IEEE Int. Conf. Big Data, Atlanta, Georgia, USA, 2020, pp. 581–590. [45] J. Jung and D. Lee, “Bypassing stationary points in training deep learning models,” IEEE Trans. Neural Netw. Learn. Syst., vol. 35, no. 12, pp. 18 859–18 871, 2024. [46] H. Chen, Y. Wang, K. Han et al., “Pangu embedded: An efficient dual-system LLM reasoner with metacognition,” arXiv preprint arXiv:2505.22375, 2025. [47] H. Li, Z. Xu, G. Taylor, C. Studer, and T. Goldstein, “Visual-izing the loss landscape of neural nets,” in Proc. Adv. Neural Inf. Proces. Syst. (NeurIPS), Montréal, Canada, 2018, pp. 6391– 6401. 
+
+Tao Shi received the B.E. degree in software engineering from Xiamen University, Xiamen, China, in 2022. He is currently pursuing an M.E. degree in computer science and technol-ogy with the School of Information Science and Engineering, Lanzhou University, Lanzhou, China. His research interests include optimization and deep learning. 13 
+
+Liangming Chen received a B.S. degree in physics from Wuhan University, Wuhan, China, in 2017, an ME degree in com-puter technology from Lanzhou University, Lanzhou, China, in 2021, and a Ph.D. degree in computer software and theory with the University of Chinese Academy of Sciences, Beijing, China, in 2025. His main research interests include struc-tures and training algorithms of deep neural networks. 
+
+Long Jin (Senior Member, IEEE) received the B.E. degree in automation and the Ph.D. degree in information and communica-tion engineering from Sun Yat-sen University, Guangzhou, China, in 2011 and 2016, respec-tively. He was a Postdoctoral Fellow with the Department of Computing, The Hong Kong Polytechnic University, Hong Kong, from 2016 to 2017. In 2017, he joined the School of In-formation Science and Engineering, Lanzhou University, Lanzhou, China, as a Professor of Computer Science and Engineering. He is currently serving as the Associate Editor for the IEEE Transactions on Industrial Electronics, IEEE/CAA Journal of Automatica Sinica, and Neural Networks. His current research interests include neural networks, robotics, optimization, and intelligent computing. 
+
+Mengchu Zhou (Fellow, IEEE) received his Ph. D. degree from Rensselaer Polytechnic Institute, Troy, NY in 1990 and then joined New Jersey Institute of Technology where he has been Distinguished Professor since 2013. His interests are in Petri nets, automa-tion, robotics, big data, Internet of Things, cloud/edge computing, and AI. He has 1400+ publications including 18 books, 900+ jour-nal papers (700+ in IEEE transactions), 32 patents and 32 book-chapters. He is Fellow of IFAC, AAAS, CAA and NAI.

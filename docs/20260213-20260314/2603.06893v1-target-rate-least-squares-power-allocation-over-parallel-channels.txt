@@ -1,0 +1,954 @@
+Title: Target-Rate Least-Squares Power Allocation over Parallel Channels
+
+URL Source: https://arxiv.org/pdf/2603.06893v1
+
+Published Time: Tue, 10 Mar 2026 00:15:14 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# Target-Rate Least-Squares Power Allocation over Parallel Channels 
+
+Bhaskar Krishnamachari 
+
+Ming Hsieh Department of Electrical and Computer Engineering University of Southern California 
+
+bkrishna@usc.edu 
+
+March 2026 
+
+Abstract 
+
+We study power allocation over 𝑁 parallel Gaussian channels, such as OFDM subcarriers, when each channel has a desired target spectral efficiency. Given channel gain-to-noise coefficients 𝑎 𝑖 > 0
+
+and per-channel targets 𝑇 𝑖 ≥ 0, we minimize the total squared rate deviation Í𝑁 𝑖 =1 (log 2 (1 + 𝑎 𝑖 𝑃 𝑖 ) − 𝑇 𝑖 )2
+
+subject to a sum-power constraint Í𝑖 𝑃 𝑖 ≤ 𝑃 tot and nonnegativity 𝑃 𝑖 ≥ 0. We prove that the optimal allocation never overshoots any target and may leave power unused when all targets are jointly feasible, a structure fundamentally different from classical waterfilling. Using the KKT conditions, we derive a per-channel closed-form solution in terms of the Lambert W function on the active set and reduce the remaining computation to a one-dimensional monotone bisection for the dual variable. The resulting algorithm runs in 𝑂 (𝑁 log (1/𝜀 )) time and achieves up to 1,890 × speedup over general-purpose numerical solvers at 𝑁 = 1,024 channels. Numerical experiments over Rayleigh fading channels confirm that the closed-form solution matches numerical optimization to machine precision and demonstrate superior target-tracking performance compared to waterfilling, uniform allocation, and proportional fairness across a range of operating conditions. 
+
+Keywords: Power allocation, OFDM, target rate, Lambert W function, convex optimization, waterfilling, KKT conditions. 
+
+# 1 Introduction 
+
+Orthogonal frequency-division multiplexing (OFDM) and its multiple-access variant OFDMA convert frequency-selective wireless channels into collections of parallel narrowband subchannels, enabling flexible per-subcarrier power and rate adaptation [1, 2]. The classical approach to power allocation over these parallel channels maximizes the sum rate under a total power budget, yielding the well-known waterfilling policy [1,3]. Waterfilling allocates more power to stronger channels and always exhausts the entire budget, a strategy that is optimal when the sole objective is aggregate throughput. However, many practical wireless systems operate with target rates rather than unbounded throughput objectives. Per-user quality-of-service (QoS) requirements, application-layer demands, scheduler-assigned operating points, and discrete modulation and coding scheme (MCS) levels all impose desired rates on individual subchannels [4, 5]. Existing formulations address targets primarily through hard constraints, either as minimum rate floors (rate-adaptive allocation) or as exact requirements to be met with minimum power (margin-adaptive allocation) [6, 7]. Hard constraints, however, are poorly suited to scenarios where targets 1
+
+> arXiv:2603.06893v1 [cs.IT] 6 Mar 2026
+
+are negotiable : soft QoS preferences, MCS granularity that prevents exact rate satisfaction, or differentiable optimization pipelines that benefit from smooth penalty functions. We address this gap by studying a soft target-rate tracking formulation. Rather than enforcing rate constraints, we minimize the sum of squared deviations between achieved rates and channel-specific targets across all subchannels. This least-squares objective penalizes shortfalls smoothly and leads to an allocation that balances power across channels to approach each target as closely as the budget allows. To the best of our knowledge, the specific combination of (i) a quadratic rate-deviation objective, (ii) parallel Gaussian channels with per-channel targets, (iii) a sum-power constraint, and (iv) a Lambert W closed-form solution has not been studied previously. The key contributions of this work are: 1. We formulate the target-rate least-squares power allocation problem over 𝑁 parallel Gaussian channels with per-channel targets and a sum-power constraint (Section 3). 2. We prove that optimal rates never exceed their targets (no-overshoot property), use this to establish convexity of the problem on its natural domain, and characterize two operating regimes depending on whether the power budget exceeds the sum of per-channel caps (Section 4). 3. We derive a per-channel closed-form solution via the KKT conditions and the Lambert W function, reducing the problem to a one-dimensional monotone root-finding problem for the dual variable (Section 5). 4. We present a bisection algorithm with guaranteed 𝑂 (𝑁 log (1/𝜀 )) convergence and discuss numerical stability considerations (Section 6). 5. We validate the closed-form solution against numerical optimization, compare allocation behavior with classical waterfilling, and demonstrate scalability and statistical performance over fading channels (Section 7). The remainder of this paper is organized as follows. Section 2 reviews related work. Section 3 presents the system model and problem formulation. Section 4 establishes structural properties and convexity of the problem on its natural domain. Section 5 derives the Lambert W closed form via KKT conditions. Section 6 describes the bisection algorithm and its convergence. Section 7 presents numerical experiments. Section 8 discusses extensions and connections to other formulations. Section 9 concludes the paper. 
+
+# 2 Related Work 
+
+2.1 Classical Waterfilling 
+
+The waterfilling solution for sum-rate maximization over parallel Gaussian channels is a foundational result in information theory [1, 3]. Goldsmith and Varaiya [2] established the capacity of fading channels with channel side information, extending waterfilling to time-varying settings. The key property of waterfilling is that it always expends the entire power budget and favors channels with higher gains. Our formulation departs from this philosophy: the objective is not throughput maximization but target tracking, which can result in unused power. 
+
+2.2 QoS-Constrained and Margin-Adaptive Allocation 
+
+Wong et al. [4] introduced multiuser OFDM with adaptive subcarrier, bit, and power allocation subject to per-user rate and BER requirements. Chow, Cioffi, and Bingham [6] developed a practical bit-loading algorithm for discrete multitone (DMT) systems (the precursor to OFDM in DSL) that minimizes power 2subject to a target bit rate per subchannel. Their approach, and the large body of DSL/DMT bit-loading work that followed, treats per-channel targets as hard constraints: the allocator either meets each target exactly or declares infeasibility. Surveys by Sadr et al. [7] and Huang and Berry [5] classify OFDM resource allocation into rate-adaptive (maximize rate under power constraints) and margin-adaptive (minimize power under rate constraints) categories. Our formulation occupies a distinct niche: rather than imposing hard rate constraints, we penalize deviations from targets quadratically, producing a smooth allocation that degrades gracefully when the budget is insufficient to meet all targets. This soft-target approach avoids the infeasibility issues inherent in hard-constraint formulations and provides a differentiable objective that is amenable to integration with gradient-based outer-loop optimizers. 
+
+2.3 Fairness and Proportional Allocation 
+
+Kelly [8] introduced proportional fairness for rate allocation in communication networks, connecting it to a logarithmic utility maximization. Mo and Walrand [9] unified proportional, max-min, and intermediate notions of fairness through a parameterized utility family. Shen et al. [10] applied proportional rate constraints to multiuser OFDM, ensuring that users receive rates in specified proportions. Our target-rate formulation can be viewed as complementary: proportional fairness controls ratios between user rates, whereas our approach controls absolute deviations from specified targets. Moreover, proportional fairness maximizes a monotone concave utility of rate and therefore always exhausts the power budget; even with elastic rate constraints, it does not directly minimize deviation from specified per-channel targets. 
+
+2.4 Lambert W Function in Wireless Optimization 
+
+The Lambert W function, defined by 𝑊 (𝑧 )𝑒 𝑊 (𝑧 ) = 𝑧 [11], arises in several wireless resource allocation prob-lems. Brah et al. [12] used it for constrained power allocation in cooperative relay networks. Bacci et al. [13] derived Lambert W solutions for energy-aware link adaptation in small-cell networks. Meshkati et al. [14] obtained Lambert W expressions in game-theoretic energy-efficient power control. In each of these works, the Lambert W function emerges from the interplay between logarithmic rate functions and power constraints in the KKT conditions. Our contribution extends this family of results to the least-squares target-rate tracking setting. 
+
+2.5 Positioning of This Work 
+
+It is instructive to contrast our formulation with the two dominant paradigms. In general utility-maximization 
+
+frameworks [15], the objective is a concave, monotonically increasing function of rate (e.g., weighted sum rate, 
+
+𝛼 -fair utilities), so that more power always increases utility and the budget is always fully spent. Our quadratic deviation objective is non-monotone: once a channel reaches its target, additional power is wasteful, leading to the fundamentally different property of slack power. Penalty-based QoS approaches augment throughput objectives with constraint-violation penalties, typically enforced through Lagrangian terms; the penalty serves as a regularizer rather than as the primary objective. In contrast, our formulation directly minimizes the sum of squared deviations as the sole objective, leading to a structurally different KKT system that admits a Lambert W closed form. Penalty methods append deviation terms to a monotone utility that still exhausts the budget; because our objective is solely the deviation, the resulting allocation exhibits non-monotone, slack-power behavior that is absent from penalty-augmented formulations. Prior Lambert W results [12 –14] address energy efficiency and cooperative relays rather than squared-deviation target tracking over parallel channels. Table 1 summarizes how our formulation relates to the classical alternatives. The target-rate least-squares approach occupies the previously unexplored intersection of soft QoS objectives and closed-form Lambert W 3Table 1: Comparison of power allocation design philosophies. 
+
+Approach Objective Power usage Waterfilling Max sum rate Always full Margin-adaptive Min power for hard targets Minimum needed Max-min fairness Max worst-case rate Always full 
+
+Target-rate (ours) Min squared deviation May be slack 
+
+solutions for parallel channels. 
+
+# 3 System Model and Problem Formulation 
+
+3.1 Parallel Gaussian Channel Model 
+
+We consider a single-user system with 𝑁 parallel Gaussian channels, as arises in OFDM transmission over a frequency-selective fading channel. Let 𝑃 𝑖 ≥ 0 denote the transmit power allocated to channel 𝑖 , and let 
+
+𝑎 𝑖 > 0 denote the effective channel gain-to-noise ratio (incorporating path loss, fading, and noise power density) on channel 𝑖 . We assume perfect channel state information (CSI) at the transmitter, so that the 𝑎 𝑖 are known. The achievable spectral efficiency 1 on channel 𝑖 is given by the Shannon formula 
+
+𝑟 𝑖 (𝑃 𝑖 ) = log 2 (1 + 𝑎 𝑖 𝑃 𝑖 ) (bits/s/Hz) . (1) This model applies directly to OFDM subcarriers, DMT tones in DSL, or any set of non-interfering parallel links. 
+
+3.2 Optimization Problem 
+
+Each channel 𝑖 is assigned a target spectral efficiency 𝑇 𝑖 ≥ 0. We denote the power allocation vector by 
+
+𝑷 = (𝑃 1, . . . , 𝑃 𝑁 ). Given a total power budget 𝑃 tot > 0, we seek the allocation that minimizes the aggregate squared deviation from these targets: 
+
+min    
+
+> {𝑃 𝑖 }𝑁 𝑖 =1
+
+𝐽 (𝑷 ) ≜
+
+> 𝑁
+
+∑︁ 
+
+> 𝑖 =1
+
+
+
+log 2 (1 + 𝑎 𝑖 𝑃 𝑖 ) − 𝑇 𝑖 
+
+2
+
+s.t. 
+
+> 𝑁
+
+∑︁ 
+
+> 𝑖 =1
+
+𝑃 𝑖 ≤ 𝑃 tot , 𝑃 𝑖 ≥ 0 ∀ 𝑖. 
+
+(2) The targets 𝑇 𝑖 may be heterogeneous across channels. A weighted variant Í𝑖 𝑤 𝑖 (𝑟 𝑖 − 𝑇 𝑖 )2 with importance weights 𝑤 𝑖 > 0 can be treated by the same approach (see Appendix). 
+
+3.3 Discussion of the Objective Structure 
+
+The rate function 𝑟 𝑖 (𝑃 𝑖 ) = log 2 (1 + 𝑎 𝑖 𝑃 𝑖 ) is concave in 𝑃 𝑖 . Let 𝑐 ≜ ln 2 (used throughout Sections 3–5). Since each term 𝑓 𝑖 (𝑃 𝑖 ) = (𝑟 𝑖 (𝑃 𝑖 ) − 𝑇 𝑖 )2 composes a convex quadratic with a concave function, convexity of the objective is not immediate : the second derivative 
+
+𝑓 ′′  
+
+> 𝑖
+
+(𝑃 𝑖 ) = 2𝑎 2
+
+> 𝑖
+
+𝑐 2 (1 + 𝑎 𝑖 𝑃 𝑖 )2
+
+h
+
+1 − ln (1 + 𝑎 𝑖 𝑃 𝑖 ) + 𝑇 𝑖 𝑐 
+
+i
+
+(3) 
+
+> 1Throughout this paper, “rate” refers to spectral efficiency (bits/s/Hz), i.e., the rate normalized by bandwidth.
+
+4changes sign when ln (1 + 𝑎 𝑖 𝑃 𝑖 ) > 1 + 𝑇 𝑖 𝑐 , i.e., when 𝑃 𝑖 > (𝑒 · 2𝑇 𝑖 − 1)/ 𝑎 𝑖 . Consequently, 𝐽 (𝑷 ) is not globally convex over 𝑃 𝑖 ≥ 0. However, as we establish in Section 4, the optimal solution is confined to a restricted domain on which convexity holds, enabling an exact closed-form solution. 
+
+# 4 Structural Properties 
+
+We establish structural results that distinguish the target-rate allocation from classical waterfilling and then use them to prove convexity on the natural domain of the problem. 
+
+Theorem 4.1 (No Overshoot) . If 𝑷 ∗ = (𝑃 ∗
+
+> 1
+
+, . . . , 𝑃 ∗ 
+
+> 𝑁
+
+) is optimal for (2) , then 𝑟 𝑖 (𝑃 ∗ 
+
+> 𝑖
+
+) ≤ 𝑇 𝑖 for all 𝑖 = 1, . . . , 𝑁 .Proof. Suppose for contradiction that 𝑟 𝑗 (𝑃 ∗ 
+
+> 𝑗
+
+) > 𝑇 𝑗 for some channel 𝑗 . Consider the modified allocation 
+
+𝑃 ′ 
+
+> 𝑗
+
+= (2𝑇 𝑗 − 1)/ 𝑎 𝑗 < 𝑃 ∗ 
+
+> 𝑗
+
+, which achieves 𝑟 𝑗 (𝑃 ′ 
+
+> 𝑗
+
+) = 𝑇 𝑗 . This modification strictly reduces the 𝑗 -th term from 
+
+(𝑟 𝑗 (𝑃 ∗ 
+
+> 𝑗
+
+) − 𝑇 𝑗 )2 > 0 to zero, does not increase any other term, and strictly reduces the total power Í𝑖 𝑃 𝑖 . Since the resulting allocation remains feasible, we have 𝐽 (𝑷 ′) < 𝐽 (𝑷 ∗), contradicting the optimality of 𝑷 ∗. □
+
+Theorem 4.1 implies that the optimal allocation is always in the region where each 𝑟 𝑖 ≤ 𝑇 𝑖 , which, as we show next, is precisely the region where the objective is convex. From a practical standpoint, the no-overshoot property means the system never wastes power pushing a channel beyond its target; excess power on one channel would be better spent reducing the shortfall on another. 
+
+Proposition 4.2 (Per-Channel Cap) . The power required to exactly meet the target on channel 𝑖 is 
+
+¯𝑃 𝑖 ≜ 2𝑇 𝑖 − 1
+
+𝑎 𝑖 
+
+. (4) 
+
+By Theorem 4.1, the optimal allocation satisfies 𝑃 ∗ 
+
+> 𝑖
+
+≤ ¯𝑃 𝑖 for all 𝑖 .
+
+4.1 Convexity on the Restricted Domain 
+
+Theorem 4.1 and Proposition 4.2 show that optimal solutions satisfy 0 ≤ 𝑃 ∗ 
+
+> 𝑖
+
+≤ ¯𝑃 𝑖 . We may therefore add the constraints 𝑃 𝑖 ≤ ¯𝑃 𝑖 to (2) without altering the optimal solution. We now verify that the objective is convex over this restricted domain. 
+
+Proposition 4.3 (Convexity) . Each term 𝑓 𝑖 (𝑃 𝑖 ) = (log 2 (1 + 𝑎 𝑖 𝑃 𝑖 ) − 𝑇 𝑖 )2 satisfies 𝑓 ′′  
+
+> 𝑖
+
+(𝑃 𝑖 ) ≥ 0 for all 
+
+𝑃 𝑖 ∈ [ 0, ¯𝑃 𝑖 ].Proof. From (3) , 𝑓 ′′  
+
+> 𝑖
+
+(𝑃 𝑖 ) ≥ 0 if and only if ln (1 + 𝑎 𝑖 𝑃 𝑖 ) ≤ 1 + 𝑇 𝑖 ln 2 . The inflection point occurs at 
+
+𝑃 inf  
+
+> 𝑖
+
+= (𝑒 · 2𝑇 𝑖 − 1)/ 𝑎 𝑖 . Since 𝑒 > 2, we have 𝑒 · 2𝑇 𝑖 > 2𝑇 𝑖 +1 > 2𝑇 𝑖 for all 𝑇 𝑖 ≥ 0, and therefore 𝑃 inf  
+
+> 𝑖
+
+> ¯𝑃 𝑖 . It follows that 𝑓 ′′  
+
+> 𝑖
+
+(𝑃 𝑖 ) ≥ 0 for all 𝑃 𝑖 ∈ [ 0, ¯𝑃 𝑖 ]. □
+
+Since 𝐽 (𝑷 ) is a sum of convex functions over the compact domain {0 ≤ 𝑃 𝑖 ≤ ¯𝑃 𝑖 , Í𝑖 𝑃 𝑖 ≤ 𝑃 tot } with linear constraints, the augmented problem is a convex program. By Slater’s condition (the origin 𝑷 = 0 is strictly feasible), strong duality holds and the KKT conditions are both necessary and sufficient for global optimality [16]. Furthermore, because the additional constraints 𝑃 𝑖 ≤ ¯𝑃 𝑖 are inactive at the optimum (by Theorem 4.1, the optimal rates satisfy 𝑟 ∗ 
+
+> 𝑖
+
+≤ 𝑇 𝑖 but generically 𝑟 ∗ 
+
+> 𝑖
+
+< 𝑇 𝑖 in Case B), the dual variables associated with these upper bounds are zero, and the KKT conditions for the original problem (2) coincide with those of the augmented problem. 
+
+Theorem 4.4 (Regime Characterization) . The optimal solution exhibits two distinct regimes: 
+
+5• Case A (sufficient power): If 𝑃 tot ≥ Í𝑁 𝑖 =1 ¯𝑃 𝑖 , then 𝑃 ∗ 
+
+> 𝑖
+
+= ¯𝑃 𝑖 for all 𝑖 , the objective attains 𝐽 ∗ = 0, and the power constraint is slack with Í𝑖 𝑃 ∗ 
+
+> 𝑖
+
+= Í𝑖 ¯𝑃 𝑖 < 𝑃 tot .
+
+• Case B (insufficient power): If 𝑃 tot < Í𝑁 𝑖 =1 ¯𝑃 𝑖 , then Í𝑖 𝑃 ∗ 
+
+> 𝑖
+
+= 𝑃 tot (the power constraint is tight), 𝐽 ∗ > 0,and the optimal dual variable 𝜆 ∗ > 0.Proof. For Case A, setting 𝑃 𝑖 = ¯𝑃 𝑖 achieves 𝑟 𝑖 = 𝑇 𝑖 for all 𝑖 , giving 𝐽 = 0. Since 𝐽 ≥ 0 by definition, this is globally optimal. The total power used is Í𝑖 ¯𝑃 𝑖 ≤ 𝑃 tot , so the constraint is slack. For Case B, if Í𝑖 𝑃 ∗ 
+
+> 𝑖
+
+< 𝑃 tot , then 𝜆 ∗ = 0 by complementary slackness. With 𝜆 ∗ = 0, the unconstrained optimum of each term (𝑟 𝑖 − 𝑇 𝑖 )2 is 𝑃 𝑖 = ¯𝑃 𝑖 , giving total power Í𝑖 ¯𝑃 𝑖 > 𝑃 tot , which is a contradiction. Hence the constraint must be tight. □
+
+Remark 4.1. The slack-power regime (Case A) is a distinctive feature of target-rate allocation. In contrast, classical waterfilling for sum-rate maximization always uses the entire budget, since additional power always increases the sum rate. 
+
+Corollary 4.5 (Monotonicity) . The optimal objective 𝐽 ∗ (𝑃 tot ) is nonincreasing in 𝑃 tot , reaching zero at 
+
+𝑃 tot = Í𝑖 ¯𝑃 𝑖 and remaining zero for all larger budgets. Similarly, for fixed 𝑃 tot , 𝐽 ∗ is nondecreasing in each target 𝑇 𝑖 .
+
+# 5 KKT Solution via Lambert W 
+
+In this section, we derive the closed-form per-channel power allocation using the KKT optimality conditions and the Lambert W function. 
+
+5.1 KKT Conditions 
+
+Let 𝑐 = ln 2 . We form the Lagrangian 
+
+L( 𝑷 , 𝜆, 𝝁 ) =
+
+> 𝑁
+
+∑︁ 
+
+> 𝑖 =1
+
+(𝑟 𝑖 − 𝑇 𝑖 )2 + 𝜆 
+
+ 𝑁 ∑︁ 
+
+> 𝑖 =1
+
+𝑃 𝑖 − 𝑃 tot 
+
+
+
+−
+
+> 𝑁
+
+∑︁ 
+
+> 𝑖 =1
+
+𝜇 𝑖 𝑃 𝑖 (5) with dual variables 𝜆 ≥ 0 (power constraint) and 𝜇 𝑖 ≥ 0 (nonnegativity). As established in Section 4, the problem is convex on the restricted domain 0 ≤ 𝑃 𝑖 ≤ ¯𝑃 𝑖 and Slater’s condition holds, so the KKT conditions are necessary and sufficient for optimality [16]. Stationarity with respect to 𝑃 𝑖 yields 
+
+𝜕 L
+
+𝜕𝑃 𝑖 
+
+= 2(𝑟 𝑖 − 𝑇 𝑖 ) 𝑎 𝑖 
+
+(1 + 𝑎 𝑖 𝑃 𝑖 ) 𝑐 + 𝜆 − 𝜇 𝑖 = 0. (6) The complementary slackness conditions are 𝜆 (Í𝑖 𝑃 𝑖 − 𝑃 tot ) = 0 and 𝜇 𝑖 𝑃 𝑖 = 0 for all 𝑖 .
+
+5.2 Active-Set Derivation 
+
+For an active channel ( 𝑃 𝑖 > 0), we have 𝜇 𝑖 = 0 and (6) becomes 
+
+2
+
+
+
+log 2 (1 + 𝑎 𝑖 𝑃 𝑖 ) − 𝑇 𝑖 
+
+ 𝑎 𝑖 
+
+(1 + 𝑎 𝑖 𝑃 𝑖 ) 𝑐 + 𝜆 = 0. (7) Since 𝑟 𝑖 ≤ 𝑇 𝑖 by Theorem 4.1, the first term is nonpositive, which is consistent with 𝜆 ≥ 0. Substituting 
+
+𝑦 𝑖 = 1 + 𝑎 𝑖 𝑃 𝑖 > 1 and using log 2 𝑦 𝑖 = ln 𝑦 𝑖 /𝑐 , equation (7) becomes 
+
+ln 𝑦 𝑖 = 𝑇 𝑖 𝑐 − 𝜆 𝑐 2
+
+2 𝑎 𝑖 
+
+𝑦 𝑖 . (8) 6Exponentiating both sides yields 
+
+𝑦 𝑖 𝑒 𝜆𝑐 22𝑎 𝑖 𝑦 𝑖 = 2𝑇 𝑖 . (9) We define 𝛼 𝑖 ≜ 𝜆𝑐 2/( 2𝑎 𝑖 ) ≥ 0 and multiply (9) by 𝛼 𝑖 :
+
+(𝛼 𝑖 𝑦 𝑖 ) 𝑒 𝛼 𝑖 𝑦 𝑖 = 𝛼 𝑖 2𝑇 𝑖 . (10) This is in the canonical form 𝑧 𝑒 𝑧 = 𝑤 with 𝑧 = 𝛼 𝑖 𝑦 𝑖 and 𝑤 = 𝛼 𝑖 2𝑇 𝑖 ≥ 0. Since 𝑤 ≥ 0, the principal branch 
+
+𝑊 0 of the Lambert W function [11], the unique real-valued branch satisfying 𝑊 0 (𝑤 ) ≥ − 1 for 𝑤 ≥ − 1/𝑒 ,yields 𝛼 𝑖 𝑦 𝑖 = 𝑊 0 (𝛼 𝑖 2𝑇 𝑖 ), and hence 
+
+𝑃 𝑖 (𝜆 ) = 2
+
+𝜆 𝑐 2 𝑊 0
+
+ 𝜆 𝑐 2
+
+2 𝑎 𝑖 
+
+2𝑇 𝑖 
+
+
+
+− 1
+
+𝑎 𝑖 
+
+. (11) This is the closed-form power allocation for each active channel as a function of the dual variable 𝜆 . From a practical standpoint, equation (11) provides a direct mapping from channel parameters (𝑎 𝑖 , 𝑇 𝑖 ) and the single scalar 𝜆 to the optimal per-channel power, requiring only one Lambert W evaluation per channel, and no iterative per-channel optimization is needed. Note that 𝑐 2 = (ln 2 )2 appears because we use log 2 in the rate expression; for natural logarithm rates, this simplifies to 𝑐 = 1.
+
+5.3 Inactivity Threshold 
+
+When 𝑃 𝑖 = 0, we have 𝑦 𝑖 = 1 and 𝑟 𝑖 = 0. The stationarity condition (6) gives 𝜇 𝑖 = 𝜆 − 2𝑎 𝑖 𝑇 𝑖 /𝑐 . Dual feasibility 𝜇 𝑖 ≥ 0 yields the inactivity condition: 
+
+𝑃 ∗ 
+
+> 𝑖
+
+= 0 if 𝜆 ≥ 2 𝑎 𝑖 𝑇 𝑖 
+
+𝑐 . (12) Channels with small 𝑎 𝑖 𝑇 𝑖 products (poor gain and/or low target) are shut off first as 𝜆 increases. Combining (11) and (12) with the cap from Proposition 4.2: 
+
+𝑃 ∗ 
+
+> 𝑖
+
+(𝜆 ) = min 
+
+n ¯𝑃 𝑖 , max 0, 𝑃 𝑖 (𝜆 )
+
+o
+
+. (13) This expression clips each channel’s allocation to the feasible range [0, ¯𝑃 𝑖 ]: channels with sufficient power reach their caps, channels with limited power receive the Lambert W allocation, and channels below the activity threshold (12) are shut off entirely. The upper clamp ¯𝑃 𝑖 enforces the no-overshoot property (Theorem 4.1), ensuring no channel receives more power than needed to meet its target. 
+
+5.4 Monotonicity and Limiting Behavior 
+
+Lemma 5.1 (Monotonicity of 𝑃 𝑖 (𝜆 )). For each channel 𝑖 with 𝑎 𝑖 , 𝑇 𝑖 > 0, the unclamped allocation 𝑃 𝑖 (𝜆 )
+
+in (11) is strictly decreasing in 𝜆 for 𝜆 > 0.Proof. Let 𝑤 = 𝛼 𝑖 2𝑇 𝑖 where 𝛼 𝑖 = 𝜆𝑐 2/( 2𝑎 𝑖 ). Then 𝑃 𝑖 (𝜆 ) = 𝑊 0 (𝑤 )/ 𝛼 𝑖 − 1/𝑎 𝑖 . Using the identity 
+
+𝑊 ′ 
+
+> 0
+
+(𝑤 ) = 𝑊 0 (𝑤 )/[ 𝑤 (1 + 𝑊 0 (𝑤 ))] , a direct computation shows 𝑑𝑃 𝑖 /𝑑𝜆 < 0 for 𝜆 > 0, since both 𝑊 0 (𝑤 ) and 
+
+𝛼 𝑖 increase with 𝜆 but 𝑃 𝑖 decreases. □
+
+Lemma 5.2 (Limiting Behavior) . As 𝜆 → 0+, 𝑃 𝑖 (𝜆 ) → ¯𝑃 𝑖 = (2𝑇 𝑖 − 1)/ 𝑎 𝑖 (the cap). As 𝜆 → ∞ , the unclamped expression (11) tends to −1/𝑎 𝑖 , so that the clamped allocation 𝑃 ∗ 
+
+> 𝑖
+
+(𝜆 ) → 0.Proof. As 𝜆 → 0+, the argument 𝑤 = 𝛼 𝑖 2𝑇 𝑖 → 0. Using 𝑊 0 (𝑤 ) ≈ 𝑤 for small 𝑤 , we get 𝑃 𝑖 → 2𝑇 𝑖 /𝑎 𝑖 −1/𝑎 𝑖 =
+
+(2𝑇 𝑖 − 1)/ 𝑎 𝑖 = ¯𝑃 𝑖 . As 𝜆 → ∞ , 𝑤 → ∞ and 𝑊 0 (𝑤 ) ∼ ln 𝑤 , so 𝑊 0 (𝑤 )/ 𝑤 → 0. Then 𝑦 𝑖 = 𝑊 0 (𝑤 )/ 𝛼 𝑖 → 0,and the unclamped 𝑃 𝑖 (𝜆 ) = (𝑦 𝑖 − 1)/ 𝑎 𝑖 → − 1/𝑎 𝑖 . Since 𝑃 ∗ 
+
+> 𝑖
+
+(𝜆 ) = max {0, 𝑃 𝑖 (𝜆 )} , the clamped allocation tends to zero. □
+
+7Algorithm 1 Target-rate least-squares power allocation via bisection 
+
+Require: Channel gains {𝑎 𝑖 }𝑁 𝑖 =1, targets {𝑇 𝑖 }𝑁 𝑖 =1, budget 𝑃 tot , tolerance 𝜀  
+
+> 1:
+
+Compute caps ¯𝑃 𝑖 ← ( 2𝑇 𝑖 − 1)/ 𝑎 𝑖 for all 𝑖  
+
+> 2:
+
+if 𝑃 tot ≥ Í𝑖 ¯𝑃 𝑖 then  
+
+> 3:
+
+return 𝑃 ∗ 
+
+> 𝑖
+
+= ¯𝑃 𝑖 for all 𝑖 ; 𝜆 ∗ = 0 
+
+> 4:
+
+end if  
+
+> 5:
+
+𝜆 lo ← 0 
+
+> 6:
+
+𝜆 hi ← 1 
+
+> 7:
+
+while 𝑆 (𝜆 hi ) > 𝑃 tot do  
+
+> 8:
+
+𝜆 hi ← 2 𝜆 hi  
+
+> 9:
+
+end while  
+
+> 10:
+
+repeat  
+
+> 11:
+
+𝜆 ← ( 𝜆 lo + 𝜆 hi )/ 2 
+
+> 12:
+
+for 𝑖 = 1 to 𝑁 do  
+
+> 13:
+
+Compute 𝑃 ∗ 
+
+> 𝑖
+
+(𝜆 ) via (11) and (13)  
+
+> 14:
+
+end for  
+
+> 15:
+
+𝑆 (𝜆 ) ← Í𝑁 𝑖 =1 𝑃 ∗ 
+
+> 𝑖
+
+(𝜆 ) 
+
+> 16:
+
+if 𝑆 (𝜆 ) > 𝑃 tot then  
+
+> 17:
+
+𝜆 lo ← 𝜆  
+
+> 18:
+
+else  
+
+> 19:
+
+𝜆 hi ← 𝜆  
+
+> 20:
+
+end if  
+
+> 21:
+
+until |𝑆 (𝜆 ) − 𝑃 tot | < 𝜀  
+
+> 22:
+
+return {𝑃 ∗ 
+
+> 𝑖
+
+(𝜆 )} 𝑁 𝑖 =1 and 𝜆 
+
+5.5 Special Cases 
+
+Single channel ( 𝑁 = 1): If 𝑃 tot ≥ ¯𝑃 1, then 𝑃 ∗ 
+
+> 1
+
+= ¯𝑃 1 and 𝐽 ∗ = 0. Otherwise, 𝑃 ∗ 
+
+> 1
+
+= 𝑃 tot (use all available power on the single channel). 
+
+Equal gains ( 𝑎 𝑖 = 𝑎 for all 𝑖 ): With uniform targets 𝑇 𝑖 = 𝑇 , symmetry gives 𝑃 ∗ 
+
+> 𝑖
+
+= min (𝑃 tot /𝑁, ¯𝑃 ) for all 𝑖 , where ¯𝑃 = (2𝑇 − 1)/ 𝑎 . The allocation is uniform, contrasting with waterfilling (also uniform in this case but using all power). 
+
+Target 𝑇 𝑖 → 0: As 𝑇 𝑖 → 0, the cap ¯𝑃 𝑖 → 0 and channel 𝑖 receives vanishing power. 
+
+Target 𝑇 𝑖 → ∞ : As 𝑇 𝑖 → ∞ , the cap ¯𝑃 𝑖 → ∞ and the channel demands arbitrarily large power. In practice, the sum-power constraint limits the achievable rate. 
+
+# 6 Algorithm 
+
+In this section, we present the bisection algorithm for finding the optimal dual variable and analyze its convergence and numerical properties. 
+
+6.1 Bisection Procedure 
+
+By Lemma 5.1, the total allocated power 𝑆 (𝜆 ) ≜ Í𝑁 𝑖 =1 𝑃 ∗ 
+
+> 𝑖
+
+(𝜆 ) is nonincreasing in 𝜆 . By Lemma 5.2, 
+
+𝑆 (0+) = Í𝑖 ¯𝑃 𝑖 and 𝑆 (∞) = 0. In Case B ( 𝑃 tot < Í𝑖 ¯𝑃 𝑖 ), the optimal 𝜆 ∗ is the unique root of 𝑆 (𝜆 ∗) = 𝑃 tot ,which can be found via bisection on 𝜆 . Algorithm 1 presents the complete procedure. 86.2 Convergence Analysis 
+
+Theorem 6.1 (Convergence) . Under Case B ( 𝑃 tot < Í𝑖 ¯𝑃 𝑖 ) with at least one channel satisfying 𝑎 𝑖 , 𝑇 𝑖 > 0,Algorithm 1 terminates in at most 𝑂 (log (1/𝜀 )) bisection iterations. Each iteration evaluates 𝑁 Lambert W function calls and elementary operations, giving a total complexity of 𝑂 (𝑁 log (1/𝜀 )) .Proof. The doubling loop (lines 6–8) finds an upper bound 𝜆 hi in at most 𝑂 (log (𝜆 ∗)) steps. Each bisection iteration halves the interval [𝜆 lo , 𝜆 hi ]. After 𝑚 iterations, the interval width is 𝜆 (0) 
+
+> hi
+
+/2𝑚 . Since 𝑆 (𝜆 ) is Lipschitz continuous near 𝜆 ∗, the error |𝑆 (𝜆 ) − 𝑃 tot | decreases proportionally, reaching 𝜀 in 𝑂 (log (1/𝜀 )) iterations. Each iteration computes (11) for all 𝑁 channels in 𝑂 (𝑁 ) time. □
+
+6.3 Numerical Stability 
+
+For very small 𝜆 , the expression (11) involves the ratio 𝑊 0 (𝑤 )/ 𝛼 𝑖 where both 𝑊 0 (𝑤 ) → 0 and 𝛼 𝑖 → 0. Using the asymptotic expansion 𝑊 0 (𝑤 ) ≈ 𝑤 − 𝑤 2 + · · · for small 𝑤 , we obtain 
+
+𝑃 𝑖 (𝜆 ) ≈ 2𝑇 𝑖 − 1
+
+𝑎 𝑖 
+
+− 𝜆 𝑐 2 22𝑇 𝑖 
+
+2 𝑎 2
+
+> 𝑖
+
++ 𝑂 (𝜆 2), (14) confirming the smooth transition to the cap solution as 𝜆 → 0. In practice, we handle 𝜆 ≈ 0 by directly checking whether 𝑃 tot ≥ Í𝑖 ¯𝑃 𝑖 (line 2 of Algorithm 1) and returning the cap solution, bypassing the Lambert W evaluation entirely. 
+
+6.4 Inactive Channel Pruning 
+
+By the inactivity threshold (12) , any channel satisfying 𝜆 ≥ 2𝑎 𝑖 𝑇 𝑖 /𝑐 receives zero power. During the bisection, once 𝜆 lo exceeds the threshold for channel 𝑖 , that channel can be removed from further Lambert W evaluations for all subsequent iterations, reducing the per-iteration cost. In practice, channels with small 𝑎 𝑖 𝑇 𝑖 products are pruned early, and the effective per-iteration cost decreases as the bisection progresses. 
+
+6.5 Warm-Starting for Time-Varying Channels 
+
+In adaptive OFDM systems where channel gains change over time, the optimal 𝜆 ∗ at time 𝑡 is typically close to 𝜆 ∗ at time 𝑡 − 1. We can warm-start the bisection by initializing [𝜆 lo , 𝜆 hi ] around the previous solution, significantly reducing the number of iterations needed when the channel varies slowly. 
+
+# 7 Numerical Results 
+
+We validate the analytical results and compare target-rate allocation with classical waterfilling through numerical experiments. All simulations are implemented in Python 3.11. The Lambert W evaluations use scipy.special.lambertw from SciPy 1.12 [17], with bisection tolerance 𝜀 = 10 −10 . The numerical baseline uses the Sequential Least-Squares Programming (SLSQP) solver from scipy.optimize.minimize 
+
+with an analytical gradient and constraint tolerance 10 −12 . Timing measurements are averaged over five independent runs on a single core of an AMD Ryzen 9 5900X processor and exclude initial import overhead. 
+
+7.1 Setup 
+
+Unless otherwise stated, we use 𝑁 = 8 channels with deterministic gains 𝑎 𝑖 ∈ { 20 , 15 , 10 , 7, 5, 3, 2, 1}
+
+(modeling a mix of strong and weak subcarriers), uniform target 𝑇 = 3 bits/s/Hz, and total power budget 
+
+𝑃 tot = 10 . For statistical experiments, we use Rayleigh fading with mean SNR of 10 dB. 90 5 10 15 20 25 
+
+# Total power budget Ptot 
+
+0
+
+10 
+
+20 
+
+30 
+
+40 
+
+> Objective  J *
+
+Lambert-W (closed form) 
+
+SLSQP (numerical) Figure 1: Objective 𝐽 ∗ vs. total power budget 𝑃 tot , comparing the Lambert W closed form with SLSQP numerical optimization. The two solutions agree to machine precision. 
+
+7.2 Validation Against Numerical Optimization 
+
+Fig. 1 compares the objective value obtained by the Lambert W closed form (Algorithm 1) with the result from a general-purpose SLSQP nonlinear optimizer, sweeping 𝑃 tot from 0.5 to 25. The two curves overlap to plotting accuracy across the entire range, confirming the correctness of the closed-form solution. The objective decreases monotonically with 𝑃 tot and reaches zero at the threshold Í𝑖 ¯𝑃 𝑖 ≈ 16 .8.
+
+7.3 Allocation Comparison 
+
+Fig. 2 shows the per-channel power allocation for target-rate and waterfilling approaches. Waterfilling favors the strongest channels and always uses the full budget. In contrast, the target-rate allocation distributes power to bring each channel as close to the target as possible: weaker channels receive proportionally more power relative to their caps, and no channel exceeds its cap ¯𝑃 𝑖 .Fig. 3 illustrates the no-overshoot property (Theorem 4.1). Under target-rate allocation, every achieved rate satisfies 𝑟 𝑖 ≤ 𝑇 (the dashed target line). In contrast, waterfilling pushes strong channels well above the target while leaving weak channels far below. 
+
+7.4 Dual Variable Search 
+
+Fig. 4 visualizes the monotonically decreasing function 𝑆 (𝜆 ). The optimal 𝜆 ∗ is found at the intersection with 
+
+𝑃 tot = 10 , confirming the bisection approach of Algorithm 1. 10 1 2 3 4 5 6 7 8
+
+# Channel index i
+
+## 0
+
+## 1
+
+## 2
+
+## 3
+
+## 4
+
+## 5
+
+## 6
+
+## 7
+
+> Power  Pi
+
+Cap Pi
+
+Target-rate 
+
+Waterfilling Figure 2: Per-channel power allocation for 𝑁 = 8 channels. The target-rate allocation respects per-channel caps (dashed lines) and distributes power to minimize rate deviations. Waterfilling concentrates power on the strongest channels. 
+
+7.5 Objective Landscape and Phase Transition 
+
+Fig. 5 shows how the optimal objective 𝐽 ∗ varies with the power budget. A clear phase transition occurs at 
+
+𝑃 tot = Í𝑖 ¯𝑃 𝑖 ≈ 16 .8: below this threshold, the objective decreases steeply as more power becomes available; above it, 𝐽 ∗ = 0 and additional power goes unused. This illustrates the regime characterization of Theorem 4.4. 
+
+7.6 Heterogeneous Targets 
+
+Fig. 6 demonstrates allocation with heterogeneous targets 𝑇 𝑖 ∈ { 5, 4, 3, 3, 2, 2, 1, 1} under two power budgets that illustrate the two regimes of Theorem 4.4. With these targets and gains, the sum of per-channel caps is 
+
+Í𝑖 ¯𝑃 𝑖 ≈ 7.35 .The left column shows 𝑃 tot = 5 (Case B: tight budget). Since 5 < 7.35 , the power constraint is active and the entire budget is consumed. Channels with higher targets receive more power, but weaker channels with high targets show the largest rate shortfalls, a natural consequence of the least-squares objective. This pattern arises because weak channels require exponentially more power per unit of rate; when the budget is tight, the objective preferentially reduces deviations where the marginal improvement is greatest. The right column shows 𝑃 tot = 15 (Case A: surplus budget). Since 15 > 7.35 , the allocator sets each 
+
+𝑃 ∗ 
+
+> 𝑖
+
+= ¯𝑃 𝑖 , achieving 𝑟 𝑖 = 𝑇 𝑖 for every channel with 𝐽 ∗ = 0. The total power used is only 7.35 out of 15, leaving 7.65 unused, a direct illustration of the slack-power property that distinguishes target-rate allocation from waterfilling. 11 1 2 3 4 5 6 7 8
+
+# Channel index i
+
+## 0
+
+## 1
+
+## 2
+
+## 3
+
+## 4
+
+## 5
+
+> Rate  ri (bits/s/Hz)
+
+Target T
+
+Target-rate 
+
+Waterfilling Figure 3: Achieved rates per channel. Target-rate allocation never exceeds the target 𝑇 = 3 (no overshoot). Waterfilling overshoots on strong channels and falls short on weak ones. 
+
+7.7 Statistical Performance over Fading Channels 
+
+Fig. 7 presents the empirical CDF of per-channel rate deviations |𝑟 𝑖 − 𝑇 | over 1,000 independent Rayleigh fading realizations for four allocation strategies: target-rate, waterfilling, uniform, and proportional fairness. The target-rate allocation consistently achieves smaller deviations: its CDF rises steeply near zero, indicating that most channels are close to the target. Quantitatively, the target-rate allocation achieves a median deviation of 0.16 bits/s/Hz with a 90th percentile of 1.11, compared to 1.18 (median) and 2.73 (90th percentile) for waterfilling, 1.00 and 2.27 for uniform allocation, and 0.80 and 1.89 for proportional fairness. While proportional fairness outperforms waterfilling and uniform allocation, it still exhibits substantially larger deviations than the target-rate approach because it optimizes for rate ratios rather than absolute target tracking. 
+
+7.8 Computational Scalability 
+
+Fig. 8 and Table 3 compare the computation time of the Lambert W bisection algorithm with a general-purpose SLSQP solver for 𝑁 up to 1,024. The closed-form approach scales nearly linearly in 𝑁 , consistent with the 
+
+𝑂 (𝑁 log (1/𝜀 )) complexity of Theorem 6.1. At 𝑁 = 1,024 , the Lambert W algorithm is approximately 1,890 ×
+
+faster than SLSQP (0.011 s vs. 21.2 s), making it suitable for real-time OFDM systems with large numbers of subcarriers. Table 3 also reports standard deviations across runs, confirming low timing variability. 12 0 1 2 3 4 5
+
+# Dual variable 
+
+4
+
+6
+
+8
+
+10 
+
+12 
+
+14 
+
+16 
+
+> S( ) =  i
+> P *
+> i ( )
+
+S( )
+
+Ptot 
+
+> *
+
+Figure 4: Total power 𝑆 (𝜆 ) = Í𝑖 𝑃 ∗ 
+
+> 𝑖
+
+(𝜆 ) as a function of the dual variable 𝜆 . The optimal 𝜆 ∗ satisfies 𝑆 (𝜆 ∗) = 𝑃 tot .Monotonicity guarantees unique convergence via bisection. 
+
+Table 2: Power usage and target-rate objective 𝐽 for four allocation strategies. Target-rate allocation leaves power unused when 𝑃 tot ≥ Í𝑖 ¯𝑃 𝑖 = 16 .8.
+
+𝑃 tot Target-Rate Waterfilling Uniform Prop. Fairness Used 𝐽 Used 𝐽 Used 𝐽 Used 𝐽 
+
+5 5.00 9.593 5.00 18.747 5.00 12.790 5.00 10.646 10 10.00 1.789 10.00 15.383 10.00 10.600 10.00 6.532 15 15.00 0.079 15.00 17.605 15.00 13.946 15.00 8.984 20 16.75 0.000 20.00 21.751 20.00 18.807 20.00 13.362 25 16.75 0.000 25.00 26.582 25.00 24.125 25.00 18.396 
+
+7.9 Sensitivity to Operating SNR 
+
+Fig. 9 shows the mean objective ¯𝐽 as a function of mean channel SNR for all four allocation strategies, averaged over 500 Rayleigh fading realizations per SNR point ( 𝑁 = 8, 𝑇 = 3, 𝑃 tot = 10 ). The target-rate allocation maintains the lowest deviation across the entire SNR range and approaches zero at high SNR as more channels become individually feasible. In contrast, waterfilling deviation grows with SNR because stronger channels overshoot the target by increasingly large margins; uniform and proportional fairness allocations exhibit similar growth, though at somewhat lower levels. This confirms that the target-rate objective is fundamentally better matched to target-tracking applications across a wide range of operating conditions. 13 0 5 10 15 20 25 
+
+# Total power budget Ptot 
+
+0
+
+10 
+
+20 
+
+30 
+
+40 
+
+> Objective  J *
+> i
+
+Pi
+
+J * = 0 region Figure 5: Optimal objective vs. power budget. The objective reaches zero at Í𝑖 ¯𝑃 𝑖 ≈ 16 .8 (dashed line), beyond which power goes unused. 
+
+Table 3: Computation time (seconds) and speedup of Lambert-W bisection vs. SLSQP. Mean ± std over 5 runs. 
+
+𝑁 Lambert-W SLSQP Speedup 4 0.0007 ± 0.0003 0.0015 ± 0.0002 2×
+
+8 0.0005 ± 0.0000 0.0039 ± 0.0002 8×
+
+16 0.0006 ± 0.0000 0.0065 ± 0.0002 11 ×
+
+32 0.0007 ± 0.0000 0.0478 ± 0.0063 66 ×
+
+64 0.0011 ± 0.0000 0.0723 ± 0.0118 64 ×
+
+128 0.0018 ± 0.0001 0.2221 ± 0.0039 121 ×
+
+256 0.0031 ± 0.0001 1.4235 ± 0.6380 466 ×
+
+512 0.0059 ± 0.0003 4.0471 ± 1.0514 681 ×
+
+1024 0.0112 ± 0.0001 21.1669 ± 1.1776 1896 ×
+
+7.10 Power Usage Comparison 
+
+Table 2 quantifies the power usage and target-rate objective 𝐽 for all four allocation strategies across a range of budgets. The target-rate allocation achieves strictly lower objective values than all three baselines for every budget level. Proportional fairness outperforms both waterfilling and uniform allocation but still incurs substantially higher deviations than the target-rate approach. At 𝑃 tot = 20 and above, the target-rate allocation leaves power unused after meeting all targets ( 𝐽 ∗ = 0), while all other strategies continue to expend the full budget with increasing rate deviations. 14 0.0               
+
+> 0.5
+> 1.0
+> 1.5
+> Power  Pi
+> (a) Ptot = 5
+> P*
+> i
+> PiP*
+> i
+> Used: 7.35 / Budget: 15
+> (b) Ptot = 15
+> 12345678
+
+Channel index i        
+
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> Rate (bits/s/Hz)
+> Ti
+> r*
+> i
+> 12345678
+
+Channel index iFigure 6: Heterogeneous targets 𝑇 𝑖 ∈ { 5, 4, 3, 3, 2, 2, 1, 1}. Left ( 𝑃 tot = 5, Case B): tight budget forces shortfalls on weak, high-target channels. Right ( 𝑃 tot = 15 , Case A): all targets are met and 7.65 out of 15 power units go unused. Top row: power allocation (blue) and gap to cap (gray). Bottom row: achieved rates (blue bars) vs. targets (red squares). 
+
+We note that when the design goal is to maximize aggregate throughput rather than track targets, waterfilling remains the optimal strategy. The target-rate allocation is not a replacement for waterfilling, uniform, or proportional fairness but rather an alternative suited to a different objective. In the experiments above, waterfilling achieves higher sum rates than all other approaches at every budget level, as expected, since it directly optimizes for throughput. 
+
+# 8 Discussion 
+
+We now discuss connections to related formulations, potential extensions, and limitations of the proposed approach. 
+
+8.1 Connection to Inverse Waterfilling 
+
+The classical waterfilling solution 𝑃 𝑖 = (𝜈 − 1/𝑎 𝑖 )+ allocates power proportionally to channel quality. Our target-rate allocation can be viewed as an “inverse” philosophy: it allocates power to equalize rate shortfalls rather than to maximize throughput. The mathematical structure is also inverted: where waterfilling involves a simple linear-plus-threshold formula, our solution requires a nonlinear Lambert W evaluation, reflecting the more complex relationship between power and quadratic rate deviation. 
+
+8.2 Multi-User Extension 
+
+While we have focused on a single-user setting, the formulation extends naturally to multi-user OFDMA. In that setting, each user 𝑢 has targets 𝑇 𝑢,𝑖 for assigned subcarriers, and the allocator must additionally decide 15 0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 
+
+# |ri T| (bits/s/Hz) 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> CDF
+
+Target-rate 
+
+Waterfilling 
+
+Uniform 
+
+Prop. fairness Figure 7: Empirical CDF of |𝑟 𝑖 −𝑇 | over 1,000 Rayleigh fading realizations ( 𝑁 = 8, 𝑇 = 3, 𝑃 tot = 10 ) for four allocation strategies. Target-rate allocation concentrates deviations near zero. 
+
+the subcarrier-to-user mapping. The per-user subproblems retain the structure of (2) and admit the same Lambert W closed form. Joint subcarrier assignment and power allocation would require combinatorial optimization (e.g., matching or greedy assignment), with the target-rate power allocation as an inner routine. 
+
+8.3 Integration with OFDM Schedulers 
+
+In practical OFDM systems, schedulers assign target rates based on traffic demands, buffer states, and QoS classes. The target-rate allocation provides a natural interface: the scheduler specifies per-subcarrier targets, and the allocator returns powers that best match them. The smooth quadratic penalty provides meaningful gradient information for higher-level optimization loops, making the formulation compatible with differentiable scheduling pipelines. 
+
+8.4 Limitations 
+
+Our analysis assumes perfect CSI, flat fading per subchannel, and Gaussian signaling. In practice, imperfect CSI introduces estimation errors in the 𝑎 𝑖 coefficients, which could be addressed by robust optimization variants. The Shannon rate formula serves as an upper bound; practical systems operating with finite block lengths exhibit a rate penalty that grows with decreasing blocklength [3], and the rate function would need adjustment (e.g., via the normal approximation) to capture this effect. Regarding computational cost, standard implementations evaluate 𝑊 0 in constant time via Halley’s method with cubic convergence [11], making the per-channel overhead negligible even for embedded systems. We do not address the problem of selecting the 16 4 8 16 32 64 128 256 512 1024 
+
+# Number of channels N
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+10 1
+
+> Time (seconds)
+
+Lambert-W (bisection) 
+
+SLSQP (numerical) Figure 8: Computation time vs. number of channels on a log-log scale. The Lambert W bisection scales nearly linearly, achieving up to 1,890 × speedup over SLSQP at 𝑁 = 1,024 .
+
+targets 𝑇 𝑖 themselves, which depends on application requirements and higher-layer protocols. 
+
+# 9 Conclusion 
+
+We have formulated and solved the target-rate least-squares power allocation problem for parallel Gaussian channels. The optimal allocation exhibits a no-overshoot property, never pushing any channel beyond its target, and may leave power unused when the budget suffices to meet all targets, which is fundamentally different behavior from classical waterfilling. We have derived a per-channel closed-form solution via the KKT conditions and the Lambert W function, and we have shown that the optimal dual variable can be found by bisection in 𝑂 (𝑁 log (1/𝜀 )) time. Numerical experiments confirm that the closed-form solution matches numerical optimization to machine precision and achieves up to 1,890 × speedup over general-purpose solvers at 𝑁 = 1,024 subcarriers. Several directions for future work merit investigation. First, extending the formulation to multi-user OFDMA with joint subcarrier assignment and target-rate power allocation would broaden the practical applicability. Second, incorporating robustness to imperfect CSI through stochastic or worst-case formulations would enhance the engineering relevance. Third, integrating the target-rate allocator with adaptive MCS selection and link adaptation would bridge the gap between Shannon-rate analysis and practical coded systems. Fourth, exploring connections to rate-distortion theory, where the rate-deviation objective can be interpreted as a distortion measure, may yield additional analytical insights. Fifth, the differentiable nature of the quadratic objective makes it a natural building block for end-to-end learning pipelines, where target selection and power allocation are jointly optimized via gradient-based methods. Finally, the closed-form solution is 17 0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5 20.0 
+
+# Mean SNR (dB) 
+
+0
+
+20 
+
+40 
+
+60 
+
+80 
+
+100 
+
+> Mean objective  J
+
+Target-rate 
+
+Waterfilling 
+
+Uniform 
+
+Prop. fairness Figure 9: Mean objective ¯𝐽 vs. mean SNR over 500 Rayleigh realizations per point ( 𝑁 = 8, 𝑇 = 3, 𝑃 tot = 10 ). Target-rate allocation maintains lower deviations across the SNR range. 
+
+well suited to emerging 6G systems with AI-native resource allocation, where fast analytical solvers can serve as differentiable layers within deep learning architectures. 
+
+# A Weighted Variant 
+
+Consider the weighted objective 𝐽 𝑤 (𝑷 ) = Í𝑁 𝑖 =1 𝑤 𝑖 (𝑟 𝑖 − 𝑇 𝑖 )2 with 𝑤 𝑖 > 0. The KKT analysis proceeds identically, with the stationarity condition becoming 
+
+2 𝑤 𝑖 (𝑟 𝑖 − 𝑇 𝑖 ) 𝑎 𝑖 
+
+(1 + 𝑎 𝑖 𝑃 𝑖 ) 𝑐 + 𝜆 − 𝜇 𝑖 = 0. (15) Following the same derivation, the active-set solution is 
+
+𝑃 𝑖 (𝜆 ) = 2 𝑤 𝑖 
+
+𝜆 𝑐 2 𝑊 0
+
+ 𝜆 𝑐 2
+
+2 𝑤 𝑖 𝑎 𝑖 
+
+2𝑇 𝑖 
+
+
+
+− 1
+
+𝑎 𝑖 
+
+, (16) and the bisection algorithm applies unchanged. The weights 𝑤 𝑖 allow the designer to prioritize certain channels’ target tracking over others. 
+
+# Acknowledgement 
+
+The author acknowledges the use of Claude (Anthropic) as an AI coding and writing assistant during the preparation of this manuscript. 18 References 
+
+[1] D. Tse and P. Viswanath, Fundamentals of Wireless Communication . Cambridge University Press, 2005. [2] A. J. Goldsmith and P. P. Varaiya, “Capacity of fading channels with channel side information,” IEEE Transactions on Information Theory , vol. 43, no. 6, pp. 1986–1992, 1997. [3] T. M. Cover and J. A. Thomas, Elements of Information Theory , 2nd ed. Wiley, 2006. [4] C. Y. Wong, R. S. Cheng, K. B. Letaief, and R. D. Murch, “Multiuser OFDM with adaptive subcarrier, bit, and power allocation,” IEEE Journal on Selected Areas in Communications , vol. 17, no. 10, pp. 1747–1758, 1999. [5] J. Huang and R. Berry, “Scheduling and resource allocation in OFDMA wireless systems,” in Cross-Layer Resource Allocation in Wireless Communications: Theory and Methods . Springer, 2009. [6] P. S. Chow, J. M. Cioffi, and J. A. C. Bingham, “A practical discrete multitone transceiver loading algorithm for data transmission over spectrally shaped channels,” IEEE Transactions on Communications ,vol. 43, no. 2/3/4, pp. 773–775, 1995. [7] S. Sadr, A. Anpalagan, and K. Raahemifar, “Radio resource allocation algorithms for the downlink of multiuser OFDM communication systems,” IEEE Communications Surveys & Tutorials , vol. 11, no. 3, pp. 92–106, 2009. [8] F. P. Kelly, A. K. Maulloo, and D. K. H. Tan, “Rate control for communication networks: shadow prices, proportional fairness and stability,” Journal of the Operational Research Society , vol. 49, no. 3, pp. 237–252, 1998. [9] J. Mo and J. Walrand, “Fair end-to-end window-based congestion control,” IEEE/ACM Transactions on Networking , vol. 8, no. 5, pp. 556–567, 2000. [10] Z. Shen, J. G. Andrews, and B. L. Evans, “Adaptive resource allocation in multiuser OFDM systems with proportional rate constraints,” IEEE Transactions on Wireless Communications , vol. 4, no. 6, pp. 2726–2737, 2005. [11] R. M. Corless, G. H. Gonnet, D. E. G. Hare, D. J. Jeffrey, and D. E. Knuth, “On the Lambert W function,” 
+
+Advances in Computational Mathematics , vol. 5, no. 1, pp. 329–359, 1996. [12] F. Brah, A. Zaidi, J. Louveaux, and L. Vandendorpe, “On the Lambert-W function for constrained resource allocation in cooperative networks,” EURASIP Journal on Wireless Communications and Networking , vol. 2011, no. 1, p. 19, 2011. [13] G. Bacci, E. V. Belmega, P. Mertikopoulos, and L. Sanguinetti, “Energy-aware competitive link adaptation in small-cell networks,” in Proc. International Workshop on Resource Allocation in Wireless Networks (RAWNET), WiOpt , 2014. [14] F. Meshkati, H. V. Poor, S. C. Schwartz, and N. B. Mandayam, “An energy-efficient approach to power control and receiver design in wireless data networks,” IEEE Transactions on Communications , vol. 53, no. 11, pp. 1885–1894, 2005. [15] H. Kim and G. de Veciana, “Leveraging dynamic spare capacity in wireless systems to conserve mobile terminals’ energy,” IEEE/ACM Transactions on Networking , vol. 18, no. 3, pp. 802–815, 2010. 19 [16] S. Boyd and L. Vandenberghe, Convex Optimization . Cambridge University Press, 2004. [Online]. Available: https://web.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf [17] “SciPy documentation: scipy.special.lambertw ,” https://docs.scipy.org/doc/scipy/reference/ generated/scipy.special.lambertw.html, 2026. 20

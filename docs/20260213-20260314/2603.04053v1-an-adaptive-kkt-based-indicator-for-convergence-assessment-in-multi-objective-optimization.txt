@@ -1,0 +1,357 @@
+Title: An Adaptive KKT-Based Indicator for Convergence Assessment in Multi-Objective Optimization
+
+URL Source: https://arxiv.org/pdf/2603.04053v1
+
+Published Time: Thu, 05 Mar 2026 02:03:28 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# An Adaptive KKT-Based Indicator for Convergence Assessment in Multi-Objective Optimization 
+
+Thiago Santos 
+
+Department of Mathematics Federal University of Ouro Preto, UFOP 
+
+Ouro Preto, Brazil santostf@ufop.edu.br 
+
+Sebasti˜ ao Xavier 
+
+Department of Mathematics Federal University of Ouro Preto, UFOP 
+
+Ouro Preto, Brazil semarx@ufop.edu.br 
+
+Abstract —Performance indicators are essential tools for as-sessing the convergence behavior of multi-objective optimization algorithms, particularly when the true Pareto front is unknown or difficult to approximate. Classical reference-based metrics such as hypervolume and inverted generational distance are widely used, but may suffer from scalability limitations and sensitivity to parameter choices in many-objective scenarios. Indicators derived from Karush–Kuhn–Tucker (KKT) optimality conditions provide an intrinsic alternative by quantifying stationarity with-out relying on external reference sets. This paper revisits an entropy-inspired KKT-based convergence indicator and proposes a robust adaptive reformulation based on quantile normalization. The proposed indicator preserves the stationarity-based interpre-tation of the original formulation while improving robustness to heterogeneous distributions of stationarity residuals, a recurring issue in many-objective optimization. 
+
+Index Terms —Multi-objective optimization, Convergence in-dicators, KKT conditions, Quantile normalization, Performance assessment. 
+
+I. I NTRODUCTION 
+
+Performance assessment is a fundamental component of empirical research in multi-objective optimization, as it under-pins claims regarding convergence behavior, solution quality, and algorithmic superiority. In recent years, it has become in-creasingly evident that performance evaluation is not a neutral post-processing step, but rather a methodological choice that can substantially influence experimental conclusions. Com-prehensive analyses have shown that different indicators may induce conflicting rankings even when applied to the same approximation sets, an effect that becomes more pronounced as the number of objectives increases [1]. Consequently, the re-liability and interpretability of performance indicators remain central concerns in contemporary many-objective optimization research. Beyond benchmarking and ranking purposes, convergence indicators also play an important role in computational op-timization as algorithmic diagnostics. In particular, they can support the design of stopping criteria, the analysis of transient behavior, and the monitoring of progress when the Pareto front is unknown or impractical to approximate. In this context, indicators that rely on intrinsic optimality information are especially attractive, since they can be applied consistently across problems and experimental settings without requiring external reference sets. A major source of difficulty in many-objective settings lies in the progressive loss of selection pressure induced by Pareto dominance. As the dimensionality of the objective space grows, dominance relations become increasingly sparse, leading to approximation sets in which most solutions are mutually nondominated. This phenomenon not only compli-cates algorithm design, but also undermines the effectiveness of dominance-based and dominance-derived performance indi-cators. As a result, the evaluation of convergence and progress toward Pareto optimality requires alternative mechanisms that remain discriminative under high-dimensional trade-offs. Among reference-based indicators, the hypervolume mea-sure has been widely adopted due to its strict Pareto com-pliance and its ability to capture convergence and diversity simultaneously. These properties have made hypervolume a de facto standard in many benchmarking studies. Nevertheless, its practical applicability is constrained by two well-known issues. First, the computational cost of exact hypervolume cal-culation increases rapidly with the number of objectives, often necessitating approximations. Second, the indicator exhibits a strong dependence on the choice of reference point, which may significantly affect both absolute values and relative comparisons between algorithms [2]. These limitations have motivated sustained debate regarding the role of hypervolume in many-objective performance assessment. Distance-based indicators, such as the inverted generational distance (IGD), provide an alternative by quantifying the average proximity of an approximation set to a predefined reference representation of the Pareto front. While conceptu-ally straightforward, IGD inherits a critical dependency on the construction of the reference set. It has been demonstrated that the density, distribution, and placement of reference points can dramatically alter evaluation outcomes, potentially favoring certain solution characteristics while penalizing others [3]. In many-objective problems, where accurate and uniformly dis-tributed reference fronts are difficult to obtain, this sensitivity raises concerns about the robustness and reproducibility of IGD-based comparisons [4]. In response to these challenges, a complementary line of research has focused on intrinsic convergence indicators that do not rely on external reference information. For smooth multi-objective optimization problems, first-order necessary 
+
+> arXiv:2603.04053v1 [math.OC] 4 Mar 2026
+
+conditions for Pareto optimality provide a natural and theo-retically grounded basis for convergence assessment. These conditions extend the classical Karush–Kuhn–Tucker (KKT) framework to vector-valued objectives, leading to stationarity concepts that characterize local Pareto optimality. KKT-based proximity measures quantify the extent to which candidate solutions violate these optimality conditions, thereby offering a reference-free indicator directly linked to the problem’s analytical structure [5]. Within this framework, Santos and Xavier proposed an entropy-inspired KKT-based convergence indicator that ag-gregates stationarity residuals into a bounded scalar measure [6]. The boundedness of the indicator facilitates interpretation and comparison across runs, while its formulation avoids explicit dependence on reference sets or dominance relations. However, the indicator relies on a fixed saturation parameter that implicitly assumes a uniform scale of stationarity residuals across the approximation set. In practice, approximation sets often display substantial heterogeneity in convergence status, particularly during in-termediate stages of the optimization process. It is common for a population to contain a mixture of nearly stationary solutions and others that remain far from satisfying optimality conditions. Under such circumstances, fixed saturation mecha-nisms may map a wide range of residual magnitudes to similar indicator contributions, effectively reducing resolution among poorly converged solutions and limiting the indicator’s ability to reflect gradual improvements [7]. This loss of discrimination is especially problematic in many-objective scenarios, where convergence progresses unevenly across different regions of the objective space. Recent contributions to performance assessment have there-fore emphasized the need for robustness with respect to hetero-geneous solution quality, advocating normalization and scaling strategies that adapt to the statistical structure of approxima-tion sets rather than imposing fixed global parameters [8]. Such approaches aim to enhance consistency and interpretability without altering the underlying convergence concept. Moti-vated by these considerations, this paper proposes an adaptive reformulation of the entropy-inspired KKT-based convergence indicator, designed to preserve its theoretical grounding while improving discrimination across diverse stationarity regimes. II. B ACKGROUND 
+
+We consider a smooth multi-objective optimization problem of the form 
+
+min  
+
+> x∈Ω
+
+F (x) =  f1(x), f 2(x), . . . , f m(x), (1) where Ω ⊂ Rn is a nonempty feasible set and each objective function fi : Ω → R is continuously differentiable. A point 
+
+x⋆ ∈ Ω is said to be Pareto optimal if there exists no feasible point x ∈ Ω such that fi(x) ≤ fi(x⋆) for all i ∈ { 1, . . . , m }
+
+and fj (x) < f j (x⋆) for at least one index j.For smooth problems, Pareto optimality admits a character-ization in terms of first-order necessary conditions. A feasible point x⋆ is Pareto stationary if there exists a vector λ ∈ Rm
+
+satisfying 
+
+> m
+
+X
+
+> i=1
+
+λi∇fi(x⋆) = 0 , λi ≥ 0,
+
+> m
+
+X
+
+> i=1
+
+λi = 1 . (2) Condition (2) generalizes the classical Karush–Kuhn–Tucker framework to the multi-objective setting and provides areference-free notion of first-order stationarity that is widely adopted in continuous multi-objective optimization [5]. Given a candidate solution x ∈ Ω, violation of the station-arity condition (2) can be quantified by solving the convex quadratic program 
+
+min 
+
+> λ∈Rm
+> m
+
+X
+
+> i=1
+
+λi∇fi(x)
+
+> 2
+
+subject to λi ≥ 0,
+
+> m
+
+X
+
+> i=1
+
+λi = 1 ,
+
+(3) which seeks a convex combination of objective gradients with minimal Euclidean norm. Let λ⋆(x) denote an optimal solution of (3). The associated vector 
+
+q(x) = 
+
+> m
+
+X
+
+> i=1
+
+λ⋆i (x)∇fi(x) (4) vanishes if and only if x satisfies the first-order Pareto station-arity condition. A scalar measure of stationarity violation can then be defined as 
+
+s(x) = ∥q(x)∥2, (5) which is nonnegative, continuous, and invariant under positive scaling of the objective functions. Such residuals form the basis of several KKT-based proximity measures and conver-gence indicators, as they provide an intrinsic assessment of optimality that does not rely on external reference sets or dominance relations [9], [10]. Given a finite approximation set X = {x1, . . . , x N }, the challenge lies in aggregating individual residuals s(xi) into a single scalar quantity that reflects the overall convergence status of the set. The entropy-inspired indicator proposed in [6] addresses this issue by bounding individual residual contributions through a fixed saturation constant, thereby en-suring a normalized and interpretable aggregation. However, this construction implicitly assumes that stationarity residuals exhibit comparable scales across the approximation set, an assumption that may be violated in practice when residual distributions are highly heterogeneous or heavy-tailed. III. A DAPTIVE H INDICATOR 
+
+Let X = {x1, . . . , x N } be a finite approximation set. For each xi ∈ X, we compute the stationarity residual 
+
+si = s(xi) defined in (5). The original entropy-inspired indicator proposed in [6] aggregates these residuals through a fixed saturation mapping, 
+
+˜si = min 
+
+ 1
+
+e , s i
+
+
+
+, (6) followed by the entropy-like aggregation 
+
+Hold (X) = − 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+˜si log  ˜si
+
+, (7) with the convention 0 log 0 = 0 .The fixed saturation threshold employed in Hold implicitly assumes that stationarity residuals are well scaled and lie within a bounded range. In heterogeneous approximation sets, however, residuals may span several orders of magnitude. In such cases, large residual values are mapped to identical contributions, which reduces the indicator’s discriminatory power and limits its ability to reflect gradual convergence improvements. To address this limitation, we introduce an adaptive normalization strategy grounded in empirical quan-tiles. Let Qα and Qβ denote the lower and upper empirical quan-tiles of the residual set {s1, . . . , s N }, with 0 < α < β < 1.We define winsorized residuals as 
+
+ˆsi = min {max {si, Q α} , Q β } , (8) which bounds extreme values while preserving the relative ordering of residuals within the central portion of the distri-bution. Normalized residuals are then computed according to 
+
+zi = ˆsi − Qα
+
+Qβ − Qα + ε , (9) where ε > 0 is a numerical regularization parameter intro-duced solely to avoid floating-point degeneracy. The proposed adaptive indicator is defined by 
+
+Hadap (X) = − 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+zi log  zi + ε. (10) For theoretical analysis, we consider the idealized form of 
+
+Hadap obtained by setting ε = 0 . This simplification preserves all structural properties of the indicator while facilitating exposition. 
+
+Theorem 1 (Boundedness and scale invariance of the adaptive 
+
+H indicator) . Let X = {x1, . . . , x N } be a finite approximation set and let si = s(xi) be the KKT stationarity residuals defined by 
+
+s(x) = 
+
+> m
+
+X
+
+> j=1
+
+λ⋆j (x)∇fj (x)
+
+> 2
+
+, (11) 
+
+where λ⋆(x) solves the quadratic program in (3) . Fix 0 < α < β < 1 and assume Qβ > Q α. Define Hadap (X) by (10) with 
+
+ε = 0 . Then: 
+
+(i) (Boundedness) 0 ≤ H adap (X) ≤ 1 
+
+> e
+
+.
+
+(ii) (Invariance under common positive scaling) If all ob-jectives are scaled by a common factor c > 0, i.e., 
+
+f (c) 
+
+> j
+
+(x) = c f j (x) for all j, then Hadap (X) is invariant under this transformation. Proof. (i) By construction, ˆsi ∈ [Qα, Q β ], which implies zi ∈
+
+[0 , 1] for all i. Consider the function ϕ(t) = −t log t on [0 , 1] 
+
+with ϕ(0) = 0 . Elementary calculus shows that ϕ attains its maximum at t = 1 /e and satisfies 
+
+0 ≤ ϕ(t) ≤ 1
+
+e for all t ∈ [0 , 1] .
+
+Therefore, 
+
+0 ≤ H adap (X) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ϕ(zi) ≤ 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+1
+
+e = 1
+
+e .
+
+(ii) Let f (c) 
+
+> j
+
+(x) = cf j (x) with c > 0. Then ∇f (c) 
+
+> j
+
+(x) = 
+
+c∇fj (x) and, for any feasible λ,
+
+> m
+
+X
+
+> j=1
+
+λj ∇f (c) 
+
+> j
+
+(x)
+
+> 2
+
+= c2
+
+> m
+
+X
+
+> j=1
+
+λj ∇fj (x)
+
+> 2
+
+.
+
+Hence, the optimizer λ⋆(x) is unchanged and s(c) 
+
+> i
+
+= c2si.Since empirical quantiles are equivariant under positive scal-ing, Q(c) 
+
+> α
+
+= c2Qα and Q(c) 
+
+> β
+
+= c2Qβ . It follows that z(c) 
+
+> i
+
+= zi
+
+for all i, and therefore H(c)
+
+> adap
+
+(X) = Hadap (X).
+
+Proposition 1 (Computational complexity of the adaptive H
+
+indicator) . Let N be the population size, m the number of objectives, and n the dimension of the decision space. The computational complexity of Hadap is O(N (nm 2 + m3)) ,with an additional overhead of O(N log N ) due to quantile estimation. Proof. The computation of Hadap (X) proceeds through dis-tinct algorithmic phases. First, the stationarity residuals 
+
+{s1, . . . , s N } must be computed. For each solution xi, this requires evaluating the Jacobian matrix G ∈ Rn×m and solving the quadratic program in (3). The construction of the Hessian H = 2 GT G ∈ Rm×m incurs a cost of O(nm 2). Solv-ing the resulting convex quadratic program involves algebraic operations on an m×m matrix, leading to O(m3) complexity. Repeating this process for the entire population yields a cost of O(N (nm 2 + m3)) .Second, the computation of the empirical quantiles Qα and 
+
+Qβ requires sorting the N residuals, which has complexity 
+
+O(N log N ). The subsequent winsorization, normalization, and entropy aggregation steps are linear in N and therefore do not affect the asymptotic complexity. In many-objective regimes where m is sufficiently large (e.g., m ≥ 30 ), the constant factor associated with m3 renders the per-solution cost of the quadratic programming phase substantially higher than the cost of sorting. As a result, the overhead introduced by adaptive quantile estimation is dominated by the computation of stationarity residuals in practical settings. 
+
+Remark 1 (Implications for ultra-many-objective optimiza-tion) . In regimes characterized by a high number of objec-tives, the cubic dependence on m in Proposition 1 warrants consideration. For representative values such as m = 30 , the algebraic cost m3 = 27 ,000 remains negligible for contem-porary computing architectures, indicating that the quadratic programming phase does not constitute a computational bot-tleneck. By contrast, when analytical gradients are unavailable, numerical differentiation via finite differences requires 2m
+
+function evaluations per solution. For computationally expen-sive objectives, this may limit the practical applicability of the indicator to problems with low evaluation cost or readily available derivatives. Despite these considerations, the Hadap formulation is structurally advantageous in high-dimensional objective spaces. In ultra-many-objective scenarios, stationarity resid-uals commonly exhibit heavy-tailed distributions and high variance due to the curse of dimensionality. The fixed sat-uration mechanism of Hold collapses distinct non-stationary magnitudes into identical upper bounds, effectively eliminat-ing discriminatory resolution. In contrast, the quantile-based normalization of Hadap adapts to the empirical distribution of residuals, preserving resolution among near-Pareto-stationary solutions and yielding more reliable convergence diagnostics for problems with m ≥ 30 .
+
+Both indicators satisfy Hold (X) → 0 and Hadap (X) → 0
+
+as all points in X approach Pareto stationarity. Moreover, when the residual distribution lies entirely below the saturation threshold of Hold , the adaptive formulation reduces to amonotone transformation of the original indicator. This ensures conceptual consistency while providing increased robustness in heterogeneous convergence regimes. In the following section, we present experimental results comparing Hold and Hadap with other classical performance indicators. IV. S IMULATION RESULTS 
+
+This section investigates the empirical behavior of the proposed adaptive indicator Hadap in comparison with the original formulation Hold and with two classical performance metrics commonly employed in multi-objective optimization, namely the averaged Hausdorff distance ∆p and the Hyper-volume (HV). The experimental objective is not to assert the superiority of one indicator over another, but rather to analyze consistency, resolution, and robustness across heterogeneous many-objective scenarios. The experimental evaluation is conducted on five benchmark problems from the DTLZ test suite, namely DTLZ1 through DTLZ5. These problems are widely adopted in the many-objective optimization literature due to their ability to expose distinct convergence pathologies and geometric characteristics of Pareto fronts. DTLZ1 is characterized by a linear Pareto front combined with a large number of local optima, making it suitable for evaluating convergence reliability. DTLZ2 and DTLZ4 share a hyperspherical Pareto front but differ in the distribution of objective scaling, with DTLZ4 introducing strong bias that challenges diversity preservation. DTLZ3 extends DTLZ2 by incorporating a highly multimodal land-scape, which exacerbates dominance resistance and indicator degeneracy. Finally, DTLZ5 induces a degenerate Pareto front with reduced intrinsic dimensionality, providing a stringent test for the sensitivity of performance indicators to structural irregularities. Together, these problems form a representative benchmark set for assessing indicator behavior under heteroge-neous convergence regimes commonly encountered in many-objective optimization. All problems are instantiated with m = 12 objectives in order to ensure a genuine many-objective setting, in which dominance relations become sparse and indicator-based assess-ment plays a central role. This configuration reflects practical regimes where intrinsic convergence indicators are most infor-mative. The algorithms considered in this study belong to a repre-sentative class of state-of-the-art many-objective evolutionary optimization methods implemented in the PlatEMO frame-work [11]. They embody distinct algorithmic principles for addressing the challenges posed by many-objective problems, including reference-point-based selection, cooperative con-straint handling, and geometry-driven search mechanisms. In particular, the experimental evaluation includes:  
+
+> •
+
+NSGA-III, which extends nondominated sorting through a reference-point-based selection strategy tailored to many-objective optimization [12];  
+
+> •
+
+CMOEA-CD, a constrained many-objective evolutionary algorithm that exploits cooperative correlation mecha-nisms to balance feasibility and convergence [13];  
+
+> •
+
+NRVMOEA, a normal-vector-guided evolutionary algo-rithm designed to enhance search efficiency and diversity maintenance in high-dimensional objective spaces [14]. For all benchmark problems, a population size of 100 indi-viduals is employed. Each algorithm is independently executed 
+
+30 times, with a termination criterion of 25 ,000 objective func-tion evaluations per run. All simulations are carried out within the PlatEMO framework to ensure consistent implementations and reproducibility of the reported performance metrics. The performance comparison on the first benchmark prob-lem is reported in Table I. The table summarizes the mean and standard deviation of Hadap , Hold , ∆p, and HV over the 30 
+
+independent runs. Lower values indicate better performance for Hadap , Hold , and ∆p, while higher values are preferable for HV. The results in Table I illustrate the loss of resolution exhibited by classical indicators in high-dimensional objective spaces. While Hold assigns similar values to NSGA-III and NRVMOEA, the adaptive formulation Hadap yields clearer differentiation between the algorithms. In contrast, the Hyper-volume metric assigns values close to zero to NRVMOEA and CMOEA-CD, indicating limited dominated volume coverage in this scenario. Table II reports the corresponding results for the second benchmark problem. For this problem, all indicators exhibit more regular behav-ior. Nevertheless, the adaptive indicator introduces stronger differentiation between the algorithms than the original for-mulation, while the Hypervolume metric confirms the superior coverage achieved by NRVMOEA. TABLE I PERFORMANCE COMPARISON ON DTLZ1 ( m = 12 ). Algorithm Hadap ↓ Hold ↓ ∆p ↓ HV ↑                                                         
+
+> NSGA-III 7.01 e-2 (8 .19 e-2 )3.50 e-2 (2 .93 e-2 )1.17 e+0 (1 .94 e+0 )5.56 e-1 (3 .81 e-1 )
+> NRVMOEA 6.16 e-2 (8 .88 e-2 )3.46 e-2 (1 .62 e-2 )1.43 e+2 (1 .59 e+1 )0.00 e+0 (0 .00 e+0 )
+> CMOEA-CD 2.08 e-1 (9 .88 e-3 )2.32 e-3 (3 .46 e-3 )6.27 e+1 (5 .07 e+1 )3.80 e-3 (2 .08 e-2 )
+> TABLE II PERFORMANCE COMPARISON ON DTLZ2 ( m= 12 ). Algorithm Hadap ↓Hold ↓∆p↓HV ↑
+> NSGA-III 5.81 e-2 (3 .76 e-2 )2.28 e-2 (2 .02 e-2 )6.34 e-1 (5 .43 e-2 )9.14 e-1 (1 .55 e-1 )
+> NRVMOEA 6.39 e-2 (1 .60 e-2 )1.33 e-2 (3 .16 e-3 )5.74 e-1 (5 .27 e-3 )9.67 e-1 (1 .88 e-3 )
+> CMOEA-CD 1.36 e-1 (1 .43 e-2 )1.98 e-1 (2 .19 e-2 )8.64 e-1 (1 .25 e-1 )4.57 e-1 (1 .12 e-1 )
+
+The results for the third benchmark problem are summarized in Table III. In this setting, the Hypervolume metric becomes uninforma-tive, as all algorithms attain zero values. While Hold exhibits compressed values due to saturation, the adaptive formulation maintains a non-saturated scale across all algorithms, thereby preserving effective resolution. Tables IV and V report the remaining results. Here, the original indicator collapses due to saturation effects, whereas the adaptive formulation preserves meaningful differences between the algorithms and remains consistent with the ordering suggested by Hypervolume. Overall, the experimental results indicate that Hadap be-haves consistently with established performance indicators while mitigating saturation and resolution loss induced by fixed normalization schemes. Rather than replacing classical metrics, the adaptive formulation serves as a complementary tool for convergence assessment in many-objective optimiza-tion, particularly in scenarios characterized by heterogeneous stationarity residual distributions. V. C ONCLUSION 
+
+This paper revisited an entropy-inspired KKT-based con-vergence indicator and proposed a robust adaptive reformula-tion based on quantile normalization. The proposed indicator preserves the stationarity-based interpretation of the original formulation while improving robustness to heterogeneous dis-tributions of stationarity residuals, a recurring challenge in many-objective optimization. By replacing fixed saturation thresholds with a distribution-aware normalization scheme, the adaptive formulation enhances discriminatory power without introducing problem-dependent tuning parameters or addi-tional algorithmic complexity. Empirical results obtained on a diverse set of DTLZ bench-mark problems indicate that the adaptive indicator behaves consistently with established convergence measures while mit-igating resolution loss and saturation effects observed in classi-cal formulations. In particular, scenarios in which the original indicator collapses to near-identical values or reference-based metrics such as hypervolume become uninformative highlight the practical relevance of adaptive normalization for conver-gence assessment in high-dimensional objective spaces. From a broader perspective, the proposed indicator is aligned with recent developments in optimality-based proxim-ity measures and intrinsic performance assessment in multi-objective optimization. Rather than competing directly with reference-based indicators or distance-based measures, the adaptive formulation provides a complementary perspective grounded in first-order optimality conditions. This viewpoint is especially relevant in many-objective regimes, where domi-nance relations weaken, reference information becomes unre-liable, and indicator degeneracy is frequently observed. Future work may investigate theoretical convergence prop-erties of the adaptive indicator, its extension to constrained, noisy, and stochastic optimization settings, and its integra-tion into algorithmic components such as adaptive stopping criteria and online convergence monitoring. Such directions may further consolidate the role of optimality-driven indicators as practical and reliable tools for convergence assessment in complex multi-objective optimization problems. REFERENCES [1] C. Audet, J. Bigeon, D. Cartier, S. Le Digabel, and L. Salomon, “Per-formance indicators in multiobjective optimization,” European Journal of Operational Research , vol. 292, no. 2, pp. 397–422, 2021. [2] A. P. Guerreiro, C. M. Fonseca, M. L´ opez-Ib´ a˜ nez, L. Paquete, and J. Vahrenhold, “The hypervolume indicator: Computational problems and algorithms,” ACM Computing Surveys , vol. 54, no. 6, 2021. [3] H. Ishibuchi, H. Masuda, and Y. Nojima, “Sensitivity of performance evaluation results by inverted generational distance to reference points,” in Proceedings of the IEEE Congress on Evolutionary Computation (CEC) , pp. 1107–1114, 2016. [4] H. Ishibuchi, H. Masuda, Y. Tanigaki, and Y. Nojima, “Difficulty of spec-ifying reference points for performance evaluation in many-objective optimization,” IEEE Transactions on Evolutionary Computation , vol. 22, no. 4, pp. 626–641, 2018. [5] M. Abouhawwash and K. Deb, “Karush–kuhn–tucker proximity measure for multi-objective optimization,” in Proceedings of the Genetic and Evolutionary Computation Conference (GECCO) , pp. 525–532, 2016. [6] T. Santos and S. Xavier, “A convergence indicator for multi-objective optimisation algorithms,” TEMA – Tendˆ encias em Matem´ atica Aplicada e Computacional , vol. 19, no. 3, pp. 347–366, 2018. [7] Q. Zhang, H. Li, and A. Zhou, “Indicator-based performance analysis for many-objective optimization,” Swarm and Evolutionary Computation ,vol. 65, p. 101018, 2022. TABLE III PERFORMANCE COMPARISON ON DTLZ3 ( m = 12 ). Algorithm Hadap ↓ Hold ↓ ∆p ↓ HV ↑
+
+NSGA-III 4.95 e-2 (2 .57 e-2 ) 1.46 e-1 (5 .20 e-2 ) 5.18 e+1 (2 .72 e+1 ) 0.00 e+0 (0 .00 e+0 )
+
+NRVMOEA 9.92 e-2 (1 .84 e-2 ) 2.45 e-1 (2 .40 e-2 ) 6.41 e+2 (4 .51 e+1 ) 0.00 e+0 (0 .00 e+0 )
+
+CMOEA-CD 1.29 e-1 (2 .96 e-2 ) 2.33 e-1 (3 .15 e-2 ) 3.00 e+2 (1 .46 e+2 ) 0.00 e+0 (0 .00 e+0 )
+
+TABLE IV PERFORMANCE COMPARISON ON DTLZ4 ( m = 12 ). Algorithm Hadap ↓ Hold ↓ ∆p ↓ HV ↑
+
+NSGA-III 1.95 e-1 (1 .35 e-2 ) 8.37 e-8 (1 .00 e-8 ) 6.32 e-1 (3 .01 e-2 ) 9.46 e-1 (2 .95 e-2 )
+
+NRVMOEA 1.88 e-1 (1 .26 e-2 ) 9.37 e-8 (7 .08 e-9 ) 5.72 e-1 (2 .70 e-3 ) 9.72 e-1 (3 .87 e-4 )
+
+CMOEA-CD 2.19 e-1 (9 .75 e-3 ) 1.80 e-7 (1 .23 e-8 ) 6.96 e-1 (1 .41 e-2 ) 7.14 e-1 (4 .22 e-2 )
+
+TABLE V PERFORMANCE COMPARISON ON DTLZ5 ( m = 12 ). Algorithm Hadap ↓ Hold ↓ ∆p ↓ HV ↑
+
+NSGA-III 1.05 e-1 (2 .76 e-2 ) 2.87 e-2 (1 .25 e-2 ) 8.00 e-1 (7 .57 e-2 ) 7.33 e-2 (1 .18 e-2 )
+
+NRVMOEA 9.26 e-2 (1 .74 e-2 ) 3.36 e-2 (1 .05 e-2 ) 1.36 e+0 (7 .90 e-2 ) 2.65 e-2 (2 .45 e-2 )
+
+CMOEA-CD 8.97 e-2 (1 .42 e-2 ) 4.22 e-2 (6 .46 e-3 ) 2.62 e+0 (4 .95 e-2 ) 1.91 e-2 (2 .61 e-2 )
+
+[8] Y. Li, H. Wang, and Y. Jin, “Robust performance assessment in evo-lutionary multi-objective optimization,” Information Sciences , vol. 620, pp. 1–18, 2023. [9] K. Deb, M. Abouhawwash, and H. Seada, “A computationally fast convergence measure for multi-objective optimization,” IEEE Transac-tions on Emerging Topics in Computational Intelligence , vol. 1, no. 4, pp. 280–293, 2017. [10] G. Eichfelder, A. Martin, and A. Otto, “Proximity measures based on KKT points for constrained multi-objective optimization,” Journal of Global Optimization , vol. 79, pp. 593–617, 2021. [11] Y. Tian, R. Cheng, X. Zhang, and Y. Jin, “Platemo: A matlab platform for evolutionary multi-objective optimization,” IEEE Computational Intelligence Magazine , vol. 12, no. 4, pp. 73–87, 2017. [12] K. Deb and H. Jain, “An evolutionary many-objective optimization algorithm using reference-point-based nondominated sorting approach, part I: Solving problems with box constraints,” IEEE Transactions on Evolutionary Computation , vol. 18, no. 4, pp. 577–601, 2013. [13] J. Chen, Y. Wang, Z. Shao, H. Zeng, and S. Zhao, “Dual-population cooperative correlation evolutionary algorithm for constrained multi-objective optimization,” Mathematics , vol. 13, no. 9, p. 1441, 2025. [14] Y. Hua, Q. Liu, and K. Hao, “Adaptive normal vector guided evolu-tionary multi- and many-objective optimization,” Complex & Intelligent Systems , vol. 10, pp. 3709–3726, 2024.

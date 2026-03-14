@@ -1,0 +1,4604 @@
+Title: Why is Normalization Preferred? A Worst-Case Complexity Theory for Stochastically Preconditioned SGD under Heavy-Tailed Noise
+
+URL Source: https://arxiv.org/pdf/2602.13413v1
+
+Published Time: Tue, 17 Feb 2026 01:12:34 GMT
+
+Number of Pages: 28
+
+Markdown Content:
+# Why is Normalization Preferred? A Worst-Case Complexity Theory for Stochastically Preconditioned SGD under Heavy-Tailed Noise 
+
+Yuchen Fang 1 James Demmel 2 Javad Lavaei 3
+
+## Abstract 
+
+We develop a worst-case complexity theory for 
+
+stochastically preconditioned stochastic gradient descent (SPSGD) and its accelerated variants un-der heavy-tailed noise, a setting that encompasses widely used adaptive methods such as Adam, RM-SProp, and Shampoo. We assume the stochastic gradient noise has a finite p-th moment for some 
+
+p ∈ (1 , 2] , and measure convergence after T it-erations. While clipping and normalization are parallel tools for stabilizing training of SGD under heavy-tailed noise, there is a fundamental separa-tion in their worst-case properties in stochastically preconditioned settings. We demonstrate that nor-malization guarantees convergence to a first-order stationary point at rate O(T − p−13p−2 ) when prob-lem parameters are known, and O(T − p−12p ) when problem parameters are unknown, matching the optimal rates for normalized SGD, respectively. In contrast, we prove that clipping may fail to con-verge in the worst case due to the statistical depen-dence between the stochastic preconditioner and the gradient estimates. To enable the analysis, we develop a novel vector-valued Burkholder-type inequality that may be of independent interest. These results provide a theoretical explanation for the empirical preference for normalization over clipping in large-scale model training. 
+
+## 1. Introduction 
+
+We consider stochastic optimization problems of the form 
+
+min 
+
+> x∈Rd
+
+f (x) := Eξ∼P [F (x, ξ )] , (1) 
+
+> 1
+
+Department of Mathematics, University of California, Berke-ley, CA, USA 2Department of EECS, University of California, Berkeley, CA, USA 3Department of IEOR, University of Cali-fornia, Berkeley, CA, USA. Correspondence to: Yuchen Fang 
+
+<yc fang@berkeley.edu >.
+
+Preprint. February 17, 2026. 
+
+where f : Rd → R is the nonconvex objective function and F (x, ξ ) denotes a stochastic realization with sample ξ
+
+drawn from a distribution P. Stochastic gradient descent (SGD) (Robbins & Monro, 1951) and its variants remain the workhorse for large-scale machine learning due to their sim-plicity, scalability, and strong empirical performance. Under classical assumptions of unbiased gradients with bounded variance, SGD admits well-understood convergence guar-antees, including the optimal rate O(T − 14 ) for finding first-order stationary points in smooth nonconvex problems. Building upon SGD, numerous variants have been proposed to accelerate convergence and improve robustness. A classi-cal and widely used extension is momentum SGD (MSGD) (Polyak, 1964; Liu et al., 2020), which updates the iterate according to 
+
+xk+1 = xk − ηm k, mk = θm k−1 + (1 − θ)¯ gk, (2) where η is the learning rate, ¯gk is a stochastic gradient at xk,and θ ∈ (0 , 1) is the momentum parameter. Both SGD and MSGD enjoy strong theoretical guarantees and empirical success when the gradient noise has bounded variance. However, the bounded-variance assumption is often vio-lated in modern machine learning. Empirical studies in image classification (Battash et al., 2024), large language model training (Zhang et al., 2020; Ahn et al., 2024), and reinforcement learning (Garg et al., 2021) provide com-pelling evidence that the noise in gradient estimation is often heavy-tailed, where only a finite p-th moment exists for some p ∈ (1 , 2] . In such regimes, vanilla SGD and momentum SGD may exhibit instability or even divergence, and standard convergence guarantees might no longer apply (Gorbunov et al., 2020). This has motivated a growing body of work on stochastic optimization under heavy-tailed noise. Two simple yet widely used techniques for stabilizing SGD under heavy-tailed noise are clipping (ClipSGD) (Zhang et al., 2020) and normalization (NSGD) (Cutkosky & Mehta, 2020). Clipping truncates gradient estimates exceeding a prescribed threshold, whereas normalization rescales gradi-ent estimates to have unit norm. It has been shown that both approaches are known to achieve the optimal convergence rate O(T − p−13p−2 ) in nonconvex optimization. Despite their theoretical parity in the vanilla SGD setting, a significant 1
+
+> arXiv:2602.13413v1 [cs.LG] 13 Feb 2026 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise
+
+disconnect remains between theory and practice. Clipping often suffers from practical limitations: (1) determining the optimal clipping threshold requires precise knowledge of algorithmic parameters that are difficult to estimate; and (2) while theory often prescribes large, increasing thresh-olds, practitioners typically employ small, fixed thresholds (Zhang et al., 2022; Liu et al., 2024). In contrast, normal-ization is easier to tune and exhibits greater robustness in practice. Therefore, the idea of normalization has been ap-plied in large-scale machine learning extensively (You et al., 2017; 2018; 2020; Touvron et al., 2023). In this work, we show that this gap between clipping and normalization becomes fundamental once we move be-yond vanilla SGD to Stochastically Preconditioned SGD (SPSGD) and its accelerated variants, which has the follow-ing update rule 
+
+xk+1 = xk −ηD kmk, mk = θm k−1 +(1 −θ)¯ gk, (3) where Dk is a symmetric positive definite stochastic pre-conditioning matrix that may depend on past gradients or curvature information. The update rule in (3) subsumes a wide range of widely used optimization methods, including AdaGrad (Duchi et al., 2011), Adam (Kingma, 2014), RMSProp (Tieleman, 2012), K-FAC (Martens & Grosse, 2015), Shampoo (Gupta et al., 2018), and stochastic Newton, quasi-Newton, and trust-region methods (Bottou et al., 2018; Wang et al., 2017; Curtis & Shi, 2022). We discuss in detail how (3) recovers those methods in Section 2. Despite their empirical success, the theoretical understand-ing of SPSGD remains limited. Existing analyses often either ignore the randomness of Dk or impose strong in-dependence assumptions between Dk and the stochastic gradient, which are violated in most adaptive and second-order methods. Moreover, nearly all existing results focus on light-tailed noise with bounded variance, leaving the heavy-tailed regime largely unexplored. In this paper, we investigate how step clipping and step normalization 1 behave when combined with stochastic pre-conditioning under heavy-tailed noise. Our main finding is a sharp worst-case separation: • Normalization remains robust : when step normaliza-tion is applied to SPSGD, the method converges to a first-order stationary point under heavy-tailed noise, achieving at least the same optimal rates as normalized SGD, both when problem parameters are known and when they are unknown. 
+
+> 1Throughout the paper, we use the terms step clipping and step normalization since what we normalize and clip can be the stochastic preconditioned gradient, instead of gradient alone.
+
+• Clipping may fail : in contrast, when step clipping is applied to SPSGD, the method may fail to converge in the worst case. This failure arises from the statistical dependence between the stochastic preconditioner and the gradient estimate, which introduces a persistent covariance that clipping cannot eliminate. This separation does not appear in vanilla SGD and provides a novel theoretical explanation for the wide applications of normalization in modern large-scale machine learning. Our contributions are summarized as follows: 1. We establish the worst-case iteration complexity guar-antees for SPSGD and its accelerated variants with step normalization under heavy-tailed noise. Combined with momentum, normalized SPSGD achieves the rate 
+
+O(T − p−13p−2 ) when problem parameters are known, and 
+
+O(T − p−12p ) when parameters are unknown. Both rates match the optimal rates for NSGD under heavy-tailed noise when algorithmic parameters are known and un-known, respectively. Importantly, these rates are de-rived using minimal structural assumptions on Dk and thus serve as unified upper bounds. 2. We demonstrate that, in the worst case, SPSGD com-bined with step clipping may fail to converge. This failure is intrinsic and stems from the statistical de-pendence between the preconditioner and the gradient noise. We also provide an explanation from a geomet-ric perspective to emphasize the fundamental differ-ence between step normalization and step clipping. 3. To enable our analysis, we establish a new vector-valued Burkholder-type inequality, generalizing the scalar result of (Fang et al., 2025) and yielding sharper constants than existing bounds (H ¨ubler et al., 2024a). This inequality may be of independent interest for ana-lyzing stochastic optimization algorithms. 
+
+1.1. Related work Gradient clipping is widely used to stabilize the training in various fields of machine learning (Pascanu et al., 2013; Schulman et al., 2017; Zhang et al., 2020). Recently a num-ber of works provide convergence guarantees and extend the algorithm design in various settings, including heavy-tailed cases (Nazin et al., 2019; Gorbunov et al., 2020; 2024; Puchkin et al., 2024; Sadiev et al., 2023; Nguyen et al., 2023). Most of the above mentioned works use increasing and iteration dependent clipping parameters, which contrast with the clipping techniques that we use in practice. Re-cently, Koloskova et al. (2023) offer a new analysis with a constant clipping threshold under bounded-variance. How-ever, their proof seems challenging to extend to heavy-tailed setting. 2Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Gradient normalization was first proposed by (Nesterov, 1984) and then extensively generalized, e.g., see (Levy, 2017; Hazan et al., 2015; Yang et al., 2023; H ¨ubler et al., 2024b; Levy, 2016). Its extension to nonconvex optimiza-tion and the removal of large-batch requirements were achieved by (Cutkosky & Mehta, 2020) through the intro-duction of momentum. However, all of the above works rely on strong assumptions imposed on noise, most notably bounded variance. Under heavy-tailed noise, Cutkosky & Mehta (2021) studied combinations of gradient normaliza-tion and gradient clipping with iteration-dependent clipping thresholds. More recently, (Sun et al., 2025) showed that gra-dient normalization combined with momentum is sufficient to achieve optimal convergence rates in expectation. Their analysis, however, relies on an individual Lipschitz condi-tion, which implicitly assumes bounded gradient noise and thus restricts the setting to light-tailed distributions. Con-currently, (H ¨ubler et al., 2024a) established convergence rates and sample complexities under heavy-tailed noise and proved their tightness, while (Liu & Zhou, 2025) considered generalized p-BCM and (L0, L 1)-smooth conditions and obtained the same optimal rates. Nevertheless, all of the aforementioned analyses are restricted to vanilla SGD and do not account for the additional challenges introduced by stochastic preconditioning. 
+
+Notation. We use ∥ · ∥ to denote ℓ2 norm for vectors and operator norm for matrices. We use ⊙ to denote entrywise multiplication of two vectors, and ⊗ to denote the Kronecker product. Given the iterate xk, we denote Ek[·] := E[· | xk].
+
+## 2. Stochastically Preconditioned Methods 
+
+In this section, we demonstrate that the unified update rule (3) encompasses a broad class of widely used stochastic optimization algorithms, all of which fall within the scope of our theoretical framework. While we do not aim to enumerate all possible methods, this section and Table 1 in Appendix A summarize representative examples. 
+
+SGD and momentum SGD. As a baseline, when Dk = I,the update rule (3) recovers stochastic gradient descent with momentum. When θ = 0 , it further reduces to vanilla SGD. 
+
+Adaptive learning-rate methods employ coordinate-wise learning rates that depend on historical gradient informa-tion, which can be equivalently expressed through diagonal preconditioning matrices. 
+
+AdaGrad (Duchi et al., 2011) accumulates squared gradi-ents Gk = Pki=0 ¯gi⊙¯gi and updates xk+1 = xk − η√Gk +ϵ ⊙
+
+¯gk. This corresponds to setting Dk = diag  1/√Gk + ϵ
+
+and θ = 0 .
+
+RMSProp (Tieleman, 2012) replaces cumulative sums with exponential moving averages vk = βv k−1 + (1 − β)¯ g2
+
+> k
+
+,yielding the update xk+1 = xk − η√vk +ϵ ⊙ ¯gk, which cor-responds to Dk = diag  1/√vk + ϵ and θ = 0 .
+
+Adam (Kingma, 2014) combines momentum and adaptive scaling by maintaining mk = β1mk−1 + (1 − β1)¯ gk, vk =
+
+β2vk−1 +(1 −β2)¯ g2
+
+> k
+
+, with the update xk+1 = xk − η√vk +ϵ ⊙
+
+mk. This leads to Dk = diag  1/√vk + ϵ and θ = β1.
+
+Adafactor (Zhai et al., 2022; Zhao et al., 2024) reduces memory usage by replacing vk with a low-rank approxi-mation v′
+
+> k
+
+, resulting in the diagonal preconditioner Dk =diag  1/pv′ 
+
+> k
+
++ ϵ.
+
+Kronecker-structured preconditioning methods extend diagonal scaling by employing structured matrix precondi-tioners based on Kronecker factorizations, allowing richer curvature information to be exploited efficiently. 
+
+K-FAC (Martens & Grosse, 2015) approximates the Fisher information matrix by Fk ≈ Ak ⊗ Bk, where Ak, B k are symmetric positive definite matrices. This approximation yields the update xk+1 = xk − η(Ak ⊗ Bk)−1mk, which corresponds to choosing Dk = ( Ak ⊗ Bk)−1.
+
+Shampoo (Gupta et al., 2018) maintains Kronecker-factored second-moment estimates Lk = βL k−1 + (1 − β)GkGTk ,
+
+Rk = βR k−1 + (1 − β)GTk Gk and updates Xk+1 =
+
+Xk − ηL −1/4 
+
+> k
+
+GkR−1/4 
+
+> k
+
+. Using properties of the Kronecker product, this can be equivalently written as vec( Xk+1 ) = vec( Xk) − η(Lk ⊗ Rk)−1/4 vec( Gk), which corresponds to Dk = ( Lk ⊗ Rk)−1/4 and θ = 0 .
+
+Stochastic second-order methods incorporate full or ap-proximate curvature information by choosing Dk as an ap-proximation to the inverse Hessian. 
+
+Stochastic Newton methods (Bottou et al., 2018) update 
+
+xk+1 = xk − η(Hk + λI )−1mk, where Hk is a stochastic Hessian estimate and λ ≥ 0 ensures positive definiteness. Thus Dk = ( Hk + λI )−1.
+
+Quasi-Newton methods approximate the Hessian using low-rank updates, such as stochastic BFGS (Wang et al., 2017). In this case, Dk is given by the inverse of the Hessian approximation, with the precise form depending on the Quasi-Newton formula. 
+
+Stochastic trust-region methods (Curtis & Shi, 2022) compute steps by approximately solving a local quadratic model within a trust region. When solved exactly, the re-sulting step takes the form −η(Hk + λI )−1mk, where λ
+
+depends on the trust-region radius. When solved inex-actly, for example using Krylov subspace methods such as Steihaug method (Nocedal & Wright, 2006, Algorithm 7.2), the step can be expressed as a linear combination of 
+
+mk, H −1 
+
+> k
+
+mk, H −2 
+
+> k
+
+mk, . . . , which again fits (3) with a data-dependent and potentially stochastic preconditioner Dk.3Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+## 3. Takeaway: A Geometric Perspective 
+
+Before presenting our technical analysis, we offer an in-tuitive geometric explanation for why step normalization 
+
+remains robust under stochastic preconditioning, whereas 
+
+step clipping faces fundamental stability issues. At each iteration, the stochastic gradient ¯gk is transformed by a symmetric positive definite (SPD) preconditioner Dk.This yields a preconditioned direction Dk ¯gk, which can be highly anisotropic and variable in magnitude due to curva-ture and data-dependent scaling. 
+
+Step normalization. Under step normalization, the precon-ditioned update is strictly projected onto the surface of a sphere. By enforcing a fixed norm, normalization effectively decouples the update magnitude from the scale of the pre-conditioner. Geometrically, this constrains the optimization trajectory to a stable manifold, preventing the “magnitude noise” of Dk from propagating into the update step. 
+
+Step clipping. In contrast, step clipping allows the update to lie either on the boundary or anywhere within the interior of a ball of radius τ . Crucially, to achieve optimal conver-gence rate, theoretical analyses require this threshold τ to grow with the time horizon T . Geometrically, this means the update region is an expanding ball. Because clipping retains magnitude information when the gradient is small, the statistical dependence between Dk and ¯gk introduces a bias within this expanding interior. 
+
+## 4. Normalization Ensures Convergence 
+
+In this section, we demonstrate that step normalization en-sures the convergence of Stochastically Preconditioned SGD (SPSGD) to a first-order stationary point in expectation. Fur-thermore, we establish that in the worst case—where mini-mal structural knowledge of the stochastic preconditioner is assumed—the convergence rate matches the optimal rate of Normalized SGD (NSGD). We summarize Algorithm 1. The algorithm follows the stan-dard design of NSGD (Liu & Zhou, 2025; Sun et al., 2025), with the key distinction being the incorporation of Dk. We include momentum following the algorithmic framework of Cutkosky & Mehta (2020), where momentum is shown to improve the performance of NSGD without requiring large per-iteration batch sizes. In our analysis, a single sample per iteration suffices. For analysis, we impose the following assumptions. 
+
+Assumption 4.1. There exists f∗ = inf x∈Rd f (x) > −∞ .
+
+Assumption 4.2 (L-smoothness) . There exists L > 0 such that for any x, y ∈ Rd, we have 
+
+∥∇ f (x) − ∇ f (y)∥ ≤ L∥x − y∥.
+
+Algorithm 1 SPSGD with Step Normalization  
+
+> 1:
+
+Input: Initial point x1 ∈ Rd, momentum parameter 
+
+θ ∈ (0 , 1) , learning rate η > 0. 
+
+> 2:
+
+for k = 1 to T do  
+
+> 3:
+
+Obtain an unbiased gradient estimate ¯gk. 
+
+> 4:
+
+Update the momentum (with m0 = ¯ g1): 
+
+mk = θm k−1 + (1 − θ)¯ gk. 
+
+> 5:
+
+Construct a (potentially stochastic) preconditioning matrix Dk and compute Dkmk. 
+
+> 6:
+
+Perform normalization and update the iterate: 
+
+xk+1 = xk − η Dkmk
+
+∥Dkmk∥ . 
+
+> 7:
+
+end for Assumption 4.3 (p-BCM condition) . At the k-th iteration, the gradient estimate ¯gk is unbiased with bounded p-th mo-ment, that is, Ek[¯ gk] = ∇f (xk) and 
+
+Ek
+
+∥¯gk − ∇ f (xk)∥p ≤ σp
+
+for some p ∈ (1 , 2] and σ ≥ 0.The L-smoothness assumption is standard in the analysis of stochastic optimization (Zhang et al., 2020; Sun et al., 2025; H ¨ubler et al., 2024a). Recently, Liu & Zhou (2025) imposed a weaker (L0, L 1)-smoothness assumption. However, this assumption complicates the analysis when algorithmic pa-rameters are unknown, as the learning rate η still depends on 
+
+L1, and current literature has not eliminated this dependence. Liu & Zhou (2025) also considered a generalized p-BCM condition, but under this condition, a batch of samples is required per iteration to achieve the optimal convergence rate, with the batch size depending on p. Thus, the analysis in the parameter-unknown setting still depends on p.
+
+Assumption 4.4 (Bounded condition number of Dk). The stochastic preconditioner Dk is symmetric positive definite. There exist (possibly stochastic and iteration-dependent) constants 0 < m D,k < M D,k < ∞ such that mD,k · I ⪯
+
+Dk ⪯ MD,k · I. For each run of the algorithm, there exists a deterministic constant κD < ∞ such that the condition number of Dk, denoted by κ(Dk), satisfies κ(Dk) ≤ κD
+
+for all k ≤ T .We justify this assumption from several perspectives. First, imposing uniform upper and lower bound assumptions on Hessian estimates is standard in stochastic second-order optimization (Berahas et al., 2021; Fang et al., 2024). Here we relax this requirement: the bounds mD,k and MD,k may be stochastic and iteration-dependent, requiring only that the condition number be deterministically bounded. Second, 4Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+since Dk serves as a preconditioner, it should not be too ill-conditioned, as this would distort the information contained in the gradient estimates. Third, since the algorithm runs for a finite number of iterations, the condition number should be finite almost surely. Finally, the condition number κD is used only in the theoretical analysis and does not appear in the algorithm design or parameter selection. We are now ready to present the convergence properties of Algorithm 1 under heavy-tailed noise. Proofs in this section are deferred to Appendix B. 
+
+4.1. When all algorithmic parameters are known 
+
+In this subsection, we provide the convergence rate under an ideal setting where all algorithmic parameters are known. This condition is commonly assumed implicitly in the opti-mization literature, where algorithmic parameters are used to tune hyperparameters. 
+
+Theorem 4.5. Under Assumptions 4.1, 4.2, 4.3, and 4.4, let ∆ := f (x1) − f∗. For any T ≥ 1, we select η =q (1 −θ)∆  
+
+> LT
+
+, θ = 1 −min 
+
+n
+
+1, max 
+
+n  ∆Lσ2T
+
+ p 
+
+> 3p−2
+
+, T − p
+
+> 2p−1
+
+oo 
+
+,then Algorithm 1 guarantees 
+
+1
+
+T
+
+> T
+
+X
+
+> k=1
+
+E∥∇ f (xk)∥ = O (∆ L) 12
+
+T 12
+
++ σT p−12p−1
+
++ (∆ L) p−13p−2 σ p
+
+> 3p−2
+
+T p−13p−2
+
+!
+
+. (4) This result generalizes that of (Liu & Zhou, 2025) by incorporating the stochastic preconditioning matrix Dk.Notably, all hyperparameter settings remain identical to those for NSGD. The algorithm achieves the rate 
+
+O (∆ L) p−13p−2 σ p 
+
+> 3p−2
+
+/T p−13p−2
+
+, which matches the optimal rate for SGD under heavy-tailed noise established in Liu & Zhou (2025). When p = 2, this reduces to 
+
+O (∆ L)1/4σ1/2/T 1/4, which is known to be minimax optimal in all algorithmic parameters ( T , ∆, L, and σ) (Ar-jevani et al., 2023). We note that our dependence on σ is 
+
+O(σ p 
+
+> 3p−2
+
+), while Sun et al. (2025) achieve O(σ 2p−23p−2 ). Con-sequently, our bound is tighter when σ < 1, while their bound becomes favorable for σ > 1. This difference stems from our weaker smoothness assumption. Sun et al. (2025) impose an individual Lipschitz condition requiring the gradi-ent estimate to be bounded at initialization, which implicitly assumes light-tailed noise. 
+
+4.2. When all algorithmic parameters are unknown 
+
+We now provide the convergence rate when algorithmic parameters are unknown. This condition reflects many prac-tical scenarios where problem-dependent parameters are intractable or prohibitively difficult to estimate. 
+
+Theorem 4.6. Under Assumptions 4.1, 4.2, 4.3, and 4.4, let ∆ := f (x1) − f∗. For any T ≥ 1, we select η = T − 34 ,
+
+θ = 1 − T − 12 , then Algorithm 1 guarantees 
+
+1
+
+T
+
+> T
+
+X
+
+> k=1
+
+E∥∇ f (xk)∥ = O ∆ + LT 14
+
++ σT p−12p
+
+!
+
+. (5) This result matches those of H ¨ubler et al. (2024a); Liu & Zhou (2025) and is known to be tight when Dk = I.
+
+Remark 4.7 . Our analysis adopts a worst-case perspective, imposing minimal assumptions on the structure of the pre-conditioner Dk. The primary objective is to elucidate how the statistical dependence between Dk and the momentum/-gradient estimator mk impacts the stability of step clipping versus step normalization. Consequently, the convergence rates derived here serve as unified upper bounds for a broad class of algorithms presented in Section 2. It is therefore un-surprising that our rates match those of standard NSGD with-out demonstrating theoretical acceleration; proving such improvements would require exploiting algorithm-specific structures to derive tighter bounds, which is beyond the scope of this unified framework. 
+
+Remark 4.8 . The convergence rates in Theorems 4.5 and 4.6 are tight in the sense that we cannot obtain better rates with-out additional structural assumptions on the stochastic pre-conditioner Dk. This follows immediately by observing that setting Dk = I recovers NSGD, for which the convergence rates have been shown to be minimax optimal by (Liu & Zhou, 2025) and (H ¨ubler et al., 2024a) for parameter-known and parameter-unknown scenarios, respectively. 
+
+4.3. Step normalization is robust 
+
+We establish a key robustness property of step normalization: when the gradient estimate is stochastically preconditioned, the accumulated gradient norms remain controlled by a factor of √κD relative to the bounds obtained in normalized SGD (NSGD). Formally, we have the following result. 
+
+Lemma 4.9. Under Assumptions 4.1, 4.2 and 4.4, for all 
+
+T ≥ 1, let ∆ := f (x1) − f∗, we have 
+
+> T
+
+X
+
+> k=1
+
+E [∥∇ f (xk)∥] ≤ √κD ·
+
+"
+
+∆
+
+η + 2 
+
+> T
+
+X
+
+> k=1
+
+E [∥εk∥] + ηLT 
+
+2
+
+#
+
+,
+
+where εk = mk − ∇ f (xk).
+
+This bound is crucial: even when the stochastic precon-ditioner Dk is poorly designed, step normalization limits performance degradation to a multiplicative factor of at most 
+
+√κD compared with standard NSGD, without introducing any new error terms. This controlled degradation explains the robustness of normalized updates in stochastically pre-conditioned settings. 5Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+That said, the analysis above is worst-case and assumes no additional structure on Dk. When the preconditioners are well-constructed (e.g., approximating a reasonable inverse Hessian or covariance structure), algorithm-specific analy-ses can typically establish substantially tighter bounds than the one presented here. 
+
+4.4. Vector-valued Burkholder-type inequality 
+
+Given the result of Lemma 4.9, to complete the analysis, we must bound PTk=1 E [∥εk∥].By the momentum recursion, we have 
+
+εk = θkε0 +
+
+> k
+
+X
+
+> t=1
+
+θk−tst + (1 − θ)
+
+> k
+
+X
+
+> t=1
+
+θk−tδt,
+
+where st = ∇f (xt−1) − ∇ f (xt) and δt = ¯ gt − ∇ f (xt).Thus 
+
+E[∥εk∥] ≤ θkE[∥ε0∥]+
+
+> k
+
+X
+
+> t=1
+
+θk−tE[∥st∥] + (1 − θ)E
+
+" kX
+
+> t=1
+
+θk−tδt
+
+#
+
+.
+
+The first two terms are straightforward to bound. However, bounding E
+
+h Pkt=1 θk−tδt
+
+i
+
+might introduce difficulty. By H¨ older’s inequality, we have 
+
+E
+
+" kX
+
+> t=1
+
+θk−tδt
+
+#
+
+= E
+
+" kX
+
+> t=1
+
+θk−t(¯ gt − ∇ f (xt)) 
+
+#
+
+≤ E
+
+" kX
+
+> t=1
+
+θk−t (¯ gt − ∇ f (xt)) 
+
+> p
+
+#! 1/p 
+
+.
+
+When p = 2 , this bound is straightforward to evaluate using the martingale property. However, for p ∈ (1 , 2) , further simplification is nontrivial. Liu & Zhou (2025) treat the cases p ∈ (1 , 2) and p = 2 separately using different tech-niques. H ¨ubler et al. (2024a) provide a unified analysis, but with suboptimal constants. To address this, we establish the following vector-valued Burkholder-type inequality, which unifies the analysis for all p ∈ (1 , 2] while achieving sharper constants. The proof is deferred to Appendix D. 
+
+Lemma 4.10 (Vector-valued Burkholder-type inequality) .
+
+Let Xk, k = 0 , 1, . . . , T − 1, be random variables with 
+
+E[Xk | X0: k−1] = 0 and E[∥Xk∥p] < ∞ for any k ≥ 0
+
+and some p ∈ (1 , 2] . Then 
+
+E
+
+" T −1X
+
+> k=0
+
+Xk
+
+> p
+
+#
+
+≤ 22−pT −1X
+
+> k=0
+
+E[∥Xk∥p].
+
+Applying the inequality and Assumption 4.4, we have 
+
+E
+
+" kX
+
+> t=1
+
+θk−tδt
+
+#
+
+≤ 2 2 
+
+> p−1
+> k
+
+X
+
+> t=1
+
+θp(k−t)E [∥¯gt − ∇ f (xt)) ∥p]
+
+!1/p 
+
+≤ 2 2 
+
+> p−1
+
+σ
+
+(1 − θp)1/p .
+
+## 5. What Might Go Wrong for Clipping? 
+
+In this section, we demonstrate the potential failure of step clipping when gradient estimates are stochastically precon-ditioned. To simplify the exposition, we omit momentum from the gradient estimate; this choice is discussed further in Remark 5.6. Recall that for SGD with gradient clipping, we have 
+
+xk+1 = xk − η min 
+
+
+
+1, τ
+
+∥¯gk∥
+
+
+
+¯gk,
+
+where τ is a clipping threshold that depends on algorithmic parameters T and σ to achieve the optimal convergence rate (Zhang et al., 2020). When the gradient is stochastically preconditioned, two natural choices arise. The first clips the gradient estimate before preconditioning: 
+
+xk+1 = xk − ηD k · min 
+
+
+
+1, τ
+
+∥¯gk∥
+
+
+
+¯gk,
+
+while the second clips the preconditioned gradient: 
+
+xk+1 = xk − η min 
+
+
+
+1, τ
+
+∥Dk ¯gk∥
+
+
+
+Dk ¯gk.
+
+We refer to these as Clipping-Then-Preconditioning and 
+
+Preconditioning-Then-Clipping , respectively. Both designs have intuitive justifications. The first approach clips the heavy-tailed gradient estimate to remove outliers before using the stabilized estimates to construct Dk, yield-ing more robust curvature information. The second accounts for the stochastic dependence between Dk and ¯gk: since 
+
+Dk may rotate and stretch ¯gk stochastically, clipping after forming the complete step may produce more stable updates. Several optimizers for large-scale machine learning, such as Sophia (Liu et al., 2024), follow the second principle. For the analysis of clipping, we impose a slightly stronger assumption on the preconditioning matrix Dk.
+
+Assumption 5.1 (Uniform Boundedness of Dk). There exist deterministic constants mD , M D > 0 such that mD ·
+
+I ⪯ Dk ⪯ MD · I for ∀k ≤ T .6Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+This assumption strengthens Assumption 4.4 by requiring that the singular values of Dk be uniformly bounded by deterministic constants for all iterations. However, even under this stronger assumption, clipping fails to guarantee convergence, as shown below. We discuss the two clipping variants separately due to dif-ferences in analysis. Proofs are presented in Appendix C. 
+
+5.1. Clipping-Then-Preconditioning 
+
+Under this technique, we write xk+1 = xk − ηD kb¯gk with 
+
+b¯gk = min {1, τ / ∥¯gk∥} ¯gk. Following standard analysis, we consider the expected reduction per iteration by separating the cases ∥∇ f (xk)∥ ≥ τ / 2 and ∥∇ f (xk)∥ < τ / 2.We first consider ∥∇ f (xk)∥ ≥ τ / 2.
+
+Lemma 5.2. Under Assumptions 4.2, 4.3 and 5.1, when 
+
+∥∇ f (xk)∥ ≥ τ / 2, if we select η < mD 
+
+> 24 L
+
+and 
+
+τ = max 
+
+(
+
+2, 4 · 31/p · σ
+
+ MD
+
+mD
+
+ p+1 2p
+
+, 64 σ MD
+
+mD
+
+)
+
+,
+
+then we have 
+
+Ek[f (xk+1 )] ≤ f (xk) − 112 ηm D ∥∇ f (xk)∥.
+
+This result shows that expected reduction is achieved when the clipping threshold τ is relatively small compared to the true gradient, matching the behavior of clipped SGD. How-ever, the learning rate and clipping threshold now depend on mD and MD , complicating practical implementation. Next, we consider the case ∥∇ f (xk)∥ < τ / 2, where we show that reduction is not guaranteed in the worst case. 
+
+Lemma 5.3. Under Assumptions 4.2, 4.3 and 5.1, when 
+
+∥∇ f (xk)∥ < τ / 2, we have 
+
+Ek[f (xk+1 )] ≤ f (xk) − 12 ηEk[∥D1/2 
+
+> k
+
+∇f (xk)∥2]
+
+− (η − Lη 2MD )∇f (xk)T Ek[Dkϵuk ]+ 12 ηM D ∥ϵbk∥2 + η2L
+
+2 M 2 
+
+> D
+
+Ek[∥ϵuk ∥2],
+
+where ϵuk = b¯gk − Ek[b¯gk] and ϵbk = Ek[b¯gk] − ∇ f (xk).
+
+This result resembles that for ClipSGD (Zhang et al., 2020), except for the additional error term −(η −
+
+Lη 2MD )∇f (xk)T Ek[Dkϵuk ]. In ClipSGD, this term van-ishes because Dk = I and Ek[ϵuk ] = 0 . However, it gener-ally does not vanish when Dk and ¯gk are dependent, as in SPSGD. Note that 
+
+Ek[Dkϵuk ] = Ek[Dkb¯gk] − Ek[Dk]Ek[b¯gk],
+
+this term essentially measures the covariance between the preconditioner and the clipped gradient noise. Without explicit knowledge of Dk’s structure, we can only upper bound this error term. Applying the rescaled Young’s inequality yields 
+
+− (η − Lη 2MD )∇f (xk)T Ek[Dkϵuk ]
+
+≤ 14 (η − Lη 2MD )Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥2]+ ( η − Lη 2MD )MD Ek[∥ϵuk ∥2]. (6) The rescaling ensures that the coefficient of 
+
+Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥2] remains negative. The key is-sue, and the source of clipping’s potential failure, is the O(ηEk[∥ϵuk ∥2]) error term. Combining this with Lemma 5.3, we obtain 
+
+Ek[f (xk+1 )] ≤ f (xk) − 14 ηEk[∥D1/2 
+
+> k
+
+∇f (xk)∥2]+ ηM D Ek[∥ϵuk ∥2] + 12 ηM D ∥ϵbk∥2.
+
+Comparing this with ClipSGD (Zhang et al., 2020), the cur-rent error is O(ηEk[∥ϵuk ∥2]) rather than O(η2Ek[∥ϵuk ∥2]) .By standard analysis, when ∥∇ f (xk)∥ < τ / 2, we have 
+
+Ek[∥ϵuk ∥2] ≤ 10 τ 2−pσp and ∥ϵbk∥2 ≤ 4σ2pτ −2p+2 . Substi-tuting these bounds yields 
+
+Ek[f (xk+1 )] ≤ f (xk) − 14 ηm D ∥∇ f (xk)∥2
+
++ 10 ηM D τ 2−pσp
+
++ 2 ηM D σ2pτ −2p+2 .
+
+To achieve optimal complexity, the clipping threshold must be carefully chosen. Following Zhang et al. (2020), we set 
+
+τ = O(T a) for some a > 0. However, when p ∈ (1 , 2) , this yields τ 2−pσp → ∞ as T → ∞ , indicating that descent is not guaranteed and divergence may occur. In contrast, for ClipSGD the error term is O(η2Ek[∥ϵuk ∥2]) ,so we can choose η sufficiently small such that η2τ 2−pσp ≤O(ητ −2p+2 σp), making the power of τ negative. 
+
+Remark 5.4 . One might argue that the bound in (6) is too loose. However, given the dependence between Dk and 
+
+¯gk and the lack of structural assumptions on Dk, this is the tightest bound we can obtain without algorithm-specific analysis. The following example demonstrates that the error bound in (6) can indeed be achieved. 
+
+Example 5.5 . Consider the one-dimensional case. Suppose at iterate xk we have ∇f (xk) = C, where σ ≫ C > 
+
+0 is a constant. The gradient estimate follows a discrete distribution taking two values with equal probability: ¯gk =
+
+∇f (xk) + σ with probability 1/2 and ¯gk = ∇f (xk) − σ
+
+with probability 1/2. We set MD −mD = O(σ), and design 
+
+Dk such that Dk = mD · I when ¯gk > 0 and Dk = MD · I
+
+when ¯gk < 0. Setting τ ≫ σ, we have 
+
+−(η − Lη 2MD )∇f (xk)T Ek[Dkϵuk ] = O(ηEk[∥ϵuk ∥2]) .
+
+The proof is deferred to Appendix C.3. 7Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Remark 5.6 . We do not combine clipping with momentum, consistent with most standard analyses of gradient clipping under heavy-tailed noise (Zhang et al., 2020; Puchkin et al., 2024; Sadiev et al., 2023; Nguyen et al., 2023). While Sun et al. (2025) combine clipping with normalization and mo-mentum, such combinations obscure the individual effects of clipping and normalization. We argue that the problem with clipping cannot be resolved by introducing momen-tum. The issue originates from the dependence between the preconditioner and the gradient estimate, while momentum merely aggregates the randomness of ¯gk across iterations without removing its dependence on Dk. Consequently, momentum alone cannot resolve this fundamental issue. 
+
+5.2. Preconditioning-Then-Clipping 
+
+Under this technique, we write xk+1 = xk − ηD kb¯gk with 
+
+b¯gk = min {1, τ / ∥Dk ¯gk∥} ¯gk. Similar to Section 5.1, we analyze this by separating cases based on gradient mag-nitude. Due to the preconditioning matrix in the clipping criterion, we use the threshold τ / (2 MD ), which reduces to the standard τ / 2 when MD = 1 .When the clipping threshold is relatively small, i.e., 
+
+∥∇ f (xk)∥ ≥ τ / (2 MD ), expected descent can still be achieved, provided that the clipping threshold is properly selected. We defer the lemma to Appendix C.8. However, as in Section 5.1, when the threshold is large, descent is not guaranteed. 
+
+Lemma 5.7. Under Assumptions 4.2, 4.3 and 5.1, when 
+
+∥∇ f (xk)∥ < τ 
+
+> 2MD
+
+, we have 
+
+Ek[f (xk+1 )] ≤ f (xk) − 14 ηm D ∥∇ f (xk)∥2
+
++ ηM D Υ21σ2pτ −2p+2 + ηM D Υ2τ 2−pσp,
+
+where Υ1, Υ2 are constants independent to σ and τ , ϵuk =
+
+b¯gk − Ek[b¯gk], and ϵbk = Ek[b¯gk] − ∇ f (xk).
+
+The reasoning is identical to that in Section 5.1: the ad-ditional error term −(η − Lη 2MD )∇f (xk)T Ek[Dkϵuk ] ap-pears and cannot be eliminated in general. This is an expected result, since this additional error term captures the covariance between Dk and ¯gk, which comes from the dependence between Dk and ¯gk, which generally cannot be overcome by step clipping. 
+
+## 6. Discussion 
+
+6.1. Applications to large-scale machine learning 
+
+Our theoretical findings provide a novel explanation for the empirical success of modern large-scale optimizers such as LARS (You et al., 2017; 2018), LAMB (You et al., 2020), and their variants. These methods combine gradient nor-malization with adaptive (often layer-wise) precondition-ing, mirroring the structure analyzed in this work. Since large-scale models exhibit heavy-tailed gradient noise where bounded-variance assumptions fail, our results formalize why these methods scale reliably: step normalization re-mains robust by removing magnitude information and avoid-ing dependence-induced errors under stochastic precondi-tioning. 
+
+6.2. Clipping is still important 
+
+Our analysis does not dismiss clipping but rather clarifies its differences from normalization under stochastic precon-ditioning. Clipping remains widely used and important in practice. Moreover, our worst-case analysis does not imply clipping always fails when Dk depends on ¯gk—the theory-practice gap mentioned in Section 1 makes real-world per-formance difficult to predict, and careful tuning may still ensure good behavior. 
+
+6.3. Future work 
+
+Several promising directions remain for future work. First, characterizing instance-dependent or average-case behav-ior under realistic distributions could reveal when clipping succeeds empirically. Second, extending the theory to layer-wise normalization and block-structured preconditioners would further bridge the theory-practice gap. Finally, while our analysis considers linear preconditioning, recent stochas-tic methods introduce nonlinear transformations of gradi-ent information; extending our framework to such settings would better guide optimizer design. 
+
+## 7. Conclusion 
+
+This paper provides a worst-case complexity theory explain-ing a fundamental separation between step clipping and step normalization under stochastic preconditioning and heavy-tailed noise. We show that clipping may fail due to a structural, dependence-induced bias that generally cannot be eliminated by tuning or clipping, while normalization re-mains robust and achieves the convergence rates that match the optimal rates of NSGD. Our resulabodern large-scale optimizers such as LARS and LAMB. 
+
+## Acknowledgement 
+
+This work was in part supported by the U. S. Army Research Laboratory and the U. S. Army Research Office under Grant W911NF2010219, Office of Naval Research under Grant N000142412673, and NSF. 8Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+## References 
+
+Ahn, K., Cheng, X., Song, M., Yun, C., Jadbabaie, A., and Sra, S. Linear attention is (maybe) all you need (to understand transformer optimization). In The Twelfth International Conference on Learning Representations ,2024. Arjevani, Y., Carmon, Y., Duchi, J. C., Foster, D. J., Srebro, N., and Woodworth, B. Lower bounds for non-convex stochastic optimization. Mathematical Programming , 199 (1):165–214, 2023. Battash, B., Wolf, L., and Lindenbaum, O. Revisiting the noise model of stochastic gradient descent. In Interna-tional Conference on Artificial Intelligence and Statistics ,pp. 4780–4788. PMLR, 2024. Berahas, A. S., Curtis, F. E., Robinson, D., and Zhou, B. Sequential quadratic optimization for nonlinear equality constrained stochastic optimization. SIAM Journal on Optimization , 31(2):1352–1379, jan 2021. doi: 10.1137/ 20m1354556. Bottou, L., Curtis, F. E., and Nocedal, J. Optimization methods for large-scale machine learning. SIAM review ,60(2):223–311, 2018. Curtis, F. E. and Shi, R. A fully stochastic second-order trust region method. Optimization Methods and Software ,37(3):844–877, 2022. Cutkosky, A. and Mehta, H. Momentum improves nor-malized sgd. In International conference on machine learning , pp. 2260–2268. PMLR, 2020. Cutkosky, A. and Mehta, H. High-probability bounds for non-convex stochastic optimization with heavy tails. Ad-vances in Neural Information Processing Systems , 34: 4883–4895, 2021. Duchi, J., Hazan, E., and Singer, Y. Adaptive subgradient methods for online learning and stochastic optimization. 
+
+Journal of machine learning research , 12(7), 2011. Fang, Y., Na, S., Mahoney, M. W., and Kolar, M. Trust-region sequential quadratic programming for stochas-tic optimization with random models. arXiv preprint arXiv:2409.15734 , 2024. Fang, Y., Lavaei, J., and Na, S. High probability complexity bounds of trust-region stochastic sequential quadratic programming with heavy-tailed noise. arXiv preprint arXiv:2503.19091 , 2025. Garg, S., Zhanson, J., Parisotto, E., Prasad, A., Kolter, Z., Lipton, Z., Balakrishnan, S., Salakhutdinov, R., and Ravikumar, P. On proximal policy optimization’s heavy-tailed gradients. In International Conference on Machine Learning , pp. 3610–3619. PMLR, 2021. Gorbunov, E., Danilova, M., and Gasnikov, A. Stochas-tic optimization with heavy-tailed noise via accelerated gradient clipping. Advances in Neural Information Pro-cessing Systems , 33:15042–15053, 2020. Gorbunov, E., Tupitsa, N., Choudhury, S., Aliev, A., Richt ´arik, P., Horv ´ath, S., and Tak ´a ˇc, M. Methods for convex (l 0, l 1) -smooth optimization: Clipping, acceler-ation, and adaptivity. arXiv preprint arXiv:2409.14989 ,2024. Gupta, V., Koren, T., and Singer, Y. Shampoo: Pre-conditioned stochastic tensor optimization. In Interna-tional Conference on Machine Learning , pp. 1842–1850. PMLR, 2018. Hazan, E., Levy, K., and Shalev-Shwartz, S. Beyond con-vexity: Stochastic quasi-convex optimization. Advances in neural information processing systems , 28, 2015. H ¨ubler, F., Fatkhullin, I., and He, N. From gradient clipping to normalization for heavy tailed sgd. arXiv preprint arXiv:2410.13849 , 2024a. H ¨ubler, F., Yang, J., Li, X., and He, N. Parameter-agnostic optimization under relaxed smoothness. In International Conference on Artificial Intelligence and Statistics , pp. 4861–4869. PMLR, 2024b. Kingma, D. P. Adam: A method for stochastic optimization. 
+
+arXiv preprint arXiv:1412.6980 , 2014. Koloskova, A., Hendrikx, H., and Stich, S. U. Revisiting gradient clipping: Stochastic bias and tight convergence guarantees. In International Conference on Machine Learning , pp. 17343–17363. PMLR, 2023. Levy, K. Online to offline conversions, universality and adaptive minibatch sizes. Advances in Neural Information Processing Systems , 30, 2017. Levy, K. Y. The power of normalization: Faster evasion of saddle points. arXiv preprint arXiv:1611.04831 , 2016. Liu, H., Li, Z., Hall, D. L. W., Liang, P., and Ma, T. Sophia: A scalable stochastic second-order optimizer for language model pre-training. In The Twelfth International Confer-ence on Learning Representations , 2024. Liu, Y., Gao, Y., and Yin, W. An improved analysis of stochastic gradient descent with momentum. Advances in Neural Information Processing Systems , 33:18261– 18271, 2020. Liu, Z. and Zhou, Z. Nonconvex stochastic optimization under heavy-tailed noises: Optimal convergence with-out gradient clipping. In The Thirteenth International Conference on Learning Representations , 2025. 9Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Liu, Z., Zhang, J., and Zhou, Z. Breaking the lower bound with (little) structure: Acceleration in non-convex stochas-tic optimization with heavy-tailed noise. In The Thirty Sixth Annual Conference on Learning Theory , pp. 2266– 2290. PMLR, 2023. Martens, J. and Grosse, R. Optimizing neural networks with kronecker-factored approximate curvature. In Interna-tional conference on machine learning , pp. 2408–2417. PMLR, 2015. Nazin, A. V., Nemirovsky, A. S., Tsybakov, A. B., and Judit-sky, A. B. Algorithms of robust stochastic optimization based on mirror descent method. Automation and Remote Control , 80(9):1607–1627, 2019. Nesterov, Y. E. Minimization methods for nonsmooth con-vex and quasiconvex functions. Matekon , 29(3):519–531, 1984. Nguyen, T. D., Nguyen, T. H., Ene, A., and Nguyen, H. Im-proved convergence in high probability of clipped gradi-ent methods with heavy tailed noise. Advances in Neural Information Processing Systems , 36:24191–24222, 2023. Nocedal, J. and Wright, S. Numerical Optimization .Springer, 2006. Pascanu, R., Mikolov, T., and Bengio, Y. On the difficulty of training recurrent neural networks. In International conference on machine learning , pp. 1310–1318. Pmlr, 2013. Polyak, B. T. Some methods of speeding up the convergence of iteration methods. Ussr computational mathematics and mathematical physics , 4(5):1–17, 1964. Puchkin, N., Gorbunov, E., Kutuzov, N., and Gasnikov, A. Breaking the heavy-tailed noise barrier in stochastic optimization problems. In International Conference on Artificial Intelligence and Statistics , pp. 856–864. PMLR, 2024. Robbins, H. and Monro, S. A stochastic approximation method. The annals of mathematical statistics , pp. 400– 407, 1951. Sadiev, A., Danilova, M., Gorbunov, E., Horv ´ath, S., Gidel, G., Dvurechensky, P., Gasnikov, A., and Richt ´arik, P. High-probability bounds for stochastic optimization and variational inequalities: the case of unbounded variance. In International Conference on Machine Learning , pp. 29563–29648. PMLR, 2023. Schulman, J., Wolski, F., Dhariwal, P., Radford, A., and Klimov, O. Proximal policy optimization algorithms. 
+
+arXiv preprint arXiv:1707.06347 , 2017. Sun, T., Liu, X., and Yuan, K. Revisiting gradient normaliza-tion and clipping for nonconvex sgd under heavy-tailed noise: Necessity, sufficiency, and acceleration. Journal of Machine Learning Research , 26(237):1–42, 2025. Tieleman, T. Lecture 6.5-rmsprop: Divide the gradient by a running average of its recent magnitude. COURSERA: Neural networks for machine learning , 4(2):26, 2012. Touvron, H., Lavril, T., Izacard, G., Martinet, X., Lachaux, M.-A., Lacroix, T., Rozi `ere, B., Goyal, N., Hambro, E., Azhar, F., et al. Llama: Open and efficient foundation lan-guage models. arXiv preprint arXiv:2302.13971 , 2023. Wang, X., Ma, S., Goldfarb, D., and Liu, W. Stochastic quasi-newton methods for nonconvex stochastic optimiza-tion. SIAM Journal on Optimization , 27(2):927–956, 2017. Yang, J., Li, X., Fatkhullin, I., and He, N. Two sides of one coin: the limits of untuned sgd and the power of adaptive methods. Advances in Neural Information Processing Systems , 36:74257–74288, 2023. You, Y., Gitman, I., and Ginsburg, B. Large batch training of convolutional networks. arXiv preprint arXiv:1708.03888 , 2017. You, Y., Zhang, Z., Hsieh, C.-J., Demmel, J., and Keutzer, K. Imagenet training in minutes. In Proceedings of the 47th international conference on parallel processing , pp. 1–10, 2018. You, Y., Li, J., Reddi, S., Hseu, J., Kumar, S., Bhojanapalli, S., Song, X., Demmel, J., Keutzer, K., and Hsieh, C.-J. Large batch optimization for deep learning: Training bert in 76 minutes. In International Conference on Learning Representations , 2020. Zhai, X., Kolesnikov, A., Houlsby, N., and Beyer, L. Scaling vision transformers. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition ,pp. 12104–12113, 2022. Zhang, J., Karimireddy, S. P., Veit, A., Kim, S., Reddi, S., Kumar, S., and Sra, S. Why are adaptive methods good for attention models? Advances in Neural Information Processing Systems , 33:15383–15393, 2020. Zhang, S., Roller, S., Goyal, N., Artetxe, M., Chen, M., Chen, S., Dewan, C., Diab, M., Li, X., Lin, X. V., et al. Opt: Open pre-trained transformer language models. 
+
+arXiv preprint arXiv:2205.01068 , 2022. Zhao, R., Morwani, D., Brandfonbrener, D., Vyas, N., and Kakade, S. Deconstructing what makes a good optimizer for language models. arXiv preprint arXiv:2407.07972 ,2024. 10 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+## A. Examples of Stochastically Preconditioned Methods 
+
+Table 1. Summary of Stochastically Preconditioned Methods 
+
+Method Preconditioner Dk Momentum θ Reference 
+
+SGD I 0 Robbins & Monro (1951) Momentum SGD I ∈ (0 , 1) Polyak (1964) AdaGrad diag(1 /√Gk + ϵ) 0 Duchi et al. (2011) RMSProp diag(1 /√vk + ϵ) 0 Tieleman (2012) Adam diag(1 /√vk + ϵ) β1 Kingma (2014) Adafactor diag(1 /pv′ 
+
+> k
+
++ ϵ) varies Zhai et al. (2022) K-FAC (Ak ⊗ Bk)−1 varies Martens & Grosse (2015) Shampoo (Lk ⊗ Rk)−1/4 0 Gupta et al. (2018) Stochastic Newton (Hk + λI )−1 varies Bottou et al. (2018) Stochastic BFGS B−1 
+
+> k
+
+varies Wang et al. (2017) Trust Region (Hk + λkI)−1 varies Curtis & Shi (2022) 
+
+Notes: Gk = Pki=0 ¯gi ⊙ ¯gi (AdaGrad); vk = βv k−1 + (1 − β)¯ g2 
+
+> k
+
+(RMSProp, Adam); v′ 
+
+> k
+
+is a low-rank approximation of vk (Adafactor); Ak , B k are Kronecker factors (K-FAC); Lk , R k
+
+are second-moment estimates (Shampoo); Hk is the Hessian estimate; Bk is the quasi-Newton approximation; λ, λ k ≥ 0 are regularization parameters. 
+
+## B. Proof of Section 4 
+
+Lemma B.1. Under Assumptions 4.1, 4.2 and 4.4, for all T ≥ 1, we have 
+
+> T
+
+X
+
+> k=1
+
+E [∥∇ f (xk)∥] ≤ √κD ·
+
+"
+
+f (x1) − f∗
+
+η + 2 
+
+> T
+
+X
+
+> k=1
+
+E [∥εk∥] + ηLT 
+
+2
+
+#
+
+,
+
+where εk = mk − ∇ f (xk).Proof. Since xk+1 = xk +∆ xk, we have f (xk+1 ) ≤ f (xk)+ ∇f (xk)T ∆xk + L 
+
+> 2
+
+∥∆xk∥2. Recall that ∆xk = −η Dk mk  
+
+> ∥Dkmk∥
+
+by the algorithm design, and ∥∆xk∥ = η by the step normalization, we have 
+
+f (xk+1 ) ≤ f (xk) − η ∇f (xk)T Dkmk
+
+∥Dkmk∥ + η2L
+
+2 .
+
+Denote εk = mk − ∇ f (xk), then 
+
+f (xk+1 ) ≤ f (xk) − η mTk Dkmk
+
+∥Dkmk∥ + η εTk Dkmk
+
+∥Dkmk∥ + η2L
+
+2
+
+≤ f (xk) − η ∥D1/2 
+
+> k
+
+mk∥2
+
+pMD,k ∥D1/2 
+
+> k
+
+mk∥ + η ∥εk∥∥ Dkmk∥∥Dkmk∥ + η2L
+
+2= f (xk) − η ∥D1/2 
+
+> k
+
+mk∥
+
+pMD,k 
+
++ η∥εk∥ + η2L
+
+2
+
+> (a)
+
+≤ f (xk) − η ∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+pMD,k 
+
++ η ∥D1/2 
+
+> k
+
+εk∥
+
+pMD,k 
+
++ η∥εk∥ + η2L
+
+2
+
+> (b)
+
+≤ f (xk) − η ∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+pMD,k 
+
++ 2 η∥εk∥ + η2L
+
+2
+
+> (c)
+
+≤ f (xk) − η
+
+√mD,k ∥∇ f (xk)∥
+
+pMD,k 
+
++ 2 η∥εk∥ + η2L
+
+2 ,
+
+11 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+where in (a) we use the triangle inequality ∥D1/2 
+
+> k
+
+mk∥ ≥ ∥ D1/2 
+
+> k
+
+∇f (xk)∥ − ∥ D1/2 
+
+> k
+
+εk∥, and (b) follows from ∥D1/2 
+
+> k
+
+εk∥ ≤ 
+
+pMD,k ∥εk∥, and (c) follows from ∥D1/2 
+
+> k
+
+∇f (xk)∥ ≥ √mD,k ∥∇ f (xk)∥.Since pMD,k /√mD,k = κ(Dk) ≤ κD by the definition of condition number and Assumption 4.4, we further have 
+
+f (xk+1 ) ≤ f (xk) − η ∥∇ f (xk)∥√κD
+
++ 2 η∥εk∥ + η2L
+
+2 .
+
+Rearranging the terms, we have 
+
+∥∇ f (xk)∥ ≤ √κD ·
+
+ f (xk) − f (xk+1 )
+
+η + 2 ∥εk∥ + ηL 
+
+2
+
+
+
+.
+
+Sum over k = 1 , . . . , T , and using Assumption 4.1 gives 
+
+> T
+
+X
+
+> k=1
+
+∥∇ f (xk)∥ ≤ √κD ·
+
+"
+
+f (x1) − f∗
+
+η + 2 
+
+> T
+
+X
+
+> k=1
+
+∥εk∥ + ηLT 
+
+2
+
+#
+
+.
+
+We complete the proof by taking total expectation on both sides. 
+
+Lemma B.2. Under Assumptions 4.2 and 4.3, we have 
+
+E [∥εk∥] ≤ θkσ + θηL 
+
+1 − θ + 2 2 
+
+> p−1
+
+(1 − θ)σ
+
+(1 − θp)1/p .
+
+Proof. Denote st = ∇f (xt−1) − ∇ f (xt) and δt = ¯ gt − ∇ f (xt), then by the momentum recursion, we have 
+
+εk = θkε0 +
+
+> k
+
+X
+
+> t=1
+
+θk−tst + (1 − θ)
+
+> k
+
+X
+
+> t=1
+
+θk−tδt.
+
+Taking total expectation yields 
+
+E [∥εk∥] ≤ θkE[∥ε0∥] + 
+
+> k
+
+X
+
+> t=1
+
+θk−tE[∥st∥] + (1 − θ)E
+
+" kX
+
+> t=1
+
+θk−tδt
+
+#
+
+.
+
+By Assumption 4.4 and H¨ older’s inequality, together with the fact that x0 = x1, we have 
+
+E[∥ε0∥] = E[∥¯g1 − ∇ f (x1)∥] ≤ (E[∥¯g1 − ∇ f (x1)∥p]) 1/p ≤ σ. 
+
+In addition, by the Lipschitz continuity assumption (cf. Assumption 4.2), we have ∥st∥ ≤ L∥xk − xk−1∥ = Lη . Therefore, 
+
+> k
+
+X
+
+> t=1
+
+θk−tE[∥st∥] ≤ ηL 
+
+> k
+
+X
+
+> t=1
+
+θk−t = θηL 
+
+1 − θ .
+
+Next, we need to bound E
+
+h Pkt=1 θk−tδt
+
+i
+
+. By H¨ older’s inequality, we have 
+
+E
+
+" kX
+
+> t=1
+
+θk−tδt
+
+#
+
+= E
+
+" kX
+
+> t=1
+
+θk−t(¯ gt − ∇ f (xt)) 
+
+#
+
+≤ E
+
+" kX
+
+> t=1
+
+θk−t (¯ gt − ∇ f (xt)) 
+
+> p
+
+#! 1/p 
+
+.
+
+Next, we use vector-valued Burkholder-type inequality (cf. Lemma 4.10, with the proof in Appendix D). and Assumption 4.4, and then obtain 
+
+E
+
+" kX
+
+> t=1
+
+θk−tδt
+
+#
+
+≤ 2 2 
+
+> p−1
+> k
+
+X
+
+> t=1
+
+θp(k−t)E [∥¯gt − ∇ f (xt)) ∥p]
+
+!1/p 
+
+≤ 2 2 
+
+> p−1
+
+σ
+
+(1 − θp)1/p .
+
+The proof completes by combining these bounds. 12 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Lemma B.3. Under Assumptions 4.1, 4.2, 4.3 and 4.4, for all T ≥ 1, we have 
+
+> T
+
+X
+
+> k=1
+
+E[∥∇ f (xk)∥] ≤ O 
+
+ f (x1) − f∗
+
+η + σ
+
+1 − θ + σ(1 − θ)1− 1 
+
+> p
+
+T + ηL 
+
+1 − θ T
+
+
+
+.
+
+Proof. This result follows from the combination of Lemmas B.1 and B.2, and the fact that 1−θ 
+
+> (1 −θp)1/p
+
+≤ (1 − θ)1− 1 
+
+> p
+
+.
+
+B.1. Proof of Theorem 4.5 
+
+Given the conclusion of Lemma B.3, when plugging in η =
+
+q (1 −θ)∆  
+
+> LT
+
+, we have 
+
+> T
+
+X
+
+> k=1
+
+E[∥∇ f (xk)∥] = O
+
+r ∆LT 
+
+1 − θ + σ
+
+1 − θ + σ(1 − θ)1− 1 
+
+> p
+
+T
+
+!
+
+.
+
+Since θ = 1 − min 
+
+n
+
+1, max 
+
+n  ∆Lσ2T
+
+ p 
+
+> 3p−2
+
+, T − p
+
+> 2p−1
+
+oo 
+
+, if letting U = T − p 
+
+> 2p−1
+
+and V =   ∆Lσ2T
+
+ p 
+
+> 3p−2
+
+, we have 
+
+σ
+
+1 − θ +
+
+r ∆LT 
+
+1 − θ + σ(1 − θ) p−1 
+
+> p
+
+T
+
+≤ σ
+
+
+
+1 + 1max {U, V }
+
+
+
++
+
+s
+
+∆LT 
+
+
+
+1 + 1max {U, V }
+
+
+
++ σT (max {U, V }) p−1
+
+> p
+
+≤ σ
+
+
+
+1 + 1
+
+U
+
+
+
++
+
+s
+
+∆LT 
+
+
+
+1 + 1
+
+V
+
+
+
++ σT 
+
+
+
+U p−1 
+
+> p
+
++ V p−1
+
+> p
+
+
+
+≤ σ + √∆LT + σU +
+
+r ∆LT V + σT 
+
+
+
+U p−1 
+
+> p
+
++ V p−1
+
+> p
+
+
+
+.
+
+We complete the proof by plugging in the definition of U and V and dividing both sides by T .
+
+B.2. Proof of Theorem 4.6 
+
+Given the conclusion of Lemma B.3, plugging in η = T − 34 =
+
+q 1−θT and 1 − θ = 1√T , we get 
+
+> T
+
+X
+
+> k=1
+
+E[∥∇ f (xk)∥] ≤ O 
+
+
+
+(∆ + L)T 3/4 + σ√T + σT 1+ p
+
+> 2p
+
+
+
+.
+
+The proof is completed by dividing both sides by T .
+
+## C. Proof of Section 5 
+
+C.1. Clipping-Then-Preconditioning Lemma C.1. When ∥∇ f (xk)∥ < τ / 2, we have Ek[∥εuk ∥2] ≤ 10 τ 2−pσp and Ek[∥εbk∥2] ≤ 4σ2pτ −2p+2 .
+
+The proof can be found in standard analysis in ClipSGD, e.g., Zhang et al. (2020); Liu et al. (2023) 
+
+Lemma C.2. Under Assumptions 4.2, 4.3, and 5.1, when ∥∇ f (xk)∥ < τ / 2, then we have 
+
+Ek[f (xk+1 )] ≤ f (xk) − 12 ηEk[∥D1/2 
+
+> k
+
+∇f (xk)∥2] − (η − Lη 2MD )∇f (xk)T Ek[Dkεuk ]+ 12 ηM D ∥εbk∥2 + η2L
+
+2 M 2 
+
+> D
+
+Ek[∥εuk ∥2],
+
+Proof. We denote ∆xk = xk+1 − xk, then the Taylor expansion yields 
+
+f (xk+1 ) ≤ f (xk) + ∇f (xk)T ∆xk + L
+
+2 ∥∆xk∥2 = f (xk) − η∇f (xk)T Dkb¯gk + η2L
+
+2 ∥Dkb¯gk∥2.
+
+13 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Letting εk = b¯gk − ∇ f (xk) and recalling ∥Dk∥ ≤ MD , we have 
+
+f (xk+1 ) ≤ f (xk) −
+
+
+
+η − η2L
+
+2
+
+
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 − (η − Lη 2MD )∇f (xk)T Dkεk + η2LM 2
+
+> D
+
+2 ∥εk∥2.
+
+We then follow standard analysis and decompose εk = εuk + εbk, where εuk = b¯gk − Ek[b¯gk] and εbk = Ek[b¯gk] − ∇ f (xk).Thus, 
+
+f (xk+1 ) ≤ f (xk) −
+
+
+
+η − η2L
+
+2
+
+
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 − (η − Lη 2MD )∇f (xk)T Dkεuk
+
+− (η − Lη 2MD )∇f (xk)T Dkεbk + η2L
+
+2 M 2 
+
+> D
+
+∥εuk + εbk∥2.
+
+By Cauchy-Schwaz inequality and Young’s inequality, we further have 
+
+−∇ f (xk)T Dkεbk ≤ 12 ∥D1/2 
+
+> k
+
+∇f (xk)∥2 + 12 ∥D1/2 
+
+> k
+
+εbk∥2,
+
+thus 
+
+f (xk+1 ) ≤ f (xk) −
+
+
+
+η − η2L
+
+2
+
+
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 − (η − Lη 2MD )∇f (xk)T Dkεuk
+
++ 12 (η − Lη 2MD )∥D1/2 
+
+> k
+
+∇f (xk)∥2 + 12 (η − Lη 2MD )∥D1/2 
+
+> k
+
+εbk∥2 + η2L
+
+2 M 2 
+
+> D
+
+∥εuk + εbk∥2.
+
+Now we take expectation conditional on Fk−1 and obtain 
+
+Ek[f (xk+1 )] ≤ f (xk) − 12 ηEk[∥D1/2 
+
+> k
+
+∇f (xk)∥2] − (η − Lη 2MD )∇f (xk)T Ek[Dkεuk ]+ 12 ηM D ∥εbk∥2 + η2L
+
+2 M 2 
+
+> D
+
+Ek[∥εuk ∥2],
+
+where we have implicitly assumed that MD > 1. We also used the fact that E[εuk ] = 0 and εbk is deterministic conditional on 
+
+xk.
+
+Lemma C.3. Under Assumptions 4.2, 4.3, and 5.1, when ∥∇ f (xk)∥ < τ / 2, without knowing more structural information of Dk, we can only ensure 
+
+Ek[f (xk+1 )] ≤ f (xk) − 14 ηm D ∥∇ f (xk)∥2 + 10 ηM D τ 2−pσp + 2 ηM D σ2pτ −2p+2 .
+
+Proof. Without more structural information of Dk, we can only derive the following upper-bound by applying the rescaled H¨ older’s inequality and obtain 
+
+−(η − Lη 2MD )∇f (xk)T Ek[Dkεuk ] ≤ 14 (η − Lη 2MD )Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥2] + ( η − Lη 2MD )MD Ek[∥εuk ∥2].
+
+Therefore, we have 
+
+Ek[f (xk+1 )] ≤ f (xk) − 14 ηEk[∥D1/2 
+
+> k
+
+∇f (xk)∥2] + ηM D Ek[∥εuk ∥2] + 12 ηM D ∥εbk∥2
+
+≤ f (xk) − 14 ηm D Ek[∥∇ f (xk)∥2] + ηM D Ek[∥εuk ∥2] + 12 ηM D ∥εbk∥2.
+
+When ∥∇ f (xk)∥ < τ / 2, we have Ek[∥εuk ∥2] ≤ 10 τ 2−pσp and ∥εbk∥2 ≤ 4σ2pτ −2p+2 . Plugging in them to the above inequality yields 
+
+Ek[f (xk+1 )] ≤ f (xk) − 14 ηm D ∥∇ f (xk)∥2 + 10 ηM D τ 2−pσp + 2 ηM D σ2pτ −2p+2 .
+
+We thus complete the proof. 14 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Next we consider the case when ∥∇ f (xk)∥ ≥ τ / 2.
+
+Lemma C.4. Under Assumptions 4.2, 4.3, and 5.1, when ∥∇ f (xk)∥ ≥ τ / 2, if we select η < mD 
+
+> 24 L
+
+and 
+
+τ = max 
+
+(
+
+2, 4 · 31/p · σ
+
+ MD
+
+mD
+
+ p+1 2p
+
+, 64 σ MD
+
+mD
+
+)
+
+,
+
+we have 
+
+Ek[f (xk+1 )] ≤ f (xk) − 112 ηm D ∥∇ f (xk)∥.
+
+Proof. By the Taylor expansion, we have 
+
+f (xk+1 ) ≤ f (xk) + ∇f (xk)T ∆xk + L
+
+2 ∥∆xk∥2 = f (xk) − η∇f (xk)T Dkb¯gk + η2L
+
+2 ∥Dkb¯gk∥2.
+
+We first consider the conditional expectation of the term ∇f (xk)T Dkb¯gk. We have 
+
+Ek
+
+∇f (xk)T Dkb¯gk
+
+ = Ek
+
+∇f (xk)T Dk ¯gk · 1(∥¯gk ∥≤ τ )
+
+ + τ · Ek
+
+
+
+∇f (xk)T Dk
+
+¯gk
+
+∥¯gk∥ · 1(∥¯gk ∥>τ )
+
+
+
+We focusing on the first term: 
+
+Ek
+
+∇f (xk)T Dk ¯gk · 1(∥¯gk ∥≤ τ )
+
+
+
+= Ek
+
+∇f (xk)T Dk(∇f (xk) + ¯ gk − ∇ f (xk)) · 1(∥¯gk ∥≤ τ )
+
+
+
+= Ek
+
+∇f (xk)T Dk∇f (xk) + ∇f (xk)T Dk(¯ gk − ∇ f (xk)) · 1(∥¯gk ∥≤ τ )
+
+
+
+= Ek
+
+∇f (xk)T Dk∇f (xk) + Ek
+
+∇f (xk)T Dk(¯ gk − ∇ f (xk)) · 1(∥¯gk ∥≤ τ )
+
+
+
+≥ Ek
+
+∇f (xk)T Dk∇f (xk) − Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥¯gk ∥≤ τ )
+
+i
+
+= Ek
+
+∇f (xk)T Dk∇f (xk)
+
+− Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥¯gk ∥≤ τ, ∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥≤ √mD·τ / 4)
+
+i
+
+− Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥¯gk ∥≤ τ, ∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥>√mD·τ / 4)
+
+i
+
+.
+
+We first consider the case when ∥¯gk∥ ≤ τ, ∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ ≤ √mD · τ / 4.Since ∥∇ f (xk)∥ > τ / 2, we have 
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 = ∇f (xk)T Dk∇f (xk) ≥ mD ∥∇ f (xk)∥2 ≥ τ 2mD
+
+4 ,
+
+which imply 
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥ ≥ τ √mD
+
+2 , ∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ ≤ √mD · τ / 4 ≤ 12 ∥D1/2 
+
+> k
+
+∇f (xk)∥.
+
+Therefore we find 
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ ≤ 12 ∥D1/2 
+
+> k
+
+∇f (xk)∥2.
+
+We further have 
+
+Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥¯gk ∥≤ τ, ∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥≤ √mD·τ / 4)
+
+i
+
+≤ 12 Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 · 1(∥¯gk ∥≤ τ, ∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥≤ √mD·τ / 4)
+
+i
+
+≤ 12 Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 · 1(∥¯gk ∥≤ τ )
+
+i
+
+15 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Plugging this into the above formula, we have 
+
+Ek
+
+∇f (xk)T Dk ¯gk · 1(∥¯gk ∥≤ τ )
+
+
+
+≥ 12 Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 · 1(∥¯gk ∥≤ τ )
+
+i
+
+− Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥>√mD·τ / 4)
+
+i
+
+≥ 12 Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2i
+
+· Ek
+
+1(∥¯gk ∥≤ τ )
+
+ − pMD ∥∇ f (xk)∥Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥>√mD·τ / 4)
+
+]= pg
+
+2 Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥2] − pMD ∥∇ f (xk)∥Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥>√mD·τ / 4)
+
+].
+
+Next, we bound Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥>√mD·τ / 4)
+
+].
+
+M p/ 2 
+
+> D
+
+σp ≥ M p/ 2 
+
+> D
+
+Ek[∥¯gk − ∇ f (xk)∥p] ≥ Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥p]= Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · ∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥p−1]
+
+≥ Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · ∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥p−1 · 1(∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥>√mD·τ / 4)
+
+]
+
+≥ Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 
+
+√mD · τ
+
+4
+
+p−1
+
+· 1(∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥>√mD·τ / 4)
+
+].
+
+Rearranging the terms yields 
+
+Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2     
+
+> k(¯ gk−∇ f(xk)) ∥>√mD·τ / 4)
+
+] ≤ M p/ 2 
+
+> D
+
+σp
+
+ √mD · τ
+
+> 4
+
+p−1 .
+
+Thus 
+
+Ek[∇f (xk)T Dk ¯gk · 1(∥¯gk ∥≤ τ )] ≥ pg
+
+2 Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥2] − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ √mD · τ
+
+> 4
+
+p−1 .
+
+Next, we examine τ · Ek
+
+h
+
+∇f (xk)T Dk ¯gk  
+
+> ∥¯gk∥
+
+· 1(∥¯gk ∥>τ )
+
+i
+
+.We first consider the case ∥D1/2 
+
+> k
+
+∇f (xk)∥ ≥ 2∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥, where we have 
+
+∇f (xk)T Dk ¯gk = ∇f (xk)T Dk∇f (xk) + ∇f (xk)T Dk(¯ gk − ∇ f (xk)) 
+
+≥ ∇ f (xk)T Dk∇f (xk) − ∥ D1/2 
+
+> k
+
+∇f (xk)∥∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥≥ ∇ f (xk)T Dk∇f (xk) − 12 ∥D1/2 
+
+> k
+
+∇f (xk)∥2
+
+= 12 ∥D1/2 
+
+> k
+
+∇f (xk)∥2.
+
+In addition, 
+
+√mD ∥∇ f (xk) + ¯ gk − ∇ f (xk)∥ ≤ ∥ D1/2 
+
+> k
+
+(∇f (xk) + ¯ gk − ∇ f (xk)) ∥≤ ∥ D1/2 
+
+> k
+
+∇f (xk)∥ + ∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥≤ 32 ∥D1/2 
+
+> k
+
+∇f (xk)∥.
+
+Rearranging the terms yields 
+
+∥∇ f (xk) + ¯ gk − ∇ f (xk)∥ ≤ 32√mD
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥.
+
+16 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Therefore, we have 
+
+∇f (xk)T Dk
+
+¯gk
+
+∥¯gk∥ = ∇f (xk)T Dk(∇f (xk) + ¯ gk − ∇ f (xk)) 
+
+∥∇ f (xk) + ¯ gk − ∇ f (xk)∥≥√mD
+
+3 ∥D1/2 
+
+> k
+
+∇f (xk)∥.
+
+When ∥D1/2 
+
+> k
+
+∇f (xk)∥ < 2∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥, we have 
+
+∇f (xk)T Dk
+
+¯gk
+
+∥¯gk∥ ≥ −∥ D1/2 
+
+> k
+
+∇f (xk)∥ ∥D1/2 
+
+> k
+
+¯gk∥∥¯gk∥≥ − pMD ∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+=
+
+√mD
+
+3 ∥D1/2 
+
+> k
+
+∇f (xk)∥ − 
+
+ √mD
+
+3 + pMD
+
+
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥≥√mD
+
+3 ∥D1/2 
+
+> k
+
+∇f (xk)∥ − 2
+
+ √mD
+
+3 + pMD
+
+
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥.
+
+Combining the above formulas, we have 
+
+τ · Ek
+
+
+
+∇f (xk)T Dk
+
+¯gk
+
+∥¯gk∥ · 1(∥¯gk ∥>τ )
+
+
+
+≥ τ · Ek
+
+ √mD
+
+3 ∥D1/2 
+
+> k
+
+∇f (xk)∥ − 2
+
+ √mD
+
+3 + pMD
+
+
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥
+
+
+
+· 1(∥¯gk ∥>τ )
+
+
+
+= τ
+
+√mD
+
+3 · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥ · 1(∥¯gk ∥>τ )
+
+i
+
+− 2
+
+ √mD
+
+3 + pMD
+
+
+
+τ · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥¯gk ∥>τ )
+
+i
+
+≥ τ
+
+√mD
+
+3 · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+· Ek
+
+1(∥¯gk ∥>τ )
+
+
+
+− 2τ
+
+ √mD
+
+3 + pMD
+
+
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥¯gk ∥>τ )
+
+i
+
+≥ τ (1 − pg )
+
+√mD
+
+3 · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ √mD
+
+3 + pMD
+
+
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥
+
+i
+
+≥ τ (1 − pg )
+
+√mD
+
+3 · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ √mD
+
+3 + pMD
+
+ pMD · σ. 
+
+Combining the above derivations, we have 
+
+Ek[∇f (xk)T Dkb¯gk] = Ek[∇f (xk)T Dk ¯gk · 1(∥¯gk ∥≤ τ )] + τ · Ek
+
+
+
+∇f (xk)T Dk
+
+¯gk
+
+∥¯gk∥ · 1(∥¯gk ∥>τ )
+
+
+
+≥ pg
+
+2 Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥2] − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ √mD · τ
+
+> 4
+
+p−1
+
++ τ (1 − pg )
+
+√mD
+
+3 · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ √mD
+
+3 + pMD
+
+ pMD · σ. 
+
+Note that since ∥D1/2 
+
+> k
+
+∇f (xk)∥ ≥ √mD ∥∇ f (xk)∥, we have 
+
+Ek[∇f (xk)T Dkb¯gk] ≥ pg
+
+2
+
+√mD Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥∥∇ f (xk)∥] − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ √mD · τ
+
+> 4
+
+p−1
+
++ τ (1 − pg )
+
+√mD
+
+4 · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ √mD
+
+3 + pMD
+
+ pMD · σ. 
+
+17 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Since ∥∇ f (xk)∥ ≥ τ / 2, we further have 
+
+Ek[∇f (xk)T Dkb¯gk] ≥ pg
+
+4
+
+√mD τ · Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥] − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ √mD · τ
+
+> 4
+
+p−1
+
++ τ (1 − pg )
+
+√mD
+
+4 · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ √mD
+
+3 + pMD
+
+ pMD · σ
+
+= τ
+
+√mD
+
+4 · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ √mD · τ
+
+> 4
+
+p−1 − 2τ
+
+ √mD
+
+3 + pMD
+
+ pMD · σ
+
+≥ τ mD
+
+4 · ∥∇ f (xk)∥ − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ √mD · τ
+
+> 4
+
+p−1 − 2τ
+
+ √mD
+
+3 + pMD
+
+ pMD · σ. 
+
+Since we set 
+
+τ ≥ max 
+
+(
+
+2, 4 · 31/p · σ
+
+ MD
+
+mD
+
+ p+1 2p
+
+, 64 σ MD
+
+mD
+
+)
+
+,
+
+we further have 
+
+M p/ 2+1  
+
+> D
+
+σp
+
+ √mD · τ
+
+> 4
+
+p−1 ≤ τ m D
+
+12 , 2τ
+
+ √mD
+
+3 + pMD
+
+ pMD · σ ≤ τ 2
+
+24 mD .
+
+These imply 
+
+Ek[∇f (xk)T Dkb¯gk] ≥ τ m D
+
+4 · ∥∇ f (xk)∥ − τ m D
+
+12 ∥∇ f (xk)∥ − τ 2
+
+24 mD
+
+≥ τ m D
+
+4 · ∥∇ f (xk)∥ − τ m D
+
+6 ∥∇ f (xk)∥
+
+= τ m D
+
+12 ∥∇ f (xk)∥.
+
+Therefore, 
+
+Ek[f (xk+1 )] ≤ f (xk) − ηEk[∇f (xk)T Dkb¯gk] + η2L
+
+2 Ek[∥Dkb¯gk∥2]
+
+≤ − η τ m D
+
+12 ∥∇ f (xk)∥ + η2L
+
+2 τ 2
+
+≤ − η τ m D
+
+12 ∥∇ f (xk)∥ + η2Lτ ∥∇ f (xk)∥≤ − η τ m D
+
+24 ∥∇ f (xk)∥≤ − η mD
+
+12 ∥∇ f (xk)∥.
+
+We thus complete the proof. 
+
+C.2. Preconditioning-Then-Clipping Lemma C.5. When ∥∇ f (xk)∥ < 12MD τ , we have ∥εbk∥ ≤ Υ1σpτ 1−p and Ek[∥εuk ∥2] ≤ Υ2τ 2−pσp. where Υ1 = M pD 
+
+> mD21−p
+
+and Υ2 = 9M pD
+
+> m2
+> D
+
++
+
+ 32mD
+
+2−p
+
+.
+
+18 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Proof. By the definition of εbk, we have 
+
+∥εbk∥ = ∥E[b¯gk − ¯gk]∥
+
+= ∥E[( b¯gk − ¯gk)1(∥Dk ¯gk ∥≥ τ )]∥ + ∥E[( b¯gk − ¯gk)1(∥Dk ¯gk ∥<τ )]∥
+
+= E
+
+ τ
+
+∥Dk ¯gk∥ ¯gk − ¯gk
+
+
+
+1(∥Dk ¯gk ∥≥ τ )
+
+
+
+≤ E
+
+ τ
+
+∥Dk ¯gk∥ ¯gk − ¯gk 1(∥Dk ¯gk ∥≥ τ )
+
+
+
+= E
+
+
+
+∥¯gk∥
+
+
+
+1 − τ
+
+∥Dk ¯gk∥
+
+
+
+1(∥Dk ¯gk ∥≥ τ )
+
+
+
+.
+
+Since ∥¯gk∥ ≤ ∥ Dk ¯gk∥/m D , we have 
+
+∥εbk∥ ≤ E
+
+ ∥Dk ¯gk∥
+
+mD
+
+
+
+1 − τ
+
+∥Dk ¯gk∥
+
+
+
+1(∥Dk ¯gk ∥≥ τ )
+
+
+
+= E
+
+ ∥Dk ¯gk∥
+
+mD
+
+− τmD
+
+
+
+1(∥Dk ¯gk ∥≥ τ )
+
+
+
+.
+
+Note that ∥Dk ¯gk∥ ≤ ∥ Dk(¯ gk − ∇ f (xk)) ∥ + ∥Dk∇f (xk)∥ ≤ ∥ Dk(¯ gk − ∇ f (xk)) ∥ + τ , we have 
+
+∥εbk∥ ≤ E
+
+ ∥Dk ¯gk∥
+
+mD
+
+− τmD
+
+
+
+1(∥Dk ¯gk ∥≥ τ )
+
+
+
+≤ E
+
+ ∥Dk(¯ gk − ∇ f (xk)) ∥ + τmD
+
+− τmD
+
+
+
+1(∥Dk ¯gk ∥≥ τ )
+
+
+
+= E
+
+ ∥Dk(¯ gk − ∇ f (xk)) ∥
+
+mD
+
+1(∥Dk ¯gk ∥≥ τ )
+
+
+
+.
+
+Note that ∥Dk ¯gk∥ ≥ τ implies ∥Dk(¯ gk − ∇ f (xk)) ∥ ≥ τ / 2, we have 
+
+∥εbk∥ ≤ E
+
+ ∥Dk(¯ gk − ∇ f (xk)) ∥
+
+mD
+
+1(∥Dk (¯ gk −∇ f (xk )) ∥≥ τ / 2) 
+
+
+
+= E
+
+ ∥Dk(¯ gk − ∇ f (xk)) ∥p
+
+mD
+
+∥Dk(¯ gk − ∇ f (xk)) ∥1−p1(∥Dk (¯ gk −∇ f (xk )) ∥≥ τ / 2) 
+
+
+
+≤ E
+
+ M pD ∥¯gk − ∇ f (xk)∥p
+
+mD
+
+(τ / 2) 1−p
+
+
+
+≤ M pD
+
+mD 21−p σpτ 1−p.
+
+Now we turn to Ek[∥εuk ∥2].
+
+Ek[∥εuk ∥2] = Ek[∥b¯gk − Ek[b¯gk]∥2]
+
+≤ Ek[∥b¯gk − ∇ f (xk)∥2]= Ek[∥b¯gk − ∇ f (xk)∥2 · 1(∥Dk ¯gk ∥>τ )] + Ek[∥b¯gk − ∇ f (xk)∥2 · 1(∥Dk ¯gk ∥≤ τ )]= Ek
+
+"
+
+τ
+
+∥Dk ¯gk∥ ¯gk − ∇ f (xk)
+
+> 2
+
+· 1(∥Dk ¯gk ∥>τ )
+
+#
+
++ Ek[∥¯gk − ∇ f (xk)∥2 · 1(∥Dk ¯gk ∥≤ τ )].
+
+We note that 
+
+τ
+
+∥Dk ¯gk∥ ¯gk − ∇ f (xk) ≤ ∥τ ¯gk∥∥Dk ¯gk∥ + ∥∇ f (xk)∥ ≤ τ ∥Dk ¯gk∥∥Dk ¯gk∥mD
+
++ τ
+
+2MD
+
+= τmD
+
++ τ
+
+2MD
+
+≤ 3τ
+
+2mD
+
+,
+
+19 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+and 
+
+∥¯gk − ∇ f (xk)∥ ≤ ∥ ¯gk∥ + ∥∇ f (xk)∥ ≤ ∥Dk ¯gk∥
+
+mD
+
++ ∥∇ f (xk)∥ ≤ τmD
+
++ τ
+
+2MD
+
+≤ 3τ
+
+2mD
+
+.
+
+Therefore, we have 
+
+Ek[∥εuk ∥2] ≤ Ek
+
+" 3τ
+
+2mD
+
+2
+
+· 1(∥Dk ¯gk ∥>τ )
+
+#
+
++ Ek
+
+" 3τ
+
+2mD
+
+2−p
+
+∥¯gk − ∇ f (xk)∥p · 1(∥Dk ¯gk ∥≤ τ )
+
+#
+
+≤ Ek
+
+" 3τ
+
+2mD
+
+2
+
+· 1(∥Dk ¯gk ∥>τ )
+
+#
+
++ Ek
+
+" 3τ
+
+2mD
+
+2−p
+
+∥¯gk − ∇ f (xk)∥p
+
+#
+
+=
+
+ 3τ
+
+2mD
+
+2
+
+· Ek[1(∥Dk ¯gk ∥>τ )] + 
+
+ 3τ
+
+2mD
+
+2−p
+
+Ek[∥¯gk − ∇ f (xk)∥p].
+
+Since ∥Dk(¯ gk − ∇ f (xk)∥ ≥ ∥ Dk ¯gk∥ − ∥ Dk∇f (xk)∥ ≥ ∥ Dk ¯gk∥ − ∥ Dk∥ τ 
+
+> 2MD
+
+≥ ∥ Dk ¯gk∥ − τ 
+
+> 2
+
+≥ τ 
+
+> 2
+
+, we have 
+
+Ek[1(∥Dk ¯gk ∥>τ )] = Pk[∥Dk ¯gk∥ > τ ] ≤ Pk[∥Dk(¯ gk − ∇ f (xk)∥ > τ / 2] ≤ Ek[∥Dk(¯ gk − ∇ f (xk)∥p](τ / 2) p ≤ 2pM pD σp
+
+τ p
+
+Therefore, we have 
+
+Ek[∥εuk ∥2] ≤
+
+ 3τ
+
+2mD
+
+2 2pM pD σp
+
+τ p +
+
+ 3τ
+
+2mD
+
+2−p
+
+σp =
+
+"
+
+9M pD
+
+m2
+
+> D
+
++
+
+ 32mD
+
+2−p#
+
+τ 2−pσp.
+
+We therefore complete the proof. 
+
+Lemma C.6. Under Assumptions 4.2, 4.3, and 5.1, when ∥∇ f (xk)∥ < τ 
+
+> 2MD
+
+, then we have 
+
+Ek[f (xk+1 )] ≤ f (xk) − 12 ηEk[∥D1/2 
+
+> k
+
+∇f (xk)∥2] − (η − Lη 2MD )∇f (xk)T Ek[Dkεuk ]+ 12 ηM D ∥εbk∥2 + η2L
+
+2 M 2 
+
+> D
+
+Ek[∥εuk ∥2],
+
+Proof. We denote ∆xk = xk+1 − xk, then the Taylor expansion yields 
+
+f (xk+1 ) ≤ f (xk) + ∇f (xk)T ∆xk + L
+
+2 ∥∆xk∥2 = f (xk) − η∇f (xk)T Dkb¯gk + η2L
+
+2 ∥Dkb¯gk∥2.
+
+Letting εk = b¯gk − ∇ f (xk) and recalling ∥Dk∥ ≤ MD , we have 
+
+f (xk+1 ) ≤ f (xk) −
+
+
+
+η − η2L
+
+2
+
+
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 − (η − Lη 2MD )∇f (xk)T Dkεk + η2LM 2
+
+> D
+
+2 ∥εk∥2.
+
+We then follow standard analysis and decompose εk = εuk + εbk, where εuk = b¯gk − Ek[b¯gk] and εbk = Ek[b¯gk] − ∇ f (xk), then 
+
+f (xk+1 ) ≤ f (xk) −
+
+
+
+η − η2L
+
+2
+
+
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 − (η − Lη 2MD )∇f (xk)T Dkεuk
+
+− (η − Lη 2MD )∇f (xk)T Dkεbk + η2L
+
+2 M 2 
+
+> D
+
+∥εuk + εbk∥2.
+
+By Cauchy-Schwaz inequality and Young’s inequality, we further have 
+
+−∇ f (xk)T Dkεbk ≤ 12 ∥D1/2 
+
+> k
+
+∇f (xk)∥2 + 12 ∥D1/2 
+
+> k
+
+εbk∥2,
+
+20 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+thus 
+
+f (xk+1 ) ≤ f (xk) −
+
+
+
+η − η2L
+
+2
+
+
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥2 − (η − Lη 2MD )∇f (xk)T Dkεuk
+
++ 12 (η − Lη 2MD )∥D1/2 
+
+> k
+
+∇f (xk)∥2 + 12 (η − Lη 2MD )∥D1/2 
+
+> k
+
+εbk∥2 + η2L
+
+2 M 2 
+
+> D
+
+∥εuk + εbk∥2.
+
+Now we take expectation conditional on xk and obtain 
+
+Ek[f (xk+1 )] ≤ f (xk) − 12 ηEk[∥D1/2 
+
+> k
+
+∇f (xk)∥2] − (η − Lη 2MD )∇f (xk)T Ek[Dkεuk ]+ 12 ηM D ∥εbk∥2 + η2L
+
+2 M 2 
+
+> D
+
+Ek[∥εuk ∥2],
+
+where we have used the relation that MD > 1 and E[εuk ] = 0 and εbk is deterministic conditional on xk.
+
+Lemma C.7. Under Assumptions 4.2, 4.3, and 5.1, when ∥∇ f (xk)∥ < τ / (2 MD ), without knowing more structural information of Dk, we can only ensure 
+
+Ek[f (xk+1 )] ≤ f (xk) − 14 ηm D ∥∇ f (xk)∥2 + ηM D Υ21σ2pτ −2p+2 + ηM D Υ2τ 2−pσp.
+
+Proof. Without explicit construction of Dk, we can only upper-bound this error term. We apply H ¨older’s inequality and obtain 
+
+−(η − Lη 2MD )∇f (xk)T Ek[Dkεuk ] ≤ 14 (η − Lη 2MD )Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥2] + ( η − Lη 2MD )MD Ek[∥εuk ∥2].
+
+Therefore, we have 
+
+Ek[f (xk+1 )] ≤ f (xk) − 14 ηEk[∥D1/2 
+
+> k
+
+∇f (xk)∥2] + ηM D Ek[∥εuk ∥2] + 12 ηM D ∥εbk∥2
+
+≤ f (xk) − 14 ηm D Ek[∥∇ f (xk)∥2] + ηM D Ek[∥εuk ∥2] + 12 ηM D ∥εbk∥2
+
+When ∥∇ f (xk)∥ < τ 
+
+> 2MD
+
+, we have ∥εbk∥2 ≤ Υ21σ2pτ −2p+2 and Ek[∥εuk ∥2] ≤ Υ2τ 2−pσp. Plugging in them to the above inequality yields 
+
+Ek[f (xk+1 )] ≤ f (xk) − 14 ηm D ∥∇ f (xk)∥2 + ηM D Υ21σ2pτ −2p+2 + ηM D Υ2τ 2−pσp.
+
+We thus complete the proof. Next we consider the case when ∥∇ f (xk)∥ ≥ 12MD τ .
+
+Lemma C.8. Under Assumptions 4.2, 4.3, and 5.1, when ∥∇ f (xk)∥ ≥ 12MD τ , if we set η < mD 
+
+> 24 LM 2
+> D
+
+and 
+
+τ = max 
+
+2, 4 · 31/p · σ
+
+ M 1+ 32p
+
+> D
+
+m
+
+> p+1 2p
+> D
+
+ , 64 σ M 52
+
+> D
+
+m 32
+
+> D
+
+ ,
+
+we have 
+
+Ek[f (xk+1 )] ≤ f (xk) − ηm D
+
+12 MD
+
+∥∇ f (xk)∥.
+
+21 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Proof. By the Taylor expansion, we have 
+
+f (xk+1 ) ≤ f (xk) + ∇f (xk)T ∆xk + L
+
+2 ∥∆xk∥2 = f (xk) − η∇f (xk)T Dkb¯gk + η2L
+
+2 ∥Dkb¯gk∥2.
+
+We first consider the conditional expectation of the term ∇f (xk)T Dkb¯gk. We have 
+
+Ek[∇f (xk)T Dkb¯gk] = Ek[∇f (xk)T Dk ¯gk · 1(∥Dk ¯gk ∥≤ τ )] + τ · Ek
+
+
+
+∇f (xk)T Dk
+
+¯gk
+
+∥Dk ¯gk∥ · 1(∥Dk ¯gk ∥>τ )
+
+
+
+We focusing on the first term: 
+
+Ek[∇f (xk)T Dk ¯gk · 1(∥Dk ¯gk ∥≤ τ )]= Ek[∇f (xk)T Dk(∇f (xk) + ¯ gk − ∇ f (xk)) · 1(∥Dk ¯gk ∥≤ τ )]= Ek[∇f (xk)T Dk∇f (xk) + ∇f (xk)T Dk(¯ gk − ∇ f (xk)) · 1(∥Dk ¯gk ∥≤ τ )]= Ek[∇f (xk)T Dk∇f (xk) · 1(∥Dk ¯gk ∥≤ τ )] + Ek[∇f (xk)T Dk(¯ gk − ∇ f (xk)) · 1(∥Dk ¯gk ∥≤ τ )]
+
+≥ Ek[∇f (xk)T Dk∇f (xk) · 1(∥Dk ¯gk ∥≤ τ )] − Ek[∥D1/2
+
+k ∇f (xk)∥∥ D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ · 1(∥Dk ¯gk ∥≤ τ )]= Ek[∇f (xk)T Dk∇f (xk) · 1(∥Dk ¯gk ∥≤ τ )]
+
+− Ek[∥D1/2
+
+k ∇f (xk)∥∥ D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ · 1(∥Dk ¯gk ∥≤ τ, ∥D1/2 
+
+> k
+
+(¯ gk −∇ f (xk )) ∥≤ τ √mD
+
+> 4
+
+√MD
+
+)]
+
+− Ek[∥D1/2
+
+k ∇f (xk)∥∥ D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ · 1(∥Dk ¯gk ∥≤ τ, ∥D1/2 
+
+> k
+
+(¯ gk −∇ f (xk )) ∥> τ √mD
+
+> 4
+
+√MD
+
+)]
+
+We first consider the case when ∥Dk ¯gk∥ ≤ τ, ∥D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ ≤ τ √mD
+
+4√MD
+
+.Since ∥∇ f (xk)∥ > 12MD τ , we have 
+
+∥D1/2
+
+k ∇f (xk)∥2 = ∇f (xk)T Dk∇f (xk) ≥ mD ∥∇ f (xk)∥2 ≥ τ 2mD
+
+4MD
+
+,
+
+which imply 
+
+∥D1/2
+
+k ∇f (xk)∥ ≥ τ √mD
+
+2√MD
+
+, ∥D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ ≤ τ √mD
+
+4√MD
+
+≤ 12 ∥D1/2
+
+k ∇f (xk)∥.
+
+Therefore we have 
+
+∥D1/2
+
+k ∇f (xk)∥∥ D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ ≤ 12 ∥D1/2
+
+k ∇f (xk)∥2.
+
+Further, we have 
+
+Ek[∥D1/2
+
+k ∇f (xk)∥∥ D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ · 1(∥Dk ¯gk ∥≤ τ, ∥D1/2 
+
+> k
+
+(¯ gk −∇ f (xk )) ∥≤ τ √mD
+
+> 4
+
+√MD
+
+)]
+
+≤ 12 Ek[∥D1/2
+
+k ∇f (xk)∥2 · 1(∥Dk ¯gk ∥≤ τ, ∥D1/2 
+
+> k
+
+(¯ gk −∇ f (xk )) ∥≤ τ √mD
+
+> 4
+
+√MD
+
+)]
+
+≤ 12 Ek[∥D1/2
+
+k ∇f (xk)∥2 · 1(∥Dk ¯gk ∥≤ τ )]
+
+Plugging this into the above formula, we have 
+
+Ek[∇f (xk)T Dk ¯gk · 1(∥Dk ¯gk ∥≤ τ )]
+
+≥ 12 Ek[∥D1/2
+
+k ∇f (xk)∥2 · 1(∥Dk ¯gk ∥≤ τ )] − Ek[∥D1/2
+
+k ∇f (xk)∥∥ D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2 
+
+> k
+
+(¯ gk −∇ f (xk )) ∥> τ √mD
+
+> 4
+
+√MD
+
+)]
+
+≥ 12 Ek[∥D1/2
+
+k ∇f (xk)∥2] · Ek[1(∥Dk ¯gk ∥≤ τ )] − pMD ∥∇ f (xk)∥Ek[∥D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2 
+
+> k
+
+(¯ gk −∇ f (xk )) ∥> τ √mD
+
+> 4
+
+√MD
+
+)]= pg
+
+2 Ek[∥D1/2
+
+k ∇f (xk)∥2] − pMD ∥∇ f (xk)∥Ek[∥D1/2
+
+k (¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2 
+
+> k
+
+(¯ gk −∇ f (xk )) ∥> τ √mD
+
+> 4
+
+√MD
+
+)].
+
+22 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Now we bound Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2      
+
+> k(¯ gk−∇ f(xk)) ∥>τ√mD
+> 4√MD
+> )
+
+].
+
+M p/ 2 
+
+> D
+
+σp ≥ M p/ 2 
+
+> D
+
+Ek[∥¯gk − ∇ f (xk)∥p] ≥ Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥p]= Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · ∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥p−1]
+
+≥ Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · ∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥p−1 · 1(∥D1/2      
+
+> k(¯ gk−∇ f(xk)) ∥>τ√mD
+> 4√MD
+> )
+
+]
+
+≥ Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 
+
+ τ √mD
+
+4√MD
+
+p−1
+
+· 1(∥D1/2      
+
+> k(¯ gk−∇ f(xk)) ∥>τ√mD
+> 4√MD
+> )
+
+].
+
+Rearranging the terms yields 
+
+Ek[∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥D1/2      
+
+> k(¯ gk−∇ f(xk)) ∥>τ√mD
+> 4√MD
+> )
+
+] ≤ M p/ 2 
+
+> D
+
+σp
+
+ τ √mD
+
+> 4√MD
+
+p−1 .
+
+Thus, we have 
+
+Ek[∇f (xk)T Dk ¯gk · 1(∥Dk ¯gk ∥≤ τ )] ≥ pg
+
+2 Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥2] − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ τ √mD
+
+> 4√MD
+
+p−1 .
+
+Next, we examine τ · Ek
+
+h
+
+∇f (xk)T Dk ¯gk   
+
+> ∥Dk¯gk∥
+
+· 1(∥Dk ¯gk ∥>τ )
+
+i
+
+.We first consider the case ∥D1/2 
+
+> k
+
+∇f (xk)∥ ≥ 2∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥, where we have 
+
+∇f (xk)T Dk ¯gk = ∇f (xk)T Dk∇f (xk) + ∇f (xk)T Dk(¯ gk − ∇ f (xk)) 
+
+≥ ∇ f (xk)T Dk∇f (xk) − ∥ D1/2 
+
+> k
+
+∇f (xk)∥∥ D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥≥ ∇ f (xk)T Dk∇f (xk) − 12 ∥D1/2 
+
+> k
+
+∇f (xk)∥2
+
+= 12 ∥D1/2 
+
+> k
+
+∇f (xk)∥2.
+
+In addition, we have 
+
+∥D1/2 
+
+> k
+
+(∇f (xk) + ¯ gk − ∇ f (xk)) ∥ ≤ ∥ D1/2 
+
+> k
+
+∇f (xk)∥ + ∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥≤ 32 ∥D1/2 
+
+> k
+
+∇f (xk)∥.
+
+Combining them together, we have 
+
+∇f (xk)T Dk
+
+¯gk
+
+∥Dk ¯gk∥ = ∇f (xk)T Dk(∇f (xk) + ¯ gk − ∇ f (xk)) 
+
+∥Dk(∇f (xk) + ¯ gk − ∇ f (xk)) ∥≥ ∇f (xk)T Dk(∇f (xk) + ¯ gk − ∇ f (xk)) 
+
+√MD ∥D1/2 
+
+> k
+
+(∇f (xk) + ¯ gk − ∇ f (xk)) ∥≥ 13√MD
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥.
+
+23 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+When ∥D1/2 
+
+> k
+
+∇f (xk)∥ < 2∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥, we have 
+
+∇f (xk)T Dk
+
+¯gk
+
+∥Dk ¯gk∥ ≥ −∥ D1/2 
+
+> k
+
+∇f (xk)∥ ∥D1/2 
+
+> k
+
+¯gk∥∥Dk ¯gk∥ ≥ −∥ D1/2 
+
+> k
+
+∇f (xk)∥ ∥Dk ¯gk∥√mD ∥Dk ¯gk∥≥ − 1
+
+√mD
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+= 13√MD
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥ − 
+
+ 13√MD
+
++ 1
+
+√mD
+
+
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥≥ 13√MD
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥ − 2
+
+ 13√MD
+
++ 1
+
+√mD
+
+
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥.
+
+Combining the above formulas, we have 
+
+τ · Ek
+
+
+
+∇f (xk)T Dk
+
+¯gk
+
+∥Dk ¯gk∥ · 1(∥Dk ¯gk ∥>τ )
+
+
+
+≥ τ · Ek
+
+ 13√MD
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥ − 2
+
+ 13√MD
+
++ 1
+
+√mD
+
+
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥
+
+
+
+· 1(∥Dk ¯gk ∥>τ )
+
+
+
+= τ 13√MD
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥ · 1(∥Dk ¯gk ∥>τ )
+
+i
+
+− 2
+
+ 13√MD
+
++ 1
+
+√mD
+
+
+
+τ · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥Dk ¯gk ∥>τ )
+
+i
+
+≥ τ
+
+3√MD
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+· Ek
+
+1(∥Dk ¯gk ∥>τ )
+
+
+
+− 2
+
+ 13√MD
+
++ 1
+
+√mD
+
+
+
+τ · Ek
+
+h
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥ · 1(∥Dk ¯gk ∥>τ )
+
+i
+
+≥ τ (1 − pg )3√MD
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ 13√MD
+
++ 1
+
+√mD
+
+
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+(¯ gk − ∇ f (xk)) ∥
+
+i
+
+≥ τ (1 − pg )3√MD
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ 13√MD
+
++ 1
+
+√mD
+
+ pMD · σ. 
+
+Combining the above derivations, we have 
+
+Ek[∇f (xk)T Dkb¯gk] = Ek[∇f (xk)T Dk ¯gk · 1(∥Dk ¯gk ∥≤ τ )] + τ · Ek
+
+
+
+∇f (xk)T Dk
+
+¯gk
+
+∥Dk ¯gk∥ · 1(∥Dk ¯gk ∥>τ )
+
+
+
+≥ pg
+
+2 Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥2] − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ τ √mD
+
+> 4√MD
+
+p−1
+
++ τ (1 − pg )3√MD
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ 13√MD
+
++ 1
+
+√mD
+
+ pMD · σ. 
+
+Note that since ∥D1/2 
+
+> k
+
+∇f (xk)∥ ≥ √mD ∥∇ f (xk)∥, we have 
+
+Ek[∇f (xk)T Dkb¯gk] ≥ pg
+
+2
+
+√mD Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥∥∇ f (xk)∥] − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ τ √mD
+
+> 4√MD
+
+p−1
+
++ τ (1 − pg )3√MD
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ 13√MD
+
++ 1
+
+√mD
+
+ pMD · σ. 
+
+24 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Since ∥∇ f (xk)∥ ≥ τ 
+
+> 2MD
+
+, we further have 
+
+Ek[∇f (xk)T Dkb¯gk] ≥ pg
+
+4MD
+
+√mD τ · Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥] − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ τ √mD
+
+> 4√MD
+
+p−1
+
++ τ (1 − pg )3√MD
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ 13√MD
+
++ 1
+
+√mD
+
+ pMD · σ
+
+≥ pg
+
+4MD
+
+√mD τ · Ek[∥D1/2 
+
+> k
+
+∇f (xk)∥] − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ τ √mD
+
+> 4√MD
+
+p−1
+
++ τ (1 − pg )√mD
+
+4MD
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− 2τ
+
+ 13√MD
+
++ 1
+
+√mD
+
+ pMD · σ
+
+= τ
+
+√mD
+
+4MD
+
+· Ek
+
+h
+
+∥D1/2 
+
+> k
+
+∇f (xk)∥
+
+i
+
+− ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ τ √mD
+
+> 4√MD
+
+p−1 − 2τ
+
+ 13√MD
+
++ 1
+
+√mD
+
+ pMD · σ
+
+≥ τ mD
+
+4MD
+
+· ∥∇ f (xk)∥ − ∥∇ f (xk)∥ M p/ 2+1  
+
+> D
+
+σp
+
+ τ √mD
+
+> 4√MD
+
+p−1 − 2τ
+
+ 13√MD
+
++ 1
+
+√mD
+
+ pMD · σ. 
+
+Since we set 
+
+τ = max 
+
+2, 4 · 31/p · σ
+
+ M 1+ 32p
+
+> D
+
+m
+
+> p+1 2p
+> D
+
+ , 64 σ M 52
+
+> D
+
+m 32
+
+> D
+
+ ,
+
+we have 
+
+M p/ 2+1  
+
+> D
+
+σp
+
+ τ √mD
+
+> 4√MD
+
+p−1 ≤ τ m D
+
+12 MD
+
+, 2τ
+
+ 13√MD
+
++ 1
+
+√mD
+
+ pMD · σ ≤ τ 2mD
+
+24 M 2
+
+> D
+
+.
+
+Therefore, we have 
+
+Ek[∇f (xk)T Dkb¯gk] ≥ τ m D
+
+4MD
+
+· ∥∇ f (xk)∥ − τ m D
+
+12 MD
+
+∥∇ f (xk)∥ − τ 2mD
+
+24 M 2
+
+> D
+
+≥ τ m D
+
+4MD
+
+· ∥∇ f (xk)∥ − τ m D
+
+6MD
+
+∥∇ f (xk)∥
+
+= τ m D
+
+12 MD
+
+∥∇ f (xk)∥.
+
+Plugging the above result to the Taylor expansion, we obtain 
+
+Ek[f (xk+1 )] ≤ f (xk) − ηEk[∇f (xk)T Dkb¯gk] + η2L
+
+2 Ek[∥Dkb¯gk∥2]
+
+≤ − η τ m D
+
+12 MD
+
+∥∇ f (xk)∥ + η2L
+
+2 τ 2
+
+≤ − η τ m D
+
+12 MD
+
+∥∇ f (xk)∥ + η2Lτ M D ∥∇ f (xk)∥≤ − η τ m D
+
+24 MD
+
+∥∇ f (xk)∥≤ − η mD
+
+12 MD
+
+∥∇ f (xk)∥.
+
+We thus complete the proof. 
+
+C.3. Proof of Example 5.5 
+
+Since ∇f (xk) = C for some very small constant C > 0, and the gradient estimate only takes two discrete values, then when ¯gk > 0, we can infer that the noise is +σ, while when ¯gk < 0, we can infer that the noise is −σ. Moreover, it is easy to verify that Assumption 4.3 is satisfied. 25 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Since τ >> σ , thus the gradient estimate is not clipped, and thus 
+
+εuk = ¯ gk − Ek[¯ gk] = ±σ, Ek[∥εuk ∥2] = σ2.
+
+Let’s compute the expectation Ek[Dkϵuk ]:
+
+Ek[Dkϵuk ] = 0 .5 · (Dk|ϵ=σ · σ) + 0 .5 · (Dk|ϵ=−σ · (−σ)) = 0 .5 · (mD · σ) + 0 .5 · (MD · (−σ)) = 0 .5σ(mD − MD )= O(σ2).
+
+Recall that ∇f (xk) is a constant, we have 
+
+−(η − Lη 2MD )∇f (xk)T Ek[Dkϵuk ] = O(ησ 2) = O(ηEk[∥ϵuk ∥2]) .
+
+We complete the proof. 
+
+## D. Vector-valued Burkholder-type inequality 
+
+Lemma D.1 (Vector-valued Burkholder-type inequality) . Let Xk, k = 0 , 1, . . . , T − 1, be random variables with E[Xk |
+
+X0: k−1] = 0 and E[∥Xk∥p] < ∞ for any k ≥ 0 and some p ∈ (1 , 2] , then 
+
+E
+
+" T −1X
+
+> k=0
+
+Xk
+
+> p
+
+#
+
+≤ 22−pT −1X
+
+> k=0
+
+E[∥Xk∥p].
+
+The proof is a combination of the proof of the scalar-valued Burkholder-type inequality in (Fang et al., 2025) Lemma B.1 and the proof in (H¨ ubler et al., 2024a). We first revisit the Lemma B.1 in (Fang et al., 2025). We include the proof in Appendix D.2 for completeness. 
+
+Lemma D.2 (Scalar-valued Burkholder-type inequality) . Let Xk, k = 0 , 1, . . . , T − 1, be random variables with E[Xk |
+
+X0: k−1] = 0 and E[|Xk|p] < ∞ for any k ≥ 0 and some p ∈ (1 , 2] , then 
+
+E
+
+" T −1X
+
+> k=0
+
+Xk
+
+> p
+
+#
+
+≤ 22−pT −1X
+
+> k=0
+
+E[|Xk|p]. (7) 
+
+D.1. Proof of Lemma D.1 
+
+Proof. Following (Kornilov et al., 2024), we define g ∼ N (0, I ) and yj := gT Xj , where g is independent of Xj . We need to verify that yj defined this way satisfies the conditions in Lemma D.2. We define the sigma algebra H1 := σ(yj−1, . . . , y 1) and H2 := σ(Xj−1, . . . , X 1, g ). Since H1 ⊂ H 2, by the tower property, we have 
+
+E[gT Xj |H 1] = E[E[gT Xj |H 2]|H 1] = E[gT E[Xj |H 2]|H 1] = 0 ,
+
+where the last equality holds by independence of Xj and g, and the assumption that E[Xj | X1: j−1] = 0 .Next, we verify that E[|yj |p] < ∞. Note that gT a ∼ N (0 , ∥a∥2) for any vector a ∈ Rd, we have E[|yj |p|Xj ] = 
+
+E[|gT Xj |p|Xj ] = C(p)∥Xj ∥p, with C(p) = 2 p/ 2Γ( p+1 2 )/√π, where we used the p-th absolute moment of normal distribution applied to a random variable gT Xj given Xj . Taking full expectation, we get 
+
+E[|yj |p] = C(p)E[∥Xj ∥p] < ∞. (8) We have verified that the sequence yj satisfies the conditions in Lemma D.2. Using the p-th moment of normal distribution applied to gT PT −1 
+
+> k=0
+
+Xk given PT −1 
+
+> k=0
+
+Xk, we have 
+
+C(p)E
+
+" T −1X
+
+> k=0
+
+Xk
+
+> p
+
+#
+
+= E
+
+"
+
+E
+
+"
+
+gTT −1X
+
+> k=0
+
+Xk
+
+> p
+
+| 
+
+> T−1
+
+X
+
+> k=0
+
+Xk
+
+## 
+
+= E
+
+
+
+> n
+
+X
+
+> j=1
+
+yj
+
+> p
+
+ ≤ 22−pnX
+
+> j=1
+
+E[|yj |p],
+
+where in the last step we used (7). We then apply (8) and cancel C(p) and complete the proof. 26 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+D.2. Proof of Lemma D.2 
+
+Proof. To prove the result, we fist show the following inequality: 
+
+|a + b|p ≤ | a|p + p · sgn (a) · | a|p−1b + 2 2−p|b|p. (9) When a = 0 , the inequality holds trivially as 22−p ≥ 1 for p ∈ (1 , 2] . Moreover, when p = 2 , the inequality also holds trivially by the observation that sgn (a)|a| = a. In what follows, we consider a̸ = 0 and p ∈ (1 , 2) . We divide |a|p on both sides and get 
+
+1 + ba
+
+> p
+
+≤ 1 + p ba + 2 2−p ba
+
+> p
+
+, (10) where we use the observation that sgn (a)/|a| = 1 /a . Denoting x = b/a , it suffices to show that f (x) = 1 + px +22−p |x|p − | 1 + x|p ≥ 0. To this end, we consider three cases. Case A: b/a > 0, Case B: −1 < b/a ≤ 0, and Case C: 
+
+b/a ≤ − 1.
+
+• Case A: b/a > 0: We have f (x) = 1 + px + 2 2−pxp − (1 + x)p with f (0) = 0 , f ′(0) = 0 and 
+
+f ′′ (x) = p(p − 1) 
+
+" 2
+
+x
+
+2−p
+
+−
+
+ 11 + x
+
+2−p#
+
+.
+
+Since 1 + x > x/ 2 for all x > 0, when p < 2, we have 
+
+ 2
+
+x
+
+2−p
+
+>
+
+ 11 + x
+
+2−p
+
+=⇒ f ′′ (x) > 0.
+
+Thus, for all x > 0, we have f ′(x) > 0, which then implies f (x) > 0, and thus (9) holds. 
+
+• Case B: −1 < b/a ≤ 0: We substitute y = 1 + x so that 0 ≤ y ≤ 1. Then, 
+
+f (x) = f (y − 1) = 2 2−p(1 − y)p + p(y − 1) + 1 − yp ≥ (1 − y)p + p(y − 1) + 1 − yp := g(y).
+
+Then, we have g(1) = 0 , g′(0) = g′(1) = 0 , and 
+
+g′′ (y) = p(p − 1) 
+
+" 11 − y
+
+2−p
+
+−
+
+ 1
+
+y
+
+2−p#
+
+.
+
+Note that g′′ (y) has exactly one root at y = 1 /2. Moreover, g′′ (y) < 0 for y < 1/2 and g′′ (y) > 0 for y > 1/2, so g′(y)
+
+has a minimum at y = 12 . Since g′(0) = g′(1) = 0 , we conclude that g′(y) < 0 for all 0 < y < 1. As g(y) is monotonically decreasing on (0 , 1) and g(1) = 0 , we have g(y) ≥ 0 for all 0 ≤ y ≤ 1. Therefore, f (x) ≥ 0.
+
+• Case C: b/a ≤ − 1: We substitute z = −1 − x so that z ≥ 0. Then f (x) = f (−z − 1) =: h(z) and 
+
+h(z) = 2 2−p(1 + z)p − p(1 + z) + 1 − zp.
+
+Then, we have h(0) ≥ 0, h ′(1) = 0 , and 
+
+h′(z) = p(p − 1) 
+
+" 21 + z
+
+2−p
+
+−
+
+ 1
+
+z
+
+2−p#
+
+.
+
+Note that h′′ (z) = 0 only at z = 1 . Moreover, h′′ (z) < 0 for z < 1 and h′′ (z) > 0 for z > 1, so h′(z) has a minimum at 
+
+z = 1 . Since h′(1) = 0 , we know h′(z) ≥ 0 for all z ≥ 0, and hence h(z) ≥ 0 for all z ≥ 0. Combining the above three cases, we prove (9). Next, we prove (7) by induction. The inequality holds trivially for T = 1 , as 22−p ≥ 1 for p ∈ (1 , 2] . Suppose the inequality holds for T = n, we now consider T = n + 1 . Applying (9) with a = Pn−1 
+
+> k=0
+
+Xk and b = Xn, we have 
+
+> n
+
+X
+
+> k=0
+
+Xk
+
+> p
+
+≤
+
+> n−1
+
+X
+
+> k=0
+
+Xk
+
+> p
+
++ p · sgn (
+
+> n−1
+
+X
+
+> k=0
+
+Xk) ·
+
+> n−1
+
+X
+
+> k=0
+
+Xk
+
+> p−1
+
+· Xn + 2 2−p|Xn|p.
+
+27 Why is Normalization Preferred? A Worst-Case Complexity Theory for SPSGD under Heavy-Tailed Noise 
+
+Taking expectation on both sides, we have 
+
+E
+
+" nX
+
+> k=0
+
+Xk
+
+> p
+
+#
+
+≤ E
+
+" n−1X
+
+> k=0
+
+Xk
+
+> p
+
+#
+
++ pE
+
+sgn (
+
+> n−1
+
+X
+
+> k=0
+
+Xk)
+
+> n−1
+
+X
+
+> k=0
+
+Xk
+
+> p−1
+
+· Xn
+
+ + 2 2−pE [|Xn|p] .
+
+Using E[Xn | X0: n−1] = 0 , we get 
+
+E
+
+" nX
+
+> k=0
+
+Xk
+
+> p
+
+#
+
+≤ E
+
+" n−1X
+
+> k=0
+
+Xk
+
+> p
+
+#
+
++ 2 2−pE [|Xn|p] .
+
+We complete the proof by induction. Now we extend the above one to vector valued. 28

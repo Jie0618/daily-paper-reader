@@ -1,0 +1,798 @@
+Title: Data-driven Bi-level Optimization of Thermal Power Systems with embedded Artificial Neural Networks
+
+URL Source: https://arxiv.org/pdf/2602.13746v1
+
+Published Time: Tue, 17 Feb 2026 01:43:33 GMT
+
+Number of Pages: 32
+
+Markdown Content:
+# Data-driven Bi-level Optimization of Thermal Power Systems with embedded Artificial Neural Networks 
+
+## Talha Ansar 1, Muhammad Mujtaba Abbas 1, Ramit Debnath 2, Vivek Dua 3, and Waqar Muhammad Ashraf 2,3,4* 1Department of Mechanical Engineering, University of Engineering and Technology Lahore, New Campus, Kala Shah Kaku, 39020, Pakistan 
+
+> 2
+
+## Collective Intelligence & Design Group, University of Cambridge, Cambridge, UK 
+
+> 3
+
+## The Sargent Centre for Process Systems Engineering, Department of Chemical Engineering, University College London, Torrington Place, London, WC1E 7JE, UK 
+
+> 4
+
+## The Alan Turing Institute, British Library, 96 Euston Road, London, NW1 2DB, UK 
+
+> *
+
+## corresponding author: wma27@cam.ac.uk February 17, 2026 
+
+# Graphical Abstract 
+
+Abstract 
+
+Industrial thermal power systems have coupled performance variables with hierarchical order of importance, making their simultaneous optimization computationally challenging or infeasible. This barrier limits the integrated and computationally scaleable operation opti-mization of industrial thermal power systems. To address this issue for large-scale engineering systems, we present a fully machine learning-powered bi-level optimization framework for data-driven optimization of industrial thermal power systems. The objective functions of upper and lower levels are approximated by artificial neural network (ANN) models and the lower-level problem is analytically embedded through Karush–Kuhn–Tucker (KKT) optimality condi-tions. The reformulated single level optimization framework integrating ANN models and 
+
+1 
+
+> arXiv:2602.13746v1 [cs.LG] 14 Feb 2026 KKT constraints (ANN-KKT) is validated on benchmark problems and on real-world power generation operation of 660 MW coal power plant and 395 MW gas turbine system. The results reveal a comparable solutions obtained from the proposed ANN-KKT framework to the bi-level solutions of the benchmark problems. Marginal computational time requirement (0.22 to 0.88 s) to compute optimal solutions yields 583 MW (coal) and 402 MW (gas turbine) of power output at optimal turbine heat rate of 7337 kJ/kWh and 7542 kJ/kWh, respectively. In addition, the method expands to delineate a feasible and robust operating envelope that accounts for uncertainty in operating variables while maximizing thermal efficiency in various scenarios. These results demonstrate that ANN–KKT offers a scalable and computationally efficient route for hierarchical, data-driven optimization of industrial thermal power systems, achieving energy-efficient operations of large-scale engineering systems and contributing to industry 5.0.
+
+Keywords: Data-driven Bi-level Optimization, Robust Optimization, Gas Power Plant, Process Flexibility, Engineering 
+
+# 1 Introduction 
+
+The operation of thermal power systems including solar-powered power generation systems, waste to power systems, fossil-powered power plants seek to optimize the performance variables related to thermodynamic, economic, safety and environment aspects. Traditionally, multi-objective op-timization analysis is carried out for these competing objectives and a Pareto-optimal solution is identified which is not necessarily a single global optimum [1, 2]. Many of the performance vari-ables of thermal power systems have an hierarchical order of importance. For example, plant-level economic or production output objectives from a thermal power plant are decided first (upper-level objective) and the fuel consumption in the boiler (lower-level objective) is optimized based on the decision of upper-level objective. The natural hierarchical decision structure motivates to formulate bi-level optimization problem for thermal power systems [3], say maximize power generation (upper level objective) given that turbine heat rate is locally or globally minimized (lower level objective). However, solving the bi-level optimization problem with competing objectives, non-convexities and couplings among the decision variables at both levels requires large computational budget and the problem can be NP-hard or the feasible solution does not exist [4]. Traditionally, Karush-Kuhn Tucker (KKT) optimality conditions [5, 6] are used to reformulate the bi-level problem into a single level problem where the lower level problem is replaced by KKT constraints. The key limitation with KKT-based reformulation is to ensure the continuous nature of the inner problem [7]. In this regard, several alternative approaches are reported such as branch-and-bound inspired iterative methods [8–10], decomposition approaches [11], gradient methods [12, 13], genetic-inspired heuristics [14, 15], multi-parametric methods [16–18], and DOMINO-framework [19]. In the era of artificial intelligence (AI) and digitalization, the operation data of industrial thermal power systems is available, and machine learning (ML) models are routinely used to approximate the data-driven relationships between process variables and performance variables [20]. Artificial neural network (ANN) provides a continuous function approximated from the data and is integrated into the reformulated KKT-based problem (ANN-KKT) to handle the mapping of input-output variables in high dimensions and to compute gradients for the calculation of the optimal solution [21]. A key advantage of ANN-KKT reformulation is the reduced computational time required to estimate the optimal solution (local or global) [22] compared to the techniques mentioned earlier. This is important for the control of dynamic industrial operations where quick adjustment in the process set-points is needed for stability and safety of the engineering and thermal power processes. The sound mathematical conception of bi-level framework integrating the ANN model is im-plemented for solving problems of different nature. In addition to tuning the hyperparameters of the ML models [23], the bi-level framework was utilized to estimate the subsidy policy making at the upper level and the design of the energy system at the lower level for the hybrid renewable energy system [24]. The lower level problem (design of the energy system) was replaced by the ANN model to compute the optimal solution. In another study, the ANN model was used as a surrogate to represent the problem at the lower-level to develop a model predictive control strategy for bioreactors [25]. Similarly, ANN based surrogates for lower-level problems have been reported 2to accelerate computational performance to compute optimal solutions [26, 27]. Similarly, bi-level framework is implemented for solving problems by mathematical programming for system design [28, 29], planning & scheduling [30–32], and parameter estimation [33, 34] in chemical and energy domains. 
+
+## Research gap 
+
+A rich body of literature is maintained for solving bi-level nature of problems in various disciplines, the implementation of ANN-KKT framework for robust and data-driven optimization of industrial thermal power systems remains limited. Some research studies report the replacement of the lower-level problem with ANN surrogate; complete replacement of the objective functions with stand-alone ANN models in bi-level framework remains unexplored for data-driven optimization of industrial thermal power systems. This exploration as well as investigation are particularly important for scaling architectural framework of bi-level problem to solving engineering problems with hierarchical order of importance of performance variables in thermal power systems (e.g., maximizing power generation given that turbine heat rate is minimized). The computational performance of the ANN-KKT framework to compute optimal solution(s) for bi-level problem of industrial thermal power systems is worth investigating that will highlight the suitability of the framework to advance its adoption in industrial environments by effectively responding to industrial operation control dynamics. Another open research challenge in advancing ML in industrial operations is to establish ro-bust operating space of the process variables for the set value of target that hedges the process uncertainty and errors in the sensor-based measurements. The current body of literature lacks in solving the robust optimization problem for the identification of operating space through ANN-KKT framework. The integration of actual data of thermal power plants for the identification of operating space under various operating scenarios is rarely reported and is a gap in the literature. 
+
+## Contributions of this work 
+
+The key contributions of this work are as follows: 
+
+• We present ANN-KKT framework that incorporates ANN surrogates in the objective function at both levels of the bi-level problem. The lower-level problem is replaced by KKT-conditions, and the single-level problem is reformulated, 
+
+• The optimization solvers may have numerical instability for satisfying the KKT constraints. We propose to reformulate them with Fischer–Burmeister function and the qualification of constraints can be verified, 
+
+• The ANN-KKT framework is implemented to solve benchmark problems taken from literature as well as to power generation operation of industrial thermal power plants. Power production is maximized at the upper level while turbine heat rate is minimized at the lower-level for the 666 MW coal power plant and the 395 MW gas turbine system. Mahalanobis distance-based constraints are also embedded to estimate domain-consistent optimal solutions [35], 
+
+• The ANN-KKT framework is also implemented to determine the robust operating space to hedge against process uncertainty for maximizing thermal efficiency of the gas turbine system. The framework delivers sizeable operating space for the process variables against the target efficiency floor, 
+
+• The computational time consumed to compute the optimal solutions for the considered prob-lems is presented. The ANN-KKT framework requires reasonable computational time for computing the optimal solutions that can match with the industrial operation control dy-namics, and 
+
+• The proposed ANN-KKT framework emerges as a scaleable approach to solving bi-level problems for industrial thermal power systems and can advance AI adoption in industrial process control for smart operation management and contribute to industry 5.0 The rest of the paper is structured as follows. First, we describe the working of ANN and formulate a general-purpose bi-level problem which is reformulated with ANN-KKT framework. 3In the results section, we implement the ANN-KKT framework to solve benchmark problems and compare the results with the bi-level solutions. Later, ANN-KKT framework is scaled to maximize power generation from thermal power plants with the aim of minimum heat rate consumption. The framework is also scaled to robust-optimization problem to hedge the process uncertainty. Lastly, we describe the main findings of the paper in the conclusions section and highlight the limitations and future work. 
+
+# 2 Methods 
+
+In this research, we propose replacing the objective functions of bi-level problem with feed-forward ANN models. First, we define the architecture of the ANN model and optimize it to achieve good predictive accuracy for modeling tasks. Later, we formulate the bi-level optimization problem, embed the trained ANN model, and replace the lower-level problem with KKT constraints that convert the bi-level problem into a single level optimization problem (ANN-KKT). The ANN-KKT framework is implemented to solve case studies taken from the literature and power generation operation of a 660 MW coal power plant and a 395 MW capacity gas turbine system. More details about the ANN model development, reformulation of bi-level problem and specific case studies are provided in the following sub-sections. 
+
+## 2.1 Optimizing the training of ANN model 
+
+In this research a three-layer shallow and feed-forward ANN model is considered. The shallow neural network has smaller parametric space than deep neural network, which provides reasonable computational expense for computing the gradients (generally stable than those of deep neural network) for downstream optimization tasks. Although deep neural networks have their unique application space in object detection, natural language processing, generative AI etc., many of the chemical engineering and energy systems applications can be modeled with reasonable accuracy us-ing shallow neural networks [36–38] (as long as sufficient computational components are embedded in the architecture of model [39]). A three-layered, feed-forward ANN model consists of input, hidden, and output layers. The information from the input layer is passed to the hidden layer that has a number of computational components, formally called hidden layer neurons, to process the incoming information. The weight connections between the input-hidden layer contribute to information processing at the hidden layer through a series of operations, and the transformed signal from each hidden layer neuron is propagated forward to the output layer of the ANN model for further processing. The feed-forward information processing in the ANN model simulates a response ( ˆy) which is calculated as: 
+
+ˆy = f2
+
+X W2.f 1
+
+X W1.X T + b1
+
+
+
++ b2
+
+
+
+(1) here, W1 and W2 are the weight connections between input-hidden and hidden-output layers of ANN, respectively while b1, b2 are the bias observations and f1 and f2 are activation functions ap-plied on hidden and output layers of ANN, respectively. The model-predicted response is compared with the actual "ground truth", i.e., ( y) and error signal is constructed. The back-propagation of error throughout the layers of ANN tunes the weight connections between the processing layers or in general model parameters ( Θ) [40]. This is enabled through differentiating the loss function ( L)w.r.t Θ such that L is minimised and the optimal values of model parameters are computed. In this research, L consists of mean-squared error and L1 regularisation terms, and is written as: 
+
+L =
+
+PNi=1 (yi − ˆyi)2
+
+N + λ1.Θ (2) here, λ1 is a hyperparameter that controls the contribution of L1 regularisation to minimise the parametric values of Θ. The iterative process of forward and backward propagation of information improves the pattern recognition ability of ANN model, and the model maps the data-driven rela-tionships between the input-output variables as internal representation in the model architecture. In order to achieve good predictive accuracy of the ANN, a number of hyperparameters are optimized that include the learning rate, the number of neurons in the hidden layer, λ1 and λ2 as the weight decay parameter for the optimization solver. The Bayesian optimization technique is 4used for the optimization of hyperparameters from their assigned search space distribution. The Tree Parzen Estimator solver, which is available in the Hyperopt library in Python [41, 42], is used for hyperparameter optimization. Later, the optimized hyperparameter values are embedded in the ANN architecture to tune Θ. It is important to note here that Adaptive Moment Estimation (ADAM) solver [43] is used for tuning Θ since it has stable and efficient performance for training the ANN models. We have split the data into training, testing, and validation datasets on the data split ratio of 0.7, 0.15, and 0.15, respectively, for the model development for case studies. The predictive accuracy of the models is evaluated by the coefficient of determination (R 2) and the root-mean squared error (RMSE) [44, 45]. 
+
+R2 = 1 −
+
+PNi=1 (yi − ˆyi)2
+
+PNi=1 (yi − ¯yi)2 (3) 
+
+RM SE =
+
+s PNi=1 (yi − ¯yi)2
+
+N (4) R2 is taken as a proxy of predictive precision and varies from zero to one. However, RMSE is the mean error computed on the model-predicted responses for the given input data. Low RMSE represents the good match between the actual and model-predicted responses and, in turn, reflects the good predictive accuracy of the trained model and vise versa. Please see section A in the appendix to find more specific details about the training protocol for ANN model development. 
+
+## 2.2 Formulation of the bi-level optimization problem 
+
+The general formulation of bi-level optimization problem follows the leader-follower hieratical re-lationship where the upper level problem corresponds to the leader and the lower level problem is defined for the follower. The two problems are connected by decision variables (say x for the upper level and y for the lower level) incorporated into their objective functions and/or the corresponding constraints. The upper level decision variables x may overlap lower level decision variables y in feature space to establish the bi-level structure of the problem. The leader aims to minimize its constrained objective function F (x, y ) and takes a decision which is passed to the follower, which optimizes its own objective function f (x, y ) for the given decision of the leader and the associated constraints ( g(x, y ), h(x, y )) in the problem of the lower-level. minimize  
+
+> x∈X
+
+F (x, y ) (5) subject to H(x, y ) = 0 ,G(x, y ) ≤ 0,
+
+where y solves the lower-level problem: 
+
+y∗ = argmin 
+
+> y∈Y
+
+f (x, y ) (6) subject to h(x, y ) = 0 ,g(x, y ) ≤ 0,
+
+[x1, . . . , x m] ∈ Rm, [y1, . . . , y p] ∈ Rp.
+
+2.2.1 ANN-KKT framework for bi-level problem 
+
+A common strategy to solve bi-level problem is to reformulate it as single-level optimization problem where the lower-level problem is represented as KKT constraints for the upper level. Resultantly, the reformulated single-level optimization problem computes the local or global optimal solution for the lower-level problem depending upon its nature (convex or non-convex) and the optimization solver. In this paper, we have trained feed-forward ANN models with smooth activation functions that provide continuously differentiable expressions. These ANN model expressions replace the objective function at the two levels of bi-level problem. The objective functions are replaced with ANN models, both at upper ( FAN N (x, y )) and lower ( fAN N (x, y )) levels. The reformulated single-level with ANN-based objective functions and KKT conditions is written as: 5minimize  
+
+> x,y,μ,λ
+
+FAN N (x, y )
+
+subject to H(x, y ) = 0 , (7) 
+
+G(x, y ) ≤ 0, (8) Stationarity (Lagrangian Gradient): 
+
+∇y fAN N (x, y ) + μT ∇y g(x, y ) + λT ∇y h(x, y ) = 0 , (9) Primal Feasibility: 
+
+g(x, y ) ≤ 0, (10) 
+
+h(x, y ) = 0 , (11) Dual Feasibility: 
+
+μ ≥ 0, (12) Complementary Slackness: 
+
+μ.g (x, y ) = 0 , (13) 
+
+[x1, . . . , x m] ∈ Rm, [y1, . . . , y p] ∈ Rp. (14) The stationarity condition computes the Lagrangian function gradient and requires the lower-level problem to be strictly continuous. The qualification of KKT-based constraints written for lower-level problem only ensures local optimality of the solution computed for the bi-level problem. Equation 9 is the specific representation of the stationarity condition that is written for the ANN model-based bi-level problem of the lower level. The KKT conditions (9 - 14) are embedded with the upper level problem (8) for solving ANN-KKT based reformulated bi-level problem. 
+
+2.2.2 Reformulating complementarity conditions with Fischer-Burmeister Function for ANN-KKT framework 
+
+The optimization solvers may face numerical instability to compute optimal solution for non-convex optimization problems involving complementarity constraints. Fischer-Burmeister (FB) function as nonlinear complementary problem (NCP) is used for reformulating complementarity conditions only when the complementarity constraint violations are observed for ANN-KKT based reformulation of bi-level problem. The FB function is mathematically written as: 
+
+ΦF B (a, b ) = a + b − pa2 + b2, Φ : R2 → R (15) 
+
+ΦF B as NCP function has the property that ΦF B (a, b ) = 0 if and only if a ≥ 0, b ≥ 0, and 
+
+ab = 0 . Moreover, the function ΦF B has another property that ΦF B (a, b ) = 0 and a, b ≥ 0 is equivalent to 0 ≤ a ⊥ b ≤ 0 [46]. This property is used to formulate a constraint based on functions ΦF B to replace the complementarity slackness of the KKT conditions when solvers face numerical instability to arrive at an optimal solution for the optimization problems considered for case studies. However, ΦF B at a = b = 0 is not differentiable; its perturbed variant ( Φ∗ 
+
+> F B
+
+(a, b, ϵ ))satisfies ΦF B (a, b, ϵ ) = 0 if and only if a ≥ 0, b ≥ 0, ab = ϵ/ 2 for ϵ > 0 [47]. Φ∗ 
+
+> F B
+
+(a, b, ϵ ) is smooth with respect to a and b when ϵ > 0 and is written as: 
+
+Φ∗ 
+
+> F B
+
+(a, b, ϵ ) = pa2 + b2 + ϵ − a − b, Φ : R3 → R (16) Initially, KKT-transformed bi-level problems involving complementarity constraints are solved without reformulating the complementarity constraint through Φ∗ 
+
+> F B
+
+(a, b, ϵ ). In case of constraints violations for lower-level complementarity constraints (Equation 13), they are reformulated by 
+
+Φ∗ 
+
+> F B
+
+(a, b, ϵ ). In this case, primal feasibility and dual feasibility constraints are not embedded separately in ANN-KKT problem as complementarity constraint reformulated by Φ∗ 
+
+> F B
+
+(a, b, ϵ ) in-herently ensures compliance of primal and dual feasibility constraints. The Linear Independence 6Constraint Qualification (LICQ) is evaluated for the reformulated problem at solution by verifying the full rank of the Jacobian matrix of active constraints. If LICQ holds, it indicates that the gradients of the active constraints are linearly independent, which guarantees the uniqueness of the associated Lagrange multipliers and confirms that the solution satisfies the necessary KKT conditions for optimality [48]. The ANN-KKT problem with Φ∗ 
+
+> F B
+
+(a, b, ϵ ) based reformulation of complementarity constraint is given in the following: minimize  
+
+> x,y,μ,λ
+
+FAN N (x, y )
+
+subject to H(x, y ) = 0 , (17) 
+
+G(x, y ) ≤ 0, (18) Stationarity (Lagrangian Gradient): 
+
+∇y fAN N (x, y ) + μT ∇y g(x, y ) + λT ∇y h(x, y ) = 0 , (19) Complementary Slackness: 
+
+Φ∗ 
+
+> F B
+
+(μg , g (x, y ), ϵ ) = 
+
+q
+
+μ2 
+
+> g
+
++ ( g(x, y )) 2 + ϵ − μg − g(x, y ) = 0 , (20) 
+
+Φ∗ 
+
+> F B
+
+(μy , y, ϵ ) = 
+
+q
+
+μ2 
+
+> y
+
++ y2 + ϵ − μy − y = 0 , (21) 
+
+[x1, . . . , x m] ∈ Rm (22) As described above, μg and g(x, y ) complement each other and by enforcing Φ∗ 
+
+> F B
+
+(μg , g (x, y ), ϵ ) = 0, it is implied that μg , g (x, y ) ≥ 0 and μg · g(x, y ) = ϵ/ 2 for ϵ > 0. Consequently, reformulation is written such that g(x, y ) returns R+ which is consistent with the nature of the constraint and en-sures equivalence with Φ∗ 
+
+> F B
+
+(μg , g (x, y ), ϵ ). Similarly, the reformulated complementarity constraint on the bounds of the lower-level decision variables ( y) can be expressed by Equation 21, where y
+
+is scaled to R+.In this paper, the bi-level analysis is carried out on the following operating system specification: Intel ® CoreTM i7-8850H processor (6 cores, 12 threads, base frequency 2.6 GHz, turbo up to 4.3 GHz), 32 GB DDR4 memory (2 × 16 GB, 2667 MHz), a 512 GB NVMe Gen 4 solid-state drive, and an NVIDIA Quadro P1000 GPU with 4 GB GDDR5 VRAM. The operating system environment was Windows 10 Pro (64-bit). However, the versions of different libraries used in the development of ML models and optimization framework are as follows: pandas 2.2.3, torch 2.6.0+cpu, numpy 1.26.4, scikit-learn 1.6.1, hyperopt 0.2.7, pyomo 6.9.0 and python 3.9. 
+
+# 3 Results 
+
+We implement the ANN-KKT framework for solving case studies taken from the literature. More-over, we also analyze the maximum power generation from thermal power plants (660 MW coal power plant and 395 MW gas turbine system) with the ANN-KKT framework. The ability of ANN-KKT framework for robust optimization problem written for maximizing the thermal effi-ciency of gas turbine system under different scenarios is also investigated. The details of the results for the case studies are provided in the following. 
+
+## 3.1 Benchmark Examples 
+
+Three benchmark examples are adopted from the literature to capture distinct objective function landscapes across the upper and lower levels of the problem, specifically: convex & convex, convex & non-convex, and non-convex & non-convex cases. The mathematical formulations for these benchmarks are detailed in Section 3.1.1 – Section 3.1.3, with results discussed in Section 3.1.4. To develop the ANN approximation of these problems, synthetic datasets are generated for each problem instance. The input space is explored using a uniform sampling strategy U [min , max] to ensure adequate coverage of the decision variables. A total of 10,000 samples are generated for each problem and subsequently divided into a training set of 7,000 samples (70 %), a validation set of 71,500 samples (15 %) and an independent testing set of 1,500 samples (15 %) to rigorously evaluate the generalization performance of the models. The predictive performance of trained ANN models is provided in Appendix B (Table B.1). The benchmark problems as well as their ANN-KKT reformulations are solved by BARON and IPOPT solvers, which are made available from GAMS. 
+
+3.1.1 Convex & Convex (C & C) 
+
+The SC2 problem [49] represents a standard convex-convex bi-level optimization problem. The upper-level objective seeks to minimize the distance to the point (3 , 2) , while the lower-level mini-mizes a quadratic function of y subject to linear coupling constraints. minimize  
+
+> x∈X
+
+F (x, y ) = ( x − 3) 2 + ( y − 2) 2 (23) subject to 0 ≤ x ≤ 8,
+
+argmin 
+
+> y∈Y
+
+f (x, y ) = ( y − 5) 2 (24) subject to g1(x, y ) = −2x + y − 1 ≤ 0,g2(x, y ) = x − 2y ≤ 0,g3(x, y ) = x + 2 y − 14 ≤ 0,
+
+0 ≤ y ≤ 6,x ∈ R, y ∈ R.
+
+The problem is first solved using KKT conditions (Bi-level-KKT). Later, the problem is refor-mulated with the ANN-KKT framework and is written in the following: Objective functions: 
+
+min 
+
+> x,y, λ,μ
+
+ˆFANN (x, y )
+
+here ˆFANN (x, y ) ≈ (x − 3) 2 + ( y − 2) 2
+
+ˆfANN (x, y ) ≈ (y − 5) 2
+
+(25) Upper-Level Constraints: 
+
+x ∈ [0 , 8] (26) Primal Feasibility: 
+
+−2x + y − 1 ≤ 0 (27) 
+
+x − 2y ≤ 0 (28) 
+
+x + 2 y − 14 ≤ 0 (29) 
+
+y ∈ [0 , 6] (30) Stationarity Condition: 
+
+∇y ˆfANN (y) + λ1 − 2λ2 + 2 λ3 − μL + μU = 0 (31) where the gradient of the lower-level neural network surrogate is derived via symbolic differen-tiation [50]: 
+
+∇y ˆfANN (y) = 
+
+> H
+
+X
+
+> j=1
+
+W (2)  
+
+> j
+
+· σ′(W (1)  
+
+> j,y
+
+· y + b(1)  
+
+> j
+
+) · W (1)  
+
+> j,y
+
+(32) 
+
+W (1)  
+
+> j,y
+
+is the weight connection matrix from input to hidden layer having H number of neurons, while W (2)  
+
+> j
+
+is the weight connection matrix from hidden to output layer of ANN. σ′ is the derivative of activation function applied on the hidden layer of ANN. μL and μU are the corresponding multipliers of box constraint ([0,6]) which are split into two inequalities. Dual Feasibility: 
+
+λ1, λ 2, λ 3 ≥ 0 (33) 
+
+μL, μ U ≥ 0 (34) 8Complementarity Conditions: 
+
+λ1 · (−2x + y − 1) = 0 (35) 
+
+λ2 · (x − 2y) = 0 (36) 
+
+λ3 · (x + 2 y − 14) = 0 (37) 
+
+μL · − y = 0 (38) 
+
+μU · (y − 6) = 0 (39) The details about the computation of solution as well as the CPU time requirement are provided in section 3.1.4. 
+
+3.1.2 Convex & Non-convex (C & NC) 
+
+This problem is taken from [51], and features a convex upper-level objective while a non-convex lower-level objective function. The lower-level non-convexity arises from the indefinite quadratic term, −y2 + xy .upper-level problem: 
+
+min  
+
+> x
+
+(x − 1) 2 + y2
+
+subject to x ∈ [0 , 2] (40) lower-level problem: 
+
+min  
+
+> y
+
+− y2 + xy 
+
+subject to y ∈ [0 , 1] , (41) The ANN-KKT reformulation of the problem is mentioned in section B.3.1. The details about the computation of solution as well as the CPU time requirement are provided in section 3.1.4. 
+
+3.1.3 Non-convex & Non-convex (NC & NC) 
+
+The "Pathological Branching" problem (mb_1_1_16) [49] is a challenging test case where both upper and lower levels are non-convex. It includes a difficult constraint, ( y2(x − 0.5) ≤ 0), in the lower level that tests the ability of the solver to handle singularities and non-standard geometries. The problem is defined in the following: upper-level problem: 
+
+min  
+
+> x,y
+
+x2
+
+subject to 1 + x − 9x2 − y ≤ 0, (42) 
+
+− 1 ≤ x ≤ 1.
+
+lower-level problem: 
+
+min  
+
+> y
+
+y
+
+subject to y2(x − 0.5) ≤ 0, (43) 
+
+− 1 ≤ y ≤ 1.
+
+.The ANN-KKT reformulation of the problem is mentioned in section B.3.2. 93.1.4 Results of Benchmark Problems 
+
+Bi-level-KKT and ANN-KKT reformulations of the benchmark problems (C & C, C & NC, and NC & NC) are solved using the BARON solver. Figure 1 and Table 1 present the comparison of solutions obtained via the ANN-KKT framework and Bi-level-KKT against the bi-level solu-tions. For the three benchmark problems, the ANN-KKT approach successfully approximates the solutions with negligible relative absolute error in comparison to bi-level solutions (refer to Figure 1(d)). Although the ANN-KKT formulation incurs higher computational costs (CPU time ranges from 0.39 s to 1.27 s) compared to the Bi-level-KKT (0.09 s to 0.14 s) due to the added complexity of computing neural network gradients, it demonstrates reliability as a surrogate for computing the optimal solution for complex bi-level topologies. 
+
+> Figure 1: Visualizations of benchmark problems optimization landscape for problems of nature (a) C & C, (b) C & NC, and (c) NC & NC. The background gradient represents the upper-level objective function value, while the dashed lines denote the lower-level objective. Solid black lines define the feasible solutions. (d) CPU time requirement for solving the benchmark problems - red: Bi-level-KKT and blue: ANN-KKT. The approximation error of ANN-KKT framework is also mentioned.
+
+10 Table 1: Comparison of solutions and CPU times for solving different bi-level problems (Convex & Convex, Convex & Non-Convex, Non-Convex & Non-Convex). 
+
+Problem Type Method x y Objective (F) Time (s) 
+
+C & C Bi-level [49] 1.0 3.0 5.0 -Bi-level-KKT 1.0 3.0 5.0 0.14 ANN-KKT 0.981 2.962 4.976 1.27 C & NC Bi-level [51] 1.0 0.0 0.0 -Bi-level-KKT 1.0 0.0 0.0 0.12 ANN-KKT 1.014 0.0 0.0034 1.27 NC & NC Bi-level [49] -0.4191 -1.0 0.1756 -Bi-level-KKT -0.4191 -1.0 0.1756 0.09 ANN-KKT -0.4191 -1.0 0.1750 0.39 Furthermore, the three benchmark problems are also solved using IPOPT to investigate the ability of the solver for computing the optimal solutions. The solution convergence and primal infeasibility profiles of the solver for ANN-KKT and Bi-level-KKT reformulations are provided in Appendix B.4 (Figure B.4 and Table B.2), demonstrate that IPOPT converges to the optimal solutions for the NC & NC problem with ANN-KKT and Bi-level-KKT reformulations. However, IPOPT did not converge to optimal solution for C & C problem reformulations and Bi-level-KKT reformulation for C & NC problems. The solution infeasibility for C & C problem arisen from IPOPT can be reasoned by the introduction of neural network surrogates in the optimization problem which can create local minima and non-convex regions in the feasible space, even for problems that are originally convex. For C & NC (ANN-KKT reformulation) and NC & NC problems, IPOPT converges to optimal solutions with iteration counts ranging from 13 to 22 and final objective values closely matching those obtained with the bi-level solutions (detailed results in Appendix B.4 (Table B.2). The results demonstrate the ability of ANN-KKT reformulation and IPOPT solver to compute optimal solution for non-convex nature of bi-level problem defined at the upper and lower levels. This aspect is further investigated for solving bi-level problems defined for the operation optimization of thermal power plants since ANN models approximated on the noisy and controlled operation data of industrial thermal power systems introduce non-convexity in the function space. However, the successful implementation of ANN-KKT framework for benchmark problems paves the way for its scalability to data-driven optimization of thermal power systems. More details about the problem formulation and obtained solution (feasible or infeasible) are provided in the following sections. 
+
+## 3.2 Bi-level optimization of thermal power plants 
+
+We further expand the implementation of ANN-KKT approach for maximizing the power gener-ation from industrial thermal power plants such that turbine heat rate has been minimized. The historical operation data of the power generation operation of thermal power plants (660 MW coal power plant and 395 MW gas turbine system) is used to develop ANN based surrogate models which are embedded in the ANN-KKT framework. We purposely used IPOPT solver for solving reformulated ANN-KKT problem for thermal power systems for the following reasons: (i) the computation of local optimal solution in a reasonable time frame (within a few seconds) is suffi-cient to maintain the process dynamics, (ii) IPOPT solver is available under open-access and has established strengths and mathematical rigor to compute solution for nonlinear optimization prob-lems [52]. Moreover the ANN-KKT framework can be scaled to commercial solvers for industrial problems, and (iii) IPOPT has comparable performance with many of state-of-the-art solvers [53, 54]. 
+
+3.2.1 660 MW Thermal Power Plant 
+
+The operating (decision) variables are selected from the operating space of a 660 MW coal-fired power plant for data-driven modeling of key performance indicators, namely power generation (Power, MW) and turbine heat rate (THR, kJ/kWh). In [55], eight operating variables are iden-tified for power generation operation: coal flow rate (CFR, t/h), air flow rate (AFR, t/h), main 11 steam pressure (MSP, MPa), main steam temperature (MST, ◦C), main steam flow rate (MSF, t/h), reheat steam temperature (RHST, ◦C), feedwater temperature (FWT, ◦C), and condenser vacuum (CV, kPa). All input variables are normalized to the range [0 , 1] using min–max scaling to ensure numerical stability and efficient convergence during gradient-based optimization. The THR model is constructed using all eight operating variables, whereas the Power model is defined on a subset of variables that excludes RHST and CV. The overall problem is formulated as a bi-level optimization framework in which the upper level seeks to maximize power generation, while the lower level minimizes THR subject to operational constraints. The dataset is taken from [55], and 1,279 samples are randomly divided into a training set (70 %) for model parameter learning and a validation set (30 %) for hyperparameter tuning and early stopping to mitigate over-fitting. Whereas, an independent testing set of 222 samples is reserved for final performance assessment of trained models. Figure 4 presents the operational landscape of THR as a function of CFR and Power. The surface exhibits pronounced non-convexity with multiple peaks and troughs across the operating region, confirming the highly nonlinear relationship between THR and operating variables (refer to appendix B.1 to compare the surface plot with those of benchmark problems). The ANN surrogates trained on the operational data capture the complex functional relationship, making bi-level problem of NC & NC nature for coal power plant. While the KKT-reformulated single-level optimization framework provides necessary conditions for optimality, it does not guarantee global optimality for non-convex lower level problem. However, any KKT point satisfying all necessary constraints represents a feasible operating point for the operation of power plant. In this sense, locally optimal solutions satisfying the embedded constraints in the optimization problem are operationally feasible for dynamic operation of power plant, as the objective is to identify stable, efficient, and physically realizable operating points rather than the theoretical global optimum.   
+
+> Figure 2: 3D visualization of the turbine heat rate response surface as a function of coal flow rate and power output. The surface exhibits significant non-convexity with multiple local optima, characterized by irregular ridges and valleys across the operating domain. The complex topography exhibits the nonlinear interdependencies between the variables of thermal power plant. Note that this visualization represents the raw data surface rather than a fitted model profile and it serves a purely visual purpose to illustrate the data’s complexity and is not an accurate depiction of the isolated relationship between these variables.
+
+Bi-level problem formulation: The bi-level optimization problem for thermal power plant is formulated as: Upper-level problem: 
+
+max 
+
+> x
+
+ˆFANN_Power (x) (44) subject to x ∈ [0 , 1] 6, x ∈ y, 
+
+12 Lower-level problem: 
+
+min 
+
+> y
+
+ˆfANN_THR (y)
+
+subject to (y − μ)T Σ−1(y − μ) ≤ τ 2, (45) 
+
+y ∈ [0 , 1] 8.
+
+Here, ˆFANN_Power (x) represents the ANN surrogate model for power output (MW), while 
+
+ˆfANN_THR (y) represents the ANN surrogate model for THR (kJ/kWh). The Mahalanobis dis-tance constraint ( (y − μ)T Σ−1(y − μ) ≤ τ 2) ensures that the optimal solution remains within the valid operational envelope defined by historical training data, where μ is the mean vector, Σ−1 is the inverse covariance matrix, and τ corresponds to the percentile of the Mahalanobis distance. This constraint prevents computing the solution into physically unrealistic operating regimes and it complies with the operational safety margins. The reformulated bi-level problem with KKT conditions is provided in Appendix C.1 (section C.1.2). The predictive accuracy of the trained ANN models to model Power and THR is mentioned in Appendix C.1 (Table C.1). Figure 5(a) illustrates the convergence behavior of the IPOPT solver for the bi-level optimiza-tion problem across different τ levels. Figure 5(a)-top panel shows the evolution of the objective function (power output) as a function of convergence progress, normalized from 0% to 100%. Feasi-ble solutions (shown with yellow-green color) converge smoothly to stable objective values between 380-590 MW, with most trajectories exhibiting characteristic plateaus followed by final descent to the optimal value. Infeasible solutions (shown with dark purple color) display erratic convergence patterns with significant oscillations and premature stagnation at suboptimal objective values. Fig-ure 5(a)-bottom panel presents the primal infeasibility (constraint violation) on a logarithmic scale, demonstrating the solver’s ability to reduce constraint violations over the optimization trajectory. Feasible solutions successfully achieve primal infeasibility below 10 −6 by the end of convergence, while infeasible solutions plateau at approximately 10 0 to 10 1, indicating persistent constraint vio-lations. The red dashed line at 10 0 serves as a visual reference for constraint violation and primal infeasibility trajectories below the red dashed line correspond to feasible solution. The distinct separation between feasible and infeasible trajectories confirms that the Mahalanobis distance tol-erance directly impacts the problem’s feasibility landscape, with certain percentile values creating constraint configurations that prevent convergence to optimal solutions. 13 Figure 3: Optimal operating points from bi-level optimization across Mahalanobis distance tolerances. (a) IPOPT convergence profiles for objective function and primal infeasibility constraint for bi-level optimiza-tion across tolerance levels. Primal infeasibility trajectories on logarithmic scale, with feasible solutions achieving constraint satisfaction below 10 −6 and infeasible solutions stagnating above 10 0 (red dashed reference line). (b) The surface shows turbine heat rate as a function of coal flow rate and power output. Star markers indicate optimal solutions for tolerance levels from 81% to 95%, with yellow stars represent-ing feasible solutions (lower THR) and purple stars indicating infeasible solutions at constraint boundaries (higher THR). Black contour lines show historical operational density. (c) CPU time consumed to compute solutions for different values of τ for Mahalanobis constraint. 
+
+Figure 5(b) presents the solutions obtained from the ANN-KKT reformulated bi-level opti-mization across different Mahalanobis distance tolerance percentiles (81% to 95%). The surface represents the THR landscape as a function of coal flow rate and power output, interpolated from historical operational data. Each star marker indicates a solution (feasible, infeasible) correspond-ing to a specific τ level, with the color gradient reflecting the THR values. Solutions at lower tolerance percentiles (81%-82%) cluster in regions of lower THR (7419 kJ/kWh to 7423 kJ/kWh) while remaining optimal for maximizing power generation, reaching 551 MW to 554 MW. As the tolerance for Mahalanobis distance-based constraint increases (moving toward 95%), the feasible operating envelope expands, allowing the solver to compute solutions from relatively wide search space. Notably, solutions at 83%, 85%, and 95% percentiles exhibit higher THR values and are infeasible since constraints violations are observed. More details about the optimization results with respect to different τ levels are mentioned in appendix C.1.2 (Table C.2). Out of the feasible optimal solutions, the best solution is obtained on the τ level of 94% that maximizes power to 583 MW with THR of 7337 kJ/kWh. The CPU time consumed to compute the optimal solution is 0.334 s and is also depicted on Figure 5(c). Apart from a few infeasible solutions, the CPU time remains less than one second, demonstrating the excellent 14 computational performance of ANN-KKT framework to compute optimal solution for non-convex problem of power generation from coal power plant. The black contour lines represent the kernel density estimate of historical operating conditions, showing that most optimal solutions obtained on different τ levels (yellow colored) align well with frequently-visited operational regimes in the plant’s operation. This highlights the implementability of the computed solutions for bi-level problem on the existing control layer of the power plant for the operation optimization for power generation. 
+
+3.2.2 395 MW Gas Turbine System 
+
+Two performance variables of gas turbine system, i.e., power generation (Power - MW) and turbine heat rate (THR - kJ/kWh) are modelled on historical operation data associated with operating variables as described in [55]. Following nine key operating variables are identified: compressor discharge pressure (CDP - Psi), gas fuel flow rate (GFFR - lb/s), ambient temperature (AT -
+
+> ◦
+
+F), ambient pressure (AP - hPa), ambient humidity (AH - %), compressor discharge temperature (CDT - ◦F), flue gas temperature at HRSG inlet (FGTI - ◦C), fuel gas temperature (FGT - ◦F), and performance heater gas outlet temperature (PHGOT - ◦F). All variables are normalized to the range [0,1] through min-max scaling. The THR model is built on all of the identified operating variables, while the Power model is defined on a subset of the identified variables, excluding FGTI, FGT, and PHGOT. The problem is structured as a bi-level optimization where the upper level seeks to maximize power generation, while the lower level minimizes THR subject to operational constraints. The dataset is taken from [55], and 579 samples are randomly divided into a training set (70 %) for model parameter learning and a validation set (30 %) for hyperparameter tuning and early stopping to mitigate over-fitting. Whereas, an independent testing set of 145 samples is reserved for final performance assessment of trained models. Figure 4 shows the parallel-plot made on the operating and performance variables of gas turbine system. The historical operation data reflect the noisy and asynchronous operation control schemes, heterogenous and complex interactions between the variables as evident from Figure 4. This confirms that function of performance variables (Power and THR) built with operating variables is nonlinear and non-convex (refer to appendix B.1 to compare the parallel plot with those of benchmark problems). This, in turn, identifies nature of bi-level optimization problem (non-convex at both levels) which is defined and solved in the following. 
+
+> Figure 4: Parallel coordinates plot visualizing the multidimensional operating space of a 395 MW gas tur-bine system. The visualization highlights complex non-linear mapping network between the variables and non-convex function space of performance variables (Power and THR) built with the operating variables.
+
+Bi-level Problem Formulation The bi-level optimization problem for the gas turbine system is formulated as: Upper-level problem: 
+
+max 
+
+> x
+
+ˆFANN_Power (x) (46) subject to x ∈ [0 , 1] 6, x ∈ y, 
+
+15 Lower-level problem: 
+
+min 
+
+> y
+
+ˆfANN_THR (y)
+
+subject to (y − μ)T Σ−1(y − μ) ≤ τ 2, (47) 
+
+y ∈ [0 , 1] 9.
+
+Here, ˆFANN_Power (x) represents the ANN surrogate model for power output (MW), while 
+
+ˆfANN_THR (y) represents the ANN surrogate model for THR (kJ/kWh). The Mahalanobis distance-based constraint for lower-level problem is also embedded for estimating historical operation com-pliant computation of optimal solution. Figure 5 summarizes the numerical behavior of the bi-level optimization across different tol-erance levels. Figure 5(a) highlights clear differences in solver trajectories, where a subset of runs converges to optimal solutions with stable objective values, while others exhibit oscillatory or stalled behavior accompanied by persistent constraint violations. This contrast indicates that feasibility is highly sensitive to the chosen tolerance level, which governs whether the solver can simultaneously satisfy constraints and improve the objective. Figure 5 (b) visualizes the feasible operating envelope in terms of gas fuel flow rate and power output, with turbine heat rate repre-sented through color contours. A number of optimal solutions are obtained on different τ levels, with the maximum power of 402 MW and turbine heat rate of 8159 kJ/kWh at τ = 89% . The obtained solutions follow a narrow manifold, illustrating the relationship between increasing power and maintaining low heat rate. Finally, Figure 5 (c) shows that computational effort varies across tolerance levels, remaining less than one second to the solution convergence (optimal or infeasible). The CPU time consumbed for the identified optimal solution is 0.409 second. This is the key ad-vantage of ANN-KKT framework to estimate optimal solutions in reasonable timeframe that can support process dynamics for variable power ramp-up and ramp-down operation yet minimizing turbine heat rate for the operation of gas turbine system. 16 Figure 5: Optimal operating points from bi-level optimization of gas turbine system across Mahalanobis distance tolerances. (a) IPOPT convergence profiles for objective function and primal infeasibility con-straint for bi-level optimization across tolerance levels. Primal infeasibility trajectories on logarithmic scale, with feasible solutions achieving constraint satisfaction below 10 −6 and infeasible solutions stag-nating above 10 0 (red dashed reference line). (b) The surface shows turbine heat rate as a function of gas fuel flow rate and power output. Star markers indicate solutions computed for τ levels from 75% to 95%, with yellow stars representing feasible solutions and purple stars correspond to infeasible solutions. Black contour lines show historical operational density. (c) CPU time consumed to compute solutions corresponding to different values of τ for Mahalanobis constraint. 
+
+## 3.3 Robust Optimization through KKT formulation for Gas Turbine System 
+
+ANN-KKT-based bi-level framework is extended to the robust optimization for maximising thermal efficiency (TE) of power generation operation of 395 MW gas turbine system. The problem is structured as a bi-level optimization where the upper level maximizes the stability radius ( ρ) to ensure operational robustness for the computed solution. The lower level acts as an "adversary", minimizing TE within an uncertainty set defined by ρ to identify the worst-case δ. The robust optimization approach identifies the largest value of δ where TE remains higher than the target value ( T E target ) for a given performance budget [56, 57]. The robust optimization problem for maximizing TE above the T E target is formulated as follows: 17 upper-level problem: 
+
+max  
+
+> x,ρ
+
+ρ
+
+subject to (x − μ)T Σ−1(x − μ) ≤ τ 2,
+
+
+
+min 
+
+> δ
+
+ˆfANN (x + δ)
+
+
+
+≥ T E target , (48) 
+
+x ∈ [0 , 1] 9, x = [ x1, x 2, . . . , x 9]
+
+lower-level problem (Adversarial): 
+
+min 
+
+> δ
+
+ˆfANN (x + δ) (49) subject to δT Σ−1δ ≤ ρ2 (50) The ellipsoid uncertainty set ( δT Σ−1δ ≤ ρ2) is defined using the inverse covariance matrix (Σ−1) derived from the training data ( μ). τ adjusts the ellipsoidal volume around the mean of multivariate joint-distribution and ellipsoid constraint (x − μ)T Σ−1(x − μ) embeds the correlation structures which are respected while estimating the optimal solution. Similarly, identification of δ
+
+is also made while observing the correlation structures through ellipsoid constraint ( δT Σ−1δ) [58]. The ANN-KKT reformulation of robust optimization problem is mentioned in appendix D. The solution results of the ANN-KKT reformulation on different values of T E target are illustrated in Figure 6. T E target is labelled as Target Efficiency Floor on Figure 6. The blue dotted line represents the nominal TE at the optimal solution x, while the red bars represent the mean TE under worst-case perturbations ( x + δ). The operating ranges for each process variable based on computed value of δ under different T E target are mentioned in Table 2. For the cases where δ is computed to be negative than the nominal solution, the upper edge of operating ranges, mentioned in Table 2, are lower than those of lower edges. 10,000 perturbations are generated within the operating space of variables defined on the com-puted value of δ and the simulated experiments follow the correlation structure of variables (refer to 50). The designed computational experiments (x + δ), having operating levels of variables outside the Mahalanobis-based operating envelop (90 th ), are discarded (refer to Figure 7 for visualization). The error bars on mean TE in Figure 6 indicate the spread in TE against the computational ex-periments (x + δ). It is observed that as the strictness of the Target Efficiency Floor increases (from 38% to 43%), the gap between nominal TE and Mean TE (computed on x + δ) decreases. This indicates the lower value of ρ, meaning shorter stability radius where TE remains feasible under perturbations in optimal solution ( x). This can also be attributed to upper limit in TE that can be achieved from power generation operation of gas turbine system and the process control space near the upper limit is small for TE to remain robust to perturbations in process conditions (x + δ). 18 Figure 6: Comparison of Thermal Efficiency on Nominal ( x, blue dotted line) and Mean Robust ( x + δ,red bars) conditions under varying target efficiency floors ( T E target ). The error bars represent the range of efficiency outcomes within the stability radius ( ρ). Stricter efficiency targets force a reduction in ρ,resulting in smaller error bars and tighter convergence between nominal and robust operations. 
+
+Table 2: Optimal operating conditions under varying target efficiency floors ( T E target ). For each efficiency target, [x, x + δ] represents the operating range where x is the nominal physical operating point and x + δ is the worst-case physical value under maximum allowable perturbations within the stability radius ( ρ). 
+
+Feature 38% 39% 40% 41% 42% 43% 
+
+AT [29.63, 25.05] [29.82, 25.71] [30.11, 26.51] [29.84, 26.86] [29.50, 27.33] [29.01, 28.17] AP [987, 988] [987, 988] [987, 988] [988, 988] [988, 989] [989, 989] AH [50.22, 65.25] [49.46, 63.00] [48.48, 60.36] [49.38, 59.30] [50.71, 58.07] [53.09, 56.10] CDP [312.0, 209.0] [312.0, 219.3] [312.0, 230.8] [312.0, 244.5] [312.0, 262.4] [312.0, 292.4] GFFR [49.83, 34.04] [49.83, 35.62] [49.83, 37.38] [49.77, 39.41] [49.61, 42.00] [49.37, 46.35] CDT [861, 783] [861, 791] [861, 801] [860, 811] [860, 825] [864, 852] FGEXT [640, 680] [640, 676] [640, 672] [639, 665] [637, 657] [635, 643] FGT [484, 525] [484, 521] [484, 516] [485, 512] [487, 506] [489, 497] PHGOT [412.5, 412.9] [412.6, 413.0] [412.8, 413.1] [413.2, 413.3] [413.6, 413.6] [414.1, 414.0] 
+
+The robustness of computed solutions on different values of T E target is graphically inspected that satisfies the operational constraints of the power generation process. The data-driven opera-tional regimes are constructed for two operating variables, namely compressor discharge pressure (psi) and gas fuel flow rate (lb/s) and the operational envelop is drawn to capture 90% of the operational regime (shown by dotted ellipse) on Figure 7. The stability radius ( ρ) computed from robust optimization is plotted by blue colored ellipse that corresponds to worst-cases ( ρ = 1 .38 ,
+
+ρ = 2 .54 ) for identifying the feasible operating space of the variables (pink-colored shaded region) to maintain TE above T E target of 42% and 39%, respectively. The identified operating space hedges the uncertainty in the operating variables and can maintain TE above the set value. The distribution of TE computed on the simulated experiments (x+ δ) and corresponding to identified operating space is shown on the top edges on Figure 7. It is evident from the distribution that TE is computed to higher than T E target of 42% and 39% corresponding to identified operating space. 19 Figure 7: Robustness landscape for operation of gas turbine system. (a) T E target = 42%: A strict efficiency constraint results in a conservative stability radius ( ρ = 1 .38 ), represented by the narrow blue ellipse. (b)     
+
+> T E target = 39%: Lowering the target efficiency floor enhances the stability radius ( ρ= 2 .54 ), as shown by the expanded blue ellipse. The green shading region represents the density of historical operating data and dotted ellipse is constructed on 90 th quantile. The pink-colored shaded region represents the feasible operating space where TE remains higher than T E target .
+
+The ANN-KKT framework demonstrates the suitability for data-driven optimization of ther-mal power systems and scales up to robust optimization for the robust identification of operating space to hedge the operational uncertainty. The domain-compliant AI-powered analytics can assist the existing control schemes implemented in industrial thermal power systems to enhance the effi-ciency of industrial processes. The human-AI collaboration for the implementation of ANN-KKT framework (injecting historical information in analytics through setting up τ ) fosters reliability and constraints satisfaction that enhances AI access to process control of industrial systems. This is aligned with the recommendations of International Energy Agency to design domain-compliant AI systems which improve the process control to harvest higher energy efficiency to support industrial decarbonization [59]. 
+
+# 4 Conclusion 
+
+The scaleable and computationally efficient solution computation methodology for competing ob-jectives of bi-level problems are key challenges to scale its adoption to industrial power systems. In this paper, we present ANN-KKT framework that embeds ANN surrogate models in the ob-jective function at both levels of bi-level framework and reformulate it into single level problem by replacing the lower-level problem with KKT conditions. The ANN-KKT framework provides comparable solutions with the bi-level solutions of the benchmark problems. When applied to maximizing the power generation and minimizing the turbine heat rate for thermal power plants, the ANN-KKT framework provides optimal solutions (maximum power generation of 583 MW and 402 MW & turbine heat rate of 7337 kJ/kWh and 7542 kJ/kWh for coal and gas turbine system, respectively) with the computational time ranging from 0.22 s to 0.88 s. Additionally, ANN-KKT framework is also able to identify robust operating space for the process variables, hedging the process uncertainty to achieve thermal efficiency higher than 42% for gas turbine system. These results demonstrate the scalability and computational efficient performance of ANN-KKT framework to compute optimal and domain-consistent solutions for different nature of industrial operations (maximizing power generation on minimum heat rate, ensuring high thermal efficiency against the process uncertainty) for thermal power systems. The advances in the development of computational frameworks for enhancing the efficiency of industrial power generation processes contribute to net-zero mission and industry 5.0. 20 5 Limitations and Future Work 
+
+We have embedded Mahalanobis distance-based constraint that adjust the search space for the optimization solver based on the value of τ . The tuning of τ is challenging and it affects the feasibility of solutions, rendering it one of the limitations of this study. ANN model introduce non-convexity in the optimization problem and may complicate the solution convergence profiles; future research may consider convexification of ANN models that may expedite the numerical convergence performance of the optimization solver. 
+
+# Acknowledgement 
+
+Waqar Muhammad Ashraf acknowledges that this work was supported by the Alan Turing Insti-tute’s Enrichment Scheme/Turing Studentship Scheme. 
+
+# Author Contributions 
+
+Talha Ansar: Methodology, Data Curation, Software, Validation, Formal Analysis, Writing – Original Draft, Muhammad Mujtaba Abbas: Validation, Writing – Review & Editing, Ramit Debnath: Validation, Writing – Review & Editing, Vivek Dua: Validation, Writing – Review & Editing, Waqar Muhammad Ashraf: Conceptualization, Methodology, Data Curation, Soft-ware, Writing – Original Draft, Project Administration 
+
+# Data availability statement 
+
+The code and data can be provided on request. 
+
+# Declaration of competing interests 
+
+The authors declare no competing interests. 
+
+# References 
+
+1. Deb, K. Nonlinear goal programming using multi-objective genetic algorithms. Journal of the Operational Research Society 52, 291–302 (2001). 2. Bejan, A., Tsatsaronis, G. & Moran, M. J. Thermal design and optimization (John Wiley & Sons, 1995). 3. Bard, J. F. Practical bilevel optimization: algorithms and applications (Springer Science & Business Media, 2013). 4. Dempe, S. Foundations of bilevel programming (Springer, 2002). 5. Garcés, L. P. et al. A bilevel approach to transmission expansion planning within a market environment. IEEE Transactions on Power Systems 24, 1513–1522 (2009). 6. Bard, J. F. & Falk, J. E. An explicit solution to the multi-level programming problem. Com-puters & Operations Research 9, 77–100 (1982). 7. Marcotte, P. & Savard, G. in Encyclopedia of optimization 158–160 (Springer, 2001). 8. Gümüş, Z. H. & Floudas, C. A. Global optimization of mixed-integer bilevel programming problems. Computational Management Science 2, 181–212 (2005). 9. Mitsos, A. Global solution of nonlinear mixed-integer bilevel programs. Journal of Global Optimization 47, 557–582 (2010). 10. Kleniati, P.-M. & Adjiman, C. S. A generalization of the branch-and-sandwich algorithm: from continuous to mixed-integer nonlinear bilevel problems. Computers & Chemical Engineering 
+
+72, 373–386 (2015). 11. Saharidis, G. K. & Ierapetritou, M. G. Resolution method for mixed integer bi-level linear problems based on decomposition technique. Journal of Global optimization 44, 29–51 (2009). 21 12. Sachio, S. et al. Integrating process design and control using reinforcement learning. Chemical Engineering Research and Design 183, 160–169 (2022). 13. Banker, T. & Mesbah, A. Gradient-Based Framework for Bilevel Optimization of Black-Box Functions: Synergizing Model-Free Reinforcement Learning and Implicit Function Differenti-ation. Industrial & Engineering Chemistry Research 64, 2831–2844 (2025). 14. Sinha, A., Soun, T. & Deb, K. Evolutionary bilevel optimization using KKT proximity measure 
+
+in 2017 IEEE Congress on Evolutionary Computation (CEC) (2017), 2412–2419. 15. Hecheng, L. & Yuping, W. Exponential distribution-based genetic algorithm for solving mixed-integer bilevel programming problems. Journal of Systems Engineering and Electronics 
+
+19, 1157–1164 (2008). 16. Avraamidou, S. & Pistikopoulos, E. N. A multi-parametric optimization approach for bilevel mixed-integer linear and quadratic programming problems. Computers & Chemical Engineer-ing 125, 98–113 (2019). 17. Avraamidou, S. & Pistikopoulos, E. N. A multiparametric mixed-integer bi-level optimiza-tion strategy for supply chain planning under demand uncertainty. IFAC-PapersOnLine 50, 
+
+10178–10183 (2017). 18. Shokry, A., Medina-González, S. & Espuña, A. in Computer Aided Chemical Engineering 
+
+451–456 (Elsevier, 2017). 19. Beykal, B. et al. Domino: Data-driven optimization of bi-level mixed-integer nonlinear prob-lems. Journal of Global Optimization 78, 1–36 (2020). 20. Shokry, A. et al. A machine learning-based methodology for multi-parametric solution of chemical processes operation optimization under uncertainty. Chemical Engineering Journal 
+
+425, 131632 (2021). 21. Molan, I. & Schmidt, M. Using neural networks to solve linear bilevel problems with unknown lower level. Optimization Letters 17, 1083–1103 (2023). 22. Medina-González, S., Papageorgiou, L. G. & Dua, V. A reformulation strategy for mixed-integer linear bi-level programming problems. Computers & Chemical Engineering 153, 107409 (2021). 23. Abdulkadirov, R., Lyakhov, P. & Nagornov, N. Survey of optimization algorithms in modern neural networks. Mathematics 11, 2466 (2023). 24. Luo, X., Liu, Y. & Liu, X. Bi-level multi-objective optimization of design and subsidies for standalone hybrid renewable energy systems: A novel approach based on artificial neural network. Journal of Building Engineering 41, 102744 (2021). 25. De Oliveira, R. D. et al. Nonlinear predictive control of a bioreactor by surrogate model approximation of flux balance analysis. Industrial & Engineering Chemistry Research 60, 
+
+14464–14475 (2021). 26. Bagloee, S. A. et al. A hybrid machine-learning and optimization method to solve bi-level problems. Expert Systems with Applications 95, 142–152 (2018). 27. Moreno-Palancas, I. F. et al. Solving bilevel problems under uncertainty with embedded neural networks: Incorporating scenario sets as inputs. Digital Chemical Engineering, 100253 (2025). 28. Shu, D. Y. et al. Overcoming the central planner approach–Bilevel optimization of the Euro-pean energy transition. Iscience 27 (2024). 29. Abraham, E. J. et al. A multi-parametric approach for bi-level optimization within the energy-water nexus. Computers & Chemical Engineering, 109256 (2025). 30. Leenders, L. et al. Bilevel optimization for joint scheduling of production and energy systems. 
+
+Optimization and Engineering 24, 499–537 (2023). 31. Beykal, B., Avraamidou, S. & Pistikopoulos, E. N. Data-driven optimization of mixed-integer bi-level multi-follower integrated planning and scheduling problems under demand uncer-tainty. Computers & chemical engineering 156, 107551 (2022). 32. Avraamidou, S. & Pistikopoulos, E. N. B-POP: Bi-level parametric optimization toolbox. 
+
+Computers & Chemical Engineering 122, 193–202 (2019). 22 33. Bollas, G. M., Barton, P. I. & Mitsos, A. Bilevel optimization formulation for parameter esti-mation in vapor–liquid (–liquid) phase equilibrium problems. Chemical Engineering Science 
+
+64, 1768–1783 (2009). 34. Mitsos, A., Bollas, G. M. & Barton, P. I. Bilevel optimization formulation for parameter estimation in liquid–liquid phase equilibrium problems. Chemical Engineering Science 64, 
+
+548–559 (2009). 35. Ashraf, W. M. et al. Domain-informed operation excellence of gas turbine system with ma-chine learning. Energy Conversion and Management 348, 120789 (2026). 36. Daoutidis, P. et al. Machine learning in process systems engineering: Challenges and oppor-tunities. Computers & Chemical Engineering 181, 108523 (2024). 37. Dobbelaere, M. R. et al. Machine learning in chemical engineering: strengths, weaknesses, opportunities, and threats. Engineering 7, 1201–1211 (2021). 38. Mowbray, M. et al. Industrial data science–a review of machine learning applications for chemical and process industries. Reaction Chemistry & Engineering 7, 1471–1509 (2022). 39. Haykin, S. Neural networks and learning machines, 3/E (Pearson Education India, 2009). 40. Rumelhart, D. E., Hinton, G. E. & Williams, R. J. Learning representations by back-propagating errors. nature 323, 533–536 (1986). 41. Bergstra, J. et al. Algorithms for hyper-parameter optimization. Advances in neural informa-tion processing systems 24 (2011). 42. Bergstra, J. Hyperopt: Distributed asynchronous hyperparameter optimization in Python. http://jaberg.github.com/ 
+
+2013. 43. Kingma, D. P. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 
+
+(2014). 44. Huang, J. et al. Optimisation led energy-efficient arsenite and arsenate adsorption on various materials with machine learning. Water Research 271, 122815 (2025). 45. Ashraf, W. M. & Dua, V. Machine learning based modelling and optimization of post-combustion carbon capture process using MEA supporting carbon neutrality. Digital Chemical Engineering 8, 100115 (2023). 46. Leyffer, S. in Optimization with Multivalued Mappings: Theory, Applications, and Algorithms 
+
+169–208 (Springer, 2006). 47. Lv, Y. et al. A neural network approach for solving nonlinear bilevel programming problem. 
+
+Computers & Mathematics with Applications 55, 2823–2829 (2008). 48. Nocedal, J. & Wright, S. J. Numerical Optimization 2nd ed. isbn : 978-0-387-30303-1. doi: 10. 1007/978-0-387-40065-5 . https://doi.org/10.1007/978-0-387-40065-5 (Springer, New York, NY, 2006). 49. Mitsos, A., Lemonidis, P. & Barton, C. K. A Test Set for Bilevel Programs tech. rep. Original version: June 6, 2006; last updated: May 25, 2010 (Massachusetts Institute of Technology, Department of Chemical Engineering, 2006). 50. Yeung, D. S. et al. Sensitivity analysis for neural networks (Springer, 2010). 51. Mitsos, A., Lemonidis, P. & Barton, P. I. Global solution of bilevel programs with a nonconvex inner program. Journal of Global Optimization 42, 475–513 (2008). 52. Wächter, A. & Biegler, L. T. On the implementation of an interior-point filter line-search algo-rithm for large-scale nonlinear programming. Mathematical programming 106, 25–57 (2006). 53. Rojas-Labanda, S. & Stolpe, M. Benchmarking optimization solvers for structural topology optimization. Structural and Multidisciplinary Optimization 52, 527–547 (2015). 54. Lavezzi, G., Guye, K. & Ciarcià, M. Nonlinear programming solvers for unconstrained and constrained optimization problems: a benchmark analysis. arXiv preprint arXiv:2204.05297 
+
+(2022). 55. Ashraf, W. M. & Dua, V. Driving towards net-zero from the energy sector: Leveraging machine intelligence for robust optimization of coal and combined cycle gas power stations. Energy Conversion and Management 314, 118645 (2024). 23 56. Berthold, H., Heller, T. & Seidel, T. A unified approach to inverse robust optimization prob-lems. Mathematical Methods of Operations Research 99, 115–139 (2024). 57. Wiebe, J., Cecílio, I., Dunlop, J., et al. A robust approach to warped Gaussian process-constrained optimization. Mathematical Programming 196, 805–839 (2022). 58. Shang, C., Huang, X. & You, F. Data-driven robust optimization based on kernel learning. 
+
+Computers & Chemical Engineering 106, 464–479 (2017). 59. IEA. Energy and AI. IEA, Paris https://www.iea.org/reports/energy-and-ai, Licence: CC BY 4.0 (2025). 24 Appendix A Neural Network Architecture and Training 
+
+ANN models are constructed using the PyTorch framework. The Sigmoid Linear Unit (SiLU) acti-vation function is applied on the hidden layer while linear activation function is implemented on the output layer of ANN to ensure the smooth, continuously differentiable gradients required for sub-sequent KKT-based reformulation. Leveraging the capability of Hyperopt to handle asynchronous distribution spaces, 50 optimization trials were performed per model to minimize validation RMSE. The search space comprised a uniform integer distribution for hidden neurons ( Nh ∈ [2 , 16] ) and log-uniform distributions for the learning rate ( [10 −5, 10 −1]), λ1 regularization ( [10 −7, 10 −1]), and 
+
+λ2 ([10 −7, 10 −1]). Finally, training episodes were extended to a maximum of 5,000 epochs, governed by an early stopping protocol with a patience of 200 epochs. This mechanism ensured training ter-mination upon performance saturation, automatically restoring the model parameters associated with the lowest validation RMSE to guarantee optimal generalization. 
+
+# B Benchmark Problems 
+
+## B.1 Visualization of convex and con-convex functions 
+
+The topological landscapes of the objective functions for the three benchmark problems C & C, C & NC and NC & NC are visualized below in Figures B.1, B.2 and B.3 respectively. Each figure comprises: (a) a parallel coordinates plot mapping the interactions between decision variables ( x, y )and objective values; (b) a 3D surface plot of the upper-level objective function F (x, y ); and (c) a 3D surface plot of the lower-level objective function f (x, y ).
+
+> Figure B.1: Convex & Convex: (b) and (c) display convex, bowl-shaped surfaces for both upper and lower level objectives, facilitating stable gradient descent and global optimality.
+
+25 Figure B.2: Convex & Non-Convex: While the upper-level objective (b) remains convex, the lower-level objective (c) exhibits a saddle-point geometry (indefinite quadratic), introducing non-convexity into the KKT reformulation. 
+
+Figure B.3: Non-Convex & Non-Convex: The upper level (b) forms a parabolic cylinder and the lower level (c) a linear plane. The problem’s non-convexity and difficulty primarily arise from the non-convex constraints restricting these surfaces. 
+
+26 B.2 Training of ANN models and performance metrics 
+
+The final models are evaluated using Root Mean Squared Error (RMSE) and the coefficient of determination ( R2) on the hold-out test set to ensure the development of high-fidelity surrogate models for the bi-level optimization task. Table B.1 shows that the ANN surrogates achieve low RMSE and consistently high R2 values across training, validation, and test sets for all benchmark problems. The close agreement of metrics across data splits indicates good generalization. These results confirm the suitability of the trained models for integration into the bi-level optimization framework. Table B.1: Performance Metrics of ANN Surrogates for Benchmark Bi-level Optimization Problems Problem Type Level Train Validation Test RMSE R2 RMSE R2 RMSE R2
+
+Convex & Upper 3.74 × 10 −2 0.99 3.99 × 10 −2 0.99 4.24 × 10 −2 0.99 Convex Lower 3.67 × 10 −2 0.99 3.73 × 10 −2 0.99 3.80 × 10 −2 0.99 Convex & Upper 4.72 × 10 −3 0.99 4.78 × 10 −3 0.99 4.84 × 10 −3 0.99 Nonconvex Lower 3.62 × 10 −3 0.99 3.88 × 10 −3 0.99 4.13 × 10 −3 0.99 Nonconvex & Upper 6.47 × 10 −4 0.99 6.96 × 10 −4 0.99 7.44 × 10 −4 0.99 Nonconvex Lower 2.58 × 10 −4 0.99 2.61 × 10 −4 0.99 2.64 × 10 −4 0.99 
+
+## B.3 MPEC Reformulations for Additional Benchmark Problems 
+
+We provide the ANN-based single-level reformulations for the remaining two benchmark problems (Convex & Non-convex and Non-convex & Non-convex) using KKT conditions. Consistent with the methodology applied to the SC2 problem, the objective functions at both levels are replaced by ANN surrogates, while the constraints remain explicit. 
+
+B.3.1 Convex & Non-convex 
+
+This problem features a convex upper-level and a non-convex lower-level objective with box con-straints. Objective functions: 
+
+min 
+
+> x,y, μ
+
+ˆFANN (x, y )
+
+Here ˆFANN (x, y ) ≈ (x − 1) 2 + y2
+
+ˆfANN (x, y ) ≈ − y2 + xy 
+
+(B.1) Upper-Level Constraints: 
+
+x ∈ [0 , 2] (B.2) Stationarity Condition: 
+
+∇y ˆfANN (x, y ) − μL + μU = 0 (B.3) where ∇y ˆfANN (x, y ) is computed via symbolic differentiation of the trained ANN model. μL
+
+and μU are the multipliers for the lower ( 0) and upper ( 1) bounds of y, respectively. Primal Feasibility: 
+
+y ∈ [0 , 1] (B.4) Dual Feasibility: 
+
+μL, μ U ≥ 0 (B.5) Complementarity Conditions: 
+
+μL · − y = 0 (B.6) 
+
+μU · (y − 1) = 0 (B.7) 27 B.3.2 Non-convex & Non-convex 
+
+The "Pathological Branching" problem includes a difficult non-convex constraint in the lower level (y2(x − 0.5) ≤ 0) and non-convex objectives. Objective functions: 
+
+min 
+
+> x,y,λ 1,μ
+
+ˆFANN (x, y )
+
+Here ˆFANN (x, y ) ≈ x2
+
+ˆfANN (x, y ) ≈ y
+
+(B.8) Upper-Level Constraints: 
+
+1 + x − 9x2 − y ≤ 0 (B.9) 
+
+x ∈ [−1, 1] (B.10) Stationarity Condition: 
+
+∇y ˆfANN (y) + λ1∇y (y2(x − 0.5)) − ∇ yi (μLi .(−y − 1) + μUi .(y − 1)) = 0 (B.11) The gradient of the non-convex lower-level constraint is computed explicitly as ∇y (y2(x−0.5)) = 2y(x − 0.5) .Primal Feasibility: 
+
+y2(x − 0.5) ≤ 0 (B.12) 
+
+y ∈ [−1, 1] (B.13) Dual Feasibility: 
+
+λ1 ≥ 0 (B.14) 
+
+μL, μ U ≥ 0 (B.15) Complementarity Conditions: 
+
+λ1 · (y2(x − 0.5)) = 0 (B.16) 
+
+μL · (−y − 1) = 0 (B.17) 
+
+μU · (y − 1) = 0 (B.18) 
+
+## B.4 Local Solver Solutions of Benchmark Problems 
+
+Table B.2: Comparison of solutions and CPU times for solving different bi-level problems (Convex & Convex, Convex & Non-Convex, Non-Convex & Non-Convex). Book/bi-level solutions are from the cited test sets; BARON and IPOPT results are reported for Bi-level-KKT and ANN-KKT reformulations. 
+
+Problem Type Method x y Objective (F) Time (s) 
+
+C & C Bi-level [49] 1 3 5 -Bi-level-KKT (BARON) 1 3 5 0.14 ANN-KKT (BARON) 0.9810 2.9620 4.9760 1.27 Bi-level-KKT (IPOPT) 4.4 4.8 9.8 0.022 ANN-KKT (IPOPT) 3.0179 4.9342 12.98 0.013 C & NC Bi-level [51] 1 0 0 -Bi-level-KKT (BARON) 1 0 0 0.12 ANN-KKT (BARON) 1.0140 0 0.0034 1.27 Bi-level-KKT (IPOPT) 0.8 0.4 0.2 0.009 ANN-KKT (IPOPT) 1.0144 0 0.0034 0.036 NC & NC Bi-level [49] -0.4191 -1 0.1756 -Bi-level-KKT (BARON) -0.4191 -1 0.1756 0.09 ANN-KKT (BARON) -0.4191 -1 0.1750 0.39 Bi-level-KKT (IPOPT) -0.4191 -1 0.1757 0.009 ANN-KKT (IPOPT) -0.4191 -1 0.1750 0.012 28 Figure B.4: IPOPT convergence analysis for bi-level optimization of benchmark examples. Top: Con-vergence progress of solver for the objective function on ANN-KKT and Bi-level-KKT reformulations for three benchmark examples. Bottom: The profiles of primal infeasibility against the convergence progress for the benchmark problems. The solution for C & C problem remains infeasible as KKT constraints are not satisfied. 
+
+# C Bi-level Operation Optimization of Thermal Power Plants 
+
+## C.1 660 MW coal power plant 
+
+C.1.1 Modelling performance 
+
+The trained ANN models for Power and THR have 6 neurons in the hidden layer whereas optimized learning rate is found to be 0.06 and 0.058, respectively. The predictive performance of the trained models on training, validation and testing datasets is mentioned in Table C.1. Table C.1: Performance metrics of ANN surrogates for coal power plant 
+
+## Target Variable Train Validation Test RMSE R2 RMSE R2 RMSE R2
+
+## Power (MW) 2.48 0.99 2.45 0.99 4.27 0.99 Turbine Heat Rate (kJ/kWh) 82 0.77 80 0.78 90 0.72 
+
+C.1.2 ANN-KKT reformulation 
+
+The bi-level problem is reformulated as a single-level MPEC using KKT optimality conditions for the lower-level problem: 
+
+max  
+
+> x,μ L,μ U,λ m
+
+ˆFANN_Power (x) (C.1) Stationarity Conditions: For each decision variable yi, i ∈ { 1, . . . , 8}:
+
+∇yi
+
+ˆfANN_THR (y) + ∇yi (μLi .(−y) + μUi .(y − 1)) + λm · ∇ yi
+
+(y − μ)T Σ−1(y − μ) − τ 2 = 0 (C.2) 29 The gradient of the ANN model ∇yi
+
+ˆfANN_THR (y) and the gradient of the Mahalanobis distance constraint ∇yi
+
+(y − μ)T Σ−1(y − μ) − τ 2 are obtained through symbolic differentiation, while 
+
+−μLi and μUi are the multipliers of the box constraints. Highly non-convex function profile of objective functions built on ANN-based models of Power and THR (data-driven approximation and shown on 4) may result in numerical instability for the convergence performance. The primal Mahalanobis distance constraint (Eq. C.5), its dual (Eq. C.6) and complementarity (Eq. C.7) are embedded without FB transformation. The comple-mentarity conditions for box constraints are reformulated with Φ∗ 
+
+> F B
+
+to ensure numerical stability since constraint violations were observed without transformation. The reformulated complimen-tary constraints for box constraints (Eq. C.3 - Eq. C.4) and inner-level constraints are given in the following: 
+
+q
+
+(yi)2 + ( μLi )2 + ϵl − yi − μLi = 0 , ∀i, (C.3) 
+
+q
+
+(1 − yi)2 + ( μUi )2 + ϵu − (1 − yi) − μUi = 0 , ∀i, (C.4) 
+
+(y − μ)T Σ−1(y − μ) − τ 2 ≤ 0, (C.5) 
+
+λm ≥ 0, (C.6) 
+
+(y − μ)T Σ−1(y − μ) − τ 2 · λm = 0 . (C.7) where ϵl = 10 −3 and ϵu = 10 −9 are small regularization parameters to smooth the complemen-tarity constraints. The reformulated MPEC is solved using the IPOPT solver through the GAMS interface in Pyomo. Table C.2: Optimality, CPU Time, and Solution Quality of the Coal Power Plant Optimization under Varying Tolerance Levels Tolerance (%) THR (kJ/kWh) Power (MW) Optimality CPU Time (s) 81 7423 551 Optimal 0.066 82 7418 554 Optimal 0.186 83 7772 386 Infeasible 0.682 84 7407 423 Optimal 0.131 85 7774 562 Infeasible 0.306 86 7396 398 Optimal 0.053 87 7391 535 Optimal 0.014 88 7386 568 Optimal 0.015 89 7380 570 Optimal 0.028 90 7376 534 Optimal 0.018 91 7369 574 Optimal 0.015 92 7362 533 Optimal 0.016 93 7343 533 Optimal 0.565 94 7337 583 Optimal 0.052 95 7766 533 Infeasible 0.564 
+
+## C.2 395 MW Gas power plant 
+
+C.2.1 Modelling performance 
+
+The trained ANN models for Power and THR have 12 and 16 neurons in the hidden layer whereas optimized learning rate is found to be 0.090 and 0.098, respectively. The predictive performance of the trained models on training, validation and testing datasets is mentioned in Table C.3. 
+
+C.2.2 ANN-KKT reformulation 
+
+The bi-level problem is reformulated as a single-level MPEC using KKT optimality conditions for the lower-level problem: 30 Table C.3: Performance Metrics of ANN Surrogates (Gas Turbine Power Plant) 
+
+## Target Variable Train Validation Test RMSE R2 RMSE R2 RMSE R2
+
+## Power (MW) 0.84 0.99 0.90 0.99 1.06 0.99 Turbine Heat Rate (kJ/kWh) 190 0.89 213 0.85 228 0.85 
+
+max  
+
+> x,μ L,μ U,λ m
+
+ˆFANN_Power (x) (C.8) Stationarity Conditions: For each decision variable yi, i ∈ { 1, . . . , 9}:
+
+∇yi
+
+ˆfANN_THR (y) − ∇ yi (μLi .y + μUi .(y − 1)) + λm · ∇ yi
+
+(y − μ)T Σ−1(y − μ) − τ 2 = 0 (C.9) where gradient of the ANN model ∇yi
+
+ˆfANN_THR (y) and the gradient of the Mahalanobis distance constraint ∇yi
+
+(y − μ)T Σ−1(y − μ) − τ 2 are obtained through symbolic differentiation, while −μLi and μUi result from the analytical derivatives of the box constraints. −μLi and μUi are the multipliers of the box constraints. Similar to the coal problem, the highly non-convex function profile of objective functions built on ANN-based models of Power and THR (data-driven approximation results in numerical insta-bility for the convergence performance. The primal Mahalanobis distance constraint (Eq. C.12), its dual (Eq. C.13) and complementarity (Eq. C.14) are embedded without FB transformation. The complementarity conditions for box constraints are reformulated with Φ∗ 
+
+> F B
+
+to ensure numer-ical stability since constraint violations were observed without transformation. The reformulated complimentary constraints for box constraints (Eq. C.10 - Eq. C.11) and inner-level constraints are given in the following: 
+
+q
+
+(yi)2 + ( μLi )2 + ϵl − yi − μLi = 0 , ∀i, (C.10) 
+
+q
+
+(1 − yi)2 + ( μUi )2 + ϵu − (1 − yi) − μUi = 0 , ∀i, (C.11) 
+
+(y − μ)T Σ−1(y − μ) − τ 2 ≤ 0, (C.12) 
+
+λm ≥ 0, (C.13) 
+
+(y − μ)T Σ−1(y − μ) − τ 2 · λm = 0 . (C.14) where ϵl = 10 −3 and ϵu = 10 −9 are small regularization parameters to smooth the complemen-tarity constraints. The reformulated MPEC is solved using the IPOPT solver through the GAMS interface in Pyomo. 
+
+# D Reformulation of bi-level Robust Optimization with KKT conditions 
+
+The bi-level robust optimization problem is reformulated into a single-level with KKT-based opti-mality conditions written for the lower-level problem. 
+
+max  
+
+> x,ρ,δ,λ
+
+ρ (D.1) subject to (x − μ)T Σ−1(x − μ) ≤ τ 295 , (D.2) 
+
+ˆfANN (x + δ) ≥ T E target , (D.3) 
+
+x ∈ [0 , 1] 9, ρ ≥ 0. (D.4) 31 Table C.4: Optimality, CPU Time, and Solution Quality of the Gas Power Plant Optimization under Varying Tolerance Levels Tolerance (%) THR (kJ/kWh) Power (MW) Optimality CPU Time (s) 75 8265 387 Optimal 0.318 76 10265 401 Infeasible 0.493 77 8254 388 Optimal 0.370 78 8246 402 Optimal 0.465 79 9011 388 Infeasible 1.161 80 8494 395 Infeasible 0.784 81 8230 386 Optimal 0.327 82 10304 385 Infeasible 0.386 83 8219 385 Optimal 0.431 84 8208 399 Optimal 0.402 85 8195 402 Optimal 0.383 86 10340 402 Infeasible 0.481 87 8175 381 Optimal 0.220 88 8172 381 Optimal 0.466 89 8159 402 Optimal 0.168 90 8140 379 Infeasible 0.313 91 8130 378 Infeasible 0.358 92 10425 402 Infeasible 0.705 93 8067 402 Infeasible 0.752 94 10367 402 Infeasible 0.494 95 8026 400 Infeasible 1.535 Constraint (D.2) ensures design validity by keeping the solution within the 95 th percentile of the Mahalanobis distance of the training data. Constraint (D.3) enforces the safety floor, requiring the worst-case efficiency to meet the target. The KKT-conditions for the lower-level problem are written as follows: Stationarity Condition: 
+
+∇δ ˆfANN (x + δ) + λ∇δ (δT Σ−1δ) = 0 (D.5) Here, λ is the Lagrange multiplier associated with the uncertainty ellipsoid constraint δT Σ−1δ ≤
+
+ρ2. The gradients for both the neural network surrogate ( ∇δ ˆfANN ) and the uncertainty set (∇δ (δT Σ−1δ)) are computed via symbolic differentiation within the optimization framework. Primal Feasibility: 
+
+δT Σ−1δ − ρ2 ≤ 0 (D.6) Complementarity Conditions: 
+
+λ ·  δT Σ−1δ − ρ2 = 0 (D.7) Dual Feasibility: 
+
+λ ≥ 0 (D.8) 32

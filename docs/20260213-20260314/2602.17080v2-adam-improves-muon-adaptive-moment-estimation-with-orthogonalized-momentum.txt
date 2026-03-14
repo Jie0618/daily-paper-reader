@@ -1,0 +1,6207 @@
+Title: Adam Improves Muon: Adaptive Moment Estimation with Orthogonalized Momentum
+
+URL Source: https://arxiv.org/pdf/2602.17080v2
+
+Published Time: Mon, 23 Feb 2026 01:22:47 GMT
+
+Number of Pages: 39
+
+Markdown Content:
+Adam Improves Muon 
+
+# Adam Improves Muon: Adaptive Moment Estimation with Orthogonalized Momentum 
+
+Minxin Zhang minxinzhang@math.ucla.edu 
+
+Yuxuan Liu yxliu@math.ucla.edu 
+
+Hayden Schaeffer hayden@math.ucla.edu 
+
+Department of Mathematics University of California, Los Angeles Los Angeles, CA 90095, USA 
+
+Abstract 
+
+Efficient stochastic optimization typically integrates an update direction that performs well in the deterministic regime with a mechanism adapting to stochastic perturbations. While Adam uses adaptive moment estimates to promote stability, Muon utilizes the weight layers’ matrix structure via orthogonalized momentum, showing superior performance in large language model training. We propose a new optimizer and a diagonal extension, NAMO and NAMO-D, providing the first principled integration of orthogonalized momentum with norm-based Adam-type noise adaptation. NAMO scales orthogonalized momentum using a single adaptive stepsize, preserving orthogonality while improving upon Muon at negligible additional cost. NAMO-D instead right-multiplies orthog-onalized momentum by a diagonal matrix with clamped entries. This design enables neuron-wise noise adaptation and aligns with the common near block-diagonal Hessian structure. Under stan-dard assumptions, we establish optimal convergence rates for both algorithms in the deterministic setting and show that, in the stochastic setting, their convergence guarantees adapt to the noise level of stochastic gradients. Experiments on pretraining GPT-2 models demonstrate improved performance of both NAMO and NAMO-D compared to the AdamW and Muon baselines, with NAMO-D achieving further gains over NAMO via an additional clamping hyperparameter that balances the competing goals of maintaining a well-conditioned update direction and leveraging fine-grained noise adaptation. 
+
+1 Introduction 
+
+Stochastic optimization is central to modern large-scale learning, where algorithms must update iterates using only noisy estimates of first-order information. A key challenge is to balance two goals: selecting an update direction that is effective in the noise-free regime, and incorporating mechanisms that adapt to stochastic perturbations. From this viewpoint, an efficient stochastic optimizer can be understood as combining two ingredients: (i) a principled direction-selection rule that performs well when gradients are exact, and (ii) an adaptive stepsize mechanism that stabilizes the iterates by attenuating updates under gradient uncertainty. This perspective offers a useful lens for interpreting existing methods and for guiding the development of new algorithms with strong convergence behavior. In this paper, we design a new optimization algorithm that couple the structural advantages of an orthogonalized update direction with adaptive moment estimation to account for gradient noise. We provide theoretical convergence guarantees and demonstrate strong empirical performance in training large language models (LLMs). Adaptive methods such as Adam (Kingma and Ba, 2014) and its decoupled weight-decay variant AdamW (Loshchilov and Hutter, 2017) have long been the de facto optimizers for large-scale  
+
+> The code is available at: https://github.com/minxin-zhg/namo .
+
+1
+
+> arXiv:2602.17080v2 [cs.LG] 20 Feb 2026 Zhang, Liu and Schaeffer
+
+training. Their coordinate-wise adaptive stepsizes promote training stability and reduce sensitivity to hyperparameter choices. Given momentum coefficients β1, β 2 ∈ [0 , 1), Adam iteratively updates a biased first-moment estimate of the stochastic gradient: 
+
+mt = β1mt−1 + (1 − β1)gt,
+
+and a biased second raw-moment estimate: 
+
+vt = β2vt−1 + (1 − β2)g2 
+
+> t
+
+,
+
+where gt denotes the stochastic gradient at iteration t, and the square is applied elementwise. With the standard bias corrections ˆ mt := mt/(1 − βt
+
+> 1
+
+) and ˆ vt := vt/(1 − βt
+
+> 2
+
+), the parameters are updated via: 
+
+θt = θt−1 − η ˆmt
+
+√ˆvt + ϵ ,
+
+where ϵ > 0 is a small fixed scalar that avoids division by zero, and η > 0 is the learning rate. Throughout the paper, we refer to the hyperparameter η as the learning rate , and to its combina-tion with an adaptive scaling as the effective stepsize . The ratio of the first- and second-moment estimates, ˆ mt/√ˆvt, is often interpreted as a signal-to-noise ratio (SNR). When the update direc-tion is dominated by noise, or as the iterates approach a stationary point, the resulting effective stepsize decreases, which is desirable for stable convergence. When β1 = β2, (Orvieto and Gower, 2025) interprets Adam as performing online estimation of the mean and variance of the stochastic gradients. Moreover, Adam’s update rule can be viewed as combining a sign descent direction with a variance adaptation component. Theoretical analysis and experiments in (Balles and Hennig, 2018) show that the sign-descent component can lead to Adam’s adverse generalization behavior (Wilson et al., 2017), indicating that coupling Adam-type noise adaptation with a different descent direction may yield improved generalization relative to Adam. While Adam and other standard variants of stochastic gradient descent (SGD) treat trainable parameters of neural networks as flattened vectors, the Muon optimizer (Jordan et al., 2024b) exploits their matrix structure by updating weight matrices with orthogonalized momentum. Given a matrix M ∈ Rm×n, if M = U ΣV T is its reduced singular value decomposition (SVD), then its orthogonalization is given by: Orth ( M ) := U V T .
+
+The orthogonalization of M , Orth ( M ), is also called the orthogonal factor in the polar decompo-sition and is the nearest orthogonal matrix to M in the Frobenius norm (Higham, 2008). Muon updates matrix-structured parameters Θ ∈ Rm×n by: Θt = Θ t−1 − ηO t,
+
+where η > 0 is the prescribed learning rate, and Ot ≈ Orth ( Mt) denotes an approximate orthog-onalization of the momentum matrix Mt at iteration t, computed via Newton-Schultz iterations (Bernstein, 2025). Growing evidence demonstrates that Muon achieves superior empirical perfor-mance compared to Adam in LLM training (Jordan et al., 2024a; Team et al., 2025; Liu et al., 2025). Recent studies show that orthogonalized updates can accelerate convergence, facilitate more reliable hyperparameter transfer across model sizes (Boreiko et al., 2025; Shah et al., 2025), and learn more effectively from heavy-tailed data (Wang et al., 2025). In the deterministic setting without momentum, Muon’s orthogonalized update direction can be interpreted as the steepest de-scent direction under the spectral norm, which is shown to be effective for training in deep learning 
+
+> 2Adam Improves Muon
+
+(Davis and Drusvyatskiy, 2025). In stochastic settings, however, matrix orthogonalization is an un-bounded operation (Higham, 1986) that may amplify the impact of noise in the original momentum matrix, leading to training instability (He et al., 2025) and increased sensitivity to hyperparam-eter choices (Crawshaw et al., 2025). This suggests that pairing Muon’s orthogonalized updates with an explicit noise-adaptation mechanism could improve training robustness and further boost performance. In this work, we develop a theoretically principled integration of Adam-type variance adaptation with an orthogonalized update direction. Prior work shows that orthogonalization decouples the direction and magnitude of a matrix update through a norm-duality characterization (Bernstein and Newhouse, 2024, Proposition 5), suggesting that a norm-based rescaling of the orthogonalized update is a natural design choice. We pair norm-based moment estimation with orthogonalized momentum and propose a new optimizer, NAMO ( Norm-Based Adaptive Moment Estimation with Orthogonalized Momentum), together with a diagonal extension, NAMO-D. NAMO scales the orthogonalized momentum with a norm-based adaptive scalar, preserving the orthogonality of the update direction while adapting the effective stepsize to the noise level. NAMO-D scales the orthogonalized momentum with a right-multiplied diagonal matrix, allowing an individual adaptive stepsize for each neuron. We establish theoretical convergence rates for both algorithms, and demonstrate that they outperform the AdamW and Muon baselines in GPT-2 pretraining. 
+
+1.1 Related work 
+
+Unlike Adam’s coordinate-wise adaptive stepsizes, our methods introduce structured stepsize adap-tation for orthogonalized updates: NAMO scales the orthogonalized momentum using a single adaptive stepsize, whereas NAMO-D employs a column-wise adaptive stepsize for the orthogonal-ized momentum. Related simplifications of Adam have also been studied. In (Chezhegov et al., 2024), a clipped norm-based Adam-type stepsize is applied to the momentum, and convergence is analyzed under the assumptions of bounded gradients and heavy-tailed noise. Motivated by the near block-diagonal Hessian structure of neural networks, Adam-mini (Zhang et al., 2024) parti-tions parameters into blocks and assigns a single adaptive learning rate per block, matching Adam’s performance while reducing memory cost. Several adaptive variants of Muon have been proposed as well. AdaMuon (Si et al., 2025) and NorMuon (Li et al., 2025) combine Muon’s orthogonalized momentum with Adam-type scaling variants, though without theoretical convergence guarantees. AdaGO (Zhang et al., 2025) scales the orthogonalized momentum with an adaptively decaying stepsize and achieves optimal theo-retical convergence rates, although its performance in LLM training has yet to be investigated. Layerwise adaptive learning rates for Muon are proposed in (Hao et al., 2025) based on gradient-variance estimation that requires evaluating a nuclear norm, thereby increasing the per-iteration cost. Tuning-robust variants of Muon are explored in (Crawshaw et al., 2025). PRISM (Yang, 2026) augments Muon with a moment-based adaptive preconditioner, but incurs higher additional computational cost than our proposed algorithms, and does not provide theoretical convergence guarantees. DeVA (Song et al., 2026) decouples variance adaptation from scale-invariant sign descent, yielding an Adam-style scaling for Muon’s orthogonalized momentum that require high computational and memory overhead for maintaining Kronecker preconditioners and periodic eigen-decompositions. 
+
+> 3Zhang, Liu and Schaeffer
+
+1.2 Contributions and Organization 
+
+We propose a new optimization algorithm and a diagonal extension for problems with matrix-structured parameters, NAMO and NAMO-D, which provide the first theoretically principled inte-gration of an orthogonalized update direction with noise adaptation based on Adam-type moment estimation. NAMO scales the orthogonalized momentum using a single adaptive stepsize, incurring only a negligible O(mn ) additional computational cost and no additional memory overhead, thus providing a useful improvement for Muon’s performance. On the other hand, NAMO-D scales the orthogonalized momentum by right-multiplying with a diagonal matrix Dt, thereby assigning a neuron-wise adaptive stepsize determined by the column norms of the stochastic gradient and momentum matrices. This column-wise scaling enables finer-grained noise adaptation and aligns with the near block-diagonal Hessian structure commonly observed in neural networks (Dong et al., 2025; An et al., 2025), while no longer strictly preserving the orthogonalized update direction. The diagonal entries of Dt admit an upper bound and are clamped toward the average, ensuring that NAMO-D’s update direction remains well-conditioned. Under standard smoothness and unbiased bounded-variance noise assumptions, we establish optimal convergence rates for both algorithms in the deterministic setting and show that, in the stochastic setting, their convergence guarantees adapt to the noise level of the stochastic gradients and attain the optimal rate when the batch size is sufficiently large. Experiments on pretraining GPT-2 models demonstrate that both NAMO and NAMO-D outperform AdamW and Muon baselines. NAMO-D achieves further gains over NAMO through an additional clamping hyperparameter c, which balances the competing goals of main-taining a well-conditioned update direction and leveraging finer-grained noise adaptation. The rest of the paper is organized as follows. Section 2 describes the proposed algorithms, and Section 3 provides the convergence analysis, with detailed proofs deferred to Appendices A–E. Section 4 presents experiments on GPT-2 pretraining, and Section 5 concludes the paper. 
+
+2 New Optimization Algorithms: NAMO and NAMO-D 
+
+In this section, we describe the proposed algorithm NAMO and its diagonal extension NAMO-D. We consider optimization problems with matrix-structured parameters of the form: min  
+
+> Θ∈Rm×n
+
+L(Θ) ,
+
+where L : Rm×n → R is the (nonconvex) loss function. We impose the following standard smooth-ness of loss function and bounded-variance noise assumptions. 
+
+Assumption 1 The gradient of L(Θ) is Lipschitz continuous, i.e., for arbitrary Θ, Θ′ ∈ Rm×n:
+
+∇L (Θ) − ∇L (Θ ′) ∗ ≤ L Θ − Θ′ 
+
+> 2
+
+, (1) 
+
+for some constant L > 0, where ∥·∥ ∗ and ∥·∥ 2 denote the nuclear norm and the spectral norm respectively. 
+
+Note that gradient of the loss, ∇L (Θ), is in Rm×n and recall that the nuclear norm is the sum of the singular values while the spectral norm is the maximum singular value. 
+
+Assumption 2 At each iteration t, the stochastic gradient Gt is an unbiased estimate of the true gradient, i.e., E[Gt] = ∇L (Θ t−1), with a uniformly bounded variance: 
+
+E
+
+h
+
+∥Gt − ∇L (Θ t−1)∥2
+
+> F
+
+i
+
+≤ σ2
+
+b ,
+
+> 4
+
+Adam Improves Muon 
+
+where b ≥ 1 is the batch size and ∥·∥ F denotes the Frobenius norm. 
+
+Assumption 1 is equivalent to a more commonly seen smooth assumption: 
+
+∇L (Θ) − ∇L (Θ ′) F ≤ L′ Θ − Θ′ 
+
+> F
+
+(2) for a different Lipschitz constant L′ > 0. Since orthogonalized gradient descent can be interpreted as steepest descent under the spectral norm (Shen et al., 2025), we state the smoothness assumption in the equivalent form (1). Details of NAMO and NAMO-D are summarized in Algorithms 1 and 2, respectively. For the theoretical analysis in Section 3, we assume exact orthogonalization in both algorithms, as is standard in existing works (Shen et al., 2025; Sato et al., 2025; Li and Hong, 2025; Chen et al., 2025; Kovalev, 2025; Pethick et al., 2025). In practice, exact orthogonalization can be expensive to compute, and for the experiments in Section 4 we use Newton–Schulz iterations to obtain an approximate orthogonalization, as in the Muon optimizer. NAMO maintains a biased second raw-moment estimate of the squared Frobenius norm: 
+
+vt = μ2vt−1 + (1 − μ2) ∥Gt∥2 
+
+> F
+
+,
+
+where Gt is the stochastic gradient matrix at iteration t, and the momentum matrix Mt is a biased first moment estimate of the stochastic gradient. Applying bias correction yields ˆMt := Mt/(1 −μt
+
+> 1
+
+)and ˆ vt := vt/(1 − μt
+
+> 2
+
+). The parameters Θ ∈ Rm×n are updated by: Θt = Θ t−1 − ηα tOt, (3) where η > 0 is a prescribed learning rate, and the orthogonalized momentum Ot is adaptively scaled by a scalar: 
+
+αt := (1 − μt
+
+> 2
+
+) 12
+
+1 − μt
+
+> 1
+
+∥Mt∥√vt + ϵ =
+
+ˆMt
+
+√ˆvt + ϵt
+
+,
+
+with ϵt := ϵ/ p1 − μt 
+
+> 2
+
+for a small ϵ > 0. When stochastic gradients are noisy, or when the iterates approach a stationary point, αt is small, promoting stable convergence. 
+
+Algorithm 1 NAMO: Norm-Based Adaptive Moment Estimation with Orthogonalized Momentum 
+
+Require: Learning rate η, momentum μ1, μ 2 ∈ [0 , 1), batch size b, ϵ > 0 
+
+> 1:
+
+Initialize Θ 0 ∈ Rm×n, M0 = 0, v0 = 0  
+
+> 2:
+
+for t = 1 , 2, . . . , T do  
+
+> 3:
+
+Sample a minibatch of size b and compute stochastic gradient Gt = ∇L t(Θ t−1) 
+
+> 4:
+
+Mt ← μ1Mt−1 + (1 − μ1)Gt 
+
+> 5:
+
+vt ← μ2vt−1 + (1 − μ2) ∥Gt∥2 
+
+> F
+> 6:
+
+Ot ← Orth ( Mt) 
+
+> 7:
+
+αt ←√1−μt 
+
+> 2
+> 1−μt
+> 1
+> ∥Mt∥F√vt+ϵ
+> 8:
+
+Update parameters Θ t ← Θt−1 − ηα tOt 
+
+> 9:
+
+end for  
+
+> 10:
+
+return ΘT
+
+While NAMO scales the orthogonalized momentum using a single adaptive stepsize, NAMO-D applies a column-wise scaling based on the column norms of the momentum matrix. This design 
+
+5Zhang, Liu and Schaeffer 
+
+assigns an individual adaptive stepsize to each neuron and is consistent with the near block-diagonal Hessian structure commonly observed in neural networks (Dong et al., 2025; An et al., 2025). For each j = 1 , 2, · · · , n , NAMO-D maintains a biased second raw-moment estimate of the squared norm of the j-th colum of the stochastic gradient: [vt]j = μ2 [vt]j−1 + (1 − μ2) [Gt]:j
+
+> 2
+
+.
+
+To write this in an equivalent vector form, define the operator Nc : Rm×n → Rn by: [Nc(M )] j := ∥M:j ∥ , j = 1 , 2, · · · , n, 
+
+where ∥·∥ denotes the Euclidean norm. Then the iterates can be written as: 
+
+vt = μ2vt−1 + (1 − μ2)Nc(Gt) ⊙ N c(Gt).
+
+Applying bias correction yields ˆMt := Mt/(1 − μt
+
+> 1
+
+) and ˆ vt := vt/(1 − μt
+
+> 2
+
+). Now let: 
+
+dt = Nc( ˆMt) ⊘
+
+p ˆvt + ϵt
+
+
+
+,
+
+where ϵt := ϵ/ p1 − μt 
+
+> 2
+
+for a small ϵ > 0, and ⊘ denotes entrywise division. By Lemma 7, the entries of dt are bounded above by: 
+
+∥dt∥∞ = max  
+
+> j
+
+[dt]j ≤
+
+r 1 − μ1
+
+1 − μ2
+
+.
+
+Compared with NAMO, NAMO-D’s column-wise scaling enables finer-grained noise adaptation, but it no longer strictly preserves orthogonality of the update direction. Let ¯dt := ∥dt∥1 /n be the average of the entries of dt. To ensure that the scaled direction remains well-conditioned, we clamp the adaptive stepsizes toward this average via: ˜dt := min max dt, c ¯dt1 , ¯dt/c ,
+
+for a prescribed constant c ∈ (0 , 1] , where the maximum and minimum operations are applied entrywise, and 1 ∈ Rn denotes the vector of all-ones. Let Dt := diag 
+
+˜dt
+
+
+
+. NAMO-D updates the parameters by: Θt = Θ t−1 − ηO tDt.
+
+This update rule combines column-wise, noise-adaptive scaling with a simple clamping safeguard, tempering updates when gradients are noisy or the iterates are near a stationary point, while keeping the scaled update direction well-conditioned. 
+
+3 Convergence Analysis 
+
+In this section, we establish convergence rates for NAMO (Algorithm 1) and NAMO-D (Algo-rithm 2) in both the deterministic and stochastic settings under the standard Assumptions 1–2. The analysis of NAMO is presented in Section 3.1, and the analysis of NAMO-D is presented in Section 3.2. We provide a proof sketch for each of the theorems below and include detailed proofs in Appendices B–E. Proofs of useful lemmata are in Appendix A. The proofs repeatedly use the bias-corrected moment estimates and their convex-combination representations with coefficients: 
+
+w1,t,τ := 1 − μ1
+
+1 − μt
+
+> 1
+
+μt−τ 
+
+> 1
+
+, w2,t,τ := 1 − μ2
+
+1 − μt
+
+> 2
+
+μt−τ 
+
+> 2
+
+, for t ≥ 1 and τ ∈ { 1, . . . , t },
+
+> 6
+
+Adam Improves Muon 
+
+Algorithm 2 NAMO-D: Diagonal exension of NAMO 
+
+Require: Learning rate η, momentum μ1, μ 2 ∈ [0 , 1), batch size b, ϵ > 0, c ∈ (0 , 1]  
+
+> 1:
+
+Initialize Θ 0 ∈ Rm×n, M0 = 0, v0 = 0  
+
+> 2:
+
+for t = 1 , 2, . . . , T do  
+
+> 3:
+
+Sample a minibatch of size b and compute stochastic gradient Gt = ∇L t(Θ t−1) 
+
+> 4:
+
+Mt ← μ1Mt−1 + (1 − μ1)Gt 
+
+> 5:
+
+vt ← μ2vt−1 + (1 − μ2)Nc(Gt) ⊙ N c(Gt) 
+
+> 6:
+
+dt ←√1−μt
+
+> 2
+> 1−μt
+> 1
+
+Nc(Mt) ⊘  √vt + ϵ 
+
+> 7:
+
+¯dt ← ∥ dt∥1 /n  
+
+> 8:
+
+Ot ← Orth ( Mt) 
+
+> 9:
+
+Dt ← diag  min max dt, c ¯dt1 , 1 
+
+> c
+
+¯dt1  
+
+> 10:
+
+Update parameters Θ t ← Θt−1 − ηO tDt 
+
+> 11:
+
+end for  
+
+> 12:
+
+return ΘT
+
+which satisfy Ptτ =1 w1,t,τ = Ptτ =1 w2,t,τ = 1 . This representation allows one to control the devi-ation between the bias-corrected momentum and the current gradient via Assumption 1, as well as the magnitude of the bias-corrected second-moment estimate by elementary geometric-series bounds. 
+
+3.1 Analysis of NAMO 
+
+We first analyze the convergence of NAMO in the deterministic case where gradients are evaluated exactly. The O(T −1/2) rate established in the theorem below is the best possible for deterministic first-order methods under Assumption 1; see (Carmon et al., 2020, Theorem 2). 
+
+Theorem 3 (NAMO in the deterministic case) Suppose Assumptions 1 holds. Let {Θt} ⊂ 
+
+Rm×n be the sequence of iterates generated by Algorithm 1 with full-batch gradients and 0 ≤ μ1 ≤
+
+μ2 < 1. If choosing η = O
+
+
+
+T − 12
+
+
+
+, ϵ = O(T − 12 ), μ 1 = Θ(1) and μ2 = Θ(1) , then for large T > 0:
+
+1
+
+T
+
+> T
+
+X
+
+> t=1
+
+∥∇L (Θ t−1)∥F ≤ O 
+
+
+
+T − 12
+
+
+
+.
+
+Proof sketch. Let ˆMt := Mt/(1 −μt
+
+> 1
+
+) and ˆ vt := vt/(1 −μt
+
+> 2
+
+) denote the bias-corrected moments, so that ˆMt = Ptτ =1 w1,t,τ ∇L(Θ τ −1) and ˆ vt = Ptτ =1 w2,t,τ ∥∇ L(Θ τ −1)∥2 
+
+> F
+
+. Define the adaptive scaling 
+
+αt as in (3). Applying Lemma 7 to the vectorization of the gradient matrix sequence {∇ L(Θ τ −1)}
+
+yields a uniform upper bound on αt (Appendix B, Step 1). Next, using the orthogonalized de-scent inequality from (Zhang et al., 2025, Lemma B.1) and Assumption 1, one obtains an average inequality involving: 
+
+∥ ˆMt∥F ∥∇ L(Θ t−1)∥∗
+
+√ˆvt + ϵ/ p1 − μt
+
+> 2
+
+and ∥∇ L(Θ t−1) − ˆMt∥∗
+
+(Appendix B, Step 2). The deviation of the bias-corrected momentum from the gradient is then controlled using the convex-combination representation of ˆMt together with Assumption 1 and a telescoping bound on ∥Θτ −1 − Θt−1∥2 (Appendix B, Step 3). Similarly, √ˆvt is upper bounded by ∥∇ L(Θ t−1)∥∗ plus a constant obtained from geometric-series estimates (Appendix B, Step 4). Combining these bounds and applying Lemma 8 converts the bound on an averaged surrogate ϕϵ
+
+7Zhang, Liu and Schaeffer 
+
+into the stated bound on the average gradient norm (Appendix B, Steps 5–6). The full proof is provided in Appendix B. ■
+
+Next we analyze NAMO in the stochastic case where stochastic gradients have bounded variance. The best possible convergence rate for stochastic first-order methods under Assumptions 1–2 is 
+
+O(T −1/4); see (Arjevani et al., 2023, Theorem 3). The following result shows that NAMO adapts to the noise level of the stochastic gradients and achieves the optimal convergence rate when the batch size is sufficiently large. 
+
+Theorem 4 (NAMO in the stochastic case) Suppose Assumptions 1–2 hold. Let {Θt} ⊂ Rm×n
+
+be the sequence of iterates generated by Algorithm 1. For large T > 0, if we set η = O(T − 34 ),
+
+1 − μ1 = Θ( T − 12 ), 1 − μ2 = Θ( T − 12 ), 0 ≤ μ1 ≤ μ2 < 1, and ϵ = O(T − 12 ), then: 
+
+1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥∇L (Θ t−1)∥F ] ≤ O 
+
+
+
+T − 14 + √σb − 14 T − 18
+
+
+
+,
+
+where b is the batch size. 
+
+Proof sketch. The proof again works with the convex-combination representations of the bias-corrected moment estimates ˆMt and ˆ vt with weight coefficients w1,t,τ and w2,t,τ respectively. Let 
+
+Et[·] be the expectation conditioned on the iterate Θ t−1, and define the deviation term Et := ˆMt −∇L(Θ t−1). Using (Zhang et al., 2025, Lemma B.1) and taking conditional expectations yields an average bound on E[αt∥ ˆMt∥∗] in terms of E [∥Et∥∗] and E α2
+
+> t
+
+ (Appendix C, Step 2). The quantity 
+
+E [∥Et∥∗] is controlled by decomposing Et into a weighted sum of noise terms Gτ − ∇ L(Θ τ −1)and a drift term ∇L(Θ τ −1) − ∇ L(Θ t−1). The noise term is bounded above via Assumption 2, the drift term is bounded above using Assumption 1 along with a telescoping argument, and then Lemma 9 is applied to bound the averaging over t (Appendix C, Step 3). In parallel, Minkowski and Jensen’s inequalities yield an upper bound on the expected denominator term E
+
+h√ˆvt + ϵ/ p1 − μt
+
+> 2
+
+i
+
+by E [∥∇ L(Θ t−1)∥] plus an explicit additive term containing σ/ √b, then Lemma 10 is applied to bound the averaging over t (Appendix C, Step 4). Finally, a Cauchy–Schwarz argument relates 
+
+E[αt∥ ˆMt∥F ] to E[∥∇ L(Θ t−1)∥F ], leading to a quadratic inequality in E [∥∇ L(Θ t−1)∥F ] that can be solved explicitly (Appendix C, Step 5). Substituting the averaged bounds and the parameter choices yields the stated rate. The full proof is provided in Appendix C. ■
+
+This result indicates that the convergence rate of NAMO is adaptive to the noise level of the stochas-tic gradients, and that choosing the batch size as b = Ω( σ2√T ) recovers the optimal O(T −1/4)rate. 
+
+3.2 Analysis of NAMO-D 
+
+NAMO-D introduces a column-wise diagonal scaling Dt, defined in Algorithm 2, instead of the scalar αt. We first establish its optimal O  T −1/2 rate for the deterministic case where gradients are evaluated exactly in the theorem below. 
+
+Theorem 5 (NAMO-D in the deterministic case) Suppose Assumption 1 holds. Let {Θt} ⊂ 
+
+Rm×n be the sequence of iterates generated by Algorithm 2 using full batch with 0 ≤ μ1 ≤ μ2 < 1.If we choose η = O(T − 12 ), 1 − μ1 = Θ(1) , 1 − μ2 = Θ(1) , 0 ≤ μ1 ≤ μ2 < 1, ϵ = O(T − 12 n−1), and 
+
+> 8
+
+Adam Improves Muon 
+
+c = Θ(1) , then: 
+
+1
+
+T
+
+> T
+
+X
+
+> t=1
+
+∥∇L (Θ t−1)∥F ≤ O 
+
+
+
+T − 12
+
+
+
+,
+
+for large T > 0.
+
+Proof sketch. The proof works with the diagonal scaling matrix Dt defined as in Section 2 and its extremal diagonal entries dt, max and dt, min . Applying Lemma 7 column-wise yields a uniform upper bound on the entries of Dt (Appendix D, Step 1). The clamping rule implies dt, min ≥ c2 dt, max 
+
+and hence bounds the condition number of Dt. Applying the orthogonalized descent inequality (Zhang et al., 2025, Lemma B.1) gives an average bound on dt, max ∥∇ L(Θ t−1)∥∗ in terms of the deviation ∇L(Θ t−1) − ˆMt ∗ (Appendix D, Step 2). The deviation term and the term 
+
+qPnj=1 ˆvjt
+
+are controlled using similar arguments as in the proof of Theorem 3, together with geometric-series bounds (Appendix D, Steps 3–4). The result again follows by combining these bounds and applying Lemma 8 (Appendix D, Steps 5–6). The full proof is provided in Appendix D. ■
+
+In the stochastic case, we show that the convergence of NAMO-D adapts to the noise level of stochastic gradients, and achieves the optimal O  T −1/4 rate when the batch size is sufficiently large. 
+
+Theorem 6 (NAMO-D in the stochastic case) Suppose Assumptions 1–2 holds. Let {Θt} ⊂ 
+
+Rm×n be the sequence of iterates generated by Algorithm 2. For large T > 0, if we set η = O(T − 34 ),
+
+1 − μ1 = Θ( T − 12 ), 1 − μ2 = Θ( T − 12 ), 0 ≤ μ1 ≤ μ2 < 1, ϵ = O(T − 12 ), and c = Θ(1) , then: 
+
+1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥∇L (Θ t−1)∥F ] ≤ O 
+
+
+
+T − 14 + √σb − 14 T − 18
+
+
+
+,
+
+where b is the batch size. 
+
+Proof sketch. Define ˆMt, ˆ vt, and Dt as before, and let Et [·] denotes the expectation conditioned on iterate Θ t−1, and Et := ˆMt − ∇ L(Θ t−1). The expected descent step uses Lemma 11 to lower bound ⟨ ˆMt, O tDt⟩ by dt, min ˆMt ∗, and the clamping rule controls the ratio of dt, max and dt, min 
+
+(Appendix E, Step 2). The averaged deviation term 1
+
+> T
+
+PTt=1 E [∥Et∥∗] is bounded by the same variance-plus-drift decomposition as in the proof of Theorem 4, using Assumption 2 to control the noise term and Assumption 1 to control the drift term via a telescoping argument; then averaging uses Lemma 9 (Appendix E, Step 3). For the denominator, Minkowski and Jensen’s inequalities yield an upper bound on E[
+
+qPnj=1 ˆvjt ] by E [∥∇ L(Θ t−1)∥] plus an explicit additive term contain-ing σ/ √b; then the averaging over t is bounded using Lemma 10 (Appendix E, Step 4). Finally, a Cauchy–Schwarz argument relate E
+
+h
+
+dt, max ˆMt F
+
+i
+
+to the expected gradient norm, yielding a quadratic inequality in E [∥∇ L(Θ t−1)∥] that can be solved explicitly (Appendix E, Step 5). Com-bining these bounds with the specified hyperparameter choices gives the stated convergence rate (Appendix E, Step 6). The full proof is provided in Appendix E. ■
+
+This result indicates that the convergence rate of NAMO-D, like that of NAMO, is adaptive to the noise level of the stochastic gradients, and that the optimal O(T −1/4) rate is recovered when choosing the batch size as b = Ω( σ2√T ),
+
+9Zhang, Liu and Schaeffer 
+
+The results of this section demonstrate that both NAMO and NAMO-D can achieve optimal con-vergence rates in terms of the order on T . This occurs in both the deterministic and stochastic settings under Assumptions 1-2. In the deterministic setting, the O(T −1/2) bound matches the known lower complexity bound for smooth nonconvex optimization with first-order methods, thus demonstrating that utilizing orthogonalized update and adaptive scaling does not incur any de-terioration in the convergence or complexity. In the stochastic regime, the bounds decompose naturally into an optimization term of order O(T −1/4) and an explicit variance-dependent term scaling as O  √σ b −1/4T −1/8, and thus quantifying the precise affect of gradient noise and batch size. Specifically, when b = Ω( σ2T 1/2), the variance term becomes asymptotically dominated and the optimal O(T −1/4) rate is recovered. The analysis further shows that the orthogonalized descent inequality, combined with bias-corrected moment estimates and controlled adaptive scaling (scalar or diagonal), yields a unified proof strategy that is robust to both drift and stochastic perturbations. Altogether, these guarantees provide a rigorous complexity characterization of the proposed meth-ods and confirm that their matrix-aware adaptive scaling preserves optimal first-order performance while maintaining stability under noise. 
+
+4 Experiments 
+
+4.1 Experimental setup Baselines. We compare our proposed algorithms, NAMO and NAMO-D, against two popular baselines: AdamW (Loshchilov and Hutter, 2017) and Muon (Jordan et al., 2024b). Since Muon, NAMO, and NAMO-D are designed specifically for matrix parameters, we use AdamW to optimize all remaining scalar and vector parameters across all models. For brevity, we refer to these hybrid optimizers simply as Muon, NAMO, and NAMO-D. 
+
+Model Architectures. We evaluate all optimizers on GPT-2 pretraining experiments, which are based on the nanoGPT (Karpathy, 2022) implementation of the GPT-2 architecture (Radford et al., 2019). Two model sizes are considered: small (124M parameters), and medium (355M parameters). All experiments are conducted on 4 × NVIDIA H100 GPUs. 
+
+Dataset. All experiments are conducted on the OpenWebText dataset (Gokaslan et al., 2019), which contains approximately 9 billion training tokens and 4.4 million validation tokens. 
+
+Training details. We use standard hyperparameter settings for the baselines. For AdamW, we set the momentum coefficients to β1 = 0 .9 and β2 = 0 .95. For Muon, the momentum coefficient is set to β = 0 .95. For NAMO and NAMO-D, the momentum coefficients are set to μ1 = 0 .95 and 
+
+μ2 = 0 .99. The weight decay coefficient is set to λ = 0 .01 for all optimizers. The Muon optimizer applies decoupled weight decay as AdamW: Θt = Θ t−1 − η (Ot + λΘt−1) ,
+
+where η is the prescribed learning rate. For NAMO and NAMO-D, as part of the effective stepsize, the adaptive scaling is applied to the decoupled weight decay as well. Specifically, NAMO updates by: Θt = Θ t−1 − ηα t (Ot + λΘt−1) ,
+
+where αt is given in Algorithm 1, and NAMO-D updates by: Θt = Θ t−1 − η (Ot + λΘt−1) Dt,
+
+> 10 Adam Improves Muon
+
+where Dt is given in Algorithm 2. For GPT-2 (124M) model pretraining, we train with context length L = 1024 and an effective batch size of 480 sequences (491,520 tokens) per optimizer update for all optimizers (micro-batch size B = 60 and gradient accumulation K = 8). For GPT-2 (355M) model, we also train with context length L = 1024 and an effective batch size of 480 sequences (491,520 tokens) per optimizer update for all optimizers (micro-batch size B = 40 and gradient accumulation K = 12). For both models and all optimziers, we use the following learning rate scheduler: 2000-step linear warm-up followed by constant learning rate. Also, for both models, we sweep for optimal learning rate η for each optimizer through a grid search. For NAMO-D, we fix the clamping hyperparameter c = 0 .1 for GPT-2 (124M) experiments, and sweep for optimal c for GPT-2 (355M) experiments. 
+
+4.2 Empirical Results on GPT-2 
+
+For pretraining the GPT-2 (124M) model, we perform a grid search for each optimizer to find the optimal learning rate (LR) that achieves the lowest validation loss after 10K steps. The sweeping results are presented in Figure 1, which shows that NAMO and NAMO-D achieve lower training and validation losses across a wider range of learning-rate choices, demonstrating both accelerated convergence and improved tuning robustness comparing to Muon and AdamW. The optimal learning rate selected from the 10K-step sweep for each optimizer is listed in Table 1. While NAMO and NAMO-D exhibit similar training and validation losses in the 10K-step learning-rate sweep, Figure 2 shows that when training is extended to 50K steps using the selected optimal learning rate, NAMO-D attains lower training and validation losses than NAMO, demonstrating advantages of its finer-grained neuron-wise adaptive scaling. The training and validation losses at termination for each optimizer are reported in Table 2. We further conduct experiments on pretraining the GPT-2 (355M) model. For each optimizer, we sweep from five learning rates that are around the chosen optimal learning rate for GPT-2 (124M) model listed in Table 1. Specifically, for Muon and AdamW, we sweep for the optimal LR from the following set: 
+
+{0.0006 , 0.0009 , 0.0013 , 0.0018 , 0.0025 } ;for NAMO and for NAMO-D, we sweep for the optimal LR from the following set: 
+
+{0.005 , 0.007 , 0.009 , 0.012 , 0.015 } .
+
+The optimal LR is the one that achieves the lowest validation loss after 10K steps. Additionally, for NAMO-D, we observe that its performance on the GPT-2 (355M) model can vary for different choices of the clamping hyperparameter c. Therefore, we also sweep for an optimal c from the following set: 
+
+{0.12 , 0.40 , 0.75 , 0.90 } .
+
+The optimal hyperparameters for each optimizer for the GPT-2 (355M) model are listed in Table 1, and the training and validation losses at termination for each optimizer are reported in Table 2, together with those for the GPT-2 (124M) model. Figure 3 show that NAMO and NAMO-D out-performs both Muon and AdamW, with NAMO-D providing further gains over NAMO through the additional hyperparameter c. This observation is consistent with the algorithmic design of the two proposed algorithms. NAMO augments Muon with adaptivity while preserving the orthogonality of the update direction. On the other hand, NAMO-D enables neuron-wise adaptivity while no longer strictly preserving the orthogonalized direction, and a suitable choice of the clamping parameter 
+
+c balances the two competing goals of maintaining the structural advantages of a well-conditioned update direction and benefiting from finer-grained noise adaptation. 
+
+> 11 Zhang, Liu and Schaeffer
+
+Table 1: Optimal hyperparameters for all optimizers and pretraining of two model sizes. 
+
+Grid search is used to determine the optimal choices. Optimizer GPT-2 (124M) Hyperparameters GPT-2 (355M) Hyperparameters AdamW η = 0 .0013 η = 0 .0009 Muon η = 0 .0013 η = 0 .0009 NAMO η = 0 .012 η = 0 .007 NAMO-D η = 0 .009, c = 0 .1 η = 0 .009, c = 0 .9 
+
+> (a) Training loss (b) Validation Loss
+
+Figure 1: Hyperparameter sweeping results for GPT-2 (124M). The training and validation losses at step 10K are reported, where the x-axis is the learning rate.  
+
+> (a) Training loss (b) Validation Loss
+
+Figure 2: Pretraining GPT-2 (124M) for 50K steps. The optimal LR from sweeping for 10K steps is used. 
+
+> 12 Adam Improves Muon
+
+Table 2: Final training and validation losses for GPT-2 (124M) and GPT-2 (355M). 
+
+GPT-2 (124M) is trained for 50K steps, and GPT-2 (355M) is trained for 10K steps. Optimizer GPT-2 (124M) GPT-2 (355M) Training Loss Validation Loss Training Loss Validation Loss AdamW 3.0456 3.0643 2.9760 2.9914 Muon 3.0265 3.0435 2.9524 2.9684 NAMO 2.9272 3.0351 2.9359 2.9516 NAMO-D 2.9167 3.0246 2.9351 2.9507  
+
+> (a) Training loss (b) Validation Loss
+
+Figure 3: Pretraining GPT-2 (355M) for 10K steps. The optimal LR (and optimal c for NAMO-D) from sweeping for 10K steps are used. 
+
+> 13 Zhang, Liu and Schaeffer
+
+5 Conclusions and Future Work 
+
+In this work, we propose a new optimizer and a diagonal extension, NAMO and NAMO-D, which provide the first theoretically principled integration of an orthogonalized update direction with norm-based adaptive moment estimation for noise adaptation. NAMO rescales Muon’s orthogo-nalized momentum by a single adaptive scalar, thereby preserving the orthogonality of the update direction while yielding performance improvements over Muon at negligible additional computa-tional cost. NAMO-D instead right-multiplies the orthogonalized momentum by a diagonal ma-trix, enabling finer-grained, neuron-wise noise adaptation for further improving performance, albeit without strictly preserving orthogonality of the update direction. Under standard smoothness and unbiased bounded-variance noise assumptions, we establish optimal convergence rates for both al-gorithms in the deterministic setting and show that, in the stochastic setting, their convergence guarantees adapt to the noise level of the stochastic gradients and attain the optimal rate when the batch size is sufficiently large. Experiments on pretraining GPT-2 (124M) and GPT-2 (355M) models demonstrate the improved performance of both NAMO and NAMO-D compared to the AdamW and Muon baselines. NAMO-D provides further gains over NAMO through an addi-tional clamping hyperparameter, which can be tuned to balance two competing goals: maintaining the structural advantages of a well-conditioned update direction and leveraging finer-grained noise adaptation. Future work includes evaluating NAMO and NAMO-D on larger LLMs, developing tuning-light variants of NAMO-D, and further investigating theoretical and practical advantages of noise-adaptive scaling for orthogonalized updates. 
+
+Acknowledgement 
+
+Funding. This work was supported in part by NSF DMS 2502561. 
+
+References 
+
+Kang An, Yuxing Liu, Rui Pan, Yi Ren, Shiqian Ma, Donald Goldfarb, and Tong Zhang. Asgo: Adaptive structured gradient optimization. arXiv preprint arXiv:2503.20762 , 2025. Yossi Arjevani, Yair Carmon, John C Duchi, Dylan J Foster, Nathan Srebro, and Blake Woodworth. Lower bounds for non-convex stochastic optimization. Mathematical Programming , 199(1):165– 214, 2023. Lukas Balles and Philipp Hennig. Dissecting adam: The sign, magnitude and variance of stochastic gradients. In International Conference on Machine Learning , pages 404–413. PMLR, 2018. Jeremy Bernstein. The modula docs, 2025. URL https://docs.modula.systems/ .Jeremy Bernstein and Laker Newhouse. Old optimizer, new norm: An anthology. arXiv preprint arXiv:2409.20325 , 2024. Valentyn Boreiko, Zhiqi Bu, and Sheng Zha. Towards understanding of orthogonalization in muon. In High-dimensional Learning Dynamics 2025 , 2025. Yair Carmon, John C Duchi, Oliver Hinder, and Aaron Sidford. Lower bounds for finding stationary points i. Mathematical Programming , 184(1):71–120, 2020. Lizhang Chen, Jonathan Li, and Qiang Liu. Muon optimizes under spectral norm constraints. 
+
+arXiv preprint arXiv:2506.15054 , 2025. 
+
+> 14 Adam Improves Muon
+
+Savelii Chezhegov, Yaroslav Klyukin, Andrei Semenov, Aleksandr Beznosikov, Alexander Gasnikov, Samuel Horv´ ath, Martin Tak´ aˇ c, and Eduard Gorbunov. Clipping improves adam-norm and adagrad-norm when the noise is heavy-tailed. arXiv preprint arXiv:2406.04443 , 2024. Michael Crawshaw, Chirag Modi, Mingrui Liu, and Robert M Gower. An exploration of non-euclidean gradient descent: Muon and its many variants. arXiv preprint arXiv:2510.09827 ,2025. Damek Davis and Dmitriy Drusvyatskiy. When do spectral gradient updates help in deep learning? 
+
+arXiv preprint arXiv:2512.04299 , 2025. Zhaorui Dong, Yushun Zhang, Jianfeng Yao, and Ruoyu Sun. Towards quantifying the hessian structure of neural networks. arXiv preprint arXiv:2505.02809 , 2025. Aaron Gokaslan, Vanya Cohen, Ellie Pavlick, and Stefanie Tellex. Openwebtext corpus, 2019. Jie Hao, Xiaochuan Gong, Jie Xu, Zhengdao Wang, and Mingrui Liu. Noise-adaptive layerwise learning rates: Accelerating geometry-aware optimization for deep neural network training. arXiv preprint arXiv:2510.14009 , 2025. Wei He, Kai Han, Hang Zhou, Hanting Chen, Zhicheng Liu, Xinghao Chen, and Yunhe Wang. Root: Robust orthogonalized optimizer for neural network training. arXiv preprint arXiv:2511.20626 ,2025. Nicholas J Higham. Computing the polar decomposition—with applications. SIAM Journal on Scientific and Statistical Computing , 7(4):1160–1174, 1986. Nicholas J Higham. Functions of matrices: theory and computation . SIAM, 2008. Keller Jordan, Jeremy Bernstein, Ben Rappazzo, B Vlado, Y Jiacheng, F Cesista, and B Koszarsky. Modded-nanogpt: Speedrunning the nanogpt baseline. GitHub repository , 2024a. Keller Jordan, Yuchen Jin, Vlado Boza, You Jiacheng, Franz Cesista, Laker Newhouse, and Jeremy Bernstein. Muon: An optimizer for hidden layers in neural networks, 2024b. URL https: //kellerjordan.github.io/posts/muon/ .Andrej Karpathy. Nanogpt. https://github.com/karpathy/nanoGPT , 2022. Diederik P Kingma and Jimmy Ba. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 , 2014. Dmitry Kovalev. Understanding gradient orthogonalization for deep learning via non-euclidean trust-region optimization. arXiv preprint arXiv:2503.12645 , 2025. Jiaxiang Li and Mingyi Hong. A note on the convergence of muon. arXiv preprint arXiv:2502.02900 ,2025. Zichong Li, Liming Liu, Chen Liang, Weizhu Chen, and Tuo Zhao. Normuon: Making muon more efficient and scalable. arXiv preprint arXiv:2510.05491 , 2025. Jingyuan Liu, Jianlin Su, Xingcheng Yao, Zhejun Jiang, Guokun Lai, Yulun Du, Yidao Qin, Weixin Xu, Enzhe Lu, Junjie Yan, et al. Muon is scalable for llm training. arXiv preprint arXiv:2502.16982 , 2025. 
+
+> 15 Zhang, Liu and Schaeffer
+
+Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization. arXiv preprint arXiv:1711.05101 , 2017. Antonio Orvieto and Robert Gower. In search of adam’s secret sauce. arXiv preprint arXiv:2505.21829 , 2025. Thomas Pethick, Wanyun Xie, Kimon Antonakopoulos, Zhenyu Zhu, Antonio Silveti-Falls, and Volkan Cevher. Training deep learning models with norm-constrained lmos. arXiv preprint arXiv:2502.07529 , 2025. Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, Ilya Sutskever, et al. Language models are unsupervised multitask learners. OpenAI blog , 1(8):9, 2019. Naoki Sato, Hiroki Naganuma, and Hideaki Iiduka. Analysis of muon’s convergence and critical batch size. arXiv preprint arXiv:2507.01598 , 2025. Ishaan Shah, Anthony M. Polloreno, Karl Stratos, Philip Monk, Adarsh Chaluvaraju, Andrew Hojel, Andrew Ma, Anil Thomas, Ashish Tanwer, Darsh J. Shah, et al. Practical efficiency of muon for pretraining, 2025. Wei Shen, Ruichuan Huang, Minhui Huang, Cong Shen, and Jiawei Zhang. On the convergence analysis of muon. arXiv preprint arXiv:2505.23737 , 2025. Chongjie Si, Debing Zhang, and Wei Shen. AdaMuon: Adaptive muon optimizer. arXiv preprint arXiv:2507.11005 , 2025. Zitao Song, Cedar Site Bai, Zhe Zhang, Brian Bullins, and David F Gleich. Decoupling variance and scale-invariant updates in adaptive gradient descent for unified vector and matrix optimization. 
+
+arXiv preprint arXiv:2602.06880 , 2026. Kimi Team, Yifan Bai, Yiping Bao, Guanduo Chen, Jiahao Chen, Ningxin Chen, Ruijue Chen, Yanru Chen, Yuankun Chen, Yutian Chen, et al. Kimi k2: Open agentic intelligence. arXiv preprint arXiv:2507.20534 , 2025. Shuche Wang, Fengzhuo Zhang, Jiaxiang Li, Cunxiao Du, Chao Du, Tianyu Pang, Zhuoran Yang, Mingyi Hong, and Vincent YF Tan. Muon outperforms adam in tail-end associative memory learning. arXiv preprint arXiv:2509.26030 , 2025. Ashia C Wilson, Rebecca Roelofs, Mitchell Stern, Nati Srebro, and Benjamin Recht. The marginal value of adaptive gradient methods in machine learning. Advances in neural information pro-cessing systems , 30, 2017. Yujie Yang. Prism: Structured optimization via anisotropic spectral shaping. arXiv preprint arXiv:2602.03096 , 2026. Minxin Zhang, Yuxuan Liu, and Hayden Schaeffer. Adagrad meets muon: Adaptive stepsizes for orthogonal updates. arXiv preprint arXiv:2509.02981 , 2025. Yushun Zhang, Congliang Chen, Ziniu Li, Tian Ding, Chenwei Wu, Diederik P Kingma, Yinyu Ye, Zhi-Quan Luo, and Ruoyu Sun. Adam-mini: Use fewer learning rates to gain more. arXiv preprint arXiv:2406.16793 , 2024. 
+
+> 16
+
+Adam Improves Muon 
+
+Appendix A. Useful Lemmata 
+
+This section contains proofs of lemmata used in the analysis of NAMO and NAMO-D. The following lemma is used in the proofs of Theorems 3–6 for the derivation of a uniform upper bound of the adaptive stepsizes. 
+
+Lemma 7 Assume μ1, μ 2 ∈ (0 , 1] with μ1 ≤ μ2, t > 0, and g1, g 2, · · · , g t ∈ Rd. Define mt by 
+
+m0 = 0 and: 
+
+mτ = μ1mτ −1 + (1 − μ1)gτ , τ = 1 , 2, · · · , t − 1.
+
+Define vt by v0 = 0 and: 
+
+vτ = μ2mτ −1 + (1 − μ2) ∥gτ ∥2 , τ = 1 , 2, · · · , t − 1.
+
+Let ˆmt := mt/(1 − μt
+
+> 1
+
+) and ˆvt := vt/(1 − μt
+
+> 2
+
+). Then: 
+
+∥ ˆmt∥√ˆvt
+
+≤
+
+r 1 − μ1
+
+1 − μ2
+
+.
+
+Proof Write w1,t,τ := 1−μ1
+
+> 1−μt
+> 1
+
+μt−τ 
+
+> 1
+
+and w2,t,τ := 1−μ2
+
+> 1−μt
+> 2
+
+μt−τ 
+
+> 2
+
+. Then: ˆmt = 1 − μ1
+
+1 − μt
+
+> 1
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 1
+
+gτ =
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ gτ ,
+
+and ˆvt = 1 − μ2
+
+1 − μt
+
+> 2
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+∥gτ ∥2 =
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ ∥gτ ∥2 .
+
+Since Ptτ =1 w1,t,τ = Ptτ =1 w2,t,τ = 1 . Under the assumption that μ1 ≤ μ2,w1,t,τ = 1 − μ1
+
+1 − μ2
+
+1 − μt
+
+> 2
+
+1 − μt
+
+> 1
+
+ μ1
+
+μ2
+
+t−τ
+
+w2,t,τ ≤ 1 − μ1
+
+1 − μ2
+
+w2,t,τ .
+
+By Cauchy-Schwarz inequality, 
+
+∥ ˆmt∥2 =
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ gτ
+
+> 2
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ 
+
+! tX 
+
+> τ=1
+
+w1,t,τ ∥gτ ∥2
+
+!
+
+≤ 1 − μ1
+
+1 − μ2
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ ∥gτ ∥2
+
+= 1 − μ1
+
+1 − μ2
+
+ˆvt.
+
+Hence, 
+
+αt ≤ ∥ ˆmt∥√ˆvt
+
+≤
+
+r 1 − μ1
+
+1 − μ2
+
+.
+
+17 Zhang, Liu and Schaeffer 
+
+The lemma below is used in the analysis of NAMO and NAMO-D in the deterministic setting, i.e. in the proofs of Theorem 3 and Theorem 5. 
+
+Lemma 8 For ϵ > 0 and x ≥ 0, define ϕϵ(x) := x2 
+
+> x+ϵ
+
+. Then: 
+
+x ≤ ϕϵ(x) + pϵϕ ϵ(x).
+
+Proof By the definition of ϕϵ(x), 
+
+x2 − ϕϵ(x)x − ϵϕ ϵ(x) ≤ 0.
+
+Solving for x gives: 
+
+x ≤ ϕϵ(x) + pϕϵ(x)2 + 4 ϵϕ ϵ(x)2 ≤ ϕϵ(x) + pϵϕ ϵ(x).
+
+The following two lemmas are used in the proofs of Theorem 4 and Theorem 6. 
+
+Lemma 9 For μ ∈ (0 , 1) and T > 0,
+
+> T
+
+X
+
+> t=1
+
+11 − μt ≤ T + μ
+
+1 − μ − 1ln μ ln 
+
+ 1 − μT
+
+1 − μ
+
+
+
+.
+
+Proof For x ≥ 1, define: 
+
+f (x) := μx
+
+1 − μx .
+
+Since: 
+
+f ′(x) = μx ln μ
+
+(1 − μx)2 < 0,
+
+the integral test gives: TX
+
+> t=1
+
+μt
+
+1 − μt =
+
+> T
+
+X
+
+> t=1
+
+f (t) ≤ f (1) + 
+
+Z T
+
+> 1
+
+f (x)dx. 
+
+To compute the integral, write y := μx, then dy = μx ln μdx = y ln μdx, and 
+
+Z T
+
+> 1
+
+μx
+
+1 − μx dx =
+
+Z μT
+
+> μ
+
+y
+
+1 − ydy y ln μ = − 1ln μ
+
+Z μT
+
+> μ
+
+d ln(1 − y) = − 1ln μ ln 
+
+ 1 − μT
+
+1 − μ
+
+
+
+.
+
+Hence, TX
+
+> t=1
+
+μt
+
+1 − μt ≤ μ
+
+1 − μ − 1ln μ ln 
+
+ 1 − μT
+
+1 − μ
+
+
+
+.
+
+It then follows that: 
+
+> T
+
+X
+
+> t=1
+
+11 − μt =
+
+> T
+
+X
+
+> t=1
+
+
+
+1 + μt
+
+1 − μt
+
+
+
+≤ T + μ
+
+1 − μ − 1ln μ ln 
+
+ 1 − μT
+
+1 − μ
+
+
+
+.
+
+18 Adam Improves Muon 
+
+Lemma 10 For μ ∈ (0 , 1) and T > 0,
+
+> T
+
+X
+
+> t=1
+
+1
+
+p1 − μt ≤ T − 2 ln(1 + p1 − μT )ln μ .
+
+Proof For x ≥ 1, define: 
+
+f (x) := 1
+
+√1 − μx .
+
+Since: 
+
+f ′(x) = μx ln μ
+
+2(1 − μx)3/2 < 0,
+
+f is strictly decreasing on [1 , ∞). Hence, 
+
+> T
+
+X
+
+> t=1
+
+1
+
+p1 − μt ≤
+
+Z T
+
+> 0
+
+f (x)dx. 
+
+Let y := √1 − μx, then dy = −μx ln μ 
+
+> 2√1−μx
+
+dx = (y2−1) ln μ 
+
+> 2y
+
+dx. It follows that: 
+
+> T
+
+X
+
+> t=1
+
+1
+
+p1 − μt ≤
+
+Z T
+
+> 0
+
+1
+
+√1 − μx dx = −2ln μ
+
+Z √1−μT
+
+> 0
+
+11 − y2 dy = 1
+
+− ln μ ln 1 + p1 − μT
+
+1 − p1 − μT
+
+!
+
+.
+
+Since: 1
+
+− ln μ ln 1 + p1 − μT
+
+1 − p1 − μT
+
+!
+
+= 1
+
+− ln μ ln 
+
+
+
+1 + p1 − μT
+
+2
+
+1 − (1 − μT )
+
+ = T − 2 ln(1 + p1 − μT )ln μ ,
+
+Hence, TX
+
+> t=1
+
+1
+
+p1 − μt ≤ T − 2 ln(1 + p1 − μT )ln μ .
+
+The lemma below is used for the analysis for NAMO-D, i.e., in the proofs of Theorem 5 and Theorem 6. 
+
+Lemma 11 Let M ∈ Rm×n have reduced singular value decomposition (SVD) M = U ΣV T , and let O = U V T . Let D = diag ( d1, · · · , dn ) with di ≥ 0 for all i, and write dmin := min i di. Then 
+
+⟨M, OD ⟩ ≥ dmin ∥M ∥∗ .
+
+Proof Note that: 
+
+⟨M, OD ⟩ = Tr  M T OD  = Tr  (U ΣV T )T U V T D = Tr  V ΣV T D = Tr  ΣV T DV  .
+
+Since D ⪰ dmin In,
+
+V T (D − dmin In)V ⪰ 0.
+
+19 Zhang, Liu and Schaeffer 
+
+It follows that: 
+
+⟨M, OD ⟩ = dmin Tr (Σ) + Tr  ΣV T (D − dmin In)V  ≥ dmin ∥M ∥∗ .
+
+Appendix B. Proof of Theorem 3 
+
+This section contains the detailed proof of Theorem 3 for the convergence of NAMO in the deter-ministic setting. 
+
+Proof Step 1: A uniform upper bound on stepsize. For each t ≥ 0 and τ ≤ t, define: 
+
+w1,t,τ := 1 − μ1
+
+1 − μt
+
+> 1
+
+μt−τ 
+
+> 1
+
+and w2,t,τ := 1 − μ2
+
+1 − μt
+
+> 2
+
+μt−τ 
+
+> 2
+
+.
+
+It satisfies that Ptτ =1 w1,t,τ = Ptτ =1 w2,t,τ = 1 . Let ˆMt := Mt/(1 − μt
+
+> 1
+
+) and ˆ vt := vt/(1 − μt
+
+> 2
+
+),
+
+then: ˆMt = 1 − μ1
+
+1 − μt
+
+> 1
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 1
+
+∇L (Θ τ −1) = 
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ∇L (Θ τ −1),
+
+and ˆvt = 1 − μ2
+
+1 − μt
+
+> 2
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+∥∇L (Θ τ −1)∥2 =
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ τ −1)∥2 ,
+
+Define: 
+
+αt := 
+
+p1 − μt
+
+> 2
+
+1 − μt
+
+> 1
+
+∥Mt∥F
+
+√vt + ϵ =
+
+ˆMt F
+
+√ˆvt + ϵ/ p1 − μt
+
+> 2
+
+.
+
+Since the Frobenius norm of a matrix coincides with the Euclidean norm of its vectorization, by Lemma 7, 
+
+αt ≤
+
+ˆMt F
+
+√ˆvt
+
+=
+
+r 1 − μ1
+
+1 − μ2
+
+. (4) 
+
+Step 2: A descent inequality and averaging. By (Zhang et al., 2025, Lemma B.1), 
+
+L(Θ t) − L (Θ t−1)
+
+≤ − ⟨∇L (Θ t−1), ηα tOt⟩ + L
+
+2 η2α2
+
+> t
+
+≤ − ηα t ∥∇L (Θ t−1)∥∗ + 2 ηα t ∇L (Θ t−1) − ˆMt ∗ + L
+
+2 η2α2
+
+> t
+
+= − η
+
+ˆMt ∥∇L (Θ t−1)∥∗
+
+√ˆvt + ϵ/ √1 − μ2
+
++ 2 ηα t ∇L (Θ t−1) − ˆMt ∗ + L
+
+2 η2α2 
+
+> t
+
+.
+
+20 Adam Improves Muon 
+
+Rearranging the terms gives: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+ˆMt ∥∇L (Θ t−1)∥∗
+
+√ˆvt + ϵ/ √1 − μ2
+
+≤ ∆
+
+ηT + 2
+
+T
+
+> T
+
+X
+
+> t=1
+
+αt ∇L (Θ t−1) − ˆMt ∗ + ηL 
+
+2T
+
+> T
+
+X
+
+> t=1
+
+α2
+
+> t
+
+≤ ∆
+
+ηT + 2
+
+T
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+∇L (Θ t−1) − ˆMt ∗ + ηL 
+
+2
+
+ 1 − μ1
+
+1 − μ2
+
+
+
+, (5) where ∆ := L(Θ 0) − min Θ L(Θ) .
+
+Step 3: Bounding the distance between bias-corrected momentum and true gradient. 
+
+The difference between the scaled momentum ˆMt and the gradient ∇L (Θ t−1) can be bounded by: 
+
+ˆMt − ∇L (Θ t−1) ∗ ≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ∥∇L (Θ τ −1) − ∇L (Θ t−1)∥∗
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ L ∥Θτ −1 − Θt−1∥2
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ L
+
+> t−1
+
+X
+
+> s=τ
+
+ηα sOs
+
+> 2
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ηL 
+
+> t−1
+
+X
+
+> s=τ
+
+αs
+
+!
+
+.
+
+Then by (4) and the definition of w1,t,τ ,
+
+ˆMt − ∇L (Θ t−1) ∗ ≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ηL (t − τ )
+
+r 1 − μ1
+
+1 − μ2
+
+=
+
+> t
+
+X 
+
+> τ=1
+
+ηL (t − τ ) μt−τ
+
+> 1
+
+1 − μ1
+
+1 − μt
+
+> 1
+
+r 1 − μ1
+
+1 − μ2
+
+≤ηL 1 − μ1
+
+1 − μt
+
+> 1
+
+r 1 − μ1
+
+1 − μ2
+
+> ∞
+
+X
+
+> j=1
+
+jμ j
+
+> 1
+
+≤ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2 . (6) 
+
+Step 4: Bounding √ˆvt. For ˆ vt, it satisfies that: ˆvt =
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ τ −1)∥2
+
+> F
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ (∥∇L (Θ t−1)∥∗ + L ∥Θτ −1 − Θt−1∥2)2
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ t−1)∥∗ + ηL 
+
+> t−1
+
+X
+
+> s=τ
+
+αs
+
+!! 2
+
+21 Zhang, Liu and Schaeffer 
+
+Then by (4) and the definition of w2,t,τ ,ˆvt ≤
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ 
+
+
+
+∥∇L (Θ t−1)∥∗ + ηL (t − τ )
+
+r 1 − μ1
+
+1 − μ2
+
+2
+
+= ∥∇L (Θ t−1)∥2 
+
+> ∗
+
++ 2 ηL ∥∇L (Θ t−1)∥∗
+
+r 1 − μ1
+
+1 − μ2
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ (t − τ )+ η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+ tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2.
+
+By Cauchy-Schwarz inequality, it follows that: ˆvt ≤ ∥∇L (Θ t−1)∥2 
+
+> ∗
+
++ 2 ηL ∥∇L (Θ t−1)∥∗
+
+r 1 − μ1
+
+1 − μ2
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2
+
++ η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+ tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2
+
+!
+
+≤
+
+∥∇L (Θ t−1)∥∗ + ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2
+
+
+
+> 2
+
+= ( ∥∇L (Θ t−1)∥∗ + at)2 ,
+
+where 
+
+at := ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2.
+
+Since 
+
+a2 
+
+> t
+
+≤η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+  1 − μ2
+
+1 − μt
+
+> 2
+
+ tX 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+(t − τ )2
+
+!
+
+≤η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+ ∞X 
+
+> τ=1
+
+μτ 
+
+> 2
+
+τ 2
+
+!
+
+≤η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+  μ2(1 + μ2)(1 − μ2)3
+
+
+
+:= a2. (7) Hence, 
+
+pˆvt ≤ ∥∇L (Θ t−1)∥∗ + a. (8) 
+
+22 Adam Improves Muon 
+
+Step 5: Relating αt∥∇L (Θ t−1)∥∗ to ∥∇L (Θ t−1)∥∗. Combining (6) and (8) gives: 
+
+αt ∥∇L (Θ t−1)∥∗ =
+
+ˆMt F
+
+∥∇L (Θ t−1∥∗
+
+√ˆvt + ϵ/ p1 − μt
+
+> 2
+
+≥
+
+
+
+∥∇L (Θ t−1∥F − ˆMt − ∇L (Θ t−1) F
+
+
+
+∥∇L (Θ t−1∥∗
+
+∥∇L (Θ t−1)∥∗ + ϵ/ p1 − μt 
+
+> 2
+
++ a
+
+≥ ∥∇L (Θ t−1∥F ∥∇L (Θ t−1∥∗
+
+∥∇L (Θ t−1)∥∗ + ϵ/ p1 − μt 
+
+> 2
+
++ a − ˆMt − ∇L (Θ t−1) F
+
+≥ ∥∇L (Θ t−1∥F ∥∇L (Θ t−1∥∗
+
+∥∇L (Θ t−1)∥∗ + ϵ/ (1 − μt
+
+> 2
+
+)
+
+
+
+1 − a
+
+∥∇L (Θ t−1)∥∗ + ϵ/ (1 − μt
+
+> 2
+
+) + a
+
+
+
+− ˆMt − ∇L (Θ t−1) F
+
+≥ ∥∇L (Θ t−1∥F ∥∇L (Θ t−1∥∗
+
+∥∇L (Θ t−1)∥∗ + ϵ/ (1 − μt
+
+> 2
+
+) − a − ˆMt − ∇L (Θ t−1) F
+
+≥ ∥∇L (Θ t−1∥F ∥∇L (Θ t−1∥∗
+
+∥∇L (Θ t−1)∥∗ + ϵ/ (1 − μt
+
+> 2
+
+) − a − ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+≥ ∥∇L (Θ t−1∥2 
+
+> ∗
+
+/√r
+
+∥∇L (Θ t−1)∥∗ + ˜ ϵ − a − ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+where ˜ ϵ := ϵ/ (1 − μ2), r := min {m, n } and the constant a is given in (7). Define ϕ˜ϵ(x) := x2 
+
+> x+˜ ϵ
+
+for 
+
+x ≥ 0, it then follows from (5) and (6) that: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+ϕ˜ϵ(∥∇L (Θ t−1∥∗)
+
+≤√r
+
+ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+ˆMt ∥∇L (Θ t−1∥∗
+
+√ˆvt + ϵ/ (1 − μt
+
+> 2
+
+) + a + ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+
+
+≤√r ∆
+
+ηT + 2
+
+T
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+∇L (Θ t−1) − ˆMt ∗ + ηL 
+
+2
+
+ 1 − μ1
+
+1 − μ2
+
+
+
++ a + ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+!
+
+≤√r ∆
+
+ηT + 2
+
+T
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+∇L (Θ t−1) − ˆMt ∗ + ηL 
+
+2
+
+ 1 − μ1
+
+1 − μ2
+
+
+
++ a + ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+!
+
+≤√r ∆
+
+ηT +
+
+ 1 − μ1
+
+1 − μ2
+
+ 2ηLμ 1
+
+(1 − μ1)2 + ηL 
+
+2
+
+ 1 − μ1
+
+1 − μ2
+
+
+
++ ηL 
+
+pμ2(1 − μ1)(1 + μ2)(1 − μ2)2 +
+
+r 1 − μ1
+
+1 − μ2
+
+ηLμ 1
+
+(1 − μ1)2
+
+!
+
+= ∆√rηT + ηLC μ
+
+√r, 
+
+where 
+
+Cμ := 
+
+ 1 − μ1
+
+1 − μ2
+
+ 2μ1
+
+(1 − μ1)2 + 12
+
+ 1 − μ1
+
+1 − μ2
+
+
+
++
+
+pμ2(1 − μ1)(1 + μ2)(1 − μ2)2 +
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+is a constant that depends on μ1 and μ2.
+
+23 Zhang, Liu and Schaeffer 
+
+Step 6: Deriving the convergence rate. By Lemma 8, 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+∥∇L (Θ t−1∥∗ ≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+ϕ˜ϵ (∥∇L (Θ t−1∥∗) + 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+q
+
+˜ϵϕ ˜ϵ (∥∇L (Θ t−1∥∗)
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+ϕ˜ϵ (∥∇L (Θ t−1∥∗) + ˜ϵ 12
+
+√T
+
+vuut TX
+
+> t=1
+
+ϕ˜ϵ (∥∇L (Θ t−1∥∗)
+
+≤ ∆√rηT + ηLC μ
+
+√r + ˜ ϵ 12
+
+s
+
+∆√rηT + ηLC μ
+
+√r. 
+
+In particular, if choosing η = O
+
+
+
+T − 12
+
+
+
+, μ1 = Θ(1) , μ 2 = Θ(1), and ϵ = O(T − 12 ), then: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+∥∇L (Θ t−1)∥F ≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+∥∇L (Θ t−1)∥∗ ≤ O 
+
+
+
+T − 12
+
+
+
+for large T > 0. The proof is thus completed. 
+
+Appendix C. Proof of Theorem 4 
+
+This section contains the detailed proof of Theorem 4 for the convergence of NAMO in the stochastic setting. 
+
+Proof Step 1: A uniform upper bound on stepsize For each t ≥ 0 and τ ≤ t, define: 
+
+w1,t,τ := 1 − μ1
+
+1 − μt
+
+> 1
+
+μt−τ 
+
+> 1
+
+and w2,t,τ := 1 − μ2
+
+1 − μt
+
+> 2
+
+μt−τ 
+
+> 2
+
+.
+
+It satisfies that Ptτ =1 w1,t,τ = Ptτ =1 w2,t,τ = 1 . Let ˆMt := Mt/(1 − μt
+
+> 1
+
+) and ˆ vt := vt/(1 − μt
+
+> 2
+
+),
+
+then: ˆMt = 1 − μ1
+
+1 − μt
+
+> 1
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 1
+
+Gτ =
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ Gτ ,
+
+and ˆvt = 1 − μ2
+
+1 − μt
+
+> 2
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+∥Gτ ∥2 
+
+> F
+
+=
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ ∥Gτ ∥2 
+
+> F
+
+,
+
+Define: 
+
+αt := 
+
+p1 − μt
+
+> 2
+
+1 − μt
+
+> 1
+
+∥Mt∥F
+
+√vt + ϵ =
+
+ˆMt F
+
+√ˆvt + ϵ/ p1 − μt
+
+> 2
+
+.
+
+Since the Frobenius norm of a matrix coincides with the Euclidean norm of its vectorization, by Lemma 7, 
+
+αt ≤
+
+ˆMt F
+
+√ˆvt
+
+=
+
+r 1 − μ1
+
+1 − μ2
+
+. (9) 
+
+24 Adam Improves Muon 
+
+Step 2: Expected descent and an average bound on αt∥ ˆMt∥∗. Let Et[·] := E[·| Θt−1]denote the conditional expectation given the previous iterates Θ 0, · · · , Θt−1, and write Et := ˆMt −∇L (Θ t−1). Then by (Zhang et al., 2025, Lemma B.1), 
+
+Et [L(Θ t) − L (Θ t−1)] 
+
+≤Et [− ⟨∇L (Θ t−1), ηα tOt⟩] + η2L
+
+2 Et
+
+α2
+
+> t
+
+
+
+=Et
+
+h
+
+−
+
+D
+
+∇L (Θ t−1) − ˆMt, ηα tOt
+
+Ei 
+
+− Et
+
+h
+
+ηα t ˆMt ∗
+
+i
+
++ η2L
+
+2 Et
+
+α2
+
+> t
+
+
+
+≤ Et
+
+h
+
+ηα t ∇L (Θ t−1) − ˆMt ∗
+
+i
+
+− Et
+
+h
+
+ηα t ˆMt ∗
+
+i!
+
++ η2L
+
+2 Et
+
+α2
+
+> t
+
+
+
+≤ − Et
+
+h
+
+ηα t ˆMt ∗
+
+i
+
++ Et [ηα t ∥Et∥∗] + η2L
+
+2 Et
+
+α2
+
+> t
+
+ .
+
+Rearranging the terms gives: 
+
+Et
+
+h
+
+αt ˆMt ∗
+
+i
+
+≤ Et [L(Θ t−1) − L (Θ t)] + Et [αt ∥Et∥∗] + ηL 
+
+2 Et
+
+α2
+
+> t
+
+ .
+
+Then by the law of total expectation and (9), 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E
+
+h
+
+αt ˆMt ∗
+
+i
+
+≤ ∆
+
+ηT + 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [αt ∥Et∥∗] + ηL 
+
+2T
+
+> T
+
+X
+
+> t=1
+
+E α2
+
+> t
+
+
+
+≤ ∆
+
+ηT + 1
+
+T
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ηL (1 − μ1)2(1 − μ2) . (10) 
+
+Step 3: Bounding the distance between bias-corrected momentum and true gradient. 
+
+For each t, it satisfies: 
+
+Et = ˆMt − E
+
+h ˆMt
+
+i
+
++ E
+
+h ˆMt
+
+i
+
+− ∇L (Θ t−1)=
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ (Gτ − ∇L (Θ τ −1)) + 
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ (∇L (Θ τ −1) − ∇L (Θ t−1)) 
+
+25 Zhang, Liu and Schaeffer 
+
+Hence, by (9), 
+
+E
+
+h
+
+∥Et∥2
+
+> F
+
+i
+
+≤E
+
+
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ (Gτ − ∇L (Θ τ −1)) 
+
+> 2
+> F
+
+ +
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ (∇L (Θ τ −1) − ∇L (Θ t−1)) 
+
+> 2
+> F
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+2 tX 
+
+> τ=1
+
+μ2( t−τ )1
+
+!
+
+σ2
+
+b +
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ∥∇L (Θ τ −1) − ∇L (Θ t−1)∥2
+
+> ∗
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+2  1 − μ2t
+
+> 1
+
+1 − μ21
+
+ σ2
+
+b +
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+ tX 
+
+> τ=1
+
+μt−τ 
+
+> 1
+
+L2 ∥Θτ −1 − Θt−1∥22
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+  1 + μt
+
+> 1
+
+1 + μ1
+
+ σ2
+
+b +
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+
+
+L2η2
+
+> t
+
+X 
+
+> τ=1
+
+μt−τ
+
+> 1
+> t−1
+
+X
+
+> s=τ
+
+αs
+
+!2
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+ " 1 + μt
+
+> 1
+
+1 + μ1
+
+ σ2
+
+b +
+
+ 1 − μ1
+
+1 − μ2
+
+
+
+L2η2
+
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 1
+
+(t − τ )2
+
+#
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+ " 1 + μt
+
+> 1
+
+1 + μ1
+
+ σ2
+
+b +
+
+ 1 − μ1
+
+1 − μ2
+
+
+
+L2η2
+
+> ∞
+
+X 
+
+> τ=1
+
+μτ 
+
+> 1
+
+τ 2
+
+#
+
+=
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+  1 + μt
+
+> 1
+
+1 + μ1
+
+ σ2
+
+b +
+
+ μ1(1 + μ1)(1 − μ2) (1 − μ1)2
+
+
+
+L2η2
+
+
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+ σ2
+
+b + μ1(1 + μ1)L2η2
+
+(1 − μ2) (1 − μ1)(1 − μt
+
+> 1
+
+) .
+
+Then by Lemma 9, it follows that: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E
+
+h
+
+∥Et∥2
+
+> F
+
+i
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+11 − μt
+
+> 1
+
+!  σ2(1 − μ1)
+
+b + μ1(1 + μ1)L2η2
+
+(1 − μ1)(1 − μ2)
+
+
+
+≤
+
+
+
+1 + μ1
+
+(1 − μ1)T − 1
+
+T ln μ1
+
+ln 
+
+ 1 − μT
+
+> 1
+
+1 − μ1
+
+  σ2(1 − μ1)
+
+b + μ1(1 + μ1)L2η2
+
+(1 − μ1)(1 − μ2)
+
+
+
+.
+
+By Cauchy-Schwarz inequality and Jensen’s inequality, 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] ≤
+
+vuut rT
+
+> T
+
+X
+
+> t=1
+
+E
+
+h
+
+∥Et∥2
+
+> F
+
+i
+
+≤
+
+s
+
+1 + μ1
+
+(1 − μ1)T − 1
+
+T ln μ1
+
+ln 
+
+ 1 − μT
+
+> 1
+
+1 − μ1
+
+ σpr(1 − μ1)
+
+√b + Lη 
+
+s
+
+rμ 1(1 + μ1)(1 − μ2) (1 − μ1)
+
+!
+
+.
+
+(11) 
+
+26 Adam Improves Muon 
+
+Step 4: Bounding E[√ˆvt]. For ˆ vt, by Minkowski inequality and Jensen’s inequality, 
+
+E
+
+hp ˆvt
+
+i
+
+=E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ ∥Gτ ∥2
+
+> F
+
+
+
+≤E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ τ −1) − Gτ ∥2
+
+> F
+
+ + E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ τ −1)∥2
+
+> F
+
+
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ τ −1) − ∇L (Θ t−1)∥2
+
+> F
+
+
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ 
+
+> t
+
+X 
+
+> τ=1
+
+αs
+
+!2
+
+
+
+> (9)
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL 
+
+s
+
+1 − μ1
+
+1 − μt
+
+> 2
+
+vuut tX 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+(t − τ )2
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL 
+
+s
+
+1 − μ1
+
+1 − μt
+
+> 2
+
+vuut ∞X 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+(t − τ )2
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL 
+
+s
+
+1 − μ1
+
+1 − μt
+
+> 2
+
+vuut ∞X 
+
+> τ=1
+
+μτ 
+
+> 2
+
+τ 2
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL 
+
+s
+
+(1 − μ1)μ2(1 + μ2)(1 − μt
+
+> 2
+
+)(1 − μ2)3
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + √2ηL 
+
+s
+
+(1 − μ1)(1 − μt
+
+> 2
+
+)(1 − μ2)3 .
+
+Hence, 
+
+E
+
+"pˆvt + ϵ
+
+p1 − μt
+
+> 2
+
+#
+
+≤ E [∥∇L (Θ t−1)∥] + at, (12) where 
+
+at := σ
+
+√b + √2ηL 
+
+s
+
+(1 − μ1)(1 − μt
+
+> 2
+
+)(1 − μ2)3 + ϵ
+
+p1 − μt
+
+> 2
+
+.
+
+Then by Lemma 10, 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+at ≤ σT
+
+> T
+
+X
+
+> t=1
+
+1
+
+√b + √2ηL 
+
+s
+
+(1 − μ1)(1 − μ2)3 + ϵ
+
+! 1 − 2 ln(1 + 
+
+q
+
+1 − μT 
+
+> 2
+
+)
+
+T ln μ2
+
+ . (13) 
+
+27 Zhang, Liu and Schaeffer 
+
+Step 5: Relating E
+
+h
+
+αt ˆMt F
+
+i
+
+to E [∥∇L (Θ t−1)∥F ]. By Cauchy-Schwarz inequality, 
+
+
+
+E
+
+h ˆMt F
+
+i 2
+
+=
+
+E
+
+
+
+ˆMt F
+
+ √ˆvt + ϵt
+
+ 12
+
+·
+
+p ˆvt + ϵt
+
+ 12
+
+
+
+> 2
+
+≤E
+
+h
+
+αt ˆMt F
+
+i
+
+E
+
+hp ˆvt + ϵt
+
+i
+
+,
+
+where ϵt := ϵ/ p1 − μt
+
+> 2
+
+. Combining the above with (12) gives: 
+
+E
+
+h
+
+αt ˆMt F
+
+i
+
+≥
+
+
+
+E
+
+h ˆMt F
+
+i 2
+
+E [∥∇L (Θ t−1)∥F ] + at
+
+≥ (E [∥∇L (Θ t−1)∥F ] − E [∥Et∥F ]) 2
+
+E [∥∇L (Θ t−1)∥F ] + at
+
+.
+
+Rearranging the terms gives: (E [∥∇L (Θ t−1)∥F ]) 2−
+
+
+
+2E [∥Et∥F ] + E
+
+h
+
+αt ˆMt F
+
+i 
+
+E [∥∇L (Θ t−1)∥F ]−atE
+
+h
+
+αt ˆMt F
+
+i
+
++E [∥Et∥F ]2 ≤ 0.
+
+Then solving for E [∥∇L (Θ t−1)∥F ] gives: 
+
+E [∥∇L (Θ t−1)∥F ]
+
+≤
+
+2E [∥Et∥F ] + E
+
+h
+
+αt ˆMt F
+
+i
+
++
+
+r
+
+2E [∥Et∥F ] + E
+
+h
+
+αt ˆMt F
+
+i 2
+
++ 4 atE
+
+h
+
+αt ˆMt F
+
+i
+
+− 4E [∥Et∥F ]2
+
+2
+
+≤E [∥Et∥F ] + 12 E
+
+h
+
+αt ˆMt F
+
+i
+
++
+
+r 14 E
+
+h
+
+αt ˆMt F
+
+i2
+
++ ( E [∥Et∥F ] + at) E
+
+h
+
+αt ˆMt F
+
+i
+
+≤E [∥Et∥F ] + E
+
+h
+
+αt ˆMt F
+
+i
+
++
+
+r
+
+(E [∥Et∥F ] + at) E
+
+h
+
+αt ˆMt F
+
+i
+
+Step 6: Deriving the convergence rate. By Cauchy-Schwarz inequality, 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥∇L (Θ t−1)∥F ]
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥F ] + 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E
+
+h
+
+αt ˆMt F
+
+i
+
++
+
+vuut 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+(E [∥Et∥F ] + at)
+
+vuut 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E
+
+h
+
+αt ˆMt F
+
+i
+
+.
+
+28 Adam Improves Muon 
+
+Combining the above with (10) and (13) gives: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥∇L (Θ t−1)∥F ]
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ∆
+
+ηT + ηL (1 − μ1)2(1 − μ2) + 1
+
+T
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗]+
+
+vuut 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+(E [∥Et∥F ] + at) ·
+
+vuut ∆
+
+ηT + 1
+
+T
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ηL (1 − μ1)2(1 − μ2)
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ∆
+
+ηT + ηL (1 − μ1)2(1 − μ2) + 1
+
+T
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗]+
+
+vuuut 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥F ] + σ
+
+√b + √2ηL 
+
+s
+
+(1 − μ1)(1 − μ2)3 + ϵ
+
+! 1 − 2 ln(1 + 
+
+q
+
+1 − μT 
+
+> 2
+
+)
+
+T ln μ2
+
+
+
+·
+
+vuut ∆
+
+ηT + 1
+
+T
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ηL (1 − μ1)2(1 − μ2) .
+
+In particular, for large T > 0, if choosing η = O(T − 34 ), 1 − μ1 = Θ( T − 12 ), 1 − μ2 = Θ( T − 12 ),
+
+0 ≤ μ1 ≤ μ2 < 1, and ϵ = O(T − 12 ), then, by (11), 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] ≤ O 
+
+
+
+T − 14
+
+
+
+,
+
+and it follows that: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥∇L (Θ t−1)∥F ] ≤ O 
+
+
+
+T − 14 + √σb − 14 T − 18
+
+
+
+,
+
+where b is the batch size. The proof is thus completed. 
+
+Appendix D. Proof of Theorem 5 
+
+This section contains the detailed proof of Theorem 5 for the convergence of NAMO-D in the deterministic setting. 
+
+Proof Step 1: A uniform upper bound on stepsize. For each t ≥ 0 and τ ≤ t, define: 
+
+w1,t,τ := 1 − μ1
+
+1 − μt
+
+> 1
+
+μt−τ 
+
+> 1
+
+and w2,t,τ := 1 − μ2
+
+1 − μt
+
+> 2
+
+μt−τ 
+
+> 2
+
+.
+
+It satisfies that Ptτ =1 w1,t,τ = Ptτ =1 w2,t,τ = 1 . For each j = 1 , · · · , n and t > 0, let M jt denote the j-th column of Mt, and vjt denote the j-th element of vt. Write ˆMt := 11−μt
+
+> 1
+
+Mt, ˆvt := 11−μt
+
+> 2
+
+vt,
+
+and 
+
+Dt := diag 
+
+
+
+min 
+
+
+
+max dt, c ¯dt1 , 1
+
+c ¯dt1
+
+ 
+
+,
+
+29 Zhang, Liu and Schaeffer 
+
+where dt and ¯dt are given in Algorithm 2. Then: ˆMt = 1 − μ1
+
+1 − μt
+
+> 1
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 1
+
+∇L (Θ τ −1) = 
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ∇L (Θ τ −1),
+
+and ˆvt = 1 − μ2
+
+1 − μt
+
+> 2
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+Nc(∇L (Θ τ −1)) ⊙ N c(∇L (Θ τ −1)) = 
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ Nc(∇L (Θ τ −1)) ⊙ N c(∇L (Θ τ −1)) .
+
+By Lemma 7, [Dt]jj ≤
+
+ˆM jt
+
+q
+
+ˆvjt
+
+≤
+
+r 1 − μ1
+
+1 − μ2
+
+, ∀j. (14) Write: 
+
+dt, max := max  
+
+> j
+
+[Dt]jj , and dt, min := min  
+
+> j
+
+[Dt]jj . (15) Then the condition number of Dt is given by: 
+
+κ (Dt) = dt, max 
+
+dt, min 
+
+≤ min 
+
+
+
+κt, 1
+
+c2
+
+
+
+, (16) where c ∈ (0 , 1] is the fixed clamping hyperparameter, κt := κ (diag ( dt)) denotes the condition number of diag ( dt) .
+
+Step 2: Descent inequality and averaging. By (Zhang et al., 2025, Lemma B.1), 
+
+L(Θ t) − L (Θ t−1)
+
+≤ − ⟨∇L (Θ t−1), ηO tDt⟩ + L
+
+2 η2 ∥Dt∥22
+
+≤ − ηd t, min ∥∇L (Θ t−1)∥∗ + 2 ηd t, max ∇L (Θ t−1) − ˆMt ∗ + L
+
+2 η2 ∥Dt∥22
+
+= − η max {κ−1 
+
+> t
+
+, c 2}dt, max ∥∇L (Θ t−1)∥∗ + 2 ηd t, max ∇L (Θ t−1) − ˆMt ∗ + L
+
+2 η2 ∥Dt∥22 .
+
+Rearranging the terms gives: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+dt, max ∥∇L (Θ t−1)∥∗ ≤ ∆
+
+ηT c 2 + 2
+
+T c 2
+
+> T
+
+X
+
+> t=1
+
+dt, max ∇L (Θ t−1) − ˆMt ∗ + ηL 
+
+2T c 2
+
+> T
+
+X
+
+> t=1
+
+d2
+
+> t, max
+
+≤ ∆
+
+ηT c 2 + 2
+
+T c 2
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+∇L (Θ t−1) − ˆMt ∗ + ηL 
+
+2c2
+
+ 1 − μ1
+
+1 − μ2
+
+
+
+. (17) 
+
+30 Adam Improves Muon 
+
+Step 3: Bounding ∥ ˆMt − ∇L (Θ t−1)∥∗. The difference between the scaled momentum ˆMt and the gradient ∇L (Θ t−1) can be bounded by: 
+
+ˆMt − ∇L (Θ t−1) ∗ ≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ∥∇L (Θ τ −1) − ∇L (Θ t−1)∥∗
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ L ∥Θτ −1 − Θt−1∥2
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ L
+
+> t−1
+
+X
+
+> s=τ
+
+ηO sDs
+
+> 2
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ηL 
+
+> t−1
+
+X
+
+> s=τ
+
+ds, max 
+
+!
+
+.
+
+Then by (4) and the definition of w1,t,τ ,
+
+ˆMt − ∇L (Θ t−1) ∗ ≤
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ηL (t − τ )
+
+r 1 − μ1
+
+1 − μ2
+
+=
+
+> t
+
+X 
+
+> τ=1
+
+ηL (t − τ ) μt−τ
+
+> 1
+
+1 − μ1
+
+1 − μt
+
+> 1
+
+r 1 − μ1
+
+1 − μ2
+
+≤ηL 1 − μ1
+
+1 − μt
+
+> 1
+
+r 1 − μ1
+
+1 − μ2
+
+> ∞
+
+X
+
+> j=1
+
+jμ j
+
+> 1
+
+≤ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2 . (18) 
+
+Step 4: Bounding 
+
+qPnj=1 ˆvjt . For ˆ vt, it satisfies that: 
+
+> n
+
+X
+
+> j=1
+
+ˆvjt =
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ τ −1)∥2
+
+> F
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ (∥∇L (Θ t−1∥F + L ∥Θτ −1 − Θt−1∥2)2
+
+≤
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ t−1∥F + ηL 
+
+> t−1
+
+X
+
+> s=τ
+
+ds, max 
+
+!! 2
+
+Then by (4) and the definition of w2,t,τ ,
+
+> n
+
+X
+
+> j=1
+
+ˆvjt ≤
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ 
+
+
+
+∥∇L (Θ t−1∥F + ηL (t − τ )
+
+r 1 − μ1
+
+1 − μ2
+
+2
+
+= ∥∇L (Θ t−1)∥2 
+
+> F
+
++ 2 ηL ∥∇L (Θ t−1)∥F
+
+r 1 − μ1
+
+1 − μ2
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ (t − τ )+ η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+ tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2.
+
+31 Zhang, Liu and Schaeffer 
+
+By Cauchy-Schwarz inequality, it follows that: 
+
+> n
+
+X
+
+> j=1
+
+ˆvjt ≤ ∥∇L (Θ t−1)∥2 
+
+> F
+
++ 2 ηL ∥∇L (Θ t−1)∥F
+
+r 1 − μ1
+
+1 − μ2
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2
+
++ η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+ tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2
+
+!
+
+≤
+
+∥∇L (Θ t−1)∥F + ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2
+
+
+
+> 2
+
+= ( ∥∇L (Θ t−1)∥F + at)2 ,
+
+where 
+
+at := ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ (t − τ )2.
+
+Since: 
+
+a2 
+
+> t
+
+≤η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+  1 − μ2
+
+1 − μt
+
+> 2
+
+ tX 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+(t − τ )2
+
+!
+
+≤η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+ ∞X 
+
+> τ=1
+
+μτ 
+
+> 2
+
+τ 2
+
+!
+
+≤η2L2
+
+ 1 − μ1
+
+1 − μ2
+
+  μ2(1 + μ2)(1 − μ2)3
+
+
+
+:= a2. (19) Hence, 
+
+vuut
+
+> n
+
+X
+
+> j=1
+
+ˆvjt ≤ ∥∇L (Θ t−1)∥F + at ≤ ∥∇L (Θ t−1)∥F + a. (20) 
+
+32 Adam Improves Muon 
+
+Step 5: Lower-bounding dt, max ∥∇L (Θ t−1)∥∗. Combining (18) and (20) gives: 
+
+dt, max ∥∇L (Θ t−1)∥∗
+
+≥
+
+ˆMt ∥∇L (Θ t−1∥∗
+
+qPnj=1 ˆvjt + nϵ/ p1 − μt
+
+> 2
+
+≥
+
+
+
+∥∇L (Θ t−1∥F − ˆMt − ∇L (Θ t−1)
+
+
+
+∥∇L (Θ t−1∥∗
+
+∥∇L (Θ t−1)∥F + nϵ/ p1 − μt 
+
+> 2
+
++ a
+
+≥ ∥∇L (Θ t−1∥2
+
+> F
+
+∥∇L (Θ t−1)∥F + nϵ/ p1 − μt 
+
+> 2
+
++ a − ˆMt − ∇L (Θ t−1)
+
+≥ ∥∇L (Θ t−1∥2
+
+> F
+
+∥∇L (Θ t−1)∥F + nϵ/ p1 − μt
+
+> 2
+
+1 − a
+
+∥∇L (Θ t−1)∥F + nϵ/ p1 − μt 
+
+> 2
+
++ a
+
+!
+
+− ˆMt − ∇L (Θ t−1)
+
+≥ ∥∇L (Θ t−1∥2
+
+> F
+
+∥∇L (Θ t−1)∥F + nϵ/ p1 − μt
+
+> 2
+
+− a − ˆMt − ∇L (Θ t−1)
+
+≥ ∥∇L (Θ t−1∥2
+
+> F
+
+∥∇L (Θ t−1)∥F + nϵ/ p1 − μt
+
+> 2
+
+− a − ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+≥ ∥∇L (Θ t−1∥2
+
+> F
+
+∥∇L (Θ t−1)∥F + n˜ϵ − a − ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+where ˜ ϵ := ϵ/ √1 − μ2 and a is given in (19). 
+
+Step 6: Upper-bounding the gradient norm and deriving rate. Now define ϕn˜ϵ(x) := x2 
+
+> x+n˜ϵ
+
+,
+
+it then follows from (17) and (18) that: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+ϕn˜ϵ(∥∇L (Θ t−1∥F ) ≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+dt, max ∥∇L (Θ t−1∥∗ + a + ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+≤ ∆
+
+ηT c 2 + 2
+
+T c 2
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+∇L (Θ t−1) − ˆMt ∗ + ηL 
+
+2c2
+
+ 1 − μ1
+
+1 − μ2
+
+
+
++ a + ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+≤ ∆
+
+ηT c 2 + 2
+
+T c 2
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+∇L (Θ t−1) − ˆMt ∗ + ηL 
+
+2c2
+
+ 1 − μ1
+
+1 − μ2
+
+
+
++ a + ηL 
+
+r 1 − μ1
+
+1 − μ2
+
+μ1
+
+(1 − μ1)2
+
+≤ ∆
+
+ηT c 2 +
+
+ 1 − μ1
+
+1 − μ2
+
+ 2ηLμ 1
+
+(1 − μ1)2c2 + ηL 
+
+2c2
+
+ 1 − μ1
+
+1 − μ2
+
+
+
++ ηL 
+
+pμ2(1 − μ1)(1 + μ2)(1 − μ2)2 +
+
+r 1 − μ1
+
+1 − μ2
+
+ηLμ 1
+
+(1 − μ1)2
+
+= ∆
+
+ηT c 2 + ηLC μ
+
+c2 ,
+
+33 Zhang, Liu and Schaeffer 
+
+where 
+
+Cμ := 
+
+ 1 − μ1
+
+1 − μ2
+
+ 2μ1
+
+(1 − μ1)2 + 12
+
+ 1 − μ1
+
+1 − μ2
+
+
+
++ c2pμ2(1 − μ1)(1 + μ2)(1 − μ2)2 +
+
+r 1 − μ1
+
+1 − μ2
+
+μ1c2
+
+(1 − μ1)2
+
+is a constant that depends on μ1 and μ2. Then by Lemma 8, 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+∥∇L (Θ t−1∥F ≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+ϕn˜ϵ (∥∇L (Θ t−1∥F ) + ( n˜ϵ) 12
+
+1
+
+T
+
+> T
+
+X
+
+> t=1
+
+q
+
+ϕn˜ϵ (∥∇L (Θ t−1∥F )
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+ϕn˜ϵ (∥∇L (Θ t−1∥F ) + (n˜ϵ) 12
+
+√T
+
+vuut TX
+
+> t=1
+
+ϕn˜ϵ (∥∇L (Θ t−1∥F )
+
+≤ ∆
+
+ηT c 2 + ηLC μ
+
+c2 + ( n˜ϵ) 12
+
+s
+
+∆
+
+ηT c 2 + ηLC μ
+
+c2 .
+
+In particular, if choosing η = O(T − 12 ), 1 − μ1 = Θ(1), 1 − μ2 = Θ(1) , 0 ≤ μ1 ≤ μ2 < 1, 
+
+ϵ = O(T − 12 n−1), and c = Θ(1) , then: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+∥∇L (Θ t−1)∥ ≤ O 
+
+
+
+T − 12
+
+
+
+for large T > 0. The proof is thus completed. 
+
+Appendix E. Proof of Theorem 6 
+
+This section contains the detailed proof of Theorem 6 for the convergence of NAMO-D in the stochastic setting. 
+
+Proof Step 1: A uniform upper bound on stepsize. For each t ≥ 0 and τ ≤ t, define: 
+
+w1,t,τ := 1 − μ1
+
+1 − μt
+
+> 1
+
+μt−τ 
+
+> 1
+
+and w2,t,τ := 1 − μ2
+
+1 − μt
+
+> 2
+
+μt−τ 
+
+> 2
+
+.
+
+It satisfies that Ptτ =1 w1,t,τ = Ptτ =1 w2,t,τ = 1 . For each j = 1 , · · · , n and t > 0, let M jt denote the j-th column of Mt, and vjt denote the j-th element of vt. Write ˆMt := 11−μt
+
+> 1
+
+Mt, ˆvt := 11−μt
+
+> 2
+
+vt,
+
+and 
+
+Dt := diag 
+
+
+
+min 
+
+
+
+max dt, c ¯dt1 , 1
+
+c ¯dt1
+
+ 
+
+,
+
+where c ∈ (0 , 1] is the fixed clamping hyperparameter, dt and ¯dt are given in Algorithm 2. Then: ˆMt = 1 − μ1
+
+1 − μt
+
+> 1
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 1
+
+Gτ =
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ Gτ ,
+
+and ˆvt = 1 − μ2
+
+1 − μt
+
+> 2
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+Nc(Gτ ) ⊙ N c(Gτ ) = 
+
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ Nc(Gτ ) ⊙ N c(Gτ ).
+
+34 Adam Improves Muon 
+
+By Lemma 7, [Dt]jj ≤
+
+ˆM jt
+
+q
+
+ˆvjt
+
+≤
+
+r 1 − μ1
+
+1 − μ2
+
+, ∀j. (21) Write: 
+
+dt, max := max  
+
+> j
+
+[Dt]jj , and dt, min := min  
+
+> j
+
+[Dt]jj . (22) Then the condition number of Dt is given by: 
+
+κ (Dt) = dt, max 
+
+dt, min 
+
+≤ min 
+
+
+
+κt, 1
+
+c2
+
+
+
+, (23) where κt := κ (diag( dt)) denotes the condition number of diag( dt). 
+
+Step 2: Expected descent inequality and averaging. Let Et[·] := E[·| Θt−1] denote the conditional expectation given the previous iterates Θ 0, · · · , Θt−1, and write Et := ˆMt − ∇L (Θ t−1). Then, by Lemma 11, 
+
+Et [L(Θ t) − L (Θ t−1)] 
+
+≤Et [− ⟨∇L (Θ t−1), ηO tDt⟩] + η2L
+
+2 Et
+
+h
+
+∥Dt∥22
+
+i
+
+=Et
+
+h
+
+−
+
+D
+
+∇L (Θ t−1) − ˆMt, ηO tDt
+
+Ei 
+
+− Et
+
+h
+
+η
+
+D ˆMt, O tDt
+
+Ei 
+
++ η2L
+
+2 Et
+
+h
+
+∥Dt∥22
+
+i
+
+≤ Et
+
+h
+
+ηd t, max ∇L (Θ t−1) − ˆMt ∗
+
+i
+
+− Et
+
+h
+
+ηd t, min ˆMt ∗
+
+i!
+
++ η2L
+
+2 Et
+
+d2
+
+> t, max
+
+
+
+≤ − Et
+
+h
+
+ηd t, min ˆMt ∗
+
+i
+
++ Et [ηd t, max ∥Et∥∗] + η2L
+
+2 Et
+
+d2
+
+> t, max
+
+ ,
+
+where dt, max and dt, min are defined in (22). Rearranging the terms gives: 
+
+Et
+
+h
+
+dt, min ˆMt ∗
+
+i
+
+≤ Et [L(Θ t−1) − L (Θ t)] + Et [dt, max ∥Et∥∗] + ηL 
+
+2 Et
+
+d2
+
+> t, max
+
+ .
+
+Then by the law of total expectation and (21), 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E
+
+h
+
+dt, min ˆMt ∗
+
+i
+
+≤ ∆
+
+ηT + 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [dt, max ∥Et∥∗] + ηL 
+
+2T
+
+> T
+
+X
+
+> t=1
+
+E d2
+
+> t, max
+
+
+
+≤ ∆
+
+ηT + 1
+
+T
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ηL (1 − μ1)2(1 − μ2) . (24) 
+
+Step 3: Bounding the distance between bias-corrected momentum and true gradient. 
+
+For each t, it satisfies: 
+
+Et = ˆMt − E
+
+h ˆMt
+
+i
+
++ E
+
+h ˆMt
+
+i
+
+− ∇L (Θ t−1)=
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ (Gτ − ∇L (Θ τ −1)) + 
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ (∇L (Θ τ −1) − ∇L (Θ t−1)) 
+
+35 Zhang, Liu and Schaeffer 
+
+Hence, by (21), 
+
+E
+
+h
+
+∥Et∥2
+
+> F
+
+i
+
+≤E
+
+
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ (Gτ − ∇L (Θ τ −1)) 
+
+> 2
+> F
+
+ +
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ (∇L (Θ τ −1) − ∇L (Θ t−1)) 
+
+> 2
+> F
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+2 tX 
+
+> τ=1
+
+μ2( t−τ )1
+
+!
+
+σ2
+
+b +
+
+> t
+
+X 
+
+> τ=1
+
+w1,t,τ ∥∇L (Θ τ −1) − ∇L (Θ t−1)∥2
+
+> F
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+2  1 − μ2t
+
+> 1
+
+1 − μ21
+
+ σ2
+
+b +
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+ tX 
+
+> τ=1
+
+μt−τ 
+
+> 1
+
+L2 ∥Θτ −1 − Θt−1∥22
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+  1 + μt
+
+> 1
+
+1 + μ1
+
+ σ2
+
+b +
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+
+
+L2η2
+
+> t
+
+X 
+
+> τ=1
+
+μt−τ
+
+> 1
+> t−1
+
+X
+
+> s=τ
+
+∥Ds∥2
+
+!2
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+ " 1 + μt
+
+> 1
+
+1 + μ1
+
+ σ2
+
+b +
+
+ 1 − μ1
+
+1 − μ2
+
+
+
+L2η2
+
+> t
+
+X 
+
+> τ=1
+
+μt−τ 
+
+> 1
+
+(t − τ )2
+
+#
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+ " 1 + μt
+
+> 1
+
+1 + μ1
+
+ σ2
+
+b +
+
+ 1 − μ1
+
+1 − μ2
+
+
+
+L2η2
+
+> ∞
+
+X 
+
+> τ=1
+
+μτ 
+
+> 1
+
+τ 2
+
+#
+
+=
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+  1 + μt
+
+> 1
+
+1 + μ1
+
+ σ2
+
+b +
+
+ μ1(1 + μ1)(1 − μ2) (1 − μ1)2
+
+
+
+L2η2
+
+
+
+≤
+
+ 1 − μ1
+
+1 − μt
+
+> 1
+
+ σ2
+
+b + μ1(1 + μ1)L2η2
+
+(1 − μ2) (1 − μ1)(1 − μt
+
+> 1
+
+) .
+
+Then by Lemma 9, it follows that: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E
+
+h
+
+∥Et∥2
+
+> F
+
+i
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+11 − μt
+
+> 1
+
+!  σ2(1 − μ1)
+
+b + μ1(1 + μ1)L2η2
+
+(1 − μ1)(1 − μ2)
+
+
+
+≤
+
+
+
+1 + μ1
+
+(1 − μ1)T − 1
+
+T ln μ1
+
+ln 
+
+ 1 − μT
+
+> 1
+
+1 − μ1
+
+  σ2(1 − μ1)
+
+b + μ1(1 + μ1)L2η2
+
+(1 − μ1)(1 − μ2)
+
+
+
+.
+
+By Cauchy-Schwarz inequality and Jensen’s inequality, 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] ≤
+
+vuut rT
+
+> T
+
+X
+
+> t=1
+
+E
+
+h
+
+∥Et∥2
+
+> F
+
+i
+
+≤
+
+s
+
+1 + μ1
+
+(1 − μ1)T − 1
+
+T ln μ1
+
+ln 
+
+ 1 − μT
+
+> 1
+
+1 − μ1
+
+ σpr(1 − μ1)
+
+√b + Lη 
+
+s
+
+rμ 1(1 + μ1)(1 − μ2) (1 − μ1)
+
+!
+
+.
+
+(25) 
+
+36 Adam Improves Muon 
+
+Step 4: Bounding E
+
+q Pnj=1 ˆvjt
+
+
+
+. For each j, let Gjτ denote the j-th column of Gτ . By Minkowski inequality and Jensen’s inequality, 
+
+E
+
+vuut
+
+> n
+
+X
+
+> j=1
+
+ˆvjt
+
+ =E
+
+vuut nX
+
+> j=1
+> t
+
+X 
+
+> τ=1
+
+w2,t,τ Gjτ
+
+> 2
+
+ = E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ ∥Gτ ∥2
+
+> F
+
+
+
+≤E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ τ −1) − Gτ ∥2
+
+> F
+
+ + E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ τ −1)∥2
+
+> F
+
+
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ ∥∇L (Θ τ −1) − ∇L (Θ t−1)∥2
+
+> F
+
+
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL E
+
+vuut tX 
+
+> τ=1
+
+w2,t,τ 
+
+> t−1
+
+X
+
+> s=τ
+
+∥Ds∥2
+
+!2
+
+
+
+> (21)
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL 
+
+s
+
+1 − μ1
+
+1 − μt
+
+> 2
+
+vuut tX 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+(t − τ )2
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL 
+
+s
+
+1 − μ1
+
+1 − μt
+
+> 2
+
+vuut ∞X 
+
+> τ=1
+
+μt−τ 
+
+> 2
+
+(t − τ )2
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL 
+
+s
+
+1 − μ1
+
+1 − μt
+
+> 2
+
+vuut ∞X 
+
+> τ=1
+
+μτ 
+
+> 2
+
+τ 2
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + ηL 
+
+s
+
+(1 − μ1)μ2(1 + μ2)(1 − μt
+
+> 2
+
+)(1 − μ2)3
+
+≤ σ
+
+√b + E [∥∇L (Θ t−1)∥F ] + √2ηL 
+
+s
+
+(1 − μ1)(1 − μt
+
+> 2
+
+)(1 − μ2)3 .
+
+Hence, 
+
+E
+
+vuut
+
+> n
+
+X
+
+> j=1
+
+ˆvjt + nϵ 
+
+p1 − μt
+
+> 2
+
+ ≤ E [∥∇L (Θ t−1)∥] + at, (26) where 
+
+at := σ
+
+√b + √2ηL 
+
+s
+
+(1 − μ1)(1 − μt
+
+> 2
+
+)(1 − μ2)3 + nϵ 
+
+p1 − μt
+
+> 2
+
+.
+
+Then by Lemma 10, 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+at ≤ σ
+
+√b + √2ηL 
+
+s
+
+(1 − μ1)(1 − μ2)3 + nϵ 
+
+! 1 − 2 ln(1 + 
+
+q
+
+1 − μT 
+
+> 2
+
+)
+
+T ln μ2
+
+ . (27) 
+
+37 Zhang, Liu and Schaeffer 
+
+Step 5: Lower-bounding E
+
+h
+
+dt, max ˆMt F
+
+i
+
+and relating to E [∥∇L (Θ t−1)∥F ] . By Cauchy-Schwarz inequality, 
+
+
+
+E
+
+h ˆMt F
+
+i 2
+
+=
+
+E
+
+
+
+ˆMt F
+
+q Pnj=1 ˆvjt + nϵ t
+
+ 12
+
+·
+
+vuut
+
+> n
+
+X
+
+> j=1
+
+ˆvjt + nϵ t
+
+
+
+> 12
+
+
+
+> 2
+
+≤E
+
+
+
+ˆMt
+
+> 2
+> F
+
+qPnj=1 ˆvjt + nϵ t
+
+ E
+
+vuut
+
+> n
+
+X
+
+> j=1
+
+ˆvjt + nϵ t
+
+
+
+≤E
+
+vuuutPnj=1 ˆM jt
+
+> 2
+
+Pnj=1 ˆvjt + nϵ t
+
+· ˆMt F
+
+ E
+
+vuut
+
+> n
+
+X
+
+> j=1
+
+ˆvjt + nϵ t
+
+
+
+≤E
+
+h
+
+dt, max ˆMt F
+
+i
+
+E
+
+vuut
+
+> n
+
+X
+
+> j=1
+
+ˆvjt + nϵ t
+
+ ,
+
+where ϵt := ϵ/ p1 − μt
+
+> 2
+
+. Combining the above with (26) gives: 
+
+E
+
+h
+
+dt, max ˆMt F
+
+i
+
+≥
+
+
+
+E
+
+h ˆMt F
+
+i 2
+
+E [∥∇L (Θ t−1)∥F ] + at
+
+≥ (E [∥∇L (Θ t−1)∥F ] − E [∥Et∥F ]) 2
+
+E [∥∇L (Θ t−1)∥F ] + at
+
+.
+
+Rearranging the terms gives: (E [∥∇L (Θ t−1)∥F ]) 2−
+
+
+
+2E [∥Et∥F ] + E
+
+h
+
+dt, max ˆMt F
+
+i 
+
+E [∥∇L (Θ t−1)∥F ]−atE
+
+h
+
+dt, max ˆMt F
+
+i
+
++E [∥Et∥F ]2 ≤ 0.
+
+Then solving for E [∥∇L (Θ t−1)∥] gives 
+
+E [∥∇L (Θ t−1)∥F ]
+
+≤
+
+2E [∥Et∥F ] + E
+
+h
+
+dt, max ˆMt F
+
+i
+
++
+
+r
+
+2E [∥Et∥F ] + E
+
+h
+
+dt, max ˆMt F
+
+i 2
+
++ 4 atE
+
+h
+
+dt, max ˆMt F
+
+i
+
+− 4E [∥Et∥F ]2
+
+2
+
+≤E [∥Et∥F ] + 12 E
+
+h
+
+dt, max ˆMt F
+
+i
+
++
+
+r 14 E
+
+h
+
+dt, max ˆMt F
+
+i2
+
++ ( E [∥Et∥F ] + at) E
+
+h
+
+dt, max ˆMt F
+
+i
+
+≤E [∥Et∥F ] + E
+
+h
+
+dt, max ˆMt F
+
+i
+
++
+
+r
+
+(E [∥Et∥F ] + at) E
+
+h
+
+dt, max ˆMt F
+
+i
+
+≤E [∥Et∥F ] + E
+
+h
+
+dt, max ˆMt F
+
+i
+
++
+
+r
+
+(E [∥Et∥F ] + at) E
+
+h
+
+dt, max ˆMt F
+
+i
+
+.
+
+Step 6: Deriving the convergence rate By Cauchy-Schwarz inequality and (23), it then follows that: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥∇L (Θ t−1)∥F ] ≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥F ] + 1
+
+T min 
+
+
+
+κt, 1
+
+c2
+
+ TX
+
+> t=1
+
+E
+
+h
+
+dt, min ˆMt F
+
+i
+
++
+
+vuut 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+(E [∥Et∥F ] + at)
+
+vuut 1
+
+T min 
+
+
+
+κt, 1
+
+c2
+
+ TX
+
+> t=1
+
+E
+
+h
+
+dt, max ˆMt F
+
+i
+
+.
+
+38 Adam Improves Muon 
+
+Combining the above with (24) and (27) gives: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥∇L (Θ t−1)∥F ]
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ∆
+
+ηT c 2 + ηL (1 − μ1)2c2(1 − μ2) + 1
+
+T c 2
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗]+
+
+vuut 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+(E [∥Et∥F ] + at) ·
+
+vuut ∆
+
+ηT c 2 + 1
+
+T c 2
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ηL (1 − μ1)2c2(1 − μ2)
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ∆
+
+ηT c 2 + ηL (1 − μ1)2c2(1 − μ2) + 1
+
+T c 2
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗]+
+
+vuuut 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥F ] + σ
+
+√b + √2ηL 
+
+s
+
+(1 − μ1)(1 − μ2)3 + nϵ 
+
+! 1 − 2 ln(1 + 
+
+q
+
+1 − μT 
+
+> 2
+
+)
+
+T ln μ2
+
+
+
+·
+
+vuut ∆
+
+ηT c 2 + 1
+
+T c 2
+
+r 1 − μ1
+
+1 − μ2
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] + ηL (1 − μ1)2c2(1 − μ2) .
+
+In particular, for large T > 0, if choosing η = O(T − 34 ), 1 − μ1 = Θ( T − 12 ), 1 − μ2 = Θ( T − 12 ),ϵ = O(T − 12 ), and c = Θ(1), then, by (25), 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥Et∥∗] ≤ O 
+
+
+
+T − 14
+
+
+
+,
+
+and it follows that: 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E [∥∇L (Θ t−1)∥] ≤ O 
+
+
+
+T − 14 + √σb − 14 T − 18
+
+
+
+,
+
+where b is the batch size. The proof is thus completed. 
+
+39

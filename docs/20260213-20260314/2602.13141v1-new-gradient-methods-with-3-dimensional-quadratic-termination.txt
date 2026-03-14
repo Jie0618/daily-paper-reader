@@ -1,0 +1,1837 @@
+Title: New gradient methods with 3 dimensional quadratic termination
+
+URL Source: https://arxiv.org/pdf/2602.13141v1
+
+Published Time: Mon, 16 Feb 2026 02:07:23 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+Journal of Computational Mathematics Vol.xx, No.x, 200x, 1–23. http://www.global-sci.org/jcm doi:?? 
+
+## NEW GRADIENT METHODS WITH 3 DIMENSIONAL QUADRATIC TERMINATION *
+
+Yixin Xie 
+
+School of Mathematical Sciences, Beijing University of Posts and Telecommunications (BUPT); Key Laboratory of Mathematics and Information Networks (BUPT) Ministry of Education, Beijing 100876, China Email: xieyixin@bupt.edu.cn 
+
+Jin-Peng Liu 
+
+Yau Mathematical Sciences Center, Tsinghua University, Beijing 100084, China; Yanqi Lake Beijing Institute of Mathematical Sciences and Applications, Beijing 100407, China, Email: liujinpeng@mail.tsinghua.edu.cn 
+
+Cong Sun 1) 
+
+School of Mathematical Sciences, Beijing University of Posts and Telecommunications; Key Laboratory of Mathematics and Information Networks (BUPT) Ministry of Education, Beijing 100876, China Email: suncong86@bupt.edu.cn 
+
+Ya-Xiang Yuan 
+
+State Key Laboratory of Scientific/Engineering Computing, Institute of Computational Mathematics and Scientific/Engineering Computing, Academy of Mathematics and System Sciences, ChineseAcademy of Sciences, Beijing 100190, China Email: yyx@lsec.cc.ac.cn 
+
+Abstract 
+
+A new stepsize for gradient method is proposed. Combining it with the exact line search stepsizes, the gradient method achieves the optimal solution in 5 steps for 3 dimensional quadratic function minimization problem. The new stepsize is plugged in the cyclic stepsize update strategy, and a new gradient method is proposed. By applying the quadratic interpolation for Cauchy approximation, the proposed gradient method is extended to solve general unconstrained problem. With the improved GLL line search, the global convergence of the proposed method is proved. Furthermore, its sublinear convergence rate for convex problems and R-linear convergence rate for problems with quadratic functional growth property are analyzed. Numerical results show that our proposed algorithm enjoys good performances in terms of computational cost, and line search requires very few trial stepsizes. 
+
+Mathematics subject classification: 65K05, 90C30. 
+
+Key words: gradient method, finite termination, quadratic interpolation, linear conver-gence rate 
+
+## 1. Introduction 
+
+Gradient method is an important algorithm for large scale optimization problems, which appear in many applications such as machine learning [1], weather forecasting [2] and inverse  
+
+> *
+
+Received xxx / Revised version received xxx / Accepted xxx / Published online / 
+
+> 1)
+
+Corresponding author 
+
+> arXiv:2602.13141v1 [math.OC] 13 Feb 2026
+
+2 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+problems [3]. Consider the unconstrained optimization problem: min  
+
+> x∈Rn
+
+f (x), (1.1) where f : Rn 7 → R is a continuously differentiable and smooth function. The iteration formula of gradient method is: 
+
+xk+1 = xk − αkgk,
+
+where gk = ∇f (xk) is the gradient vector at the k-th iteration point xk and αk is the stepsize. As in the line search framework, the search direction of gradient method is fixed as the negative gradient, and stepsize is the only tuning parameter. Yet it plays a very important role, which has great influence on the efficiency of gradient method. Many stepsize strategies have been proposed in the literature. The classic steepest descent (SD) method, proposed by Cauchy [4], considers the exact line search stepsize: 
+
+αSD k = arg min 
+
+> α> 0
+
+f (xk − αgk),
+
+which is also called the Cauchy stepsize. For quadratic function 
+
+f (x) = 1
+
+2 xT Hx + bT x, (1.2) the Cauchy stepsize has the following closed-form solution: 
+
+αSD k = gTk gk
+
+gTk Hg k
+
+, (1.3) where H ∈ Rn×n is a symmetric positive definite matrix. It has been proved that the SD method converges Q-linearly [5]. However, its performance highly depends on the condition number of the problem. The SD method can be very slow, and the zigzag phenomenon is commonly observed when the condition number is large. In recent years, many variations of SD have been proposed [6], [7]. In [8], two stepsizes are proposed by Barzilai and Borwein based on the quasi-Newton property, which are named as BB stepsizes: 
+
+αBB 1 
+
+> k
+
+= sTk−1sk−1
+
+sTk−1yk−1
+
+, αBB 2 
+
+> k
+
+= sTk−1yk−1
+
+yTk−1yk−1
+
+, (1.4) where sk−1 = xk −xk−1 and yk−1 = gk −gk−1. Remarkably, the BB method is the first gradient method that has superlinear convergence rate for minimizing 2 dimensional quadratic functions. It has many improved variants. The most widely used and efficient one is ABBmin [9, 10]. The stepsize is updated as 
+
+αABBmin k =
+
+
+
+min {αBB 2 
+
+> j
+
+|j = max {1, k − m}, · · · , k }, if αBB 2
+
+> k
+
+αBB 1
+
+> k
+
+< τ 1;
+
+αBB 1 
+
+> k
+
+, otherwise with τ1 ∈ (0 , 1). Essentially, it uses short BB stepsize and switches to the long BB stepsize occasionally. ABBmin is extended in the multipoint stepsize gradient (MPSG) method [11], New gradient methods with 3 dimensional quadratic termination 3where the difference between two consecutive points is extended to the difference between multiple points. 
+
+αMP SG k =
+
+
+
+min {αMDF 2 
+
+> k−1
+
+, α MDF 2 
+
+> k
+
+}, if αMDF 2
+
+> k
+
+αMDF 1
+
+> k
+
+< τ 2;
+
+αMDF 1 
+
+> k
+
+, otherwise ,
+
+(1.5) where αMDF 1 
+
+> k
+
+=   
+
+> ∑mi=1 sTk−isk−i
+> ∑mi=1 |sTk−iyk−i|
+
+, αMDF 2 
+
+> k
+
+=  
+
+> ∑mi=1 |sTk−iyk−i|
+> ∑mi=1 sTk−isk−i
+
+and τ2 ∈ (0 , 1). In [12], Yuan proposes a new stepsize, which enjoys 3-step termination for 2 dimensional quadratic function minimization problems. The iteration formula is as follows: 
+
+
+
+x1 = x0 − αSD  
+
+> 0
+
+g0,
+
+x2 = x1 − αY 
+
+> 1
+
+g1,
+
+x∗ = x2 − αSD  
+
+> 2
+
+g2,
+
+(1.6) where x∗ is the optimal solution. The Yuan stepsize 
+
+αYk = 2 
+
+(√
+
+( 1
+
+αSD k−1
+
+− 1
+
+αSD k
+
+)2 + 4‖gk‖22
+
+‖sk−1‖22
+
++ 1
+
+αSD k−1
+
++ 1
+
+αSD k
+
+)−1
+
+(1.7) is carefully designed through coordinate transformation. The following variant form of the Yuan stepsize is shown in [13], as for the numerical stability: 
+
+αY V k = 2 
+
+(√
+
+( 1
+
+αSD k−1
+
+− 1
+
+αSD k
+
+)2 + 4‖gk‖22
+
+(αSD k−1‖gk−1‖22)2 + 1
+
+αSD k−1
+
++ 1
+
+αSD k
+
+)−1
+
+. (1.8) In the iteration process (1 .6), it is equivalent as αYk , but would be different in other occations. Motivated by Yuan method, the SDC method combines several Cauchy stepsizes and Yuan stepsize to update stepsize in a cyclic way [14]. In each cycle, it first applies h(≥ 2) Cauchy stepsizes, and then uses the Yuan stepsize as the fixed stepsize for m iterations. The stepsize update strategy is 
+
+αSDC k =
+
+
+
+αSD k , if mod ( k, h + m) < h ;
+
+αY V k , if mod ( k, h + m) = h;
+
+αk−1, otherwise .
+
+(1.9) Another SL framework of the cyclic gradient method is proposed in [15], where each loop consists of 2 Cauchy stepsizes and several gradient stepsizes with fixed stepsize: 
+
+αSL k =
+
+
+
+αSD k , if mod ( k, T ) < 2; 
+
+αFk−1, if mod ( k, T ) = 2; 
+
+αk−1, otherwise .
+
+(1.10) Here, the authors offer four choices for αFk :
+
+αY V k , ˜αk =
+
+( 1
+
+αSD k−1
+
++ 1
+
+αSD k
+
+)−1
+
+, α F min  
+
+> k
+
+= min 
+
+{
+
+αSD k−1, α SD k
+
+}
+
+, αF max  
+
+> k
+
+= max 
+
+{
+
+αSD k−1, α SD k
+
+}
+
+.
+
+All the candidate fixed stepsizes are computed through the two consecutive Cauchy stepsizes. Note that the fixed stepsize is calculated with the information of the previous (( k − 1)-th) 4 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+iteration rather than that of the current ( k-th) iteration. In this case, only two Cauchy stepsizes are required in each loop. They are computed and used in the first two iterations; then the fixed stepsize is obtained through the already computed two Cauchy stepsizes, and is used for the rest T − 2 iterations in the loop. Thus its average computational cost is very low. Both SDC and SL methods are designed for problems with quadratic objective functions, and they both have R-linear convergence rate. Subsequently, the SL method was extended to general unconstrained optimization problems [16,17]. The main difficulty for the extension is that Cauchy stepsize does not have closed form for general problem. In [16], the BB stepsize in the next iteration is used for the approximation of the Cauchy stepsize in the current iteration, as they are equivalent for the case of quadratic objective function. Another approximation for the Cauchy stepsize is proposed in [17], which makes use of the quadratic interpolation idea. The cyclic stepsize update strategies perform well numerically and the corresponding gradient methods enjoy low computational cost per iteration. Clearly the Yuan stepsize is an efficient stepsize which enjoys finite termination for 2 dimen-sional quadratic function minimization. The aforementioned cyclic gradient methods are based or partly based on it. In this work a new stepsize for the gradient method is proposed, which has finite termination property for 3 dimensional quadratic function minimization problems. It can be treated as the extension of Yuan stepsize, and is degenerated into Yuan stepsize in the 2 dimensional subspace. In Section 2, a new stepsize is derived which ensures 5-step termination for 3 dimensional quadratic minimization problems. The proposed stepsize is used in the cyclic gradient method framework, and the method is generalized to general problem in Section 3. The theoretical analysis for the proposed gradient method is established, including the global convergence and convergence rates for different types of functions. Numerical experiments com-paring the proposed method with other state-of-the-art algorithms are presented in Section 4. Finally, the paper is concluded in Section 5. 
+
+## 2. New Stepsize with 3 Dimensional 5-step Termination 
+
+In this section, a new stepsize is proposed for gradient method, with the motivation of finite termination of 3 dimensional quadratic function problems. Recall that Yuan stepsize (1 .7) enjoys 3-step termination for 2 dimensional quadratic func-tion problems. Now we consider the following 3 dimensional problem: min  
+
+> x∈R3
+
+f (x) = 1
+
+2 xT Hx + bT x, (2.1) where the Hessian matrix H ∈ R3×3 is symmetric and positive definite. We would like to use gradient method to solve it in 5 steps. The following iteration process is considered: 
+
+
+
+x1 = x0 − αSD  
+
+> 0
+
+g0,
+
+x2 = x1 − αSD  
+
+> 1
+
+g1,
+
+x3 = x2 − α2g2,
+
+x4 = x3 − α3g3,
+
+x∗ = x4 − αSD  
+
+> 4
+
+g4,
+
+(2.2) where x∗ is the optimal solution of (2 .1). In our design, the first two iterations apply the New gradient methods with 3 dimensional quadratic termination 5Cauchy stepsizes: 
+
+αSD  
+
+> 0
+
+= gT 
+
+> 0
+
+g0
+
+gT 
+
+> 0
+
+Hg 0
+
+, αSD  
+
+> 1
+
+= gT 
+
+> 1
+
+g1
+
+gT 
+
+> 1
+
+Hg 1
+
+.
+
+After that the two stepsizes α2 and α3 require specific design. For the last iteration the Cauchy stepsize is used again. Since the first two steps are exact line search steps, we have that g0 ⊥ g1 and g1 ⊥ g2.Suppose g0 and g2 are not parallel. Based on g0, g1 and g2, a new rectangular coordinate system can be built up. Applying the Schmidt orthogonalization, we generate ˜ g2 to be mutually orthogonal with g0 and g1:˜g2 = g2 − gT 
+
+> 2
+
+g0
+
+‖g0‖2 g0. (2.3) For any x ∈ R3, it can be expressed as 
+
+x = x2 + u g0
+
+‖g0‖ + v g1
+
+‖g1‖ + w ˜g2
+
+‖˜g2‖ = x2 + Qy ,
+
+where Q =
+
+( g0 
+
+> ‖g0‖
+
+, g1 
+
+> ‖g1‖
+
+, ˜g2 
+
+> ‖˜g2‖
+
+)
+
+, and y = ( u, v, w )T is the new coordinate for x in the new coordinate system. The objective function is equivalent to 
+
+f (x) = f (x2 + Qy ) = 1
+
+2 (x2 + Qy )T H(x2 + Qy ) + bT (x2 + Qy )= f (x2) + aT y + 1
+
+2 yT Ay 
+
+, h(y).
+
+(2.4) Here a = QT g2 =
+
+( gT  
+
+> 2g0
+> ‖g0‖
+
+, 0, ‖˜g2‖
+
+)T
+
+, and 
+
+A = QT HQ , (aij )3×3 =
+
+
+
+> 1
+> αSD
+> 0
+
+−√βγ 0
+
+−√βγ 1
+
+> αSD
+> 1
+
+−√β(1 − γ)0 −√β(1 − γ) a33 
+
+ , (2.5) where 
+
+β = ‖g2‖2
+
+(αSD  
+
+> 1
+
+)2‖g1‖2 , γ = (gT 
+
+> 2
+
+g0)2
+
+‖g0‖2‖g2‖2 , a33 = ˜g2H˜g2
+
+‖˜g2‖2 =
+
+> 1
+> αSD
+> 2
+
+− 1
+
+> αSD
+> 0
+
+γ
+
+1 − γ .
+
+The iteration points and their gradients can be expressed by the new coordinates in the new coordinate system. Table 2.1 lists the 3 dimensional vectors and their new coordinates. 
+
+Table 2.1: old and new coordinates. 
+
+original coordinates (x) new coordinates (y) 
+
+x∗ y∗ = −A−1a
+
+x3 = x2 − α2g2 y3 = −α2QT g2 = −α2a
+
+g3 = ∇f (x3) gy3 = ∇h(y3) = Ay 3 + a = ( I − α2A)a
+
+x4 = x3 − α3g3 y4 = [ α2α3A − (α2 + α3)I]a
+
+g4 = ∇f (x4) gy4 = ∇h(y4) = [ α2α3A − (α2 + α3)I + I]a6 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+To satisfy the 5 step termination, we need the gradient direction gyk to be parallel to the residual vector y∗ − y4. With the new coordinates, we have 
+
+y∗ − y4 = −αSD  
+
+> 4
+
+gy4 .
+
+Plugging in the expressions of the new coordinates, we further have 
+
+−A−1a − [α2α3A − (α2 + α3)I]a = −αSD  
+
+> 4
+
+[α2α3A2 − (α2 + α3)A + I]a.
+
+Through equivalent transformation, we can deduce that (I − α2A)( I − α3A)( I − αSD  
+
+> 4
+
+A)a = 0. (2.6) Since A = QT HQ is symmetric positive definite, it can be diagonalized as 
+
+A = UΛUT . (2.7) here U is an orthogonal matrix and Λ = Diag( μ1, μ 2, μ 3), where the diagonal elements are the eigenvalues of A with μ1 ≥ μ2 ≥ μ3 > 0. Taking (2.7) into (2.6), we have the following nonlinear equations with respect to α2, α 3 and αSD  
+
+> 4
+
+:
+
+
+
+(α2μ1 − 1)( α3μ1 − 1)( αSD  
+
+> 4
+
+μ1 − 1) = 0; (α2μ2 − 1)( α3μ2 − 1)( αSD  
+
+> 4
+
+μ2 − 1) = 0; (α2μ3 − 1)( α3μ3 − 1)( αSD  
+
+> 4
+
+μ3 − 1) = 0 .
+
+(2.8) It is observed that as long as α2, α 3 and αSD  
+
+> 4
+
+are the inverse of the eigenvalues of A, the equations (2.8) hold. So next we will calculate the eigenvalues of A, and use their inverse to design new stepsizes. Through the eigenvalue equation of A:
+
+|μI − A| = 0 , (2.9) we have the following cubic equation: 
+
+μ3 − t1μ2 + t2μ − t3 = 0 , (2.10) where 
+
+t1 = 1
+
+αSD 
+
+> 0
+
++ 1
+
+αSD 
+
+> 1
+
++ a33 ;
+
+t2 = 1
+
+αSD  
+
+> 0
+
+αSD 
+
+> 1
+
++ ( 1
+
+αSD 
+
+> 0
+
++ 1
+
+αSD 
+
+> 1
+
+)a33 − β;
+
+t3 = 1
+
+αSD  
+
+> 0
+
+αSD 
+
+> 1
+
+a33 − 1
+
+αSD 
+
+> 0
+
+β(1 − γ) − a33 βγ. 
+
+(2.11) According to Cardano’s formula, the three roots are 
+
+μ1 = t1
+
+3 + 2 
+
+√
+
+− p
+
+3 cos 
+
+( 1
+
+3 arccos ( 3q
+
+2p
+
+√ −3
+
+p
+
+))
+
+,μ2 = t1
+
+3 + 2 
+
+√
+
+− p
+
+3 cos 
+
+( 1
+
+3 arccos ( 3q
+
+2p
+
+√ −3
+
+p
+
+) − 2π
+
+3
+
+)
+
+,μ3 = t1
+
+3 + 2 
+
+√
+
+− p
+
+3 cos 
+
+( 1
+
+3 arccos ( 3q
+
+2p
+
+√ −3
+
+p
+
+) + 2π
+
+3
+
+)
+
+,
+
+(2.12) New gradient methods with 3 dimensional quadratic termination 7where p = t2 − t21 
+
+> 3
+
+and q = − 2t31 
+
+> 27
+
++ t1 t2 
+
+> 3
+
+− t3. Thus we obtain the three eigenvalues of A as in (2.12), and three new stepsizes as 
+
+αN Y (i) = μ−1 
+
+> i
+
+, i = 1 , 2, 3. (2.13) Their relationship is shown in the following theorem. 
+
+Theorem 2.1. The stepsizes αN Y (i) (i = 1 , 2, 3) defined in (2 .13) satisfy the following order: 
+
+αN Y (1) ≤ αN Y (2) ≤ αN Y (3) . (2.14) 
+
+Proof. Since arccos 
+
+( 3q
+
+> 2p
+
+√
+
+− 3
+
+> p
+
+)
+
+belongs to the set [0 , π ], it is easy to see that 
+
+φ = 1
+
+3 arccos 
+
+( 3q
+
+2p
+
+√
+
+− 3
+
+p
+
+)
+
+∈ [0 , π
+
+3 ].
+
+Consequently, the three phase angles involved in (2 .12) satisfy: 
+
+φ ∈
+
+[
+
+0, π
+
+3
+
+]
+
+, φ − 2π
+
+3 ∈
+
+[
+
+− 2π
+
+3 , − π
+
+3
+
+]
+
+, φ + 2π
+
+3 ∈
+
+[ 2π
+
+3 , π 
+
+]
+
+.
+
+Based on the monotonicity of the cosine function in these intervals, we have: 
+
+−1 ≤ cos 
+
+(
+
+φ + 2π
+
+3
+
+)
+
+≤ − 1
+
+2 ≤ cos 
+
+(
+
+φ − 2π
+
+3
+
+)
+
+≤ 1
+
+2 ≤ cos φ ≤ 1.
+
+Thus we can deduce that 
+
+t1
+
+3 − 2
+
+√
+
+− p
+
+3 ≤ μ3 ≤ t1
+
+3 −
+
+√
+
+− p
+
+3 ≤ μ2 ≤ t1
+
+3 +
+
+√
+
+− p
+
+3 ≤ μ1 ≤ t1
+
+3 + 2 
+
+√
+
+− p
+
+3 .
+
+For the stepsizes which are the inverse of the eigenvalues, their orders are 
+
+αN Y (1) ≤ αN Y (2) ≤ αN Y (3) . 
+
+When we build up the new coordinate system, it is assumed that g0, g1 and g2 are linearly independent. That is, g0 and g2 are supposed to be nonparallel. The next theorem reveals that the proposed stepsize is indeed an extension of Yuan stepsize (1.7), and degenerates into Yuan stepsize in 2 dimensional space. 
+
+Theorem 2.2. If g0 is parallel to g2, the proposed stepsize αN Y (1) degenerates to the Yuan stepsize αY .Proof. Yuan stepsize (1.7) is introduced in [12]. Its idea is to build up 2 dimensional coordinate system and design Yuan stepsize with 2 dimensional quadratic termination. For our analysis, if g0 is parallel to g2, then it degenerates into a 2 dimensional subspace. The parameter 
+
+γ = (gT 
+
+> 2
+
+g0)2
+
+‖g0‖2‖g2‖2 = 1 holds. Take it into (2.10), the equation is degenerated into 
+
+(
+
+μ − 1
+
+αSD 
+
+> 0
+
+) ( 
+
+μ − 1
+
+αSD 
+
+> 1
+
+)
+
+− β = 0 .8 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+The above equation is exactly the same as equation in [12, (2.15)]. Since αN Y (1) is the shortest stepsize among the three new stepsize, in the 2 dimensional subspace it degenerates into αY ,which is the shorter stepsize for 2 dimensional case. 
+
+By utilizing the derived stepsizes αN Y (i), i = 1 , 2, 3, we are able to find the optimal solution in 5 iterations for 3 dimensional quadratic function minimization problem. Next we will use the shortest stepsize αN Y = αN Y (1) to design efficient gradient methods. Since it is the inverse eigenvalue of the 3 dimensional Hessian matrix, with gradient step and stepsize αN Y , the iteration point would fall into 2 dimensional subspace from 3 dimensional problem. In the 2 dimensional subspace αN Y becomes αY , which again reduces the subspace dimension. In this way, when the iteration point falls into 3 dimensional subspace, the gradient method with the new stepsize and Cauchy stepsize would terminate immediately. 
+
+## 3. New Gradient Method 
+
+In this section, the proposed stepsize αN Y is used in the new gradient method. As mentioned in Section 1, cyclic stepsize update strategy (1.10) is proper for large scale problem. With several repeated stepsizes in one cycle, the average computational cost in each iteration is reduced. Thus here we plug the stepsize αN Y into the cyclic gradient method framework to generate new gradient method. The discussions are first made for the quadratic function minimization problem, and then the gradient method is generalized to the general case. 
+
+3.1. Quadratic case 
+
+Consider the problem with quadratic objective function (2.1). Combining with the cyclic framework proposed in [15], our new stepsize update strategy is 
+
+αk =
+
+
+
+αSD k , mod ( k, T ) < 2; 
+
+αN Y k , mod ( k, T ) = 2; 
+
+αk−1, otherwise ,
+
+(3.1) where T is the number of iterations in one cycle. Different from (1.10), the fixed stepsize 
+
+αN Y k is computed via the information of the current (k-th) iteration. Three Cauchy stepsizes are computed in one cycle. Using the new stepsize update strategy (3.1), we summarize the corresponding gradient method in Algorithm 3.1, which is named as NY. As analyzed in Section 2, the proposed stepsize has the property of 3 dimensional quadratic termination. The following theorem verifies the conclusion. 
+
+Theorem 3.1. For 3 dimensional convex quadratic function minimization problem, Algorithm 
+
+3.1 terminates in 2T + 1 iterations. Proof. Without loss of generality, suppose the Hessian matrix in (2 .1) is 
+
+H = Diag( λ1, λ 2, λ 3)with λ1 ≥ λ2 ≥ λ3 > 0, and b = 0. Let gk = ( g(1)  
+
+> k
+
+, g(2)  
+
+> k
+
+, g(3)  
+
+> k
+
+)T . The iteration yields 
+
+gk+1 = ( I − αkH)gk, (3.2) New gradient methods with 3 dimensional quadratic termination 9
+
+Algorithm 3.1 NY algorithm (quadratic case) 
+
+Input: Initial point x0; k = 0; the iteration number in each cycle T ; the stopping parameters 
+
+ǫ.
+
+Output: x k.
+
+while ‖gk‖ > ǫ ‖g0‖ do if mod( k, T ) < 2 then 
+
+Let αk = αSD k ;
+
+else if mod( k, T ) = 2 then 
+
+Let αk = αN Y k ;
+
+else 
+
+Let αk = αk−1;Let xk+1 = xk − αkgk and k := k + 1. 
+
+end while 
+
+implying 
+
+g(i) 
+
+> k+1
+
+= (1 − λiαk)g(i) 
+
+> k
+
+, i = 1 , 2, 3. (3.3) In the first cycle (0 ≤ k < T ), at step k = 2, we have 
+
+α2 = αN Y  
+
+> 2
+
+= 1
+
+λ1
+
+.
+
+Through (3 .3), we have 
+
+g(1) 3 = (1 − λ1λ−11 )g(1) 2 = 0 ,
+
+which implies g(1)  
+
+> k
+
+= 0 for all k ≥ 3. In the second cycle ( T ≤ k < 2T ), at step k = T + 2, we should have αT +2 = αN Y T +2 . Since 
+
+g(1)   
+
+> T+2
+
+= 0, problem (2.1) degenerates into a 2 dimensional problem. According to Theorem 2.2, in this case we have 
+
+αT +2 = αY V T +2 = 1
+
+λ2
+
+.
+
+This leads to 
+
+g(2)   
+
+> T+3
+
+= (1 − λ2
+
+1
+
+λ2
+
+)g(2)   
+
+> T+2
+
+= 0 .
+
+And for all k ≥ T + 3, it holds that g(1)  
+
+> k
+
+= g(2)  
+
+> k
+
+= 0. The problem now becomes a 1 dimensional problem. In the first step of the third cycle ( k = 2 T + 1), the Cauchy stepsize is applied. Since the problem now is 1 dimensional, it goes to the optimal solution after the exact line search. That is g(3) 2T +1 = 0 and thus we have g2T +1 = 0.From the above analysis, we can conclude that Algorithm 3 .1 terminates in 2 T +1 iterations. 
+
+
+
+Theorem 3 .1 guarantees the finite termination of the proposed NY method for 3 dimensional problem. Next, the convergence result of NY for general n dimensional problem is analyzed. 
+
+Lemma 3.1. For n dimensional problem (2.1), assume that H = Diag (λ1, λ 2, · · · , λ n) is a diagonal matrix, where λ1 ≥ λ2 ≥ · · · ≥ λn = 1 and {d1, d2, · · · , dn} is a set of associated 10 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+orthonormal eigenvectors. Algorithm 3.1 is applied to problem (2 .1) . Suppose that the initial point x0 satisfies gT 
+
+> 0
+
+d1 6 = 0 and gT 
+
+> 0
+
+dn 6 = 0 . Let gk = ∑ni=1 λki di and define h(k, l ) = ∑ni=l(λki )2.Then Algorithm 3.1 satisfies the following two properties. (i) There exists a constant M1 ≥ λn, such that λn ≤ α−1 
+
+> k
+
+≤ M1 holds for all k > 0.(ii) If there exists a positive integer k0 and a positive constant M2, such that for any l ∈ { 2, ..., n }
+
+and ∀ǫ > 0, h(k − j, l ) < ǫ and (λk−jl−1 )2 ≥ M2ǫ hold for any j ∈ { 0, · · · , min {k, k 0}} , then 
+
+α−1 
+
+> k
+
+≥ M3λl−1, where 1 
+
+> 2
+
+< M 3 < 1 is a constant. Proof. According to the closed form of (1.3), it is trivial to see that 
+
+λn ≤ (αSD k )−1 ≤ λ1 (3.4) holds for any k. Thus from the expression of aii , i = 1 , 2, 3 in (2.5), we have λn ≤ aii ≤ λ1 for 
+
+i = 1 , 2, 3. According to the analysis in Theorem 2.1 and (2.11), we can deduce that (αN Y k )−1 ≥ t1
+
+3 +
+
+√
+
+− p
+
+3 ≥ t1
+
+3 ≥ λn.
+
+Furthermore, 
+
+− p
+
+3 = β
+
+3 + 1
+
+9 (a11 + a22 + a33 )2 − 1
+
+3 (a11 a22 + a22 a33 + a11 a33 )= β
+
+3 + 1
+
+18 [( a11 − a22 )2 + ( a22 − a33 )2 + ( a11 − a33 )2]
+
+≤ λ21 − λ2
+
+> n
+
+3 + (λ1 − λn)2
+
+6 = (λ1 − λn)(3 λ1 + λn)
+
+6 .
+
+The inequality holds due to (3.2) and 
+
+β = ‖gk‖2
+
+(αSD k−1)2‖gk−1‖2 = gTk−1H2gk−1
+
+gTk−1gk−1
+
+− ( gTk−1Hg k−1
+
+gTk−1gk−1
+
+)2 ≤ λ21 − λ2
+
+> n
+
+.
+
+Let M1 = λ1 +
+
+√ (λ1 −λn )(3 λ1+λn ) 
+
+> 6
+
+, we have (αN Y k )−1 ≤ t1
+
+3 + 2 
+
+√
+
+− p
+
+3 ≤ M1.
+
+From (3.4) we can see that λn ≤ (αN Y k )−1 ≤ M1 for all k. This shows that Algorithm 3.1 satisfies Property ( i). From the deduction in [18, (4.3)], it holds that ( αSD k )−1 ≥ 2 
+
+> 3
+
+λl−1 for all k. Next, we shall discuss Property (ii) from two situations. Let M2 = 2 and M3 = 4+ √2 
+
+> 9
+
+.(1) If ( αSD k )−1 ≥ (αSD k−2)−1, we have that 
+
+a33 =
+
+> 1
+> αSD k
+
+− 1
+
+> αSD k−2
+
+γ
+
+1 − γ ≥ (αSD k−2)−1. (3.5) Thus (αN Y k )−1 ≥ t1
+
+3 +
+
+√
+
+− p
+
+3 ≥ t1
+
+3 ≥ 2( αSD k−2)−1 + ( αSD k−1)−1
+
+3 ≥ 2
+
+3 λl−1 ≥ M3λl−1. (3.6) New gradient methods with 3 dimensional quadratic termination 11 (2) If ( αSD k )−1 < (αSD k−2)−1, the inequality (3 .5) does not hold. Let (αSD k )−1 = t(αSD k−2)−1, 0 < t < 1.
+
+Since a33 = ˜gk H˜gk 
+
+> ‖˜gk‖2
+
+> 0, we have γ < t < 1. Then we can deduce that 
+
+a33 = t − γ
+
+1 − γ · (αSD k−2)−1 ≤ (αSD k−2)−1,t1
+
+3 = a11 + a22 + a33 
+
+3 ≥ ( 4
+
+9 + 2
+
+9 · t − γ
+
+1 − γ )λl−1.
+
+Consequently, 
+
+√
+
+− p
+
+3 =
+
+√ β
+
+3 + 1
+
+18 [( a11 − a22 )2 + ( a22 − a33 )2 + ( a11 − a33 )2]
+
+≥
+
+√ (a11 − a33 )2
+
+18 = 1
+
+3√2 · (1 − t − γ
+
+1 − γ )( αSD k−2)−1 ≥√2
+
+9 (1 − t − γ
+
+1 − γ )λl−1,
+
+and (αN Y k )−1 ≥ t1
+
+3 +
+
+√
+
+− p
+
+3 ≥ ( 4
+
+9 +
+
+√2
+
+9 + 2 − √2
+
+9 · t − γ
+
+1 − γ )λl−1 ≥ M3λl−1.
+
+Summarizing the two situations, Property (ii) holds. 
+
+Theorem 3.2. Under the same assumptions as in Lemma 3.1, Algorithm 3.1 either terminates in finite iterations or the sequence {‖ gk‖} converges to zero R-linearly. Proof. We can get to the conclusion following the proof of [18, Theorem 4.1]. The key idea in its proof is that M3 = 2 
+
+> 3
+
+, and δ1 = max {(1 − λn 
+
+> M1
+
+)2, (1 − 1 
+
+> M3
+
+)2} < 1 1) . This guarantees the inequalities in [18, Theorem 4.1] hold, and further achieves the result that ‖gk+M ‖2 ≤ 1 
+
+> 4
+
+‖gk‖2.Here in our work, we have M3 = 4+ √2 
+
+> 9
+
+, and it still holds that 
+
+δ1 = max {(1 − λn
+
+M1
+
+)2, (1 − 1
+
+M3
+
+)2} < 1.
+
+Consequently we can get the same conclusion that ‖gk+M ‖2 ≤ 1 
+
+> 4
+
+‖gk‖2. Thus Theorem 3.2 holds. 
+
+3.2. General case 
+
+In this subsection, the proposed NY method is extended to solve the general unconstrained problem (1.1). Since there is no special structure for the objective function f (x), the main difficulty for the extension of the NY algorithm is the construction of Cauchy stepsize. It has no closed form solution. Here we adopt the quadratic interpolation idea [17] to approximate Cauchy stepsizes. Mainly, in the k-th iteration, we use the function value and gradient of the current iteration point xk and the function value of a new point ˆ x = xk − β0gk to build up a 1 dimensional    
+
+> 1) Here we use the symbols in our paper, where λnrepresents the smallest eigenvalue of the Hessian matrix
+> H.
+
+12 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+quadratic interpolation function for φ(α) , f (xk − αgk). If it does not work well, ˆ x would be replaced by the minimal point of the last quadratic interpolation function. The generation process for the approximated Cauchy stepsize αASD k is shown in [17, Algorithm 1]. By using the approximation of Cauchy stepsize in [17], we can extend our Algorithm 3.1 to solving problem (1.1). In the new algorithm, all Cauchy stepsizes αSD are replaced by the approximated Cauchy stepsizes αASD k . Thus the proposed stepsize αN Y k is also approximated, named as αAN Y k . The new stepsize updated strategy is 
+
+αk =
+
+
+
+αASD k , mod ( k, T ) < 2; 
+
+αAN Y k , mod ( k, T ) = 2; 
+
+αk−1, otherwise .
+
+(3.7) The algorithm framework of the extended NY method (ANY) method is summarized in Algorithm 3.2. 
+
+Algorithm 3.2 ANY algorithm 
+
+Input: Initial point x0; k = 0; T ; the stopping parameters ǫ.
+
+Output: x k.
+
+while ‖gk‖ > ǫ ‖g0‖ do if mod( k, T ) < 2 then 
+
+Let αk = αASD k , where αASD k is computed from [17, Algorithm 1]; 
+
+else if mod( k, T ) = 2 then 
+
+Compute αk = αAN Y k ;
+
+else 
+
+Let αk = αk−1;
+
+end if 
+
+Let αk := max {αmin , min {αk, α max }} ;Compute λk by the improved GLL line search [19] with αk as the first trial; Let xk := xk − λkgk and k := k + 1. 
+
+end while 
+
+The improved GLL line search [19] used here is different from the traditional GLL line search [20] in the backtracking strategy. Specifically, while the classic approach reduces the stepsize by a fixed factor, the improved line search adaptively updates the stepsize via quadratic interpolation. The detailed process is shown in the Appendix. As rigorously analyzed in [21], the convergence results established for the traditional GLL in [20] is also valid for the improved version. Thus the following theoretical analysis directly follows the convergence results of the traditional GLL [20]. Next, the convergence properties of Algorithm 3.2 are analyzed. The next theorem shows the global convergence of Algorithm 3.2. 
+
+Theorem 3.3. Suppose that Ω = {x ∈ Rn : f (x) ≤ f (x0)} is bounded, and the objective function f : Rn → R of (1.1) is continuously differentiable in the neighborhood of Ω. Let {xk}
+
+be the sequence generated by Algorithm 3.2 for problem (1.1). Then, either gk = 0 for some finite k, or the following properties hold: (a) {xk} ⊂ Ω, and ∇f (¯ x) = 0 holds for any limit point ¯x of {xk};New gradient methods with 3 dimensional quadratic termination 13 
+
+(b) no limit point of {xk} is a local maximum of f ;(c) if there are finite stationary points of f in Ω, then the sequence {xk} converges to a stationary point of (1.1). Proof. Algorithm 3.2 applies the improved GLL nonmonotone line search, and its theoretical results follows the traditional one. To share the global convergence result as GLL in [20], we need to prove that Algorithm 3.2 satisfies the following three assumptions required by the theorem in [20], which are: (i) there exists a constant c1 > 0, such that: 
+
+gTk dk ≤ − c1‖gk‖2, (3.8) where dk is the search direction; (ii) there exists a constant c2 > 0, such that: 
+
+‖dk‖ ≤ c2‖gk‖; (3.9) (iii) Let λk = ρpk αk be the stepsize corresponding to dk, where ρ ∈ (0 , 1) and pk is the first nonnegative integer p satisfying: 
+
+f (xk + ρpαkdk) ≤ max  
+
+> 0≤j≤m(k)
+
+f (xk−j ) + δρ pαkgTk dk, (3.10) where m(0) = 0 and 0 ≤ m(k) ≤ min {m(k − 1) + 1 , M }, k ≥ 1, δ ∈ (0 , 1), and M ∈ N.It is obvious that the search direction dk = −gk in Algorithm 3.2 satisfies assumptions (i) and (ii) with c1 = c2 = 1. Since the algorithm employs the GLL nonmonotone line search in each iteration, assumption (iii) holds with the initial trial stepsize a = αk. As noted in the proof of the theorem in [20], it does not require a to be a constant, but it must be positive. This condition is satisfied in Algorithm 3.2 since the trial stepsize αk has a positive lower bound 
+
+αmin .Hence the conclusion of the theorem in [20] holds. And Theorem 3.3 is proved. 
+
+Next the convergence rate of the Algorithm 3.2 is analyzed. 
+
+Theorem 3.4. Suppose ∇f is continuous Lipschitz on Rn, which means 
+
+‖∇ f (x) − ∇ f (y)‖ ≤ L‖x − y‖, ∀x, y ∈ Rn.
+
+Let {xk} be a sequence generated by the Algorithm 3.2 for problem (1.1), and assume f attains the minimum at the point x∗. Then, the following two cases hold. (a) If f is convex, then there exists a constant C > 0 such that for any k, it holds that 
+
+f (xk) − f (x∗) ≤ C
+
+k . (3.11) 
+
+(b) If f satisfies the quadratic growth property 1) , then there exist θ ∈ (0 , 1) and ν > 0 such that for any k, it holds that 
+
+f (xk ) − f (x∗)
+
+f (x0) − f (x∗) ≤ νθ k. (3.12)                            
+
+> 1) [22] The continuously differentiable convex function fhas quadratic functional growth on the set Ω if there exists a positive constant ηsatisfying the condition that for any x∈Ω the following inequality holds:
+> f(x)−f(x∗)≥η‖x−x∗‖2,∀x∈Ω,
+> where x∗is the projection point of xonto the optimal solution set of minimizing f.
+
+14 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+Proof. The proof follows from the convergence rate analysis established in [21, Theorem 4.1]. In Algorithm 3.2, the stepsize αk is restricted to the interval [ αmin , α max ]. Combining with the GLL nonmonotone line search, we are able to get to the conclusions (a) and (b). 
+
+## 4. Numerical Tests 
+
+In this section, we present numerical comparisons of our proposed new methods with the benchmark gradient methods on optimization problems with both quadratic and general non-quadratic objective functions. All tests are done on MATLAB 2021a, Intel Core i9-13900. For the new methods proposed in this paper, the parameter settings are as follows: 
+
+αmin = 10 −10 , αmax = 10 5, T = 7 , ǫ = 10 −6
+
+and the parameters of the adaptive nonmonotone line search are the same as [19]. 
+
+4.1. Algorithm comparison 
+
+In this part, a total of 93 unconstrained test problems from CUTEst [23] with problem dimensions from 4 to 20 , 000 are considered. The following gradient methods are tested: 
+
+• cyclic gradient methods with SL framework: AC-INP-YV [17], ZS-YV [16]; 
+
+• BB-type methods: ABBmin [10], MPSG [11]; 
+
+• conjugate gradient methods: CGDY [24], CGOPT [25]. The parameters in the compared methods are the same as in the corresponding references. For all the tested methods, the maximum iteration number is set as 20 , 000. If the stopping condition for the method is not attained within 20 , 000 iterations, or it encounters “Inf” or “NaN”, the method is treated as unsolved. The performance profile [27] is used here for the algorithm comparison, with different metrics. The vertical axis illustrates the proportion of problems that the method solves within a factor τ of the most effective method’s metric, where log 2 τ is its horizontal axis. The performance profiles for all the compared methods regarding the CPU time and the number of iterations are plotted in Fig. 4.1 and Fig 4.2, respectively. The proposed method is able to solve about 68% test problems, which is the best among all compared methods. Consider the consumed CPU time, and we can see that the proposed method performs the best while ABBmin requires the least iteration number. This shows that our proposed method enjoys less computational cost averagely in each iteration compared to the benchmark methods. The performance profiles for the number of function value and gradient evaluations are depicted in Fig. 4.3 and 4.4, respectively. From them we can also observe the efficiency of the cyclic framework of the proposed method, which requires almost the least number of function value and gradient evaluations. Good performances of the proposed method are observed through the experiments. In the next, we will further analyze the proposed method, and show the possible reason for its good performance. New gradient methods with 3 dimensional quadratic termination 15 
+
+0 1 2 3 4 5 6 7 8 9 10 
+
+log 2
+
+00.1 0.2 0.3 0.4 0.5 0.6 0.7 
+
+> the CPU time
+> ANY
+> AC-INP-YV
+> MPSG
+> ZS-YV
+> ABBmin
+> CGDY
+> CGOPT
+
+Fig. 4.1. Performance profile on the CPU time metric 
+
+0 1 2 3 4 5 6 7 8 9 10 
+
+log 2
+
+00.1 0.2 0.3 0.4 0.5 0.6 0.7 
+
+> iteration
+> ANY
+> AC-INP-YV
+> MPSG
+> ZS-YV
+> ABBmin
+> CGDY
+> CGOPT
+
+Fig. 4.2. Performance profile on the iteration metric 
+
+4.2. Line search analysis 
+
+For the optimization of general problem (1.1), it usually requires line search technique, so that the convergence of the method is guaranteed. We use backtracking to satisfy the line search requirement. However, frequent backtracking causes additional function evaluations, which are often the computational bottleneck in large scale optimization. In this part, the line search efficiency of the compared methods are analyzed. We introduce the metric “average line search counts per iteration”, defined as the average number of additional function evaluations required per iteration for the line search condition satisfaction. Less number of backtracking indicates that the trial stepsizes provided by the 16 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+0 1 2 3 4 5 6 7 8 9 10 
+
+log 2
+
+00.1 0.2 0.3 0.4 0.5 0.6 0.7 
+
+> number of function evaluations
+> ANY
+> AC-INP-YV
+> MPSG
+> ZS-YV
+> ABBmin
+> CGDY
+> CGOPT
+
+Fig. 4.3. Performance profile on the number of function value metric 
+
+0 1 2 3 4 5 6 7 8 9 10 
+
+log 2
+
+00.1 0.2 0.3 0.4 0.5 0.6 0.7 
+
+> number of gradient evaluations
+> ANY
+> AC-INP-YV
+> MPSG
+> ZS-YV
+> ABBmin
+> CGDY
+> CGOPT
+
+Fig. 4.4. Performance profile on the number of gradient value metric 
+
+algorithm are effective, which satisfy the line search condition easily. Here we consider the following methods which perform well in the previous tests, and their corresponding line search techniques as in the references: 
+
+• ANY : the proposed method with the improved GLL line search [19]; 
+
+• AC-INP-YV [17] : the cyclic gradient method based on interpolation, with the Dai-Zhang adaptive nonmonotone line search [26]; 
+
+• ZS-YV [16] : the cyclic gradient method based on step-ahead BB approximation, with the GLL nonmonotone line search [20]; New gradient methods with 3 dimensional quadratic termination 17 
+
+• ABBmin [10] : the improved BB gradient method with the GLL nonmonotone line search [20]. Among all the test problems, 40 of them can be solved successfully by all the aforementioned four algorithms. The average number of extra line search trial stepsizes per iteration of the four methods for each test problem is plotted in Fig. 4.5. The logarithm vertical axis is adopted, so that the comparison is clear. The red, blue, green and yellow bars represent the four methods respectively. The vanished bar in some test problems means that there is no extra line search trial stepsize for the corresponding method (initial trial stepsize is accepted immediately). 
+
+5 10 15 20 25 30 35 40 
+
+test problem index 
+
+10 -4 
+
+10 -3 
+
+10 -2 
+
+10 -1 
+
+10 0
+
+10 1
+
+10 2
+
+> average line searches/iteration
+
+ANY AC-INP-YV ZS-YV ABBmin 
+
+> Fig. 4.5. Comparison of average line search counts per iteration.
+
+As observed in Figure 4.5, the red bars are usually shorter than the other bars. This shows that the proposed ANY method provides effective stepsizes, which require few line search trial stepsizes. In detail, the average line search trial stepsize per iteration for each test problem is only 0.0186, considering the proposed ANY method. This value becomes 0 .9669 for AC-INP-YV, 2.5146 for ZS-YV and 2 .4632 for ABBmin. Statistical results imply that the initial trial stepsize generated by the ANY method is accepted immediately in more than 98% of the iterations. This provides strong evidence that the proposed method works well and requires less computational cost than the benchmark methods. 
+
+Remark 4.1. Here the compared methods adopt different line searches, which keep the same as in their references. Usually the applied line search technique is proper for the corresponding method. For example, ABBmin uses the GLL line search [20]. If we replace it by the improved GLL [19], the average line search trial stepsize per iteration for each test problem would become 
+
+6.8620 , which is worse than ABBmin method with traditional GLL. 18 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+Through the analysis, it is observed that the proposed stepsize update strategy is effective. Most stepsizes can satisfy the line search condition naturally. 
+
+4.3. High dimensional tests 
+
+In this subsection, the test on high dimensional problems is shown. 9 test problems are considered, with dimensions 10 5 and 10 6. Problems 1-3 are strictly convex quadratic functions in the form of (1.2) with κ = 10 6 and H = diag( λ1, · · · , λ n). Problems 4 − 9 are general unconstrained problem. Their detailed formulas are as follows: 
+
+• Problem 1 [28]: λ1 = 0 .1 and λi = i for i > 1, with b = (1 , . . . , 1) T and x0 = 0.
+
+• Problem 2 [15]: λi ∈ [1 , 1 + 0 .2( κ − 1)] , i = 1 , · · · , n 
+
+> 2
+
+and λi ∈ [0 .8κ, κ ]i = n 
+
+> 2
+
++ 1 , · · · , n ,with b = 0 and choose x0 on the unit sphere. 
+
+• Problem 3 [15]: λi = κ 
+
+> 2
+
+[cos( n−i 
+
+> n−1
+
+π) + 1] with b = 0 and choose x0 on the unit sphere. 
+
+• Problem 4 (BROYDN3D [23]): 
+
+f (x) = 
+
+> n
+
+∑
+
+> i=1
+
+((3 − 2xi)xi − xi−1 − 2xi+1 + 1) 2 ,
+
+where x0 = ( −1, · · · , −1) T .
+
+• Problem 5 (COSINE [23]): 
+
+f (x) = 
+
+> n−1
+
+∑
+
+> i=1
+
+cos( x2 
+
+> i
+
+− 0.5xi+1 ).
+
+where x0 = (1 , · · · , 1) T .
+
+• Problem 6 (DIXMAANJ [23]): 
+
+f (x) = 1 + α
+
+> n
+
+∑
+
+> i=1
+
+( i
+
+> n
+
+)2 x2 
+
+> i
+
++ β
+
+> n−1
+
+∑
+
+> i=1
+
+x2 
+
+> i
+
+(xi+1 + x2
+
+> i+1
+
+)2 + γ
+
+> 2m
+
+∑
+
+> i=1
+
+x2 
+
+> i
+
+x4 
+
+> i+m
+
++ δ
+
+> m
+
+∑
+
+> i=1
+
+( i
+
+> n
+
+)2 xixi+2 m,
+
+where α = 1 , β = γ = δ = 0 .0625 and x0 = (2 , · · · , 2) T .
+
+• Problem 7 (ENGVAL1 [23]): 
+
+f (x) = 
+
+> n−1
+
+∑
+
+> i=1
+
+[(x2 
+
+> i
+
++ x2
+
+> i+1
+
+)2 − 4xi + 3 ] ,
+
+where x0 = (2 , · · · , 2) T .
+
+• Problem 8 (FIROSE [30]): The objective is a sum of squares f (x) = ∑ni=1 F 2 
+
+> i
+
+(x), where the dominant term is: 
+
+Fi = 8 xi(x2 
+
+> i
+
+− xi−1) − 2(1 − xi) + 4( xi − x2
+
+> i+1
+
+) + x2 
+
+> i−1
+
+− xi−2 + xi+1 − x2
+
+> i+2
+
+,
+
+where x0 = ( −1, · · · , −1) T .New gradient methods with 3 dimensional quadratic termination 19 
+
+• Problem 9 (TRIROSE2 [30]): 
+
+f (x) = 16( x1 − x22)2 +
+
+> n−1
+
+∑
+
+> i=2
+
+[8xi(x2 
+
+> i
+
+− xi−1) − 2(1 − xi) + 4( xi − x2
+
+> i+1
+
+)]2
+
++ [8xn(x2 
+
+> n
+
+− xn−1) − 2(1 − xn)]2 ,
+
+where x0 = ( −1, · · · , −1) T .The following methods are tested and compared: 1. proposed: Algorithm 3.1 for quadratic case, Algorithm 3.2 for nonquadratic case; 2. BB type: ABBmin [10], MPSG [11]; 3. SL type cyclic gradient methods: SL method [15] for quadratic case, ZS-YV method [16] and AC-INP-YV method [17] for nonquadratic case. The computation results are summarized in Table 4.1. The column “Iter” denotes the number of iterations required by the corresponding algorithm for the certain problem, and “Time” represents CPU time in seconds. The symbol “-” indicates that the algorithm failed to converge within 20 , 000 iterations, or that it terminates with abnormal situations like encountering “Inf” or “NaN” values. Generally the proposed methods have best performances both in computational time and iteration number. It solves all the tested problems successfully. Especially for test problem 1, the proposed NY method solves it successfully while all the other compared methods fail. The sharp comparison is due to the high condition number (10 6 and 10 7) of the problem. This indicates that our proposed methods not only work well for high dimensional problems, but also has the ability to deal with ill-conditioned problems. 20 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+Table 4.1: high dimensional problem tests 
+
+Prob. Dim. Metric ANY ABBmin MPSG ZS-YV AC-INP-YV 
+
+1 10 5 Iter 8838 - - -
+
+Time 7.07 - - -
+
+10 6 Iter 13199 - - -
+
+Time 65.30 - - -
+
+2 10 5 Iter 22 19 20 25 
+
+Time 0.013 0.012 0.012 0.014 
+
+10 6 Iter 22 19 20 25.4 
+
+Time 0.133 0.155 0.446 0.160 
+
+3 10 5 Iter 229 257.4 755.2 308 
+
+Time 0.041 0.044 0.045 0.188 
+
+10 6 Iter 225 258.2 825.2 345.2 
+
+Time 1.14 1.86 91.89 2.16 
+
+4 10 5 Iter 24 - - 79 -
+
+Time 0.09 - - 0.50 -
+
+10 6 Iter 21 1844 186 74 -
+
+Time 0.46 289 5.02 3.36 -
+
+5 10 5 Iter 21 54 - - 14 
+
+Time 0.12 8.17 - - 0.17 
+
+10 6 Iter 20 256 - - 17 
+
+Time 0.86 858 - - 1.69 
+
+6 10 5 Iter 66 406 11558 69 73 
+
+Time 1.56 15.1 229 2.97 1.64 
+
+10 6 Iter 66 356 4109 118 117 
+
+Time 15.5 128 687 47.5 25.0 
+
+7 10 5 Iter 28 12 93 19 29 
+
+Time 0.08 0.05 0.26 0.08 0.06 
+
+10 6 Iter 24 12 99 17 19 
+
+Time 0.51 0.47 2.13 0.55 0.77 
+
+8 10 5 Iter 174 250 - 102 -
+
+Time 0.71 2.00 - 0.91 -
+
+10 6 Iter 116 3746 - - -
+
+Time 3.86 801 - - -
+
+9 10 5 Iter 137 234 - - 302 
+
+Time 0.46 1.28 - - 0.88 
+
+10 6 Iter 93 - 175 - 218 
+
+Time 2.24 - 4.76 - 5.09 New gradient methods with 3 dimensional quadratic termination 21 
+
+## 5. Conclusion 
+
+A new type of stepsize for gradient method is proposed, which is deduced through the aim of 5 step termination for 3 dimensional quadratic function minimization problems. The proposed NY stepsize is combined with the cyclic update strategy, and a new gradient method is proposed. It is proved to have 3 dimensional quadratic termination property. The proposed gradient method is extended for solving general unconstrained problem, through the quadratic interpolation approximation for Cauchy step. By integrating the improved GLL nonmonotone line search, we establish the global convergence of the proposed method. Furthermore, we analyze its sublinear convergence rate for convex problems and R-linear convergence rate for problems with quadratic functional growth property. Numerical results show that our proposed algorithm has the best performances in terms of the computational time compared to the benchmark methods. The proposed method also provides good initial trials for line search, which leads to little computational cost for line search. 
+
+## A. The Improved GLL Line Search 
+
+In this appendix, the detailed implementation of the improved GLL line search [19] used in the ANY algorithm (Algorithm 3.2) is provided. It integrates the GLL nonmonotone line search with quadratic interpolation backtracking. Unlike the traditional approach, the new trial stepsize is computed using the local information of the current iteration to capture the local curvature accurately. The brief algorithm framework is summarized in Algorithm A.1. 
+
+Algorithm A.1 The improved GLL line search 
+
+Input: Current iterate xk, gradient gk, function value f (xk), initial stepsize α, history length 
+
+M , parameter δ, max line search iterations Lmax 
+
+Output: Accepted stepsize αk and new iterate xk+1 .Let fref = max 0≤j≤min {k,M } f (xk−j ); Let iter ls = 0; 
+
+while iter ls < L max do 
+
+iter ls = iter ls + 1; Let xnew = xk − αgk and fnew = f (xnew ); 
+
+if fnew ≤ fref − δα ‖gk‖2 then 
+
+Let αk = α, xk+1 = xnew ;
+
+return else 
+
+Compute ¯ α = ‖gk ‖2α2       
+
+> 2[ f(xk−αgk)−f(xk)+ α‖gk‖2]
+
+;
+
+if ¯α ∈ [0 .1α, 0.9α] then 
+
+Let α = ¯ α;
+
+else 
+
+Let α = 0 .5α;
+
+end if end if end while 22 Xie Yixin, Liu Jin-Peng, Sun Cong, Yuan Ya-Xiang 
+
+## References 
+
+[1] L. Bottou, F. E. Curtis, J. Nocedal: Optimization methods for large scale machine learning. SIAM Review 60 (2), 223–311 (2018) [2] G. Ramillien, F. Frappart, S. Gratton, X. Vasseur: Sequential estimation of surface water mass changes from daily satellite gravimetry data. Journal of Geodesy 89 (3), 259–282 (2015) [3] C. Sun, Y. Wang: Gravity-magnetic cross-gradient joint inversion by the cyclic gradient method. 
+
+Optimization Methods and Software 35 (5), 982–1001 (2020) [4] A. Cauchy: M´ ethode g´ en´ erale pour la r´ esolution des systemes d’´ equations simultan´ ees. Comptes rendus de l’Acad´ emie des Sciences 25 , 536–538 (1847) [5] H. Akaike: On a successive transformation of probability distribution and its application to the analysis of the optimum gradient method. Annals of the Institute of Statistical Mathematics 11 ,1–16 (1959) [6] R. Andreani, M. Raydan: Properties of the delayed weighted gradient method. Computational Optimization and Applications 78 , 167–180 (2020) [7] D. Di Serafino, G. Toraldo, M. Viola: Using gradient directions to get global convergence of Newton-type methods. Applied Mathematics and Computation 409 (2020) [8] J. Barzilai, J. M. Borwein: Two-point step size gradient methods. IMA Journal of Numerical Analysis 8, 141–148 (1988) [9] G. Frassoldati, L. Zanni, G. Zanghirati: New adaptive stepsize selections in gradient methods. 
+
+Journal of Industrial and Management Optimization 4, 299–312 (2008) [10] D. Di Serafino, V. Ruggiero, G. Toraldo, L. Zanni: On the steplength selection in gradient methods for unconstrained optimization. Applied Mathematics and Computation 318 , 176–195 (2018) [11] Y. K. Huang, Y. H. Dai, X. W. Liu: A new multi-point stepsize gradient method for optimization. In: M. Al-Baali, A. Purnama, L. Grandinetti (eds) Numerical Analysis and Optimization. NAO 2020. Springer Proceedings in Mathematics and Statistics 354 , 135–151 (2021) [12] Y. X. Yuan: A new stepsize for the steepest descent method. Journal of Computational Mathe-matics 24 (2), 149–156 (2006) [13] Y. H. Dai, Y. X. Yuan: Analysis of monotone gradient methods. Journal of Industrial and Man-agement Optimization 1(2), 181–192 (2005) [14] R. De Asmundis, D. Di Serafino, W. W. Hager, H. Zhang: An efficient gradient method using the Yuan steplength. Computational Optimization and Applications 59 (3), 541–563 (2014) [15] C. Sun, J. P. Liu: New stepsizes for the gradient method. Optimization Letters 14 , 1943–1955 (2020) [16] Y. Zhang, C. Sun: Cyclic Gradient Methods for Unconstrained Optimization. Journal of the Operations Research Society of China 12 , 809–828 (2024) [17] Y. X. Xie, C. Sun, Y. X. Yuan: Adaptive cyclic gradient methods with interpolation. Computa-tional Optimization and Applications 92 , 301–325 (2025) [18] Y. H. Dai: Alternate step gradient method. Optimization , 52 (4–5), 395–415 (2003) [19] Y. K. Huang, Y. H. Dai, X. W. Liu: Equipping Barzilai-Borwein method with two dimensional quadratic termination property. SIAM Journal on Optimization 31 (4), 3068–3096 (2021). [20] L. Grippo, F. Lampariello, S. Lucidi: A nonmonotone line search technique for Newton’s method. 
+
+SIAM Journal on Numerical Analysis 23 , 707–716 (1986) [21] Y. K. Huang, H. Liu: On the rate of convergence of projected Barzilai–Borwein methods. Opti-mization Methods and Software 30 , 880–892 (2015) [22] I.Necoara, Y. Nesterov, and F. Glineur: Linear convergence of first order methods for non-strongly convex optimization. Mathematical Programming (2015) [23] N. I. Gould, D. Orban, P. L. Toint: CUTEst: a constrained and unconstrained testing environment with safe threads for mathematical optimization. Computational Optimization and Applications 
+
+60 , 545–557 (2015) New gradient methods with 3 dimensional quadratic termination 23 
+
+[24] Y. H. Dai, Y. X. Yuan: A nonlinear conjugate gradient method with a strong global convergence property. SIAM Journal on Optimization 10 (1), 177–182 (1999) [25] Y. H. Dai, C. X. Kou.: A nonlinear conjugate gradient algorithm with an optimal property and an improved wolfe line search. SIAM Journal on Optimization 23 , 296–320 (2013) [26] Y. H. Dai, H. Zhang: Adaptive two-point stepsize gradient algorithm. Numerical Algorithm 377– 385 (2001) [27] E. D. Dolan, J. J. Mor´ e: Benchmarking optimization software with performance profiles. Mathe-matical Programming 91 , 201–213 (2002) [28] B. Zhou, L. Gao, Y. H. Dai: Gradient methods with adaptive step-sizes. Computational Optimiza-tion and Applications 35 , 69–86 (2006) [29] J. J. Mor´ e, B. S. Garbow, K. E. Hillstrom: Testing Unconstrained Optimization Software. ACM Trans. Math. Softw. 7(1), 17–41 (1981) [30] G. Li: The Secant/Finite Difference Algorithm for Solving Sparse Nonlinear Systems of Equations. 
+
+SIAM Journal on Numerical Analysis 25 (5), 1181–1196 (1988)

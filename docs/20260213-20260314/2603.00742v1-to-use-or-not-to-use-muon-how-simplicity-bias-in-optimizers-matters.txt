@@ -1,0 +1,584 @@
+Title: To Use or not to Use Muon: How Simplicity Bias in Optimizers Matters
+
+URL Source: https://arxiv.org/pdf/2603.00742v1
+
+Published Time: Tue, 03 Mar 2026 02:07:00 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+# TO USE OR NOT TO USE MUON : HOW SIMPLICITY 
+
+# BIAS IN OPTIMIZERS MATTERS 
+
+Sara Dragutinovi´ c, Rajesh Ranganath 
+
+Courant Institute School of Mathematics, Computing, and Data Science New York University 
+
+sara.dragutinovic@nyu.edu 
+
+# ABSTRACT 
+
+For a long period of time, Adam has served as the ubiquitous default choice for training deep neural networks. Recently, many new optimizers have been intro-duced, out of which Muon has perhaps gained the highest popularity due to its superior training speed. While many papers set out to validate the benefits of Muon, our paper investigates the potential downsides stemming from the mecha-nism driving this speedup. We explore the biases induced when optimizing with Muon, providing theoretical analysis and its consequences to the learning trajec-tories and solutions learned. While the theory does provide justification for the benefits Muon brings, it also guides our intuition when coming up with a cou-ple of examples where Muon-optimized models have disadvantages. The core problem we emphasize is that Muon optimization removes a simplicity bias that is naturally preserved by older, more thoroughly studied methods like Stochastic Gradient Descent (SGD). We take first steps toward understanding consequences this may have: Muon might struggle to uncover common underlying structure across tasks, and be more prone to fitting spurious features. More broadly, this paper should serve as a reminder: when developing new optimizers, it is essential to consider the biases they introduce, as these biases can fundamentally change a model’s behavior—for better or for worse. 
+
+# 1 INTRODUCTION 
+
+Engineers and researchers across industries frequently employ deep learning to solve data science problems. Developing a model usually consists of deciding on the model architecture and data (e.g. which augmentations or feature engineering) to use. However, the choice of optimizer typically relies on established defaults such as SGD, Adam, or more recently, Muon. This paper aims to spotlight the impact of optimizer choice, and how, apart from different optimizers having different speed of training, they can also cause different behavior of the final model. The key point is that different optimizers make different path traversals in the loss landscape, that is, they have different biases. Despite this, prior works primarily focus on the greedy (speedup) benefits optimizers bring (Wen et al., 2026). This is largely due to a lack of theory or intuition on how learning trajectory taken impacts functional properties of the final solution. Specifically, we focus on the Muon optimizer (Jordan et al., 2024b), which attracted a large audience due to its performance on NanoGPT Speedrun competition (Jordan et al., 2024a). Muon converges to a certain validation loss much quicker (in wallclock time) than other, older and newer optimizers. It has been adopted as one of the new defaults, for example, in training NanoChat (Karpathy, 2025), and Su (2025) even says “Mounting evidence now suggests that Muon is becoming, and perhaps already is, the new go-to optimizer for training language models in industry...”. But we still don’t know Muon’s biases, we don’t know which trajectory in the loss landscape Muon takes to be so quick, and we don’t know implications of that to the solution Muon-optimized model converges to .Our goal in this paper, apart from emphasizing asking those questions, is to make initial steps in answering them. We set to do so by theoretically analyzing deep linear networks optimized by sim-plified version of Muon—assuming exact SVD and no momentum for tractability—termed Spectral GD. Optimizing with it provably removes a simplicity bias that e.g. optimizing by gradient descent 1
+
+> arXiv:2603.00742v1 [cs.LG] 28 Feb 2026
+
+(GD) exhibits (Nakkiran et al., 2019; Gidel et al., 2019; Refinetti et al., 2023; Zhang et al., 2026). Namely, the trajectory GD takes sequentially increases the rank of the solution, acting as an implicit regularization. On the other hand, Spectral GD doesn’t increase the complexity sequentially, but instead learns everything at the same time. This theory explains the speed-up benefits of Muon, e.g. in imbalanced modalities setting, as observed by Vasudeva et al. (2026); Wang et al. (2026). However, the downside of the speed-up is losing the simplicity bias. Guided by this loss in sim-plicity, we develop a few settings where Muon has worse performance compared to SGD. Namely, we find that Muon may be more prone to not learning the shared representations, i.e. the common underlying structure for a task. Additionally, the differences in Muon’s trajectory versus SGD one may make the latter be a better choice in the presence of spurious correlations. By presenting these findings, we aim to encourage a more nuanced evaluation of Muon and other optimizers that looks beyond its in-distribution empirical superiority. Ultimately, we emphasize that the distinction be-tween optimizers lies not only in convergence speed but also in their inherent inductive biases, which could be beneficial or not for any given problem. 
+
+# 2 MUON OPTIMIZER (J ORDAN ET AL ., 2024 B)
+
+In this section we briefly recap optimization step of Muon (MomentUm Orthogonalized by Newton-Schulz), as introduced in Jordan et al. (2024b). Unlike SGD and Adam, Muon takes advantage of the usual setup in deep learning, where most of the parameters are organized in 2 dimensional weight matrices. Let W (t) ∈ Rdout ×din be a weight matrix after optimization step t, and g(t) the usual GD update of the weights with momentum, i.e. g(t) = μg (t−1) + ∇W L(W (t)). The update of Muon at time t + 1 aims to be 
+
+W (t+1) = W (t) − ηU (t)V (t)⊤,
+
+where g(t) = U (t)S(t)V (t)⊤ is the Singular Value Decomposition (SVD) of g(t). The SVD per-formed is the compact, meaning the diagonal matrix S(t) is of dimension r × r (r being the rank of 
+
+g(t)) and contains only positive singular values. Said in words, Muon has the goal to set all non-zero singular values of the step update to be equal to 1. This process is termed orthogonalization of g(t).However, computing the SVD at every update step is computationally prohibitive for deep learning. To address this, Muon employs Newton-Schulz iterations to efficiently approximate orthogonaliza-tion (Kovarik, 1970; Bj¨ orck & Bowie, 1971). In this work, we abstract away the specific effects of this approximation and assume exact SVD throughout our theoretical analysis. The reason why orthogonalization works stays unclear. Even the introductory blogpost (Jordan et al., 2024b) states this, attributing Muon’s success to “divine benevolence”. Another strong ar-gument that it “just works” is the training speed it achieves, being faster than baselines in multiple instances. Some examples include the record speed on Cifar10 (Jordan, 2024), NanoGPT speedrun on FineWeb, and achieving the performance of GPT-2 XL on HellaSwag much faster than Adam (Jordan et al., 2024a). Another way of observing orthogonalizing weight update, as suggested by Bernstein (2025), is as the optimal step of constraint optimization problem: 
+
+min  
+
+> ∆W
+
+⟨∇ W L, ∆W ⟩
+
+s.t. ∥∆W ∥Op < η. 
+
+Here the operator norm is defined as ∥X∥Op = σmax (X), which corresponds to the largest singular value of the matrix. We wrote this problem with ∇W L just like in the original blogpost, but note that for Muon update with momentum it would be replaced with g(t). The usual gradient descent in this setting has instead the constraint ∥∆W ∥F ≤ η with Frobenius norm, where ∥X∥F =
+
+qP 
+
+> i,j
+
+X2
+
+> ij
+
+represents the Euclidean norm of the flattened matrix entries. 2.1 SPECTRAL GRADIENT DESCENT 
+
+We also introduce Spectral GD (Carlson et al., 2016; 2015), as its optimization step is more tractable to analyze mathematically, but also keeps the important properties of Muon, such as orthogonaliza-tion. Namely, compared to Muon: 2Figure 1: Illustration of the theory presented in Section 3.1, for gradient flow ( Left ) and Spectral GD ( Right ). The top row depicts the loss curve, the bottom one the evolution of singular values of 
+
+V U . The evolution of each ui compared to singular vectors r1 and r2 is shown in circled plots, corresponding to each selected time step: the arrows represent r1 and r2, and each dot is one of uis(here din = dout = 2 and H = 100 , so there are that many uis). We observe that for GD, first singular vector is fully learned first, and only then the second one is learned. On the other hand, Spectral GD learns both of them in the same time, and after it saturates on the smallest one, then 
+
+uis progress only in the direction of the larger one. Simulation is closely following the theory, as expected. • Spectral GD uses precise SVD to orthogonalize the update, instead of approximations with Newton-Schulz iterations. • Spectral GD doesn’t use momentum, it orthogonalizes ∇W L(W (t)) directly. We use Spectral GD for the theoretical part, where we think about the biases induced. For our later experiments we switch back to using the full Muon. 
+
+# 3 DEEP LINEAR NETWORKS : S PECTRAL GD L OSES SIMPLICITY BIAS OF 
+
+# GD 
+
+Given the implementational novelties Spectral GD introduces compared to GD, we investigate how does these translate to their respective inductive biases. In this work, we build on the theory explain-ing a simplicity bias of GD (Nakkiran et al., 2019; Gidel et al., 2019; Zhang et al., 2026). We use the well-studied framework of deep linear networks (Saxe et al., 2013; 2019; Lampinen & Ganguli, 2018; Ji & Telgarsky, 2019; Jacot et al., 2021; Ziyin et al., 2022), particularly interesting for un-derstanding the non-linear learning dynamics in deep models. Building on prior theoretical work, which usually assumes the optimization to be performed by gradient descent or flow, we analyze Spectral GD optimization dynamics. While GD gradually increases the complexity of the solution, Spectral GD doesn’t have this property. In this section, we focus on 2 layer deep linear networks. First, we lay down the theory behind the learning dynamics with GD (Saxe et al., 2013; Gidel et al., 2019; Jacot et al., 2021; Zhang et al., 2026), and Spectral GD (Vasudeva et al., 2026). Once we have the theory, we comment on the consequences of Spectral GD and GD traversing different learning trajectories in the loss landscape. The theory explains why Spectral GD is learning faster, but also reveals the cost of it: loss of the simplicity bias of GD. 33.1 THEORY 
+
+Let a forward pass of a 2 layer deep linear network be ˆy = V U x , where U ∈ RH×din , V ∈ Rdout ×H ,
+
+x ∈ Rdin , and H is the number of hidden neurons. Let the rows of U be u⊤ 
+
+> i
+
+, the columns of V, v i.We are given n input-output pairs {(xi, y i)}. The goal is to minimize the MSE loss L(U, V ) = 
+
+> 12n
+
+P 
+
+> i
+
+∥ˆyi − yi∥2. Here we use gradient flow on the whole dataset, starting from infinitesimal initializations U0, V 0. Dynamics dependence on the dataset is fully captured by these statistics: 
+
+Σxx = 1
+
+> n
+
+PHi=1 xix⊤ 
+
+> i
+
+and Σyx = 1
+
+> n
+
+PHi=1 yix⊤ 
+
+> i
+
+.
+
+Assumptions: For the clarity of presentation, we assume Σxx = I. We also assume the joint di-agonalizability of Σyx , U0 and V0. This assumption is typically justified by starting from small initialization, where prior work (Zhang et al., 2026) shows that in that regime, the principal compo-nents of U, V do align with the ones of Σyx early on in the training—a phenomena known as silent alignment (Hu et al., 2020; Jacot et al., 2021). For relaxations of the assumption Σxx = I, we refer to Zhang et al. (2026); Vasudeva et al. (2026); Watanabe et al. (2026). 
+
+Gradient flow solution. The gradients of L with respect to U and W are given by 
+
+∇U L = V ⊤(V U Σxx − Σyx ), ∇V L = ( V U Σxx − Σyx )U ⊤.
+
+Let Σyx = PDk=1 skqkr⊤ 
+
+> k
+
+be the SVD of Σyx where sk are positive singular values. Let them be ordered s1 ≥ ... ≥ sD .
+
+Theorem 3.1 (Gradient Flow Dynamics) . Consider the gradient flow dynamics ˙U = −∇ U L and 
+
+˙V = −∇ V L on the loss L(U, V ) starting from infinitesimal initialization. Then: 1. Critical Points: Any point (U, V ) such that V U = Prk=1 skqkr⊤ 
+
+> k
+
+(for r ≤ D) with ui ∈
+
+span {rk}rk=1 , vi ∈ span {qk}rk=1 is a critical point of the dynamics. 2. Sequential Learning: The k-th singular value σk(t) of the product matrix V U evolves according to a sigmoid function, with a convergence time ∝ s−1 
+
+> k
+
+. Consequently, for any 
+
+k such that sk > s k+1 , there exists a time interval when the k-th mode is fully learned (σk ≈ sk) while the (k + 1) -th mode is negligible ( σk+1 ≈ 0). 
+
+The proof, although standard, can be found in Appendix A. Combining the two results leads to the explanation of saddle-to-saddle dynamics from small initialization. At the start of training, all singular values of the solution W are effectively 0. Rank of W then increases gradually, first learning the highest singular values sk. At the point rank has gone up to r (for all r ≤ D), V U effectively satisfies the conditions of 1, and the learning trajectory passes close to the corresponding saddle point. This is reflected in a loss plateau, and 2. predicts the time of escaping this saddle. In case of a singular value sk having multiplicity m > 1, the rank at that point will increase by m and the whole singular subspace will be learned at the same time. 
+
+Spectral gradient descent solution. Here we use the same notation and assumptions as in the previous case. For spectral gradient descent, the dynamics is different. This time, all principle components are learned simultaneously, with the same speed, until each one saturates. 
+
+Theorem 3.2 (Spectral Gradient Flow Dynamics) . Observe the spectral gradient flow ˙U =
+
+−orth (∇U L) and ˙V = −orth (∇V L) where orth (·) is the orthogonalization of a matrix. Start-ing from infinitesimal initialization, we have: 1. Solution Trajectory: The learning trajectory of W = V U will sequentially pass through all Wr := Prk=1 sr+1 qkr⊤ 
+
+> k
+
++ PDk=r+1 skqkr⊤ 
+
+> k
+
+for r ≤ D (from higher to lower) such that 
+
+sr > s r+1 .2. Equal Learning: To get from one Wr to the next, W learns singular spaces of Σyx in the same time, at the same rate, until saturation. Furthermore, the evolution of k-th singular value σk(t) of W follows a quadratic curve, leading to convergence time ∝ √sk.
+
+We provide the proof in Appendix B, or refer to Vasudeva et al. (2026), with slightly different as-sumptions. Consequently, training with Spectral GD also happens in phases: in each phase, singular 4values σr+1 (t) = sr+1 , ..., σ D (t) = sD are fully learned, while σ1(t), ..., σ r (t) make their transi-tion from sr+1 to sr , the next smallest singular value. The contrast with GD is the order of learning the singular values: while GD fully learns the higher ones first, Spectral GD learns all of them in the same time, leading to smaller ones being fully learned first. 
+
+Experiments. We both validate and illustrate the theory in Figure 1, where we perform full dataset (Spectral) GD on standard Gaussian data xi ∈ Rdin , and yi ∈ Rdout computed as a noised linear function of xi. In this usual linear regression setting, we sample the regression weights also as a standard normal. The weights U, V are initialized also as Gaussian, but with small variance ( 0.01 ). We see that the evolution closely follows the theory. Empirically, because we’re performing a discretization of the dynamics of ‘Spectral gradient flow’, and due to using a spectral method, it does happen that after the last D − r principle components have been learned, the update matrix in the dynamics above is not exactly rank r but also have some noise, and is usually full rank. In that case, Spectral GD does fit this noise, causing a highly oscillatory path in the loss landscape (see Figure 5), and the oscillations don’t go away even if we include the momentum, as per Muon optimization (Figure 6). Although in a simple setting of deep linear networks the model always converges to the correct solution (as it is a stable minimum), this suggest that in more complicated settings Spectral GD and Muon may be less robust when using higher learning rate. Potentially, this observation could motivate future improvements of spectral optimizers. 3.2 CONSEQUENCES 
+
+Now we comment on some consequences of the theory above. First, we see that geometrical reason GD is slower is because it has to break many saddle points along the way. This could motivate future optimizer development, if one is interested in traversing the loss landscape the same way GD does, while being faster. Spectral GD, on the other hand, doesn’t pass through these (or other) saddles, meaning also it doesn’t learn the solution gradually. The behavior of solution increasing in rank gradually is a type of a simplicity bias (Gidel et al., 2019; Zhang et al., 2026). Spectral GD loses it, compared to GD, which brings its own consequences. The loss of this simplicity bias leads to Spectral GD learning modalities appearing with different frequencies in the training set faster and more uniform than GD, as is pointed out by some prior work (Vasudeva et al., 2026; Wang et al., 2026; Su, 2025). On the other hand, such a learning is more greedy , in the sense that it rushes to learn all the different singular vectors quicker. There is sometimes a trade-off between the speed and the quality of the solution found. An example from Puli et al. (2023) suggests that the implicit bias of empirical risk minimization with the log-loss leads to faster learning, but for the price of the solution relying more on spurious features. This motivates our experiments as well, where we want to understand biases of Muon in similar setups. In certain tasks simplicity bias is necessary, as it forms an implicit curriculum in learning. There are plenty of situations in which, in order to learn the full task, we need to learn to solve different steps causally, one after another. From this theory, our intuition is that Muon would have a more greedy approach of memorizing, rather than discovering the underlying structure and generalizing. Guided by this, we came up with couple of experiments to compare Muon and SGD on. However, unlike most of (if not all) prior work, Muon performs worse than SGD due to losing the simplicity bias. 
+
+# 4 SPECTRAL GD DOES NOT LEARN SHARED REPRESENTATIONS 
+
+First, we’re testing Spectral GD in a task which can be solved in multiple ways, but only one—the one understanding the common underlying structure—is what we consider correct, as it achieves good out of distribution generalization. In that case, we say that the model has learned the ‘shared representations’. 
+
+Setup. Specifically, we use the ‘routing’ task setup from Saxe et al. (2022), a simplification of a multi-modal model. The architecture and task details are explained in Figure 2a,b). While all different input and output sources use their own linear encoders and decoders respectively, the com-mon hidden layer is used by all. During training, each sample (x, y ) will have its input source (i.e. 5Figure 2: a) The neural network used to solve the task, where each of the gray arrows is a linear layer, with no nonlinearities in between. There is M = 7 input and output domains. Each input domain has its own, fixed 4 orthonormal vectors to represent {1, 2, 3, 4}. b) The underlying task we’re learning: mapping each number in {1, 2, 3, 4} to the output vector shown. Results after training in the ‘routing’ setup with c) SGD and d) Spectral GD, together with e) training loss curves. We plot the function the models learned (4 different column vectors represent the image of {1, 2, 3, 4}) for all the different input-output pairs of sources. Circled in green are the pairs seen during training. which domain x came from) and output source (domain of y), and only corresponding layers are used and trained. Underlying task is very simple: the goal is to learn the mapping from 4 numbers 
+
+{1, 2, 3, 4} to 4 vectors, as shown in Figure 2b). However, each input source has a different vector representations for {1, 2, 3, 4}: for each input source, we generate four 4-dimensional orthonormal vectors, encoding the four numbers. For simplicity, we don’t transform the output vectors based on output domain (but note that still, each output domain has their own linear decoder). We use MSE loss between predicted output vector and the true one. Further details can be found in Appendix C.2. One could imagine this setting being a toy simplification for multi-modal networks, where perhaps different sources can include text, images, sound etc. Another example would be in healthcare, where data could be coming from different hospitals, and we would like to develop a classification model that works for all input domains (e.g. different devices used to capture the data). The catch of the task is that not all input-output pairs of sources are seen during training. Specifically, we only see samples (x, y ) where x came from input source j, and y is from either output domain 
+
+j or j + 1 ( M + 1 := 1) , for all j = 1 , ..., M . The common linear layer is of dimension 64 × 64 ,thus large enough to memorize all of the mappings seen in training, even without realizing that the underlying task has a much simpler solution. 
+
+Experiments. The empirical results are captured in Figure 2c,d), where we show the function learned across all input-output pairs of sources. Training with SGD does result in learning the shared representations across all inputs, because even the input-output pairs that have never been seen during training do end up producing the correct underlying function. This generalization, however, doesn’t happen when optimizing with Spectral GD, using stochastic setting with batches. While Spectral GD does learn to solve the task for input-output pairs seen during training, it does so by memorizing each input-output pair seen, as can be inferred from the poor generalization on input-output pairs not present in training. It is important to note that both algorithms achieve perfect convergence (Figure 2e), thus the hope of Spectral GD recovering the underlying shared representa-tions with more data is gone. Further confirmation comes from the hidden layer’s spectral properties: whereas the SGD solution converges to an approximate low-rank structure (rank = 4 , equaling the dimension of the underlying task), the Spectral GD solution exhibits a significantly higher effective rank with a heavy-tailed spectrum—a clear signature of memorization rather than structural learning. 6Figure 3: a) MNIST images containing spurious pixel. b) Validation losses and c) accuracies for SGD, Muon and Adam, on both sets with (Sp) and without spurious features. c) Peak accuracy on non-spurious dataset as a function of different intensities of the spurious pixel in the training data. This example demonstrates that the removal of simplicity bias—while yielding faster conver-gence—imposes a tangible cost on the structural quality of the learned solution. By prioritizing rapid loss reduction, the optimizer bypasses the discovery of shared latent structures, converging instead to a disjointed, less generalizable solution. This failure to abstract shared rules poses a risk for complex tasks like mathematics, where the goal is not to memorize specific derivation steps, but to acquire reusable techniques applicable to unseen problems. 
+
+# 5 MUON VS SGD WITH SPURIOUS FEATURES 
+
+In the previous section, we focused on difference in the final solution SGD and Spectral GD found. Now, we focus on the differences in the trajectories. We use a setting with spurious correlations, where while the task could be solved by capturing a spurious feature, we would prefer if the model learns to rely on features that generalize. 
+
+Setup. Unlike some setups with spurious correlations, here all training samples include the spuri-ous features. Specifically, we use MNIST dataset, with the spurious feature being the intensity of a distinct pixel for each of the different classes. To solve the task, we train a simple CNN. As in our theory, and is usually done in practice, we initialize all the weights to be small (Gaussians). This time, we use Muon (with momentum and Newton-Schulz approximation), and compare it to both Adam and SGD with momentum. While we don’t focus on Adam too much in this paper, here we note that, like Muon, Adam doesn’t follow the GD trajectory, due to its per-parameter update rule (Jacobs et al., 2026). 
+
+Experiments. The results are shown in Figure 3b,c). Two validation sets were used: one without spurious features and one with. We see that all three optimizers’ performances started declining on the set without spurious features, meaning the solutions learned eventually started relying on the spurious pixel. Nonetheless, we see that the peak SGD accuracy on that set is better than the one for Adam or Muon. This means if one was to use early stopping as a regularization technique, SGD might be a better choice for an optimizer. More experimental details can be found in Appendix C.3. From both accuracy and loss curves, we can see that SGD pursues a solution relying only on the actual digits for much longer—the Muon curves on with vs without spurious features sets start sep-arating earlier. This somewhat relates to our theory: SGD learns the dominant principal component first, and only then starts learning the others; Muon (Spectral GD) learns all components in the same time. Analogously, learning the actual digits seems “dominant” in this setting, compared to rely-ing on the spurious feature: and indeed, SGD first learns the dominant algorithm, and then starts learning the latter, where Muon seems to be learning both in the same time. 7In Figure 3d), we vary the ‘dominance’ of relying on the actual digits by increasing the intensity of the spurious pixel. The dominance switch seems to happen at intensity ≈ 3.5, where SGD becomes worse than others. Our theory explains this: once relying on the digit becomes less of a dominant solution, SGD’s performance severely degrades as learning the digits starts only after the dominant spurious features have been almost fully learned. In contrast, Muon’s accuracy hardly drops after the switch, because of the equal speed of learning of both digit and spurious features algorithms. This shows that optimizing with Muon is a double-edged sword: while learning is faster and more uniform, task and data are determining whether that is a good thing or not. One could vary whether Muon or SGD are preferable by changing the training distribution and feature dominance. More exploration in this direction seems promising, as it could help understand how different optimization algorithms find different functional solutions to a problem depending on the properties of the training data. 
+
+# 6 RELATED WORK 
+
+We mostly base our theory in Section 3.1 for GD on Zhang et al. (2026) and for Spectral GD on Vasudeva et al. (2026). 
+
+Saddle-to-saddle dynamics and simplicity bias. Saddle-to-saddle dynamics (Jacot et al., 2021; Abbe et al., 2023; Zhang et al., 2026) is a phenomenon observed across architectures (Maennel et al., 2018; Boix-Adsera et al., 2023; Zhang et al., 2026), causing the learning to happen by gradually increasing the complexity of the solution. This gives rise to a particular type of simplicity bias (Arpit et al., 2017; Gidel et al., 2019; Hu et al., 2020; Rahaman et al., 2019). While complex tasks may ultimately require complex representations, Occam’s razor remains a vital inductive principle for robust learning and generalization. Because of this, the question of simplicity bias in deep architectures has been broadly studied, both theoretically (Valle-Perez et al., 2018; Arora et al., 2019) and empirically (Nakkiran et al., 2019; Shah et al., 2020; Teney et al., 2022). Most of the theoretical papers used gradient descent for the optimizer (Nakkiran et al., 2019; Gidel et al., 2019; Refinetti et al., 2023). This motivated us to think about the biases of other optimizers, especially Muon, as we can show it escape these saddles. 
+
+Understanding Muon. From the theory side, Su (2025) analyses Muon optimizer on isotropic curvature model. Shen et al. (2025) provide a convergence rate analysis of (simplified), in compari-son with GD. Most of the empirical papers focus on the benefits of Muon. In Vasudeva et al. (2026) they compare optimizers on imbalanced classes setting using MNIST-CIFAR dataset and Tiny Stories for language generation. Wang et al. (2026) show that in a transformer, MLP and OV-circuit benefit the most from Muon (versus Adam), and also, motivated by associative memory model, show that Muon outper-forms Adam on a memorization task(QA dataset about biographical information) task where each dataset entry appears with different frequency. They state ’ Muon consistently yields more isotropic weight matrices with broadly distributed spectral energy than Adam, both throughout training and across random initializations, thereby supporting richer feature representations ’. In Section 4, we gave an example where ’richer’ in their sense (i.e. learning everything there is to learn) is actually bad. Both of these works emphasize how Muon is better in the setting of imbalanced data, learning all modalities more evenly. Vasudeva et al. (2026) also provides a comparison of the optimizers in a setting with spurious corre-lations, however, different than ours. They use data where a percentage (99%) of samples contains the spurious feature (color in MNIST). While they show all optimizers compared do learn the task, they emphasize that Muon learns it the fastest. They setting also differs because they say color (the spurious feature) is more dominant than digit shape, which perhaps explains why SGD learns it only later. In our setting, we hypothesize that shape is more dominant than the spurious pixel, which could completely change the conclusion. They nonetheless state: ’ This suggests that Muon’s spec-tral design promotes balanced learning of these components, leading to superior generalization. ’. We showed a setting where Muon actually doesn’t generalize but SGD does. Existing literature has largely focused on validating the efficiency benefits of Muon. To complement these findings, we investigate specific scenarios where Muon’s inductive biases lead to suboptimal 8performance. By exploring these trade-offs, we aim to foster a more comprehensive understanding of the optimizer and motivate future algorithmic improvements. 
+
+# 7 DISCUSSION 
+
+The recent advancements in deep learning optimizers design have moved the field. While optimiza-tion algorithms are usually derived from theoretical principles, it is often unclear how these specific update rules shape the inductive biases and ultimate behavior of the trained models. Specifically, we focus on Muon optimizer (Jordan et al., 2024b), and try to explore the consequences of its imple-mentational choices. Theoretically, we can explain why it is faster than GD alternatives, but we can also question why, what are the trade-offs? Motivated again by the theory, we come up with cou-ple of examples where SGD should benefit from its inherent simplicity bias, the one Muon doesn’t posses. Indeed, we show SGD does perform better, which strengthens our point that coming up with new optimizers should involve considering their biases. This is a much more difficult question than, e.g. optimizing for speed, but we hope this work shows that it is an important one. Prior work has studied a simplicity bias across architectures when optimized by GD (Nakkiran et al., 2019; Gidel et al., 2019; Refinetti et al., 2023; Zhang et al., 2026), mainly caused by saddle to saddle learning dynamics. On one hand, saddles are not great, because they case a plateaus in the loss landscape, and they take time to brake, slowing down the learning. Muon is one solution to this, as it completely avoids them. The catch is that the saddle-to-saddle trajectory also has a simplicity bias, as each saddle is increasing the rank of the learned solution. We show how losing this bias can hurt Muon’s performance. For future optimizer designers, we hope our theory can help come up with alternatives/upgrades to Muon, perhaps the ones that traverse the same trajectory as GD, but also have a good way of breaking the saddles (since they are the main slow-down). Altogether, we hope this paper sparks new ideas in the field of deep learning optimizers, hoping that in the future it is more common to analyze their inductive biases and the implications of such. Deciding on what makes a good optimizer is a hard question, and once we have the answer (or an idea for a high quality answer), perhaps it will become easier to act upon it. ACKNOWLEDGMENTS 
+
+The authors would like to thank Yedi Zhang and Jatin Prakash for useful discussions and feedback. This work was partly supported by the NIH/NHLBI Award R01HL148248, NSF Award 1922658 NRT-HDR: FUTURE Foundations, Translation, and Responsibility for Data Science, NSF CA-REER Award 2145542, ONR N00014-23-1-2634, NIH R01CA296388, NSF 2404476, Optum, and Apple. This work was also supported by IITP with a grant funded by the MSIT of the Republic of Korea in connection with the Global AI Frontier Lab International Collaborative Research. 
+
+# REFERENCES 
+
+Emmanuel Abbe, Enric Boix Adsera, and Theodor Misiakiewicz. Sgd learning on neural networks: leap complexity and saddle-to-saddle dynamics. In The Thirty Sixth Annual Conference on Learn-ing Theory , pp. 2552–2623. PMLR, 2023. Sanjeev Arora, Nadav Cohen, Wei Hu, and Yuping Luo. Implicit regularization in deep matrix factorization. Advances in neural information processing systems , 32, 2019. Devansh Arpit, Stanislaw Jastrzkebski, Nicolas Ballas, David Krueger, Emmanuel Bengio, Maxin-der S Kanwal, Tegan Maharaj, Asja Fischer, Aaron Courville, Yoshua Bengio, et al. A closer look at memorization in deep networks. In International conference on machine learning , pp. 233–242. PMLR, 2017. Jeremy Bernstein. Deriving muon, 2025. URL https://jeremybernste.in/writing/ deriving-muon .˚A. Bj¨ orck and C. Bowie. An iterative algorithm for computing the best estimate of an orthogonal matrix. SIAM Journal on Numerical Analysis , 8(2):358–364, 1971. ISSN 00361429. URL 
+
+http://www.jstor.org/stable/2949484 .9Enric Boix-Adsera, Etai Littwin, Emmanuel Abbe, Samy Bengio, and Joshua Susskind. Transform-ers learn through gradual rank increase. Advances in Neural Information Processing Systems , 36: 24519–24551, 2023. David Carlson, Volkan Cevher, and Lawrence Carin. Stochastic Spectral Descent for Restricted Boltzmann Machines. In Guy Lebanon and S. V. N. Vishwanathan (eds.), Proceedings of the Eighteenth International Conference on Artificial Intelligence and Statistics , volume 38 of Pro-ceedings of Machine Learning Research , pp. 111–119, San Diego, California, USA, 09–12 May 2015. PMLR. URL https://proceedings.mlr.press/v38/carlson15.html .David Carlson, Ya-Ping Hsieh, Edo Collins, Lawrence Carin, and Volkan Cevher. Stochastic spectral descent for discrete graphical models. IEEE Journal of Selected Topics in Signal Processing , 10 (2):296–311, 2016. doi: 10.1109/JSTSP.2015.2505684. Gauthier Gidel, Francis Bach, and Simon Lacoste-Julien. Implicit regularization of discrete gradient dynamics in linear neural networks. Advances in Neural Information Processing Systems , 32, 2019. Wei Hu, Lechao Xiao, Ben Adlam, and Jeffrey Pennington. The surprising simplicity of the early-time learning dynamics of neural networks. Advances in Neural Information Processing Systems ,33:17116–17128, 2020. Tom Jacobs, Chao Zhou, and Rebekka Burkholz. Never saddle: Reparameterized steepest descent as mirror flow. In The Fourteenth International Conference on Learning Representations , 2026. URL https://openreview.net/forum?id=YgudIlQ9nC .Arthur Jacot, Franc ¸ois Ged, Berfin S ¸ ims ¸ek, Cl´ ement Hongler, and Franck Gabriel. Saddle-to-saddle dynamics in deep linear networks: Small initialization training, symmetry, and sparsity. arXiv preprint arXiv:2106.15933 , 2021. Ziwei Ji and Matus Telgarsky. Gradient descent aligns the layers of deep linear networks. In 7th International Conference on Learning Representations, ICLR 2019 , 2019. Keller Jordan. cifar10-airbench, 2024. URL https://github.com/KellerJordan/ cifar10-airbench .Keller Jordan, Jeremy Bernstein, Brendan Rappazzo, @fernbear.bsky.social, Boza Vlado, You Ji-acheng, Franz Cesista, Braden Koszarsky, and @Grad62304977. modded-nanogpt: Speedrun-ning the nanogpt baseline, 2024a. URL https://github.com/KellerJordan/ modded-nanogpt .Keller Jordan, Yuchen Jin, Vlado Boza, Jiacheng You, Franz Cesista, Laker Newhouse, and Jeremy Bernstein. Muon: An optimizer for hidden layers in neural networks, 2024b. URL https: //kellerjordan.github.io/posts/muon/ .Andrej Karpathy. nanochat: The best chatgpt that $100 can buy, 2025. URL https://github. com/karpathy/nanochat .Zdislav Kovarik. Some iterative methods for improving orthonormality. SIAM Journal on Numerical Analysis , 7(3):386–389, 1970. doi: 10.1137/0707031. URL https://doi.org/10.1137/ 0707031 .Andrew K Lampinen and Surya Ganguli. An analytic theory of generalization dynamics and transfer learning in deep linear networks. arXiv preprint arXiv:1809.10374 , 2018. Zhiyuan Li, Yuping Luo, and Kaifeng Lyu. Towards resolving the implicit bias of gradient descent for matrix factorization: Greedy low-rank learning. arXiv preprint arXiv:2012.09839 , 2020. Hartmut Maennel, Olivier Bousquet, and Sylvain Gelly. Gradient descent quantizes relu network features. arXiv preprint arXiv:1803.08367 , 2018. Preetum Nakkiran, Gal Kaplun, Dimitris Kalimeris, Tristan Yang, Benjamin L Edelman, Fred Zhang, and Boaz Barak. Sgd on neural networks learns functions of increasing complexity. arXiv preprint arXiv:1905.11604 , 2019. 10 Aahlad Puli, Lily Zhang, Yoav Wald, and Rajesh Ranganath. Don’t blame dataset shift! shortcut learning due to gradients and cross entropy. Advances in Neural Information Processing Systems ,36:71874–71910, 2023. Nasim Rahaman, Aristide Baratin, Devansh Arpit, Felix Draxler, Min Lin, Fred Hamprecht, Yoshua Bengio, and Aaron Courville. On the spectral bias of neural networks. In International conference on machine learning , pp. 5301–5310. PMLR, 2019. Maria Refinetti, Alessandro Ingrosso, and Sebastian Goldt. Neural networks trained with sgd learn distributions of increasing complexity. In International Conference on Machine Learning , pp. 28843–28863. PMLR, 2023. Andrew Saxe, Shagun Sodhani, and Sam Jay Lewallen. The neural race reduction: Dynamics of abstraction in gated networks. In International Conference on Machine Learning , pp. 19287– 19309. PMLR, 2022. Andrew M Saxe, James L McClelland, and Surya Ganguli. Exact solutions to the nonlinear dynam-ics of learning in deep linear neural networks. arXiv preprint arXiv:1312.6120 , 2013. Andrew M Saxe, James L McClelland, and Surya Ganguli. A mathematical theory of semantic development in deep neural networks. Proceedings of the National Academy of Sciences , 116 (23):11537–11546, 2019. Harshay Shah, Kaustav Tamuly, Aditi Raghunathan, Prateek Jain, and Praneeth Netrapalli. The pitfalls of simplicity bias in neural networks. Advances in Neural Information Processing Systems ,33:9573–9585, 2020. Wei Shen, Ruichuan Huang, Minhui Huang, Cong Shen, and Jiawei Zhang. On the convergence analysis of muon. arXiv preprint arXiv:2505.23737 , 2025. Weijie Su. Isotropic curvature model for understanding deep learning optimization: Is gradient orthogonalization optimal? arXiv preprint arXiv:2511.00674 , 2025. Damien Teney, Ehsan Abbasnejad, Simon Lucey, and Anton Van den Hengel. Evading the simplicity bias: Training a diverse set of models discovers solutions with superior ood generalization. In 
+
+Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pp. 16761– 16772, 2022. Guillermo Valle-Perez, Chico Q Camargo, and Ard A Louis. Deep learning generalizes because the parameter-function map is biased towards simple functions. arXiv preprint arXiv:1805.08522 ,2018. Bhavya Vasudeva, Puneesh Deora, Yize Zhao, Vatsal Sharan, and Christos Thrampoulidis. How muon’s spectral design benefits generalization: A study on imbalanced data. In The Fourteenth International Conference on Learning Representations , 2026. URL https://openreview. net/forum?id=YzjS4jcfmS .Shuche Wang, Fengzhuo Zhang, Jiaxiang Li, Cunxiao Du, Chao Du, Tianyu Pang, Zhuoran Yang, Mingyi Hong, and Vincent Y. F. Tan. Muon outperforms adam in tail-end associative memory learning. In The Fourteenth International Conference on Learning Representations , 2026. URL 
+
+https://openreview.net/forum?id=twbMFL0DMp .Taishi Watanabe, Ryo Karakida, and Jun-nosuke Teramae. The impact of anisotropic covariance structure on the training dynamics and generalization error of linear networks. arXiv preprint arXiv:2601.06961 , 2026. Kaiyue Wen, David Leo Wright Hall, Tengyu Ma, and Percy Liang. Fantastic pretraining optimizers and where to find them. In The Fourteenth International Conference on Learning Representations ,2026. URL https://openreview.net/forum?id=2J51qUZ0iG .Yedi Zhang, Andrew M Saxe, and Peter E. Latham. Saddle-to-saddle dynamics explains a simplicity bias across neural network architectures. In The Fourteenth International Conference on Learning Representations , 2026. URL https://openreview.net/forum?id=Vit5M0G5Gb .Liu Ziyin, Botao Li, and Xiangming Meng. Exact solutions of a deep linear network. Advances in Neural Information Processing Systems , 35:24446–24458, 2022. 11 A PROOF OF THEOREM 3.1 
+
+Theorem. Consider the gradient flow dynamics ˙U = −∇ U L and ˙V = −∇ V L on the loss L(U, V )
+
+starting from infinitesimal initialization. Then: 1. Critical Points: Any point (U, V ) such that V U = Prk=1 skqkr⊤ 
+
+> k
+
+(for r ≤ D) with ui ∈
+
+span {rk}rk=1 , vi ∈ span {qk}rk=1 is a critical point of the dynamics. 2. Sequential Learning: The k-th singular value σk(t) of the product matrix V U evolves according to a sigmoid function, with a convergence time ∝ s−1 
+
+> k
+
+. Consequently, for any 
+
+k such that sk > s k+1 , there exists a time interval when the k-th mode is fully learned (σk ≈ sk) while the (k + 1) -th mode is negligible ( σk+1 ≈ 0). Proof. Critical Points. The gradients for the deep linear network under Σxx = I are: 
+
+∇U L = V ⊤(V U − Σyx ),
+
+∇V L = ( V U − Σyx )U ⊤.
+
+Let the candidate solution be Wr = V U = Prk=1 skqkr⊤ 
+
+> k
+
+. Substituting this into the residual term 
+
+(V U − Σyx ) yields: 
+
+Wr − Σyx =
+
+> r
+
+X
+
+> k=1
+
+skqkr⊤ 
+
+> k
+
+−
+
+> D
+
+X
+
+> k=1
+
+skqkr⊤ 
+
+> k
+
+= −
+
+> D
+
+X
+
+> k=r+1
+
+skqkr⊤ 
+
+> k
+
+.
+
+By the theorem assumption, row (U ) ∈ span {rk}rk=1 and col (V ) ∈ span {qk}rk=1 , hence: 
+
+∇U L = −V ⊤
+
+> D
+
+X
+
+> k=r+1
+
+skqkr⊤
+
+> k
+
+!
+
+= 0 ,
+
+∇V L = −
+
+> D
+
+X
+
+> k=r+1
+
+skqkr⊤
+
+> k
+
+!
+
+U ⊤ = 0 .
+
+Thus, (U, V ) is a critical point. 
+
+Sequential Learning. This is a standard result found in many deep linear networks work (Saxe et al., 2013; Gidel et al., 2019; Li et al., 2020; Jacot et al., 2021; Zhang et al., 2026). For completeness, we provide a proof here. We analyze the evolution of the product matrix W = V U . We assume the standard “balanced” condition V ⊤V = U U ⊤, which is an invariant/conservation law of gradient flow if initialized infinitesimally, as we assume. The dynamics of the product matrix W are given by: ˙W = ˙V U + V ˙U = (Σ yx − W )U ⊤U + V V ⊤(Σ yx − W ). (1) Under the balanced condition, we have U ⊤U = ( W ⊤W )1/2 and V V ⊤ = ( W W ⊤)1/2. Substituting this into the dynamics yields: 
+
+˙W = −(W − Σyx )( W ⊤W )1/2 − (W W ⊤)1/2(W − Σyx ). (2) The fact that U (0) , V (0) and Σyx are jointly diagonalizable implies that W0 = V (0) U (0) and 
+
+Σyx are as well. If Σyx = QSR T is an SVD decomposition, then SVDs of matrices involved are: 
+
+W0W ⊤ 
+
+> 0
+
+= QD 1QT , W ⊤ 
+
+> 0
+
+W0 = RD 2R⊤ and (Σ yx − W0) = QD 3R⊤. As taking the square root doesn’t change left and right principle components, we infer that the full gradient update in Equation 2 is also aligned with the principal components of Σyz . Hence the alignment of principle components of W and Σyx from the beginning stays true throughout training. Let W (t) = PDk=1 σk(t)qkr⊤ 
+
+> k
+
+. Substituting this spectral decomposition into the matrix ODE de-couples the system into independent scalar differential equations for each singular value σk(t):
+
+˙σk(t) = −(σk − sk)σk − σk(σk − sk) = 2 σk(t)( sk − σk(t)) . (3) This is the logistic differential equation. The solution is: 
+
+σk(t) = sk
+
+1 + 
+
+ sk  
+
+> σk(0)
+
+− 1
+
+
+
+e−2sk t
+
+. (4) 12 This solution shows that σk(t) follows a sigmoidal trajectory, saturating to sk. Consequently, the time taken for sk to be learned is of order 1/s k, implying that modes with larger singular values are learned significantly faster, establishing the sequential learning property. 
+
+# B PROOF OF THEOREM 3.2 
+
+Theorem. Observe the spectral gradient flow ˙U = −orth (∇U L) and ˙V = −orth (∇V L) where orth (·) is the orthogonalization of a matrix. Starting from infinitesimal initialization, we have: 1. Solution Trajectory: The learning trajectory of W = V U will sequentially pass through all Wr := Prk=1 sr+1 qkr⊤ 
+
+> k
+
++ PDk=r+1 skqkr⊤ 
+
+> k
+
+for r ≤ D (from higher to lower) such that 
+
+sr > s r+1 .2. Equal Learning: To get from one Wr to the next, W learns singular spaces of Σyx in the same time, at the same rate, until saturation. Furthermore, the evolution of k-th singular value σk(t) of W follows a quadratic curve, leading to convergence time ∝ √sk.Proof. Solution Trajectory. The proof, with slightly different assumptions, can be found in Va-sudeva et al. (2026). Nonetheless, we follow our setup and provide it here for completeness. We assumed joint diagonalizibility of U (0) = PDk=1 σUk (0) zkr⊤ 
+
+> k
+
+, V (0) = PDk=1 σVk (0) qkz⊤ 
+
+> k
+
+and 
+
+Σyx = PDk=1 skqkr⊤ 
+
+> k
+
+, which is justified by the infinitesimal initialization. As we will see, once 
+
+U (t), V (t) are jointly diagonalizable in this way, they stay so for all t′ ≥ t). Suppose for some r ≤
+
+D, t 0 ≥ 0, W (t0) = Prk=1 sr+1 qkr⊤ 
+
+> k
+
++ PDk=r+1 skqkr⊤ 
+
+> k
+
+. Indeed, this is satisfied at initialization 
+
+t0 = 0 , with r = D, once we denote sD+1 = 0 . If it holds at t0, then 
+
+∇U L(U (t0)) = V (t0)⊤(W (t) − Σyx )= ( 
+
+> D
+
+X
+
+> k=1
+
+σVk (t0)qkz⊤ 
+
+> k
+
+)⊤(
+
+> r
+
+X
+
+> k=1
+
+(σr+1 − σk)qkr⊤ 
+
+> k
+
+)=
+
+> r
+
+X
+
+> k=1
+
+σVk (t0)( σr+1 − σk)zkr⊤
+
+> k
+
+∇V L(V (t0)) = ( W (t0) − Σyx )U (t0)⊤
+
+= ( 
+
+> r
+
+X
+
+> k=1
+
+(σr+1 − σk)qkr⊤ 
+
+> k
+
+)( 
+
+> D
+
+X
+
+> k=1
+
+σUk (t0)zkr⊤ 
+
+> k
+
+)⊤
+
+=
+
+> r
+
+X
+
+> k=1
+
+σUk (t0)( σr+1 − σk)qkz⊤
+
+> k
+
+From this, the orthogonalizations of the gradients are orth (∇U L(t0)) =
+
+− Prk=1 zkr⊤ 
+
+> k
+
+, orth (∇V L(t0)) = − Prk=1 qkz⊤ 
+
+> k
+
+. This means that change in U (t), V (t)
+
+happens only in the first r singular vectors, and the dynamics will look as a gradient flow 
+
+˙U (t) = Pri=1 zkr⊤ 
+
+> k
+
+, ˙V (t) = Prk=1 qkz⊤ 
+
+> k
+
+. This keeps the matrices jointly diagonalizable, and therefore we can observe the dynamics on the singular values, from initial conditions at t0:
+
+˙σVk (t) = 1{σVk (t)σUk (t)<s k }
+
+˙σUk (t) = 1{σVk (t)σUk (t)<s k },
+
+noting that σk(t) = σVk (t)σUk (t). By symmetry at infinitesimal initialization, all σVk (t) and σUk (t)
+
+will be the same for k ≤ r, and hence for all k ≤ r, σk(t) will evolve the same, from σk(t0) = sr+1 
+
+to σk(t1) = sr . At time t1, for all m < k ≤ r with m largest s.t. sm+1 = sr , the growth of σk(t)
+
+stops. Hence the solution W passes through Wm.
+
+Equal learning. Continuing with the notation above, if we start from σVk (0) = σUk (0) = 0 , the so-lution of the system is σUk (t) = σVk (t) = min( t, √sk), and hence σk(t) = min( t2, s k). This shows 13 Figure 4: Additional figures supporting the theory from Section 3.1. a) din = dout = 2 ; b) din =
+
+dout = 3 
+
+Figure 5: The oscillations of σ2(t) around s2 in the setting from Figure 1, shown for different values of the learning rate. This phenomena happens after a principal component is effectively learned by Spectral GD, but not exactly. Then the small noise in the direction of that principal component is amplified by orthogonalization, and the step of order 1 is taken, independently of noise magnitude. both the equal growth and the quadratic curve for learning singular values of Σyx . Consequently, the time to learn σk(t) = sk is t ∝ √sk.
+
+# C FURTHER EXPERIMENTS AND DETAILS 
+
+C.1 DEEP LINEAR NETWORKS 
+
+Some more analogous experiments to the ones in Figure 1 can be found in Figure 4. Additionally, we show the oscillations of the singular values of W during training in Figures 5,6, happening as a consequence of our discussion in Section 3.1. 14 Figure 6: Same setup as Figure 5, but this time we’re using Spectral GD with momentum, a step closer to recovering Muon optimization. C.2 NEURAL RACE REDUCTION AND SHARED REPRESENTATIONS 
+
+Setup Details. Here we clarify the setup used for experiments in Section 4. We denote a sample 
+
+(xi, y i)j,o to mean that xi comes from input source j and yi is going to the output source o. During training, we only see samples (xi, y i)j,j and (xi, y i)j,j +1 . Denote with W in j ∈ R64 ×4 the input encoder for source j, W out o ∈ R7×64 the decoder for output source o, and W h ∈ R64 ×64 the hidden linear layer. Then given (xi, y i)j,o , the output of the network is ˆyi = W out o W hW in j xi. We use MSE objective to train the network, i.e. minimize ∥ˆyi − yi∥2. Each gradient update involves a batch containing a single sample from each allowed input-output pair. Full batch sampling procedure can be seen in Algorithm 1. 
+
+Algorithm 1 Sampling a batch in the routing task 
+
+Require: Number of sources m = 7 , allowed shifts k = 2 , total numbers in the task N = 4 ,orthonormal set of N input vectors in RN for each input source j: {(vj
+
+> 1
+
+, ..., v jN )}j=0 ,...,m −1 
+
+> 1:
+
+Initialize batch B ← ∅  
+
+> 2:
+
+for input source j = 0 to m − 1 do  
+
+> 3:
+
+for shift s = 0 to k − 1 do  
+
+> 4:
+
+Output source o ← (j + s) mod m 
+
+> 5:
+
+Sample a random data index i ∼ U (1 , N ) 
+
+> 6:
+
+xi ← vji 
+
+> 7:
+
+yi ← output vector corresponding to i (Figure 2b)  
+
+> 8:
+
+Add sample to batch: B ← B ∪ { (xi, y i)j,o } 
+
+> 9:
+
+end for  
+
+> 10:
+
+end for  
+
+> 11:
+
+return Training batch B
+
+Analysis. In a similar setup, Saxe et al. (2022) theoretically demonstrate that GD has an implicit bias towards learning shared representations, with the core argument lying in Theorem 3.1 2. Be-cause of our gained intuition, we identified this setting as the one where Spectral GD may be dis-advantaged by the absence of simplicity bias. Mathematically, each gating mechanism follows the 15 dynamics derived by Saxe et al. (2022): 
+
+ddt B1 =
+
+√PM 2 B2B1
+
+S − B2B21 D
+
+ddt B2 = PM 2 B21
+
+S − B2B21 D
+
+Here, B1 and B2 represent the spectra/mode strengths of the gated components, while S and D
+
+denote certain data statistics (see Saxe et al. (2022)). The focus is on “pathway counting” argument: the gradient updates are scaled by pre-factors proportional to P , the number of pathways passing through a gated unit. In the initial phase of learning, where dynamics are dominated by exponential growth, these pre-factors act as rate constants; consequently, configurations with maximal P (i.e., 
+
+P = M 2, corresponding to shared representations) are exponentially faster to learn and win the “neural race”. In contrast, Spectral GD orthogonalizes each of the updates, effectively removing the dependence of learning speed on the pathway multiplicity P , and the order of speed of learning for each gating mechanism is the same. In that case, the winning gating strategy is dependent on other conditions, such as the random initialization. C.3 SPURIOUS FEATURES 
+
+Here we provide more implementational details on the results in Figure 3. For all three optimizers in b,c,d), we picked the best performing hyperparameters across multiple runs. We used Muon implementation from Jordan et al. (2024b), where we did experiment with different learning rates for parameters optimized by Muon versus Adam. For Figure 3b,c), spurious pixel intensity was set to 1. We used a simple CNN with 2 convolutional layers followed by 2 linear layers. Weights are initialized as Gaussian, with mean 0 and standard deviation 0.01. Convolution kernel sizes are 3, and the number of filters is 32 in the first and 64 in the second layer, with MaxPool of size 2 in between. The first fully connected layer has output dimension 128, and the second one 10 (the number of classes). 16

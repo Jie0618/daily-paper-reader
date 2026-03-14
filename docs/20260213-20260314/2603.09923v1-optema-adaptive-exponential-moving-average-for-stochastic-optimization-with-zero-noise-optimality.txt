@@ -1,0 +1,4043 @@
+Title: OptEMA: Adaptive Exponential Moving Average for Stochastic Optimization with Zero-Noise Optimality
+
+URL Source: https://arxiv.org/pdf/2603.09923v1
+
+Published Time: Wed, 11 Mar 2026 01:24:03 GMT
+
+Number of Pages: 32
+
+Markdown Content:
+# OptEMA: Adaptive Exponential Moving Average for Stochastic Optimization with Zero-Noise Optimality 
+
+Ganzhao Yuan YUANGANZHAO @FOXMAIL .COM 
+
+Shenzhen University of Advanced Technology (SUAT), China 
+
+Abstract 
+
+The Exponential Moving Average (EMA) is a cornerstone of widely used optimizers such as Adam. However, existing theoretical analyses of Adam-style methods have notable limitations: their guar-antees can remain suboptimal in the zero-noise regime, rely on restrictive boundedness conditions (e.g., bounded gradients or objective gaps), use constant or open-loop stepsizes, or require prior knowledge of Lipschitz constants. To overcome these bottlenecks, we introduce OptEMA and an-alyze two novel variants: OptEMA-M, which applies an adaptive, decreasing EMA coefficient to the first-order moment with a fixed second-order decay, and OptEMA-V, which swaps these roles. Crucially, OptEMA is closed-loop and Lipschitz-free in the sense that its effective stepsizes are trajectory-dependent and do not require the Lipschitz constant for parameterization. Under stan-dard stochastic gradient descent (SGD) assumptions, namely smoothness, a lower-bounded objec-tive, and unbiased gradients with bounded variance, we establish rigorous convergence guarantees. Both variants achieve a noise-adaptive convergence rate of eO(T −1/2 + σ1/2T −1/4) for the average gradient norm, where σ is the noise level. In particular, in the zero-noise regime where σ = 0 , our bounds reduce to the nearly optimal deterministic rate eO(T −1/2) without manual hyperparameter retuning. 
+
+Keywords: Stochastic Optimization, Exponential Moving Average, Nonconvex Optimization, Adap-tive Gradient Method, Convergence Analysis, Adam 
+
+1. Introduction 
+
+We study mini-batch stochastic optimization for the nonconvex objective 
+
+min  
+
+> x∈Rn
+
+f (x) := Eξ∼D [f (x; ξ)] , (1) where f (·) is differentiable and possibly nonconvex, and ξ denotes an i.i.d. sample from an unknown distribution D. Our goal is to find an ϵ-approximate stationary point x such that E[∥∇ f (x)∥] ≤
+
+ϵ. We adopt only the basic assumptions standard in Stochastic Gradient Descent (SGD) theory Ghadimi and Lan (2013): lower-bounded objective, unbiased stochastic gradients, and smoothness of f (·), together with bounded variance. 
+
+The Dominance of EMA. Adaptive gradient methods, such as RMSProp Hinton et al. (2012) and Adam Kingma and Ba (2015), have become standard tools for training deep neural networks, often showing strong empirical performance compared with vanilla Stochastic Gradient Descent (SGD). A key ingredient behind their practical success is the Exponential Moving Average (EMA) mecha-nism, which provides a memory-efficient way to accumulate historical gradient information. In par-ticular, EMA is used to form moving estimates of the first moment and the second raw moment of stochastic gradients, thereby inducing momentum-like averaging and coordinate-wise rescaling. In-tuitively, EMA can be viewed as a temporal low-pass filter on the gradient sequence Qian (1999): it 
+
+> © G. Yuan.
+> arXiv:2603.09923v1 [cs.LG] 10 Mar 2026 YUAN
+
+suppresses rapid stochastic fluctuations while retaining more persistent directional information. By smoothing updates and damping oscillations, EMA often yields more stable optimization dynamics, which is particularly valuable in the highly nonconvex loss landscapes encountered in modern deep learning. 
+
+The Gap and Limitations. Despite their empirical success, the theoretical understanding of EMA-based optimizers still remains incomplete. First, existing analyses exhibit weak behavior in the zero-noise regime. Ideally, a noise-adaptive optimizer should recover the deterministic rate 
+
+O(T −1/2) when the stochastic variance vanishes ( σ = 0 ). In contrast, available guarantees for Adam-type methods often remain stuck at the suboptimal rate O(T −1/4) in deterministic settings Chen et al. (2019, 2022); Huang et al. (2021); Zhang et al. (2022); Liang et al. (2025), suggesting that current proofs rely on worst-case arguments rather than genuine noise adaptivity. Second, these results are typically established under restrictive assumptions, most notably globally bounded gradi-ents, an assumption that fails even for simple strongly convex objectives and is difficult to justify in modern deep learning models Zhang et al. (2020). Third, conventional adaptive methods are inher-ently open-loop: their EMA decay coefficients and global learning rate are fixed or pre-scheduled, rather than coupled to the observed trajectory. Consequently, they cannot adapt their stepsize to the local geometry Luo et al. (2019), and their performance remains sensitive to manual tuning and unknown smoothness parameters. 
+
+Motivation and Contributions. These theoretical limitations and practical tuning burdens mo-tivate the search for a more principled stochastic optimizer. To better bridge optimization theory and deep learning practice, such a method should be Lipschitz-free and noise-adaptive. To this end, we propose the Adaptive Exponential Moving Average with zero-noise optimality, OptEMA. Our contributions are twofold. 1. Novel Algorithmic Design: We redesign the standard EMA mechanism as a closed-loop feedback controller rather than an open-loop scaling rule. This leads to two variants: OptEMA-M, which adapts the first-moment update while fixing the second moment, and OptEMA-V, which adapts the second-moment update while fixing the first. In both cases, the EMA coefficients are coupled to the observed optimization trajectory. 2. Rigorous Theoretical Guarantees: Under standard assumptions and without the bounded-gradient condition, we prove that OptEMA attains the noise-adaptive rate eO(T −1/2 + σ1/2T −1/4).Moreover, in the zero-noise regime, the guarantee automatically improves to the optimal determin-istic rate, without requiring prior knowledge of the Lipschitz constant or manual retuning. 
+
+Organization. The remainder of this paper is organized as follows. Section 2 reviews the related literature, and Section 3 introduces the assumptions and technical preliminaries. Section 4 presents the OptEMA framework and its variants, while Section 5 provides the iteration complexity analysis. Section 6 concludes the paper. Detailed proofs are deferred to the appendix. 
+
+2. Related Work 
+
+This section reviews the literature most relevant to our work, including stochastic gradient methods, adaptive optimization, momentum-based variance reduction, and recent Lipschitz-free and noise-adaptive algorithms. 
+
+> 2OPT EMA
+
+Stochastic Gradient Methods. Stochastic first-order methods, including SGD and momentum-based variants, remain the foundation of large-scale learning. For smooth nonconvex objectives, their analyses typically assume unbiased stochastic gradients, bounded variance, lower-bounded objectives, and suitable smoothness conditions. The achievable convergence rate depends critically on the adopted smoothness model. Under average smoothness, the best known lower bound scales as Ω( T −1/4), whereas stronger individual smoothness can support faster rates such as Ω( T −1/3)
+
+Arjevani et al. (2023). These distinctions are central to understanding the gap between classical stochastic optimization theory and modern deep-learning optimizers. 
+
+Adaptive Gradient Methods. Adaptive gradient methods were developed to better handle stochas-tic gradients with heterogeneous coordinate scales, especially in sparse-data regimes. AdaGrad Duchi et al. (2011) introduced data-dependent per-coordinate stepsizes through accumulated gra-dient statistics, which naturally amplify updates on infrequent coordinates and damp those on fre-quently active ones. RMSProp Hinton et al. (2012) replaced monotone accumulation with an EMA of squared gradients to avoid overly aggressive decay. Adam Kingma and Ba (2015) then com-bined first-moment momentum with second-moment EMA scaling, and has since become the dom-inant adaptive optimizer in practice. Later variants refined this design in different ways: AdamW Loshchilov and Hutter (2019) decoupled weight decay from adaptive updates, while AMSGrad Reddi et al. (2018) introduced a running maximum of second moments to address known non-convergence phenomena in vanilla Adam. 
+
+Momentum-based Variance Reduction. STORM Cutkosky and Orabona (2019) was among the first methods to combine recursive gradient estimation with a momentum-style update in stochastic optimization. STORM + Levy et al. (2021) further demonstrated that, with appropriately designed adaptive stepsize strategies, such estimators can achieve both Lipschitz-free and noise-adaptive guarantees. META-STORM Liu et al. (2022) relaxed the bounded-objective assumption, while AdaSTORM Jiang et al. (2024) further removed both the bounded-objective and bounded-gradient assumptions, although it relies on a hybrid stepsize scheme that combines a constant step size of order O(T −1/3) with a momentum-adapted one. SuperAdam Huang et al. (2021) offered a broader perspective by integrating momentum, adaptive scaling, and matrix preconditioning. MARS Yuan et al. (2025) revisited recursive momentum by introducing an additional variance-reduction correc-tion term to improve the quality of the gradient estimator. Together, these works help bridge modern stochastic optimization theory and practical adaptive optimization. 
+
+Adam-Type versus STORM-Type Methods. Adam-type and STORM-type methods represent two complementary directions in stochastic optimization. STORM-type methods can achieve faster asymptotic rates, such as O(T −1/3), but typically rely on individual smoothness, which is stronger than the average smoothness commonly used in analyses of Adam-type methods. They also in-cur additional computational overhead, since maintaining the recursive variance-reduced estimator requires evaluating both ∇f (xt, ξ t) and ∇f (xt−1, ξ t) on the same mini-batch at each iteration. In large-scale deep learning, this extra cost can substantially reduce their practical appeal. As a result, STORM-type methods are used mainly as theoretical baselines, whereas Adam-type meth-ods remain the dominant practical choice. OptEMA follows this Adam-style design: it preserves the standard one-gradient EMA update rule, operates under average smoothness, and achieves the noise-adaptive rate eO(T −1/2 + σ1/2T −1/4) (see Theorems 10, 18), compared with the STORM-
+
+> 3YUAN
+
+type dependence eO(T −1/2 + σ1/3T −1/3) in Levy et al. (2021). Hence, when σ ≤ T −1/2, OptEMA attains a strictly tighter bound. 
+
+Lipschitz-Free and Noise-Adaptive Algorithms. Representative methods in this regime, such as AdaGrad-Norm Ward et al. (2020), STORM+ Levy et al. (2021), and META-STORM Liu et al. (2022), use the optimization trajectory as feedback to adapt the learning rate. These methods are both Lipschitz-free and noise-adaptive: they do not require prior knowledge of the Lipschitz smoothness constant and automatically adjust to the noise level σ. In particular, when σ = 0 , their bounds recover the deterministic convergence rate for smooth nonconvex optimization. However, these approaches remain structurally different from standard EMA-based optimizers used in deep learning. AdaGrad-Norm relies on cumulative averaging rather than exponential moving averages (EMA), while the analyses of STORM + and META-STORM are tied to variance-reduction archi-tectures. By contrast, OptEMA preserves the standard EMA structure of Adam-type methods and achieves the rate eO(T −1/2 + σ1/2T −1/4) through closed-loop stepsize adaptation. 
+
+Assumptions in Different Algorithms. OptEMA is analyzed under the standard assumptions used in stochastic gradient methods: a lower-bounded objective, unbiased stochastic gradients with bounded variance, and smoothness of f (·). By contrast, many STORM-family methods Levy et al. (2021); Liu et al. (2022) require not only the stronger individual smoothness condition, but also ad-ditional boundedness assumptions such as bounded gradients (BG), bounded objective values (BF), or Hessian-type boundedness (BH), which may be restrictive in large-scale learning. Similarly, un-der average smoothness, SuperAdam also relies on Hessian-type boundedness assumptions Huang et al. (2021). 
+
+Other Recent Developments. Recent work has also emphasized hardware efficiency and struc-tural priors. Sign-based methods such as signSGD Bernstein et al. (2018) and Lion Chen et al. (2023) reduce memory and communication costs, while AdaFactor Shazeer and Stern (2018) com-presses second-moment statistics through factorization. Matrix-structured optimizers, such as Muon Kim and hwan Oh (2026), use orthogonalized gradient updates to improve conditioning. These efficiency- and structure-oriented approaches, however, are typically paired with open-loop stepsize rules and thus offer limited adaptivity to heterogeneous noise. In a different direction, methods such as D-Adaptation Defazio and Mishchenko (2023) and DoG Ivgi et al. (2023) use the optimization trajectory itself as feedback to adapt the learning rate. This trajectory-aware perspective is closely related to the closed-loop EMA design of OptEMA. 
+
+Summary. Existing adaptive methods are frequently bottlenecked by weak zero-noise optimality, restrictive boundedness assumptions (e.g., bounded gradients or objective gaps), rigid open-loop step sizes, and the need for known Lipschitz constants. Our proposed OptEMA framework sys-tematically eliminates these theoretical and practical hurdles, achieving noise-adaptive, closed-loop optimization under standard assumptions. A comprehensive comparison of existing stochastic gra-dient methods is detailed in Table 1. 
+
+3. Preliminaries 
+
+We begin by stating the standard assumptions used throughout the paper. 
+
+Assumption 1 (Lower-Bounded Objective) There exists a constant f ⋆ > −∞ such that f (x) ≥
+
+f ⋆, ∀ x ∈ Rn.
+
+> 4
+
+OPT EMA 
+
+Table 1: Comparison of existing mini-batch first-order stochastic gradient methods for finding an 
+
+ϵ-approximate solution x satisfying E[∥∇ f (x)∥] ≤ ϵ. The notation ˜O(·) hides polyloga-rithmic factors, while O(·) hides constants. All methods assume unbiased gradients with bounded variance, a lower-bounded objective, and smoothness. Algorithm Smoothness Assum. Lipschitz-Free 1st Moment Estimate ( αt) a                                                                                                                                       
+
+> 2nd Moment Estimate ( βt)a
+> Stepsize ( γt)aAdditional As-sumptions b
+> Convergence Rate STORM Cutkosky and Orabona (2019) Individual ✘cAda —Ada BG, BF ˜O(1 /√T+σ1/3T−1/3)
+> STORM +Levy et al. (2021) Individual ✔Ada —Ada BG, BF O(1 /√T+σ1/3T−1/3)
+> SuperADAM-I Huang et al. (2021) Individual ✘cConst —Open BH ˜O(T−1/3)
+> MARS Yuan et al. (2025) Individual ✔Open —Open BG ˜O(1 /√T+σ1/3T−1/3)
+> META-STORM Liu et al. (2022) Individual ✔Ada —Ada BG ˜O(1 /√T+σ1/3T−1/3)
+> AdaSTORM Jiang et al. (2024) Individual ✔Const —Const + Ada d—O(T−1/3)
+> AdaFom Chen et al. (2019) Average ✘Const Open Open BG ˜O(T−1/4)
+> Practical Adam Chen et al. (2022) Average ✘Open Const Open BG, αt> β 2˜O(T−1/4)
+> SuperADAM-A Huang et al. (2021) Average ✘bConst —Open BH ˜O(T−1/4)
+> Vanilla Adam Zhang et al. (2022) Average ✘Open Const Open BG, αt≤ √β˜O(T−1/4)
+> AdaGrad-Norm Huang et al. (2021) Average ✔——Ada eBG ˜O(1 /√T+σ1/2T−1/4)
+> OptEMA-M [ours] Average ✔Ada Const Ada —˜O(1 /√T+σ1/2T−1/4)
+> OptEMA-V [ours] Average ✔Const Ada Ada —˜O(1 /√T+σ1/2T−1/4)
+
+Note a: Const: fixed constant. Open: openloop stepsize. Ada: adaptive stepsize using local geometry. 
+
+Note b: BF: Bounded Objective; BG: Bounded Gradient; BH: (lower) Bounded Hessian. 
+
+Note c: STORM and SuperADAM are not Lipschitz-free, as they depend on the Lipschitz constant for parameterization. 
+
+Note d: AdaSTORM uses a hybrid step size (constant + momentum-adapted) and is therefore not fully adaptive. 
+
+Note e: AdaGrad-Norm exhibits limited adaptivity, as it lacks both an EMA mechanism and coordinate-wise scaling. 
+
+Assumption 2 (Unbiased Stochastic Gradient with Bounded Variance) There exists a constant 
+
+σ > 0 such that, for all x ∈ Rn, E[∇f (x; ξ)] = ∇f (x), E∥∇ f (x; ξ) − ∇ f (x)∥22
+
+ ≤ σ2.
+
+Assumption 3 (Smoothness of the Objective) Let f (x) ≜ Eξ∼D [f (x; ξ)] . We assume that f is (average) L-smooth, namely, ∥∇ f (x) − ∇ f (y)∥ ≤ L∥x − y∥, ∀ x, y ∈ Rn.
+
+Remark 1 ❶ Assumptions 1–3 are standard in stochastic optimization; see, e.g., Ghadimi et al. (2016); Cutkosky and Orabona (2019). Assumption 3 implies the classical descent lemma: f (x) ≤
+
+f (y) + ⟨∇ f (y), x − y⟩ + L
+
+2 ∥x − y∥22, ∀ x, y ∈ Rn, see, for example, Lemma 1.2.3 in Nes-terov (2003). ❷ Many STORM-type methods adopt the stronger individual smoothness condition 
+
+∥∇ f (x; ξ) − ∇ f (y; ξ)∥ ≤ L∥x − y∥, ∀ x, y ∈ Rn, which is strictly stronger than the average smoothness condition in Assumption 3. 
+
+Notation. Unless otherwise specified, vector operations are understood element-wise. For any 
+
+x, y ∈ Rn, the expressions x + y, x − y, x ⊙ y, and xy denote element-wise addition, subtraction, multiplication, and division, respectively. Additional notation and auxiliary lemmas are collected in Appendix A. 
+
+4. The OptEMA Algorithms 
+
+In this section, we present our unified algorithmic framework, termed OptEMA (Exponential Mov-ing Average with zero-noise Optimality), summarized in Algorithm 1. The central idea of OptEMA is to equip the standard EMA-based update rule with a fully adaptive closed-loop stepsize mecha-nism driven by the observed optimization trajectory. 
+
+5YUAN 
+
+Algorithm 1 OptEMA 
+
+01 : Input: base learning rate θ > 0, initial point x1, parameters μ, ε, α, β ∈ (0 , 1) .
+
+02 : Initialize: x0 = x1, m0 = 0, v0 = 0, τ 0 = 0 .
+
+03 : for t = 1 to T do 
+
+04 : Draw a mini-batch ξt and compute gt := ∇f (xt; ξt).
+
+05 : Update statistics: ρt = 1 + Pti=1 ∥gi∥2, τt = max ti=1 ∥gi∥.
+
+06 : Set EMA weights: (αt, β t) = 
+
+((ρ−1/2 
+
+> t
+
+, β ) if OptEMA-M 
+
+(α, ρ −1/4 
+
+> t
+
+· 11+ μτ 2
+
+> t
+
+) if OptEMA-V 
+
+07 : Update EMA: mt = (1 − αt)mt−1 + αtgt, vt = (1 − βt)vt−1 + βtg2 
+
+> t
+
+.
+
+08 : Compute step size: γt =
+
+
+
+min 
+
+ αt   
+
+> μ(1+ τ2
+> t)
+
+,  1 + Ptj=1  
+
+> ∥mj∥2
+> αj
+
+−1/2
+
+if OptEMA-M  
+
+> 11+ μτ t
+
+·  1 + Ptj=1 ∥mj ∥2−1/2 if OptEMA-V 
+
+09 : Update parameters: xt+1 = xt − θγ t · mt 
+
+> ε+√vt
+
+.
+
+10 : end for 
+
+To disentangle the roles of the first- and second-moment estimators, we introduce two com-plementary variants. The first variant, OptEMA-M, assigns adaptivity to the first-moment EMA coefficient while keeping the second-moment decay fixed. The second variant, OptEMA-V, instead assigns adaptivity to the second-moment EMA coefficient while keeping the first-moment decay fixed. These two variants provide symmetric yet distinct realizations of the same design principle. 
+
+4.1. A Unified Closed-Loop Framework 
+
+The goal of OptEMA is to construct a closed-loop adaptive stepsize mechanism while preserving the canonical exponential moving average structure used in Adam-type methods. At iteration t, the algorithm computes a stochastic gradient gt := ∇f (xt; ξt) and updates two trajectory-dependent statistics: 
+
+ρt = 1 + Pti=1 ∥gi∥2, τt = max 1≤i≤t ∥gi∥.
+
+Here, ρt captures the cumulative gradient magnitude along the optimization path, whereas τt records the largest gradient norm observed so far. Together, these quantities provide purely data-dependent signals for controlling both the EMA coefficients and the effective stepsize. The algorithm then maintains the standard first- and second-moment EMA estimates 
+
+mt = (1 − αt)mt−1 + αtgt, vt = (1 − βt)vt−1 + βtg2 
+
+> t
+
+,
+
+which retain exactly the same structural form as in Adam-style optimizers. The essential departure from standard Adam lies in the fact that the coefficients (αt, β t) and the effective stepsize γt are no longer preset in an open-loop manner; instead, they are determined adaptively from the observed trajectory. Within this framework, we study two complementary designs. One places adaptivity on the first-moment coefficient αt, and the other places adaptivity on the second-moment coefficient βt. Both variants share the same EMA backbone and the same closed-loop philosophy, but they emphasize different aspects of moment estimation and stability control. 
+
+6OPT EMA 
+
+4.2. OptEMA-M: Adaptive First-Moment Averaging 
+
+The first variant, OptEMA-M, introduces adaptivity through the first-moment coefficient αt. Specif-ically, we set 
+
+αt = ρ−1/2 
+
+> t
+
+, βt = β ∈ (0 , 1) , γt = min 
+
+   
+
+> αt
+> μ(1+ τ2
+> t)
+
+,
+
+
+
+1 + Ptj=1  
+
+> ∥mj∥2
+> αj
+
+−1/2
+
+.
+
+Under this construction, the first-moment EMA coefficient decreases automatically with the accumulated gradient magnitude, whereas the second-moment estimator remains a standard EMA with fixed decay. As a result, the influence of newly observed gradients is gradually attenuated as the trajectory evolves, which leads to a progressively more stable momentum estimate. From a theoretical viewpoint, adapting αt creates a stronger coupling between the momentum tracking error and the stepsize dynamics. For this reason, the closed-loop stepsize γt contains two complementary components: a stability term involving τt, and an energy-control term involving the cumulative quantity Ptj=1 ∥mj ∥2/α j . This design is crucial for closing the Lyapunov-based analysis without invoking bounded-gradient assumptions. 
+
+4.3. OptEMA-V: Adaptive Second-Moment Averaging 
+
+The second variant, OptEMA-V, instead introduces adaptivity through the second-moment coeffi-cient. More precisely, we choose 
+
+αt = α ∈ (0 , 1) , βt = ρ−1/4 
+
+> t
+
+· 11+ μτ 2
+
+> t
+
+, γt = 11+ μτ t
+
+
+
+1 + Ptj=1 ∥mj ∥2
+
+−1/2
+
+.
+
+Under this scheme, the first-moment coefficient remains fixed, while the second-moment es-timator adapts to the observed trajectory through both the cumulative gradient scale ρt and the maximal gradient magnitude τt. Consequently, OptEMA-V places greater emphasis on adaptive variance estimation within the EMA framework. The corresponding closed-loop stepsize γt is again fully trajectory-dependent. The factor  1 + 
+
+Ptj=1 ∥mj ∥2−1/2 modulates the effective stepsize according to the cumulative momentum energy, while the prefactor (1 + μτ t)−1 provides additional safeguarding against large gradients. Together, these two components yield a fully adaptive update rule that does not require prior knowledge of any Lipschitz constant. 
+
+5. Convergence Guarantees 
+
+In this section, we establish the convergence guarantees of the proposed OptEMA algorithms. 
+
+Notation. Throughout this section, we define st ≜ mt − ∇ f (xt), ρt = 1 + Pti=1 ∥gi∥2, τt =max ti=1 ∥gi∥, and M := PTt=1 ∥mt∥2. We let T ≥ 0 to denote the total number of iterations. 
+
+5.1. Analysis for OptEMA-M 
+
+In this section, we establish the theoretical convergence rate of the OptEMA-M algorithm. The proof proceeds in three steps. We begin by establishing basic bounds on the internal EMA sequences, then control the gradient tracking error, and finally combine these ingredients with a one-step descent inequality to derive the global convergence rate. 
+
+> 7
+
+YUAN 
+
+We start with two elementary estimates that relate the momentum sequence mt to the stochastic gradients gt and control the second-moment estimator together with the adaptive EMA coefficient. 
+
+Lemma 2 (Proof in Appendix B.1) For all t ≥ 1, we have: PTt=1 ∥mt∥2 ≤ 2 PTt=1 ∥gt∥2.
+
+Lemma 3 (Proof in Appendix B.2) For all t ≥ 1, we have: ∥vt∥ ≤ τ 2 
+
+> t
+
+, and αt−1 
+
+> αt
+
+≤ 1 + τt.
+
+A central quantity in the analysis is the gradient tracking error st := mt − ∇ f (xt), which measures the deviation of the first-moment estimator from the true gradient. The next lemma gives a recursive bound on its expected squared norm. 
+
+Lemma 4 (Proof in Appendix B.3) For all t ≥ 1, we have: 
+
+E[∥st∥2] ≤ E[(1 − αt)∥st−1∥2 + Bt], (2) 
+
+where Bt ≜ α2 
+
+> t
+
+∥gt∥2 + λαt ∥mt−1∥2γ2
+
+> t−1
+
+, and λ := θ2L2 
+
+> ε2
+
+.
+
+We next derive the basic descent relation for a single iteration. This inequality isolates the con-tribution of the true gradient from the errors induced by momentum tracking and adaptive scaling. 
+
+Lemma 5 (One-Step Descent Inequality) (Proof in Appendix B.4) Define c0 := θ 
+
+> 2
+
+, c1 := θ 
+
+> 2ε2
+
+,and c2 := Lθ 2 
+
+> 2ε2
+
+. For all t ≥ 1, we have: 
+
+E[f (xt+1 ) − f (xt) + c0γt 
+
+> 1+ τt
+
+∥∇ f (xt)∥22] ≤ E[c1γt(1 + τt)∥st∥2 + c2γ2 
+
+> t
+
+∥mt∥22]. (3) To telescope (3) over t = 1 , . . . , T , it remains to control the cumulative error terms on the right-hand side. We first bound the weighted tracking error, and then establish logarithmic growth bounds for the objective values and stochastic gradients. 
+
+Lemma 6 (Proof in Appendix B.5) It holds that E
+
+hPTt=1 γt(1 + τt)∥st∥2
+
+i
+
+≤ Cw ln( e+PTt=1 ∥gt∥2),where Cw := 1
+
+> μ
+
+  12 ∥s0∥2 + 3 + 3 λ is a constant. 
+
+Lemma 7 (Boundedness of Objectives and Gradients) (Proof in Appendix B.6) There exists con-stants Cf , C g ≥ 0 such that E[f (xt)] − f ∗ ≤ Cf ln( e + t), and E[∥∇ f (xt; ξt)∥2] ≤ Cg ln( e + t).
+
+Using the above logarithmic bounds, we can further control the cumulative tracking error and the cumulative true gradient norm in terms of the path-dependent quantities ρT and M := PTt=1 ∥mt∥2.
+
+Lemma 8 (Proof in Appendix B.7) We have E[PTt=1 ∥st∥2] ≤ CsE[ρ1/2 
+
+> T
+
+](ln( e + T )) 3/2, where 
+
+Cs ≥ 0 is a constant. 
+
+Lemma 9 (Proof in Appendix B.8) We define ι := 1 + pCg and Co := ι3 
+
+> c0
+
+(2 Cf + 2 c2 + c1Cs + 1) .We have: 
+
+E[PTt=1 ∥∇ f (xt)∥22] ≤ Co ln 5/2(e + T )ρ1/2 
+
+> T
+
++ Co ln 3/2(e + T )ρ1/4 
+
+> T
+
+M1/2. (4) We are now ready to state the main convergence guarantee for OptEMA-M, obtained by com-bining the preceding bounds and taking expectation over the full trajectory. 
+
+8OPT EMA 
+
+Theorem 10 (Proof in Appendix B.9) We have the following results: 
+
+E[ 1
+
+> T
+
+PTt=1 ∥∇ f (xt)∥] ≤ O 
+
+ ln 3(e+T )  
+
+> T1/2
+
++ σ1/2 · ln 3/2(e+T ) 
+
+> T1/4
+
+
+
+. (5) 
+
+Remark 11 ❶ Theorem 10 shows that OptEMA-M attains the rate eO(T −1/2 + σ1/2T −1/4) for the averaged gradient norm. In particular, this yields the canonical eO(T −1/4) stochastic rate and recovers the nearly optimal deterministic rate eO(T −1/2) when σ = 0 . ❷ The bound separates cleanly into a deterministic optimization term and a stochastic variance-dependent term. The addi-tional polylogarithmic factors arise from the fully adaptive and horizon-free nature of the algorithm, which requires neither prior knowledge of the total iteration budget T nor the noise level σ2.
+
+5.2. Analysis for OptEMA-V 
+
+In this subsection, we establish the theoretical convergence guarantees for the OptEMA-V algo-rithm. As in the analysis of OptEMA-M, we first control the internal algorithmic states, then decouple the historical terms induced by the EMA recursion, and finally derive the global convergence rate. We begin with two basic bounds on the momentum and second-moment sequences. 
+
+Lemma 12 (Proof in Appendix C.1) For any integer T ≥ 1, assume that αt = α ∈ (0 , 1) , it holds that PTt=1 ∥mt∥22 ≤ PTt=1 ∥gt∥22.
+
+Lemma 13 (Proof in Appendix C.2) For all t ≥ 1, we have: ∥vt∥ ≤ τ 2 
+
+> t
+
+.
+
+We next establish a one-step descent inequality. Unlike OptEMA-M, the analysis here involves a nonlocal historical term generated by the EMA structure, so the descent at iteration t depends on the entire past trajectory. 
+
+Lemma 14 (One-Step Descent Inequality) (Proof in Appendix C.3) Define c1 := θ2Lε2 , c2 := 2θμε 6 ,
+
+c3 := Lθ 2 
+
+> 2ε2
+
+. For all t ≥ 1, we have: 
+
+E[f (xt+1 ) − f (xt)] ≤ E[c3γ2 
+
+> t
+
+∥mt∥2 + γt
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+(Ej − Dj )] . (6) 
+
+Here, Et := c1γt−1∥mt−1∥2 + c2 
+
+> αt
+
+ρ−1/2 
+
+> t
+
+∥mt∥2(1 + μτ t), and Dt = θα t 
+
+> 2( ε+τt)
+
+∥∇ f (xt)∥2.
+
+The historical summation in (6) couples the error term Ej and the descent term Dj across time. To telescope this inequality over all iterations, we need to decouple such temporal dependence. The next lemma provides precisely this mechanism by controlling accumulated EMA-weighted sums. 
+
+Lemma 15 (EMA Accumulation Bound) (Proof in Appendix C.4) Assume Aj ≥ 0 for all j ≥ 1.If both αt ∈ (0 , 1) and γt ∈ (0 , 1] are decreasing sequences, we have: 
+
+> T
+
+X
+
+> t=1
+
+γtAt ≤
+
+> T
+
+X
+
+> t=1
+
+γttX
+
+> j=1
+
+
+
+> t
+
+Y
+
+> k=j+1
+
+(1 − αk)
+
+ Aj ≤ 1
+
+αTTX
+
+> t=1
+
+γtAt.
+
+9YUAN 
+
+Before concluding the proof, we also need pathwise logarithmic bounds on the objective values and stochastic gradients. 
+
+Lemma 16 (Boundedness of Objectives and Gradients) (Proof in Appendix C.5) For all t ≥ 1,there exist constants Cf , C g ≥ 0 such that E[f (xt) − f ∗] ≤ Cf ln( e + t), and E[∥gt∥2] ≤ Cg ln( e +
+
+t).
+
+Combining Lemma 15 with the above pathwise bounds allows us to telescope the descent in-equality and control the cumulative squared norm of the true gradients. 
+
+Lemma 17 (Proof in Appendix C.6) Assume that αt = α ∈ (0 , 1) . We define ι := 1 + pCg, and 
+
+Co := 2ιθα ·  2ι · c1+c2 
+
+> α2
+
++ Cf ι + 2 c3
+
+. We have: 
+
+E[PTt=1 ∥∇ f (xt)∥2] ≤ Co ln 2(e + T )ρ1/2 
+
+> T
+
+. (7) Applying Jensen’s inequality to the preceding estimate yields the main convergence result for OptEMA-V. 
+
+Theorem 18 (Proof in Appendix C.7) Assume that αt = α ∈ (0 , 1) . We have the following results: 
+
+E[ 1
+
+> T
+
+PTt=1 ∥∇ f (xt)∥] ≤ O 
+
+ ln 2(e+T )  
+
+> T1/2
+
++ σ1/2 · ln( e+T ) 
+
+> T1/4
+
+
+
+. (8) 
+
+Remark 19 ❶ Theorem 18 shows that OptEMA-V also attains the canonical noise-adaptive rate 
+
+eO(T −1/2 + σ1/2T −1/4), and hence matches the standard stochastic nonconvex complexity up to polylogarithmic factors. ❷ Compared with OptEMA-M, the proof of OptEMA-V involves a more delicate treatment of the second-moment recursion, which is reflected in a different polylogarithmic dependence. Nevertheless, the resulting guarantee remains fully adaptive and horizon-free. 
+
+6. Conclusion 
+
+We proposed OptEMA, a family of adaptive exponential moving average methods for mini-batch stochastic nonconvex optimization. The proposed framework employs fully closed-loop and Lipschitz-free stepsize rules, and establishes noise-adaptive convergence guarantees for standard EMA-based updates without relying on bounded gradients, bounded objective gaps, or Hessian-type assump-tions. Both variants achieve the rate eO(T −1/2 + σ1/2T −1/4) in terms of the averaged gradient norm, where σ denotes the noise level. In particular, in the zero-noise regime σ = 0 , this reduces to the nearly optimal deterministic rate eO(T −1/2). These results show that fully adaptive EMA-type methods can attain strong noise-adaptive guarantees under standard smooth stochastic assumptions without modifying the basic EMA update structure. 
+
+References 
+
+Yossi Arjevani, Yair Carmon, John C Duchi, Dylan J Foster, Nathan Srebro, and Blake Woodworth. Lower bounds for non-convex stochastic optimization. Mathematical Programming , 199(1):165– 214, 2023. 
+
+> 10 OPT EMA
+
+Jeremy Bernstein, Yu-Xiang Wang, Kamyar Azizzadenesheli, and Animashree Anandkumar. signsgd: Compressed optimisation for non-convex problems. In International conference on machine learning , pages 560–569. PMLR, 2018. Congliang Chen, Li Shen, Fangyu Zou, and Wei Liu. Towards practical adam: Non-convexity, convergence theory, and mini-batch acceleration. Journal of Machine Learning Research , 23 (229):1–47, 2022. X Chen, M Hong, S Liu, and R Sun. On the convergence of a class of adam-type algorithms for non-convex optimization. In International Conference on Learning Representations (ICLR) ,2019. Xiangning Chen, Chen Liang, Da Huang, Esteban Real, Kaiyuan Wang, Hieu Pham, Xuanyi Dong, Thang Luong, Cho-Jui Hsieh, Yifeng Lu, et al. Symbolic discovery of optimization algorithms. 
+
+Advances in neural information processing systems , 36:49205–49233, 2023. Ashok Cutkosky and Francesco Orabona. Momentum-based variance reduction in non-convex sgd. 
+
+Advances in neural information processing systems , 32, 2019. Aaron Defazio and Konstantin Mishchenko. Learning-rate-free learning by d-adaptation. In Inter-national conference on machine learning , pages 7449–7479. PMLR, 2023. John Duchi, Elad Hazan, and Yoram Singer. Adaptive subgradient methods for online learning and stochastic optimization. Journal of machine learning research , 12(7), 2011. Saeed Ghadimi and Guanghui Lan. Stochastic first- and zeroth-order methods for nonconvex stochastic programming. SIAM Journal on Optimization , 23(4):2341–2368, 2013. Saeed Ghadimi, Guanghui Lan, and Hongchao Zhang. Mini-batch stochastic approximation meth-ods for nonconvex stochastic composite optimization. Mathematical Programming , 155(1-2): 267–305, 2016. Geoffrey Hinton, Nitish Srivastava, and Kevin Swersky. Neural networks for machine learning lecture 6a overview of mini-batch gradient descent. 14(8):2, 2012. Feihu Huang, Junyi Li, and Heng Huang. Super-adam: faster and universal framework of adaptive gradients. Advances in Neural Information Processing Systems , 34:9074–9085, 2021. Maor Ivgi, Oliver Hinder, and Yair Carmon. Dog is sgd’s best friend: A parameter-free dynamic step size schedule. In International conference on machine learning , pages 14465–14499. PMLR, 2023. Wei Jiang, Sifan Yang, Yibo Wang, and Lijun Zhang. Adaptive variance reduction for stochastic optimization under weaker assumptions. In Advances in Neural Information Processing Systems ,volume 37, pages 22047–22080. Curran Associates, Inc., 2024. Gyu Yeol Kim and Min hwan Oh. Convergence of muon with newton-schulz. In International Conference on Learning Representations (ICLR) , 2026. Diederik P. Kingma and Jimmy Ba. Adam: A method for stochastic optimization. In International Conference on Learning Representations (ICLR) , 2015. 
+
+> 11 YUAN
+
+Kfir Levy, Ali Kavis, and Volkan Cevher. Storm+: Fully adaptive sgd with recursive momentum for nonconvex optimization. Advances in Neural Information Processing Systems , 34:20571–20582, 2021. Yuqing Liang, Meixuan He, Jinlan Liu, and Dongpo Xu. Convergence of adam for non-convex objectives: relaxed hyperparameters and non-ergodic case. Machine Learning , 114(3):75, 2025. Zijian Liu, Ta Duy Nguyen, Thien Hang Nguyen, Alina Ene, and Huy L Nguyen. Meta-storm: Generalized fully-adaptive variance reduced sgd for unbounded functions. arXiv preprint arXiv:2209.14853 , 2022. Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization. In International Con-ference on Learning Representations (ICLR) , 2019. Liangchen Luo, Yuanhao Xiong, Yan Liu, and Xu Sun. Adaptive gradient methods with dynamic bound of learning rate. In International Conference on Learning Representations (ICLR) , 2019. Yurii Nesterov. Introductory lectures on convex optimization: A basic course , volume 87. Springer Science & Business Media, 2003. Ning Qian. On the momentum term in gradient descent learning algorithms. Neural networks , 12 (1):145–151, 1999. Sashank J. Reddi, Satyen Kale, and Sanjiv Kumar. On the convergence of adam and beyond. In 
+
+International Conference on Learning Representations (ICLR) , 2018. Noam Shazeer and Mitchell Stern. Adafactor: Adaptive learning rates with sublinear memory cost. In International conference on machine learning , pages 4596–4604. PMLR, 2018. Rachel Ward, Xiaoxia Wu, and Leon Bottou. Adagrad stepsizes: Sharp convergence over nonconvex landscapes. Journal of Machine Learning Research , 21(219):1–30, 2020. Huizhuo Yuan, Yifeng Liu, Shuang Wu, zhou Xun, and Quanquan Gu. MARS: Unleashing the power of variance reduction for training large models. In Forty-second International Conference on Machine Learning , 2025. Jingzhao Zhang, Sai Praneeth Karimireddy, Andreas Veit, Seungyeon Kim, Sashank Reddi, Sanjiv Kumar, and Suvrit Sra. Why are adaptive methods good for attention models? Advances in Neural Information Processing Systems , 33:15383–15393, 2020. Yushun Zhang, Congliang Chen, Naichen Shi, Ruoyu Sun, and Zhi-Quan Luo. Adam can converge without any modification on update rules. Advances in neural information processing systems ,35:28386–28399, 2022. 
+
+> 12
+
+OPT EMA 
+
+# Appendix 
+
+The appendix is structured as follows: Appendix A introduces the notation and collects several supporting lemmas. Appendix B presents the proofs of the results in Section 5.1. Appendix C presents the proofs of the results in Section 5.2. 
+
+Appendix A. Notations and Supporting Lemmas 
+
+A.1. Notations 
+
+Throughout the paper, we use the following notation. Bold lowercase letters denote vectors, while uppercase letters denote real-valued matrices. • [n]: The set {1, 2, ..., n }.• ∥x∥: Euclidean norm, defined as ∥x∥ = ∥x∥2 = p⟨x, x⟩.• ⟨a, b⟩ : Standard inner product, given by ⟨a, b⟩ = P 
+
+> i
+
+aibi.• a ≤ α: For a ∈ Rn and scalar α ∈ R, this means ai ≤ α for all i ∈ [n].• E[v]: Expectation of the random variable v.• {Ai}∞
+
+> i=1
+
+, {Bi}∞
+
+> i=1
+
+: sequences indexed by non-negative integers. 
+
+A.2. Supporting Lemmas 
+
+We collect several useful lemmas that will be used in the subsequent analysis. These results are independent of the specific context of the paper. 
+
+Lemma 20 Let b1, b 2, . . . , b T ≥ 0, and let p ∈ (0 , 1) . Then the following inequalities hold: 
+
+(a) PTt=1 bt 
+
+> 1+ Pti=1 bi
+
+≤ ln 
+
+
+
+1 + PTt=1 bt
+
+
+
+.
+
+(b) PTt=1 bt
+
+(1+ Pti=1 bi)p ≤ 11−p ·
+
+
+
+1 + PTt=1 bt
+
+1−p
+
+.
+
+Proof The inequality in part (a) generalizes Lemma 3.2 of Ward et al. (2020), and the inequality in part (b) generalizes Lemma 3 of Levy et al. (2021). Both statements follow from a routine induction argument, and we therefore omit the proof. 
+
+Lemma 21 Let {At}Tt=1 and {Bt}T +1  
+
+> t=1
+
+be two nonnegative sequences, with {At}Tt=1 being non-decreasing. Then we have: 
+
+> T
+
+X
+
+> t=1
+
+At(Bt − Bt+1 ) ≤ AT
+
+
+
+max  
+
+> 1≤t≤T
+
+Bt
+
+
+
+.
+
+Proof Using summation by parts and the nonnegativity of AT and BT +1 , we have: 
+
+PTt=1 At(Bt − Bt+1 ) = A1B1 − AT BT +1 + PTt=2 (At − At−1)Bt
+
+≤ A1B1 + PTt=2 (At − At−1)Bt.
+
+13 YUAN 
+
+Since {At}Tt=1 is non-decreasing, we know At − At−1 ≥ 0 for t ≥ 2. Bounding each Bt by its maximum yields: 
+
+PTt=1 At(Bt − Bt+1 ) ≤ A1
+
+
+
+max 1≤j≤T Bj
+
+
+
++
+
+
+
+max 1≤j≤T Bj
+
+ PTt=2 (At − At−1)= AT
+
+
+
+max 1≤t≤T Bt
+
+
+
+.
+
+Lemma 22 Assume c0 > 0, and the non-negative sequence {At}∞ 
+
+> t=1
+
+satisfying 
+
+At ≤ c0 ln 
+
+
+
+e + ( t
+
+max  
+
+> i=1
+
+Ai) · t
+
+
+
+.
+
+Then, for all t ≥ 1, we have: 
+
+At ≤ (1 + c0)3 ln( e + t).
+
+Proof 
+
+For all a, b ≥ 0 with x ≤ a + b ln(1 + x), we derive the following results: 
+
+x ≤ a + b ln(1 + x)
+
+> ①
+
+≤ a + b
+
+
+
+ln(1 + b) + x − b
+
+1 + b
+
+
+
+≤ {a + b ln(1 + b)} + bx 
+
+1 + b
+
+≤ {a + b ln(1 + b)} · (1 + b)
+
+> ②
+
+≤  a + b2 (1 + b) , (9) 
+
+where step ① uses ln(1 + x) ≤ ln(1 + b) + x−b 
+
+> 1+ b
+
+for all x, b ≥ 0, which can be derived by the concavity of the function ϕ(t) ≜ ln(1 + t); step ② uses ln(1 + x) ≤ x for all x ≥ 0.For all t ≥ 1, we have: 
+
+Mt ≜ max 1≤i≤t Ai
+
+> ①
+
+≤ c0 ln 
+
+
+
+e + ( t
+
+max  
+
+> i=1
+
+Ai) · t
+
+
+
+= c0 ln ( e + Mtt)
+
+> ②
+
+≤ c0 ln( e + t)
+
+| {z }
+
+> ≜a
+
++ c0
+
+|{z} 
+
+> ≜b
+
+ln(1 + Mt
+
+|{z} 
+
+> ≜x
+
+)
+
+> ③
+
+≤ (a + b2)(1 + b)= (c0 ln( e + t) + c20)(1 + c0)
+
+> ④
+
+≤ (1 + c0)3 ln( e + t),
+
+14 OPT EMA 
+
+where step ① uses the condition of this lemma; step ② uses ln( e + Mtt) ≤ ln(( e + t)(1 + Mt)) = ln( e + t) + ln(1 + Mt); step ③ uses Inequality (9); step ④ uses c0 + c20 ≤ (1 + c0)2.
+
+Lemma 23 For any L-smooth function f (·), assume there exists a constant f ⋆ > −∞ such that 
+
+f (x) ≥ f ⋆ for all x ∈ Rn. Then, for any x, we have: 
+
+∥∇ f (x)∥2 ≤ 2L(f (x) − f ⋆).
+
+Proof Since f (·) is L-smooth, for any x, y, the following inequality holds: 
+
+f (y) ≤ f (x) + ⟨∇ f (x), y − x⟩ + L 
+
+> 2
+
+∥x − y∥2. (10) 
+
+Choosing y = x − 1 
+
+> L
+
+∇f (x) and substituting this into Inequality (10), we obtain: 
+
+f  x − 1 
+
+> L
+
+∇f (x) ≤ f (x) − 1 
+
+> L
+
+∥∇ f (x)∥2 + L 
+
+> 2
+> 1
+> L
+
+∇f (x) 2
+
+= f (x) − 12L ∥∇ f (x)∥2.
+
+Rearranging the terms and using the assumption that f (·) ≥ f ⋆, we have:  
+
+> 12L
+
+∥∇ f (x)∥2 ≤ f (x) − f  x − 1 
+
+> L
+
+∇f (x) ≤ f (x) − f ⋆.
+
+Multiplying both sides by 2L completes the proof. 
+
+Appendix B. Proofs for Section 5.1 
+
+B.1. Proof of Lemma 2 Proof Define Gt ≜ Pti=1 ∥gi∥2 and let αt ≜ (1 + Gt)−1/2.
+
+Key Inequality. For all a, b ≥ 0, we derive: 
+
+b − a
+
+√1 + b − 2 √1 + b − √1 + a = b − a − 2√1 + b(√1 + b − √1 + a)
+
+√1 + b
+
+= −a − b − 2 + 2 p(1 + a)(1 + b)
+
+√1 + b = −
+
+ √1 + a − √1 + b2
+
+√1 + b ≤ 0. (11) 
+
+Bounding PTt=1 ∥mt∥2 using PTt=1 αt∥gt∥2. Applying the convexity of the squared norm ∥ · ∥ 2
+
+to the EMA update mt = (1 − αt)mt−1 + αtgt yields ∥mt∥2 ≤ αt∥gt∥2 + (1 − αt)∥mt−1∥2.Summing this recursion over t = 1 , . . . , T , and utilizing m0 = 0, we obtain: 
+
+> T
+
+X
+
+> t=1
+
+αt∥gt∥2 ≥
+
+> T
+
+X
+
+> t=1
+
+∥mt∥2 −
+
+> T
+
+X
+
+> t=1
+
+(1 − αt)∥mt−1∥2 =
+
+> T
+
+X
+
+> t=1
+
+∥mt∥2 − 
+
+> T−1
+
+X
+
+> t=1
+
+(1 − αt+1 )∥mt∥2
+
+= ∥mT ∥2 + 
+
+> T−1
+
+X
+
+> t=1
+
+αt+1 ∥mt∥2 ≥ ∥ mT ∥2 + αTT −1X
+
+> t=1
+
+∥mt∥2 ≥ αTTX
+
+> t=1
+
+∥mt∥2,
+
+where the first inequality uses the fact that αt is monotonically non-increasing (implying αt+1 ≥
+
+αT ), and the final inequality follows from αT ∈ (0 , 1] .
+
+15 YUAN 
+
+Bounding PTt=1 ∥mt∥2 using PTt=1 ∥gt∥2. Building upon the previous step, we further derive: 
+
+> T
+
+X
+
+> t=1
+
+∥mt∥2 ≤ 1
+
+αTTX
+
+> t=1
+
+αt∥gt∥2 = 1
+
+αTTX
+
+> t=1
+
+Gt − Gt−1
+
+√1 + Gt
+
+≤ 2
+
+αTTX
+
+> t=1
+
+ p 1 + Gt − p1 + Gt−1
+
+
+
+= 2
+
+αT
+
+ p 1 + GT − 1 = 2 p1 + GT
+
+ p 1 + GT − 1 = 2  1 + GT − p1 + GT
+
+ ≤ 2GT ,
+
+where the second inequality applies Inequality (11) by substituting a = Gt−1 and b = Gt.
+
+B.2. Proof of Lemma 3 Proof Define τt = max ti=1 ∥gi∥ and αt =  1 + Pti=1 ∥gi∥2−1/2.
+
+Part (a). Since vt = (1 − βt)vt−1 + βtgt ⊙ gt, and assuming βt ∈ [0 , 1] , using the convexity of 
+
+∥·∥ and the inequality ∥x ⊙ x∥ ≤ ∥ x∥2, we have: 
+
+∥vt∥ ≤ (1 − βt)∥vt−1∥ + βt∥gt ⊙ gt∥ ≤ (1 − βt)∥vt−1∥ + βt∥gt∥2 ≤ max  ∥vt−1∥, ∥gt∥2 .
+
+Using this inequality recursively, and assuming v0 = 0, we obtain: 
+
+∥vt∥ ≤ max 
+
+
+
+∥v0∥, t
+
+max  
+
+> i=1
+
+∥gi∥2
+
+
+
+= t
+
+max  
+
+> i=1
+
+∥gi∥2 ≤ (τt)2 .
+
+Part (b). Using the definition of αt, we derive:  
+
+> αt−1
+> αt
+
+=
+
+ 1+ Pti=1 ∥gi∥2
+
+1/2
+
+ 1+ Pt−1 
+
+> i=1 ∥gi∥2
+
+1/2 ≤ p1 + ∥gt∥2 ≤ 1 + τt.
+
+B.3. Proof of Lemma 4 Proof We define st ≜ mt − ∇ f (xt).We now consider OptEMA-M, where αt is a diminishing parameter and βt = β is a fixed constant. 
+
+Bounding the term ∥∇ f (xt)−∇ f (xt−1)∥. Recall the parameter update rule xt = xt−1 −θγ t−1 · 
+
+> mt−1
+> ε+√vt−1
+
+. Using the L-smoothness of the objective function f , we can bound the difference in gradients as follows: 
+
+∥∇ f (xt) − ∇ f (xt−1)∥ ≤ L∥xt − xt−1∥ = Lθγ t−1 mt−1 
+
+> ε+√vt−1
+
+≤ Lθγ t−1 
+
+> ε
+
+∥mt−1∥. (12) 
+
+Recursive representation for st. We derive the following equalities for st:
+
+st ①
+
+= (1 − αt)mt−1 + αt∇f (xt; ξt) − ∇ f (xt)= (1 − αt)( mt−1 − ∇ f (xt−1)) + αt∇f (xt; ξt) + (1 − αt)∇f (xt−1) − ∇ f (xt)
+
+> ②
+
+= (1 − αt) ( st−1 + ∇f (xt−1) − ∇ f (xt)) 
+
+| {z }
+
+> ≜zt
+
++αt (∇f (xt; ξt) − ∇ f (xt)) , (13) where step ① uses mt = (1 − αt)mt−1 + αt∇f (xt; ξt); and step ② uses st−1 ≜ mt−1 − ∇ f (xt−1).
+
+16 OPT EMA 
+
+Bounding the term ∥zt∥2. We derive the following results: 
+
+∥zt∥2 = ∥(1 − αt)st−1 + (1 − αt)( ∇f (xt−1) − ∇ f (xt)) ∥22
+
+> ①
+
+≤ (1 + αt)(1 − αt)2∥st−1∥2 +
+
+
+
+1 + 1
+
+> αt
+
+
+
+(1 − αt)2∥∇ f (xt−1) − ∇ f (xt)∥2
+
+> ②
+
+≤ (1 − αt)∥st−1∥22 + 1 
+
+> αt
+
+∥∇ f (xt−1) − ∇ f (xt)∥2
+
+> ③
+
+≤ (1 − αt)∥st−1∥22 + 1 
+
+> αt
+> L2θ2
+> ε2
+
+γ2
+
+> t−1
+
+∥mt−1∥2, (14) where step ① uses ∥a + b∥22 ≤ (1 + γ)∥a∥22 + (1 + 1 
+
+> γ
+
+)∥b∥22 for all γ = αt; step ② uses (1 + αt)(1 −
+
+αt) ≤ 1, and the relation (1 + 1 
+
+> αt
+
+)(1 − αt)2 = 1 
+
+> αt
+
+(αt + 1)(1 − αt)2 ≤ 1 
+
+> αt
+
+; step ③ uses the gradient difference bound derived in Inequality (12). 
+
+Bounding the term E[∥st∥2]. Taking the expectation of the squared norm of st from Inequality (13) gives: 
+
+E[∥st∥2] = E
+
+h
+
+∥αt(∇f (xt; ξt) − ∇ f (xt)) ∥2i
+
++ E[∥zt∥2]
+
+> ①
+
+≤ α2 
+
+> t
+
+E[∥∇ f (xt; ξt)∥2] + E[∥zt∥2]
+
+> ②
+
+≤ α2 
+
+> t
+
+E[∥∇ f (xt; ξt)∥2] + (1 − αt)E[∥st−1∥2] + 1 
+
+> αt
+> θ2L2
+> ε2
+
+∥mt−1∥2γ2
+
+> t−1
+> ②
+
+≤ (1 − αt)E[∥st−1∥2] + α2 
+
+> t
+
+E[∥∇ f (xt; ξt)∥2] + θ2L2 
+
+> ε2
+> 1
+> αt
+
+∥mt−1∥2γ2
+
+> t−1
+
+| {z }
+
+> ≜Bt
+
+,
+
+where step ① uses E[∥∇ f (xt; ξt) − ∇ f (xt)∥22] = E[∥∇ f (xt; ξt)∥22] − 2⟨E[∇f (xt; ξt)] , ∇f (xt)⟩ +
+
+∥∇ f (xt)∥22 ≤ E[∥∇ f (xt; ξt)∥22]; and step ② uses the bound on ∥zt∥2 in Inequality (14). 
+
+B.4. Proof of Lemma 5 Proof Define τt = max ti=1 ∥gi∥2, st := mt − ∇ f (xt), and κt := ε + pmax( vt).Given f (x) is L-smooth, we have: 
+
+E[f (xt+1 ) − f (xt)] 
+
+≤ E[ L 
+
+> 2
+
+∥xt+1 − xt∥22 + ⟨∇ f (xt), xt+1 − xt⟩]
+
+> ①
+
+= E[ L 
+
+> 2
+
+θ2γ2 
+
+> t
+
+∥ mt 
+
+> ε+√vt
+
+∥22 + θγ t
+
+
+
+−⟨∇ f (xt), ∇f (xt) 
+
+> ε+√vt
+
+⟩ + ⟨∇ f (xt), ∇f (xt)−mt 
+
+> ε+√vt
+
+⟩
+
+
+
+]
+
+> ②
+
+≤ E[ Lθ 2γ2 
+
+> t
+> 2ε2
+
+∥mt∥22 + θγ t
+
+
+
+− 1 
+
+> κt
+
+∥∇ f (xt)∥22 + 1 
+
+> ε
+
+∥∇ f (xt)∥ · ∥ mt − ∇ f (xt)∥
+
+
+
+]= E[ Lθ 2γ2 
+
+> t
+> 2ε2
+
+∥mt∥22 + θγ t
+
+
+
+− 12κt ∥∇ f (xt)∥22 − 12κt ∥∇ f (xt)∥22 + 1 
+
+> ε
+
+∥∇ f (xt)∥ · ∥ st∥
+
+
+
+]
+
+> ③
+
+≤ E[ Lθ 2γ2 
+
+> t
+> 2ε2
+
+∥mt∥22 + θγ t
+
+
+
+− 12κt ∥∇ f (xt)∥22 + κt 
+
+> 2ε2
+
+∥st∥2
+
+]
+
+> ④
+
+≤ E[ Lθ 2γ2 
+
+> t
+> 2ε2
+
+∥mt∥22 + θγ t
+
+
+
+− 12(1+ τt) ∥∇ f (xt)∥22 + 1+ τt 
+
+> 2ε2
+
+∥st∥2
+
+],
+
+17 YUAN 
+
+where step ① uses xt+1 = xt − θγ t · mt 
+
+> ε+√vt
+
+; step ② uses Cauchy-Schwarz inequality, vt ≥ 0, and the definition of κt; step ③ uses the inequality −τ x 2 + ax ≤ a2 
+
+> 4τ
+
+with τ = 12κt , a = 1 
+
+> ε
+
+∥st∥ and 
+
+x = ∥∇ f (xt)∥; step ④ uses the fact that κt := ε + pmax( vt) ≤ ε + p∥vt∥ ≤ 1 + τt, which is implied by ε ∈ (0 , 1) and Lemma 3. 
+
+B.5. Proof of Lemma 6 Proof Define τt = max ti=1 ∥gi∥ and αt =  1 + Pti=1 ∥gi∥2−1/2.Define γt = min 
+
+   
+
+> αt
+> μ(1+ τ2
+> t)
+
+,
+
+
+
+1 + Ptj=1  
+
+> ∥mj∥2
+> αj
+
+−1/2
+
+.Define Bt ≜ α2 
+
+> t
+
+∥gt∥2 + λ 1 
+
+> αt
+
+∥mt−1∥2γ2
+
+> t−1
+
+, and ˆft ≜ max tt=1 f (xt) − f∗.
+
+Bounding the term PTt=1 1 
+
+> αt
+
+∥mt∥2γ2 
+
+> t
+
+. We have: 
+
+PTt=1 1 
+
+> αt
+
+∥mt∥2γ2
+
+> t
+> ①
+
+≤ PTt=1   
+
+> ∥mt∥2/α t
+> 1+ Ptj=1 ∥mj∥2/α t
+> ②
+
+≤ ln 
+
+
+
+1 + PTt=1 
+
+> ∥mt∥2
+> αt
+
+
+
+> ③
+
+≤ ln 
+
+
+
+1 +  1 + PTt=1 ∥gt∥21/2  P Tt=1 ∥mt∥2
+
+> ④
+
+≤ ln 
+
+
+
+1 + 2 
+
+
+
+1 + PTt=1 ∥gt∥2
+
+3/2
+
+> ⑤
+
+≤ 3 ln 
+
+
+
+e + PTt=1 ∥gt∥2
+
+
+
+, (15) where step ① uses the definition of γ2 
+
+> t
+
+, leading to γ2 
+
+> t
+
+≤ 11+ Pti=1 ∥mi∥2/α i
+
+; step ② uses the standard sum-to-integral inequality PTt=1 xt 
+
+> 1+ Pti=1 xi
+
+≤ ln(1 + PTt=1 xt) with xi = ∥gi∥2; step ③ uses  
+
+> 1
+> αt
+
+≤ 1 
+
+> αT
+
+=  1 + PTt=1 ∥gt∥21/2 for all t ≤ T ; step ④ uses PTt=1 ∥mi∥2 ≤ 2 PTt=1 ∥gi∥2; step ⑤
+
+uses the logarithmic inequality ln(3 + 2 x3/2) ≤ 3 ln( e + x) for all x ≥ 0.
+
+One-step descent bound. Using Lemma 4, we derive the following inequalities for all t ≥ 1:
+
+E[∥st∥2] ≤ E[Bt + (1 − αt)∥st−1∥2] (16) 
+
+> ①
+
+≤ E[Bt + ∥st−1∥2 − 2γtμ(1 + τt)2∥st−1∥2]
+
+> ②
+
+≤ E[Bt + ∥st−1∥2 − 2γtμ(1 + τt)2(∥st∥2 − Bt)] 
+
+> ③
+
+≤ E[(1 + 4) Bt + ∥st−1∥2 − 2γtμ(1 + τt)2∥st∥2],
+
+where step ① uses the fact that γt ≤ αt   
+
+> μ(1+ τ2
+> t)
+
+≤ 2αt 
+
+> μ(1+ τt)2
+
+; step ② uses the relation ∥st∥2 ≤ ∥ st−1∥2 +
+
+Bt implied by neglecting the non-positive term −αt∥st−1∥2 in Inequality (16); step ③ uses γtμ(1 + 
+
+τt)2 ≤ 2αt ≤ 2.
+
+18 OPT EMA 
+
+Bounding the Final Sum. Multiplying both sides by 12μ(1+ τt) and rearranging the terms yields: 
+
+E[γt(1 + τt)∥st∥2] ≤ E[ 12μ(1+ τt) (∥st−1∥2 − ∥ st∥2) + 52μ(1+ τt) Bt]
+
+> ①
+
+≤ E[ 12μ(1+ τt−1) ∥st−1∥2 − 12μ(1+ τt) ∥st∥2 + 3 
+
+> μ(1+ τt)
+
+Bt],
+
+where step ① uses τt ≥ τt−1. Summing this inequality over t from 1 to T allows the sequence to telescope: 
+
+E[PTt=1 γt(1 + τt)∥st∥2] ≤ E[ 12μ
+
+PTt=1 
+
+ 11+ τt−1 ∥st−1∥2 − 11+ τt ∥st∥2
+
+
+
++ 3
+
+> μ
+
+PTt=1 11+ τt Bt]
+
+> ①
+
+≤ E[ 12μ(1+ τ0) ∥s0∥2 + 3
+
+> μ
+
+PTt=1 11+ τt
+
+
+
+α2 
+
+> t
+
+∥gt∥2 + λ 1 
+
+> αt
+
+∥mt−1∥2γ2
+
+> t−1
+
+
+
+]
+
+> ②
+
+≤ E[ 12μ ∥s0∥2 + 3
+
+> μ
+
+PTt=1 α2 
+
+> t
+
+∥gt∥2 + 3λμ · PTt=1 1 
+
+> αt−1
+
+∥mt−1∥2γ2
+
+> t−1
+
+]
+
+> ③
+
+≤ E[ 12μ ∥s0∥2 + 3
+
+> μ
+
+PTt=1   
+
+> ∥gt∥2
+> 1+ Pti=1 ∥gi∥2
+
++ 3λμ
+
+PTt=1 1 
+
+> αt
+
+∥mt∥2γ2 
+
+> t
+
+]
+
+> ④
+
+≤ E[  12μ ∥s0∥2 + 3 
+
+> μ
+
++ 3λμ
+
+| {z }
+
+> := Cw
+
+· ln 
+
+
+
+e + PTt=1 ∥gt∥2
+
+
+
+],
+
+where step ① uses the definition of Bt; step ② uses τt ≥ 0, and αt−1 
+
+> αt
+
+≤ 1 + τt (which is implied by Inequality (12)); step ③ uses the definition of αt, and results of shifting the summation index and 
+
+∥m0∥2 = 0 ; step ④ uses Inequality (15). 
+
+B.6. Proof of Lemma 7 Proof Define τt ≜ max 1≤i≤t ∥gi∥ and αt ≜  1 + Pti=1 ∥gi∥2−1/2. Recall the step size definition 
+
+γt = min 
+
+   
+
+> αt
+> μ(1+ τ2
+> t)
+
+,
+
+
+
+1 + Ptj=1  
+
+> ∥mj∥2
+> αj
+
+−1/2
+
+, and let ˆft ≜ f (xt) − f∗.
+
+Bounding the term E[∥gt∥2]. Using the Cauchy-Schwarz inequality and a standard consequence of L-smoothness (Lemma 23), we derive: 
+
+E[∥gt∥2] ≤ E[2 ∥gt − ∇ f (xt)∥2 + 2 ∥∇ f (xt)∥2] ≤ 2σ2 + E[4 L(f (xt) − f∗)] . (17) 
+
+Bounding the term PTt=1 γ2 
+
+> t
+
+∥mt∥2. Based on the parameter definitions, we derive the following bound: 
+
+PTt=1 γ2 
+
+> t
+
+∥mt∥22
+
+> ①
+
+≤ 1
+
+> μ
+
+PTt=1 α2 
+
+> t
+
+∥mt∥22
+
+> ②
+
+≤ 1
+
+> μ
+
+PTt=1  
+
+> ∥mt∥22
+> 1+ Pti=1 ∥gi∥2
+> ③
+
+≤ 2
+
+> μ
+
+PTt=1  
+
+> ∥mt∥22
+> 1+ Pti=1 ∥mi∥2
+> ④
+
+≤ 2 
+
+> μ
+
+ln(1 + PTt=1 ∥mt∥2) ⑤
+
+≤ 4 
+
+> μ
+
+ln(1 + PTt=1 ∥gt∥2), (18) where step ① uses γt ≤ αt   
+
+> μ(1+ τ2
+> t)
+
+≤ αt 
+
+> μ
+
+; step ② uses α2 
+
+> t
+
+=  1 + Pti=1 ∥gi∥2−1; step ③ uses 
+
+Pti=1 ∥mi∥2 ≤ 2 Pti=1 ∥gi∥2; step ④ uses the standard logarithmic integral bound PTt=1 xt 
+
+> 1+ Pti=1 xi
+
+≤
+
+ln(1 + PTt=1 xt) with xi = ∥mi∥2; step ⑤ uses Pti=1 ∥mi∥2 ≤ 2 Pti=1 ∥gi∥2 and the algebraic fact ln(1 + 2 x) ≤ 2 ln(1 + x) for all x ≥ 0.
+
+19 YUAN 
+
+Establishing the bound for ˆfT := f (xT ) − f∗. Dropping the non-positive term in Inequality (3) yields: 
+
+E[ ˆft+1 − ˆft] ≤ E[c1γt(1 + τt)∥st∥2 + c2γ2 
+
+> t
+
+∥mt∥2].
+
+Summing this recursion from t = 1 to T − 1 gives: 
+
+E[ ˆfT ] ≤ E[ ˆf1 + c1
+
+PT −1 
+
+> t=1
+
+γt(1 + τt)∥st∥2 + c2
+
+PT −1 
+
+> t=1
+
+γ2 
+
+> t
+
+∥mt∥22]
+
+> ①
+
+≤ E[ ˆf1 + c1Cw ln( e + PTt=1 ∥gt∥2) + 4 
+
+> μ
+
+c2 ln(1 + PTt=1 ∥gt∥2)] 
+
+> ②
+
+≤ E[
+
+ ˆf1 + c1Cw + 4c2
+
+> μ
+
+
+
+· ln( e + 4 T (σ2 + L  max Tt=1 ˆft
+
+))] ,
+
+where step ① uses E
+
+hPTt=1 γt(1 + τt)∥st∥2
+
+i
+
+≤ Cw ln( e + PTt=1 ∥gt∥2) (which is established in Lemma 6) and Inequality (18); step ② uses Inequality (19). Defining At ≜ 4σ2 + 4 LE[ ˆft] and substituting this definition into the bound above yields: 
+
+AT − 4σ2
+
+4L ≤
+
+ ˆf1 + c1Cw + 4c2
+
+μ
+
+
+
+ln 
+
+
+
+e + T max  
+
+> 1≤t≤T
+
+At
+
+
+
+.
+
+Using the fact that the logarithmic term is strictly ≥ 1, we can safely absorb the 4σ2 term to obtain: 
+
+E[AT ] ≤ E[ 4L  ˆf1 + c1Cw + 4c2
+
+μ
+
+ + 4 σ2| {z }
+
+> := c0
+
+· ln 
+
+
+
+e + T max  
+
+> 1≤t≤T
+
+At
+
+
+
+].
+
+Invoking Lemma 22, this inequality directly implies: 
+
+E[AT ] ≤ (1 + c0)3 ln( e + T ).
+
+Translating this result back to the function suboptimality, we derive: 
+
+E[f (xT ) − f∗] = E[ ˆfT ] = E[ AT −4σ2 
+
+> 4L
+
+] ≤ (1+ c0)3 
+
+> 4L
+
+· ln( e + T ) ≤ (1+ c0)3
+
+> 4L
+
+| {z } 
+
+> := Cf
+
+ln( e + T ).
+
+Establishing the bound for E[∥gt∥2]. Substituting this bound back into (19), we have for all 
+
+t ≥ 1:
+
+E[∥gt∥2] ≤ E[4( σ2 + L ˆft)] ≤ 4 σ2 + LC f ln( e + T ) ≤ (4 σ2 + 4 LC f )
+
+| {z }
+
+> := Cg
+
+ln( e + T ).
+
+B.7. Proof of Lemma 8 Proof Define τt = max ti=1 ∥gi∥ and αt =  1 + Pti=1 ∥gi∥2−1/2.Define γt = min 
+
+   
+
+> αt
+> μ(1+ τ2
+> t)
+
+,
+
+
+
+1 + Ptj=1  
+
+> ∥mj∥2
+> αj
+
+−1/2
+
+.Define Bt ≜ α2 
+
+> t
+
+∥gt∥2 + λ 1 
+
+> αj
+
+∥mt−1∥2γ2
+
+> t−1
+
+, and ˆft ≜ max ti=1 f (xi) − f∗.
+
+20 OPT EMA 
+
+Bounding the term E[∥gt∥2]. Using the Cauchy-Schwarz Inequality and Lemma 23, we derive: 
+
+E[∥gt∥2] ≤ E[2 ∥gt − ∇ f (xt)∥2 + 2 ∥∇ f (xt)∥2] ≤ 2σ2 + 4 LE[f (xt) − f∗]. (19) 
+
+Bounding the term E[∥st∥2]. Using the update rule for the stochastic gradient estimator mt =(1 − αt)mt−1 + αt∇f (xt; ξt), we derive the following result: 
+
+E[∥mt∥2] ≤ E[max  ∥mt−1∥2, ∥∇ f (xt; ξt)∥2]
+
+≤ t
+
+max  
+
+> i=1
+
+E[∥∇ f (xi; ξi)∥2]
+
+≤ Cg ln( e + t).
+
+We further derive: 
+
+E[∥st∥2] = E[∥mt − ∇ f (xt) + ∇f (xt; ξt) − ∇ f (xt; ξt)∥2]
+
+≤ 3E[∥mt∥2] + 3 E[∥∇ f (xt; ξt) − ∇ f (xt)∥2] + 3 E[∥∇ f (xt; ξt)∥2]
+
+≤ 3Cg ln( e + t) + 3 σ2 + 3 Cf ln( e + t)
+
+≤ 3  Cg + Cf + σ2 ln( e + t), (20) 
+
+Bounding the term E[PTt=1 Bt]. We derive the following results: 
+
+E[PTt=1 Bt] ①
+
+= E[PTt=1 α2 
+
+> t
+
+∥gt∥2 + λ PTt=1 1 
+
+> αt
+
+∥mt−1∥2γ2
+
+> t−1
+
+]
+
+> ②
+
+≤ E[PTt=1 α2 
+
+> t
+
+∥gt∥2 + λ PTt=1 1+ τt 
+
+> αt−1
+
+∥mt−1∥2γ2
+
+> t−1
+
+]
+
+> ③
+
+≤ E[PTt=1 α2 
+
+> t
+
+∥gt∥2 + ( λ + λτ T ) PTt=1 1 
+
+> αt
+
+∥mt∥2γ2 
+
+> t
+
+]
+
+> ④
+
+≤ E[PTt=1   
+
+> ∥gt∥2
+> 1+ Pti=1 ∥gi∥2
+
++ ( λ + λτ T ) PTt=1   
+
+> ∥mt∥2/α t
+> 1+ Ptj=1 ∥mj∥2/α j
+
+]
+
+> ⑤
+
+≤ E[ln(1 + PTt=1 ∥gt∥2) + ( λ + λτ T ) ln 
+
+
+
+1 +   P Tt=1 ∥mt∥2 ·  1 + PTt=1 ∥gt∥21/2
+
+]
+
+> ⑥
+
+≤ E[ln(1 + PTt=1 ∥gt∥2) + ( λ + λτ T ) ln 
+
+
+
+1 + 2  1 + PTt=1 ∥gt∥23/2
+
+]
+
+> ⑦
+
+≤ E[ln( e + PTt=1 ∥gt∥2) + 3( λ + λτ T ) ln 
+
+
+
+e + PTt=1 ∥gt∥2
+
+
+
+]
+
+> ⑧
+
+≤ E[(1 + 3 λ + 3 λτ T ) ln ( e + T C f ln( e + T ))] 
+
+> ⑨
+
+≤ E[(1 + 3 λ + 3 λτ T ) (1 + Cf ) ln ( e + T )] ,
+
+where step ① uses the definition of Bt; step ② uses the definition of αt and 1 
+
+> αt
+
+≤ 1 
+
+> αt−1
+
+· τt
+
+> μ
+
+(established in Lemma 3); step ③ uses m0 = 0; step ④ uses γ2 
+
+> t
+
+≤ 1 
+
+> τ2
+> t
+
+· 11+ Ptj=1 ∥mj ∥2/α j
+
+≤ 
+
+> 1
+> τt
+
+· 11+ Ptj=1 ∥mj ∥2/α j
+
+; step ⑤ uses αT = (1 + PTt=1 ∥gt∥2)−1/2; step ⑥ uses PTt=1 ∥mt∥2 ≤
+
+2 PTt=1 ∥gt∥2; step ⑦ uses ln(3 + 2 x3/2) ≤ 2 ln( e + x) for all x ≥ 0; step ⑧ uses ∥gt∥2 ≤
+
+Cf ln( e + T ); step ⑨ uses ln( e + T C f ln( e + T )) ≤ (1 + Cf ) ln( e + T ) for all T ≥ 1.
+
+21 YUAN 
+
+Bounding the term E[PTt=1 αts2 
+
+> t
+
+]. For all t ≥ 1, we have from Lemma 4: E[∥st∥2] ≤ E[(1 −
+
+αt)∥st−1∥2 + Bt], leading to: 
+
+E[αt∥st∥2] ≤ E[(1 − αt)( ∥st−1∥2 − ∥ st∥2) + Bt].
+
+Summing this inequality over t from 1 to T yields: 
+
+E[PTt=1 αt∥st∥2] ≤ E[
+
+PTt=1 Bt
+
+
+
++
+
+PTt=1 (1 − αt)( ∥st−1∥2 − ∥ st∥2)
+
+
+
+]
+
+> ①
+
+≤ E[
+
+PTt=1 Bt
+
+
+
++  max Tt=1 (1 − αt) ·
+
+
+
+max T −1 
+
+> t=1
+
+∥st∥2
+
+
+
+]
+
+> ②
+
+≤   (1 + 3 λ + 3 λτ T ) (1 + Cf ) + 3  Cg + Cf + σ2  · ln ( e + T )
+
+> ③
+
+≤    1 + 3 λ + 3 λpCg ln( e + T ) (1 + Cf ) + 3  Cg + Cf + σ2 · ln ( e + T )
+
+≤ (1 + 3 λ + 3 λpCg)(1 + Cf ) + 3( Cg + Cf + σ2)
+
+| {z }
+
+> := Cs
+
+· ln ( e + T )3/2 ,
+
+where step ① uses Lemma 21; step ② uses Inequalities (21) and (20); step ③ uses τT ≤ pCg
+
+pln( e + T ).This further leads to: 
+
+E[PTt=1 ∥st∥2] ≤ E[ Cs(ln( e+T )) 3/2 
+
+> αT
+
+] = E[Cs(ln( e + T )) 3/2ρ1/2 
+
+> T
+
+].
+
+B.8. Proof of Lemma 9 Proof Define c0 := θμ  
+
+> 4
+
+, c1 := θμε , c2 := Lθ 2 
+
+> 2ε2
+
+.Define ρt := 1 + Pti=1 ∥gi∥2, G = PTt=1 ∥gt∥2, and M = PTt=1 ∥mt∥2.Define γt = min 
+
+   
+
+> αt
+> μ(1+ τ2
+> t)
+
+,
+
+
+
+1 + Ptj=1  
+
+> ∥mj∥2
+> αj
+
+−1/2
+
+.We define ι := 1 + pCg.
+
+Bounding the term 1 + τT . We derive: 
+
+1 + τT
+
+> ①
+
+≤ 1 + pCg ln( e + T ) ≤ (1 + pCg)pln( e + T ) = ιpln( e + T ), (21) where step ① uses τt := max ti=1 ∥gi∥, and ∥gt∥2 ≤ Cg ln( e + t) for all t.
+
+Bounding the term 1 
+
+> γT
+
+. We derive: 
+
+> 1
+> γT
+> ①
+
+≤ max 
+
+
+
+(1 + τ 2 
+
+> T
+
+)μρ 1/2 
+
+> T
+
+,  1 + ρ1/2 
+
+> T
+
+· PTt=1 ∥mt∥21/2
+
+> ②
+
+≤ max 
+
+
+
+(1 + τT )2ρ1/2 
+
+> T
+
+, 1 + ρ1/4 
+
+> T
+
+M1/2
+
+
+
+≤ 2ι2 ln( e + T )ρ1/2 
+
+> T
+
++ ρ1/4 
+
+> T
+
+M1/2, (22) where step ① uses 1 
+
+> γt
+
+≤ max 
+
+
+
+μ(1 + τ 2 
+
+> T
+
+)ρ1/2 
+
+> T
+
+,
+
+
+
+1 + Ptj=1  
+
+> ∥mj∥2
+> αj
+
+1/2
+
+and 1 
+
+> αt
+
+≤ 1 
+
+> αT
+
+≤ ρ1/2 
+
+> T
+
+; step 
+
+② uses 1 + τ 2 
+
+> T
+
+≤ (1 + τT )2, μ ≤ 1, and the fact that √a + b ≤ √a + √b for all a, b ≥ 0.
+
+22 OPT EMA 
+
+Bounding the term PTt=1 γt∥mt∥2. We derive: 
+
+PTt=1 γt∥mt∥2 ①
+
+≤ PTt=1   
+
+> ∥mt∥2
+> q
+> 1+ Ptj=1 ∥mj∥2/α j
+
+≤ PTt=1    
+
+> ∥mt∥2
+> q
+> 1+ Ptj=1 ∥mj∥2
+
+≤ 2√1 + M, (23) where step ① uses γt ≤
+
+
+
+1 + Ptj=1  
+
+> ∥mj∥2
+> αj
+
+−1/2
+
+; step ② uses αj ∈ (0 , 1) ; step ③ uses Lemma 20(b). 
+
+Bounding the term E[PTt=1 ∥∇ f (xt)∥22]. Multiplying both sides of Inequality (3) by 1+ τt 
+
+> γt
+
+yields: 
+
+c0E[∥∇ f (xt)∥22] ≤ E[ 1+ τt 
+
+> γt
+
+·  f (xt) − f (xt+1 ) + c1(1 + τt)2∥st∥2 + c2(1 + τt)γt∥mt∥22].
+
+Summing this inequality over t from t = 1 to T yields: 
+
+E[c0
+
+PTt=1 ∥∇ f (xt)∥22]
+
+≤ PTt=1 1+ τt 
+
+> γt
+
+·  f (xt) − f (xt+1 ) + c1
+
+PTt=1 (1 + τt)2∥st∥2 + c2
+
+PTt=1 (1 + τt)γt∥mt∥22
+
+> ①
+
+≤ E[ 1 + τT
+
+ · max Tt=1 f (xt)−f∗ 
+
+> γT
+
++ c1(1 + τT )2 ·   P Tt=1 ∥st∥2 + c2(1 + τT ) ·   P Tt=1 γt∥mt∥22
+
+]
+
+> ②
+
+≤ E[ιpln( e + T ) ·
+
+
+
+2ι2 ln( e + T )ρ1/2 
+
+> T
+
++ ρ1/4 
+
+> T
+
+M1/2
+
+
+
+· Cf ln( e + T )+c1ι2 ln( e + T ) · Csρ1/2 
+
+> T
+
+(ln( e + T )) 3/2 + 2 c2ιpln( e + T )√1 + M]
+
+≤ E[(2 Cf + c1Cs + 1) · ι3 · (ln( e + T )) 5/2 · ρ1/2 
+
+> T
+
++ ( Cf + 2 c2) · ι · (ln( e + T )) 3/2 · ρ1/4 
+
+> T
+
+M1/2],
+
+where step ① uses uses Lemma 21; ② uses Inequality (21), Inequality (22), f (xt) − f∗ ≤ Cf ln( e +
+
+t), Lemma 8 that E
+
+hPTt=1 ∥st∥2
+
+i
+
+≤ Csρ1/2 
+
+> T
+
+(ln( e + T )) 3/2, and Inequality (23). Defining Co := ι3 
+
+> c0
+
+(2 Cf + 2 c2 + c1Cs + 1) , we derive: 
+
+E[PTt=1 ∥∇ f (xt)∥22] ≤ E[Co(ln( e + T )) 5/2ρ1/2 
+
+> T
+
++ Co(ln( e + T )) 3/2ρ1/4 
+
+> T
+
+M1/2].
+
+B.9. Proof of Theorem 10 Proof Define st := mt − ∇ f (xt), M := PTt=1 ∥mt∥2, and ρt = 1 + Pti=1 ∥gi∥2.Let δ := 1 + 2 Cs + 4 Co.Recall that we have established the bounds for PTt=1 ∥∇ f (xt)∥22 and PTt=1 ∥mt − ∇ f (xt)∥2
+
+in Lemma 9 and Lemma 8 respectively, such that: 
+
+E[PTt=1 ∥∇ f (xt)∥22] ≤ Co ln 5/2(e + T )ρ1/2 
+
+> T
+
++ Co ln 3/2(e + T )ρ1/4 
+
+> T
+
+M1/2 (24) 
+
+E[PTt=1 ∥∇ f (xt) − mt∥2] ≤ Cs ln 3/2(e + T )ρ1/2 
+
+> T
+
+. (25) 
+
+23 YUAN 
+
+We derive the following results: 
+
+E[PTt=1 ∥mt∥2] ≤ E[2 PTt=1 ∥∇ f (xt)∥2 + 2 PTt=1 ∥∇ f (xt) − mt∥2]
+
+> ①
+
+≤ E[2 Co ln 5/2(e + T )ρ1/2 
+
+> T
+
++ 2 Co ln 3/2(e + T )ρ1/4 
+
+> T
+
+M1/2 + 2 Cs ln 3/2(e + T )ρ1/2 
+
+> T
+
+]
+
+> ②
+
+≤ E[(2 Co + 2 Cs) ln 5/2(e + T )ρ1/2 
+
+> T
+
++ 2 Co ln 3/2(e + T )ρ1/4 
+
+> T
+
+M1/2]
+
+≤ (2 Cs + 4 Co) max 
+
+
+
+ln 5/2(e + T )ρ1/2 
+
+> T
+
+, ln 3/2(e + T )ρ1/4 
+
+> T
+
+M1/2
+
+
+
+> ③
+
+≤ max 
+
+
+
+δ ln 5/2(e + T )ρ1/2 
+
+> T
+
+, δ ln 3/2(e + T )ρ1/4 
+
+> T
+
+M1/2
+
+
+
+> ④
+
+≤ max 
+
+
+
+δ ln 5/2(e + T )ρ1/2 
+
+> T
+
+, δ 2 ln 3(e + T )ρ1/2
+
+> T
+
+
+
+≤ 2δ2 ln 3(e + T )ρ1/2 
+
+> T
+
+, (26) where step ① uses Inequalities (24) and (25); step ② uses ln( e + T ) ≥ 1 for all T ≥ 0; step ③ uses 
+
+2Cs + 4 Co ≤ δ; step ④ uses the property that x ≤ a√x implies x ≤ a2 for all a, x ≥ 0.Using Inequality (25), we further derive: 
+
+E[PTt=1 ∥∇ f (xt)∥22] ≤ E[Co ln 5/2(e + T )ρ1/2 
+
+> T
+
++ Co ln 3/2(e + T )ρ1/4 
+
+> T
+
+M1/2]
+
+> ①
+
+≤ E[Co ln 5/2(e + T )ρ1/2 
+
+> T
+
++ Co ln 3(e + T )ρ1/2 
+
+> T
+
+· √2δ]
+
+≤ 3δ2 ln 3(e + T )E[ρ1/2 
+
+> T
+
+]
+
+> ②
+
+≤ 3δ2 ln 3(e + T )
+
+| {z }
+
+> :=Γ
+
+·E
+
+q 
+
+1 + 2 PTt=1 ∥gt − ∇ f (xt)∥2 + 2 PTt=1 ∥∇ f (xt)∥2
+
+
+
+,
+
+where step ① uses Inequality (26); step ② uses the definition of ρT .Taking the expectation and utilizing Jensen’s inequality, we derive: 
+
+E
+
+h PTt=1 ∥∇ f (xt)∥22
+
+i ①
+
+≤ Γ · E
+
+
+
+1 + 
+
+q
+
+2 PTt=1 ∥gt − ∇ f (xt)∥2 +
+
+q
+
+2 PTt=1 ∥∇ f (xt)∥2
+
+
+
+> ②
+
+≤ Γ ·
+
+
+
+1 + 
+
+q
+
+2 PTt=1 E[∥gt − ∇ f (xt)∥2] + 
+
+r
+
+2E
+
+h PTt=1 ∥∇ f (xt)∥2
+
+i
+
+> ③
+
+≤ Γ ·
+
+
+
+1 + √2T σ 2
+
+
+
++ Γ 
+
+r
+
+2E
+
+h PTt=1 ∥∇ f (xt)∥2
+
+i
+
+> ④
+
+≤ Γ
+
+
+
+1 + √2T σ 2
+
+
+
++ 12 E
+
+h PTt=1 ∥∇ f (xt)∥2
+
+i
+
++ Γ 2,
+
+where step ① uses ∥gt∥2 ≤ 2∥gt − ∇ f (xt)∥2 + 2 ∥∇ f (xt)∥2; step ② uses Jensen’s inequality (E[√X] ≤ pE[X]); step ③ uses E[∥gt − ∇ f (xt)∥2] ≤ σ2; step ④ uses the Young’s Inequality (ab ≤ 12 a2 + 12 b2 with a = √2Γ and b = pE[P ∥∇ f (xt)∥2]). Rearranging the terms, we obtain: 
+
+E
+
+h PTt=1 ∥∇ f (xt)∥22
+
+i
+
+≤ 2Γ 
+
+
+
+1 + √2T σ 2
+
+
+
++ 2Γ 2. (27) 
+
+24 OPT EMA 
+
+Using the fact that 1 
+
+> T
+
+∥a∥1 ≤ 1√T ∥a∥2 for all a ∈ RT , we evaluate the expected average gradient norm: 
+
+E
+
+h 1
+
+> T
+
+PTt=1 ∥∇ f (xt)∥
+
+i
+
+≤ E
+
+h 1√T
+
+qPTt=1 ∥∇ f (xt)∥2
+
+i
+
+> ①
+
+≤ 1√T
+
+r
+
+E
+
+h PTt=1 ∥∇ f (xt)∥2
+
+i
+
+> ②
+
+≤ 1√T
+
+r
+
+2Γ 
+
+
+
+1 + √2T σ 2
+
+
+
++ 2Γ 2
+
+> ③
+
+= O
+
+ ln 3(e+T )  
+
+> T1/2
+
++ σ1/2 ln 3/2(e+T ) 
+
+> T1/4
+
+
+
+,
+
+where step ① uses Jensen’s inequality; step ② uses Inequality (27); step ③ uses Γ = O(ln 3(e + T )) .
+
+Appendix C. Proofs for Section 5.2 
+
+C.1. Proof of Lemma 12 Proof Since mt = (1 − α)mt−1 + αgt, using the convexity of ∥ · ∥ 2, we have: 
+
+∥mt∥2 ≤ (1 − α)∥mt−1∥2 + α∥gt∥2.
+
+Subtracting (1 − α)∥mt∥2 from both sides and dividing by α > 0 yields: 
+
+∥mt∥2 ≤ 1−αα (∥mt−1∥2 − ∥ mt∥2) + ∥gt∥2.
+
+Summing this inequality over t = 1 , . . . , T and telescoping the differences, we obtain: 
+
+PTt=1 (∥mt∥2 − ∥ gt∥2) ≤ 1−αα (∥m0∥2 − ∥ mT ∥2) ≤ 0,
+
+where the last inequality follows from the standard initialization m0 = 0 and −∥ mT ∥2 ≤ 0.
+
+C.2. Proof of Lemma 13 Proof Define τt := 1 + μ max ti=1 ∥gi∥.Since vt = (1 − βt)vt−1 + βtgt ⊙ gt, and assuming βt ∈ [0 , 1] , using the convexity of ∥·∥ and the inequality ∥x ⊙ x∥ ≤ ∥ x∥2, we have: 
+
+∥vt∥ ≤ (1 − βt)∥vt−1∥ + βt∥gt ⊙ gt∥ ≤ max  ∥vt−1∥, ∥gt∥2 .
+
+Using this inequality recursively, and assuming v0 = 0, we obtain: 
+
+∥vt∥ ≤ max  ∥v0∥, max ti=1 ∥gi∥2 = max ti=1 ∥gi∥2 ≤
+
+ τt
+
+> μ
+
+2
+
+.
+
+25 YUAN 
+
+C.3. Proof of Lemma 14 Proof Define ∆t := θmt
+
+ε+√vt−1 − θmt
+
+ε+√vt . Let ϖt = θα t/2
+
+ε+√max( vt−1) > 0.Define τt := max ti=1 ∥gi∥. We rewrite Θt := −⟨∇ f (xt), θmt
+
+ε+√vt ⟩ as: 
+
+Θt = ⟨∇ f (xt), ∆t⟩
+
+| {z }
+
+:=Γ 1
+
++ ⟨∇ f (xt), −θmt
+
+ε+√vt−1 ⟩
+
+| {z }
+
+:=Γ 2
+
+. (28) 
+
+Bounding the term Γ1. We derive: 
+
+Γ1 ≤ ∥∇ f (xt)∥ · ∥ ∆t∥
+
+①
+
+≤ ϖt∥∇ f (xt)∥2 + 14ϖt ∥∆t∥2
+
+≤ ϖt∥∇ f (xt)∥2 + θ2
+
+4ϖt ∥mt∥2 · ∥ 1
+
+ε+√vt − 1
+
+ε+√vt−1 ∥2
+
+②
+
+= ϖt∥∇ f (xt)∥2 + θ2
+
+4ϖt ∥mt∥2 · ∥ vt−1−vt
+
+(ε+√vt)⊙(ε+√vt−1)⊙(ε+√vt+ε+√vt−1) ∥2
+
+③
+
+≤ ϖt∥∇ f (xt)∥2 + θ2
+
+4ϖt ∥mt∥2 · β2
+
+t · 1
+
+ε6 · ∥ g2
+
+t − vt−1∥2
+
+④
+
+≤ ϖt∥∇ f (xt)∥2 + θ2
+
+4ϖt ∥mt∥2 · β2
+
+t · 1
+
+ε6 · 4τ 4
+
+t
+
+⑤
+
+≤ ϖt∥∇ f (xt)∥2 + θ2
+
+4ϖt ∥mt∥2 · ρ−1/2
+
+t · 1(1+ μτ 2 
+
+> t
+
+)2 · 1
+
+ε6 · 4τ 4
+
+t
+
+≤ ϖt∥∇ f (xt)∥2 + θ2
+
+ϖt ∥mt∥2 · ρ−1/2
+
+t · 1
+
+μ2ε6 ,
+
+where step ① uses the Young’s Inequality; step ② uses 1
+
+a − 1
+
+b = b⊙b−a⊙aa⊙b⊙(a+b) for all a, b > 0; step ③
+
+uses vt ≥ 0 and vt − vt−1 = βt(g2
+
+t − vt−1); step ④ uses ∥g2
+
+t − vt−1∥2 ≤ 2∥g2
+
+t ∥2 + 2 ∥vt−1∥2 ≤
+
+2τ 4
+
+t + 2 τ 4
+
+t = 4 τ 4
+
+t .
+
+Bounding the term Γ2. We have: 
+
+Γ2 ①
+
+= E[−⟨∇ f (xt), (1 −αt)θmt−1
+
+ε+√vt−1 ⟩ − ⟨∇ f (xt), αtθgt
+
+ε+√vt−1 ⟩]
+
+②
+
+= E[(1 − αt)Θ t−1 + (1 − αt)⟨∇ f (xt−1) − ∇ f (xt), θmt−1
+
+ε+√vt−1 ⟩ − αtθ⟨∇ f (xt), gt
+
+ε+√vt−1 ⟩]
+
+③
+
+= E[(1 − αt)Θ t−1 + (1 − αt)⟨∇ f (xt−1) − ∇ f (xt), θmt−1
+
+ε+√vt−1 ⟩ − αtθ⟨∇ f (xt), ∇f (xt)
+
+ε+√vt−1 ⟩]
+
+④
+
+≤ − αtθ∥∇ f (xt)∥2
+
+ε+√max( vt−1) + (1 − αt)Θ t−1 + θ(1 −αt)Lε · ∥ mt−1∥ · ∥ xt − xt−1∥
+
+⑤
+
+= − αtθ∥∇ f (xt)∥2
+
+ε+√max( vt−1) + (1 − αt)Θ t−1 + θL ε · ∥ mt−1∥ · θγ t−1 · ∥ mt−1
+
+ε+√vt−1 ∥≤ − αtθ∥∇ f (xt)∥2
+
+ε+√max( vt−1) + (1 − αt)Θ t−1 + θ2Lε2 · γt−1∥mt−1∥2, (29) where step ① uses mt = (1 −αt)mt−1+αtgt; step ② uses the definition of Θt := −⟨∇ f (xt), mt
+
+ε+√vt ⟩;step ③ uses the fact that E[gt] = ∇f (xt); step ④ uses the L-smoothness of f (·); step ⑤ uses 
+
+xt+1 = xt − θγ t · mt
+
+ε+√vt .
+
+26 OPT EMA 
+
+Bounding the term Θt. We choose ϖt = θα t/2
+
+> ε+
+
+√max( vt−1) . Combining Inequalities (28), (29), and (29) yields: 
+
+Θt − (1 − αt)Θ t−1
+
+≤ −ϖt∥∇ f (xt)∥2 + θ2Lε2 γt−1∥mt−1∥2 + θ2 
+
+> ϖt
+
+∥mt∥2 · ρ−1/2 
+
+> t
+
+· 1
+
+> μ2ε6
+
+= −ϖt∥∇ f (xt)∥2 + θ2Lε2 γt−1∥mt−1∥2 + 2 θ · ε+√max( vt−1) 
+
+> αt
+
+∥mt∥2 · ρ−1/2 
+
+> t
+
+· 1
+
+> μ2ε6
+
+≤ −ϖt∥∇ f (xt)∥2 + θ2Lε2 γt−1∥mt−1∥2 + 2θαt ∥mt∥2 · ρ−1/2 
+
+> t
+
+· 1 
+
+> ε6
+
+· (1 + τt)
+
+≤ − θα t 
+
+> 2( ε+τt)
+
+∥∇ f (xt)∥2
+
+| {z }
+
+> := Dt
+
++ θ2Lε2 γt−1∥mt−1∥2 + 2θαt ∥mt∥2 · ρ−1/2 
+
+> t
+
+· 1 
+
+> ε6
+
+· 1 
+
+> μ
+
+(1 + μτ t)
+
+| {z }
+
+> := Et
+
+.
+
+Using Θ0 = 0 (since m0 = 0) and unrolling this recurrence yields: 
+
+Θt ≤
+
+> t
+
+X
+
+> j=1
+
+
+
+> t
+
+Y
+
+> k=j+1
+
+(1 − αk)
+
+ (−Dj + Ej ).
+
+Bounding the decrease. By the L-smoothness of f , we have: 
+
+E[f (xt+1 ) − f (xt)] ≤ E[ L
+
+2 ∥xt+1 − xt∥2 + ⟨∇ f (xt), xt+1 − xt⟩]= E[ L
+
+2 θ2γ2
+
+> t
+
+mt
+
+ε + √vt
+
+> 2
+
+− θγ t
+
+
+
+∇f (xt), mt
+
+ε + √vt
+
+
+
+]= E[ L
+
+2 θ2γ2
+
+> t
+
+mt
+
+ε + √vt
+
+> 2
+
++ θγ tΘt]
+
+≤ E[ L
+
+2
+
+θ2
+
+ε2 γ2 
+
+> t
+
+∥mt∥2 + θγ ttX
+
+> j=1
+
+
+
+> t
+
+Y
+
+> k=j+1
+
+(1 − αk)
+
+ (Ej − Dj )] .
+
+C.4. Proof of Lemma 15 Proof Let S denote the middle term of the inequality: S := PTt=1 γt
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Aj .
+
+Lower Bound. By standard mathematical convention, when j = t, the empty product is defined as Qtk=t+1 (1 − αk) = 1 . Since αk ∈ (0 , 1) , it holds that (1 − αk) > 0. Given that Aj ≥ 0 and 
+
+γt > 0, all terms in the inner summation are strictly non-negative. By retaining only the final term of the inner sum (i.e., where j = t), we establish the lower bound: 
+
+S ≥ PTt=1 γt
+
+ Q tk=t+1 (1 − αk) At = PTt=1 γt · 1 · At = PTt=1 γtAt. (30) 
+
+27 YUAN 
+
+Upper Bound. To establish the upper bound, we first exchange the order of summation in S:
+
+S =
+
+> T
+
+X
+
+> j=1
+
+AjTX
+
+> t=j
+
+γttY
+
+> k=j+1
+
+(1 − αk). (31) Let us define the inner summation as Cj := PTt=j γt
+
+Qtk=j+1 (1 − αk). Since γt is a decreasing sequence, we have γt ≤ γj for all t ≥ j. Furthermore, since αk is a decreasing sequence, we have 
+
+αk ≥ αT for all k ≤ T , which implies 1 − αk ≤ 1 − αT < 1.Using these monotonic properties, we can upper bound Cj by factoring out γj and replacing the product with a geometric progression: 
+
+Cj ≤ γjTX
+
+> t=jt
+
+Y
+
+> k=j+1
+
+(1 − αT ) = γjTX
+
+> t=j
+
+(1 − αT )t−j .
+
+By applying a change of variables i = t − j, we can upper bound this finite sum by an infinite geometric series: 
+
+Cj ≤ γjT −jX
+
+> i=0
+
+(1 − αT )i ≤ γj
+
+> ∞
+
+X
+
+> i=0
+
+(1 − αT )i = γj
+
+11 − (1 − αT ) = γj
+
+αT
+
+.
+
+Finally, substituting this upper bound Cj ≤ γj 
+
+> αT
+
+back into Equation (31), we obtain: 
+
+S =
+
+> T
+
+X
+
+> j=1
+
+Aj Cj ≤
+
+> T
+
+X
+
+> j=1
+
+Aj
+
+ γj
+
+αT
+
+
+
+= 1
+
+αTTX
+
+> t=1
+
+γtAt.
+
+This completes the proof. 
+
+C.5. Proof of Lemma 16 Proof Define βt = ρ−1/4 
+
+> t
+
+· 11+ μτ 2
+
+> t
+
+, and γt = 11+ μτ t ·  1 + Ptj=1 ∥mj ∥2−1/2
+
+Define Et := c1γt−1∥mt−1∥2 + c2 
+
+> αt
+
+ρ−1/2 
+
+> t
+
+∥mt∥2(1 + μτ t), and Dt = θα t 
+
+> 2( ε+τt)
+
+∥∇ f (xt)∥2.Let ˆft ≜ f (xt) − f∗.
+
+Bounding the term E[∥gt∥2]. Using the Cauchy-Schwarz inequality and a standard consequence of L-smoothness (Lemma 23) that: 
+
+E[∥gt∥2] ≤ E[2 ∥gt − ∇ f (xt)∥2 + 2 ∥∇ f (xt)∥2] ≤ 2σ2 + E[4 L(f (xt) − f∗)] . (32) 
+
+Bounding the term PTt=1 γ2 
+
+> t
+
+∥mt∥2. We derive: 
+
+PTt=1 γ2 
+
+> t
+
+∥mt∥2 ≤ PTt=1   
+
+> ∥mt∥2
+> 1+ Ptj=1 ∥mj∥2
+
+≤ ln(1 + PTt=1 ∥mt∥2). (33) 
+
+28 OPT EMA 
+
+Bounding the term PTt=1 γt
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Ej . We derive: 
+
+PTt=1 γt
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Ej
+
+> ①
+
+= PTt=1 γt
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+  
+
+c1γj−1∥mj−1∥2 + c2 
+
+> αj
+
+ρ−1/2 
+
+> j
+
+∥mj ∥2(1 + μτ j )
+
+
+
+> ②
+
+≤ 1
+
+> αT
+
+PTt=1 γt
+
+
+
+c1γt−1∥mt−1∥2 + c2 
+
+> αt
+
+ρ−1/2 
+
+> t
+
+∥mt∥2(1 + μτ t)
+
+
+
+> ③
+
+≤
+
+ c1
+
+> αT
+
+PTt=1 γ2
+
+> t−1
+
+∥mt−1∥2
+
+
+
++
+
+ c2
+
+> α2
+> T
+
+PTt=1 γtρ−1/2 
+
+> t
+
+∥mt∥2(1 + μτ t)
+
+
+
+> ④
+
+≤
+
+ c1
+
+> αT
+
+PTt=1 γ2 
+
+> t
+
+∥mt∥2
+
+
+
++
+
+ c2
+
+> α2
+> T
+
+PTt=1    
+
+> ∥mt∥2
+> (1+ Ptj=1 ∥mj∥2)1/2
+
+· 1(1+ Ptj=1 ∥gj ∥2)1/2
+
+
+
+> ⑤
+
+≤
+
+ c1
+
+> αT
+
+PTt=1   
+
+> ∥mt∥2
+> 1+ Ptj=1 ∥mj∥2
+
+
+
++
+
+ 2c2
+
+> α2
+> T
+
+PTt=1   
+
+> ∥mt∥2
+> 1+ Ptj=1 ∥mj∥2
+
+
+
+> ⑥
+
+≤
+
+ c1 
+
+> αT
+
++ 2c2
+
+> α2
+> T
+
+
+
+ln(1 + PTt=1 ∥mt∥2)
+
+> ⑦
+
+≤   c1+2 c2
+
+> α2
+
+ ln(1 + PTt=1 ∥mt∥2), (34) where step ① uses the definition of Ej ; step ② uses the second inequality in Lemma 15; step 
+
+③ uses γt ≤ γt−1 and αt ≤ αt−1 for all t; step ④ uses m0 = 0 and γt = 11+ μτ t ·  1 + 
+
+Ptj=1 ∥mj ∥2−1/2; step ⑤ uses Lemma 12 that PTt=1 ∥mt∥22 ≤ PTt=1 ∥gt∥22; step ⑥ uses Lemma 20(a) that PTt=1 bt 
+
+> 1+ Pti=1 bi
+
+≤ ln 
+
+
+
+1 + PTt=1 bt
+
+
+
+; step ⑦ uses αt = α ∈ (0 , 1) .
+
+Establishing the bound for f (xT ) − f∗. Dropping the non-positive term Dj in Inequality (6) yields: 
+
+E[ ˆft+1 − ˆft] ≤ E[c3γ2 
+
+> t
+
+∥mt∥2 + γt
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Ej ].
+
+Summing this recursion from t = 1 to T − 1 gives: 
+
+E[ ˆfT ] ≤ E[ ˆf1 + c3
+
+PT −1 
+
+> t=1
+
+γ2 
+
+> t
+
+∥mt∥2 + PT −1 
+
+> t=1
+
+γt
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Ej ]
+
+≤ E[ ˆf1 + c3
+
+PTt=1 γ2 
+
+> t
+
+∥mt∥2 + PTt=1 γt
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Ej ]
+
+> ①
+
+≤ E[ ˆf1 +  c3 + c1+2 c2
+
+> α2
+
+ ln(1 + PTt=1 ∥gt∥2)] 
+
+≤ E[  ˆf1 + c3 + c1+2 c2
+
+> α2
+
+ · ln( e + PTt=1 ∥gt∥2)] 
+
+> ②
+
+≤ E[  ˆf1 + c3 + c1+2 c2
+
+> α2
+
+ · ln( e + 4 T (σ2 + L  max Tt=1 ˆft
+
+))] ,
+
+where step ① uses Inequalities (33) and (34); step ② uses Inequality (32). Defining At ≜ 4σ2 + 4 LE[ ˆft] and substituting this definition into the bound above yields: 
+
+AT − 4σ2
+
+4L ≤
+
+ ˆf1 + c3 + c1+2 c2
+
+> α2
+
+
+
+ln 
+
+
+
+e + T max  
+
+> 1≤t≤T
+
+At
+
+
+
+.
+
+Using the fact that the logarithmic term is strictly ≥ 1, we can safely absorb the 4σ2 term to obtain: 
+
+E[AT ] ≤  4L  ˆf1 + c3 + c1+2 c2
+
+> α2
+
+ + 4 σ2| {z }
+
+> := c0
+
+· ln 
+
+
+
+e + T max  
+
+> 1≤t≤T
+
+At
+
+
+
+.
+
+29 YUAN 
+
+Invoking Lemma 22, this inequality directly implies: 
+
+E[AT ] ≤ (1 + c0)3 ln( e + T ).
+
+Translating this result back to the function suboptimality, we derive: 
+
+E[f (xT ) − f∗] = E[ ˆfT ] = E[ AT −4σ2 
+
+> 4L
+
+] ≤ (1+ c0)3
+
+> 4L
+
+| {z } 
+
+> := Cf
+
+· ln( e + T ).
+
+Establishing the bound for E[∥gt∥2]. Substituting this bound back into (32), we have for all 
+
+t ≥ 1:
+
+E[∥gt∥2] ≤ 4E[σ2 + L ˆft] ≤ 4 σ2 + LC f ln( e + T ) ≤ (4 σ2 + 4 LC f )
+
+| {z }
+
+> := Cg
+
+ln( e + T ).
+
+C.6. Proof of Lemma 17 Proof Define Dt = θα t 
+
+> 2( ε+τt)
+
+∥∇ f (xt)∥2 and Et := c1γt−1∥mt−1∥2 + c2 
+
+> αt
+
+ρ−1/2 
+
+> t
+
+∥mt∥2(1 + μτ t).Define ι := 1 + pCg, and Co := 2ιθα ·  2ι · c1+c2 
+
+> α2
+
++ Cf ι + 2 c3
+
+.
+
+Bounding the term 1 + τT . We derive: 
+
+1 + τT
+
+> ①
+
+≤ 1 + pCg ln( e + T ) ≤ (1 + pCg)pln( e + T ) = ιpln( e + T ), (35) where step ① uses τt := max ti=1 ∥gi∥, and ∥gt∥2 ≤ Cg ln( e + t) for all t.
+
+Rearranging the One-Step Descent Inequality. Dividing both sides of Inequality (6) by γt, we have: 
+
+E[Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Dj ]
+
+≤ E[ f (xt)−f (xt+1 ) 
+
+> γt
+
++ c3γt∥mt∥2 + Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Ej ].
+
+Telescoping this inequality over t from 1 to T yields our core global bounding inequality: 
+
+E[PTt=1 
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Dj ]
+
+| {z }
+
+> Term I (Descent)
+
+≤ E[PTt=1 
+
+Ptj=1 
+
+Qtk=j+1 (1 − αk)
+
+
+
+Ej ]
+
+| {z }
+
+> Term II (Penalties)
+
++ E[PTt=1 ( f (xt)−f (xt+1 ) 
+
+> γt
+
++ c3γt∥mt∥2)] 
+
+| {z }
+
+> Term III (Objective & Momentum)
+
+. (36) The remainder of the proof bounds these three terms separately. 
+
+30 OPT EMA 
+
+Lower-Bounding Term I. By applying the lower bound from the EMA Accumulation Bound in Lemma 15, we derive: Term I ≥ E[PTt=1 Dt] = E[PTt=1 θα t 
+
+> 2( ε+τt)
+
+∥∇ f (xt)∥2]
+
+> ①
+
+≥ E[ θα T 
+
+> 2( ε+τT)
+
+PTt=1 ∥∇ f (xt)∥2]
+
+> ②
+
+≥ E[ θα T
+
+> 2ι
+
+√ln( e+T )
+
+PTt=1 ∥∇ f (xt)∥2], (37) where step ① uses the fact that αt is decreasing and τt is increasing; step ② applies Inequality (35). 
+
+Upper-Bounding Term II. Applying the upper bound from Lemma 15, assuming m0 = 0 and 
+
+βt ≤ 1, we derive: Term II ≤ E[ 1
+
+> αT
+
+PTt=1 Et] = E[ 1
+
+> αT
+
+PTt=1 
+
+
+
+c1γt−1∥mt−1∥2 + c2 
+
+> αt
+
+ρ−1/2 
+
+> t
+
+∥mt∥2(1 + μτ t)
+
+
+
+]
+
+> ①
+
+≤ E[ c1
+
+> αT
+
+PTt=1 11+ μτ t ·  1 + Ptj=1 ∥mj ∥2−1/2∥mt∥2 + c2
+
+> α2
+> T
+
+(1 + μτ T ) PTt=1 ρ−1/2 
+
+> t
+
+∥mt∥2]
+
+> ②
+
+≤ E[
+
+ c1 
+
+> αT
+
++ c2
+
+> α2
+> T
+
+(1 + μτ T )
+
+ PTt=1 
+
+> ∥mt∥2
+
+√1+ Pti=1 ∥mi∥2 ]
+
+> ③
+
+≤ E[2 
+
+ c1 
+
+> αT
+
++ c2
+
+> α2
+> T
+
+
+
+(1 + μτ T )
+
+q
+
+1 + PTt=1 ∥mt∥2]
+
+> ④
+
+≤ E[2   c1+c2
+
+> α2
+
+ · ι · ln 1/2(e + T )√1 + M], (38) where step ① uses the results of shifting the index for the first sum (since m0 = 0) and the mono-tonic properties of αt and τt; step ② uses the definition of γt; step ③ applies the standard integral bound PTt=1 xt√1+ Pti=1 xi
+
+≤ 2
+
+q
+
+1 + PTt=1 xt; step ④ uses μ ≤ 1, Inequality (35), and 1 ≥ αT = α.
+
+Upper-Bounding Term III. We derive the following results: Term III ①
+
+≤ max Tt=1 f (xt)−f∗ 
+
+> γT
+
++ c3
+
+PTt=1 
+
+> ∥mt∥2
+
+√1+ Pti=1 ∥mi∥2
+
+> ②
+
+≤ Cf ln( e + T ) · (1 + μτ T )√1 + M + 2 c3
+
+√1 + M
+
+> ③
+
+≤ (Cf ι + 2 c3) ln 3/2(e + T )√1 + M, (39) where step ① uses Lemma 21 and the fact that γt ≤  1 + Ptj=1 ∥mj ∥2−1/2; step ② uses Lemma 16, the fact that 1 
+
+> γT
+
+= (1 + μτ T )√1 + M with M := PTt=1 ∥mt∥2, and Lemma 20(b); step ③ uses Inequality (35) 
+
+Bounding Term PTt=1 ∥∇ f (xt)∥2. Substituting the bounds from (37), (38), and (39) back into the core inequality (36) and rearranging for PTt=1 ∥∇ f (xt)∥2, we have: 
+
+> θα
+> 2ι
+
+√ln( e+T )
+
+PTt=1 ∥∇ f (xt)∥2
+
+≤ 2ι · c1+c2 
+
+> α2
+
+ln 1/2(e + T )√1 + M + ( Cf ι + 2 c3) ln 3/2(e + T )√1 + M
+
+≤  2ι · c1+c2 
+
+> α2
+
++ Cf ι + 2 c3
+
+ ln 3/2(e + T )√1 + M
+
+(40) 
+
+31 YUAN 
+
+Multiplying both sides by 2ι√ln( e+T ) 
+
+> θα
+
+yields: 
+
+E[PTt=1 ∥∇ f (xt)∥2] ≤ E[ 2ιθα ·  2ι · c1+c2 
+
+> α2
+
++ Cf ι + 2 c3
+
+ ln 2(e + T )√1 + M]
+
+> ①
+
+= E[Co ln 2(e + T )
+
+q
+
+1 + PTt=1 ∥mt∥2]
+
+> ②
+
+≤ E[Co ln 2(e + T )
+
+q
+
+1 + PTt=1 ∥gt∥2]
+
+> ③
+
+= E[Co ln 2(e + T )ρ1/2 
+
+> T
+
+],
+
+where step ① uses the definition of Co; step ② uses Lemma 12 that PTt=1 ∥mt∥22 ≤ PTt=1 ∥gt∥22;step ③ uses the definition of ρt.
+
+C.7. Proof of Theorem 18 Proof We derive: 
+
+E[PTt=1 ∥∇ f (xt)∥2] ≤ Co ln 2(e + T )
+
+q
+
+1 + PTt=1 ∥gt∥2
+
+≤ Co ln 2(e + T )
+
+| {z }
+
+> :=Γ
+
+q
+
+1 + 2 PTt=1 ∥gt − ∇ f (xt)∥2 + 2 PTt=1 ∥∇ f (xt)∥2.
+
+Using the same strategy as in Theorem 10, we have: 
+
+E
+
+h 1
+
+> T
+
+PTt=1 ∥∇ f (xt)∥
+
+i
+
+≤ 1√T
+
+r
+
+2Γ 
+
+
+
+1 + √2T σ 2
+
+
+
++ 2Γ 2
+
+> ①
+
+= O
+
+ ln 2(e+T )  
+
+> T1/2
+
++ σ1/2 ln( e+T ) 
+
+> T1/4
+
+
+
+,
+
+where step ① uses Γ = O(ln 2(e + T )) .
+
+32

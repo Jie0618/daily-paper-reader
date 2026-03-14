@@ -1,0 +1,4525 @@
+Title: Towards Understanding Adam Convergence on Highly Degenerate Polynomials
+
+URL Source: https://arxiv.org/pdf/2603.09581v1
+
+Published Time: Wed, 11 Mar 2026 01:09:10 GMT
+
+Number of Pages: 35
+
+Markdown Content:
+## Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+Zhiwei Bai * 1 Jiajie Zhao * 1 Zhangchen Zhou 1 Zhi-Qin John Xu 1 2 Yaoyu Zhang 1 2 
+
+Abstract 
+
+Adam is a widely used optimization algorithm in deep learning, yet the specific class of objec-tive functions where it exhibits inherent advan-tages remains underexplored. Unlike prior stud-ies requiring external schedulers and β2 near 1 for convergence, this work investigates the “nat-ural” auto-convergence properties of Adam. We identify a class of highly degenerate polynomials where Adam converges automatically without ad-ditional schedulers. Specifically, we derive theo-retical conditions for local asymptotic stability on degenerate polynomials and demonstrate strong alignment between theoretical bounds and exper-imental results. We prove that Adam achieves local linear convergence on these degenerate func-tions, significantly outperforming the sub-linear convergence of Gradient Descent and Momentum. This acceleration stems from a decoupling mecha-nism between the second moment vt and squared gradient g2 
+
+> t
+
+, which exponentially amplifies the effective learning rate. Finally, we characterize Adam’s hyperparameter phase diagram, identi-fying three distinct behavioral regimes: stable convergence, spikes, and SignGD-like oscillation. 
+
+1. Introduction 
+
+Adam (Kingma & Ba, 2014) is widely used in deep learn-ing optimization, yet theoretical understanding of which problem types inherently favor Adam over gradient descent (GD) and momentum methods remains limited. In particular, Adam’s convergence itself has been a persistent challenge: Reddi et al. (2018) demonstrated that Adam can fail to converge even in simple convex settings. Numerous studies have since focused on the convergence properties of adaptive gradient methods (Chen et al., 2019; Li & Orabona, 2019; Xie et al., 2020; D ´efossez et al., 2022; Da Silva & Gazeau, 
+
+* Equal contribution. 1Institute of Natural Sciences, School of Mathematical Sciences, Shanghai Jiao Tong University 2MOE-LSC, School of Artificial Intelligence, Shanghai Jiao Tong Univer-sity. Correspondence to: Yaoyu Zhang <zhyy.sjtu@sjtu.edu.cn >,Zhi-Qin John Xu <xuzhiqin@sjtu.edu.cn >.
+
+Preprint. March 11, 2026. 0 2000 4000 6000 8000 10000         
+
+> Epoch
+> 10 120
+> 10 102
+> 10 84
+> 10 66
+> 10 48
+> 10 30
+> 10 12
+> Loss
+> GD
+> GD Momentum
+> SignGD
+> Adam
+> L(/2)
+
+(a) L(x) = 12 x20 2000 4000 6000 8000 10000         
+
+> Epoch
+> 10 41
+> 10 33
+> 10 25
+> 10 17
+> 10 9
+> 10 1
+> Loss
+> GD
+> GD Momentum
+> SignGD
+> Adam
+> L(/2)
+
+(b) L(x) = 14 x4
+
+Figure 1. Convergence behavior differs between strongly convex and degenerate polynomials. Adam uses β1 = 0 .9, β 2 = 0 .99 .
+
+2020; Shi et al., 2021; Zou et al., 2019; Zhou et al., 2024; Zhang et al., 2022a). Among these, Zhang et al. (2022a) showed that with decreasing learning rate scheduler η/ √T ,Adam can converge at a rate of O(log( T )/√T ) when β2 is sufficiently close to 1 and β1 < √β2. Nevertheless, the auto-convergence properties of Adam without external schedulers remain underexplored—specifically, the function classes where Adam “naturally” exhibits convergence advan-tages over GD are still poorly understood. 
+
+This work investigates Adam’s convergence behavior on highly degenerate polynomials. Our motivation comes from the observation in Fig. 1: on the strongly convex function 
+
+L(x) = 12 x2, constant-stepsize Adam initially exhibits lin-ear convergence similar to gradient descent and momentum, but eventually suffers from loss spikes as studied in Co-hen et al. (2023); Bai et al. (2025). In contrast, on the degenerate function L(x) = 14 x4, Adam achieves stable 
+
+linear convergence without instabilities, while GD and Mo-mentum methods degrade to sublinear convergence. This distinction is particularly crucial because, although classical optimization theory focuses on strongly convex cases, ex-tensive research shows that deep learning loss landscapes contain many highly degenerate directions (Sagun et al., 2017; Zhang et al., 2021; 2022b; Bai et al., 2024; Fukumizu et al., 2019; Simsek et al., 2021; Zhang et al., 2025). Focusing on degenerate objectives L(x) = 1 
+
+> k
+
+xk (k ≥ 4,even), we derive theoretical conditions for local asymp-totic stability with strong empirical alignment. We prove that Adam achieves linear convergence on these functions, significantly outperforming the sublinear rates of GD and Momentum. We explicitly characterize this acceleration 1
+
+> arXiv:2603.09581v1 [cs.LG] 10 Mar 2026 Towards Understanding Adam Convergence on Highly Degenerate Polynomials
+
+arises from a decoupling mechanism between the second moment estimate vt and the squared gradient g2 
+
+> t
+
+, which ex-ponentially amplifies the effective learning rate. We also characterize Adam’s hyperparameter phase diagram of dif-ferent behaviors, identifying three distinct regimes: stable convergence, spikes, and SignGD-like oscillation. Our main contributions are: (i) We identify a class of highly degenerate polynomials where Adam converges without learning rate sched-ulers, deriving local convergence conditions over the full hyperparameter domain [0 , 1) that generalize prior results requiring β2 close to 1 (Zhang et al., 2022a). (ii) We prove Adam achieves local linear convergence on degenerate functions, outperforming GD’s sublinear rate through a decoupling mechanism between vt and 
+
+g2 
+
+> t
+
+that exponentially amplifies the effective learning rate, distinct from prior SignGD-based acceleration mechanism studied in Kunstner et al. (2023; 2024). (iii) We systematically characterize Adam’s phase di-agram across hyperparameters, identifying three regimes—stable convergence, spikes, and SignGD-like oscillation—that explain empirical behaviors observed in prior works (Ma et al., 2022; Bai et al., 2025). 
+
+2. Related Works 
+
+Convergence Analysis of Adaptive Methods. Extensive research has analyzed the convergence of adaptive meth-ods. Several works identify failure modes: Reddi et al. (2018) demonstrated Adam can fail in simple convex set-tings, while Da Silva & Gazeau (2020); Bock & Weiß (2019) showed RMSProp and Adam exhibit limit cycles on quadratic functions, and Ma et al. (2022); Bai et al. (2025) observed spiking, oscillation, or divergence depend-ing on hyperparameters. Under appropriate hyperparam-eter selection, adaptive methods can achieve convergence rates of O(log T / √T ), typically requiring learning rate de-cay (Chen et al., 2019; Zou et al., 2019; Ward et al., 2020; Shen et al., 2023; D ´efossez et al., 2022; Zhang et al., 2022a; Da Silva & Gazeau, 2020; Barakat & Bianchi, 2021; Dere-ich & Jentzen, 2024). In stochastic settings, Dereich et al. (2024) showed adaptive methods cannot converge without vanishing learning rates. In contrast, our work demonstrates that Adam achieves linear convergence on deterministic degenerate functions without learning rate decay. 
+
+Degeneracy in Deep Learning Loss Landscapes. Deep learning loss landscapes exhibit pervasive high-order degen-eracy, with empirical Hessian analysis revealing eigenvalues concentrated near zero (Sagun et al., 2017). Several studies investigate this degeneracy through the symmetry of neural network parameterization (Fukumizu et al., 2019; Simsek et al., 2021; Zhang et al., 2025). The Embedding Principle further shows that critical points of smaller networks em-bed into larger networks as high-dimensional degenerate manifolds (Zhang et al., 2021; 2022b; Bai et al., 2024). 
+
+Adam Outperforms Gradient Descent. Understanding why Adam outperforms GD has been extensively studied. While heavy-tailed stochastic noise in language tasks was initially proposed (Zhang et al., 2020), Chen et al. (2021); Kunstner et al. (2023) showed the performance gap persists even in deterministic full-batch settings. Proposed mech-anisms include Hessian block heterogeneity (Zhang et al., 2024), gradient heterogeneity (Tomihari & Sato, 2025), coordinate-wise ℓ∞ geometry exploitation (Xie et al., 2024), and resilience to heavy-tailed class imbalance (Kunstner et al., 2024). Recently, Davis et al. (2025) proved that stan-dard gradient descent yields sublinear convergence on highly degenerate functions, whereas adaptive step sizes via addi-tional Polyak’s rule achieve linear convergence. Compared to this, our work focuses on Adam’s inherent adaptation mechanism via second-order moments, demonstrating linear convergence without any external modifications. 
+
+3. Preliminaries and Problem Setup 
+
+3.1. The Model Problem: High-Order Degeneracy 
+
+In this work, we consider the local behavior around a de-generate minimum x∗ = 0 where the first k − 1 derivatives vanish. In particular, we study the prototype function: 
+
+L(x) = 1
+
+k xk, where k ≥ 4 is an even integer . (1) The gradient is ∇L(x) := L′(x) = xk−1 and the Hessian 
+
+∇2L(x) := L′′ (x) = ( k − 1) xk−2 vanishes as x → 0.
+
+3.2. Algorithm Specifications Gradient Descent (GD) and Momentum. Standard GD updates as xt+1 = xt − η∇L(xt). Momentum adds a velocity term: 
+
+mt+1 = βm t + ∇L(xt), xt+1 = xt − ηm t+1 ,
+
+where β ∈ [0 , 1) and η is a constant learning rate. 
+
+Adam. Adam incorporates adaptive learning rates via expo-nential moving averages of gradient moments. Let mt and 
+
+vt denote the first and second moment estimates: 
+
+mt = β1mt−1 + (1 − β1)gt, vt = β2vt−1 + (1 − β2)g2 
+
+> t
+
+,
+
+where gt = ∇L(xt), and β1, β 2 ∈ [0 , 1) are hyperparame-ters. The parameter update is: 
+
+xt+1 = xt − η ˆmt
+
+√ˆvt + ε , (2) where ˆmt = mt/(1 − βt
+
+> 1
+
+) and ˆvt = vt/(1 − βt
+
+> 2
+
+) are bias-correction terms, and ε prevents division by zero. 2Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+Special Cases of Adam. (i) When β1 = 0 , Adam reduces to 
+
+RMSProp : xt+1 = xt − η · gt√vt+ε . (ii) When β1 = β2 = 0 
+
+and ε → 0, Adam reduces to SignGD : xt+1 = xt − η ·
+
+sgn( gt), which cannot converge with constant stepsize and stagnates at O(L(η)) .
+
+Theoretical Simplifications. To focus on asymptotic con-vergence and intrinsic dynamics, we adopt two standard simplifications: • Vanishing ε: We take ε = 0 since non-zero ε eventually dominates √vt as gradients vanish, reducing Adam to momentum-GD. • Asymptotic bias correction: For large t, bias correction terms satisfy 1 − βt ≈ 1, so we analyze uncorrected moments mt and vt.
+
+4. Adam Convergence on Highly Degenerate Polynomials 
+
+We derive the state space equations for Adam and present local convergence results on highly degenerate functions. 
+
+State Space Dynamics of Adam. For L(x) = 1 
+
+> k
+
+xk, sub-stituting gt = xk−1 
+
+> t
+
+into the Adam update rules with ε = 0 
+
+yields: 
+
+mt = β1mt−1 + (1 − β1)xk−1 
+
+> t
+
+,vt = β2vt−1 + (1 − β2)x2k−2 
+
+> t
+
+,xt+1 = xt − η mt
+
+√vt
+
+.
+
+To decouple the iterate scale from optimizer dynamics, we introduce normalized state variables: 
+
+ωt := mt
+
+xk−1
+
+> t
+
+, λt := xk−2
+
+> t
+
+√vt
+
+, (3) where ωt represents the normalized first moment and λt ≥ 0
+
+the effective curvature , capturing the relative scaling be-tween Hessian-induced curvature and adaptive step size. The update rule becomes: 
+
+xt+1 = xt − η mt
+
+xk−1
+
+> t
+
+· xk−1
+
+> t
+
+√vt
+
+= (1 − ηω tλt)xt. (4) The full dynamics are governed by: 
+
+
+
+ωt+1 = β1ωt
+
+(1 − ηω tλt)k−1 + 1 − β1
+
+λt+1 = (1 − ηω tλt)k−2 λt
+
+q
+
+β2 + (1 − β2) (1 − ηω tλt)2k−2 λ2 
+
+> t
+
+x2
+
+> t
+
+xt+1 = (1 − ηω tλt) xt
+
+(5) Loss decreases monotonically if and only if: 
+
+L(xt+1 ) ≤ L(xt) ⇐⇒ 0 ≤ ωtλt ≤ 2
+
+η . (6) 0 2000 4000 6000 8000 10000              
+
+> Epoch
+> 10 267
+> 10 219
+> 10 171
+> 10 123
+> 10 75
+> 10 27
+> Loss
+> -0.0726
+> -0.0544
+> L(x) = 12x2
+> L(x) = 14x4
+> L(x) = 16x6
+> Spike
+> L(/2)
+
+(a) 0 2000 4000 6000 8000 10000           
+
+> Epoch
+> 10 0
+> 10 1
+> 10 2
+> 10 3
+> t = xk 2
+> t /(  vt ) L(x) = 12x2
+> L(x) = 14x4
+> L(x) = 16x6
+> 2/ 1 + 1
+> 11
+> Spike
+
+(b) Figure 2. (a) Training loss of Adam ( β1 = 0 .9, β 2 = 0 .93 ) for different L(x). The text online shows the slope of the exponential fit. (b) Evolution of effective curvature λt. The red shaded region highlights instability where λt exceeds the theoretical stability threshold 2 
+
+> η
+> 1+ β1
+> 1−β1
+
+(Cohen et al., 2023; Bai et al., 2025). 
+
+Why Adam Converges on Degenerate Functions. Fig. 2 intuitively illustrates why Adam exhibits instability on strongly convex quadratics but converges naturally on de-generate landscapes. Fig. 2(a) shows that for k = 2 , Adam fails with loss spikes (red shaded region), while for k > 2,it achieves stable exponential convergence. Fig. 2(b) re-veals the mechanism through the effective curvature λt. For 
+
+k = 2 , λt = 1 /√vt grows unbounded as vt decays, ex-ceeding the stability threshold. However, for k > 2, the numerator xk−2 
+
+> t
+
+and denominator √vt decay synchronously, causing λt to converge to a constant, maintaining stability. 
+
+Local Stability Analysis of Adam Convergence. Moti-vated by the experiments in Fig. 2, we analyze the conditions for the convergence of the iterative system defined in Eq. (5) .The system admits two classes of fixed points: (i) The trivial fixed point: (ω∗, λ ∗, x ∗) = (1 , 0, c ) for any constant c, which is unstable. (ii) The non-trivial fixed point, which corresponds to linear convergence: 
+
+ω∗ = 1 − β1
+
+1 − β1β− k−12( k−2) 
+
+> 2
+
+, λ∗ = 1 − β
+
+> 12( k−2)
+> 2
+
+ηω ∗ , x∗ = 0 .
+
+(7) 
+
+Crucially, if the system converges to the non-trivial fixed point (ii), the product ωtλt approaches the equilibrium value 
+
+ω∗λ∗ = 1 
+
+> η
+
+(1 − β 12( k−2)  
+
+> 2
+
+). Since β2 < 1, this value is strictly positive and remains well below the stability thresh-old 2/η . Consequently, the system exhibits linear conver-gence. Within the basin of attraction, convergence hinges entirely on the local asymptotic stability of this fixed point. This local stability is determined by the Jacobian matrix of the linearized system. The full Jacobian exhibits a block structure where the eigenvalue associated with the 
+
+x-dynamics is explicitly β 12( k−2)  
+
+> 2
+
+< 1. Thus, stability is governed by the 2 × 2 sub-matrix J describing the coupled 
+
+(ω, λ ) dynamics: 3Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+J =
+
+       
+
+> β1Γ( k−1) β
+> −k
+> 2( k−2) 2+β1β
+> 1−k
+> 2( k−2) 2
+> β1η(1 −β1)2(k−1) β
+> −k
+> 2( k−2) 21−β1β
+> −k−12( k−2) 2
+> 
+> 2Γ2(2 −k)
+> 1−β1β
+> −k−12( k−2) 2
+> 
+> 2
+> βk−32( k−2) 2
+> √β2η(1 −β1)2Γ(2 −k)βk−32( k−2) 2+√β2
+> √β2
+
+
+
+where Γ := 1 −β 12( k−2)  
+
+> 2
+
+. We establish the following theorem to characterize this local stability: 
+
+Theorem 4.1 (Local Stability and Convergence Rate of Adam ). Consider the dynamical system in Eq. (5) and hy-perparameters β1, β 2 ∈ [0 , 1) . The following hold: (i) Existence: The non-trivial fixed point (7) exists if and only if β1 < β  
+
+> k−12( k−2)
+> 2
+
+.(ii) Stability: The non-trivial fixed point is asymptotically stable, i.e., spectral radius r(J) < 1 if and only if: 
+
+β1 < β k 
+
+> 2( k−2)
+> 2
+
+, and (8) 
+
+β1 > (k − 2) β− 12( k−2)  
+
+> 2
+
+− k
+
+(k − (k − 2) β 12( k−2)  
+
+> 2
+
+)β− k
+
+> 2( k−2)
+> 2
+
+. (9) 
+
+(iii) Convergence Rate: Within the basin of attraction, iter-ates converge linearly: 
+
+lim 
+
+> t→∞
+
+xt+1 
+
+xt
+
+= β 12( k−2)  
+
+> 2
+
+(10) 
+
+Proof. The detailed derivation and rigorous proof are pro-vided in Appendix A. 
+
+Visualization of Theoretical and Empirical Phase Dia-grams. Fig. 3(a) visualizes the theoretical stability region (r(J) < 1) for k = 4 , primarily governed by β1 < β k
+
+> 2( k−2)
+> 2
+
+(simplifying to β1 < β 2 for k = 4 ), with a minor constraint from the second inequality (lower-left corner). Fig. 3(b) shows strong empirical alignment: configurations satisfy-ing the stability condition achieve machine precision (loss 
+
+≈ 10 −300 ), while violations result in significantly higher losses. Furthermore, the theoretical loss convergence rate, derived as k ln β2 
+
+> 2( k−2)
+
+, yields values of ≈ − 0.0726 for k = 4 
+
+and ≈ − 0.0544 for k = 6 . These predictions align precisely with the empirical slopes observed in Fig. 2(a). 
+
+Remark 4.2 . Monotonic expansion of stability region. As degeneracy order k increases, the exponent k 
+
+> 2( k−2)
+
+in the primary stability constraint β1 < β k 
+
+> 2( k−2)
+> 2
+
+decreases. Since 
+
+β2 < 1, this relaxes the upper bound on β1, enlarging the stable region. Thus, satisfying the condition for k = 4 
+
+guarantees stability for all k > 4.0.0 0.2 0.4 0.6 0.8 1.0     
+
+> Second moment decay 2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> First moment decay  1
+> Stable Region r(J) < 1
+> Unstable Region r(J) > 1
+> Boundary r(J) = 1
+
+(a) Theoretical Phase Diagram 0.010 0.252 0.494 0.737 0.999            
+
+> Second moment decay 2
+> 0.010
+> 0.252
+> 0.494
+> 0.737
+> 0.999
+> First moment decay  1
+> 10 300
+> 10 266
+> 10 232
+> 10 198
+> 10 164
+> 10 130
+> 10 96
+> 10 62
+> 10 28
+
+(b) Empirical Phase Diagram 
+
+Figure 3. (a) Theoretical convergence phase diagram for k = 4 ,partitioned according to the stability conditions derived in Eq. (8) and Eq. (9) . (b) Experimental validation using Adam on L(x) =  
+
+> 14
+
+x4 with x0 = 1 .0, η = 0 .001 . The heatmap displays the final training loss after 100 , 000 steps. Additional results for k = 6 can be found in Fig. 11. For a detailed discussion and a magnified view of the lower-left corner region, please refer to Appendix G.1. 
+
+5. The Power of Adaptivity: Exponential Speedup Against Degeneration 
+
+Degeneracy in objective functions often degrades conver-gence rates from linear to sublinear. We demonstrate that while GD and momentum are confined to slow sublinear con-vergence on degenerate landscapes, adaptive mechanisms achieve linear convergence acceleration through implicit amplification of the effective learning rate. 
+
+5.1. The Curse of Degeneracy: Slow Convergence of GD and Momentum 
+
+We establish that both GD and Momentum suffer from 
+
+power-law convergence on degenerate objectives. 
+
+Theorem 5.1 (Power-Law Convergence of Gradient Flow ). Consider gradient flow on L(x) = 1 
+
+> k
+
+xk (k ≥ 4,even): ˙x = −η∇L(x) = −ηx k−1, x(0) = x0̸ = 0 . For any fixed learning rate η > 0, the solution x(t) exhibits an asymptotic power-law decay: 
+
+x(t) = Θ 
+
+
+
+t− 1
+
+> k−2
+
+
+
+as t → ∞ . (11) 
+
+See Appendix C.1 for the proof. Remark 5.2 ( The Curse of Degeneracy ). Theorem 5.1 re-veals a severe “ curse of degeneracy ” regarding iteration com-plexity. Inverting the rate x(t) ∼ t− 1 
+
+> k−2
+
+shows that reach-ing precision |x(t)| ≤ ϵ requires time: Tϵ ∼ ϵ−(k−2) =
+
+  1
+
+> ϵ
+
+k−2, implying computational cost grows exponentially 
+
+with degeneracy order k.We show that momentum provides no asymptotic improve-ment in degenerated settings. 
+
+Theorem 5.3 (Power-Law Convergence of Momentum ).
+
+Consider continuous-time Heavy-ball momentum with β1 ∈
+
+[0 , 1) : ˙m = −(1 − β1)m + (1 − β1)∇L(x), m(0) = 0 ,
+
+4Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+and ˙x = −ηm . For L(x) = 1 
+
+> k
+
+xk (k ≥ 4, even), the trajectory x(t) satisfies: 
+
+x(t) = Θ 
+
+
+
+t− 1
+
+> k−2
+
+
+
+as t → ∞ . (12) 
+
+See Appendix C.2 for the proof. 
+
+Thm. 5.3 confirms momentum fails to break the curse of de-generacy. As curvature vanishes ( L′′ (x) ∝ xk−2 → 0), the gradient force diminishes too rapidly to sustain momentum, resulting in the same complexity class as GD: Tϵ ∼ ϵ−(k−2) .
+
+5.2. Exponentially Amplified Learning Rate Mechanism 
+
+To isolate adaptivity effects, we analyze RMSProp (Adam with β1 = 0 ) and demonstrate that adaptive rescaling miti-gates vanishing curvature, thereby accelerating convergence from sublinear to linear. Consider RMSProp with ε = 0 :
+
+vt = β2vt−1 + (1 − β2)g2 
+
+> t
+
+, (13) 
+
+xt+1 = xt − η gt
+
+√vt
+
+. (14) The core intuition is that as xt converges, the update term gt√vt must vanish, causing the second moment up-date Eq. (13) to be dominated by the former memory term. This induces a geometric decay in vt, which in turn drives an exponential increase in the effective learning rate 
+
+ηeff ,t := η/ √vt.
+
+Lemma 5.4 (Asymptotic Behavior of Second Moments ).
+
+For RMSProp dynamics in Eq. (14) , if {xt} converges, then: 
+
+lim 
+
+> t→∞
+
+vt
+
+vt−1
+
+= β2. (15) 
+
+Proof. Convergence implies lim t→∞ gt√vt = 0, hence 
+
+lim t→∞ g2 
+
+> t
+> vt
+
+= 0 . Rearranging (13) as g2 
+
+> t
+
+= vt−β2vt−1 
+
+> 1−β2
+
+.
+
+lim t→∞ vt−β2vt−1 
+
+> (1 −β2)vt
+
+= 0 implies lim t→∞ 
+
+
+
+1 − β2 vt−1
+
+> vt
+
+
+
+=0. Thus, lim t→∞ vt 
+
+> vt−1
+
+= β2.Lem. 5.4 reveals the acceleration mechanism: vt ∼ βt 
+
+> 2
+
+im-plies ηeff ,t ∝ β−t/ 22 . This exponential schedule accelerates convergence from polynomial to exponential. 
+
+Lemma 5.5 (Linear Convergence via Exponential Learn-ing Rate ). Consider gradient flow on L(x) = 1 
+
+> k
+
+xk (k ≥ 4,even) with time-varying learning rate ˙x = −η(t)xk−1. If the learning rate follows an exponential schedule η(t) = 
+
+η0eαt (α > 0), the solution x(t) exhibits asymptotic expo-nential convergence: 
+
+x(t) ∼ C exp 
+
+
+
+− αk − 2 t
+
+
+
+as t → ∞ , (16) 
+
+where C is a constant determined by system parameters. See Appendix C.3 for the proof. 
+
+5.3. Discretization Introduces Stability Constraints 
+
+While Lem. 5.5 suggests exponential schedules yield un-bounded acceleration, discretization imposes stability con-straints. The learning rate growth factor γ := e α is upper-bounded by local curvature dynamics. Consider gradient descent on L(x) = 1 
+
+> k
+
+xk with exponen-tially increasing learning rate: 
+
+xt+1 = xt − ηtxk−1 
+
+> t
+
+= (1 − ηtxk−2 
+
+> t
+
+)xt,ηt+1 = γη t, (γ > 1) . (17) We introduce the effective sharpness ut := ηtxk−2 
+
+> t
+
+, captur-ing the interplay between step size and local Hessian. If 
+
+ut > 2, the step size exceeds stability limits of the local curvature, causing instability. Substituting the update rules Eq. (17) yields a closed-form recurrence relation for ut, re-ducing the two-dimensional dynamics to a one-dimensional map: 
+
+ut+1 = ψ(ut) := γu t(1 − ut)k−2. (18) 
+
+Figure 4. Bifurcation diagram of effective sharpness ut for 
+
+k = 4 . The system Eq: (18) exhibits three regimes: (I) Stable Fixed Point (ut → u∗), leading to exponential convergence of 
+
+xt with a fixed rate; (II) Period-Doubling (ut oscillates within 
+
+(0 , 2) ), preserving convergence albeit with oscillating rates; (III) 
+
+Divergence (ut > 2), where numerical instability occurs. 
+
+Fig. 4 shows the limit set of ut for varying γ after a 500 -iteration transient. For small γ, the system converges to a sta-ble fixed point. As γ increases, period-doubling bifurcations occur, eventually transitioning to chaos; however, xt con-tinues to converge because ut < 2. With further increases in γ, the trajectory of ut has sharp transition escaping the stable region (0 , 2) (i.e., diverges) after 500 iterations. We formalize the stability condition corresponding linear convergence with a fixed rate in the following proposition. 
+
+Proposition 5.6 (Stability of the Acceleration Map ).
+
+The map in Eq. (18) has a non-zero fixed point u∗ =1 − γ− 1 
+
+> k−2
+
+∈ (0 , 1) , locally asymptotically stable if and only if: 
+
+γ < γ crit := 
+
+ kk − 2
+
+k−2
+
+. (19) 
+
+See Appendix D for Proof. 
+
+5Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+For RMSProp, γ = 1 /√β2, so stability requires: 
+
+β2 > β crit  
+
+> 2
+
+:= 
+
+ k − 2
+
+k
+
+2( k−2) 
+
+. (20) For k = 4 , this gives β2 > 0.0625 . Since practical values are typically β2 ∈ [0 .9, 0.999] , standard adaptive optimiz-ers operate within the stable regime. Under this stability condition, we establish the global convergence of RMSProp. 
+
+Theorem 5.7 (Global Linear Convergence of RMSProp ).
+
+Consider minimizing L(x) = 1 
+
+> k
+
+xk (k ≥ 4, even) using RMSProp. Assume the hyperparameter satisfies the stability condition β2 > ( k−2 
+
+> k
+
+)2( k−2) and the initialization satisfies 
+
+u0 = ηx k−20 /√v0 < 1. Then: (i) Convergence: The iterates {xt} converge to x∗ = 0 .(ii) Linear Rate: Convergence is linear: 
+
+lim 
+
+> t→∞
+
+xt+1 
+
+xt
+
+= β 12( k−2)  
+
+> 2
+
+(21) 
+
+See Appendix B for Proof. Remark 5.8 (Fundamental Complexity Separation ).
+
+Thm. 5.7 reveals a fundamental separation: GD requires iteration complexity Tϵ ∼ ϵ−(k−2) (exponential, exploding with k), while adaptive methods achieves linear complexity 
+
+Tϵ ∼ (k − 2) ln(1 /ϵ ). Adaptivity flattens the complexity class, reducing dependence on k from exponential to linear. 
+
+6. Phase Diagram of Adam Training Behaviors 
+
+Adam’s non-convergence has been empirically observed to exhibit oscillations or significant spikes (Ma et al., 2022). We classify behavior under different hyperparameters by examining the fixed-point properties. Following Sec. 5.3, we present the phase diagram characterizing Adam’s fixed-point properties under β2 >   k−2
+
+> k
+
+2( k−2) .
+
+Theorem 6.1 (Phase Transitions with Fixed-Point Be-havior ). Consider the three-dimensional dynamical system governing Adam in Eq. (5) . Let β2 >   k−2
+
+> k
+
+2( k−2) . The following properties hold: (i) If β1 > β 
+
+> k−12( k−2)
+> 2
+
+, no non-trivial fixed point ex-ists; the only fixed points are the trivial solutions 
+
+(ω∗, λ ∗, x ∗) = (1 , 0, c ) for any constant c.(ii) If β k 
+
+> 2( k−2)
+> 2
+
+< β1 < β 
+
+> k−12( k−2)
+> 2
+
+, the non-trivial fixed point (7) exists but is asymptotically unstable. (iii) If β1 < β k 
+
+> 2( k−2)
+> 2
+
+, the non-trivial fixed point (7) exists and is asymptotically stable. See Appendix A.2 for Proof. 
+
+Fig. 5 illustrates the phase diagram with three distinct re-gions. Notably, although the non-trivial fixed point is un-stable in certain regimes, its existence can still attract pa-rameters effectively during the early phase. This leads to a transient convergence followed by an escape, manifesting as the “spike” phenomenon discussed in Sec. 6.1. 0.2 0.4 0.6 0.8 1.0       
+
+> Second moment decay 2
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> First moment decay  1
+> No Non-trivial Fixed Point
+> Unstable Non-trivial Fixed Point
+> Stable Non-trivial Fixed Point
+> 1=
+> k12( k2)
+> 2
+> 1=
+> k
+> 2( k2)
+> 2
+> Region I
+> Region II
+> Region III
+
+Figure 5. Phase diagram for k = 4 according to Thm. 6.1. 
+
+6.1. Typical Cases over the Phase Diagram 
+
+Fig. 6 illustrates typical behaviors for β1 = 0.9 with 
+
+β2 ∈ { 0.91 , 0.895 , 0.8} (see Fig. 14 for additional exam-ples). While mt and gt remain tightly coupled across all cases, vt and g2 
+
+> t
+
+exhibit distinct coupling patterns. 
+
+Regime I: Stable Exponential Convergence. Occurs when 
+
+β1 < β k 
+
+> 2( k−2)
+> 2
+
+(stable non-trivial fixed point, Fig. 6(a, d, g)). • Behavior: The loss converges exponentially to ma-chine precision. • Mechanism (Decoupling): As gt rapidly vanishes, 
+
+vt decouples from g2 
+
+> t
+
+and follows autonomous decay: 
+
+vt ≈ β2vt−1. Fig. 6 (d) shows log vt slope match-ing ln( β2) ≈ − 0.0943 . By Thm. 5.7, this geometric decay acts as an exponential learning rate schedule, predicting loss convergence rate k ln β2 
+
+> 2( k−2)
+
+≈ − 0.0943 ,precisely matching Fig. 6 (a). 
+
+Regime II: Exponential Convergence with Late-Phase Spikes. Occurs when β 
+
+> k−12( k−2)
+> 2
+
+< β 1 < β k 
+
+> 2( k−2)
+> 2
+
+(unstable non-trivial fixed point, Fig. 6 (b, e, h)). • Behavior: Initial exponential convergence below the SignGD threshold (dashed line L(η/ 2) ), interrupted by a violent loss spike. • Mechanism (Decoupling and Instability): Like Regime I, vt initially decouples from g2 
+
+> t
+
+(Fig. 6(e) shows decay slope ≈ ln β2), driving acceleration. Fig. 6 (h) confirms that the parameter trajectory ini-tially evolves around the nontrivial fixed point (see also Fig. 14(h); intuitive explanation in Appendix E). However, fixed-point instability triggers ωtλt > 2/η 
+
+(Fig. 6(e) subplot), causing |xt| divergence. Since √vt
+
+continues autonomous decay, the scaling λt := xk−2
+
+> t√vt
+
+grows rapidly. The pathology arises from response de-
+
+6Towards Understanding Adam Convergence on Highly Degenerate Polynomials 0 2000 4000 6000 8000 10000           
+
+> Epoch
+> 10 281
+> 10 238
+> 10 195
+> 10 152
+> 10 109
+> 10 66
+> 10 23
+> Loss, Gradient and Moment
+> -0.0943
+> Loss
+> Gradient | gt|
+> Momentum |mt|
+> SignGD Ref. L(/2)
+
+(a) β1 = 0 .9, β 2 = 0 .91 0 1000 2000 3000 4000            
+
+> Epoch
+> 10 103
+> 10 87
+> 10 71
+> 10 55
+> 10 39
+> 10 23
+> 10 7
+> Loss, Gradient and Moment
+> -0.1032
+> Loss
+> Gradient | gt|
+> Momentum |mt|
+> Exp fit (slope=-0.1032)
+> SignGD Ref. L(/2)
+
+(b) β1 = 0 .9, β 2 = 0 .895 0 500 1000 1500 2000            
+
+> Epoch
+> 10 19
+> 10 16
+> 10 13
+> 10 10
+> 10 7
+> 10 4
+> 10 1
+> Loss
+> Loss
+> Gradient | gt|
+> Momentum |mt|
+> SignGD Ref. L(/2)
+
+(c) β1 = 0 .9, β 2 = 0 .80 2000 4000 6000 8000 10000              
+
+> Epoch
+> 10 281
+> 10 238
+> 10 195
+> 10 152
+> 10 109
+> 10 66
+> 10 23
+> Second Moment  vt and  g2
+> t
+> -0.0943
+> -0.1415
+> g2
+> t
+> vt
+> 02000 4000 6000 8000 10000
+> Epoch
+> 10 0
+> 10 1
+> 10 2
+> 10 3
+> t t
+> tt
+> 2/
+
+(d) β1 = 0 .9, β 2 = 0 .91 0 1000 2000 3000 4000               
+
+> Epoch
+> 10 153
+> 10 129
+> 10 105
+> 10 81
+> 10 57
+> 10 33
+> 10 9
+> Second Moment  vt and  g2
+> t
+> -0.1109
+> -0.1548
+> g2
+> t
+> vt
+> 3300 3320 3340 3360 3380 3400
+> 10 13
+> 10 8
+> 10 3
+> 0
+> 10 3
+> 10 8
+> t t
+> tt
+> 2/
+
+(e) β1 = 0 .9, β 2 = 0 .895 0 500 1000 1500 2000             
+
+> Epoch
+> 10 27
+> 10 22
+> 10 17
+> 10 12
+> 10 7
+> 10 2
+> Second Moment  vt and  g2
+> t
+> g2
+> t
+> vt
+> 0500 1000 1500 2000
+> Epoch
+> 10 13
+> 10 8
+> 10 3
+> 0
+> 10 3
+> 10 8
+> t t
+> tt
+> 2/
+
+(f) β1 = 0 .9, β 2 = 0 .82.4 2.6 2.8 3.0 3.2 3.4 
+
+> t
+> 7.2
+> 7.4
+> 7.6
+> 7.8
+> 8.0
+> 8.2
+> 8.4
+> 8.6
+> t
+> Trajectory
+> Stable Fixed Point
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> 0.10
+> 0.12
+> 0.14
+> Magnitude of update
+
+(g) β1 = 0 .9, β 2 = 0 .91 5 10 15 20 25  
+
+> t
+> 2
+> 4
+> 6
+> 8
+> 10
+> 12
+> 14
+> t
+> Trajectory
+> Unstable Fixed Point
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> Magnitude of update
+
+(h) β1 = 0 .9, β 2 = 0 .895 2.5 5.0 7.5 10.0 12.5 15.0 17.5 20.0  
+
+> t
+> 100
+> 200
+> 300
+> 400
+> 500
+> 600
+> 700
+> t
+> No Non-trivial Fixed Point
+> 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> Magnitude of update
+> 1e6
+
+(i) β1 = 0 .9, β 2 = 0 .8
+
+Figure 6. Three dynamical behaviors of Adam on L(x) = 14 x4 with η = 0 .001 . Top Row: Evolution of training loss, gradient and first moment. The text online shows the slope of the exponential fit. Middle Row: Evolution of the second moment estimate vt versus the squared gradient g2
+
+t . Insets show the evolution of the stability metric ωtλt relative to the theoretical threshold 2/η . Bottom Row: Vector fields of ωt and λt; purple lines represent evolutionary trajectories. (Left) Regime I: Stable Exponential Convergence. vt decouples from g2
+
+t , enabling stable exponential acceleration. (Middle) Regime II: Exponential Convergence with Spike. vt initially decouples, driving acceleration toward the fixed point. However, drastic violation of the stability condition ( ωtλt > 2/η ) due to fixed-point instability triggers a loss spike. (Right) Regime III: SignGD-like Oscillation. vt tracks g2
+
+t closely (tight coupling), preventing exponential convergence. Violations of the stability threshold trigger instantaneous corrections, resulting in oscillations. 
+
+lay : vt requires several iterations to re-couple with the surging g2
+
+t , manifesting as a transient spike, consistent with the findings of Bai et al. (2025) 
+
+Regime III: SignGD-like Oscillation. Occurs when β1 >β
+
+> k−12( k−2)
+
+2 (no non-trivial fixed point, Fig. 6 (c, f, i)). • Behavior: No exponential convergence; loss saturates around L(η/ 2) with oscillatory behavior. • Mechanism (Tight Coupling): For small β2, fast vt
+
+adaptation keeps it coupled with g2
+
+t (Fig. 6(f)). Since 
+
+vt ∼ g2
+
+t , the adaptive step η/ √vt ∼ η/ |gt| cancels gra-dient magnitude, yielding xt+1 ≈ xt −η·sgn( gt). This provides instantaneous negative feedback : when in-stability triggers ( ωtλt > 2/η , Fig. 6(f) subplot) and 
+
+|gt| increases, vt rises simultaneously, suppressing in-stability into low-amplitude oscillations. 
+
+6.2. Experimental Demonstration of the Phase Diagram 
+
+We verify theoretical phase diagram through grid search over 
+
+β1, β 2 on L(x) = 14 x4, recording minimum loss min t L(xt)
+
+and final loss L(xT ). Fig. 7(a-b) shows three regions (yel-low = low loss, blue = high loss) aligning with theoretical predictions: • Regime I (Stable): When β1 < β 1.02 (for k = 4 ), both minimum and final losses are low (yellow), confirming stable exponential convergence. 7Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+• Regime II (Spikes): For β1.02 < β 1 < β 0.75 2 , Fig. 7(a) shows low minimum loss (transient convergence) while Fig. 7(b) shows high final loss (spike mechanism). • Regime III (Oscillation): When β1 > β 0.75 2 , both losses remain high, indicating no exponential phase. To definitively attribute the acceleration in Regimes I and II to the decoupling mechanism, we also visualize the cou-pling ratio R(v)
+
+t = vt/g 2
+
+t . Fig. 7(c-d) shows coupling ratio 
+
+R(v)
+
+t . In Regimes I and II, max t R(v)
+
+t reaches high values, confirming decoupling drives acceleration and low loss. In Regime III, the ratio stays low ( ≈ 1, blue), confirming tight coupling prevents exponential speedup. 0.010 0.252 0.494 0.737 0.999           
+
+> Second moment decay 2
+> 0.010
+> 0.252
+> 0.494
+> 0.737
+> 0.999
+> First moment decay  1
+> 1=3/4 2
+> 10 20
+> 10 17
+> 10 14
+> 10 11
+> 10 8
+> 10 5
+> 10 2
+
+(a) Minimum Loss min t L(xt)0.010 0.252 0.494 0.737 0.999            
+
+> Second moment decay 2
+> 0.010
+> 0.252
+> 0.494
+> 0.737
+> 0.999
+> First moment decay  1
+> 1=3/4 2
+> 10 20
+> 10 17
+> 10 14
+> 10 11
+> 10 8
+> 10 5
+> 10 2
+
+(b) Final Loss L(xT )0.010 0.252 0.494 0.737 0.999    
+
+> Second moment decay 2
+> 0.010
+> 0.252
+> 0.494
+> 0.737
+> 0.999
+> First moment decay  1
+> 1=3/4 2
+> 10 0
+> 10 3
+> 10 6
+> 10 9
+> 10 12
+> 10 15
+> 10 18
+
+(c) Maximum Ratio max t vt       
+
+> g2
+> t0.010 0.252 0.494 0.737 0.999
+> Second moment decay 2
+> 0.010
+> 0.252
+> 0.494
+> 0.737
+> 0.999
+> First moment decay  1
+> 1=3/4 2
+> 10 0
+> 10 3
+> 10 6
+> 10 9
+> 10 12
+> 10 15
+> 10 18
+
+(d) Final Ratio vT
+
+> g2
+> T
+
+Figure 7. Empirical phase diagram on L(x) = 14 x4. Sliding av-erage filter (window size 10 ) applied for smoothing. (a) Minimum loss during training. (b) Final loss shows Regime II instability (blue sub-region of (a)). (c-d) Coupling ratios confirm exponential regions coincide with vt-g2 
+
+> t
+
+decoupling. 
+
+7. Discussion and Conclusion 
+
+Coupling of Degenerate and Non-Degenerate Modes. 
+
+High-dimensional optimization landscapes often couple quadratic and higher-order (degenerate) terms. Fig. 8 demonstrates Adam’s distinct advantages over GD and Mo-mentum in such mixed-curvature scenarios. When degen-erate directions are present, GD and Momentum are bot-tlenecked by slow, sublinear convergence, whereas Adam maintains rapid optimization. However, quadratic compo-nents can induce instability, manifesting as loss spikes (see the detailed analysis of quadratic case in Appendix F). These spikes, while disrupting monotonicity, stem from the same aggressive scaling that enables Adam to escape degenerate 0 1000 2000 3000 4000 5000       
+
+> Epoch
+> 10 103
+> 10 84
+> 10 65
+> 10 46
+> 10 27
+> 10 8
+> Loss
+> GD
+> GD Momentum
+> Adam
+
+(a) 14 (x − y)2 + 14 (x + y)20 1000 2000 3000 4000 5000      
+
+> Epoch
+> 10 11
+> 10 8
+> 10 5
+> 10 2
+> 10 1
+> Loss
+> GD
+> GD Momentum
+> Adam
+
+(b) 14 x2 + 116 y40 1000 2000 3000 4000 5000      
+
+> Epoch
+> 10 10
+> 10 8
+> 10 6
+> 10 4
+> 10 2
+> 10 0
+> Loss
+> GD
+> GD Momentum
+> Adam
+
+(c) 14 (x − y)2 + 116 (x + y)40 1000 2000 3000 4000 5000       
+
+> Epoch
+> 10 18
+> 10 14
+> 10 10
+> 10 6
+> 10 2
+> 10 2
+> Loss
+> GD
+> GD Momentum
+> Adam
+
+(d) 116 (x − y)4 + 116 (x + y)4
+
+Figure 8. Optimization trajectories under different couplings of quadratic and quartic loss functions. 
+
+plateaus efficiently. In practice, learning rate decay read-ily mitigates this instability in quadratic directions while preserving Adam’s speed advantage in degenerate regions. 
+
+Relevance to Deep Learning Optimization. Adam’s ad-vantages over GD vary significantly across architectures: more pronounced in Transformers for language tasks, less so in CNNs for vision tasks (Zhang et al., 2024). Our work suggests this may relate to differences in landscape degen-eracy. Our preliminary experiments show that replacing ReLU with softmax in MLPs significantly slows well-tuned GD compared to Adam (Fig. 15(a-b)), with softmax increas-ing degeneracy as evidenced by more concentrated spectral density at the origin (Fig. 15(c)). Furthermore, Fig. 15(d-f) shows Transformers exhibit higher degeneracy than CNNs on real data, correlating with Adam’s larger advantage. This provides valuable directions for future investigation into architecture-dependent optimizer performance. 
+
+Conclusion. In this work, we investigate Adam’s con-vergence on highly degenerate polynomials, identifying a class where Adam converges automatically without decay-ing learning rate schedulers. We prove Adam achieves local linear convergence on these degenerated functions, signifi-cantly outperforming the sublinear rates of GD and Momen-tum. We characterize the decoupling mechanism between 
+
+vt and g2
+
+t that exponentially amplifies the effective learn-ing rate, and map Adam’s hyperparameter phase diagram across three distinct regimes: stable convergence, spikes, and SignGD-like oscillation. Given the prevalence of degen-erate directions in deep learning landscapes, our findings provide valuable insights into Adam’s advantages. Future work includes investigating stochastic batch settings and connections to high-dimensional coupled optimization in real-world scenarios. 8Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+Acknowledgments and Disclosure of Funding 
+
+This work is supported by the National Key R&D Program of China Grant No. 2022YFA1008200, the National Nat-ural Science Foundation of China Grant No. 92570001, 12571567, 12371511, 12422119, 2025 Key Technology R&D Program “New Generation Information Technology” Project of Shanghai Municipal Science and Technology Commission, and the Natural Science Foundation of Shang-hai No. 25ZR1402280. 
+
+Impact Statement 
+
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here. 
+
+References 
+
+Bai, Z., Luo, T., John, Z.-Q., and Zhang, Y. Embedding principle in depth for the loss landscape analysis of deep neural networks. CSIAM Transactions on Applied Math-ematics , 5(2):350–389, 2024. ISSN 2708-0579. doi: https://doi.org/10.4208/csiam-am.SO-2023-0020. Bai, Z., Zhou, Z., Zhao, J., Li, X., Li, Z., Xiong, F., Yang, H., Zhang, Y., and Xu, Z.-Q. J. Adaptive preconditioners trig-ger loss spikes in adam. arXiv preprint arXiv:2506.04805 ,2025. Barakat, A. and Bianchi, P. Convergence and dynamical behavior of the adam algorithm for nonconvex stochastic optimization. SIAM Journal on Optimization , 31(1):244– 274, 2021. Bock, S. and Weiß, M. Non-convergence and limit cycles in the adam optimizer. In International Conference on Artificial Neural Networks , pp. 232–243. Springer, 2019. Chen, J., Kunstner, F., and Schmidt, M. Heavy-tailed noise does not explain the gap between sgd and adam on trans-formers. In 13th annual workshop on optimization for machine learning , 2021. Chen, X., Liu, S., Sun, R., and Hong, M. On the conver-gence of a class of adam-type algorithms for non-convex optimization. In International Conference on Learning Representations , 2019. URL https://openreview. net/forum?id=H1x-x309tm .Cohen, J., Ghorbani, B., Krishnan, S., Agarwal, N., Medap-ati, S., Badura, M., Suo, D., Nado, Z., Dahl, G. E., and Gilmer, J. Adaptive gradient methods at the edge of stabil-ity. In NeurIPS 2023 Workshop Heavy Tails in Machine Learning , 2023. Coppel, W. A. The solution of equations by iteration. In 
+
+Mathematical Proceedings of the Cambridge Philosophi-cal Society , volume 51, pp. 41–43. Cambridge University Press, 1955. Da Silva, A. B. and Gazeau, M. A general system of differ-ential equations to model first-order adaptive algorithms. 
+
+Journal of Machine Learning Research , 21(129):1–42, 2020. Davis, D., Drusvyatskiy, D., and Jiang, L. Gradient de-scent with adaptive stepsize converges (nearly) linearly under fourth-order growth: D. davis et al. Mathematical Programming , pp. 1–66, 2025. D ´efossez, A., Bottou, L., Bach, F., and Usunier, N. Asimple convergence proof of adam and adagrad. Transac-tions on Machine Learning Research , 2022. ISSN 2835-8856. URL https://openreview.net/forum? id=ZPQhzTSWA7 .Dereich, S. and Jentzen, A. Convergence rates for the adam optimizer. arXiv preprint arXiv:2407.21078 , 2024. Dereich, S., Graeber, R., and Jentzen, A. Non-convergence of adam and other adaptive stochastic gradient descent optimization methods for non-vanishing learning rates. 
+
+arXiv preprint arXiv:2407.08100 , 2024. Fukumizu, K., Yamaguchi, S., Mototake, Y.-i., and Tanaka, M. Semi-flat minima and saddle points by embed-ding neural networks to overparameterization. Advances in Neural Information Processing Systems , 32:13868– 13876, 2019. Kingma, D. P. and Ba, J. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 , 2014. Kunstner, F., Chen, J., Lavington, J. W., and Schmidt, M. Noise is not the main factor behind the gap between sgd and adam on transformers, but sign descent might be. In The Eleventh International Conference on Learning Representations , 2023. URL https://openreview. net/forum?id=a65YK0cqH8g .Kunstner, F., Milligan, A., Yadav, R., Schmidt, M., and Bietti, A. Heavy-tailed class imbalance and why adam outperforms gradient descent on language models. Ad-vances in Neural Information Processing Systems , 37: 30106–30148, 2024. Li, X. and Orabona, F. On the convergence of stochastic gradient descent with adaptive stepsizes. In The 22nd international conference on artificial intelligence and statistics , pp. 983–992. PMLR, 2019. 9Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+Ma, C., Wu, L., and E, w. A qualitative study of the dynamic behavior for adaptive gradient algorithms. In Mathemati-cal and scientific machine learning , pp. 671–692. PMLR, 2022. Reddi, S. J., Kale, S., and Kumar, S. On the conver-gence of adam and beyond. In International Confer-ence on Learning Representations , 2018. URL https: //openreview.net/forum?id=ryQu7f-RZ .Sagun, L., Evci, U., Guney, V. U., Dauphin, Y., and Bottou, L. Empirical analysis of the hessian of over-parametrized neural networks. arXiv preprint arXiv:1706.04454 , 2017. Shen, L., Chen, C., Zou, F., Jie, Z., Sun, J., and Liu, W. A unified analysis of adagrad with weighted aggregation and momentum acceleration. IEEE Transactions on Neural Networks and Learning Systems , 35(10):14482–14490, 2023. Shi, N., Li, D., Hong, M., and Sun, R. RMSprop converges with proper hyper-parameter. In International Conference on Learning Representations , 2021. URL https:// openreview.net/forum?id=3UDSdyIcBDA .Simsek, B., Ged, F., Jacot, A., Spadaro, F., Hongler, C., Gerstner, W., and Brea, J. Geometry of the loss landscape in overparameterized neural networks: Symmetries and invariances. In Proceedings of the 38th International Con-ference on Machine Learning , pp. 9722–9732. PMLR, 2021. Tomihari, A. and Sato, I. Understanding why adam outper-forms sgd: Gradient heterogeneity in transformers. arXiv preprint arXiv:2502.00213 , 2025. Ward, R., Wu, X., and Bottou, L. Adagrad stepsizes: Sharp convergence over nonconvex landscapes. Journal of Ma-chine Learning Research , 21(219):1–30, 2020. Xie, S., Mohamadi, M. A., and Li, Z. Adam exploits ℓ∞-geometry of loss landscape via coordinate-wise adaptivity. 
+
+arXiv preprint arXiv:2410.08198 , 2024. Xie, Y., Wu, X., and Ward, R. Linear convergence of adaptive stochastic gradient descent. In International conference on artificial intelligence and statistics , pp. 1475–1485. PMLR, 2020. Zhang, J., Karimireddy, S. P., Veit, A., Kim, S., Reddi, S., Kumar, S., and Sra, S. Why are adaptive methods good for attention models? Advances in Neural Information Processing Systems , 33:15383–15393, 2020. Zhang, L., Zhang, Y., and Luo, T. Geometry and local recovery of global minima of two-layer neural networks at overparameterization, 2025. URL https://arxiv. org/abs/2309.00508 .Zhang, Y., Zhang, Z., Luo, T., and Xu, Z. J. Embedding principle of loss landscape of deep neural networks. Ad-vances in Neural Information Processing Systems , 34: 14848–14859, 2021. Zhang, Y., Chen, C., Shi, N., Sun, R., and Luo, Z.-Q. Adam can converge without any modification on update rules. 
+
+Advances in neural information processing systems , 35: 28386–28399, 2022a. Zhang, Y., Li, Y., Zhang, Z., Luo, T., and Xu, Z. J. Embed-ding principle: A hierarchical structure of loss landscape of deep neural networks. Journal of Machine Learning , 1 (1):60–113, 2022b. Zhang, Y., Chen, C., Ding, T., Li, Z., Sun, R., and Luo, Z. Why transformers need adam: A hessian perspective. 
+
+Advances in neural information processing systems , 37: 131786–131823, 2024. Zhou, D., Chen, J., Cao, Y., Yang, Z., and Gu, Q. On the convergence of adaptive gradient methods for noncon-vex optimization. Transactions on Machine Learning Research , 2024. ISSN 2835-8856. URL https:// openreview.net/forum?id=Gh0cxhbz3c . Fea-tured Certification. Zou, F., Shen, L., Jie, Z., Zhang, W., and Liu, W. A sufficient condition for convergences of adam and rmsprop. In 
+
+Proceedings of the IEEE/CVF Conference on computer vision and pattern recognition , pp. 11127–11135, 2019. 10 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+A. Proof of Adam Local Stability Theorem 4.1 
+
+A.1. Prerequisites: Local Stability Theory 
+
+In this section, we briefly review the local stability theory for dynamical systems. The analysis of local stability is primarily based on the linearization of the system near its equilibrium states, utilizing the Jacobian matrix. Let Ω ⊆ Rn be the state space and x ∈ Ω be the state vector. We denote the Jacobian matrix of a vector-valued function 
+
+f : Rn → Rn evaluated at a point x∗ as J(x∗) = Df (x∗). The eigenvalues of J(x∗) are denoted by λi (i = 1 , . . . , n ). A.1.1. D ISCRETE -TIME SYSTEMS 
+
+Consider a discrete dynamical system governed by the difference equation: 
+
+xk+1 = f (xk). (22) A point x∗ is called a fixed point if it satisfies f (x∗) = x∗. According to linear stability theory, the fixed point x∗ is locally asymptotically stable if all eigenvalues of the Jacobian matrix lie inside the unit circle in the complex plane. That is, the spectral radius ρ(J) must satisfy: 
+
+ρ(J(x∗)) = max  
+
+> 1≤i≤n
+
+|λi| < 1. (23) A.1.2. C ONTINUOUS -TIME SYSTEMS 
+
+Consider a continuous dynamical system described by the ordinary differential equation: 
+
+˙x(t) = f (x(t)) . (24) A point x∗ is an equilibrium point if f (x∗) = 0. The equilibrium x∗ is locally asymptotically stable if all eigenvalues of the Jacobian matrix have strictly negative real parts: Re (λi) < 0, ∀i = 1 , . . . , n. (25) Essentially, the stability criteria require the eigenvalues to be bounded by the unit circle for discrete maps, and by the imaginary axis for continuous flows. 
+
+A.2. Local Stability Analysis Definition A.1 (Adam) .
+
+mt = β1mt−1 + (1 − β1)gt
+
+vt = β2vt−1 + (1 − β2)g2
+
+> t
+
+xt+1 = xt − η · mt
+
+√vt
+
+Here, gt = ∇L(xt), where L(x) is the loss function. β1, β 2 are hyperparameters in [0 , 1) . η > 0 is the learning rate. 
+
+Theorem A.2. Consider using Adam in Definition A.1 to learn the loss function L(x) = 1 
+
+> k
+
+xk, where k is an even number no less than four. Change variables by defining ωt = mt 
+
+> gt
+
+= mt
+
+> xk−1
+> t
+
+, λ t = xk−2 
+
+> t√vt
+
+. Then the following statements hold: 1. The new variables obey the following dynamics: 
+
+ωt+1 = β1ωt
+
+(1 − ηω tλt)k−1 + 1 − β1
+
+λt+1 = (1 − ηω tλt)k−2λt
+
+pβ2 + (1 − β2)(1 − ηω tλt)2k−2λ2 
+
+> t
+
+x2
+
+> t
+
+xt+1 = (1 − ηω tλt)xt
+
+(26) 
+
+2. Dynamics (26) has two fixed points: 
+
+ω∗ = 1 , λ ∗ = 0 , x ∗ ∈ R and 
+
+ω∗ = 1 − β1
+
+1 − β1β− k−12( k−2) 
+
+> 2
+
+, λ ∗ = 1 − β 12( k−2) 
+
+> 2
+
+ηω ∗ , x ∗ = 0 .
+
+11 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+3. The fixed point ω∗ = 1−β1
+
+1−β1β− k−12( k−2) 2
+
+, λ ∗ = 1−β
+
+> 12( k−2) 2
+
+ηω ∗ , x ∗ = 0 is meaningful (i.e., λ∗ ≥ 0) if and only if β1 < β 
+
+> k−12( k−2)
+
+2 .
+
+4. The fix point ω∗ = 1 , λ ∗ = 0 , x ∗ = s is unstable for all s ∈ R.5. Define the matrix J to be 
+
+
+
+β1
+
+
+
+1 − β 12( k−2) 
+
+2
+
+
+
+(k − 1) β
+
+> −k
+> 2( k−2)
+
+2 + β1β
+
+> 1−k
+> 2( k−2)
+
+2
+
+β1η(1 −β1)2(k−1) β
+
+> −k
+> 2( k−2) 2
+
+−β1β− k−12( k−2) 2 +1 
+
+!2
+
+1−β
+
+> 12( k−2) 2
+
+!2
+
+(2 −k) −β1β− k−12( k−2) 2 +1 
+
+!2
+
+β
+
+> k−32( k−2) 2
+
+√β2η(1 −β1)2
+
+1−β
+
+> 12( k−2) 2
+
+!
+
+(2 −k)β 
+
+> k−32( k−2) 2
+
++√β2
+
+√β2
+
+
+
+Then the matrix 
+
+"J 00 β 12( k−2) 
+
+2
+
+#
+
+is the Jacobian matrix at the fixed point ω∗ = 1−β1
+
+1−β1β− k−12( k−2) 2
+
+, λ ∗ = 1−β
+
+> 12( k−2) 2
+
+ηω ∗ , x ∗ = 0 .Let r(J) be the spectral radius of J.
+
+• If r(J) < 1, then the fixed point is asymptotically stable. 
+
+• If r(J) > 1, then the fixed point is unstable. 6. r(J) < 1 if and only if both of the two inequalities hold: 
+
+β1 < β k
+
+> 2( k−2)
+
+2
+
+β1 > (k − 2) β− 12( k−2) 
+
+2 − k
+
+(k − (k − 2) β 12( k−2) 
+
+2 )β− k
+
+> 2( k−2)
+
+2
+
+.
+
+Besides, r(J) = 1 if and only if at least one of these two inequalities becomes an equality. As a consequence, when 
+
+β2 > ( k−2
+
+k )2( k−2) , r(J) < 1 if and only if β1 < β k
+
+> 2( k−2)
+
+2 .7. When β1 < β k
+
+> 2( k−2)
+
+2 and β1 > (k−2) β− 12( k−2) 2 −k
+
+(k−(k−2) β 
+
+> 12( k−2) 2
+
+)β− k
+
+> 2( k−2) 2
+
+, the fixed point ω∗ = 1−β1
+
+1−β1β− k−12( k−2) 2
+
+, λ ∗ = 1−β
+
+> 12( k−2) 2
+
+ηω ∗ , x ∗ =0 is asymptotically stable, and lim t→∞ xt+1 
+
+xt = β 12( k−2) 
+
+2 .
+
+8. When β1 > β k
+
+> 2( k−2)
+
+2 or β1 < (k−2) β− 12( k−2) 2 −k
+
+(k−(k−2) β 
+
+> 12( k−2) 2
+
+)β− k
+
+> 2( k−2) 2
+
+, the fixed point ω∗ = 1−β1
+
+1−β1β− k−12( k−2) 2
+
+, λ ∗ = 1−β
+
+> 12( k−2) 2
+
+ηω ∗ , x ∗ = 0 
+
+is unstable, Proof. Proof of Statements 1-4:
+
+Consider Adam: 
+
+mt = β1mt−1 + (1 − β1)xk−1
+
+t
+
+vt = β2vt−1 + (1 − β2)x2k−2
+
+t
+
+xt+1 = xt − η · mt
+
+√vt
+
+Then we have: 
+
+xt+1 = (1 − η mt
+
+xt
+
+√vt
+
+)xt = (1 − η mt
+
+xk−1
+
+t
+
+× xk−2
+
+t
+
+√vt
+
+)xt
+
+Define 
+
+ωt = mt
+
+xk−1
+
+t
+
+, λt = xk−2
+
+t
+
+√vt
+
+.
+
+Then it holds that: 12 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+xt+1 = (1 − ηω tλt)xt
+
+ωt+1 = mt+1 
+
+xk−1
+
+> t+1
+
+= β1mt + (1 − β1)xk−1
+
+> t+1
+
+xk−1
+
+> t+1
+
+= β1mt
+
+xk−1
+
+> t+1
+
++ 1 − β1 = β1ωt
+
+(1 − ηω tλt)k−1 + 1 − β1.λt+1 = xk−2
+
+> t+1
+
+√vt+1 
+
+= (1 − ηω tλt)k−2xk−2
+
+> t
+
+q
+
+β2vt + (1 − β2)(1 − ηω tλt)2k−2x2k−2
+
+> t
+
+= (1 − ηω tλt)k−2λt
+
+pβ2 + (1 − β2)(1 − ηω tλt)2k−2λ2 
+
+> t
+
+x2
+
+> t
+
+.
+
+So we have the following dynamics: 
+
+ωt+1 = β1ωt
+
+(1 − ηω tλt)k−1 + 1 − β1
+
+λt+1 = (1 − ηω tλt)k−2λt
+
+pβ2 + (1 − β2)(1 − ηω tλt)2k−2λ2 
+
+> t
+
+x2
+
+> t
+
+xt+1 = (1 − ηω tλt)xt (27) Let (ω∗, λ ∗, x ∗) a fixed point of the dynamics (27). Then we have 
+
+x∗ = (1 − ηω ∗λ∗x∗).
+
+So x∗ω∗λ∗ = 0 . If x∗ = 0 , by Equation (27), we have 
+
+ω∗ = β1ω∗
+
+(1 − ηω ∗λ∗)k−1 + 1 − β1
+
+λ∗ = (1 − ηω ∗λ∗)k−2λ∗
+
+√β2
+
+Solve this equations, and we get 
+
+ω∗ = 1 , λ ∗ = 0 or ω∗ = 1 − β1
+
+1 − β1β− k−12( k−2) 
+
+> 2
+
+, λ ∗ = 1 − β 12( k−2) 
+
+> 2
+
+ηω ∗
+
+If x∗̸ = 0 , then ω∗λ∗ = 0 . So 
+
+ω∗ = β1ω∗ + (1 − β1).
+
+So we have 
+
+ω∗ = 1 .
+
+Since ω∗λ∗ = 0 , so we have λ∗ = 0 . It is readily to verify that if ω∗ = 1 , λ ∗ = 0 , then (ω∗, λ ∗, x ) is fixed point of (27) for any x ∈ R.Therefore, the fixed point (ω∗, λ ∗, x ∗) of (27) has two cases: • ω∗ = 1−β1 
+
+> 1−β1β−k−12( k−2) 2
+
+, λ ∗ = 1−β 
+
+> 12( k−2) 2
+> ηω ∗
+
+, x ∗ = 0 
+
+• ω∗ = 1 , λ ∗ = 0 , x ∗ ∈ R
+
+Besides, since λt = xk−2 
+
+> t√vt
+
+, we have λt ≥ 0. Therefore, if λ∗ is a limit point of λt, then λ∗ ≥ 0. Under this condition, the fix point ω∗ = 1−β1 
+
+> 1−β1β−k−12( k−2) 2
+
+, λ ∗ = 1−β 
+
+> 12( k−2) 2
+> ηω ∗
+
+, x ∗ = 0 exists if and only if ω∗ > 0, which is equivalent to 
+
+β 
+
+> k−12( k−2)
+> 2
+
+> β 1.
+
+13 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+By calculation, the Jacobian matrix at the fixed point ω∗ = 1 , λ ∗ = 0 , x ∗ ∈ R is 
+
+M =
+
+
+
+1 (k − 1) ηβ 1 00 1√β2
+
+00 −ηx ∗ 1
+
+ .
+
+The eigenvalues of M are 1, 1, 1√β2
+
+. Since 1√β2
+
+> 1, the fixed point ω∗ = 1 , λ ∗ = 0 , x ∗ is unstable for each x∗ ∈ R. So far, we have proved the first four statements of the theorem. 
+
+Proof of Statements 5-6:
+
+By calculation, the Jacobian matrix at this fixed point is of the form 
+
+J′ =
+
+"J 00 β 12( k−2) 
+
+> 2
+
+#
+
+,
+
+where 
+
+J =
+
+
+
+β1
+
+
+
+1 − β 12( k−2) 
+
+> 2
+
+
+
+(k − 1) β 
+
+> −k
+> 2( k−2)
+> 2
+
++ β1β
+
+> 1−k
+> 2( k−2)
+> 2
+
+β1η(1 − β1)2(k − 1) β
+
+> −k
+> 2( k−2)
+> 2
+
+
+
+−β1β− k−12( k−2)  
+
+> 2
+
++ 1 
+
+2
+
+
+
+1 − β 12( k−2) 
+
+> 2
+
+2
+
+(2 − k)
+
+
+
+−β1β− k−12( k−2)  
+
+> 2
+
++ 1 
+
+2
+
+β
+
+> k−32( k−2)
+> 2
+
+√β2η(1 − β1)2
+
+
+
+1 − β 12( k−2) 
+
+> 2
+
+
+
+(2 − k)β 
+
+> k−32( k−2)
+> 2
+
++ √β2
+
+√β2
+
+
+
+Since β 12( k−2)  
+
+> 2
+
+∈ (0 , 1) , then we have 
+
+r(J′) < 1 ⇐⇒ r(J) < 1.
+
+Let r(J) be the spectral radius of J. Note that r(J) < 1 if and only if all of the following satisfy: • | det( J)| < 1.• 1 − tr( J) + det( J) > 0
+
+• 1 + tr( J) + det( J) > 0
+
+Besides, r(J) = 1 if and only if at least one of the inequalities becomes an equality. By calculation, we have 
+
+det( J) = β1β− k
+
+> 2( k−2)
+> 2
+
+1 − tr( J) + det( J) = (2 − k)(1 − β 12( k−2)  
+
+> 2
+
+)( β1β 
+
+> −k
+> 2( k−2)
+> 2
+
+− β− 12( k−2)  
+
+> 2
+
+).
+
+Therefore, we have 
+
+| det( J)| < 1 = ⇒ 1 − tr( J) + det( J) > 0.
+
+By calculation, the condition 1 + tr( J) + det( J) > 0 is simplified to 
+
+β1 > (k − 2) β− 12( k−2)  
+
+> 2
+
+− k
+
+(k − (k − 2) β 12( k−2)  
+
+> 2
+
+)β− k
+
+> 2( k−2)
+> 2
+
+.
+
+So r(J) < 1 if and only if both of the two inequalities hold: 
+
+β1 < β k
+
+> 2( k−2)
+> 2
+
+β1 > (k − 2) β− 12( k−2)  
+
+> 2
+
+− k
+
+(k − (k − 2) β 12( k−2)  
+
+> 2
+
+)β− k
+
+> 2( k−2)
+> 2
+
+.
+
+14 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+Besides, r(J) = 1 if and only if at least one of these two inequalities becomes an equality. Moreover, one may verify that when β2 > ( k−2 
+
+> k
+
+)2( k−2) , we have J11 > 0, J22 > −1. So we have 
+
+1 + tr( J) + det( J) > 0.
+
+Therefore, when β2 > ( k−2 
+
+> k
+
+)2( k−2) , r(J) < 1 if and only if β1 < β k 
+
+> 2( k−2)
+> 2
+
+. So far, we have proved the first six statements of the theorem. 
+
+Proof of Statements 7:
+
+Assume that β1 < β k 
+
+> 2( k−2)
+> 2
+
+and β1 > (k−2) β− 12( k−2) 2 −k  
+
+> (k−(k−2) β
+> 12( k−2) 2)β−k
+> 2( k−2) 2
+
+, and consider the fixed point ω∗ = 1−β1 
+
+> 1−β1β−k−12( k−2) 2
+
+, λ ∗ = 
+
+> 1−β
+> 12( k−2) 2
+> ηω ∗
+
+, x ∗ = 0 . The Jacobian matrix at this fixed point is 
+
+J′ =
+
+"J 00 β 12( k−2) 
+
+> 2
+
+#
+
+.
+
+By statements 6, we have r(J) < 1. Since β 12( k−2)  
+
+> 2
+
+∈ (0 , 1) , so we have 
+
+r(J′) < 1.
+
+This indicates that this fixed point is asymptotically stable. By the definition of asymptotical stability, for the initialization 
+
+(ω0, λ 0, x 0) sufficiently close to the fixed point, the iterations (ωt, λ t, x t) will converge to (ω∗, λ ∗, x ∗).
+
+By definition, we have xt+1 
+
+xt
+
+= 1 − ηω tλt.
+
+So we have 
+
+lim 
+
+> t→∞
+
+xt+1 
+
+xt
+
+= 1 − ηω ∗λ∗ = β 12( k−2)  
+
+> 2
+
+.
+
+Proof of Statements 8: When β1 > β k 
+
+> 2( k−2)
+> 2
+
+or β1 < (k−2) β− 12( k−2) 2 −k  
+
+> (k−(k−2) β
+> 12( k−2) 2)β−k
+> 2( k−2) 2
+
+, the Jacobian matrix at the fixed point 
+
+ω∗ = 1−β1 
+
+> 1−β1β−k−12( k−2) 2
+
+, λ ∗ = 1−β 
+
+> 12( k−2) 2
+> ηω ∗
+
+, x ∗ = 0 has a spectral radius larger than one. So the fixed point is unstable. 
+
+B. Proof of Global Convergence of RMSProp Theorem 5.7 
+
+L(x) = 1 
+
+> k
+
+xk, k is an even number and k ≥ 4.
+
+xt+1 = xt − η · xk−1
+
+> t
+
+√vt
+
+vt+1 = β2vt + (1 − β2)x2k−2
+
+> t+1
+
+(28) 
+
+Lemma B.1. If η xk−20√v0 < 1 and (k−2) k−2 
+
+> (k−1) k−1
+
+< √β2 < 1, then there exists T > 0 such that |xt| of Equation 28 decreases monotonically for t > T . Moreover, xt converges to 0.Proof. Without loss of generality assume x0 > 0. We define 
+
+λt = xk−2
+
+> t
+
+√vt
+
+,
+
+15 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+and then we have the following dynamics: 
+
+xt+1 = (1 − ηλ t)xt
+
+λt+1 = (1 − ηλ t)k−2λt
+
+pβ2 + (1 − β2)(1 − ηλ t)2k−2x2 
+
+> t
+
+λ2
+
+> t
+
+(29) So we have the following inequality: 
+
+0 < λ t+1 < (1 − ηλ t)k−2λt
+
+√β2
+
+.
+
+By assumption, we have λ0 < 1 
+
+> η
+
+. Define g(λ) = 1√β2
+
+(1 − ηλ )k−2λ, λ ∈ (0 , 1 
+
+> η
+
+). By calculation, the maximum of g(λ) is 
+
+g( 1(k − 1) η ) = (k − 2) k−2
+
+(k − 1) k−1η√β2
+
+.
+
+If √β2 > (k−2) k−2 
+
+> (k−1) k−1
+
+, then 0 < 1 − ηλ t+1 < 1. So xt decreases monotonically. Since xt > 0, so xt converges to some 
+
+x∗ ≥ 0. In the equation 
+
+xt+1 = xt − η · xk−1
+
+> t
+
+√vt
+
+,
+
+take limsup and liminf and we get 
+
+x∗
+
+√lim inf t→∞ vt
+
+= x∗
+
+plim sup t→∞ vt
+
+= 0 .
+
+If x∗̸ = 0 , then lim t→∞ vt = + ∞. This is impossible since 
+
+vt+1 = β2vt + (1 − β2)x2k−2
+
+> t+1
+
+and β2 < 1. So x∗ must be zero. 
+
+Lemma B.2. Assume 0 < λ 0 < 1 
+
+> η
+
+. Assume (k−2) k−2 
+
+> kk−2
+
+< √β2 < 1. Then λt of Equation (29) converges to 1−β 
+
+> 12( k−2) 2
+> η
+
+.Proof. Define g(λ) = 1√β2
+
+(1 − ηλ )k−2λ, λ ∈ (0 , 1 
+
+> η
+
+). The fixed point of g in [0 , 1 
+
+> η
+
+] is 
+
+λ∗ = 1 − β 12( k−2) 
+
+> 2
+
+η and λ′ = 0 .
+
+The fixed point λ′ = 0 is unstable. The derivative at λ∗ = 1−β 
+
+> 12( k−2) 2
+> η
+
+is 
+
+g′(λ∗) = 1 − (k − 2)( β− 12( k−2)  
+
+> 2
+
+− 1) .
+
+Then g′(λ∗) < 1. It is readily to verity that 
+
+g′(λ∗) > −1 ⇐⇒ pβ2 > (k − 2) k−2
+
+kk−2 .
+
+By assumption, √β2 > (k−2) k−2 
+
+> kk−2
+
+holds. Therefore, we have 
+
+g′(λ∗) ∈ (−1, 1) .
+
+So λ∗ is asymptotically stable. We first present a lemma along with its proof: 16 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+Lemma B.3. If (k−2) k−2 
+
+> kk−2
+
+< √β2 < 1, then the dynamical system defined by g(st+1 ) = st, with initial condition 
+
+s0 ∈
+
+
+
+0, 1
+
+> η
+
+
+
+, globally converges to the fixed point s∗ = 1−β 
+
+> 12k−42
+> η
+
+.Proof. By definition, we have g(s) = 1√β2
+
+(1 − ηs )k−2s, s 0 ∈ (0 , 1 
+
+> η
+
+). Then we have 
+
+g(ηs ) = 1
+
+√β2
+
+(1 − ηs )k−2ηs, ηs 0 ∈ (0 , 1) .
+
+Therefore, we only need to study the case of η = 1 . In this case, we have g(s) = 1√β2
+
+(1 − s)k−2s, s 0 ∈ (0 , 1) .
+
+Consider the roots of g(g(s)) = s. It is readily to verify its the roots in [0 , 1] are all fixed points. By Coppel (1955), the dynamics g(st+1 ) = st with s0 ∈ (0 , 1) must converge to a fixed point of g. By calculation, there are two fixed points of g:
+
+s1 = 0 , s 2 = 1 − β 12k−4 
+
+> 2
+
+.
+
+By calculation, g′(0) = 1√β2
+
+> 1. So the fixed point s1 = 0 is repelling. So st cannot converge to zero. So st must converge to s2 = 1 − β 12k−4 
+
+> 2
+
+. This proves the lemma. We continue our proof of Lemma B.2. It is easy to verify that kk−2 < (k − 1) k−1. So the assumptions of Lemma B.1 holds. By Lemma B.1, we have 
+
+lim  
+
+> t→∞
+
+xt = 0 .
+
+So the dynamics of λt is 
+
+λt+1 = g(λt) + μ(t) , where lim  
+
+> t→∞
+
+μ(t) = 0 .
+
+We now consider the limit point of λt. Let λl be a limit point of λt. Define gmax = max λ∈(0 , 1  
+
+> η)
+
+g(λ). It is readily to verify that 0 < g max < 1 
+
+> η
+
+. Since λl be a limit point of λt, we have 
+
+0 ≤ λl ≤ gmax < 1
+
+η .
+
+• We first prove that λl̸ = 0 . Assume by contradiction that λl = 0 . Since g′(0) > 1, g(λ) < g max < 1 
+
+> η
+
+and 
+
+lim t→∞ ϵ(t) = 0 , the following holds: 
+
+∃T0 > 0, δ > 0, 0 < c < 1 s.t. for all t > T 0, if λt < δ, then λt−1 < cλ t.
+
+Since λl = 0 , there exists Tn > T 0, lim n→∞ Tn = + ∞, such that λTn < δ . So 
+
+λT0 < λ Tn cTn−T0 < 1
+
+η cTn−T0 .
+
+Let n → ∞ , we get λT0 = 0 . This is impossible when λ0 ∈ (0 , 1 
+
+> η
+
+).• Then we prove that the existence of λl such that λl̸ = 0 and λl̸ = λ∗ will lead to a contradiction. Pick any ϵ > 0.Consider the reference dynamics given by 
+
+st+1 = g(st), s 0 = s0
+
+and denotes its solution by ϕ(t, s 0). By Lemma B.3, ϕ(t, λ l) converges to λ∗. Since ϕ(t, λ l) converges to λ∗, there exists T > 0 such that 
+
+ϕ(T, λ l) ∈ (λ∗ − 14 ϵ, λ ∗ + 14 ϵ).
+
+Moreover, since ϕ(t, s ) is continuously over s, there exists δ > 0 such that 
+
+ϕ(T, s 0) ∈ (λ∗ − 12 ϵ, λ ∗ + 12 ϵ)
+
+17 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+for all s0 ∈ (λl − δ, λ l + δ). Since λl is a limit point of λt, there exists Tk → ∞ such that 
+
+λTk ∈ (λl − δ, λ l + δ), ∀k ∈ N+.
+
+Since λTk ∈ (λl − δ, λ l + δ), we have 
+
+ϕ(T, λ Tk ) ∈ (λ∗ − 12 ϵ, λ ∗ + 12 ϵ).
+
+Denote the solution of 
+
+wt+1 = g(wt) + h(t), w 0 = w0
+
+by Φh(t, w 0). By continuity of Φ with respect to h(·) and the initialization, there exists δ′ > 0 such that if |μ(t)| < δ ′
+
+for all t ∈ [0 , T ] and |λ − λl| < δ ′ , then 
+
+|Φh(T, λ ) − ϕ(T, λ l)| < ϵ. (30) We may pick δ < δ ′. Then we have 
+
+|λTk − λl| < δ ′.
+
+Since lim t→∞ μ(t) = 0 and Tk → ∞ , we may assume that |μ(t + Tk)| < ϵ. In inequality (30) , let h(t) = μ(t + Tk)
+
+and λ = λTk , we get 
+
+|λT +Tk − ϕ(T, λ l)| < ϵ. 
+
+Since 
+
+ϕ(T, λ l) ∈ (λ∗ − 14 ϵ, λ ∗ + 14 ϵ),
+
+we have 
+
+λT +Tk ∈ (λ∗ − 2ϵ, λ ∗ + 2 ϵ), ∀k ∈ N+. (31) In the next we prove (31) leads to a contradiction. Since |g′(λ∗)| < 1, there exists δ > 0, such that 
+
+|g′(λ)| < d < 1 for all λ ∈ (λ∗ − δ, λ ∗ + δ)
+
+Since lim t→∞ ϵ(t) = 0 and Equation (31), for any ϵ > 0, there exists T such that 
+
+λT ∈ (λ∗ − 12 δ, λ ∗ + 12 δ) and ϵ(t) < ϵ, ∀t > T. 
+
+When λt ∈ (λ∗ − δ, λ ∗ + δ), we have 
+
+|λt+1 − λ∗| = |g(λt) − g(λ∗) − ϵ(t)| ≤ d|λt − λ∗| + ϵ. (32) Since λT ∈ (λ∗ − 12 δ, λ ∗ + 12 δ), we may pick ϵ sufficiently small such that 
+
+λt ∈ (λ∗ − δ, λ ∗ + δ), ∀t > T. 
+
+Then Equation (32) holds for all t > T .Moreover, since d < 1, there exists T ′ > 0 such that 
+
+|λt − λ∗| < 2ϵ, ∀t > T ′.
+
+This is the definition of the limit 
+
+lim  
+
+> t→∞
+
+λt = λ∗.
+
+So λl̸ = λ∗ leads to a contradiction. Therefore λt cannot has any limit point except than λ∗. So λt converges to λ∗.18 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+Proof of Theorem 5.7: 
+
+Proof. By Lemma B.1, xt converges to zero. By Lemma B.2, λt converges to 1−β 
+
+> 12( k−2) 2
+> η
+
+. By definition, we have 
+
+xt+1 
+
+xt
+
+= 1 − ηλ t.
+
+Take the limit, one get 
+
+lim 
+
+> t→∞
+
+xt+1 
+
+xt
+
+= β 12( k−2)  
+
+> 2
+
+.
+
+C. Convergence Rate of GD and Momentum on Degenerated Polynomials 
+
+Theorem C.1 (Power-Law Convergence of Gradient Flow ). Consider the gradient flow dynamics on L(x) = 1 
+
+> k
+
+xk with 
+
+k ≥ 4 and is even: dx dt = −η∇L(x) = −ηx k−1, x(0) = x0̸ = 0 . (33) 
+
+For any learning rate η > 0, the solution x(t) exhibits an asymptotic power-law decay: 
+
+x(t) = Θ 
+
+
+
+t− 1
+
+> k−2
+
+
+
+as t → ∞ . (34) 
+
+Proof. Without loss of generality, assume x0 > 0. The dynamics remain in the positive domain, allowing us to write 
+
+˙x = −ηx k−1. We employ the separation of variables method: 
+
+dx xk−1 = −η dt. (35) Integrating from time 0 to t: Z x(t)
+
+> x0
+
+y−(k−1) dy = −η
+
+Z t
+
+> 0
+
+ds. (36) Since k ≥ 4, we have k − 2 > 0. Evaluating the integral yields: 
+
+ y−(k−2) 
+
+−(k − 2) 
+
+x(t)
+
+> x0
+
+= − 1
+
+k − 2
+
+
+
+x(t)−(k−2) − x−(k−2) 0
+
+
+
+= −ηt. (37) Rearranging terms to solve for x(t):
+
+x(t)−(k−2) = x−(k−2) 0 + ( k − 2) ηt. (38) Taking the power of − 1 
+
+> k−2
+
+, we obtain the explicit solution: 
+
+x(t) = 
+
+h
+
+x−(k−2) 0 + ( k − 2) ηt 
+
+i− 1
+
+> k−2
+
+. (39) As t → ∞ , the term (k − 2) ηt dominates the initial condition x−(k−2) 0 . Thus, the asymptotic behavior is given by: 
+
+x(t) ∼ [( k − 2) ηt ]− 1 
+
+> k−2
+
+= Θ( t− 1 
+
+> k−2
+
+). (40) This confirms that the convergence rate is algebraic dependent on the degeneracy order k.
+
+Theorem C.2 (Power-Law Convergence of Momentum ). Consider the continuous-time Heavy-ball momentum dynamics with momentum factor β1 ∈ [0 , 1) :
+
+˙m = −(1 − β1)m + (1 − β1)∇L(x), m(0) = 0 , (41) 
+
+˙x = −ηm. (42) 19 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+For L(x) = 1 
+
+> k
+
+xk with k ≥ 4 and is even, the trajectory x(t) satisfies: 
+
+x(t) = Θ 
+
+
+
+t− 1
+
+> k−2
+
+
+
+as t → ∞ . (43) 
+
+Thus, momentum fails to improve the power-law exponent of Gradient Descent. Proof. We analyze the system by reducing it to a second-order differential equation. Differentiating (42) with respect to time gives ¨x = −η ˙m. Substituting ˙m from (41): 
+
+¨x = −η [−(1 − β1)m + (1 − β1)∇L(x)] . (44) Using m = − 1 
+
+> η
+
+˙x, we obtain the damped nonlinear oscillator equation: 
+
+¨x|{z} 
+
+> Inertia
+
++ (1 − β1) ˙ x
+
+| {z }
+
+> Friction
+
++ η(1 − β1)xk−1
+
+| {z }
+
+> Gradient Force
+
+= 0 . (45) We employ the method of dominant balance to determine the asymptotic behavior as t → ∞ . Because the friction term 
+
+(1 − β1) is always greater than zero, the system’s energy will eventually decay to zero. We obtain the asymptotic rate by explicitly constructing the asymptotic solution. 
+
+Step 1: Constructing the Asymptotic Solution. Neglecting ¨x, the equation reduces to the first-order system: 
+
+(1 − β1) ˙ x ≈ − η(1 − β1)xk−1 =⇒ ˙x ≈ − ηx k−1. (46) From Thm. C.1, the solution to this reduced equation is asymptotically: 
+
+¯x(t) ∼ [( k − 2) ηt ]− 1 
+
+> k−2
+
+. (47) 
+
+Step 2: Verification of Consistency. To prove that ¯x(t) is indeed a valid asymptotic solution to the full equation (45) , we must verify that the neglected term ¨x is asymptotically negligible compared to the retained terms. Considering the general form: x(t) ∼ Ct −p where p = 1 
+
+> k−2
+
+. Differentiating this solution: 
+
+˙x(t) ∼ − pCt −(p+1) , (48) 
+
+¨x(t) ∼ p(p + 1) Ct −(p+2) . (49) Substituting these into the original equation, the magnitudes of the terms scale as: • Inertia: |¨x| = O(t−(p+2) )
+
+• Friction: |(1 − β1) ˙ x| = O(t−(p+1) )
+
+• Gradient: |η(1 − β1)xk−1| = O(t−p(k−1) ) = O(t−(p+1) )
+
+(Note that p(k − 1) = k−1 
+
+> k−2
+
+= 1 + 1 
+
+> k−2
+
+= p + 1 , so Friction and Gradient match orders). Comparing the decay rates, we observe that the ratio of the neglected term to the dominant terms is: 
+
+|¨x|| ˙x| ∼ t−(p+2) 
+
+t−(p+1) = t−1 → 0 as t → ∞ . (50) Since the neglected inertia term vanishes strictly faster than the retained friction and gradient terms, the asymptotic solution 
+
+¯xt is indeed a valid solution. Thus, the dynamics are asymptotically governed by the first-order gradient flow, yielding the rate O(t− 1 
+
+> k−2
+
+).
+
+Lemma C.3 (Exponential Convergence via Exponential Learning Rate Schedule ). Under the setup of the degenerate objective L(x) = 1 
+
+> k
+
+xk (k ≥ 4, even), consider the gradient flow dynamics with a time-varying learning rate η(t):
+
+dx dt = −η(t)∇L(x) = −η(t)xk−1. (51) 20 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+If the learning rate follows an exponential schedule η(t) = η0eαt with α > 0 and η0 > 0, then the solution x(t) exhibits asymptotic exponential convergence: 
+
+x(t) ∼ C exp 
+
+
+
+− αk − 2 t
+
+
+
+as t → ∞ , (52) 
+
+where C =
+
+h (k−2) η0
+
+> α
+
+i− 1
+
+> k−2
+
+is a constant determined by the schedule parameters. Proof. We employ the separation of variables method. Rewriting the differential equation: 
+
+dx xk−1 = −η0eαt dt. (53) Integrating both sides from the initial state 0 to time t:
+
+Z x(t)
+
+> x0
+
+y−(k−1) dy = −η0
+
+Z t
+
+> 0
+
+eαs ds. (54) Computing the definite integrals:  y−(k−2) 
+
+−(k − 2) 
+
+x(t)
+
+> x0
+
+= − η0
+
+α (eαt − 1) . (55) This simplifies to: 
+
+x(t)−(k−2) − x−(k−2) 0
+
+−(k − 2) = − η0
+
+α (eαt − 1) . (56) Multiplying by −(k − 2) and rearranging for the dominant term: 
+
+x(t)−(k−2) = x−(k−2) 0 + (k − 2) η0
+
+α (eαt − 1) . (57) As t → ∞ , the term eαt dominates both the constant −1 and the initial condition term x−(k−2) 0 . Thus, we have the asymptotic relation: 
+
+x(t)−(k−2) ≈ (k − 2) η0
+
+α eαt . (58) Taking the power of − 1 
+
+> k−2
+
+on both sides yields the solution: 
+
+x(t) ≈
+
+ (k − 2) η0
+
+α
+
+− 1
+
+> k−2
+
+exp 
+
+
+
+− αk − 2 t
+
+
+
+. (59) This confirms that the convergence rate is linear (exponential in time) with rate constant λ = αk−2 .
+
+D. Proof of Proposition 5.6 
+
+Proposition D.1 (Stability of the Acceleration Map ). The map in Eq. (18) has a non-zero fixed point u∗ = 1 − γ− 1 
+
+> k−2
+
+∈
+
+(0 , 1) , locally asymptotically stable if and only if: 
+
+γ < γ crit := 
+
+ kk − 2
+
+k−2
+
+. (60) 
+
+Proof. We provide the detailed derivation for the existence and linear stability of the fixed point for the effective sharpness map defined in Eq. (18). 21 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+Consider the gradient descent update rule for the degenerate loss function L(x) = 1 
+
+> k
+
+xk (k ≥ 4 and even) with an exponentially increasing learning rate sequence: 
+
+xt+1 = xt − ηtxk−1 
+
+> t
+
+= (1 − ηtxk−2 
+
+> t
+
+)xt, (61) 
+
+ηt+1 = γη t, (γ > 1) . (62) 
+
+Reduction to a One-Dimensional Map. To analyze the long-term behavior of this coupled system, we introduce a dimensionless invariant, the effective sharpness , denoted as ut. This variable captures the interplay between the learning rate and the local Hessian geometry ( L′′ (x) ∝ xk−2): 
+
+ut := ηtxk−2 
+
+> t
+
+. (63) The dynamics of the optimization process are fully characterized by the evolution of ut. In the continuous limit (Lem. 5.5), the product η(t)x(t)k−2 remains O(1) , maintaining stable exponential convergence. However, in the discrete setting, stability depends on whether ut remains within the “contractive domain” (0 , 2) . If ut > 2, the step size exceeds the stability limit of the local curvature, leading to divergence. Substituting (61) and (62) into the definition of ut, we derive the recurrence relation: 
+
+ut+1 = ηt+1 (xt+1 )k−2 = ( γη t) · xt(1 − ηtxk−2 
+
+> t
+
+)k−2
+
+= γ(ηtxk−2 
+
+> t
+
+)(1 − ηtxk−2 
+
+> t
+
+)k−2.
+
+This transformation decouples the analysis from explicit time dependence, reducing the high-dimensional system (x, η ) to a one-dimensional fixed-point iteration map: 
+
+ut+1 = f (ut) = γu t(1 − ut)k−2. (64) We now analyze the dynamical properties of this discrete map. First, 0 is a trivial fixed point, which can be easily shown unstable. 
+
+i. Existence of the non-trivial Fixed Point. Let u∗ denote a non-zero fixed point of the map (64) . Setting ut+1 = ut = u∗,we obtain: 
+
+1 = γ(1 − u∗)k−2 =⇒ u∗ = 1 − γ− 1 
+
+> k−2
+
+. (65) For γ > 1, we have u∗ ∈ (0 , 1) . This implies that at equilibrium, the contraction factor (1 − u∗) lies in (0 , 1) , ensuring the monotonic convergence of the parameter xt.
+
+ii. Linear Stability Analysis. The fixed point u∗ is locally asymptotically stable if and only if the spectral radius of the map’s Jacobian at u∗ is less than unity: 
+
+|f ′(u∗)| < 1. (66) Differentiating f (u) with respect to u:
+
+f ′(u) = γ (1 − u)k−2 − u(k − 2)(1 − u)k−3
+
+= γ(1 − u)k−3 [1 − (k − 1) u] . (67) Evaluating at u∗ and utilizing the identity γ(1 − u∗)k−2 = 1 , we simplify the expression: 
+
+f ′(u∗) = 11 − u∗ [1 − (k − 1) u∗]. (68) Let μ = γ− 1 
+
+> k−2
+
+= 1 − u∗. Substituting μ yields: 
+
+f ′(u∗) = 1
+
+μ [1 − (k − 1)(1 − μ)] = 2 − kμ + ( k − 1) . (69) 22 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+iii. The Stability Threshold. Given k ≥ 4 and μ ∈ (0 , 1) , the upper bound condition f ′(u∗) < 1 simplifies to  
+
+> 2−kμ
+
++ k − 2 < 0, which is automatically satisfied. The stability is thus determined by the lower bound condition 
+
+f ′(u∗) > −1, which leads to: 
+
+2 − kμ + k − 1 > −1 = ⇒ k − 2
+
+μ < k =⇒ μ > k − 2
+
+k .
+
+Substituting μ = γ− 1 
+
+> k−2
+
+, we obtain the critical upper bound for the growth factor: 
+
+γ < γ crit := 
+
+ kk − 2
+
+k−2
+
+=
+
+
+
+1 + 2
+
+k − 2
+
+k−2
+
+. (70) 
+
+E. Intuitive Understanding of Decoupling between Second Moment vt and Squared Gradients g2
+
+> t
+
+Given that exponential learning rate scaling is a prerequisite for linear convergence on degenerate landscapes (as established in Lem. 5.5), we now investigate how adaptive algorithms naturally induce this scaling. The underlying mechanism relies on a dynamic decoupling between the second moment estimate vt and the instantaneous squared gradient g2 
+
+> t
+
+. Specifically, if the gradient signal decays faster than the memory decay rate of the optimizer, vt ceases to track g2 
+
+> t
+
+and instead follows its own inertial dynamics. To formalize this, we define the coupling ratio , R(v) 
+
+> t
+
+, which quantifies the relative magnitude of the optimizer’s accumulated state to the instantaneous signal: 
+
+R(v) 
+
+> t
+
+:= vt
+
+g2
+
+> t
+
+. (71) The evolution of this ratio determines whether the optimizer faithfully tracks the current landscape geometry (“Coupling”) or is dominated by historical inertia (“Decoupling”). 
+
+The Dynamics of Coupling Ratio. By substituting the update rule vt = β2vt−1 + (1 − β2)g2 
+
+> t
+
+into the definition of R(v) 
+
+> t
+
+,we derive the following recurrence relation: 
+
+R(v) 
+
+> t
+
+= β2
+
+vt−1
+
+g2
+
+> t
+
++ (1 − β2)= β2R(v)
+
+> t−1
+
+g2
+
+> t−1
+
+g2
+
+> t
+
++ (1 − β2) := 
+
+ β2
+
+ρt
+
+
+
+R(v) 
+
+> t−1
+
++ (1 − β2).
+
+Here, ρt := g2 
+
+> t
+
+/g 2 
+
+> t−1
+
+represents the local decay rate of the squared gradient. The dynamical behavior of the optimizer is governed by the competition between the signal decay ρt and the memory factor β2:• Coupled Phase ( ρt > β 2): The gradient signal decays slowly relative to the memory fading. The recurrence is dominated by the source term (1 − β2), ensuring that the state estimate accurately tracks the instantaneous geometry (vt ≈ g2 
+
+> t
+
+). • Decoupled Phase ( ρt < β 2): The signal vanishes faster than the optimizer’s forgetting rate. The inertial term 
+
+(β2/ρ t)R(v) 
+
+> t−1
+
+dominates (since β2/ρ t > 1), causing vt to disconnect from the gradient and enter a regime of autonomous exponential decay ( vt ≈ β2vt−1). 
+
+Triggering the Exponential Stage. Assuming standard initialization v0 = g20 , vt is initially tightly coupled with g2 
+
+> t
+
+, thus the early training dynamics approximate SignGD with a constant step size η. Consequently, the gradient decay rate ρt
+
+evolves as: 
+
+ρt =
+
+ xt
+
+xt−1
+
+2k−2
+
+≈
+
+ xt−1 − ηxt−1
+
+2k−2
+
+=
+
+
+
+1 − ηxt−1
+
+2k−2
+
+. (72) 
+
+Initially, for a small learning rate relative to the parameter magnitude ( η ≪ x0), we have ρt ≈ 1 > β 2, keeping the system in the Coupled Phase . However, as xt gets smaller, ρt decreases monotonically. Crucially, once the threshold is crossed such that ρt < β 2, the system undergoes a phase transition. vt enters the free-decay regime , scaling as vt ∝ βt
+
+> 2
+
+. According 23 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+to Lem. 5.5, this geometric decay of the denominator acts as an implicit exponential learning rate schedule, driving the parameter convergence at a linear rate determined by β2:
+
+|xt| ∝ β t 
+
+> 2( k−2)
+> 2
+
+=⇒ | gt| = |xt|k−1 ∝ β 
+
+> t(k−1) 2( k−2)
+> 2
+
+. (73) This explains why the parametric trajectory is initially attracted to the non-trivial fixed point corresponding to linear convergence, even though that fixed point is ultimately unstable. 
+
+Condition for Coupling of mt and gt. For this exponential convergence to be sustainable, a crucial asymmetry must be maintained: while vt must decouple to provide acceleration, the first moment mt must remain coupled to the gradient. This implies that mt must accurately track the direction and magnitude of the rapidly shrinking gradient gt rather than being dominated by stale historical momentum. Mathematically, this requires the decay factor of the gradient, denoted as 
+
+rt := gt/g t−1, to be slower (i.e., numerically larger) than the decay factor of the momentum history ( β1). The persistence condition is thus rt > β 1.Substituting the asymptotic decay rate of the gradient derived from the vt-driven exponential stage: 
+
+rt ≈ gt
+
+gt−1
+
+≈ β 
+
+> k−12( k−2)
+> 2
+
+. (74) Consequently, the boundary ensuring a persistent exponential convergence phase is given by: 
+
+β1 < β  
+
+> k−12( k−2)
+> 2
+
+. (75) If this condition is violated ( β1 > r t), mt decays slower than gt, causing the momentum term to dominate the update excessively. This prevents the formation of a stable exponential trajectory, pushing the system into Regime III (no exponential stage). However, sustained convergence necessitates local stability. Thus, while the condition in Eq. (75) induces a transient phase of linear convergence, the inherent instability of the fixed point eventually precipitates a spike (Regime II). True convergence is guaranteed only under the stricter condition β1 < β k 
+
+> 2( k−2)
+> 2
+
+(Regime I). 
+
+F. Quadratic Case Analysis 
+
+In this section, we provide the fixed point analysis of quadratic case: L(x) = 12 x2.
+
+F.1. Fixed Point Analysis 
+
+Similarly, consider Adam: 
+
+mt = β1mt−1 + (1 − β1)xk−1
+
+> t
+
+vt = β2vt−1 + (1 − β2)x2k−2
+
+> t
+
+xt+1 = xt − η · mt
+
+√vt
+
+Then we have: 
+
+xt+1 = (1 − η mt
+
+xt
+
+√vt
+
+)xt = (1 − η mt
+
+xk−1
+
+> t
+
+× xk−2
+
+> t
+
+√vt
+
+)xt
+
+For k = 2 , define 
+
+ωt = mt
+
+xk−1
+
+> t
+
+, λt = 1
+
+√vt
+
+.
+
+Similar to Eq. (5), for k = 2 , the iterative equation for the state variables is: 
+
+
+
+ωt+1 = β1ωt
+
+1 − ηω tλt
+
++ 1 − β1
+
+λt+1 = λt
+
+pβ2 + (1 − β2)( λtxt+1 )2
+
+xt+1 = (1 − ηω tλt)xt
+
+(76) 24 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+1. Calculation of Fixed Points. 
+
+Let the fixed point be denoted by (ω∗, λ ∗, x ∗). At a fixed point, the variables must satisfy (zt+1 = zt), yielding the following system: 
+
+ω∗ = β1ω∗
+
+1 − ηω ∗λ∗ + 1 − β1 (77) 
+
+λ∗ = λ∗
+
+pβ2 + (1 − β2)( λ∗x∗)2 (78) 
+
+x∗ = (1 − ηω ∗λ∗)x∗ (79) Step 1: Analyze Eq. (79) 
+
+x∗(1 − (1 − ηω ∗λ∗)) = 0 = ⇒ x∗(ηω ∗λ∗) = 0 
+
+Since we assume the learning rate η > 0, we have two cases: x∗ = 0 . x∗̸ = 0 , which implies ω∗λ∗ = 0 .Step 2: Analyze Eq. (78) 
+
+λ∗pβ2 + (1 − β2)( λ∗x∗)2 = λ∗
+
+This implies either λ∗ = 0 or pβ2 + (1 − β2)( λ∗x∗)2 = 1 .Assuming standard hyperparameters where β2 ∈ [0 , 1) : If λ∗̸ = 0 , then β2 +(1 −β2)( λ∗x∗)2 = 1 = ⇒ (1 −β2)( λ∗x∗)2 =1 − β2 =⇒ (λ∗x∗)2 = 1 . If λ∗ = 0 , the equation holds trivially (denominator is √β2̸ = 0 ). Step 3: Analyze Eq. (77) 
+
+ω∗(1 − β1
+
+1 − ηω ∗λ∗ ) = 1 − β1
+
+Combining constraints: 
+
+Case A ( x∗ = 0 ): From Eq. (78) , if x∗ = 0 , then λ∗ = λ∗/√β2. Since β2 < 1, this requires λ∗ = 0 . Substituting λ∗ = 0 
+
+into Eq. (77): 
+
+ω∗ = β1ω∗ + 1 − β1 =⇒ ω∗(1 − β1) = 1 − β1 =⇒ ω∗ = 1 
+
+This yields the fixed point P0 = (1 , 0, 0) .
+
+Case B ( x∗̸ = 0 ): From Step 1, we must have ω∗λ∗ = 0 . If λ∗ = 0 : Eq. (77) gives ω∗ = 1 . Eq. (78) is satisfied. If ω∗ = 0 :Eq. (77) gives 0 = 0 + 1 − β1 =⇒ β1 = 1 , which contradicts β1 < 1.This results in a line of fixed points (1 , 0, c ) for any c ∈ R.
+
+2. Local Stability Analysis 
+
+By calculation, the Jacobian matrix at the fixed point ω∗ = 1 , λ ∗ = 0 , x ∗ ∈ R is 
+
+M =
+
+
+
+1 ηβ 1 00 1√β2
+
+00 −ηx ∗ 1
+
+ .
+
+The eigenvalues of M are 1, 1, 1√β2
+
+. Since 1√β2
+
+> 1, the fixed point ω∗ = 1 , λ ∗ = 0 , x ∗ is unstable for each x∗ ∈ R.
+
+Therefore, for a quadratic loss, the Adam system possesses an unstable, trivial fixed point. Since the corresponding exponentially convergent fixed point does not exist, the system cannot converge and dose not have stable convergence Regime I. 
+
+25 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+F.2. Convergence Rate Estimation Before Loss Spikes 
+
+For RMSProp mt = gt, if we give the learning rate an exponential scaling mechanism, that is, η = β−t/ 22 , we will see that it achieves initial superlinear convergence on quadratic functions. However, due to the stability constraints imposed by discreteness, a loss spike will eventually occur. The stability analysis for k = 2 is: 
+
+xt+1 = xt − ηtxt = (1 − ηt · 1) xt,ηt+1 = γη t, (γ > 1) . (80) Thus this stability is necessarily unsatisfied and a spike necessarily occurs. The following continuous-time lemma describes the rate of superlinear convergence before the spike. 
+
+Lemma F.1 (Super-Linear Convergence via Exponential Learning Rate Schedule for k = 2 ). Under the setup of the strongly convex objective L(x) = 1 
+
+> k
+
+xk (k = 2 ), consider the gradient flow dynamics with a time-varying learning rate η(t):
+
+dx dt = −η(t)∇L(x) = −η(t)x. (81) 
+
+If the learning rate follows an exponential schedule η(t) = η0eαt with α > 0 and η0 > 0, then the solution x(t) exhibits asymptotic super-exponential (double exponential) convergence: 
+
+x(t) = x0 exp 
+
+ η0
+
+α
+
+
+
+exp 
+
+
+
+− η0
+
+α eαt 
+
+as t → ∞ . (82) 
+
+Proof. We employ the separation of variables method. Rewriting the differential equation: 
+
+dx x = −η0eαt dt. (83) Integrating both sides from the initial state x0 to x(t) (assuming x0, x (t) > 0 for simplicity, without loss of generality): 
+
+Z x(t)
+
+> x0
+
+1
+
+y dy = −η0
+
+Z t
+
+> 0
+
+eαs ds. (84) Computing the definite integrals. Note that for k = 2 , the integral of 1/y results in the natural logarithm, distinct from the power law form for k > 2:
+
+[ln y]x(t) 
+
+> x0
+
+= − η0
+
+α (eαt − 1) . (85) This simplifies to: 
+
+ln x(t) − ln x0 = − η0
+
+α (eαt − 1) . (86) Rearranging terms to solve for ln x(t):
+
+ln x(t) = ln x0 + η0
+
+α − η0
+
+α eαt . (87) Exponentiating both sides to retrieve x(t):
+
+x(t) = exp 
+
+
+
+ln x0 + η0
+
+α
+
+
+
+exp 
+
+
+
+− η0
+
+α eαt 
+
+. (88) Defining the constant coefficient C = x0eη0/α , we obtain: 
+
+x(t) = C exp 
+
+
+
+− η0
+
+α eαt 
+
+. (89) As t → ∞ , the term inside the exponent grows exponentially, driving x(t) to zero at a super-exponential rate, significantly faster than the linear convergence observed in the constant learning rate case or the k ≥ 4 case. However, with the introduction of the Adam momentum mechanism, if gt decays too quickly (exceeding the exponential rate β1), mt will be bottlenecked by its own memory , so the initial convergence before spike of the quadratic function is still linear. 26 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+Lemma F.2 (Momentum-Limited Convergence under Exponential Schedule for k = 2 ). Consider the quadratic objective L(x) = 12 x2 optimized by continuous-time gradient descent with momentum. The dynamics are governed by the system: 
+
+˙m = −(1 − β1)m + (1 − β1)x, (90) 
+
+˙x = −η(t)m, (91) 
+
+where 1 − β1 > 0 represents the friction coefficient. Assume 1 − β1 > α . If the learning rate grows exponentially as 
+
+η(t) = η0eαt (with α > 0), the parameter x(t) does not achieve super-exponential convergence. Instead, the convergence is asymptotically bounded by an exponential envelope determined by the momentum decay and the schedule growth rate: 
+
+|x(t)| ≲ C exp 
+
+
+
+− (1 − β1) − α/ 22 t
+
+
+
+. (92) 
+
+This indicates that the ”memory” of the momentum term acts as a bottleneck, restricting the system to linear convergence (exponential in time) despite the exponentially growing learning rate. Proof. We reduce the system of two first-order ODEs to a single second-order ODE governing x(t).From Eq. (91) , we have 
+
+m = − ˙xη(t) . Differentiating this with respect to time yields: 
+
+˙m = − ¨xη (t) − ˙x ˙η(t)
+
+η(t)2 = − ¨xη(t) + ˙η(t)
+
+η(t)˙xη(t) . (93) Let λ = 1 − β1. Substituting expressions for m and ˙m into Eq. (90): 
+
+− ¨xη + ˙ηη
+
+˙xη = −λ
+
+
+
+− ˙xη
+
+
+
++ λx. (94) Multiplying through by −η(t) and rearranging terms: 
+
+¨x +
+
+
+
+λ − ˙ηη
+
+
+
+˙x + λη (t)x = 0 . (95) Substituting the schedule η(t) = η0eαt , we have ˙ηη = α. The dynamics simplify to a damped harmonic oscillator with time-varying stiffness: 
+
+¨x + ( λ − α) ˙ x + ω2(t)x = 0 , (96) where the effective stiffness is ω2(t) = λη 0eαt . This equation describes an oscillator where the restoring force grows exponentially, but the damping coefficient (λ − α) is constant. For stability, we assume λ > α (momentum decay is faster than LR growth).To analyze the asymptotic behavior as t → ∞ , we employ the Liouville-Green (WKB) approximation. For an equation of the form ¨x + γ ˙x + ω2(t)x = 0 with slowly varying or monotonic ω(t), the asymptotic solution is given by: 
+
+x(t) ≈ C
+
+pω(t) exp 
+
+
+
+− γ
+
+2 t
+
+
+
+cos 
+
+Z 
+
+ω(s)ds + ϕ
+
+
+
+. (97) In our case, γ = λ − α and ω(t) ∝ eαt/ 2. Thus, the amplitude envelope A(t) evolves as: 
+
+A(t) ∝ (eαt/ 2)−1/2 · exp 
+
+
+
+− λ − α
+
+2 t
+
+
+
+(98) 
+
+= e−αt/ 4 · e− λ    
+
+> 2t+α
+> 2t
+
+(99) 
+
+= exp 
+
+
+
+− λ − α
+
+> 2
+
+2 t
+
+
+
+. (100) Substituting λ = 1 − β1, the decay rate is governed by the exponent (1 −β1)−α/ 22 . Crucially, this expression is linear in 
+
+t, implying standard exponential convergence. The momentum term prevents the trajectory from following the super-exponential acceleration that would occur in the memoryless setting. 27 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+F.3. Empirical Verification of Convergence Rates on Quadratic Loss 
+
+Figure 9 illustrates the training dynamics of Adam and RMSProp on the simple quadratic objective L(x) = 12 x2. As shown in Figure 9(a), RMSProp exhibits superlinear convergence prior to the occurrence of the loss spike. In contrast, Adam maintains a stable linear convergence, with a decay rate that aligns precisely with the theoretical slope of (1 −β1)−α/ 22 , where 
+
+α = − 12 ln( β2).Figures 9(b) and (c) analyze the relationship between the second moment estimate vt and the squared gradient g2 
+
+> t
+
+during the training of RMSProp and Adam, respectively. It is evident that g2 
+
+> t
+
+decays significantly faster than vt. Consequently, vt
+
+decouples from the gradient and enters a regime of free decay, evolving as vt ≈ β2vt−1.Figure 9(d) depicts the evolution of the first moment (momentum) and the raw gradient during Adam training. Unlike the second moment, the first moment remains tightly coupled with the gradient throughout the optimization process. 0 1000 2000 3000 4000              
+
+> Epoch
+> 10 200
+> 10 171
+> 10 142
+> 10 113
+> 10 84
+> 10 55
+> 10 26
+> Loss
+> -0.1027
+> L(x) = 12x2(Adam)
+> L(x) = 12x2(RMSProp)
+> Exp fit (slope=-0.1027)
+
+(a) Loss 0 1000 2000 3000 4000          
+
+> Epoch
+> 10 275
+> 10 226
+> 10 177
+> 10 128
+> 10 79
+> 10 30
+> vt and  g2
+> t
+> -0.0101
+> g2
+> t(RMSProp)
+> vt(RMSProp)
+> Exp fit (slope=-0.0101)
+
+(b) RMSProp vt and g2            
+
+> t01000 2000 3000 4000
+> Epoch
+> 10 62
+> 10 51
+> 10 40
+> 10 29
+> 10 18
+> 10 7
+> vt and  g2
+> t
+> -0.0101
+> g2
+> t(Adam)
+> vt(Adam)
+> Exp fit (slope=-0.0101)
+
+(c) Adam vt and g2           
+
+> t01000 2000 3000 4000
+> Epoch
+> 10 32
+> 10 26
+> 10 20
+> 10 14
+> 10 8
+> 10 2
+> mt and  gt
+> |gt| (Adam)
+> |mt| (Adam)
+
+(d) Adam |gt| and |mt|
+
+Figure 9. Training dynamics on quadratic loss L(x) = 12 x2. (a) Loss curves for Adam and RMSProp. (b-c) Comparison of second moment vt and squared gradient g2 
+
+> t
+
+for RMSProp and Adam. (d) Comparison of first moment mt and gradient gt for Adam. 
+
+Below, we present the experimental phase diagram of Adam hyperparameters for quadratic loss. 
+
+Experiment settings The initialization is set as x0 = 1 .005 with a learning rate of η = 0 .01 , while β1 and β2 are sampled from a uniform 50 × 50 grid spanning the region [0 .01 , 0.99) 2. Using this initialization and learning rate is to avoid the case where signGD ( β1 = β2 = 0 ) identifies the exact minimum. Observed column-wise, the minimum loss increases as β2 decreases for a fixed β1. This phenomenon aligns with the findings in (Bai et al., 2025): a larger β2 induces a lagged response of vt to g2 
+
+> t
+
+. Specifically, while gt may decrease to a smaller value, vt remains relatively large due to this delay. This sustained magnitude ensures that the preconditioner does not exceed its threshold, thereby allowing the model to reach a lower loss. Observed row-wise, with β2 held constant, the minimum loss gradually increases as β1 increases. A larger β1 elevates 28 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 0.010 0.250 0.490 0.730 0.990         
+
+> Second moment decay 2
+> 0.010
+> 0.250
+> 0.490
+> 0.730
+> 0.990
+> First moment decay  1
+> 10 20
+> 10 17
+> 10 14
+> 10 11
+> 10 8
+> 10 5
+> 10 2
+
+(a) Minimum Loss min t L(xt)0.010 0.250 0.490 0.730 0.990          
+
+> Second moment decay 2
+> 0.010
+> 0.250
+> 0.490
+> 0.730
+> 0.990
+> First moment decay  1
+> 10 20
+> 10 17
+> 10 14
+> 10 11
+> 10 8
+> 10 5
+> 10 2
+
+(b) Final Loss L(xT )0.010 0.250 0.490 0.730 0.990  
+
+> Second moment decay 2
+> 0.010
+> 0.250
+> 0.490
+> 0.730
+> 0.990
+> First moment decay  1
+> 10 0
+> 10 5
+> 10 10
+> 10 15
+> 10 20
+> 10 25
+> 10 30
+> 10 35
+> 10 40
+
+(c) Coupling Ratio max t vt     
+
+> g2
+> t0.010 0.250 0.490 0.730 0.990
+> Second moment decay 2
+> 0.010
+> 0.250
+> 0.490
+> 0.730
+> 0.990
+> First moment decay  1
+> 10 0
+> 10 5
+> 10 10
+> 10 15
+> 10 20
+> 10 25
+> 10 30
+> 10 35
+> 10 40
+
+(d) Final Coupling Ratio vT
+
+> g2
+> T
+
+Figure 10. Empirical phase diagrams of Adam optimizing f (x) = x2 
+
+> 2
+
+. A sliding average filter with a window size of 100 is applied to smooth numerical fluctuations. (a) and (b) show the minimum and final loss of the optimization process, respectively. (c) and (d) display the maximum and final values of the ratio vt
+
+> g2
+> t
+
+.
+
+the preconditioning threshold. Assuming the initial scale and decay rate of vt are identical (given a fixed β2), a larger β1
+
+results in a delayed spike. However, a larger β1 also increases the scale of overshooting and causes it to occur earlier in the optimization phase. This is evidenced by the earlier appearance of small-scale oscillations in the loss curve. In this scenario, the momentum causes overshooting before the loss can reach lower levels. 
+
+G. Supplementary Experiments 
+
+In this section, we present additional experimental results that complement the findings in the main text. 
+
+G.1. Zoom-in Analysis of the Phase Diagram 
+
+The stability conditions derived in Theorem 4.1 define the boundaries of the convergence region. Figure 11 provides the theoretical and empirical phase diagrams for the case k = 6 , showing consistent alignment between theory and experiment. For the case k = 4 , the theoretical stability region (where the spectral radius ρ(J) < 1) is primarily governed by the inequality β1 < β k 
+
+> 2( k−2)
+> 2
+
+, which simplifies to β1 < β 2. However, a secondary constraint appears in the lower-left corner 29 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 
+
+(small β1 and β2), as shown in Figure 12(a) and magnified in Figure 12(b). Figures 12(c) and (d) display the heatmaps of the final training loss for the main region and the zoomed-in lower-left region, respectively. In the main region, the theoretical boundary for local stability aligns precisely with the experimental convergence boundary. However, discrepancies emerge in the lower-left corner: the experiments indicate that the loss may still converge in regions theoretically classified as locally unstable. 0.2 0.4 0.6 0.8 
+
+> 2
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1
+> Spectral Radius Stability Region (k=6, eta=0.1)
+> Spectral radius < 1
+> Spectral radius > 1
+
+(a) Theoretical Phase Diagram 0.0 0.2 0.4 0.6 0.8 
+
+> Beta 2 (Second Moment Decay)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Beta 1 (First Moment Decay)
+
+Adam learning x^6  
+
+> spectral radius equal to 1
+> 200
+> 180
+> 160
+> 140
+> 120
+> 100
+> 80
+> 60
+> Log10(Final Loss)
+
+(b) Empirical Phase Diagram 
+
+Figure 11. Phase diagrams for degree k = 6 . (a) Theoretical convergence region partitioned by the stability conditions in Eq. (8) . (b) Experimental validation using Adam on L(x) = 16 x6 (x0 = 1 .0, η = 0 .001 ). The heatmap displays the final training loss after 100 , 000 
+
+steps. 
+
+Figure 13 elucidates the mechanism behind this discrepancy. We fix β1 = 0 .001 and vary β2 to observe the transition in dynamics: • Stable Region: When β2 is sufficiently large, the loss exhibits smooth linear convergence (Figure 13(a)). • Period-Doubling: As β2 decreases, the fixed point becomes unstable, leading to period-doubling bifurcations and chaos. However, as long as the effective sharpness satisfies ut < 2/η , the system remains bounded and converges, characterized by “sawtooth” fluctuations in the loss curve (Figure 13(b)). • Instability: Further decreasing β2 leads to different behaviors depending on the existence of non-trivial fixed points. The system may exhibit transient linear convergence followed by a spike or pure oscillation (Figure 13(c)). Figures 13(d) and (e) plot the bifurcation diagrams of the effective sharpness ut over 500 steps. For low momentum (β1 = 0 .001 ), even after the fixed point loses stability, the system undergoes a period-doubling route to chaos while maintaining ut < 2/η , allowing for convergence. In contrast, for high momentum ( β1 = 0 .9), the onset of instability causes 
+
+ut to immediately exceed the 2/η threshold, preventing convergence. 
+
+G.2. Experiment settings Fig. 15(c) A two-layer neural network trained on the MNIST dataset using Cross-Entropy Loss. The architecture employs different activation ReLU and Softmax . The learning rate is ranging from [0 .0005 , 0.001 , 0.005 , 0.01 , 0.05 , 0.1, 0.5] .
+
+Fig. 15(f) The Transformer model is GPT-2 trained on a subset split from the SlimPajama dataset. The learning rate is ranging from [0 .00005 , 0.0001 , 0.0005 , 0.001 , 0.005] . The optimal learning rate is 0.001 for both Adam and SGD. The CNN model comprises two convolutional layers and is trained on the CIFAR-10 dataset. The learning rate is ranging from 
+
+[0 .0005 , 0.001 , 0.005 , 0.01 , 0.05 , 0.1] . The optimal learning rate is 0.005 for Adam and 0.05 for SGD. 30 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
+
+Second moment decay 2
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+0.6 
+
+0.7 
+
+0.8 
+
+0.9 
+
+1.0    
+
+> First moment decay  1
+> Stable Region r(J) < 1
+> Unstable Region r(J) > 1
+> Boundary r(J) = 1
+
+(a) Main Region Theory 0.00 0.02 0.04 0.06 0.08 0.10 
+
+Second moment decay 2
+
+0.00 
+
+0.02 
+
+0.04 
+
+0.06 
+
+0.08 
+
+0.10      
+
+> First moment decay  1
+> Intersection
+> 0.005
+> Intercept
+> 2= 0.0625
+> Stable Region r(J) < 1
+> Unstable Region r(J) > 1
+> Boundary r(J) = 1
+
+(b) Lower-Left Zoom Theory 0.010 0.252 0.494 0.737 0.999 
+
+Second moment decay 2
+
+0.010 
+
+0.252 
+
+0.494 
+
+0.737 
+
+0.999 
+
+> First moment decay  1
+
+10 300 
+
+10 266 
+
+10 232 
+
+10 198 
+
+10 164 
+
+10 130 
+
+10 96 
+
+10 62 
+
+10 28 
+
+(c) Main Region Empirical 0.0010 0.0252 0.0495 0.0737 0.1000 
+
+Second moment decay 2
+
+0.0010 
+
+0.0252 
+
+0.0495 
+
+0.0737 
+
+0.1000 
+
+> First moment decay  1
+
+10 300 
+
+10 266 
+
+10 232 
+
+10 198 
+
+10 164 
+
+10 130 
+
+10 96 
+
+10 62 
+
+10 28 (d) Lower-Left Zoom Empirical 
+
+Figure 12. Zoom-in analysis for k = 4 . (a) Theoretical stability boundary for the full parameter range. (b) Magnified theoretical boundary for the lower-left corner ( β2 ∈ [0 , 0.1] ). (c-d) Corresponding experimental loss heatmaps. Note the convergence observed in theoretically unstable areas in (d). 
+
+31 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 0 100 200 300 400             
+
+> Epoch
+> 10 273
+> 10 224
+> 10 175
+> 10 126
+> 10 77
+> 10 28
+> Loss
+> 1= 0.001, 2= 0.07
+> 1= 0.001, 2= 0.09
+
+(a) Large β2 (Stable) 0 50 100 150 200 250 300              
+
+> Epoch
+> 10 273
+> 10 224
+> 10 175
+> 10 126
+> 10 77
+> 10 28
+> Loss
+> 1= 0.001, 2= 0.025
+> 1= 0.001, 2= 0.02
+
+(b) Medium β2 (Period Doubling) 0 50 100 150 200              
+
+> Epoch
+> 10 17
+> 10 14
+> 10 11
+> 10 8
+> 10 5
+> 10 2
+> Loss
+> 1= 0.001, 2= 0.01
+> 1= 0.001, 2= 0.001
+
+(c) Small β2 (Unstable) 
+
+(d) Bifurcation ( β1 = 0 .001 ) (e) Bifurcation ( β1 = 0 .9)
+
+Figure 13. Dynamics and Bifurcation Analysis. (a-c) Loss trajectories for fixed β1 = 0 .001 with decreasing β2. (d-e) Bifurcation diagrams of effective sharpness ut versus β2. The blue dashed line indicates the stability threshold 2/η . Low β1 allows the system to remain bounded (below threshold) despite local instability, whereas high β1 leads to immediate divergence. 
+
+32 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 0 200 400 600 800 1000 
+
+Epoch 
+
+10 280 
+
+10 237 
+
+10 194 
+
+10 151 
+
+10 108 
+
+10 65 
+
+10 22 
+
+> Loss  -3.2189
+
+Loss 
+
+L( /2) 
+
+xt
+
+± /2 
+
+10 1
+
+10 100 
+
+10 200 
+
+10 280 
+
+0 10 280 
+
+10 200 
+
+10 100 
+
+10 1
+
+> Parameter  xt
+> -0.8047
+
+(a) β1 = 0 .03 , β 2 = 0 .04 0 50 100 150 200 
+
+Epoch 
+
+10 100 
+
+10 84 
+
+10 68 
+
+10 52 
+
+10 36 
+
+10 20 
+
+10 4
+
+> Loss  -3.5859
+
+Loss 
+
+L( /2) 
+
+xt
+
+± /2 
+
+10 1
+
+10 10 
+
+10 20 
+
+10 30 
+
+0
+
+10 30 
+
+10 20 
+
+10 10 
+
+10 1 
+
+> Parameter  xt
+> -0.8882
+
+(b) β1 = 0 .03 , β 2 = 0 .029 0 25 50 75 100 125 150 
+
+Epoch 
+
+10 11 
+
+10 9
+
+10 7
+
+10 5
+
+10 3
+
+10 1
+
+> Loss
+
+Loss 
+
+L( /2) 
+
+xt
+
+± /2 
+
+10 1
+
+10 10 
+
+10 20 
+
+10 30 
+
+0
+
+10 30 
+
+10 20 
+
+10 10 
+
+10 1 
+
+> Parameter  xt
+
+(c) β1 = 0 .03 , β 2 = 0 .0001 0 200 400 600 800 1000 
+
+Epoch 
+
+10 280 
+
+10 237 
+
+10 194 
+
+10 151 
+
+10 108 
+
+10 65 
+
+10 22 
+
+> Second Moment  vt and  g2
+> t
+> -3.2189
+> -4.8283
+
+g2
+
+> t
+
+vt
+
+Exp fit (slope=-3.2189) 
+
+Exp fit (slope=-4.8283)       
+
+> 0200 400 600 800 1000
+> Epoch
+> 10 0
+> 10 1
+> 10 2
+> t t
+> tt
+> 2/
+
+(d) β1 = 0 .03 , β 2 = 0 .04 0 50 100 150 200 
+
+Epoch 
+
+10 150 
+
+10 127 
+
+10 104 
+
+10 81 
+
+10 58 
+
+10 35 
+
+10 12 
+
+> Second Moment  vt and  g2
+> t
+
+-3.5405 
+
+-5.4979 
+
+g2
+
+> t
+
+vt150 160 170 180 190 200   
+
+> Epoch
+> 10 2
+> 10 5
+> 10 8
+> 10 11
+> 10 14
+> t t
+> tt
+> 2/
+
+(e) β1 = 0 .03 , β 2 = 0 .029 0 20 40 60 80 100 120 140 
+
+Epoch 
+
+10 15 
+
+10 12 
+
+10 9
+
+10 6
+
+10 3
+
+10 0
+
+> Second Moment  vt and  g2
+> t
+
+g2
+
+> t
+
+vt         
+
+> 90 100 110 120 130 140 150
+> Epoch
+> 10 2
+> 10 0
+> 10 2
+> 10 4
+> 10 6
+> 10 8
+> t t
+> tt
+> 2/
+
+(f) β1 = 0 .03 , β 2 = 0 .0001 1.2 1.3 1.4 1.5 1.6 1.7 
+
+> t
+> 350
+> 360
+> 370
+> 380
+> 390
+> 400
+> 410
+> t
+> Trajectory
+> Stable Fixed Point
+> 50
+> 100
+> 150
+> 200
+> 250
+> Magnitude of update
+
+(g) β1 = 0 .03 , β 2 = 0 .04 1 2 3 4 5 
+
+> t
+> 0
+> 100
+> 200
+> 300
+> 400
+> 500
+> 600
+> 700
+> t
+> Trajectory
+> Unstable Fixed Point
+> 50000
+> 100000
+> 150000
+> 200000
+> Magnitude of update
+
+(h) β1 = 0 .03 , β 2 = 0 .029 1 2 3 4 5 
+
+> t
+> 100
+> 200
+> 300
+> 400
+> 500
+> 600
+> 700
+> t
+> No Fixed Point
+> 50000
+> 100000
+> 150000
+> 200000
+> 250000
+> 300000
+> 350000
+> 400000
+> Magnitude of update
+
+(i) β1 = 0 .03 , β 2 = 0 .0001 
+
+Figure 14. Three distinct dynamical regimes of Adam on the degenerate objective L(x) = 14 x4 with learning rate η = 0 .01 . Top Row: Evolution of training loss (red, left axis) and parameter trajectory xt (blue, right axis). The text online shows the slope of the exponential fit. Middle Row: Evolution of the second moment estimate vt versus the squared gradient g2
+
+t . Insets display the evolution of the stability metric ωtλt relative to the theoretical threshold 2/η . Bottom Row: Vector fields of ω and λ; purple lines represent evolutionary trajectories. (Left Column) Regime I: Stable Exponential Convergence. vt completely decouples from g2
+
+t , facilitating stable exponential acceleration. (Middle Column) Regime II: Exponential Convergence followed by Spike. vt initially decouples, driving acceleration. However, the stability condition is persistently violated ( ωtλt > 2/η ) due to response lag, triggering a violent loss spike. (Right Column) Regime III: SignGD-like Oscillation. vt tracks g2
+
+t closely (tight coupling), preventing the exponential convergence phase. Violations of the stability threshold ( ωtλt > 2/η ) trigger an instantaneous correction, resulting in oscillations. 
+
+33 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 0 500 1000 1500 2000  
+
+> 10 1
+> 10 0
+
+3. Best Loss Comparison 
+
+> Best SGD (LR=0.01)
+> Best Adam (LR=0.001)
+
+(a) Two-layer FNN ReLU 0 500 1000 1500 2000 
+
+> 10 0
+
+3. Best Loss Comparison  
+
+> Best SGD (LR=0.1)
+> Best Adam (LR=0.005)
+
+(b) Two-layer FNN Softmax 10 0 0 10 0   
+
+> Eigenvalue
+> 10 6
+> 10 3
+> 10 0
+> 10 3
+> Eigenvalue density
+> Softmax/MLP
+> ReLU/MLP
+
+(c) Spectral Distribution 0 10 20 30 40 50  
+
+> 1.0
+> 1.2
+> 1.4
+> 1.6
+> 1.8
+> 2.0 Adam
+> SGD
+
+(d) CNN 0 200 400 600 800 1000   
+
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 11 Adam
+> SGD
+
+(e) Transformers 10 2 0 10 2   
+
+> Eigenvalue
+> 10 6
+> 10 3
+> 10 0
+> 10 3
+> Eigenvalue density
+> Transformers
+> CNN
+
+(f) Spectral Distribution 
+
+Figure 15. Evolution of training loss across different architectures and optimizers, using learning rates tuned for optimal performance. (a, d) Adam and SGD perform comparably on the two-layer FNN with ReLU and the CNN. (b, e) Adam outperforms SGD on the two-layer FNN with Softmax and Transformers. (c, f) Hessian spectral densities of different model architectures at initialization. The densities are smoothed using KDE. (c) A two-layer FNN on MNIST with Softmax (blue) and ReLU (orange) activations. (f) GPT-2 (blue) and a two-layer CNN on CIFAR-10 (orange). 
+
+34 Towards Understanding Adam Convergence on Highly Degenerate Polynomials 0 500 1000 1500 2000 
+
+Steps (x50 batches) 
+
+10 1
+
+10 0
+
+> Loss (Log Scale)
+
+1. SGD Loss (All LRs) 
+
+LR=0.0005 
+
+LR=0.001 
+
+LR=0.005 
+
+LR=0.01 
+
+LR=0.05 
+
+LR=0.1 
+
+LR=0.5 
+
+0 500 1000 1500 2000 
+
+Steps (x50 batches) 
+
+10 1
+
+10 0
+
+10 1
+
+10 2
+
+10 3
+
+> Loss (Log Scale)
+
+2. Adam Loss (All LRs) 
+
+LR=0.0005 
+
+LR=0.001 
+
+LR=0.005 
+
+LR=0.01 
+
+LR=0.05 
+
+LR=0.1 
+
+LR=0.5 
+
+0 500 1000 1500 2000 
+
+10 1
+
+10 0
+
+3. Best Loss Comparison 
+
+Best SGD (LR=0.01) 
+
+Best Adam (LR=0.001) 
+
+0 500 1000 1500 2000 
+
+Steps (x50 batches) 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy (0-1)
+
+4. SGD Accuracy (All LRs) 
+
+LR=0.0005 
+
+LR=0.001 
+
+LR=0.005 
+
+LR=0.01 
+
+LR=0.05 
+
+LR=0.1 
+
+LR=0.5 
+
+0 500 1000 1500 2000 
+
+Steps (x50 batches) 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy (0-1)
+
+5. Adam Accuracy (All LRs) 
+
+LR=0.0005 
+
+LR=0.001 
+
+LR=0.005 
+
+LR=0.01 
+
+LR=0.05 
+
+LR=0.1 
+
+LR=0.5 
+
+0 500 1000 1500 2000 
+
+0.70 
+
+0.75 
+
+0.80 
+
+0.85 
+
+0.90 
+
+0.95 
+
+1.00 
+
+6. Best Accuracy Comparison 
+
+Best SGD (LR=0.01) 
+
+Best Adam (LR=0.001) 
+
+(a) ReLU 0 500 1000 1500 2000 
+
+Steps (x50 batches) 
+
+10 0
+
+6 × 10 1
+
+2 × 10 0
+
+3 × 10 0
+
+> Loss (Log Scale)
+
+1. SGD Loss (All LRs) 
+
+LR=0.0005 
+
+LR=0.001 
+
+LR=0.005 
+
+LR=0.01 
+
+LR=0.05 
+
+LR=0.1 
+
+LR=0.5 
+
+0 500 1000 1500 2000 
+
+Steps (x50 batches) 
+
+10 0
+
+> Loss (Log Scale)
+
+2. Adam Loss (All LRs) 
+
+LR=0.0005 
+
+LR=0.001 
+
+LR=0.005 
+
+LR=0.01 
+
+LR=0.05 
+
+LR=0.1 
+
+LR=0.5 
+
+0 500 1000 1500 2000 
+
+10 0
+
+3. Best Loss Comparison 
+
+Best SGD (LR=0.1) 
+
+Best Adam (LR=0.005) 
+
+0 500 1000 1500 2000 
+
+Steps (x50 batches) 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy (0-1)
+
+4. SGD Accuracy (All LRs) 
+
+LR=0.0005 
+
+LR=0.001 
+
+LR=0.005 
+
+LR=0.01 
+
+LR=0.05 
+
+LR=0.1 
+
+LR=0.5 
+
+0 500 1000 1500 2000 
+
+Steps (x50 batches) 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy (0-1)
+
+5. Adam Accuracy (All LRs) 
+
+LR=0.0005 
+
+LR=0.001 
+
+LR=0.005 
+
+LR=0.01 
+
+LR=0.05 
+
+LR=0.1 
+
+LR=0.5 
+
+0 500 1000 1500 2000 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+6. Best Accuracy Comparison 
+
+Best SGD (LR=0.1) 
+
+Best Adam (LR=0.005) 
+
+(b) Softmax 
+
+Figure 16. Raw loss curves of a two-layer FNN trained with Adam and SGD across various learning rates. (a) ReLU activation. (b) Softmax activation. 
+
+35

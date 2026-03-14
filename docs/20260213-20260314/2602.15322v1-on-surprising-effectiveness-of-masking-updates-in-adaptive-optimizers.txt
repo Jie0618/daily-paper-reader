@@ -1,0 +1,2274 @@
+Title: On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+URL Source: https://arxiv.org/pdf/2602.15322v1
+
+Published Time: Wed, 18 Feb 2026 01:30:28 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+> 2026-02-16
+
+# On Surprising Effectiveness of Masking Updates in Adaptive Optimizers 
+
+Taejong Joo 1,* , Wenhan Xia 2, Cheolmin Kim 2, Ming Zhang 2 and Eugene Ie 2  
+
+> 1Northwestern University, 2Google, *Work done while the author was a Student Researcher at Google.
+
+Training large language models (LLMs) relies almost exclusively on dense adaptive optimizers with increasingly sophisticated preconditioners. We challenge this by showing that randomly masking parameter updates can be highly effective, with a masked variant of RMSProp consistently outperforming recent state-of-the-art optimizers. Our analysis reveals that the random masking induces a curvature-dependent geometric regularization that smooths the optimization trajectory. Motivated by this finding, we introduce M omentum- aligned g radient ma sking (Magma), which modulates the masked updates using momentum-gradient alignment. Extensive LLM pre-training experiments show that Magma is a simple drop-in replacement for adaptive optimizers with consistent gains and negligible computational overhead. Notably, for the 1B model size, Magma reduces perplexity by over 19% and 9% compared to Adam and Muon, respectively. 
+
+Algorithm 1 SkipUpdate SkipUpdate SkipUpdate and Magma Magma Magma . 
+
+Input: Parameters {𝜃 (𝑏 ) 
+
+> 𝑡
+
+}𝐵 𝑏 =1, Stochastic gradients 
+
+{𝒈 (𝑏 ) 
+
+> 𝑡
+
+}𝐵 𝑏 =1, Updates from a base optimizer {Δ(𝑏 ) 
+
+> 𝑡
+
+}𝐵 𝑏 =1, First-moment estimates {𝜇 (𝑏 ) 
+
+> 𝑡
+
+}𝐵 𝑏 =1
+
+for Each block 𝑏 ∈ [ 𝐵 ] do 
+
+𝑠 (𝑏 ) 
+
+> 𝑡
+
+= 2 (SkipUpdate) (SkipUpdate) (SkipUpdate) 
+
+˜𝑠 (𝑏 ) 
+
+> 𝑡
+
+= sigmoid (cossim (𝜇 (𝑏 ) 
+
+> 𝑡
+
+, 𝒈 (𝑏 ) 
+
+> 𝑡
+
+)/ 𝜏 )
+
+𝑠 (𝑏 ) 
+
+> 𝑡
+
+= 0.9𝑠 (𝑏 ) 
+
+> 𝑡 −1
+
++ 0.1˜ 𝑠 (𝑏 ) 
+
+> 𝑡
+
+(Magma) (Magma) (Magma) 
+
+𝑚 (𝑏 ) 
+
+> 𝑡
+
+∼ Bernoulli (0.5)
+
+𝜃 (𝑏 ) 
+
+> 𝑡 +1
+
+= 𝜃 (𝑏 ) 
+
+> 𝑡
+
+− 𝑠 (𝑏 ) 
+
+> 𝑡
+
+𝑚 (𝑏 ) 
+
+> 𝑡
+
+Δ(𝑏 )
+
+> 𝑡
+
+end for 
+
+## 1. Introduction 
+
+The availability of dense gradients from a single backward pass in backpropagation (Rumelhart et al., 1986) enables efficient simultaneous pa-rameter updates. This efficiency has made dense adaptive optimizers like Adam (Kingma and Ba, 2015) the de facto standard for large-scale LLM training. In contrast, this reliance on dense gradi-ents creates a structural mismatch with sparse up-date strategies, such as coordinate descent (Nes-terov, 2012; Nutini et al., 2017; Wright, 2015). Consequently, despite their strong performance on the highly nonsmooth optimization problems common in LLM training, sparse methods are rarely used in this setting. 
+
+Figure 1 | Pre-training performance on C4 across model scales. Despite discarding half of updates, SkipUpdate yields substantial improvements over state-of-the-art dense optimizers. In this work, we challenge this prevailing paradigm with a counter-intuitive empirical find-ing: we observe that optimization performance can be substantially improved by randomly mask-ing gradient updates . Specifically, we study a vari-ant of RMSProp (Tieleman and Hinton, 2012) in which entire parameter blocks are randomly masked at each iteration following a Bernoulli distribution. When a block is masked, its pa-rameter update is skipped for that step; however, moment estimates are still updated densely, and surviving updates are appropriately rescaled to preserve unbiasedness (cf. SkipUpdate in Algo-rithm 1). From a classical convergence analysis  
+
+> Corresponding author(s): taejong.joo@northwestern.edu, cheolmin@google.com
+> ©2026 Google. All rights reserved
+> arXiv:2602.15322v1 [cs.LG] 17 Feb 2026 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+perspective, such random masking would yield a worse worst-case convergence guarantee due to increased stochastic noise in the updates (cf. §5). Further, each parameter effectively receives fewer updates per iteration while the computa-tional cost of gradient computation via backprop-agation remains unchanged. However, despite discarding half of the updates, SkipUpdate con-sistently outperforms dense optimizers, including the recent state-of-the-art optimizer Muon (Jor-dan et al., 2024), which incorporates sophisti-cated curvature information, across model scales (Figure 1). To explain the effectiveness of SkipUpdate, we analyze its geometric regularization effect. Specif-ically, we show that block-wise masking induces a curvature-dependent geometric regularization, penalizing updates that align with sharp direc-tions of the loss within each parameter block. This effect smooths the optimization trajectory and bi-ases the algorithm toward flatter regions of the loss landscape, which are empirically associated with improved generalization in deep networks (Hochreiter and Schmidhuber, 1997; Jastrzkebski et al., 2017; Keskar et al., 2016). Importantly, this regularization emerges implicitly from stochastic noise in the update rule, rather than from explicit curvature computation. We further investigate whether stochastic mask-ing can be made more effective by exploiting in-formation already present in adaptive optimiz-ers. We find that modulating the masked up-dates based on the cosine similarity between the stochastic gradient and the first moment estimate leads to substantial gains. This mechanism prior-itizes momentum-consistent updates by suppress-ing updates not consistent with the accumulated direction of the gradient. This yields M omentum-a ligned g radient ma sking (Magma) that con-sistently outperforms both adaptive optimizers and SkipUpdate. Notably, Magma’s effectiveness increases with model size, consistent with larger models exhibiting more challenging optimization landscapes that require stronger geometric regu-larization. Our contributions are: (i) Methodological: 
+
+Magma is a simple optimizer wrapper that im-proves training stability with improved gener-alization under the peculiar loss landscape of transformers at no additional computational cost; 
+
+(ii) Theoretical: we show that random gradient masking induces geometric regularization toward flatter trajectories, reducing curvature sharpness and gradient noise; (iii) Empirical: we demon-strate consistent gains over state-of-the-art opti-mizers across diverse pre-training scenarios. 
+
+## 2. Update Masking as a Regularization 
+
+Notation. We denote by 𝜃 𝑡 the model parameters at iteration 𝑡 , which can be partitioned into 𝐵 
+
+disjoint blocks {𝜃 (𝑏 ) 
+
+> 𝑡
+
+}𝐵 𝑏 =1. Throughout this work, we treat each block as a distinct parameter unit. We denote by ∇𝑏 𝑙 (𝜃 ) the gradient of the loss 𝑙 with respect to 𝜃 (𝑏 ) . The stochastic gradient of 𝑙 (·) at 𝑡 
+
+is denoted by 𝒈 𝑡 ≜ {𝒈 (𝑏 ) 
+
+> 𝑡
+
+}𝐵 𝑏 =1. H𝑏𝑏 ′ (𝜃 𝑡 ) denotes the 
+
+(𝑏, 𝑏 ′) block of the Hessian ∇2𝑙 (𝜃 𝑡 ). We let (F 𝑡 )𝑡 ≥0
+
+be a filtration such that 𝜃 𝑡 is F𝑡 -measurable and 
+
+𝔼 𝑡 [·] ≜ 𝔼 [·|F 𝑡 ].
+
+Background: Adaptive optimizers & moment estimates. Adaptive optimizers adjust update magnitudes based on running statistics of past gradients, typically through diagonal or block-diagonal preconditioning. Given a learning rate 
+
+𝜂 𝑡 , these methods update parameters by 𝜃 (𝑏 ) 
+
+> 𝑡 +1
+
+=
+
+𝜃 (𝑏 ) 
+
+> 𝑡
+
+− 𝜂 𝑡 𝑫 (𝑏 ) 
+
+> 𝑡
+
+𝒈 (𝑏 ) 
+
+> 𝑡
+
+, where 𝑫 (𝑏 ) 
+
+> 𝑡
+
+is a positive (often diagonal) matrix encoding per-parameter or per-block adaptation. Popular adaptive optimizers dif-fer primarily in how 𝑫 (𝑏 ) 
+
+> 𝑡
+
+is constructed or replace 
+
+𝒈 (𝑏 ) 
+
+> 𝑡
+
+by a more stable gradient estimator, track-ing two running averages of gradient information. The first-moment estimate is a moving average of the gradients 𝜇 (𝑏 ) 
+
+> 𝑡
+
+= 𝛽 1 𝜇 (𝑏 ) 
+
+> 𝑡 −1
+
++ ( 1 − 𝛽 1)𝒈 (𝑏 ) 
+
+> 𝑡
+
+and the second-moment estimates track the squared gradients 𝒗 (𝑏 ) 
+
+> 𝑡
+
+= 𝛽 2𝒗 (𝑏 ) 
+
+> 𝑡 −1
+
++ ( 1 − 𝛽 2)( 𝒈 (𝑏 ) 
+
+> 𝑡
+
+)2, where 
+
+𝛽 1, 𝛽 2 ∈ (0, 1) are constants. RMSProp uses 
+
+𝑫 (𝑏 ) 
+
+> 𝑡
+
+≈ diag (𝒗 (𝑏 ) 
+
+> 𝑡
+
+)−1/2.
+
+Main result. At iteration 𝑡 , let Δ𝑡 =
+
+(Δ(1) 
+
+> 𝑡
+
+, . . . , Δ(𝐵 ) 
+
+> 𝑡
+
+) denote a block-partitioned up-date direction from a base optimizer (e.g., 
+
+𝜂 𝑡 𝑫 (𝑏 ) 
+
+> 𝑡
+
+𝒈 (𝑏 ) 
+
+> 𝑡
+
+for adaptive optimizers). SkipUpdate incorporates independent Bernoulli random vari-ables {𝑚 (𝑏 ) 
+
+> 𝑡
+
+}𝐵 𝑏 =1, where 𝑚 (𝑏 ) 
+
+> 𝑡
+
+∼ Bernoulli ( 𝑝 ) with survival probability 𝑝 ∈ ( 0, 1]. Then, stochastic 
+
+> 2On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+block-wise masking is applied to the updates as 
+
+˜Δ(𝑏 ) 
+
+> 𝑡
+
+= 𝑠 (𝑏 ) 
+
+> 𝑡
+
+𝑚 (𝑏 ) 
+
+> 𝑡
+
+Δ(𝑏 ) 
+
+> 𝑡
+
+, 𝑏 = 1, . . . , 𝐵, (1) yielding ˜Δ𝑡 ≜ ( ˜Δ(1) 
+
+> 𝑡
+
+, . . . , ˜Δ(𝐵 ) 
+
+> 𝑡
+
+). We set 𝑠 (𝑏 ) 
+
+> 𝑡
+
+= 1/𝑝 
+
+to make the masked update unbiased; that is, 
+
+𝔼 𝑡 [˜Δ(𝑏 ) 
+
+> 𝑡
+
+] = Δ(𝑏 ) 
+
+> 𝑡
+
+.Although random masking preserves the ex-pected update, it fundamentally alters the higher-order behavior of the optimization dynamics. In the following proposition, which is proved in Ap-pendix A.1, we show that SkipUpdate induces a curvature-dependent term in the expected loss decrease. 
+
+Proposition 1. Conditioned on F𝑡 , the expected loss of SkipUpdate (cf. equation 1) is 
+
+𝔼 𝑡 
+
+𝑙 (𝜃 𝑡 − ˜Δ𝑡 ) = 𝑙 (𝜃 𝑡 − Δ𝑡 )+ 
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+1 − 𝑝 
+
+2𝑝 (Δ(𝑏 ) 
+
+> 𝑡
+
+)⊤H𝑏𝑏 (𝜃 𝑡 )Δ(𝑏 ) 
+
+> 𝑡
+
++ O( 
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+∥Δ(𝑏 ) 
+
+> 𝑡
+
+∥3).
+
+(2) The term R (𝑏 ) 
+
+> 𝑡
+
+≜ 1− 𝑝  
+
+> 2𝑝
+
+(Δ(𝑏 ) 
+
+> 𝑡
+
+)⊤H𝑏𝑏 (𝜃 𝑡 )Δ(𝑏 ) 
+
+> 𝑡
+
+admits a natural interpretation as a geometric regularizer .It measures the local curvature of the loss along the update direction Δ(𝑏 ) 
+
+> 𝑡
+
+, weighted roughly by the inverse survival probability. Since directions of large positive curvature correspond to sharp increases of the loss, minimizing the expected post-update loss implicitly discourages updates that align with high-curvature directions within each block. This block-structured regularization is partic-ularly well-motivated in transformers, whose Hessians empirically exhibit pronounced block-diagonal structure (Kunstner et al., 2024; Or-maniec et al., 2025; Zhang et al., 2024a). Un-der this geometry, the dominant curvature inter-actions occur within blocks. Consequently, the block-wise quadratic penalty in Proposition 1 in-duces a principled second-order regularization that biases optimization toward flatter regions of the loss landscape. This preference for flatter minima has long been related to improved gen-eralization (Hochreiter and Schmidhuber, 1997; Keskar et al., 2016) and is targeted by sharpness-aware optimization methods (Foret et al., 2020). 
+
+Why dense momentum updates matter. 
+
+In Algorithm 1, momentum states are up-dated densely even when parameter updates are masked. This contrasts with recent subspace op-timization methods (Luo et al., 2024; Pan et al., 2024; Zhao et al., 2024), in which both param-eters and auxiliary states are updated only on selected coordinates. For example, GaLore (Zhao et al., 2024) selects coordinates via leading gradi-ent singular vectors and updates them over fixed batch intervals. While this reduces optimizer memory, it repeatedly optimizes a suboptimal co-ordinate subset, contrary to classical coordinate descent insights (Nesterov, 2012; Nutini et al., 2017). Moreover, significant memory savings are not guaranteed in modern LLM training regimes, where memory consumption is dominated by acti-vations rather than parameters or optimizer states (Shamshoum et al., 2025; Zhang et al., 2024b). Further, SkipUpdate effectively yields avariance-reduced estimator of the true momen-tum due to the lazy update scheme, resulting in more stable search directions. Consequently, as shown in Figure A2, the dense momentum updates yield greater stability with improved generalization, compared to the sparse momen-tum updates as in the memory-efficient subspace optimizers. 
+
+Impacts of structured masking. Proposition 1 shows that the granularity of masking deter-mines the structure of the induced curvature regularizer, with finer-grained masking progres-sively eliminating cross-coordinate interactions. For instance, element-wise masking only penal-izes diagonal Hessian entries, yielding a regular-ization term Í𝐵 𝑏 =1
+
+Ídim (𝑏 )  
+
+> 𝑖 =11−𝑝
+> 2𝑝
+
+{Δ(𝑏 ) 
+
+> 𝑡
+
+}2 
+
+> 𝑖
+
+{H𝑏𝑏 (𝜃 𝑡 )} 𝑖,𝑖 ,
+
+where dim (𝑏 ) is the dimensionality of the block 
+
+𝑏 . Interestingly, under 130M Llama pre-training on the C4 dataset, SkipUpdate achieves similar perplexities across masking granularities—21.78 (column-wise), 21.73 (element-wise), and 21.81 (block-wise)—all substantially outperforming the RMSProp baseline (22.64). We conjecture that this near-equivalence reflects the limited ability of diagonal preconditioning to exploit dense within-block curvature, rendering finer-grained masking of marginal practical benefit. Thus, we adopt block-wise masking for its favorable computa-
+
+> 3On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+tional properties, as skipping entire blocks enables efficient operation pruning. 
+
+## 3. Momentum-Aligned Update Mask-ing 
+
+SkipUpdate applies a homogeneous masking op-eration across all blocks. However, parameters in transformers exhibit substantial heterogene-ity, such as markedly different Hessian spectra (Zhang et al., 2024a) and gradient variances (Orvieto and Gower, 2025). Such heterogeneity strongly influences optimization dynamics and therefore motivates a more refined block-adaptive masking strategy, while preserving seamless com-patibility with modern adaptive optimizers. In stochastic optimization, gradient compo-nents consistent across iterations tend to carry meaningful optimization signal, whereas rapidly fluctuating components are often dominated by stochastic noise (Bottou et al., 2018; Polyak, 1964; Riedmiller and Braun, 1993). Further, re-cent work interprets moment estimates through the lens of online variational inference (Orvieto and Gower, 2025). Under this view, the prob-ability of negative alignment satisfies ℙ(𝜇 ⊤𝑔 < 
+
+0) = Φ
+
+
+
+− ∥ 𝜇 ∥
+
+> 𝜎
+
+
+
+, which decays exponentially in the signal-to-noise ratio ∥𝜇 ∥/ 𝜎 . Thus, negative align-ment events represent statistically abnormal fluc-tuations, providing a natural signal for identifying destabilizing updates. This motivates momentum-gradient alignment as a principled criterion for modulating update magnitudes. Based on this insight, we propose Magma, which leverages block-wise momentum-gradient alignment to control the masking process. Specif-ically, for each block 𝑏 at iteration 𝑡 , Magma com-putes an alignment score ˜𝑠 (𝑏 ) 
+
+> 𝑡
+
+∈ ( 0, 1) as 
+
+˜𝑠 (𝑏 ) 
+
+> 𝑡
+
+= sigmoid 
+
+
+
+cossim (𝜇 (𝑏 ) 
+
+> 𝑡
+
+, 𝒈 (𝑏 ) 
+
+> 𝑡
+
+)/ 𝜏 
+
+
+
+, (3) where 𝜇 (𝑏 ) 
+
+> 𝑡
+
+is the first-moment estimate, 𝜏 > 0 is a temperature parameter, and cossim (· , ·) is the cosine similarity. Cosine similarity is adopted for its scale-invariant property, which is particularly effective in LLM training where gradient norms vary substantially across both parameter blocks and iterations (Huang et al., 2025; Wen et al., 2025). Then, Magma modulates the noisy (masked) update based on the alignment score 𝑠 (𝑏 ) 
+
+> 𝑡
+
+, ap-plying the update rule ˜Δ(𝑏 ) 
+
+> 𝑡
+
+= 𝑠 (𝑏 ) 
+
+> 𝑡
+
+𝑚 (𝑏 ) 
+
+> 𝑡
+
+Δ(𝑏 ) 
+
+> 𝑡
+
+, 𝑏 =
+
+1, . . . , 𝐵, with 𝑠 (𝑏 ) 
+
+> 𝑡
+
+= 0.9𝑠 (𝑏 ) 
+
+> 𝑡 −1
+
++ 0.1˜𝑠 (𝑏 ) 
+
+> 𝑡
+
+being the ex-ponential moving average. As a result, Magma en-courages coherent optimization trajectories with large 𝑠 (𝑏 ) 
+
+> 𝑡
+
+values and mitigates oscillatory updates with small 𝑠 (𝑏 ) 
+
+> 𝑡
+
+values. We emphasize that Magma is a drop-in wrapper that multiplies 𝑠 (𝑏 ) 
+
+> 𝑡
+
+𝑚 (𝑏 ) 
+
+> 𝑡
+
+into the existing update direction Δ(𝑏 ) 
+
+> 𝑡
+
+produced by (adaptive) optimizers, introducing no additional memory or computational overhead. Therefore, practitioners can adopt Magma in existing train-ing pipelines with minimal code changes and no additional resource requirements. Similar principles underlie Cautious Optimizer (Liang et al., 2024) and MGUP (Chang and Yuan, 2025), which mask or attenuate parameter up-dates whose stochastic gradients have opposite signs to the first-moment estimate. Similarly, RPROP (Riedmiller and Braun, 1993) adapts step sizes based on the temporal consistency of gradi-ent signs. However, unlike Magma, these meth-ods lack structured stochastic masking, and there-fore do not induce the curvature-dependent geo-metric regularization established in §2. Multiplication by the alignment score (damp-ing) introduces bias into the masked update but substantially improves training stability (cf. Fig-ure A2 in Appendix). We tested unbiased alterna-tives, such as using ˜𝑠 (𝑏 ) 
+
+> 𝑡
+
+as the survival probability with 1/˜𝑠 (𝑏 ) 
+
+> 𝑡
+
+rescaling, but these consistently re-sulted in unstable training. Developing a stable yet unbiased masking scheme for Magma remains an important future direction. 
+
+## 4. Experiments 
+
+4.1. Pre-Training Llama 
+
+We present Llama 2 pre-training results on the C4 dataset (Raffel et al., 2020) across model sizes of 60M, 130M, 350M, and 1B, following the stan-dardized experimental setup established by Zhao et al. (2024) (See Appendix B.1 for details). For 
+
+> 4On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+Table 1 | Llama 2 pre-training results on the C4 dataset. Validation perplexity is reported for four model scales (60M to 1B). † denotes results from Li et al. (2025); remaining results are ours. RM-SProp diverges for the 1B model within the learn-ing rate search space.                                                     
+
+> Method 60M 130M 350M 1B
+> Adam 30.79 24.77 18.42 16.35 C-Adam 29.70 23.59 18.58 15.92 Adam+SGG †30.31 22.18 17.28 14.30 Adam+Magma 29.09 29.09 29.09 22.08 22.08 22.08 16.41 16.41 16.41 13.71 13.71 13.71 LaProp 29.98 23.07 18.56 16.38 LaProp+Magma 29.05 29.05 29.05 22.16 22.16 22.16 16.37 16.37 16.37 13.82 13.82 13.82 Adafactor †32.57 23.98 17.74 15.19 APOLLO †31.55 22.94 16.85 14.20 APOLLO+SGG †30.18 22.52 16.54 13.95 Muon †28.93 22.34 17.09 14.52 RMSProp 29.29 22.64 17.47 -RMSProp+Magma 28.55 28.55 28.55 21.66 21.66 21.66 16.16 16.16 16.16 13.19 13.19 13.19
+
+all experiments, we set 𝜏 = 2 and apply Magma updates exclusively to the attention and MLP lay-ers. We found that this single configuration per-forms robustly across a wide range of settings, as supported by the ablation studies in Appendix C. Table 1 compares Magma against a wide range of algorithms including Adafactor (Shazeer and Stern, 2018), Adam, APOLLO (Zhu et al., 2025), LaProp (Ziyin et al., 2020), and RMSProp, as well as matrix-based optimizers such as Muon and SOAP (Vyas et al., 2024), and optimization en-hancers such as Scaling with Gradient Grouping (SGG) (Li et al., 2025) and Cautious Optimizer (C-Adam). Table 1 demonstrates that Magma consistently improves performance of all base optimizers across model scales. When applied to Adam and LaProp, Magma yields significant perplexity re-ductions compared to their vanilla counterparts and competing enhancers like SGG. Most notably, 
+
+RMSProp+Magma attains the lowest perplexity across all model sizes (60M–1B), establishing a new state-of-the-art for this benchmark. It out-performs computationally intensive matrix-based optimizers such as Muon and SOAP, as well as sophisticated enhancers like APOLLO+SGG. Magma proves to be the most effective opti-mization enhancer among the evaluated meth-ods. When applied to Adam, Magma consistently outperforms alternative enhancement strategies, including Cautious Adam (C-Adam) and Scaling with Gradient Grouping (Adam+SGG). For in-stance, at the 1B parameter scale, Adam+Magma achieves a validation perplexity of 13.81, signif-icantly surpassing Adam+SGG (14.30) and C-Adam (15.92). This indicates that the masking mechanism in Magma provides a more robust reg-ularization signal than the gradient modification techniques employed by competing enhancers. Moreover, Magma exhibits favorable scaling: its performance relative to base optimizers in-creases with model size. As larger models exhibit increasingly irregular and nonsmooth loss land-scapes, this trend supports the interpretation of random masking as an effective form of geometric regularization. 
+
+4.2. Pre-Training Nano MoE 
+
+In accordance with the widespread adoption of sparse mixture-of-experts (MoE) architecture in modern LLMs (Du et al., 2022; Fedus et al., 2022; Lepikhin et al., 2020; Shazeer et al., 2017), we validate Magma in the Nano MoE framework (Wolfe, 2024). This benchmark involves pre-training an MoE transformer on the OpenWeb-Text dataset (Gao et al., 2020), and we follow the standard configuration and training protocol (see Appendix B.2 for details). MoE models are known to induce significantly more complex and nonsmooth optimization due to dynamic load balancing, sparse token-to-expert routing, and non-uniform gradient flow across pa-rameters (Fedus et al., 2022; Shazeer et al., 2017; Zoph et al., 2022). Therefore, the MoE architec-tures serve as a particularly stringent testbed for evaluating robustness of optimization algorithms. Our results in Figure 2 show that Magma con-sistently improves performance of both Adam and Muon in the MoE setting. When applied to Adam, Magma exhibits slower convergence during inter-mediate training but ultimately achieves superior final performance. Consistent with Llama pre-training, Magma also significantly outperforms 
+
+> 5On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+Figure 2 | Optimization trajectories of pre-training the Nano MoE model on OpenWebText. the Cautious Optimizer (C-Adam), which simi-larly leverages momentum–gradient alignment, corroborating the effectiveness of Magma’s geo-metric regularization through structured random masking (§3). Notably, when combined with Muon, Magma attains the best overall performance, substan-tially outperforming all baselines. This suggests that stochastic masking-based update modula-tion in Magma and structured preconditioning operate on largely orthogonal aspects of the opti-mization process, shaping both training dynam-ics and convergence geometry in complementary ways. Given the increasing reliance on sophisti-cated preconditioners such as Muon (Jordan et al., 2024) and SOAP (Vyas et al., 2024) in modern MoE-based LLM training, these results highlight Magma as a robust and effective enhancement that can be seamlessly integrated into large-scale optimization pipelines. 
+
+4.3. Magma under Heavy-Tailed Gradient Noises 
+
+A salient feature of training autoregressive lan-guage models is the presence of heavy-tailed stochastic gradient noise (Kunstner et al., 2024; Zhang et al., 2020). To isolate and study the effect of heavy-tailed noise on optimization dy-namics, we evaluate Magma using the controlled benchmark proposed in Ahn et al. (2024), which provides an abstraction of transformer training 
+
+Figure 3 | Magma on light-tailed and heavy-tailed data distributions. Top: Optimization trajectories for Adam and Magma. Bottom: Robust condition number defined as the ratio between the maxi-mum and median eigenvalues of the loss Hessian. while faithfully reproducing key empirical phe-nomena observed in practice, including the per-formance gap between Adam and SGD for LLM pre-training. The benchmark considers training a simplified linear transformer to solve a random linear regression task in a meta learning format (Akyürek et al., 2022; Garg et al., 2022; Von Os-wald et al., 2023). In this benchmark, we con-sider two data regimes, namely, light-tailed and 
+
+heavy-tailed settings. Under the heavy-tailed set-ting, we modify the input sampling distribution to amplify tail behavior in the covariates, thereby inducing heavy-tailed stochastic gradient noise during optimization. We refer to Appendix B.4 for full experimental details. Figure 3 (top) compares the optimization tra-jectories of Adam and Magma under normal and heavy-tailed covariates. While both methods per-form similarly under normal noise, Magma sig-nificantly outperforms Adam in the heavy-tailed setting, offering insight into its strong empirical performance in LLM pre-training, where heavy-tailed data is ubiquitous (Ahn et al., 2024; Kunst-ner et al., 2024). Notably, this result is appealing given Adam’s known robustness to heavy-tailed 
+
+> 6On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+Figure 4 | Magma on homogeneous and heterogeneous quadratics. Top: Optimization trajectories for AdamW and Magma on quadratic objectives with identical eigenspectra but different block structures. 
+
+Bottom: Average gradient–momentum alignment per block. distributions. To further analyze this behavior, Figure 3 (bot-tom) reports the robust condition number along training trajectories (Jiang et al., 2023). Un-der heavy-tailed noise, Magma consistently at-tains substantially smaller condition numbers, indicating that its updates remain confined to well-conditioned regions of the loss landscape. This reflects the curvature-dependent geometric regularization induced by scaled random mask-ing, which selectively suppresses curvature- and noise-dominated directions, thereby enhancing robustness to extreme gradient fluctuations. 
+
+4.4. Magma on Heterogeneous Quadratics 
+
+To further validate the effectiveness of Magma in heterogeneous landscapes, we evaluate Magma on a controlled quadratic benchmark adopted in recent works (Orvieto and Gower, 2025; Zhang et al., 2024a). The benchmark consists of two quadratic objectives with identical eigenspectra 
+
+but different block-wise curvature structure. In both cases, the loss takes the form 𝑙 (𝒘 ) =   
+
+> 12𝒘 ⊤𝑯𝒘 ,
+
+where 𝑯 has eigenvalues spanning three orders of magnitude. The key distinction lies in how these eigenvalues are arranged: in the homo-geneous setting, eigenvalues of similar scale are grouped within blocks, whereas in the heteroge-neous setting, each block mixes eigenvalues with vastly different magnitudes, inducing strong cur-vature misalignment. Despite its simplicity, this heterogeneous structure qualitatively mimics the loss geometry observed in autoregressive trans-formers, in contrast to the more scale-separated curvature typical of CNNs. Full details are pro-vided in Appendix B.3. Figure 4 (top) presents optimization trajecto-ries for both Hessian structures. On the homo-geneous problem, Magma and AdamW exhibit comparable performance, with Magma converg-ing slightly faster in the early stages. However, in the heterogeneous problem, while AdamW is known to substantially outperform non-adaptive methods such as SGD (Orvieto and Gower, 2025; Zhang et al., 2024a), Magma achieves faster con-vergence and a lower final loss than AdamW. This mirrors the gains observed in the pre-training ex-periments (cf. Table 1), suggesting that Magma is particularly effective in regimes where curva-ture is both ill-conditioned and misaligned across parameter subspaces. Importantly, this advantage does not extend 
+
+> 7On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+to architectures whose curvature resembles the homogeneous case. For example, when ap-plied to ResNet-50 on CIFAR-10 classification, Magma does not improve over AdamW (94.46% vs. 93.82% test accuracy after 100 epochs with carefully tuned configurations), reinforc-ing the hypothesis that its benefits are specific to transformer-like loss geometry. Figure 4 (bottom) analyzes the average gradi-ent–momentum alignment within each block for AdamW and Magma. As expected, the homoge-neous Hessian exhibits higher alignment across all blocks, reflecting its more benign conditioning. Notably, although Magma explicitly suppresses updates that conflict with accumulated momen-tum, it does not significantly increase the align-ment score itself. This indicates that Magma’s gains arise not from altering momentum statistics, but from enforcing consistency between instanta-neous gradients and long-term descent directions. 
+
+## 5. Discussion 
+
+We analyze the effect of scaled random masking in Magma through the lens of classical optimization theory. 
+
+Setup. We consider 𝜃 ∈ ℝ𝑑 , which can be decomposed as 𝜃 = (𝜃 (1) , 𝜃 (2) , · · · , 𝜃 (𝐵 ) ) with 
+
+𝜃 (𝑏 ) ∈ ℝ𝑑 ′
+
+and 𝐵𝑑 ′ = 𝑑 . We assume the objec-tive is lower bounded: 𝑙 ∗ ≜ min 𝜃 𝑙 (𝜃 ) > −∞ . Let 
+
+M𝑡 (𝜃 ) ≜ (M 𝑡 (𝜃 ) (1) , · · · , M𝑡 (𝜃 ) (𝐵 ) ) be a scaled masking operator defined as M𝑡 (𝒈 ) (𝑏 ) ≜ 𝑚 (𝑏 ) 
+
+> 𝑡
+> 𝑝
+
+𝒈 (𝑏 ) ,where 𝑚 (𝑏 ) 
+
+> 𝑡
+
+∼ Bernoulli ( 𝑝 ). We define an align-ment score vector 𝒔 𝑡 ∈ ℝ𝐵 ≜ (𝑠 (1) 
+
+> 𝑡
+
+, · · · , 𝑠 (𝐵 ) 
+
+> 𝑡
+
+). Also, we use an operation 𝒔 𝑡 ⊗ 𝑰 𝑑 ′ , where ⊗ is the Kro-necker product and 𝑰 𝑑 ′ is the 𝑑 ′ × 𝑑 ′ identity ma-trix, to scale each block update M𝑡 (𝑔 ) (𝑏 ) by 𝑠 (𝑏 )
+
+> 𝑡
+
+through (𝒔 𝑡 ⊗ 𝑰 𝑑 ′ )M 𝑡 (𝜃 ). For brevity, we denote 
+
+𝑺 𝑡 ≜ 𝒔 𝑡 ⊗ 𝑰 𝑑 ′ .Throughout this section, we consider a con-stant learning rate SGD, isolating the impact of stochasticity and masking from the adaptivity of Adam-type methods: (Vanilla SGD) 𝜃 𝑡 +1 = 𝜃 𝑡 −𝜂 𝒈 𝑡 
+
+for 𝑡 = 0, 1, · · · ; (Magma) 𝜃 𝑡 +1 = 𝜃 𝑡 − 𝜂 𝑺 𝑡 M𝑡 (𝒈 𝑡 )
+
+for 𝑡 = 0, 1, · · · . Extensions to adaptive optimizers follow the similar descent lemma framework and do not alter the core argument; see Crawshaw et al. (2022); Wang and Klabjan (2022) for re-lated analyses. All proofs of claims are presented in Appendix A. We begin by defining technical assumptions for the analysis. 
+
+Assumption 2. There exist constants 𝐿 (𝑏 ) ≥ 0
+
+such that for all 𝜃 ∈ ℝ𝑑 , 𝑏 ∈ [ 𝐵 ], 𝒖 ∈ ℝ𝑑 ′
+
+, 𝑙 (𝜃 +
+
+𝑼 𝑏 𝒖 ) ≤ 𝑙 (𝜃 ) + 𝒖 ⊤∇𝑏 𝑙 (𝜃 ) + 𝐿 (𝑏 ) 
+
+> 2
+
+∥𝒖 ∥2, where 𝑼 𝑏 𝒖 ∈ ℝ𝑑 
+
+denotes the vector with block 𝑏 equal to 𝒖 and other blocks 0. In Assumption 2, the block-wise smoothness bound naturally captures heterogeneous nature of the transformer loss landscape. We define the block-wise smoothness weighted semi-norm as 
+
+∥𝒈 𝑡 ∥2 
+
+> 𝐿
+
+≜ Í𝐵 𝑏 =1 𝐿 (𝑏 ) ∥𝒈 (𝑏 ) 
+
+> 𝑡
+
+∥2.
+
+Assumption 3. There exist constants 𝜎 𝑏 ≥ 0 such that for all 𝜃 ∈ ℝ𝑑 and 𝑏 ∈ [ 𝐵 ], 𝔼 [∥ 𝒈 (𝑏 ) (𝜃 )∥ 2] ≤ ∥∇ 𝑏 𝑙 (𝜃 )∥ 2 +𝜎 2 
+
+> 𝑏
+
+, where 𝒈 (𝑏 ) (𝜃 ) denotes the stochas-tic gradient for 𝜃 (𝑏 ) .Assumption 3 is standard in stochastic opti-mization and captures bounded variance of the stochastic gradient. 
+
+Descent lemma. The following descent lemma characterizes the per-iteration decrease of a smooth objective. 
+
+Lemma 4. Under Assumption 2, Magma satisfies for all 𝑡 ,
+
+𝔼 𝑡 [𝑙 (𝜃 𝑡 +1)] ≤ 𝑙 (𝜃 𝑡 )− 𝜂 𝔼 𝑡 [𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 )]+ 𝜂 2
+
+2𝑝 𝔼 𝑡 [∥ 𝑺 𝑡 𝒈 𝑡 ∥2 
+
+> 𝐿
+
+].
+
+(4) Compared to the vanilla SGD’s bound 
+
+𝔼 𝑡 [𝑙 (𝜃 𝑡 +1)] ≤ 𝑙 (𝜃 𝑡 ) − 𝜂 ∥∇ 𝑙 (𝜃 𝑡 )∥ + 𝜂 2 
+
+> 2
+
+𝔼 𝑡 [∥ 𝒈 𝑡 ∥2 
+
+> 𝐿
+
+]
+
+(obtained by 𝑝 = 1 and 𝑺 𝑡 = 𝑰 𝑑 ), Magma differs from two terms: 1) the first-order term is reduced 𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 ) ≤ 𝒈 ⊤ 
+
+> 𝑡
+
+∇𝑙 (𝜃 𝑡 ) a.e. since 𝑺 𝑡 ⪯ 𝐼 𝑑 ;2) quadratic penalty uses effective smoothness constants. To see this, we define the second-moment scaling factor: 𝜌 (𝑏 ) 
+
+> 𝑡
+
+≜ 𝔼 𝑡 [ ∥ 𝑠 (𝑏 )         
+
+> 𝑡 𝒈 (𝑏 )
+> 𝑡 ∥2]
+> 𝔼 𝑡 [ ∥ 𝒈 (𝑏 )
+> 𝑡 ∥2]
+
+. Then, the quadratic penalty in equation 4, 
+
+𝜂 2
+
+2𝑝 𝔼 𝑡 [∥ 𝑺 𝑡 𝒈 𝑡 ∥2 
+
+> 𝐿
+
+] = 𝜂 2
+
+2
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+𝜌 (𝑏 ) 
+
+> 𝑡
+
+𝐿 (𝑏 )
+
+𝑝 𝔼 𝑡 [∥ 𝒈 (𝑏 ) 
+
+> 𝑡
+
+∥2], (5) 
+
+> 8On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+describes how Magma rescales each block-wise smoothness constant as 𝐿 (𝑏 ) ↦ → ˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+≜ 𝜌 (𝑏 )  
+
+> 𝑡 𝐿 (𝑏 )
+> 𝑝
+
+.Accordingly, we define ∥𝒈 𝑡 ∥2˜𝐿 𝑡 
+
+≜ Í𝐵 𝑏 =1 ˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+∥𝒈 (𝑏 ) 
+
+> 𝑡
+
+∥2
+
+and 𝜎 2˜𝐿 𝑡 
+
+≜ Í𝐵 𝑏 =1 ˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+𝜎 2 
+
+> 𝑏
+
+.
+
+Convergence analysis. To derive a global con-vergence rate, we require a lower bound on the descent term in equation 4. The next lemma provides such a bound and defines the effective descent efficiency factors. 
+
+Lemma 5. Under Assumption 3, it holds for all 𝑡 ,
+
+𝔼 [𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 )] ≥ ∥( 𝛼 𝑡 ⊗ 𝑰 𝑑 ′ )∇ 𝑙 (𝜃 𝑇 )∥ 2 − 𝜎 2 
+
+> 𝐶 𝑡
+
+, (6) 
+
+where 𝛼 𝑡 ≜ (𝛼 (1) 
+
+> 𝑡
+
+, · · · , 𝛼 (𝐵 ) 
+
+> 𝑡
+
+) and 𝜎 2 
+
+> 𝐶 𝑡
+
+≜ Í𝐵 𝑏 =1 𝑐 (𝑏 ) 
+
+> 𝑡
+
+𝜎 2 
+
+> 𝑏
+
+;
+
+𝛼 (𝑏 ) 
+
+> 𝑡
+
+∈ [ sigmoid (− 1/𝜏 ), sigmoid (1/𝜏 )] and 𝑐 (𝑏 ) 
+
+> 𝑡
+
+∈[0, sigmoid (1/𝜏 )/ 2] are constants defined in proof. 
+
+Lemma 5 yields the effective descent effi-ciency under the Magma’s scaled random mask-ing. Specifically, 𝛼 (𝑏 ) 
+
+> 𝑡
+
+quantifies the fraction of descent preserved on block 𝑏 at iteration 𝑡 (up to the noise-coupling term). To describe aggregated impacts, we define ¯𝛼 eff  
+
+> 𝑇
+
+≜             
+
+> Í𝑇 −1
+> 𝑡 =0𝔼 [ ∥ ( 𝛼 𝑡 ⊗𝑰 𝑑 ′) ∇ 𝑙 (𝜃 𝑡 ) ∥ 2] ]
+> Í𝑇 −1
+> 𝑡 =0𝔼 [ ∥ ∇ 𝑙 (𝜃 𝑡 ) ∥ 2]
+
+.Also, we define an average noise-descent coupling 
+
+𝜎 2¯𝐶 ≜ 1
+
+> 𝑇
+
+Í𝑇 −1 
+
+> 𝑡 =0
+
+𝔼 [𝜎 2 
+
+> 𝐶 𝑡
+
+] and the maximum effective smoothness ˜𝐿 max  
+
+> 𝑡
+
+≜ max 𝑏 ∈ [ 𝐵 ] ˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+.
+
+Theorem 6. Under Assumptions 2 and 3, for the stepsize 𝜂 ∈ ( 0, ¯𝛼 eff 
+
+> 𝑇
+> ˜𝐿 max
+> 𝑡
+
+], it holds that 
+
+1
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+𝔼 ∥∇ 𝑙 (𝜃 𝑡 )∥ 2 ≤ 2(𝑙 (𝜃 0) − 𝑙 ∗)
+
+𝜂 ¯𝛼 eff  
+
+> 𝑇
+
+𝑇 
+
++ 2𝜎 2¯𝐶 
+
+¯𝛼 eff 
+
+> 𝑇
+
++ 𝜂 ¯𝜎 2˜𝐿 
+
+¯𝛼 eff 
+
+> 𝑇
+
+,
+
+(7) 
+
+where ¯𝜎 2˜𝐿 = Í𝑇 −1  
+
+> 𝑡 =01
+> 𝑇
+
+𝔼 [𝜎 2˜𝐿 𝑡 
+
+].
+
+Theorem 6 provides the standard constant-step nonconvex stationarity guarantee with ex-plicit dependence on the effective curvature con-stants. Note that for SGD, equation 7 reduces to 1
+
+> 𝑇
+
+Í𝑇 −1 
+
+> 𝑡 =0
+
+𝔼 ∥∇ 𝑙 (𝜃 𝑡 )∥ 2 ≤ 2(𝑙 (𝜃 0 ) − 𝑙 ∗ ) 
+
+> 𝜂𝑇
+
++ 𝜂𝜎 2 
+
+> 𝐿
+
+, for 𝜂 ∈(0, 1 
+
+> 𝐿 max
+
+] with 𝐿 max ≜ max 𝑏 𝐿 (𝑏 ) . In this regard, the scaling factor 𝑠 𝑡 impacts the descent efficiency 
+
+¯𝛼 eff  
+
+> 𝑇
+
+, the effective noise level ¯𝜎 2˜𝐿 , and the average noise-descent coupling 𝜎 2¯𝐶 . On the one hand, re-ducing 𝑠 (𝑏 ) 
+
+> 𝑡
+
+decreases the descent term through 
+
+𝛼 (𝑏 ) 
+
+> 𝑡
+
+, potentially slowing optimization. On the other hand, the same scaling suppresses the curvature-weighted noise contribution via the effective smoothness constants ˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+= 𝜌 (𝑏 ) 
+
+> 𝑡
+> 𝑝
+
+𝐿 (𝑏 ) ,thereby reducing the stationary noise floor. In this regard, Theorem 6 shows that scaling is not uniformly beneficial. Rather, it makes explicit that any improvement must come from where the suppression occurs (which blocks are attenuated), not merely how much suppression is applied on average. 
+
+On effective iteration number. A favorable regime arises when 𝜌 (𝑏 ) 
+
+> 𝑡
+
+≪ 1 holds for blocks with large curvature 𝐿 (𝑏 ) (or more generally, for blocks dominating Í𝑏 𝐿 (𝑏 ) 𝔼 𝑡 |𝒈 (𝑏 ) 
+
+> 𝑡
+
+|2). In this case, both the effective smoothness constants ˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+and the curvature-weighted noise 𝜎 2˜𝐿 𝑡 
+
+are reduced, which simultaneously (i) enlarges the admissible step-size range and (ii) lowers the stationary error floor in Theorem 6. Moreover, the enlarged sta-bility region increases the number of iterations for which the stochastic update satisfies the descent surrogate 𝜂 𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 ) − 𝜂 2 
+
+> 2𝑝
+
+∥𝑺 𝑡 𝒈 𝑡 ∥2 
+
+> 𝐿
+
+> 0 thereby accelerating convergence in terms of effective progress per iteration. In this regard, Magma enlarges the stability region by selectively suppressing blocks that dom-inate the curvature-weighted noise and smooth-ness constraints. In ill-conditioned and highly het-erogeneous transformer landscapes (Ahn et al., 2024; Orvieto and Gower, 2025; Pan and Li, 2023), stability is typically governed by a small subset of high-curvature or high-variance blocks. By attenuating precisely these blocks according to the momentum–gradient alignment, Magma re-duces the effective smoothness ˜𝐿 𝑡 and noise level 
+
+𝜎 2˜𝐿 𝑡 
+
+that limit the admissible stepsize. This tar-geted reduction explains the empirically observed widening of the stable learning-rate regime (Fig-ure A3 in Appendix) and accounts for the effec-tiveness of structured scaling over uniform or ran-dom masking in large-scale LLM training. 
+
+## 6. Literature Review 
+
+Stabilizing LLM training. A line of recent work addresses instability in LLM training by explic-
+
+> 9On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+itly constraining optimizer updates in unstable regimes. The method most closely related to Magma is Cautious Optimizer (Liang et al., 2024) where an update for each parameter is masked when its gradient has an opposite direction to its first-moment estimate for ensuring a descent direction update under a small step size. How-ever, due to its deterministic masking rule, Cau-tious Optimizer lacks the geometric regulariza-tion effect promoting flatter optimization trajec-tories, unlike Magma. More broadly, peculiar optimization landscape of large-scale transform-ers is known to contain many sources of training instability such as loss spikes and gradient explo-sions (Chowdhery et al., 2023). To mitigate these issues, prior work has explored gradient clipping with a periodic momentum reset to address neg-ative impacts of gradient spikes (Huang et al., 2025), initialization methods for stable training dynamics (Nguyen and Salazar, 2019; Takase et al., 2023), and architectural interventions that reshape gradient propagation (Dettmers et al., 2021; Wang et al., 2024; Xiong et al., 2020). De-spite this wide exploration, the direction of induc-ing geometric regularization through stochastic perturbations of the optimization process remains relatively underexplored. 
+
+Geometry-aware and trust-region methods. 
+
+A large body of work improves optimization by incorporating local geometry through curvature-aware updates (Dauphin et al., 2014; Gupta et al., 2018; Martens and Grosse, 2015; Yao et al., 2021) or trust-region constraints (Foret et al., 2020; Kwon et al., 2021). The former direction aims to approximate second-order structure by tractable preconditioners, recently extending to efficient eigen-decomposition for LLM training (Vyas et al., 2024). On the contrary, the latter trust-region–flavored methods, such as SAM and its recent variants (Li et al., 2024; Mueller et al., 2023), bias optimization toward flatter regions by optimizing robustness to parameter perturba-tions, albeit at the cost of additional gradient eval-uations. Instead of computing explicit curvature matrices or adversarial perturbation, Magma pe-nalizes sharp curvature along its own block-wise update directions via stochastic masking, offer-ing a lightweight alternative to flatness-seeking optimization. 
+
+Stochastic perturbation and noise injection. 
+
+Stochastic perturbation is a well-established strat-egy in machine learning, ranging from random gradient masking in meta-learning (Tseng et al., 2020) and federated learning (Wei et al., 2020b) to the annealed Gaussian noise used in Bayesian inference (Neelakantan et al., 2015; Welling and Teh, 2011). A prominent example is Dropout (Srivastava et al., 2014) that randomly masks hidden units, which has been shown to induce a data-dependent weight-space regularizer that promotes model stability (Mianjy et al., 2018; Wei et al., 2020a; Zhang and Xu, 2024). In the context of modern LLMs, this principle has evolved into embedding-space perturbations, injecting struc-tured noise into token embeddings during instruc-tion fine-tuning (Jain et al., 2024). However, the impact of structured and stateful perturbations on optimization dynamics remains relatively under-explored. Magma operates directly on parameter updates and their alignment with local curvature for regularizing the optimization dynamics, high-lighting a role for stochastic perturbation particu-larly suited to modern large-scale optimization. 
+
+## 7. Conclusion 
+
+We showed that randomly masking parameter up-dates can substantially improve LLM pre-training, which smooths optimization trajectories with an implicit curvature-dependent geometric regular-ization. The proposed Magma, which leverages momentum-gradient alignment to further en-hance masked updates, achieves consistent im-provements over state-of-the-art adaptive optimiz-ers with negligible overhead. These results chal-lenge the prevailing assumption that dense up-dates are inherently optimal for backpropagation-based neural net training. We expect this per-spective to inspire new classes of optimization algorithms that exploit structured stochasticity to improve both optimization stability and general-ization in training large-scale foundation models having ill-conditioned and highly heterogeneous optimization landscapes. 
+
+> 10 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+## Impact Statement 
+
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here. 
+
+## References 
+
+K. Ahn, X. Cheng, M. Song, C. Yun, A. Jadbabaie, and S. Sra. Linear attention is (maybe) all you need (to understand transformer optimization). In International Conference on Learning Repre-sentations , 2024. E. Akyürek, D. Schuurmans, J. Andreas, T. Ma, and D. Zhou. What learning algorithm is in-context learning? investigations with lin-ear models. arXiv preprint arXiv:2211.15661 ,2022. L. Bottou, F. E. Curtis, and J. Nocedal. Optimiza-tion methods for large-scale machine learning. 
+
+SIAM Review , 2018. D. Chang and G. Yuan. Mgup: A momentum-gradient alignment update policy for stochastic optimization. In Advances in Neural Information Processing Systems , 2025. A. Chowdhery, S. Narang, J. Devlin, M. Bosma, G. Mishra, A. Roberts, P. Barham, H. W. Chung, C. Sutton, S. Gehrmann, et al. Palm: Scaling language modeling with pathways. Journal of Machine Learning Research , 24(240):1–113, 2023. M. Crawshaw, M. Liu, F. Orabona, W. Zhang, and Z. Zhuang. Robustness to unbounded smooth-ness of generalized signsgd. In Advances in Neural Information Processing Systems , 2022. Y. N. Dauphin, R. Pascanu, C. Gulcehre, K. Cho, S. Ganguli, and Y. Bengio. Identifying and attacking the saddle point problem in high-dimensional non-convex optimization. In Ad-vances in Neural Information Processing Systems ,2014. T. Dettmers, M. Lewis, S. Shleifer, and L. Zettle-moyer. 8-bit optimizers via block-wise quanti-zation. arXiv preprint arXiv:2110.02861 , 2021. N. Du, Y. Huang, A. M. Dai, S. Tong, D. Lepikhin, Y. Xu, M. Krikun, Y. Zhou, A. W. Yu, O. Firat, et al. Glam: Efficient scaling of language mod-els with mixture-of-experts. In International Conference on Machine Learning , 2022. W. Fedus, B. Zoph, and N. Shazeer. Switch trans-formers: Scaling to trillion parameter models with simple and efficient sparsity. Journal of Ma-chine Learning Research , 23(120):1–39, 2022. P. Foret, A. Kleiner, H. Mobahi, and B. Neyshabur. Sharpness-aware minimization for efficiently improving generalization. arXiv preprint arXiv:2010.01412 , 2020. L. Gao, S. Biderman, S. Black, L. Golding, T. Hoppe, C. Foster, J. Phang, H. He, A. Thite, N. Nabeshima, S. Presser, and C. Leahy. The Pile: An 800gb dataset of diverse text for language modeling. arXiv preprint arXiv:2101.00027 , 2020. S. Garg, D. Tsipras, P. S. Liang, and G. Valiant. What can transformers learn in-context? a case study of simple function classes. In Advances in Neural Information Processing Systems , 2022. V. Gupta, T. Koren, and Y. Singer. Shampoo: Pre-conditioned stochastic tensor optimization. In 
+
+International Conference on Machine Learning ,2018. S. Hochreiter and J. Schmidhuber. Flat minima. 
+
+Neural Computation , 9(1):1–42, 1997. T. Huang, Z. Zhu, G. Jin, L. Liu, Z. Wang, and S. Liu. Spam: Spike-aware adam with momen-tum reset for stable llm training. arXiv preprint arXiv:2501.06842 , 2025. N. Jain, P. yeh Chiang, Y. Wen, J. Kirchen-bauer, H.-M. Chu, G. Somepalli, B. R. Bartold-son, B. Kailkhura, A. Schwarzschild, A. Saha, M. Goldblum, J. Geiping, and T. Goldstein. NEFTune: Noisy embeddings improve instruc-tion finetuning. In International Conference on Learning Representations , 2024. 
+
+> 11 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+S. Jastrzkebski, Z. Kenton, D. Arpit, N. Ballas, A. Fischer, Y. Bengio, and A. Storkey. Three fac-tors influencing minima in sgd. arXiv preprint arXiv:1711.04623 , 2017. K. Jiang, D. Malik, and Y. Li. How does adap-tive optimization impact local neural network geometry? In Advances in Neural Information Processing Systems , 2023. K. Jordan, Y. Jin, V. Boza, J. You, F. Cesista, L. Newhouse, and J. Bernstein. Muon: An optimizer for hidden layers in neural net-works, 2024. URL https://kellerjordan. github.io/posts/muon/ .N. S. Keskar, D. Mudigere, J. Nocedal, M. Smelyan-skiy, and P. T. P. Tang. On large-batch training for deep learning: Generalization gap and sharp minima. arXiv preprint arXiv:1609.04836 , 2016. D. P. Kingma and J. Ba. Adam: A method for stochastic optimization. In International Con-ference on Learning Representations . 2015. F. Kunstner, A. Milligan, R. Yadav, M. Schmidt, and A. Bietti. Heavy-tailed class imbalance and why adam outperforms gradient descent on language models. In Advances in Neural Information Processing Systems , 2024. J. Kwon, J. Kim, H. Park, and I. K. Choi. Asam: Adaptive sharpness-aware minimization for scale-invariant learning of deep neural net-works. In International Conference on Machine Learning , 2021. D. Lepikhin, H. Lee, Y. Xu, D. Chen, O. Firat, Y. Huang, M. Krikun, N. Shazeer, and Z. Chen. Gshard: Scaling giant models with conditional computation and automatic sharding. arXiv preprint arXiv:2006.16668 , 2020. S. Li, J. Tian, Z. Wang, X. Jin, Z. Liu, W. Zhang, and D. Xu. Taming LLMs with gradient group-ing. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , 2025. T. Li, P. Zhou, Z. He, X. Cheng, and X. Huang. Friendly sharpness-aware minimization. In 
+
+IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2024. K. Liang, L. Chen, B. Liu, and Q. Liu. Cautious optimizers: Improving training with one line of code. arXiv preprint arXiv:2411.16085 , 2024. Q. Luo, H. Yu, and X. Li. Badam: A memory effi-cient full parameter optimization method for large language models. In Advances in Neural Information Processing Systems , 2024. J. Martens and R. Grosse. Optimizing neural networks with kronecker-factored approximate curvature. In International Conference on Ma-chine Learning , 2015. P. Mianjy, R. Arora, and R. Vidal. On the implicit bias of dropout. In International Conference on Machine Learning , 2018. M. Mueller, T. Vlaar, D. Rolnick, and M. Hein. Nor-malization layers are all that sharpness-aware minimization needs. In Advances in Neural In-formation Processing Systems , 2023. A. Neelakantan, L. Vilnis, Q. V. Le, I. Sutskever, L. Kaiser, K. Kurach, and J. Martens. Adding gradient noise improves learning for very deep networks. arXiv preprint arXiv:1511.06807 ,2015. Y. Nesterov. Efficiency of coordinate descent methods on huge-scale optimization problems. 
+
+SIAM Journal on Optimization , 22(2):341–362, 2012. T. Q. Nguyen and J. Salazar. Transformers with-out tears: Improving the normalization of self-attention. arXiv preprint arXiv:1910.05895 ,2019. J. Nutini, I. Laradji, and M. Schmidt. Let’s make block coordinate descent converge faster: Faster greedy rules, message-passing, active-set complexity, and superlinear convergence. arXiv preprint arXiv:1712.08859 , 2017. W. Ormaniec, F. Dangel, and S. P. Singh. What does it mean to be a transformer? insights from a theoretical hessian analysis. In International Conference on Learning Representations , 2025. 
+
+> 12 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+A. Orvieto and R. Gower. In search of adam’s secret sauce. arXiv preprint arXiv:2505.21829 ,2025. R. Pan, X. Liu, S. Diao, R. Pi, J. Zhang, C. Han, and T. Zhang. Lisa: layerwise importance sampling for memory-efficient large language model fine-tuning. In Advances in Neural Information Pro-cessing Systems , 2024. Y. Pan and Y. Li. Toward understanding why adam converges faster than sgd for transform-ers. arXiv preprint arXiv:2306.00204 , 2023. B. T. Polyak. Some methods of speeding up the convergence of iteration methods. USSR Computational Mathematics and Mathematical Physics , 1964. A. Radford, J. Wu, R. Child, D. Luan, D. Amodei, and I. Sutskever. Language models are unsu-pervised multitask learners. https://cdn. openai.com/better-language-models/ language_models_are_unsupervised_ multitask_learners.pdf , 2019. [Online; accessed 28-January-2026]. C. Raffel, N. Shazeer, A. Roberts, K. Lee, S. Narang, M. Matena, Y. Zhou, W. Li, and P. J. Liu. Exploring the limits of transfer learning with a unified text-to-text transformer. Jour-nal of machine learning research , 21(140):1–67, 2020. M. Riedmiller and H. Braun. A direct adaptive method for faster backpropagation learning: The rprop algorithm. In IEEE International Con-ference on Neural Networks , 1993. D. E. Rumelhart, G. E. Hinton, and R. J. Williams. Learning representations by back-propagating errors. Nature , 323(6088):533–536, 1986. Y. Shamshoum, N. Hodos, Y. Sieradzki, and A. Schuster. Compact: Compressed activations for memory-efficient llm training. In Proceed-ings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Compu-tational Linguistics: Human Language Technolo-gies (Volume 1: Long Papers) , 2025. N. Shazeer and M. Stern. Adafactor: Adaptive learning rates with sublinear memory cost. In 
+
+International Conference on Machine Learning ,2018. N. Shazeer, A. Mirhoseini, K. Maziarz, A. Davis, Q. Le, G. Hinton, and J. Dean. Outra-geously large neural networks: The sparsely-gated mixture-of-experts layer. arXiv preprint arXiv:1701.06538 , 2017. N. Srivastava, G. Hinton, A. Krizhevsky, I. Sutskever, and R. Salakhutdinov. Dropout: a simple way to prevent neural networks from overfitting. Journal of Machine Learning Research , 15(1):1929–1958, 2014. S. Takase, S. Kiyono, S. Kobayashi, and J. Suzuki. Spike no more: Stabilizing the pre-training of large language models. arXiv preprint arXiv:2312.16903 , 2023. T. Tieleman and G. Hinton. rmsprop: Divide the gradient by a running average of its recent magnitude, 2012. URL https://www.cs. toronto.edu/~tijmen/csc321/slides/ lecture_slides_lec6.pdf .H.-Y. Tseng, Y.-W. Chen, Y.-H. Tsai, S. Liu, Y.-Y. Lin, and M.-H. Yang. Regularizing meta-learning via gradient dropout. In Asian Conference on Computer Vision , 2020. J. Von Oswald, E. Niklasson, E. Randazzo, J. Sacra-mento, A. Mordvintsev, A. Zhmoginov, and M. Vladymyrov. Transformers learn in-context by gradient descent. In International Conference on Machine Learning , 2023. N. Vyas, D. Morwani, R. Zhao, M. Kwun, I. Shapira, D. Brandfonbrener, L. Janson, and S. Kakade. Soap: Improving and stabiliz-ing shampoo using adam. arXiv preprint arXiv:2409.11321 , 2024. H. Wang, S. Ma, L. Dong, S. Huang, D. Zhang, and F. Wei. Deepnet: Scaling transformers to 1,000 layers. IEEE Transactions on Pattern Analysis and Machine Intelligence , 46(10):6761–6774, 2024. R. Wang and D. Klabjan. Divergence results and convergence of a variance reduced version of adam. arXiv preprint arXiv:2210.05607 , 2022. 
+
+> 13 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+C. Wei, S. Kakade, and T. Ma. The implicit and explicit regularization effects of dropout. In 
+
+International Conference on Machine Learning ,2020a. W. Wei, L. Liu, M. Loper, K.-H. Chow, M. E. Gursoy, S. Truex, and Y. Wu. A framework for evaluat-ing gradient leakage attacks in federated learn-ing. arXiv preprint arXiv:2004.10397 , 2020b. M. Welling and Y. W. Teh. Bayesian learning via stochastic gradient langevin dynamics. In 
+
+International Conference on Machine Learning ,2011. Z. Wen, Y. Shi, J. Wang, P. Luo, L. Qiao, D. Li, and T. Sun. SRON: State-free LLM training via row-wise gradient normalization, 2025. URL https://openreview.net/ forum?id=BtQLBWr6zI .C. R. Wolfe. nanomoe: Minimal mixture-of-experts implementation, 2024. URL https: //github.com/wolfecameron/nanoMoE .GitHub repository. S. J. Wright. Coordinate descent algo-rithms. Mathematical Programming , 151(1): 3–34, 2015. R. Xiong, Y. Yang, D. He, K. Zheng, S. Zheng, C. Xing, H. Zhang, Y. Lan, L. Wang, and T. Liu. On layer normalization in the transformer ar-chitecture. In International Conference on Ma-chine Learning , 2020. Z. Yao, A. Gholami, S. Shen, M. Mustafa, K. Keutzer, and M. Mahoney. Adahessian: An adaptive second order optimizer for machine learning. In AAAI Conference on Artificial Intel-ligence , 2021. J. Zhang, T. He, S. Sra, and A. Jadbabaie. Why gradient clipping accelerates training: A the-oretical justification for adaptivity. In Interna-tional Conference on Learning Representations ,2020. Y. Zhang, C. Chen, T. Ding, Z. Li, R. Sun, and Z. Luo. Why transformers need adam: A hes-sian perspective. In Advances in Neural Infor-mation Processing Systems , 2024a. Y. Zhang, P. Li, J. Hong, J. Li, Y. Zhang, W. Zheng, P.-Y. Chen, J. D. Lee, W. Yin, M. Hong, et al. Re-visiting zeroth-order optimization for memory-efficient llm fine-tuning: A benchmark. arXiv preprint arXiv:2402.11592 , 2024b. Z. Zhang and Z.-Q. J. Xu. Implicit regularization of dropout. IEEE Transactions on Pattern Analy-sis and Machine Intelligence , 46(6):4206–4217, 2024. J. Zhao, Z. Zhang, B. Chen, Z. Wang, A. Anandku-mar, and Y. Tian. Galore: Memory-efficient llm training by gradient low-rank projection. In 
+
+International Conference on Machine Learning ,2024. H. Zhu, Z. Zhang, W. Cong, X. Liu, S. Park, V. Chandra, B. Long, D. Z. Pan, Z. Wang, and J. Lee. Apollo: Sgd-like memory, adamw-level performance. Proceedings of Machine Learning and Systems , 7, 2025. L. Ziyin, Z. T. Wang, and M. Ueda. Laprop: Sep-arating momentum and adaptivity in adam. 
+
+arXiv preprint arXiv:2002.04839 , 2020. B. Zoph, I. Bello, S. Kumar, N. Du, Y. Huang, J. Dean, N. Shazeer, and W. Fedus. St-moe: Designing stable and transferable sparse ex-pert models. arXiv preprint arXiv:2202.08906 ,2022. 
+
+> 14 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+## A. Proofs of Claims 
+
+A.1. Proof of Proposition 1 
+
+Proof. Condition on F𝑡 , under which 𝜃 𝑡 and Δ𝑡 are deterministic. A second-order Taylor expansion of 
+
+𝑙 (𝜃 𝑡 − ˜Δ𝑡 ) around 𝜃 𝑡 yields 
+
+𝑙 (𝜃 𝑡 − ˜Δ𝑡 ) = 𝑙 (𝜃 𝑡 ) − 
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+(𝒈 (𝑏 ) 
+
+> 𝑡
+
+)⊤ ˜Δ(𝑏 ) 
+
+> 𝑡
+
++ 12
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+> 𝐵
+
+∑︁ 
+
+> 𝑏 ′=1
+
+( ˜Δ(𝑏 ) 
+
+> 𝑡
+
+)⊤H𝑏𝑏 ′ (𝜃 𝑡 ) ˜Δ(𝑏 ′ ) 
+
+> 𝑡
+
++ 𝑅 2 ( ˜Δ𝑡 ), (8) where 𝒈 𝑡 = ∇𝑙 (𝜃 𝑡 ), H𝑏𝑏 ′ (𝜃 𝑡 ) is the (𝑏, 𝑏 ′) Hessian block, and the remainder satisfies |𝑅 2 ( ˜Δ𝑡 )| =
+
+𝑂 
+
+Í𝐵 𝑏 =1 ∥ ˜Δ(𝑏 ) 
+
+> 𝑡
+
+∥3
+
+
+
+.
+
+By construction of the masked update and conditioning on (𝜃 𝑡 , Δ𝑡 ),
+
+𝔼 [˜Δ(𝑏 ) 
+
+> 𝑡
+
+| 𝜃 𝑡 , Δ𝑡 ] = 1
+
+𝑝 𝔼 [𝑚 (𝑏 ) 
+
+> 𝑡
+
+]Δ(𝑏 ) 
+
+> 𝑡
+
+= Δ(𝑏 ) 
+
+> 𝑡
+
+. (9) Moreover, using independence of {𝑚 (𝑏 ) 
+
+> 𝑡
+
+}𝐵 𝑏 =1,
+
+𝔼 
+
+h
+
+( ˜Δ(𝑏 ) 
+
+> 𝑡
+
+)⊤H𝑏𝑏 ′ (𝜃 𝑡 ) ˜Δ(𝑏 ′ ) 
+
+> 𝑡
+
+| 𝜃 𝑡 , Δ𝑡 
+
+i
+
+=
+
+
+
+(Δ(𝑏 ) 
+
+> 𝑡
+
+)⊤H𝑏𝑏 ′ (𝜃 𝑡 )Δ(𝑏 ′ ) 
+
+> 𝑡
+
+, 𝑏 ≠ 𝑏 ′, 
+
+> 1
+> 𝑝
+
+(Δ(𝑏 ) 
+
+> 𝑡
+
+)⊤H𝑏𝑏 (𝜃 𝑡 )Δ(𝑏 ) 
+
+> 𝑡
+
+, 𝑏 = 𝑏 ′.
+
+(10) Taking conditional expectations in equation 8 and regrouping terms, we obtain 
+
+𝔼 [𝑙 (𝜃 𝑡 − ˜Δ𝑡 ) | 𝜃 𝑡 , Δ𝑡 ] = 𝑙 (𝜃 𝑡 − Δ𝑡 ) + 
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+1 − 𝑝 
+
+2𝑝 (Δ(𝑏 ) 
+
+> 𝑡
+
+)⊤H𝑏𝑏 (𝜃 𝑡 )Δ(𝑏 ) 
+
+> 𝑡
+
++ 𝔼 [𝑅 2 ( ˜Δ𝑡 ) | 𝜃 𝑡 , Δ𝑡 ]. (11) Finally, since 𝔼 ∥ ˜Δ(𝑏 ) 
+
+> 𝑡
+
+∥3 = 𝑂 (∥ Δ(𝑏 ) 
+
+> 𝑡
+
+∥3) for each 𝑏 , the expected remainder term is of order 
+
+𝑂 
+
+Í𝐵 𝑏 =1 ∥Δ(𝑏 ) 
+
+> 𝑡
+
+∥3
+
+
+
+, completing the proof. □
+
+A.2. Proof of Lemma 4 
+
+Proof. Under Assumption 2, for any 𝜃 and any multi-block △ = (△ (1) , · · · , △(𝐵 ) ), it holds 
+
+𝑙 (𝜃 + △) ≤ 𝑙 (𝜃 ) + △ ⊤∇𝑙 (𝜃 ) + 12 ∥△∥ 2 
+
+> 𝐿
+
+, (12) which can be shown by applying Assumption 2 sequentially. Applying equation 12 with △ = −𝜂 𝑺 𝑡 M𝑡 (𝜃 ) yields 
+
+𝑙 (𝜃 𝑡 +1) ≤ 𝑙 (𝜃 𝑡 ) − 𝜂 (𝑺 𝑡 M𝑡 (𝒈 𝑡 )) ⊤∇𝑙 (𝜃 𝑡 ) + 𝜂 2
+
+2 ∥𝑺 𝑡 M𝑡 (𝒈 𝑡 )∥ 2 
+
+> 𝐿
+
+. (13) By the independence between 𝑚 (𝑏 ) 
+
+> 𝑡
+
+and 𝒈 (𝑏 ) 
+
+> 𝑡
+
+, we have 
+
+𝔼 𝑡 [( 𝑺 𝑡 M𝑡 (𝒈 𝑡 )) ⊤∇𝑙 (𝜃 𝑡 )] = 𝔼 [𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 )] , (14) and 
+
+𝔼 𝑡 [∥ 𝑺 𝑡 M𝑡 (𝒈 𝑡 )∥ 2 
+
+> 𝐿
+
+] = 1
+
+𝑝 𝔼 𝑡 [∥ 𝑺 𝑡 𝒈 𝑡 ∥2 
+
+> 𝐿
+
+]. (15) Therefore, taking conditional expectation 𝔼 𝑡 [·] on both side of equation 13 yields the desired result. □
+
+> 15 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+A.3. Proof of Lemma 5 
+
+Proof. We start by defining the event 
+
+𝐸 (𝑏 ) 
+
+> 𝑡
+
+≜ {cos (𝒈 (𝑏 ) 
+
+> 𝑡
+
+, ∇𝑏 𝑙 (𝜃 𝑡 )) ≥ 𝛾 (𝑏 ) } (16) for an alignment threshold 𝛾 (𝑏 ) ∈ ( 0, 1]. We let 𝑒 (𝑏 ) 
+
+> 𝑡
+
+≜ ℙ(𝐸 (𝑏 ) 
+
+> 𝑡
+
+|F 𝑡 ). Also, we define constants 𝑠 − ≜
+
+sigmoid (− 1/𝜏 ), 𝑠 + ≜ sigmoid (1/𝜏 ), and 𝑠 (𝑏 ) 
+
+> 𝛾
+
+≜ sigmoid (𝛾 (𝑏 ) /𝜏 ) for 𝑏 ∈ [ 𝐵 ].By using the law of total expectation, we get 
+
+𝔼 [𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 )] =
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+𝔼 [𝑠 (𝑏 ) 
+
+> 𝑡
+
+(𝒈 (𝑏 ) 
+
+> 𝑡
+
+)⊤∇𝑏 𝑙 (𝜃 𝑡 )] 
+
+=
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+n
+
+𝑒 (𝑏 ) 
+
+> 𝑡
+
+𝔼 [𝑠 (𝑏 ) 
+
+> 𝑡
+
+(𝒈 (𝑏 ) 
+
+> 𝑡
+
+)⊤∇𝑏 𝑙 (𝜃 𝑡 )| 𝐸 (𝑏 ) 
+
+> 𝑡
+
+] + ( 1 − 𝑒 (𝑏 ) 
+
+> 𝑡
+
+)𝔼 [𝑠 (𝑏 ) 
+
+> 𝑡
+
+(𝒈 (𝑏 ) 
+
+> 𝑡
+
+)⊤∇𝑏 𝑙 (𝜃 𝑡 )|( 𝐸 (𝑏 ) 
+
+> 𝑡
+
+)𝑐 ]
+
+o
+
+≥
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+n
+
+𝑒 (𝑏 ) 
+
+> 𝑡
+
+𝔼 [𝑠 (𝑏 ) 
+
+> 𝛾
+
+(𝒈 (𝑏 ) 
+
+> 𝑡
+
+)⊤∇𝑏 𝑙 (𝜃 𝑡 )| 𝐸 (𝑏 ) 
+
+> 𝑡
+
+] + ( 1 − 𝑒 (𝑏 ) 
+
+> 𝑡
+
+)𝔼 [𝑠 − (𝒈 (𝑏 ) 
+
+> 𝑡
+
+)⊤∇𝑏 𝑙 (𝜃 𝑡 )|( 𝐸 (𝑏 ) 
+
+> 𝑡
+
+)𝑐 ]
+
+o
+
+, (17) where the inequality comes from 𝑠 (𝑏 ) 
+
+> 𝑡
+
+≥ 𝑠 (𝑏 ) 
+
+> 𝛾
+
+on 𝐸 (𝑏 ) 
+
+> 𝑡
+
+and 𝑠 (𝑏 ) 
+
+> 𝑡
+
+≥ 𝑠 − on (𝐸 (𝑏 ) 
+
+> 𝑡
+
+)𝑐 for all 𝑏 .Then, using unbiasedness of 𝒈 𝑡 , we get 
+
+𝔼 [𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 )] ≥ 
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+n
+
+𝑠 (𝑏 ) 
+
+> 𝛾
+
+∥∇ 𝑙 (𝜃 𝑇 )∥ 2 + ( 𝑠 − − 𝑠 (𝑏 ) 
+
+> 𝛾
+
+)𝔼 [( 𝒈 (𝑏 ) 
+
+> 𝑡
+
+)⊤∇𝑏 𝑙 (𝜃 𝑡 )1(𝐸 (𝑏 )  
+
+> 𝑡 )𝑐
+
+]
+
+o
+
+. (18) On (𝐸 (𝑏 ) 
+
+> 𝑡
+
+)𝑐 , we have (𝒈 (𝑏 ) 
+
+> 𝑡
+
+)⊤∇𝑏 𝑙 (𝜃 𝑡 ) < 𝛾 (𝑏 ) ∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥∥ 𝒈 (𝑏 ) 
+
+> 𝑡
+
+∥ whenever ∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥∥ 𝒈 (𝑏 ) 
+
+> 𝑡
+
+∥ > 0. Therefore, taking conditional expectation and applying Cauchy-Schwarz gives 
+
+𝔼 [( 𝒈 (𝑏 ) 
+
+> 𝑡
+
+)⊤∇𝑏 𝑙 (𝜃 𝑡 )1(𝐸 (𝑏 )  
+
+> 𝑡 )𝑐
+
+] ≤ 𝛾 (𝑏 ) ∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 𝔼 [∥ 𝒈 (𝑏 ) 
+
+> 𝑡
+
+∥1(𝐸 (𝑏 )  
+
+> 𝑡 )𝑐
+
+]≤ 𝛾 (𝑏 ) ∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ √︃ (1 − 𝑒 (𝑏 ) 
+
+> 𝑡
+
+)𝔼 ∥𝒈 (𝑏 ) 
+
+> 𝑡
+
+∥2 ≤ 𝛾 (𝑏 ) ∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ √︃ (1 − 𝑒 (𝑏 ) 
+
+> 𝑡
+
+)(∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2 + 𝜎 2 
+
+> 𝑏
+
+), (19) where the last inequality holds due to Assumption 3. Therefore, since 𝑠 − − 𝑠 (𝑏 ) 
+
+> 𝛾
+
+< 0, combining equation 17 and equation 19 gives 
+
+𝔼 [𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 )] ≥ 
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+
+
+𝑠 (𝑏 ) 
+
+> 𝛾
+
+∥∇ 𝑏 𝑙 (𝜃 𝑇 )∥ 2 + ( 𝑠 − − 𝑠 (𝑏 ) 
+
+> 𝛾
+
+)𝛾 (𝑏 ) ∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ √︃ (1 − 𝑒 (𝑏 ) 
+
+> 𝑡
+
+)(∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2 + 𝜎 2 
+
+> 𝑏
+
+)
+
+
+
+. (20) Finally, note that for 𝑎, 𝑏 ≥ 0, it holds √︁ 𝑎 (𝑎 + 𝑏 ) ≤ 𝑎 + 𝑏  
+
+> 2
+
+. Applying this inequality with 𝑎 = ∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2
+
+and 𝑏 = 𝜎 2 
+
+> 𝑏
+
+to equation 20 yields 
+
+𝔼 [𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 )] ≥ 
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+(
+
+𝑠 (𝑏 ) 
+
+> 𝛾
+
+− ( 𝑠 (𝑏 ) 
+
+> 𝛾
+
+− 𝑠 − )𝛾 (𝑏 )√︃ 1 − 𝑒 (𝑏 )
+
+> 𝑡
+
+
+
+∥∇ 𝑏 𝑙 (𝜃 𝑇 )∥ 2 − (𝑠 (𝑏 ) 
+
+> 𝛾
+
+− 𝑠 − )𝛾 (𝑏 )
+
+2√︃ 1 − 𝑒 (𝑏 ) 
+
+> 𝑡
+
+𝜎 2
+
+> 𝑏
+
+)
+
+=
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+n
+
+𝛼 (𝑏 ) 
+
+> 𝑡
+
+∥∇ 𝑏 𝑙 (𝜃 𝑇 )∥ 2 − 𝑐 (𝑏 ) 
+
+> 𝑡
+
+𝜎 2
+
+> 𝑏
+
+o
+
+, (21) where 𝛼 (𝑏 ) 
+
+> 𝑡
+
+≜ 𝑠 (𝑏 ) 
+
+> 𝛾
+
+− ( 𝑠 (𝑏 ) 
+
+> 𝛾
+
+− 𝑠 − )𝛾 (𝑏 )√︃ 1 − 𝑒 (𝑏 ) 
+
+> 𝑡
+
+and 𝑐 (𝑏 ) 
+
+> 𝑡
+
+≜ (𝑠 (𝑏 )  
+
+> 𝛾 −𝑠 −)𝛾 (𝑏 )
+> 2
+
+√︃ 1 − 𝑒 (𝑏 ) 
+
+> 𝑡
+
+. The interval bounds of 𝛼 (𝑏 )
+
+> 𝑡
+
+and 𝑐 (𝑏 ) 
+
+> 𝑡
+
+follow directly from the definition. 
+
+□
+
+> 16 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+A.4. Proof of Theorem 6 
+
+Proof. First, we note from equation 5 that 
+
+1
+
+𝑝 𝔼 𝑡 [∥ 𝑺 𝑡 𝒈 𝑡 ∥2 
+
+> 𝐿
+
+] =
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+𝔼 𝑡 [∥ 𝒈 (𝑏 ) 
+
+> 𝑡
+
+∥2] ≤ 
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+(∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2 + 𝜎 2 
+
+> 𝑏
+
+), (22) where the inequality comes from Assumption 3. Then, applying equation 6 in Lemma 5 to equation 4 in the descent lemma yields 
+
+𝔼 𝑡 [𝑙 (𝜃 𝑡 +1)] ≤ 𝑙 (𝜃 𝑡 ) − 𝜂 𝔼 𝑡 [𝒈 ⊤ 
+
+> 𝑡
+
+𝑺 𝑡 ∇𝑙 (𝜃 𝑡 )] + 𝜂 2
+
+2𝑝 𝔼 𝑡 [∥ 𝑺 𝑡 𝒈 𝑡 ∥2 
+
+> 𝐿
+
+]≤ 𝑙 (𝜃 𝑡 ) − 𝜂 
+
+
+
+∥( 𝛼 𝑡 ⊗ 𝑰 𝑑 ′ )∇ 𝑙 (𝜃 𝑇 )∥ 2 − 𝜎 2
+
+> 𝐶 𝑡
+
+
+
++ 𝜂 2
+
+2
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+(∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2 + 𝜎 2 
+
+> 𝑏
+
+). (23) By taking total expectation and telescoping equation 23 from 𝑡 = 0 to 𝑡 = 𝑇 − 1 for some 𝑇 ≥ 1, we get  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+𝜂 𝔼 [∥( 𝛼 𝑡 ⊗ 𝑰 𝑑 ′ )∇ 𝑙 (𝜃 𝑇 )∥ 2] ≤ 𝑙 (𝜃 0) − 𝑙 ∗ + 
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+𝜂 𝔼 [𝜎 2 
+
+> 𝐶 𝑡
+
+] + 𝜂 2
+
+2 
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+(∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2 + 𝜎 2 
+
+> 𝑏
+
+), (24) where we use the factor that 𝔼 [𝑙 (𝜃 𝑇 )] > 𝑙 ∗.Now, by doing elementary algebra, we get  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+𝜂 𝔼 [∥( 𝛼 𝑡 ⊗ 𝑰 𝑑 ′ )∇ 𝑙 (𝜃 𝑇 )∥ 2] ≤ 𝑙 (𝜃 0) − 𝑙 ∗ + 
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+𝜂 𝔼 [𝜎 2 
+
+> 𝐶 𝑡
+
+] + 𝜂 2
+
+2 
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+(∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2 + 𝜎 2 
+
+> 𝑏
+
+)⇒ ( Dividing both side by 𝜂 ¯𝛼 eff  
+
+> 𝑇
+
+𝑇 )
+
+1
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+𝔼 [∥∇ 𝑙 (𝜃 𝑡 )∥ 2] ≤ 𝑙 (𝜃 0) − 𝑙 ∗
+
+𝜂 ¯𝛼 eff  
+
+> 𝑇
+
+𝑇 +
+
+Í𝑇 −1 
+
+> 𝑡 =0
+
+𝔼 [𝜎 2 
+
+> 𝐶 𝑡
+
+]
+
+¯𝛼 eff  
+
+> 𝑇
+
+𝑇 + 𝜂 
+
+2¯ 𝛼 eff  
+
+> 𝑇
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+(∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2 + 𝜎 2 
+
+> 𝑏
+
+)⇒ ( Definitions of 𝜎 2¯𝐶 )
+
+1
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+𝔼 [∥∇ 𝑙 (𝜃 𝑡 )∥ 2] ≤ 𝑙 (𝜃 0) − 𝑙 ∗
+
+𝜂 ¯𝛼 eff  
+
+> 𝑇
+
+𝑇 + 𝜎 2¯𝐶 
+
+¯𝛼 eff 
+
+> 𝑇
+
++ 𝜂 
+
+2¯ 𝛼 eff  
+
+> 𝑇
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+(∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2 + 𝜎 2 
+
+> 𝑏
+
+). (25) Rearranging term gives 
+
+1
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+∥∇ 𝑙 (𝜃 𝑡 )∥ 2 − 𝜂 
+
+2¯ 𝛼 eff 
+
+> 𝑇 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2
+
+!
+
+≤ 𝑙 (𝜃 0) − 𝑙 ∗
+
+𝜂 ¯𝛼 eff  
+
+> 𝑇
+
+𝑇 + 𝜎 2¯𝐶 
+
+¯𝛼 eff 
+
+> 𝑇
+
++ 𝜂 
+
+2¯ 𝛼 eff  
+
+> 𝑇
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+𝜎 2 
+
+> 𝑏
+
+. (26) Since 0 < 𝜂 ≤ ¯𝛼 eff 
+
+> 𝑇
+> ˜𝐿 max
+> 𝑡
+
+by definition, we have 
+
+1
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+∥∇ 𝑙 (𝜃 𝑡 )∥ 2 − 𝜂 
+
+2¯ 𝛼 eff 
+
+> 𝑇 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2
+
+!
+
+≥ 1
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+∥∇ 𝑙 (𝜃 𝑡 )∥ 2 − 12 ˜ 𝐿 max 
+
+> 𝑡 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2
+
+!
+
+≥ 1
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+∥∇ 𝑙 (𝜃 𝑡 )∥ 2 − 12
+
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+∥∇ 𝑏 𝑙 (𝜃 𝑡 )∥ 2
+
+!
+
+= 12𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+∥∇ 𝑙 (𝜃 𝑡 )∥ 2. (27) 
+
+> 17 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+Therefore, applying equation 27 to equation 26 yields the following inequality as desired: 
+
+1
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+
+∥∇ 𝑙 (𝜃 𝑡 )∥ 2 ≤ 2(𝑙 (𝜃 0) − 𝑙 ∗)
+
+𝜂 ¯𝛼 eff  
+
+> 𝑇
+
+𝑇 + 2𝜎 2¯𝐶 
+
+¯𝛼 eff 
+
+> 𝑇
+
++ 𝜂 
+
+¯𝛼 eff  
+
+> 𝑇
+
+𝑇  
+
+> 𝑇 −1
+
+∑︁ 
+
+> 𝑡 =0
+> 𝐵
+
+∑︁ 
+
+> 𝑏 =1
+
+˜𝐿 (𝑏 ) 
+
+> 𝑡
+
+𝜎 2 
+
+> 𝑏
+
+= 2(𝑙 (𝜃 0) − 𝑙 ∗)
+
+𝜂 ¯𝛼 eff  
+
+> 𝑇
+
+𝑇 + 2𝜎 2¯𝐶 
+
+¯𝛼 eff 
+
+> 𝑇
+
++ 𝜂 ¯𝜎 2˜𝐿 
+
+¯𝛼 eff 
+
+> 𝑇
+
+, (28) where ¯𝜎 2˜𝐿 = Í𝑇 −1  
+
+> 𝑡 =01
+> 𝑇
+
+𝔼 [𝜎 2˜𝐿 𝑡 
+
+]. □
+
+## B. Experimental Details 
+
+B.1. C4 Pre-Training Benchmark Setup 
+
+We follow the setup introduced in Zhao et al. (2024). Specifically, we use a fixed batch size of 512 and a max sequence length of 256 with a search grid of 1e-4, 5e-4, 1e-3, 5e-3, 1e-2 for the learning rate. For learning rate scheduling, we implement an initial warm-up for 10% of the total steps, followed by a cosine annealing that decays the learning rate to 10% of the peak value. We run 10K, 20K, 60K, and 100K iterations for the 60M, 130M, 350M, and 1B models, respectively, and report the final evaluation perplexity from the run with the best learning rate. 
+
+B.2. Nano MoE Pre-Training Benchmark Setup 
+
+We follow the default setup presented in Wolfe (2024). Specifically, we use a GPT2 (Radford et al., 2019)-style transformer with 124M number of parameters. Further for MoE configuration, the model uses 8 experts per MoE layer, with top-2 routing such that each token is dynamically dispatched to two experts. Further, the MoE layers are applied with a stride of 2, with dense and MoE layers alternating. The model also includes a number of training stabilization techniques, such as auxiliary load-balancing loss and switch transformer (Fedus et al., 2022)-style initialization. Refer to Wolfe (2024) for full details. Finally, the model is trained for 50K iterations on 8xA100 GPUs using the default configuration: a batch size of 12, gradient accumulation of 40, a sequence length of 1024 tokens, a minimum learning rate of 5e-6, a weight decay of 0.1, and a grad clip norm of 1.0. 
+
+B.3. Heterogeneous Quadratic Benchmark Setup 
+
+We provide full details of the quadratic benchmark used in Orvieto and Gower (2025). The setup consists of two quadratic optimization problems in ℝ9, each defined by a Hessian matrix with an identical eigenspectrum and a 3 × 3 block-diagonal structure. Concretely, we consider losses of the form 𝐿 (𝑤 ) = 12 𝑤 ⊤ 𝐻𝑤, where the eigenvalues of 𝐻 are {1, 2, 3, 99 , 100 , 101 , 4998 , 4999 , 5000 }. While both problems share this eigenspectrums, they differ substantially in how the eigenvalues are arranged across blocks. In the homogeneous Hessian, eigenvalues are grouped by scale within each block: {1, 2, 3}, {99 , 100 , 101 }, {4998 , 4999 , 5000 }. In contracst, the heterogeneous Hessian interleaves eigenvalues of vastly different magnitudes within each block: 
+
+{1, 99 , 4998 }, {2, 100 , 4999 }, {3, 101 , 5000 }. This structural difference is intended to mimic qualitative distinctions between loss landscapes of autoregressive language models and those of more shallow architectures such as CNNs. The Hessian 𝐻 is constructed by first forming diagonal matrices with the specified eigenvalues for each 3 × 3 block and then applying an independent random rotation to each block. Stochasticity is introduced by defining a design matrix 𝑋 = 𝐻 1/2 and, at each iteration, subsampling a random subset of rows of 𝑋 to form a stochastic approximation of the loss and its gradients. 
+
+> 18 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+Table A1 | Validation perplexity ( ↓) for different masking components. Baseline Attn Only Attn + MLP All Eval Perplexity 22.64 21.92 21.65 21.94 
+
+B.4. Heavy-Tailed Gradient Noise Benchmark Setup 
+
+We adopt the controlled linear-transformer benchmark introduced by Ahn et al. (2024). In this benchmark, each input sequence corresponds to a distinct linear regression task. Specifically, an input takes the form 𝑧 ≜
+
+ 𝒙 1
+
+> 𝑦 1
+
+
+
+> ,
+
+𝒙 2
+
+> 𝑦 2
+
+ 
+
+> ,
+
+· · · ,
+
+𝒙 𝑛 
+
+> 𝑦 𝑛
+
+
+
+> ,
+
+𝒙 𝑛 +1
+
+0
+
+  
+
+> ,
+
+where 𝒘 ⊤ 𝒙 𝑖 = 𝑦 𝑖 for 𝑖 = 1, . . . , 𝑛 + 1 and the latent regression vector 𝒘 ∼ N ( 0, 𝐼 𝑑 ) is independently sampled for each sequence. The learning objective is to predict 𝑦 𝑛 +1 from the context {( 𝒙 𝑖 , 𝑦 𝑖 )} 𝑛 𝑖 =1, and training minimizes the mean squared prediction error. Following Ahn et al. (2024), we use dimension 𝑑 = 5 and context length 𝑛 = 20 . This setting has been extensively used to study in-context learning and optimization dynamics of transformers in a simplified yet faithful regime (Akyürek et al., 2022; Garg et al., 2022; Von Oswald et al., 2023). To study the impact of heavy-tailed stochastic gradients, we consider two covariate distributions. In the light-tailed setting, covariates are sampled as 𝒙 𝑖 ∼ N ( 0, 𝐼 𝑑 ). In the heavy-tailed setting, we sample 𝒙 𝑖 uniformly from the unit sphere 𝕊 𝑑 −1 and scale each sample by an independent heavy-tailed random variable √︁ Γ0.1,10 , where Γ𝑘,𝜃 denotes the Gamma distribution with shape 𝑘 and scale 𝜃 . This construction significantly amplifies tail behavior in the covariates, thereby inducing heavy-tailed gradient noise during optimization and enabling a controlled evaluation of optimizer robustness under extreme stochastic fluctuations. 
+
+## C. Ablation Studies 
+
+We conducted ablation studies on a 130M-parameter Llama model trained on the C4 dataset with RMSProp+Magma, following the setup in § 4.1. 
+
+C.1. Masking Component 
+
+We investigated the efficacy of Magma applied to specific transformer sub-modules (Attention vs. MLP) compared to a global masking strategy. As shown in Table A1, applying masking exclusively to attention blocks improves model performance, reducing validation perplexity from a baseline of 22.64 to 21.92. We observe a synergistic effect when masking is applied to both attention and MLP simultaneously; this configuration achieves the lowest perplexity of 21.65, surpassing the most comprehensive setting (21.94). These findings indicate that targeted regularization of specific sub-modules yields superior performance compared to uniform masking strategies. 
+
+C.2. Masking Granularity 
+
+Table A2 summarizes the validation perplexity across four masking granularities (Element, Row, Column, and Block) using different sampling and damping configurations. 
+
+Robustness Across Granularities We found that changing the masking granularity has very little impact on stability. For example, with Uniform Sampling, the score varies only slightly—from 21.73 
+
+> 19 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers
+
+Table A2 | Validation perplexity ( ↓) for different masking granularities using Uniform vs. Momentum-Gradient Alignment-based sampling schemes (with and without damping). The baseline (RMSProp) excluding both sampling and damping achieves the perplexity of 22.64. Method Element Row Column Block Uniform Sampling 21.73 21.76 21.78 21.81 Damping 21.97 21.95 21.91 21.92 Uniform Sampling + Damping 21.58 21.62 21.61 21.65 Momentum-Gradient Alignment-based Sampling 21.77 21.78 21.75 21.78 Momentum-Gradient Alignment-based Sampling + Damping 21.63 21.60 21.61 21.65 0.5 1.0 2.0 4.0 
+
+> Temperature
+> 2.16 × 10 1
+> 2.165 × 10 1
+> 2.17 × 10 1
+> 2.175 × 10 1
+> 2.18 × 10 1
+> 2.185 × 10 1
+> 2.19 × 10 1
+> Perplexity
+> p=0.25
+> p=0.5
+> p=0.75
+
+Figure A1 | Comparison of eval perplexity for different values of sampling ratio 𝑝 and damp-ing temperature 𝜏 .0 5000 10000 15000 20000 
+
+> Iteration
+> 10 2
+> Perplexity  Dense+NoDamping
+> Dense+Damping
+> Sparse+NoDamping
+> Sparse+Damping
+
+Figure A2 | Comparison of training perplexity on the C4 dataset over 20,000 iterations for Dense and Sparse momentum updates, with and without damping. (Element) to 21.81 (Block). This indicates that while fine-grained masking provides a small edge, block masking is preferable for its efficiency—it saves significant memory for cosine similarities with minimal loss in accuracy. 
+
+Effectiveness of Damping and Sampling The results in Table A2 highlight the synergistic effect of combining sampling schemes with damping. While damping alone yields a perplexity improvement over the RMSProp baseline from 22.64 to around 21.92, it does not outperform standalone uniform sampling. However, integrating damping with sampling strategies consistently unlocks the lowest perplexity scores. Uniform sampling + damping achieves the minimum perplexity of 21.58 (Element-level masking), improving upon the standalone uniform sampling by approximately 0.15. On the other hand, momentum-gradient alignment-based sampling, which utilizes the masking probability, does not outperform uniform sampling. 
+
+C.3. Sampling Ratio and Damping Temperature 
+
+To identify the optimal sampling ratio 𝑝 and damping temperature 𝜏 , we experimented with 𝑝 ∈{0.25 , 0.5, 0.75 } and 𝜏 ∈ { 0.5, 1.0, 2.0, 4.0}. As Figure A1 demonstrates, 𝑝 = 0.5 outperforms other values across all temperatures. On the other hand, the results are not very sensitive to temperature,      
+
+> 20 On Surprising Effectiveness of Masking Updates in Adaptive Optimizers 0.0001 0.0005 0.001 0.005 0.01 0.05
+> Learning Rate
+> 10 2
+> Perplexity
+> Adam+Magma
+> C-Adam
+> Adam
+
+Figure A3 | Sensitivity analysis of learning rate on evaluation perplexity. Unlike Adam and C-Adam, which exhibit narrow optimal windows, Adam+Magma maintains consistent performance, demonstrating stability across a significantly wider hyperparameter range. so we proceed with 𝜏 = 2.0 in all our experiments. 
+
+C.4. Sparse vs. Dense Momentum Update 
+
+We consider four different settings with a learning rate of 0.001. The results indicate a critical disparity between dense and sparse update methods. As shown in Figure A2, the dense baselines—regardless of damping—consistently maintain robust convergence and achieve the lowest perplexity. In contrast, the sparse momentum update without damping exhibits severe instability, characterized by a sharp increase in perplexity that remains high throughout the 20,000 iterations. Although the introduction of damping stabilizes the model, its trajectory still underperforms dense update baselines. 
+
+C.5. Sensitivity to Learning Rate 
+
+As Figure A3 demonstrates, Adam+Magma exhibits superior robustness to learning rate variations compared to baseline optimizers. While C-Adam and Adam are sensitive to the learning rate—with perplexity spiking when the learning rate deviates from approximately 0.001–0.003—Adam+Magma maintains stability across a broader spectrum. In particular, it remains effective at rates up to 0.05, a region where other optimizers fail to converge. This suggests Adam+Magma reduces the need for precise hyperparameter tuning, offering greater reliability for resource-constrained experimental setups.

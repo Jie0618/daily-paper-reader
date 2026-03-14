@@ -1,0 +1,2233 @@
+Title: Covariance-Aware Transformers for Quadratic Programming and Decision Making
+
+URL Source: https://arxiv.org/pdf/2602.14506v1
+
+Published Time: Tue, 17 Feb 2026 03:01:05 GMT
+
+Number of Pages: 39
+
+Markdown Content:
+# Covariance-Aware Transformers for Quadratic Programming and Decision Making 
+
+Kutay Tire ∗1 Yufan Zhang *2 Ege Onur Taga 2 Samet Oymak 21The University of Texas at Austin 
+
+kutaytire@utexas.edu 
+
+> 2
+
+University of Michigan 
+
+{yufanzh, egetaga, oymak }@umich.edu 
+
+Abstract 
+
+We explore the use of transformers for solving quadratic programs and how this capability benefits decision-making problems that involve covariance matrices. We first show that the linear attention mechanism can provably solve unconstrained QPs by tokenizing the matrix variables (e.g. A of the objective 12 x⊤Ax + b⊤x) row-by-row and emulating gradient descent iterations. Furthermore, by incorporating MLPs, a transformer block can solve (i) ℓ1-penalized QPs by emulating iterative soft-thresholding and (ii) ℓ1-constrained QPs when equipped with an additional feedback loop. Our theory motivates us to introduce Time2Decide : a generic method that enhances a time series foundation model (TSFM) by explicitly feeding the covariance matrix between the variates. We empirically find that Time2Decide uniformly outperforms the base TSFM model for the classical portfolio optimization problem that admits an ℓ1-constrained QP formulation. Remarkably, Time2Decide also outperforms the classical “Predict-then-Optimize (PtO)” procedure, where we first forecast the returns and then explicitly solve a constrained QP, in suitable settings. Our results demonstrate that transformers benefit from explicit use of second-order statistics, and this can enable them to effectively solve complex decision-making problems, like portfolio construction, in one forward pass. 
+
+## 1 Introduction 
+
+Quadratic programming (QP) is a central tool in modern optimization, underlying applications in control, machine learning, and finance. Its canonical form is min 
+
+> x
+
+12 x⊤Ax + b⊤x subject to Cx ⪯ d, 
+
+where A, b define the objective and Cx ⪯ d encodes constraints. Beyond this template, many prac-tically important variants, including ℓ1-regularized and ℓ1-constrained formulations, remain convex and capture structural requirements such as sparsity, budgets, and transaction-cost constraints. We study the following concrete question: To what extent can transformer architectures act as general-purpose QP solvers, and how does this capability translate into improved decision mak-ing when second-order statistics (e.g., covariance matrices) matter? This focus is motivated by two observations: First, there is growing evidence that transformers can emulate iterative algo-rithms and optimization procedures through their attention-and-residual structure (e.g., theories 
+
+> ∗Equal contribution.
+
+1
+
+> arXiv:2602.14506v1 [cs.LG] 16 Feb 2026 MULTIVARIATE
+> RETURNS
+> asset 1
+> asset 2
+> asset m
+> Future
+> time →
+> TimePFN
+> Stage 1: predict
+
+r̂  max s          
+
+> ⊤r̂ − λs
+> ⊤Σs
+> Stage 2: optimize
+> OPTIMAL
+> SOLUTION
+> TIME2DECIDE
+> COV.
+> σ₁ σ₂ σm
+> via MLP
+> PATCH
+> returns r
+> allocations s
+> p₁ p₂ …pP−1 pP
+> TimePFN
+> cov. ret. alloc.
+> joint attention over all tokens
+
+r̂ 
+
+ŝ       
+
+> st= arg min xǁx − ŝ ǁ₂²
+> ŝ
+> Covariance tokens Return patches Allocation patches TimePFN QP Solver Feasible set
+> PREDICT-THEN-OPTIMIZE
+
+st
+
+> st
+
+st    
+
+> SELF-ATTENTION
+> returns r
+> allocations s
+> p₁ p₂ …pP−1 pP
+> r, s→ patches
+> + POS.
+> ENC.
+> OPTIMAL
+> SOLUTION
+> PATCH
+> end-to-end · single forward pass · covariance-aware
+
+a) 
+
+b)     
+
+> prepend covariance tokens
+> s.t. x
+> ∈Δ, ǁx − s t− 1ǁ₁ ≤ γ
+> FEASIBILITY PROJ.
+> QP SOLVER
+> s.t. s
+> ∈Δ, ǁs − s t−1ǁ₁ ≤ γ
+> Σ
+> ˆ
+
+⋮
+
+Σ
+
+> COVARIANCE
+> ˆ
+> ˆ
+
+Figure 1: Overview of portfolio decision-making pipelines. (a) Predict-then-Optimize (PtO): historical multivariate returns are tokenized into patches and fed to TimePFN to predict next-step returns ˆ rt. A QP solver then takes these predictions to compute the allocation st under simplex and ℓ1 rebalancing constraints (b) Time2Decide: unifies both stages in a single forward pass. We first derive learned covariance tokens from ˆΣt by applying an MLP and prepend them to the return and allocation patch tokens. TSFM with joint self-attention processes this full sequence to directly output both ˆ rt and ˆ st. The final feasibility projection enforces the portfolio constraints to yield st, enabling an end-to-end, covariance-aware decision without a separate optimization step. of in-context learning showing gradient-descent-like behavior). Second, many high-stakes decision problems are naturally expressed as QPs whose inputs include covariances. However, standard transformer pipelines, specifically time-series foundation models, do not explicitly incorporate such second-order information, even when it is essential for the downstream task. A standard example is portfolio optimization. Classical mean–variance allocation solves a QP whose parameters depend on forecasted returns and an (estimated) covariance matrix. A funda-mental and widely used baseline is the two-stage (or predict-then-optimize ) pipeline: first predict the unknown parameters (e.g., returns), then solve the resulting QP with a conventional optimizer (e.g., Markowitz, 1952; Elmachtoub and Grigas, 2022). While well established, this decoupling can be statistically suboptimal: when forecasts are noisy, the plug-in solution can overreact and yield inferior decisions. Indeed, one can formalize an explicit scenario where the predict-then-optimize (PtO) rule is strictly dominated by a Bayes-optimal end-to-end policy that shrinks noisy estimates before optimizing (Prop. 5.1). As our central contribution, we develop a comprehensive theory on how and when transformers can solve regularized QPs. Our constructions are highly compute-efficient and capture the indi-vidual contributions of the attention mechanism, MLP, and looping. Building on this theory, we introduce Time2Decide , a generic method to endow time-series foundation models (TSFMs) with transformer-based optimization that is covariance-aware . Concretely, Time2Decide augments the 2TSFM input with tokens that explicitly represent the covariance structure, enabling the model to learn an end-to-end mapping from historical context to decisions in one forward pass. The overview of our setup is provided in Figure 1. This directly targets the limitation highlighted above: by training to predict the eventual decision variable, the model can learn the proper amount of atten-uation/calibration in the presence of estimation noise, rather than committing to a brittle plug-in rule. Empirically, Time2Decide consistently improves over (i) the base TSFM and (ii) supervised fine-tuning of the TSFM without covariance information, and it can even outperform the classical two-stage PtO procedure that forecasts returns and then solves the QP explicitly. In particular, while PtO is highly competitive, Time2Decide surpasses it in regimes where end-to-end calibra-tion matters most, aligning with the strict separation exhibited by Proposition 5.1 and illustrating how explicitly admitting second-order statistics can enable transformers to solve two-step decision problems within a single learned model . Our contributions are: 
+
+• Quadratic programming theory. We provide explicit constructions showing how trans-former components can emulate classical first-order methods for multiple QP classes, including unconstrained, linearly constrained, ℓ1-regularized, and ℓ1-constrained programs. 
+
+• Experimental validation. We demonstrate that transformers can indeed learn the mapping from tokenized QP instances to optimal solutions, with linear attention variants offering strong empirical performance. 
+
+• Our Method: Time2Decide. We integrate QP-solving capabilities into TSFMs via covariance-augmented tokenization, enabling end-to-end forecasting and decision-making. Focusing on portfolio optimization, our proposed method Time2Decide outperforms fine-tuning a TSFM thanks to its special covariance tokens. Importantly, it also outperforms the two-stage Predict-then-Optimize (PtO) baseline under realistic scenarios. Specifically, when (i) the returns are not too predictable or (ii) the portfolio transition constraints are not too tight. We comple-ment these through theoretical insights (Proposition 5.1) where end-to-end decision-making can provably and strictly dominate two-stage optimization. Together, our results position transformers as both (i) theoretically grounded algorithm emula-tors for regularized QPs and (ii) practical end-to-end decision makers when second-order/covariance information is essential. 
+
+## 2 Related Work 
+
+Theoretical Analysis of In-Context Learning Recent work has developed theoretical frame-works for understanding in-context learning in transformers. Aky¨ urek et al. (2023), Von Oswald et al. (2023) and Dai et al. (2023) demonstrated that transformers emulate gradient descent dur-ing ICL. Xie et al. (2022) offered a Bayesian perspective, while Zhang et al. (2023, 2024) showed transformers learn linear models in-context. Ahn et al. (2023) established that they implement pre-conditioned gradient descent, and Mahankali et al. (2024) proved that one-step gradient descent is optimal for single-layer linear attention. Multiple works (Li et al., 2023; Yang et al., 2024; Li et al., 2024; Bai et al., 2023; Gozeten et al., 2025; Shen et al., 2024) studied the generalization capability of transformers. However, these works largely focus on fully-supervised settings where the in-context examples are input–label pairs for regression or classification. In contrast, our theoretical results show that the same attention-and-residual structure can emulate first-order optimization methods when the in-context tokens encode problem data rather than labeled examples. 3Neural Networks as Optimizers. In recent research, neural networks have been harnessed as optimizers in several directions. Villarrubia et al. (2018) showed that multilayer perceptrons can approximate non-linear objective functions and transform them into polynomial forms so that clas-sical methods apply when Lagrange multipliers are impractical. Differentiable layers such as Amos and Kolter (2017) treat a quadratic program as a network module, derive gradients via implicit differentiation, and use a custom interior-point solver, while Magoon et al. (2024) decouple gradi-ent computation from the choice of QP solver by exploiting the active set of constraints. In Nair et al. (2020), neural heuristics improve mixed-integer solvers by learning variable assignments and branching policies. Chen and Liu (2022) treat the objective itself as a neural network and optimize it via backpropagation, handling multi-objective cases with little sensitivity to variable dimension. Chen et al. (2022) showed that graph neural networks can predict feasibility, boundedness, and ap-proximate solutions for linear programs. Our study differs by feeding quadratic programs directly into transformers and proving that with appropriate tokenization, these sequence models can em-ulate iterative solvers while handling linear and ℓ1 constraints. Beyond demonstrating feasibility, we provide a systematic analysis of how transformer attention mechanisms capture the structure of quadratic programs, and we show empirically that our model achieves competitive accuracy. In this way, our work establishes transformers themselves as standalone, general-purpose optimizers for constrained quadratic programs. 
+
+Multivariate Time-Series Transformers. Early neural approaches to multivariate forecasting relied on encoder–decoder RNNs and temporal convolutional networks; however, their receptive fields or recurrence limited long-range context. Transformer variants now dominate the landscape. Temporal Fusion Transformer (TFT) augments attention mechanism with gating and interpretable variable selection (Lim et al., 2021). Informer introduces ProbSparse self-attention for efficient long-sequence inference (Zhou et al., 2021), while Autoformer and FEDformer decompose series into trend and seasonal tokens to improve long-horizon extrapolation (Wu et al., 2021; Zhou et al., 2022). Crossformer (Zhang and Yan, 2023) and Spacetimeformer (Grigsby et al., 2021) rearrange inputs to model cross-dimension dependencies explicitly, and PatchTST (Nie et al., 2023) treats fixed-length segments as tokens to boost locality. Most recently, TimePFN uses permutation-equivariant networks pre-trained on synthetic data to provide strong zero-shot generalization (Taga et al., 2025). These advances demonstrate the transformer’s flexibility in processing diverse token structures and incorporating auxiliary information, setting the foundation for integrating optimization-solving capabilities alongside forecasting tasks in multivariate time-series models. 
+
+## 3 Theoretical Results 
+
+3.1 Problem Setup 
+
+Notation. Let [ p] = {1, . . . , p } for an integer p ≥ 1. Lowercase letters (e.g., x, y ) denote vectors; uppercase letters (e.g., A, C ) denote matrices. For A ∈ Rn×n, let λmax (A) be its largest eigenvalue and ∥A∥2 its operator norm. We write ⟨u, v ⟩ = u⊤v, use ∥ · ∥ 2 for the Euclidean norm, and ∥ · ∥ 1
+
+for the ℓ1 norm. For u ∈ R, set [ u]+ = max {u, 0} (applied elementwise to vectors). The soft-thresholding map is Sθ(y) = sign( y) ⊙ (|y| − θ)+, and Proj {∥·∥ 1≤B} denotes Euclidean projection onto the ℓ1-ball. We use prox ψ(y) = arg min x{ 12 ∥x − y∥22 + ψ(x)} and write L = λmax (A). 4Quadratic programs. We study four convex QPs, each specified by problem data and a stepsize pair ( γ, η ): (U) min  
+
+> x∈Rn
+> 12
+
+x⊤Ax + b⊤x, (1) (LC) min  
+
+> x∈Rn
+> 12
+
+x⊤Ax + b⊤x s.t. Cx ⪯ d, (2) (R) min  
+
+> x∈Rn
+> 12
+
+x⊤Ax + b⊤x + λ∥x∥1, λ > 0, (3) (C) min  
+
+> x∈Rn
+> 12
+
+x⊤Ax + b⊤x s.t. ∥x∥1 ≤ B, B > 0. (4) Throughout, we assume A ≻ 0; for (LC) we also assume the feasible set {x : Cx ⪯ d} is nonempty. 
+
+Algorithms to be emulated. Let xk (and, when present, λk ⪰ 0) denote the current iterate(s), and write L = λmax (A). We have the following algorithms: 
+
+GD (U) Unconstrained Gradient Descent: 
+
+xk+1 = xk − γ(Ax k + b), 0 < γ < 2
+
+L . (5) 
+
+Arrow–Hurwicz (LC) For problems with linear constraints: 
+
+xk+1 = xk − γ(Ax k + b + C⊤λk),λk+1 = λk + η(Cx k+1 − d)
+
+> +
+
+,
+
+0 < γ < 2
+
+L ,ηγ ∥C∥22 < 1.
+
+(6) 
+
+ISTA (R) Iterative Shrinkage-Thresholding Algorithm for regularization: 
+
+yk = xk − γ(Ax k + b),xk+1 = Sγλ (yk) = prox γλ ∥·∥ 1 (yk), 0 < γ ≤ 1
+
+L . (7) 
+
+PGD with ℓ1-projection (C) Projected Gradient Descent onto the ℓ1-ball: 
+
+yk = xk − γ(Ax k + b),xk+1 = Proj {∥ x∥1≤B}(yk), 0 < γ ≤ 1
+
+L . (8) We present explicit weight constructions showing how small transformer fragments implement one iteration of classical first-order methods for QPs. Tokens encode the current iterate xk, the mul-tiplier λk when needed, and rows of problem data (e.g., A, C). A residual on the x-row propagates the iterate, and repeating these one-step maps yields the standard convergence behavior under the usual step size conditions of the target algorithms. The summary of the required architectures for each algorithm is presented in Table 1. 
+
+3.2 Unconstrained QP via Single-Block Linear Attention 
+
+We show that a single linear-attention head with a residual connection simulates one step of gradient descent for the unconstrained QP defined in Section 3.1. 5Table 1: Summary of transformer-based optimization algorithms.           
+
+> Optimization Program Architecture Emulated Algorithm
+> Unconstrained QP 1 Linear Attention Block Gradient Descent Linearly Constrained QP 2 Sequential Attention Blocks Arrow-Hurwicz Primal-Dual Method
+> ℓ1-Regularized QP 1 Linear Attention Block + FFN ISTA (Proximal Gradient Descent)
+> ℓ1-Constrained QP 1 Linear Attention Block + FFN with Threshold Loop Projected Gradient Descent
+
+Proposition 3.1. A single linear-attention head that attends from the x-row to the A-rows, followed by a residual on the x-row, realizes the update xk+1 = xk −γ(Ax k +b). Hence, for any 0 < γ < 2/L ,the iterates converge linearly to x⋆ = −A−1b.Construction. We store tokens for the rows of A, the vector b, and the current iterate xk, and we design fixed query, key, and value maps WQ, W K , W V (see Appendix A.1). Then the resulting 
+
+q, k, v yield, when evaluated at the x-token is o = Ax k + b. Applying a residual with post-map −γI 
+
+on the x-row yields 
+
+xk+1 = xk − γ o = xk − γ(Ax k + b).
+
+Full token layout and selector matrices are given in the Appendix A.1. Furthermore, we empirically validate this construction in Figure 2a and discuss the algorithmic complexity in Appendix B.1. 
+
+3.3 Linearly Constrained QP via Single Macro-Block Linear Attention 
+
+We now turn to the linearly constrained QP, the second formulation presented in Section 3.1. 
+
+Proposition 3.2. A single macro-block consisting of two self-attention blocks and a residual on the x-row realizes the sequential update 
+
+xk+1 = xk − γ Ax k + b + C⊤λk
+
+, (9) 
+
+λk+1 = λk + η (Cx k+1 − d)
+
+> +
+
+. (10) 
+
+Let L = λmax (A) and let ∥ · ∥ 2 denote the operator norm. If the feasible set {x : Cx ⪯ d} is nonempty and the step sizes satisfy 0 < γ < 2/L and ηγ ∥C∥22 < 1, then the iterates (xk, λ k)
+
+converge to a KKT point. Construction. We fix WQ, W K , W V so that two heads in the first linear-attention block, evaluated at the x- and λ-tokens, produce 
+
+oAx +b = Ax k + b, oC⊤λ = C⊤λk,
+
+which yields the primal update 
+
+xk+1 = xk − γ oAx +b + oC⊤λ = xk − γ Ax k + b + C⊤λk
+
+.
+
+We then run a second attention block with a single head evaluated at xk+1 , obtaining 
+
+oCx −d = Cx k+1 − d, 
+
+and apply a token-wise ReLU for the dual step, 
+
+λk+1 = λk + η o Cx −d
+
+> +
+
+.
+
+Full WQ, W K , W V specifications and calculations of the linear attention blocks appear in Ap-pendix A.2, together with the per-iteration cost analysis in Appendix B.2. 60 200 400 600 800 1000  
+
+> Layers k
+> 10 −1
+> 10 0
+> Error ‖ xk − x ⋆ ‖2
+> Convergence: Transformer vs Algorithmic GD
+> Transformer-based GD
+> Algorithmic GD
+
+(a) Unconstrained (U). 0 200 400 600 800 1000   
+
+> Layers k
+> 10 −5
+> 10 −4
+> 10 −3
+> 10 −2
+> 10 −1
+> Objective gap  F(xk) −  F ⋆
+> Convergence: Transformer vs Algorithmic ISTA
+> Transformer-based ISTA
+> Algorithmic ISTA
+
+(b) Regularized (R). 0 200 400 600 800 1000   
+
+> Layers k
+> 10 −15
+> 10 −13
+> 10 −11
+> 10 −9
+> 10 −7
+> 10 −5
+> 10 −3
+> 10 −1
+> Error ‖ xk − x ⋆ ‖2
+> Convergence: Transformer vs Algorithmic PGD
+> Transformer-based PGD
+> Algorithmic PGD
+
+(c) Constrained (C). 
+
+Figure 2: Convergence on a semilog-y scale. Each panel compares a standard algorithm (orange) with our transformer-based construction (blue): (a) GD for the unconstrained case (U), (b) ISTA for the regularized case (R), and (c) PGD for the constrained case (C). The curves nearly overlap across layers (depth = iterations), showing that the transformer mirrors the reference methods. 
+
+3.4 Sparse QPs via Single-Block Linear Attention: ℓ1-Regularized and ℓ1-Constrained 
+
+We now introduce sparsity via an ℓ1 penalty (R) or an ℓ1 budget (C)—corresponding to the last two QP formulations in Section 3.1—and extend the (U) block, without changing the attention mechanism, to realize proximal and projected gradient descent algorithms. 
+
+Proposition 3.3. One (U) gradient step followed by a fixed two-layer ReLU FFN with a scalar threshold θ = γλ yields 
+
+xk+1 = Sθ
+
+ xk − γ(Ax k + b) = prox γλ ∥·∥ 1 (yk).
+
+With 0 < γ ≤ 1/L , the objective F (x) = 12 x⊤Ax + b⊤x + λ∥x∥1 decreases and xk converges to a minimizer. Construction. We compute yk = xk −γ(Ax k +b) with the (U) head and implement soft-thresholding with a fixed two-layer width-2 n ReLU FFN with weights 
+
+W1 =
+
+ In
+
+−In
+
+
+
+∈ R2n×n, W2 = In −In
+
+ ∈ Rn×2n,
+
+and bias −θ[1n; 1n]. Then 
+
+xk+1 = W2 ReLU 
+
+
+
+W1yk − θ
+
+1n
+
+1n
+
+ 
+
+= ( yk − θ1n)+ − (−yk − θ1n)+ = Sθ(yk).
+
+since ( u − θ)+ − (−u − θ)+ = sign( u) ( |u| − θ)+ coordinatewise. With θ = γλ , this equals prox γλ ∥·∥ 1 (yk), i.e., the ISTA update. Full steps are provided in Appendix A.3. Figure 2b shows that the transformer construction matches ISTA’s convergence behavior across depth. 
+
+Proposition 3.4. One (U) gradient step followed by the same fixed two-layer ReLU FFN wrapped in a scalar threshold loop performs the exact Euclidean projection onto the ℓ1-ball: 
+
+xk+1 = Proj {∥ x∥1≤B}
+
+ xk − γ(Ax k + b).
+
+With 0 < γ ≤ 1/L , this is projected gradient descent for (C), so xk converges to an optimal solution. 
+
+7Construction. From the (U) head we form yk = xk − γ(Ax k + b). We then run a scalar threshold loop 
+
+θt+1 = θt + η ∥S θt (yk)∥1 − B
+
+> +
+
+, θ0 = 0 , 0 < η ≤ 1 
+
+> n
+
+,
+
+and set xk+1 = Sθ⋆ (yk) with θ⋆ = lim t θt. This yields the exact Euclidean projection xk+1 =Proj {∥ x∥1≤B}(yk). Full calculation is given in Appendix A.4. We empirically verify that the explicit transformer constructions mirror the corresponding first-order iterations across depth. Figure 2 compares GD/ISTA/PGD with their transformer counterparts for (U), (R), and (C), respectively, showing near-overlapping convergence curves. Finally, we provide a corresponding empirical check for the ℓ1-constrained case in Figure 2c. 
+
+## 4 Neural QP Solver Experiments 
+
+Our theoretical findings demonstrate that a transformer architecture has the expressive power to represent the computational steps of various QP-solving algorithms. In this section, we move from theoretical possibility to empirical validation. We conduct a series of experiments to determine if a transformer can learn the complex mapping from a QP’s parameters to its optimal solution through data-driven training alone, without being explicitly programmed with an iterative algorithm. 1
+
+4.1 Experimental Design 
+
+We conduct a controlled function-approximation study to assess whether transformer architectures can generalize across families of linearly-constrained QPs. The task is to learn a mapping from a tokenized QP instance to its optimal solution. Each instance is of the form: min  
+
+> x∈Rn
+> 12
+
+x⊤Ax + b⊤x s.t. Cx ⪯ d, 
+
+where the dataset generator samples the problem data ( A ≻ 0, b, C, and d) and computes the ground-truth optimal solution x⋆ for supervision. Our default configuration uses n=5 variables and m=3 constraints with datasets of 50k/10k/10k train/validation/test instances. Problem coefficients are sampled as: (i) A is constructed as A =
+
+GG ⊤ + 0 .1I where G ∼ N (0 , I ) to ensure it is positive definite; (ii) b ∼ N (0 , I ); (iii) C ∼ N (0 , I ); and (iv) d ∼ Uniform(1 , 2). To prepare the data for the models, we tokenize each QP instance into a sequence of length 
+
+n + m + 3. This sequence consists of one token for each row of A ∈ Rn×n and C ∈ Rm×n (total 
+
+n + m tokens), plus three additional tokens for the vector b, a zero-padded version of d, and a random initializer xinit . Each token is a vector in Rn. More details can be found in Appendix C.1. 
+
+Model architectures and metrics. We compare two encoder-only transformer variants: a Soft-maxTransformer and a LinearTransformer . The SoftmaxTransformer employs standard multi-head self-attention with softmax normalization, computing attention weights as softmax( QK T /√dk). In contrast, the LinearTransformer uses a more efficient linear attention mechanism that replaces the softmax operation with element-wise products. For a comparison against parameter-matched non-attention baselines (MLP, LSTM) on the same QP tokenization, see Appendix D. To evaluate these architectures, we perform a hyperparameter sweep over model depth (number of layers) and the number of attention heads. Performance is primarily assessed using the coefficient  
+
+> 1Our main code is available on https://github.com/mziycfh/QP_transformer .
+
+8of determination ( R2) and Normalized Mean Squared Error (NMSE) on the solution vector, with Mean Squared Error (MSE) as the training loss. The metrics are defined as: MSE = 1 
+
+> n
+
+∥ˆx − x⋆∥22, NMSE = ∥ˆx−x⋆∥22
+
+> ∥x⋆∥22
+
+,R2 = 1 − ∥ˆx−x⋆∥22
+
+> ∥¯x⋆−x⋆∥22
+
+,
+
+(11) where ˆ x is the predicted solution, x⋆ is the ground-truth optimal solution, and ¯ x⋆ is the mean of all ground-truth solutions in the test set. In addition, we report downstream feasibility via constraint violation and optimality via objective sub-optimality in Appendix E. We report n = 5 , m = 3 in the main text and defer other settings to the supplementary materials. 
+
+4.2 Experimental Results 0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 
+
+> NMSE per Sample
+> 0
+> 2000
+> 4000
+> 6000
+> 8000
+> Frequency
+> Distribution of NMSE (Normalized MSE)
+> Mean: 0.0260
+> Median: 0.0112
+> 95th percentile: 0.0953
+
+Figure 3: Test-set NMSE histogram for the Lin-earTransformer (8 layers, 2 heads). Dashed lines mark the mean and median; the dotted line marks the 95 th 
+
+percentile. Errors are concentrated near zero (median ≈
+
+0.011; 95% ≈ 0.095). 
+
+Function-approximation accuracy. Our experimental results demonstrate that trans-formers are capable of learning to solve QP problems. The best-performing LinearTrans-former (8 layers, 2 heads) and SoftmaxTrans-former achieved an R2 of 0.974 and 0.935 ,respectively. Notably, there is a performance advantage for the LinearTransformer archi-tecture. As summarized in Table 2, the Lin-earTransformer consistently outperforms the SoftmaxTransformer across the hyperparam-eter grid. This finding suggests that linear attention mechanisms are particularly well-suited for the numerical reasoning required in QP function approximation. The superior accuracy of the LinearTransformer is further detailed in Figure 3, which shows the tight distribution of its Normalized Mean Squared Error (NMSE) on the test set. Additional neural QP solver results for higher-dimensional settings are provided in Appendix E. 
+
+Robustness to distribution shift. To investigate the robustness of our models, we conduct experiments where the training and test distributions differ in the condition number of the QP problems. The condition number, κ(A) = λmax (A)/λ min (A), controls the numerical difficulty of the optimization, with higher values corresponding to more ill-conditioned problems that are harder to solve. We generate this distribution shift by controlling the eigenvalue spread of the A matrix using a scaling parameter κ, which creates exponentially more difficult problems for higher κ values. To isolate this effect, we normalize the Frobenius norm of A to match the baseline distribution. The results of this analysis are shown in Table 3. We trained the best-performing models (LinearTransformer with 8 layers/2 heads and SoftmaxTransformer with 16 layers/2 heads) on the baseline distribution and tested them on shifted distributions with varying κ ranges. Both architectures demonstrate considerable robustness, indicating they can generalize reasonably well to more challenging numerical conditions. Again, the LinearTransformer consistently shows superior performance and a more graceful degradation across all κ ranges as the problem difficulty increases. 9Table 2: R2 on the QP function-approximation task ( n=5, m=3) across layers and attention heads.                                                   
+
+> SoftmaxTransformer LinearTransformer Number of Layers Number of Heads Number of Heads 1248124810.275 0.334 0.468 0.635 0.331 0.401 0.561 0.632
+> 20.578 0.658 0.711 0.779 0.693 0.817 0.865 0.881
+> 40.863 0.894 0.898 0.917 0.934 0.958 0.962 0.965
+> 80.923 0.934 0.934 0.934 0.972 0.974 0.970 0.971
+> 16 0.929 0.935 0.926 0.931 0.960 0.964 0.969 0.967
+
+Table 3: R 2 Performance under distribution shift in condition number κ.                           
+
+> κRange LinearTransformer SoftmaxTransformer R2Drop R2Drop No κ0.973832 –0.935439 –
+> 1.2–2 0.971755 -0.21% 0.930962 -0.48%
+> 2–5 0.968110 -0.59% 0.924842 -1.13%
+> 5–10 0.960139 -1.41% 0.909774 -2.74%
+> 10–20 0.951526 -2.29% 0.888270 -5.04%
+
+The strong performance and robustness of our transformer-based QP solvers motivate their in-tegration into foundation models for sequential decision-making. We demonstrate that QP solving can be seamlessly incorporated through supervised fine-tuning by simply adding relevant tokens to the input sequence. The following section showcases this integration through a portfolio opti-mization case study, where we embed QP solving within a time series foundation model to enable end-to-end decision-making under complex structural constraints. 
+
+## 5 Decision Making with Covariance-Aware Transformers 
+
+In many high-stakes domains like finance and operations, downstream decision rules are solved via quadratic programs with structural constraints. A natural approach is to first forecast the relevant parameters and then solve the QP explicitly—the predict-then-optimize (PtO) pipeline. However, this two-stage approach can be suboptimal as noisy forecasts can lead to overly aggressive decisions. 
+
+Proposition 5.1 (Informal: PtO is suboptimal under estimation noise) . In a two-asset mean– variance problem with a Gaussian prior on the mean gap and noisy observations, the PtO plug-in rule is strictly dominated in expected utility by the Bayes-optimal policy, which shrinks the estimate by a factor ρ < 1 before optimizing. 
+
+While the optimal shrinkage depends on unknown noise parameters, an end-to-end model can learn analogous attenuation directly from the decision loss. Providing covariance information helps the model calibrate how aggressively to react to forecast signals. We formalize this result in Appendix F. We validate this insight through a portfolio optimization case study, where allocations must satisfy non-negativity, budget, and ℓ1 rebalancing constraints. This setting highlights a practical way to integrate second-order information into foundation-model backbones for decision-making in an end-to-end fashion. 10 5.1 Problem Formulation and Data 
+
+We consider a portfolio optimization problem with m assets over T time periods. At time t, we observe the vector of asset returns rt ∈ Rm (where rt,i represents the return of asset i at time t)and must choose portfolio weights st ∈ Rm (where st,i represents the fraction of wealth allocated to asset i at time t) subject to the constraints: 
+
+st ⪰ 0 (no short selling for simplicity) ,
+
+1⊤st = 1 (allocation weights sum to 1) ,
+
+∥st − st−1∥1 ≤ γ (transaction cost limit) .
+
+(12) The rebalancing constraint ∥st − st−1∥1 ≤ γ restricts the total absolute change in portfolio weights, where γ represents the maximum allowed rebalancing budget. This constraint proxies transaction costs and prevents excessive portfolio turnover. To establish a target for supervised training, we compute an oracle allocation , s⋆t . This oracle represents the ideal decision at each step, calculated by solving a mean-variance optimization problem assuming perfect foresight of the next period’s returns, rt. The objective is to maximize risk-adjusted returns: 
+
+s⋆t = arg max 
+
+> st
+
+s⊤ 
+
+> t
+
+rt − λ s⊤ 
+
+> t
+
+ˆΣtst s.t. (12) holds. Here, ˆΣt is the empirical covariance matrix estimated from historical returns, and λ = 0 .1 is the risk aversion parameter that balances expected return against portfolio variance. The oracle solution 
+
+s⋆t represents the optimal allocation given perfect knowledge of future returns rt.
+
+Data generation. We synthesize multivariate time series using the Linear Model of Coregional-ization (LMC) as described in Journel and Huijbregts (2003), Xi(t) = Prj=1 wij fj (t), where fj (t)are latent Gaussian processes with varied kernels, wij are mixing weights, and r sets the covari-ance rank. We then process these time series by scaling with ϵ = 0 .01 and clipping to the range [−0.3, 0.8] to simulate asset returns. We generate separate training and evaluation datasets: 300 training series and 30 evaluation series, each with m = 16 assets and T = 1024 time steps. After obtaining the series of returns, we finalize the input sequences by concatenating historical returns and allocations (a total of 2 m channels), enabling the model to reason jointly over past market dynamics and portfolio positions. We use sequence length L = 96, forecast horizon H = 96, and a stride of 1 for training data augmentation. 
+
+5.2 Experimental Setup 
+
+Proposed architecture. There exist many transformer-based multivariate time series models. Among them, TimePFN —adapted from one of the strongest baselines, PatchTST (Nie et al., 2023)—serves as the backbone of our approach. Time2Decide augments TimePFN with Covariance-Augmented Tokenization (CAT): it computes the empirical covariance matrix over the normalized input window of 96 previous steps, maps each covariance row to a token via a multi-layer non-linear projection, prepends the resulting m covariance tokens to the standard patch embeddings, applies a unified positional encoding to the entire sequence, and processes them jointly through self-attention. After encoding, we remove the covariance tokens and pass only the temporal tokens to the output projectors to generate predictions for both returns and allocations. 11 Baselines. We evaluate our proposed model, Time2Decide , against a suite of baselines: (i) Or-acle (perfect-foresight allocation, the upper bound in performance for any strategy); (ii) Predict-then-Optimize (TimePFN-predicted returns are fed into a conventional mathematical QP solver to compute allocations under the constraints); (iii) Pretrained (TimePFN used purely as a neu-ral forecaster without covariance tokens); (iv) SFT (supervised fine-tuned TimePFN variant); (v) Uniform (equal-weight allocation). 
+
+Training and Inference. SFT and Time2Decide are trained with a combined loss that balances return and allocation prediction: 
+
+L = λr∥ˆr − r∥22 + ∥ˆs − s⋆∥22,
+
+where λr is a weighting hyperparameter. We find the optimal λr for each model via a hyperparam-eter sweep. In inference, to ensure all portfolio constraints are satisfied, the model’s raw output ˆ s is projected into the feasible set by solving the following QP: 
+
+st = arg min  
+
+> x
+
+∥x − ˆs∥22,
+
+s.t. x ⪰ 0, 1⊤x = 1 , ∥x − st−1∥1 ≤ γ (13) 
+
+Evaluation. We use a training set of 300 multivariate return series and an evaluation set of 30 series. All experiments use a risk coefficient of λ = 0 .1. We evaluate each strategy across a range of rebalancing budgets γ ∈ { 0.5, 0.75 , 1.0, 1.25 , 1.5, 1.75 , 2.0}. Performance is measured by the Mean Squared Error (MSE) between the model’s predicted allocations and the oracle’s allocations. Crucially, the MSE is computed on the raw model predictions before the feasibility projection, providing a stringent standard for evaluation. More experimental details can be found in Appendix C.2. 
+
+5.3 Experimental Results 
+
+Table 4 summarizes the MSE of each strategy across rebalancing budgets γ. We report the best MSE for each learning-based method after selecting the optimal combined-loss weights λr from our sweep, and provide additional results and hyperparameter details in Appendix H. Overall, Time2Decide consistently improves over SFT-TimePFN and Pretrained-TimePFN, highlighting the benefit of incorporating covariance information and learning decisions end-to-end. Predict-then-Optimize (PtO), which relies on exact conventional solvers, achieves the lowest errors at small rebalancing budgets (e.g., 0 .0245 at γ = 0 .5 and 0 .0294 at γ = 0 .75). Table 4: MSE performance for each strategy across different rebalancing budgets γ (clean data). Lower is better; bold indicates the best method for each γ.                                                 
+
+> Strategy γ= 0 .5γ= 0 .75 γ= 1 .0γ= 1 .25 γ= 1 .5γ= 1 .75 γ= 2 .0
+> Uniform 0.0425 0.0444 0.0479 0.0485 0.0505 0.0539 0.0586
+> Pretrained 0.0447 0.0458 0.0500 0.0514 0.0523 0.0567 0.0604
+> SFT 0.0408 0.0411 0.0413 0.0446 0.0445 0.0515 0.0565
+> Predict-then-Optimize 0.0245 0.0294 0.0345 0.0376 0.0413 0.0472 0.0553
+> Time2Decide 0.0323 0.0346 0.0386 0.0390 0.0410 0.0442 0.0488
+
+12 A natural interpretation is that for small γ, the turnover constraint tightens the feasible set and effectively clips how much the portfolio can change from one step to the next; in this conservative regime, even imperfect return estimates translate to limited action variation, making the plug-in PtO baseline particularly strong. On the other hand, as γ increases, the feasible set loosens, leaving more room for estimation noise to induce larger portfolio changes, so calibration becomes more important. This aligns with the mechanism highlighted in Appendix F: when decisions are sensitive to noisy inputs, an optimal policy benefits from attenuating overconfident reactions, whereas a plug-in rule corresponds to a fixed, no-attenuation response. Consistent with this view, Time2Decide shows superior performance at larger budgets, surpassing PtO and achieving the best results at higher γ values (e.g., 0 .0442 at γ = 1 .75 and 0 .0488 at γ = 2 .0). 
+
+Under Noise. We additionally evaluate performance in a noisy-environment setting. Concretely, we inject Gaussian noise into the return series (scaling by 0 .01, adding N (0 , 0.01), and clipping), and then recompute all downstream quantities using the corrupted data. This includes re-estimating any covariance inputs and recomputing the oracle allocations from the noisy returns. We then report MSE between each strategy’s allocations and the corresponding noisy-data oracle . As shown in Table 5, Time2Decide dominates most strategies across budgets, while PtO degrades as γ increases. This confirms that end-to-end learning effectively mitigates input noise, aligning with the theory in Appendix F. Table 5: MSE performance in a noisy-environment setting with oracle recomputed from noisy returns across rebalancing budgets γ. Lower is better; bold indicates the best method for each γ.                                                 
+
+> Strategy γ= 0 .5γ= 0 .75 γ= 1 .0γ= 1 .25 γ= 1 .5γ= 1 .75 γ= 2 .0
+> Uniform 0.0336 0.0356 0.0403 0.0415 0.0449 0.0506 0.0585
+> Pretrained 0.0409 0.0428 0.0485 0.0479 0.0529 0.0582 0.0664
+> SFT 0.0324 0.0347 0.0408 0.0420 0.0434 0.0496 0.0562
+> Predict-then-Optimize 0.0224 0.0300 0.0407 0.0446 0.0522 0.0633 0.0781
+> Time2Decide 0.0232 0.0245 0.0347 0.0332 0.0344 0.0394 0.0476
+
+## 6 Conclusion 
+
+In this paper, we presented a theoretical and empirical study of how transformer architectures can be explicitly constructed to solve classes of quadratic programs. By carefully designing attention heads and feed-forward modules, we showed that single transformer blocks can emulate gradient descent, primal–dual iterations, and proximal updates for unconstrained, linearly constrained, and sparse QPs. These constructions demonstrate that transformers can effectively replicate the iterative structures of classical optimization algorithms. On the experimental side, we verified that transformers can learn to solve QPs when trained on tokenized problem instances, with linear attention variants consistently achieving higher accuracy. Extending beyond the original task, we showed that incorporating covariance information as tokens enables end-to-end decision making under structural constraints. Our results highlight that embed-ding second-order problem data into the transformer input leads to meaningful improvements over baselines. Overall, our results connect classical optimization methods with transformers, showing that transformers can efficiently emulate iterative solvers. Future directions include extending to broader optimization tasks, integrating with other foundation models or reinforcement learning for decision making, and studying the theoretical boundaries of such algorithmic emulation. 13 References 
+
+Kwangjun Ahn, Xiang Cheng, Hadi Daneshmand, and Suvrit Sra. Transformers learn to imple-ment preconditioned gradient descent for in-context learning. Advances in Neural Information Processing Systems , 36, 2023. Ekin Aky¨ urek, Dale Schuurmans, Jacob Andreas, Tengyu Ma, and Denny Zhou. What learning algorithm is in-context learning? investigations with linear models. In The Eleventh Interna-tional Conference on Learning Representations , 2023. URL https://openreview.net/forum? id=0g0X4H8yN4I .Brandon Amos and J Zico Kolter. Optnet: Differentiable optimization as a layer in neural networks. In International conference on machine learning , pages 136–145. PMLR, 2017. Yu Bai, Fan Chen, Huan Wang, Caiming Xiong, and Song Mei. Transformers as statisticians: Provable in-context learning with in-context algorithm selection. Advances in neural information processing systems , 36:57125–57211, 2023. Jie Chen and Yongming Liu. Neural optimization machine: A neural network approach for opti-mization. arXiv preprint arXiv:2208.03897 , 2022. Ziang Chen, Jialin Liu, Xinshang Wang, Jianfeng Lu, and Wotao Yin. On representing linear programs by graph neural networks. arXiv preprint arXiv:2209.12288 , 2022. Damai Dai, Yutao Sun, Li Dong, Yaru Hao, Shuming Ma, Zhifang Sui, and Furu Wei. Why can GPT learn in-context? language models secretly perform gradient descent as meta-optimizers. In Anna Rogers, Jordan Boyd-Graber, and Naoaki Okazaki, editors, Findings of the Asso-ciation for Computational Linguistics: ACL 2023 , pages 4005–4019, Toronto, Canada, July 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.findings-acl.247. URL 
+
+https://aclanthology.org/2023.findings-acl.247 .Adam N. Elmachtoub and Paul Grigas. Smart “predict, then optimize”. Management Science ,2022. Halil Alperen Gozeten, M Emrullah Ildiz, Xuechen Zhang, Mahdi Soltanolkotabi, Marco Mondelli, and Samet Oymak. Test-time training provably improves transformers as in-context learners. 
+
+Proceedings of machine learning research , 267:20266, 2025. Jake Grigsby, Zhe Wang, Nam Nguyen, and Yanjun Qi. Long-range transformers for dynamic spatiotemporal forecasting. arXiv preprint arXiv:2109.12218 , 2021. URL https://arxiv.org/ abs/2109.12218 .A.G. Journel and C.J. Huijbregts. Mining Geostatistics . Blackburn Press, 2003. ISBN 9781930665910. URL https://books.google.com/books?id=Id1GAAAAYAAJ .Yingcong Li, Muhammed Emrullah Ildiz, Dimitris Papailiopoulos, and Samet Oymak. Transformers as algorithms: Generalization and stability in in-context learning. In International Conference on Machine Learning , pages 19565–19594. PMLR, 2023. Yingcong Li, Ankit S Rawat, and Samet Oymak. Fine-grained analysis of in-context linear estima-tion: Data, architecture, and beyond. Advances in Neural Information Processing Systems , 37: 138324–138364, 2024. 14 Bryan Lim, Sercan ¨O. Arik, Nicolas Loeff, and Tomas Pfister. Temporal fusion transformers for interpretable multi-horizon time series forecasting. International Journal of Forecasting , 37(4): 1748–1764, 2021. doi: 10.1016/j.ijforecast.2021.03.012. URL https://doi.org/10.1016/j. ijforecast.2021.03.012 .Connor W Magoon, Fengyu Yang, Noam Aigerman, and Shahar Z Kovalsky. Differentiation through black-box quadratic programming solvers. arXiv preprint arXiv:2410.06324 , 2024. Arvind V. Mahankali, Tatsunori Hashimoto, and Tengyu Ma. One step of gradient descent is provably the optimal in-context learner with one layer of linear self-attention. In The Twelfth International Conference on Learning Representations , 2024. URL https://openreview.net/ forum?id=8p3fu56lKc .Harry Markowitz. Portfolio selection. The Journal of Finance , 7(1):77–91, 1952. Vinod Nair, Sergey Bartunov, Felix Gimeno, Ingrid Von Glehn, Pawel Lichocki, Ivan Lobov, Bren-dan O’Donoghue, Nicolas Sonnerat, Christian Tjandraatmadja, Pengming Wang, et al. Solving mixed integer programs using neural networks. arXiv preprint arXiv:2012.13349 , 2020. Yuqi Nie, Nam H. Nguyen, Phanwadee Sinthong, and Jayant Kalagnanam. A time series is worth 64 words: Long-term forecasting with transformers. In International Conference on Learning Representations (ICLR) , 2023. URL https://arxiv.org/abs/2211.14730 .Wei Shen, Ruida Zhou, Jing Yang, and Cong Shen. On the training convergence of transformers for in-context classification. arXiv preprint arXiv:2410.11778 , 2024. Ege Onur Taga, Muhammed Emrullah Ildiz, and Samet Oymak. Timepfn: Effective multivariate time series forecasting with synthetic data. In Proceedings of the AAAI conference on artificial intelligence , volume 39, pages 20761–20769, 2025. Gabriel Villarrubia, Juan F De Paz, Pablo Chamoso, and Fernando De la Prieta. Artificial neural networks used in optimization problems. Neurocomputing , 272:10–16, 2018. Johannes Von Oswald, Eyvind Niklasson, Ettore Randazzo, Jo˜ ao Sacramento, Alexander Mord-vintsev, Andrey Zhmoginov, and Max Vladymyrov. Transformers learn in-context by gradient descent. In International Conference on Machine Learning , pages 35151–35174. PMLR, 2023. Haixu Wu, Jiehui Xu, Jianmin Wang, and Mingsheng Long. Autoformer: Decomposition trans-formers with auto-correlation for long-term series forecasting. In Advances in Neural Information Processing Systems 34 (NeurIPS 2021) , 2021. URL https://proceedings.neurips.cc/paper/ 2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html .Sang Michael Xie, Aditi Raghunathan, Percy Liang, and Tengyu Ma. An explanation of in-context learning as implicit bayesian inference. In International Conference on Learning Representations ,2022. URL https://openreview.net/forum?id=RdJVFCHjUMI .Tong Yang, Yu Huang, Yingbin Liang, and Yuejie Chi. In-context learning with representations: Contextual generalization of trained transformers. arXiv preprint arXiv:2408.10147 , 2024. Ruiqi Zhang, Spencer Frei, and Peter L Bartlett. Trained transformers learn linear models in-context. arXiv preprint arXiv:2306.09927 , 2023. 15 Ruiqi Zhang, Spencer Frei, and Peter L Bartlett. Trained transformers learn linear models in-context. Journal of Machine Learning Research , 25(49):1–55, 2024. Yunhao Zhang and Junchi Yan. Crossformer: Transformer utilizing cross-dimension dependency for multivariate time series forecasting. In International Conference on Learning Representations (ICLR) , 2023. URL https://openreview.net/forum?id=vSVLM2j9eie .Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, and Wancai Zhang. Informer: Beyond efficient transformer for long sequence time-series forecasting. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 35, pages 11106–11115, 2021. doi: 10. 1609/aaai.v35i12.17325. URL https://ojs.aaai.org/index.php/AAAI/article/view/17325 .Tian Zhou, Ziqing Ma, Qingsong Wen, Xue Wang, Liang Sun, and Rong Jin. FEDformer: Frequency enhanced decomposed transformer for long-term series forecasting. In Proceed-ings of the 39th International Conference on Machine Learning (ICML 2022) , volume 162 of 
+
+Proceedings of Machine Learning Research , pages 27268–27286. PMLR, 2022. URL https: //proceedings.mlr.press/v162/zhou22g.html .16 A Proofs of Main Results from Section 3 
+
+A.1 Full Proof of the Construction for Unconstrained QP 
+
+Construction. At iteration k, we assemble the token matrix 
+
+Zk = ˜a⊤ 
+
+> 1
+
+; . . . ; ˜ a⊤ 
+
+> n
+
+; ˜b⊤; ˜ x⊤
+
+> k
+
+ ∈ R(n+2) ×(2 n+1) ,
+
+where ˜a⊤ 
+
+> i
+
+= [ a⊤ 
+
+> i
+
+e⊤ 
+
+> i
+
+0] , ˜b⊤ = [0 ⊤ 
+
+> n
+
+b⊤ 1] , ˜x⊤ 
+
+> k
+
+= [ x⊤ 
+
+> k
+
+0⊤ 
+
+> n
+
+1] .
+
+Here a⊤ 
+
+> i
+
+is the i-th row of A and {ei}ni=1 are standard basis vectors. We split each token into content vs. ID using 
+
+E = [ In 0n×(n+1) ] ∈ Rn×(2 n+1) , R = [0 n×n In 0n×1] ∈ Rn×(2 n+1) ,
+
+and we expose a trailing constant via S = [0 1×(2 n) 1]. We use a single linear-attention head with 
+
+WQ = [ E⊤ S⊤], WK = [ E⊤ S⊤], WV = R⊤.
+
+Then the x-token query is q = ˜ xkWQ = [ xk; 1]. For A-rows, ˜ aiWK = [ ai; 0] and ˜ aiWV = ei; for the 
+
+b-token, ˜bW K = [0; 1] and ˜bW V = b. Evaluating the head at the x-token, 
+
+o =
+
+> n
+
+X
+
+> i=1
+
+⟨[xk; 1] , [ai; 0] ⟩ei + ⟨[xk; 1] , [0; 1] ⟩b =
+
+> n
+
+X
+
+> i=1
+
+(a⊤ 
+
+> i
+
+xk) ei + b = Ax k + b. 
+
+Applying a residual on the x-row with post-map −γI n yields 
+
+xk+1 = xk − γ(Ax k + b).
+
+A.2 Full Proof of the Construction for Linearly Constrained QP 
+
+Construction. We add a dual token λk ∈ Rm
+
+> ≥0
+
+. As in the unconstrained case, we split tokens into 
+
+content and ID parts and embed every token to a common width p := 2 n + m (zero-padded), then append a constant slot to reach p′ := p + 1. Let 
+
+S = 01×n 01×n 01×m 1 ∈ R1×p′
+
+.
+
+Define fixed selectors 
+
+E1 = In 0n×n 0n×m 0 ∈ Rn×p′
+
+, R1 = 0n×n In 0n×m 0 ∈ Rn×p′
+
+,E2 = 0m×n 0m×n Im 0 ∈ Rm×p′
+
+, R2 = 0m×n 0m×n Im 0 ∈ Rm×p′
+
+.
+
+Tokens are ˆa⊤ 
+
+> i
+
+= a⊤ 
+
+> i
+
+e(n)⊤ 
+
+> i
+
+0⊤ 
+
+> m
+
+bi
+
+, ˆc⊤ 
+
+> i
+
+= c⊤ 
+
+> i
+
+0⊤ 
+
+> n
+
+e(m)⊤ 
+
+> i
+
+−di
+
+,
+
+ˆx⊤ 
+
+> k
+
+= x⊤ 
+
+> k
+
+0⊤ 
+
+> n
+
+0⊤ 
+
+> m
+
+1, ˆλ⊤ 
+
+> k
+
+= 0⊤ 
+
+> n
+
+0⊤ 
+
+> n
+
+λ⊤ 
+
+> k
+
+1.
+
+We use three fixed (linear) attention heads with WQ, W K , W V chosen as below. Head HA+b (evaluated at xk). Queries/keys/values: 
+
+q = ˆ xk
+
+E⊤
+
+> 1
+
+S⊤
+
+
+
+= [ xk; 1] , ki = ˆ ai
+
+E⊤
+
+> 1
+
+S⊤
+
+
+
+= [ ai; bi], vi = ˆ ai R⊤ 
+
+> 1
+
+= e(n) 
+
+> i
+
+.
+
+Output: 
+
+oAx +b =
+
+> n
+
+X
+
+> i=1
+
+⟨[xk; 1] , [ai; bi]⟩ e(n) 
+
+> i
+
+= Ax k + b ∈ Rn.
+
+Head HC ⊤ (evaluated at λk). 
+
+q = ˆλkE⊤ 
+
+> 2
+
+= λk, ki = ˆ ci R⊤ 
+
+> 2
+
+= e(m) 
+
+> i
+
+, vi = ˆ ciE⊤ 
+
+> 1
+
+= ci,
+
+so oC⊤λ = Pmi=1 (λk)ici = C⊤λk ∈ Rn.
+
+Head HC-d (evaluated at x). 
+
+q = ˆ x
+
+E⊤
+
+> 1
+
+S⊤
+
+
+
+= [ x; 1] , ki = ˆ ci
+
+E⊤
+
+> 1
+
+S⊤
+
+
+
+= [ ci; −di], vi = ˆ ci R⊤ 
+
+> 2
+
+= e(m) 
+
+> i
+
+,
+
+so oCx −d = Pmi=1 ⟨[x; 1] , [ci; −di]⟩e(m) 
+
+> i
+
+= Cx − d ∈ Rm.
+
+Two-block macro. We first compute the two head outputs at the x- and λ-tokens, oAx +b =
+
+Ax k + b and oC⊤λ = C⊤λk, concatenate them, and apply the linear map W (1)  
+
+> O
+
+= [ −γI n − γI n]with a residual on the x-row. This yields 
+
+xk+1 = xk − γ Ax k + b + C⊤λk
+
+.
+
+For the second block, using the updated xk+1 , we evaluate the head oCx −d = Cx k+1 − d, scale it with W (2)  
+
+> O
+
+= ηI m, and perform a token-wise ReLU to enforce non-negativity: 
+
+λk+1 = λk + η (Cx k+1 − d)
+
+> +
+
+.
+
+Together, these two blocks implement exactly the Arrow–Hurwicz (projected primal–dual) step of Proposition 3.2. 
+
+A.3 Full Proof of the Construction for ℓ1-Regularized QP 
+
+Construction. We compute yk = xk −γ(Ax k +b) with the (U) head and implement soft-thresholding with a fixed two-layer width-2 n ReLU FFN with weights 
+
+W1 =
+
+ In
+
+−In
+
+
+
+∈ R2n×n, W2 = In −In
+
+ ∈ Rn×2n, h = W1yk − θ
+
+1n
+
+1n
+
+
+
+,
+
+Let us write h =
+
+h+
+
+h−
+
+
+
+with 
+
+h+ = yk − θ1, h− = −yk − θ1.
+
+18 After the ReLU, we have 
+
+r = ReLU (h) = 
+
+ReLU (h+)
+
+ReLU (h−)
+
+
+
+=
+
+ (yk − θ1n)+
+
+(−yk − θ1n)+
+
+
+
+.
+
+Applying the second linear layer gives 
+
+xk+1 = W2r = ( yk − θ1n)+ − (−yk − θ1n)+.
+
+Coordinatewise, for each i ∈ [n], 
+
+xk+1 ,i = max {yk,i − θ, 0} − max {− yk,i − θ, 0}.
+
+A short case analysis shows 
+
+xk+1 ,i =
+
+
+
+yk,i − θ, yk,i > θ, 
+
+0, |yk,i | ≤ θ, yk,i + θ, yk,i < −θ, 
+
+⇐⇒ xk+1 ,i = sign( yk,i )  |yk,i | − θ 
+
+> +
+
+= Sθ(yk,i ).
+
+Thus, in vector form, 
+
+xk+1 = W2 ReLU 
+
+
+
+W1yk − θ
+
+1n
+
+1n
+
+ 
+
+= Sθ(yk) = prox γλ ∥·∥ 1 (yk),
+
+with θ = γλ . This realizes the ISTA update we stated. 
+
+A.4 Full Proof of the Construction for ℓ1-Constrained QP 
+
+Construction. We reuse the (U) head to compute yk = xk − γ(Ax k + b). The fixed two-layer ReLU FFN from Proposition 3.3 implements soft-thresholding, so 
+
+xt = Sθt (yk), st = ∥xt∥1.
+
+We drive the scalar threshold toward the ℓ1-budget by 
+
+θt+1 = θt + η ReLU( st − B), θ0 = 0 , 0 < η ≤ 1
+
+n .
+
+Let s(θ) = ∥S θ(yk)∥1 = Pni=1 (|yk,i | − θ)+ and rt := ReLU( st − B) ≥ 0. On any interval where the active set A(θ) = {i : |yk,i | > θ } is fixed with size m ≥ 1, 
+
+s(θ) = X
+
+> i∈A(θ)
+
+|yk,i | − m θ, ⇒ rt+1 = s(θt + ηr t) − B ≤ (1 − mη ) rt.
+
+Thus 0 < η ≤ 1/n yields rt+1 ∈ [0 , r t] and rt ↓ 0; at breakpoints s is nonincreasing, so monotonicity persists. Hence θt → θ⋆ ≥ 0 with s(θ⋆) = min {B, ∥yk∥1}, and we return 
+
+xk+1 = Sθ⋆ (yk).
+
+Finally, Sθ⋆ (yk) is the unique solution of min x 12 ∥x − yk∥22 s.t. ∥x∥1 ≤ B by the KKT conditions 0 ∈ x − yk + θ⋆∂∥x∥1, θ⋆ ≥ 0, θ⋆(∥x∥1 − B) = 0. Therefore, the loop computes the exact Euclidean projection onto the ℓ1-ball. 19 B Computational Cost per Iteration 
+
+Our constructions implement one solver iteration per transformer layer . Therefore, it is natural to compare the cost of a single transformer step to the corresponding first-order iteration. We organize our analysis by problem class: unconstrained and ℓ1-penalized QPs (Subsection B.1), which depend only on the variable dimension n, and linearly constrained QPs (Subsection B.2), which depend on both n and the number of constraints m. We report the multiplicative overhead: Overhead = Transformer Classical .
+
+B.1 Per-Iteration Cost for (U), (R), and (C) 
+
+These three problem classes—corresponding to Propositions 3.1, 3.3, and 3.4—involve only the quadratic matrix A ∈ Rn×n and vectors in Rn, with no explicit linear inequality constraints. The computational cost depends solely on the variable dimension n.
+
+Asymptotic complexity. For dense QPs, both classical GD/ISTA and our transformer steps are dominated by the matrix–vector product Ax , which costs O(n2) time per iteration. ISTA additionally applies soft-thresholding at O(n) cost, negligible relative to n2 in the dense regime. For ℓ1-constrained PGD, the classical exact projection onto the ℓ1-ball runs in O(n log n) time, whereas our threshold-loop projection costs O(T n ) for T inner updates; the overall step remains dominated by the O(n2) product. 
+
+Wall-clock time per step. Table 6 reports per-step timing for these three problem classes. Table 6: Per-step timing (ms) for unconstrained QP (U), ℓ1-regularized QP (R), and ℓ1-constrained QP (C). These problems depend only on the variable dimension n.                                           
+
+> Gradient Descent (U) ISTA (R) Projected GD (C)
+> nClass. Transf. Overhead Class. Transf. Overhead Class. Transf. Overhead 16 0.040 0.050 1.25 ×0.052 0.070 1.35 ×0.108 0.364 3.37 ×
+> 32 0.286 0.310 1.08 ×0.305 0.341 1.12 ×0.416 0.696 1.67 ×
+> 64 0.327 0.341 1.04 ×0.358 0.389 1.09 ×0.700 0.970 1.39 ×
+> 128 0.595 0.642 1.08 ×0.658 0.719 1.09 ×1.452 1.653 1.14 ×
+
+Discussion. For Gradient Descent and ISTA, the transformer step achieves near iteration-level parity with overheads of 1 .04–1 .35 × across dimensions. Projected Gradient Descent exhibits larger overhead at small n due to the O(T n ) threshold-loop projection, but this decreases from 3 .37 × at 
+
+n=16 to 1 .14 × at n=128 as the O(n2) matrix–vector product dominates. 
+
+B.2 Per-Iteration Cost for (LC) 
+
+The linearly constrained problem class—corresponding to Proposition 3.2—involves explicit linear inequality constraints Cx ⪯ d with constraint matrix C ∈ Rm×n. The Arrow–Hurwicz primal-dual method requires two sequential attention blocks per iteration: one for the primal update and one for the dual update. The computational cost depends on both the variable dimension n and the number of constraints m.20 Asymptotic complexity. Each Arrow–Hurwicz iteration requires forming Ax at O(n2) cost, plus Cx and C⊤λ at O(mn ) cost each, giving O(n2 + mn ) per step. The ReLU operation for dual feasibility adds O(m) cost, which is negligible. 
+
+Wall-clock time per step. Table 7 reports per-step timing for various ( n, m ) configurations. Table 7: Per-step timing (ms) for linearly constrained QP (LC) using Arrow–Hurwicz iterations. This problem depends on both the variable dimension n and the number of constraints m.                                            
+
+> nmClassical (ms) Transformer (ms) Overhead 16 80.136 0.169 1.25 ×
+> 16 16 0.178 0.210 1.18 ×
+> 32 80.543 0.580 1.07 ×
+> 32 16 1.241 1.263 1.02 ×
+> 32 32 1.316 1.336 1.02 ×
+> 64 16 1.339 1.388 1.04 ×
+> 64 32 1.448 1.432 0.99 ×
+> 64 64 1.499 1.572 1.05 ×
+> 128 32 2.282 2.712 1.19 ×
+> 128 64 2.911 3.501 1.20 ×
+
+Discussion. The Arrow–Hurwicz transformer construction achieves overheads ranging from 0 .99 ×
+
+to 1 .25 × across all tested configurations. Notably, at ( n, m ) = (64 , 32), the transformer construc-tion is faster than the classical implementation, likely due to improved memory access patterns from the unified token representation Z = [ Q; C; c; d; x; λ]. As problem size increases, overheads remain modest (1 .19–1 .20 × at n=128), demonstrating that the two-block attention structure re-quired for primal-dual updates does not introduce significant computational burden beyond the single-block constructions. 21 C Experimental Details 
+
+In this section, we provide comprehensive details regarding the setup of our experiments to ensure reproducibility. All experiments are implemented in PyTorch and executed on NVIDIA L40S GPUs. 
+
+C.1 Neural QP Solver 
+
+C.1.1 QP Dataset Generation 
+
+We generate synthetic QP instances of the form min x 12 x⊤Ax + b⊤x s.t. Cx ⪯ d. The symmetric positive definite matrix A ∈ Rn×n is constructed as A = GG ⊤ + 0 .1I, where entries of G ∈ Rn×n, as well as b ∈ Rn and constraint matrix C ∈ Rm×n, are sampled from a standard normal distribution 
+
+N (0 , 1). The bound vector d ∈ Rm is sampled from the uniform distribution U[1 , 2]. Ground truth solutions x∗ are computed using the OSQP solver accessed via CVXPY. For problem dimension configurations ( n, m ) ∈ { (5 , 3) , (7 , 3) , (7 , 6) , (10 , 3) , (10 , 6) , (10 , 9) }, we generate a dataset consisting of 50 , 000 training samples, 10 , 000 validation samples, and 10 , 000 test samples. For larger instances with configurations ( n, m ) ∈ { (15 , 10) , (20 , 8) , (20 , 16) }, we increase the dataset size to 100 , 000 training samples, 20 , 000 validation samples, and 20 , 000 test samples to ensure sufficient coverage of the higher-dimensional space. 
+
+C.1.2 Model Architectures 
+
+We evaluate two architectures: SoftmaxTransformer , which uses standard scaled dot-product attention, and LinearTransformer , which employs the linear attention mechanism. Both models project the input problem data (tokenized rows of A, C and vectors b, d ) into a hidden embedding dimension of dmodel = 256. We conduct a grid search over model depth L ∈ { 1, 2, 4, 8, 16 , 32 } and the number of attention heads H ∈ { 1, 2, 4, 8} to analyze the impact of model capacity. A dropout rate of 0 .1 is applied during training to prevent overfitting. 
+
+C.1.3 Training 
+
+All models are trained to minimize the Mean Squared Error (MSE) between the predicted x and the ground truth optimal solution x∗. We use the AdamW optimizer with an initial learning rate of 1 × 10 −4 and a weight decay of 0 .02. We utilize a learning rate scheduler ( ReduceLROnPlateau )that reduces the learning rate by a factor of 0 .5 if the validation loss does not improve for 5 epochs, with a minimum learning rate of 10 −6. The random seed is fixed at 42 for all experiments to ensure reproducibility. Training proceeds for a maximum of 500 epochs. To prevent overfitting, we employ early stopping with a patience of 30 epochs, monitoring the validation loss. 
+
+C.2 Decision Making with Covariance-Aware Transformers 
+
+C.2.1 Data Generation 
+
+We utilize LMC to generate synthetic financial return data with dynamic covariance structures. The generative process uses the following specific hyperparameters to simulate market conditions: 
+
+dirichlet min=0.01 , dirichlet max=0.75 , weibull shape=6 , and weibull scale=125 . Each generated time series has a length of T = 1024. For our experiments, we construct training datasets of size Ntrain = 300 and evaluation datasets of size Neval = 30. The input sequence length (lookback window) L is set to 96. 22 C.2.2 Inference 
+
+During inference, we utilize a rolling window protocol across all strategies. At each time step t, the system accesses a historical context window to update the portfolio. The specific mechanism for computing the next allocation st depends on the strategy: 
+
+• (i) Oracle : At time t, it uses the ground-truth return rt (perfect foresight) and the empirical covariance matrix ˆΣt estimated from the previous L = 96 returns. It solves the constrained QP problem using the OSQP solver via the CVXPY interface: max 
+
+> st
+
+s⊤ 
+
+> t
+
+rt − λs⊤ 
+
+> t
+
+ˆΣtst
+
+s.t. st ∈ ∆m, ∥st − st−1∥1 ≤ γ
+
+where ∆ m is the standard simplex. The resulting st is utilized for the next step’s turnover constraint. 
+
+• (ii) Uniform : A naive baseline where the portfolio is equally distributed across all assets at every step, i.e., st,i = 1 
+
+> m
+
+.
+
+• (iii) Predict-then-Optimize : First, a pretrained TimePFN model uses the history of actual returns rt−L:t−1 to forecast the expected return vector ˆ rt. The empirical covariance matrix ˆΣt is estimated from the actual history rt−L:t−1. We then solve the same QP problem as the Oracle, but using the predicted return ˆ rt instead of the ground truth. 
+
+• (iv) End-to-End Neural Strategies (Time2Decide, Pretrained, SFT) : These models generate allocations directly without solving a QP explicitly. At time t, the input window Ht
+
+consists of past actual returns rt−L:t−1 and past projected allocations st−L:t−1. The models output a raw prediction vector ˜ st. To ensure validity, we apply a differentiable projection layer that maps ˜ st to the closest valid allocation ˆ st satisfying the simplex and turnover constraints: min 
+
+> ˆst
+
+∥ˆst − ˜st∥22
+
+s.t. ˆst ∈ ∆m, ∥ˆst − st−1∥1 ≤ γ
+
+This projection is solved using an SLSQP solver. The window for the next time step t + 1 is updated autoregressively: we discard the oldest observation and append the actual realized return rt and the valid projected allocation ˆ st to the history. 
+
+C.2.3 Training 
+
+We employ a Supervised Fine-Tuning (SFT) approach to train both the Time2Decide model and the 
+
+SFT baseline. Both models are initialized from a pretrained TimePFN checkpoint. The training objective is a combined loss function that jointly minimizes the error in return forecasting and portfolio allocation: 
+
+L = λr∥ˆr − r∥22 + ∥ˆs − s⋆∥22
+
+where ˆ r and r denote the predicted and ground truth return vectors, ˆ s and s⋆ denote the predicted and Oracle (optimal) allocation vectors, and λr is a hyperparameter that weights the return loss. We conduct a comprehensive hyperparameter sweep for λr ∈ { 0, 10 , 50 , . . . , 320000 } to identify the optimal configuration for each model. Optimization is performed using the Adam optimizer with a maximum learning rate of 1 × 10 −4 and a OneCycleLR scheduler with pct start=0.3 . The models are trained for a maximum of 50 epochs with a batch size of 32, employing early stopping with a patience of 5 epochs to prevent overfitting. 23 C.2.4 Evaluation Metrics 
+
+The metric for experimental evaluation is the Mean Squared Error (MSE) relative to the optimal Oracle strategy. Crucially, to rigorously assess the models’ learning capability, we compute the MSE using the 
+
+raw model predictions ˜ s (before the feasibility projection described in the Inference section) against the Oracle allocations: MSE = 1
+
+T · Neval 
+
+> Neval
+
+X
+
+> n=1
+> T
+
+X
+
+> t=1
+
+∥˜sn,t − s⋆n,t ∥22
+
+## D Architectural Ablation: MLP, LSTM vs. Transformer 
+
+In our neural QP solver experiments, we include MLP and LSTM baselines designed specifically for QP inputs for comparison. The MLP is a deep residual network that flattens the input tokens into a single vector. It employs a 6-layer architecture with widths ranging from 6 × to 4 × the hidden dimension ( d = 256), using pre-activation LayerNorm, ReLU, dropout, and projection-based residual connections to ensure trainability. The LSTM baseline processes the QP tokens sequentially using a 4-layer stacked LSTM with the same hidden dimension. Crucially, the LSTM shares the exact same input embedding and output MLP head as the transformer models, ensuring that performance differences arise solely from the sequence modeling mechanism (recurrence vs. attention). To ensure a fair comparison, the parameter counts of both baselines match those of our largest transformer model. In the following, we present the R2 results for the different models, where each problem dimension is evaluated using its best-performing transformer architecture. Table 8: R2 Comparison: Transformer architectures vs. MLP and LSTM baselines.                                     
+
+> Problem Dimensions Model Architecture
+> nmLinearTransformer SoftmaxTransformer MLP LSTM
+> 530.9738 0.9354 0.6715 0.7045 730.9600 0.8914 0.5271 0.4734 760.9355 0.8713 0.5071 0.4880 10 30.9054 0.8423 0.3566 0.2189 10 60.8921 0.8157 0.3642 0.2357 10 90.9062 0.8430 0.4043 0.2693
+
+24 E Additional Neural QP Solver Results 
+
+We present more results for neural QP solver experiments across higher problem dimensions beyond the main text’s focus on n = 5 , m = 3 configurations. See Tables 9, 10, 11, 12, 13, 14, 15, and 16 across problem sizes ( n = 7 , m = 3), ( n = 7 , m = 6), ( n = 10 , m = 3), ( n = 10 , m = 6), (n = 10 , m = 9), ( n = 15 , m = 10), ( n = 20 , m = 8), and ( n = 20 , m = 16) respectively. These comprehensive results demonstrate that transformers are capable of solving unseen QP problems of higher dimensions. Again, LinearTransformer consistently outperforms SoftmaxTrans-former across problem dimensions and hyperparameter combinations. The entries marked as NaN indicate that the Transformer architecture with the specified depth l and hidden dimension h
+
+was unable to learn the QP solution for the given higher-dimensional problem and the data size, resulting in a negative R2.Table 9: R2 on the QP Function-Approximation Task ( n=7, m=3). 
+
+SoftmaxTransformer LinearTransformer Number of Layers Number of Heads Number of Heads 1 2 4 8 1 2 4 81 0.226 0.253 0.315 0.472 0.239 0.299 0.377 0.478 
+
+2 0.485 0.544 0.482 0.485 0.652 0.755 0.784 0.811 
+
+4 0.782 0.829 0.844 0.814 0.928 0.948 0.942 0.937 
+
+8 0.864 0.891 0.890 0.883 0.960 0.952 0.949 0.943 
+
+16 0.871 0.878 0.876 0.891 0.907 0.927 0.937 0.937 
+
+Table 10: R2 on the QP Function-Approximation Task ( n=7, m=6). 
+
+SoftmaxTransformer LinearTransformer Number of Layers Number of Heads Number of Heads 1 2 4 8 1 2 4 81 0.260 0.286 0.335 0.484 0.285 0.329 0.394 0.488 
+
+2 0.452 0.462 0.511 0.535 0.721 0.729 0.749 0.766 
+
+4 0.751 0.807 0.797 0.763 0.897 0.920 0.925 0.915 
+
+8 0.847 0.870 0.867 0.871 0.929 0.932 0.936 0.928 
+
+16 0.863 0.866 0.865 0.869 0.914 0.913 0.922 0.927 
+
+25 Table 11: R2 on the QP Function-Approximation Task ( n=10, m=3). 
+
+SoftmaxTransformer LinearTransformer Number of Layers Number of Heads Number of Heads 1 2 4 8 1 2 4 81 0.186 0.195 0.213 0.242 0.191 0.221 0.261 0.298 
+
+2 0.336 0.361 0.357 0.357 0.645 0.674 0.669 0.656 
+
+4 0.666 0.657 0.670 0.661 0.867 0.893 0.896 0.879 
+
+8 0.785 0.813 0.842 0.799 0.900 0.905 0.893 0.899 
+
+16 0.774 0.786 0.822 0.842 0.600 0.860 0.884 0.873 
+
+Table 12: R2 on the QP Function-Approximation Task ( n=10, m=6). 
+
+SoftmaxTransformer LinearTransformer Number of Layers Number of Heads Number of Heads 1 2 4 8 1 2 4 81 0.207 0.215 0.230 0.258 0.212 0.242 0.270 0.320 
+
+2 0.341 0.342 0.363 0.364 0.554 0.665 0.667 0.641 
+
+4 0.603 0.663 0.651 0.642 0.816 0.868 0.852 0.856 
+
+8 0.792 0.799 0.786 0.796 0.892 0.889 0.869 0.873 
+
+16 0.795 0.797 0.783 0.816 0.614 0.843 0.855 0.864 
+
+Table 13: R2 on the QP Function-Approximation Task ( n=10, m=9). 
+
+SoftmaxTransformer LinearTransformer Number of Layers Number of Heads Number of Heads 1 2 4 8 1 2 4 81 0.247 0.256 0.273 0.309 0.251 0.279 0.317 0.371 
+
+2 0.382 0.397 0.505 0.485 0.645 0.683 0.679 0.667 
+
+4 0.626 0.659 0.755 0.746 0.850 0.880 0.892 0.882 
+
+8 0.800 0.833 0.825 0.838 0.900 0.906 0.895 0.896 
+
+16 0.828 0.826 0.824 0.843 0.762 0.864 0.890 0.900 
+
+26 Table 14: R2 on the QP Function-Approximation Task ( n=15, m=10). 
+
+SoftmaxTransformer LinearTransformer Number of Layers Number of Heads Number of Heads 1 2 4 8 1 2 4 81 0.198 0.208 0.213 0.226 0.210 0.219 0.236 0.259 
+
+2 0.306 0.325 0.338 0.333 0.608 0.636 0.639 0.628 
+
+4 0.636 0.706 0.739 0.753 0.861 0.895 0.889 0.876 
+
+8 0.767 0.815 0.824 0.820 0.854 0.902 0.911 0.911 
+
+Table 15: R2 on the QP Function-Approximation Task ( n=20, m=8). 
+
+SoftmaxTransformer LinearTransformer Number of Layers Number of Heads Number of Heads 1 2 4 8 1 2 4 81 0.150 0.156 0.155 0.158 0.161 0.158 0.157 0.155 
+
+2 0.208 0.201 0.199 0.196 0.462 0.561 0.540 0.537 
+
+4 0.351 0.360 0.370 0.297 0.821 0.828 0.754 0.793 
+
+8 0.510 0.523 0.469 0.466 NaN 0.846 0.842 0.828 
+
+Table 16: R2 on the QP Function-Approximation Task ( n=20, m=16). 
+
+SoftmaxTransformer LinearTransformer Number of Layers Number of Heads Number of Heads 1 2 4 8 1 2 4 81 0.211 0.220 0.222 0.229 0.218 0.226 0.224 0.228 
+
+2 0.305 0.342 0.332 0.342 0.616 0.637 0.634 0.532 
+
+4 0.599 0.671 0.720 0.732 0.887 0.877 0.849 0.868 
+
+8 0.750 0.800 0.764 0.795 NaN NaN 0.347 0.883 
+
+Additional Error Distributions. Figures 4 through 9 present error distribution analyses for the best-performing configurations in higher-dimensional challenging QP problems ( n = 10). These distributions complement performance metrics R2 by providing detailed information on the error characteristics of our transformer-based solvers. The figures show NMSE distributions, constraint violation patterns, and objective error distributions, revealing how both LinearTransformer and SoftmaxTransformer architectures handle the increased complexity of larger-scale QP instances. 27 0.0 0.5 1.0 1.5 2.0 2.5 3.0 
+
+NMSE per Sample 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+8000 
+
+> Frequency
+
+Distribution of NMSE (Normalized MSE) 
+
+Mean: 0.0899 
+
+Median: 0.0487 
+
+95th percentile: 0.3002 (a) NMSE distribution 0.0 0.2 0.4 0.6 0.8 1.0 1.2 1.4 
+
+Max Constraint Violation 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+> Frequency
+
+Distribution of Constraint Violations 
+
+Mean: 0.0602 
+
+Median: 0.0000 
+
+95th percentile: 0.2959 (b) Constraint violation 0 5 10 15 20 25 
+
+Objective Function Error 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+8000 
+
+> Frequency
+
+Distribution of Objective Function Errors 
+
+Mean: 0.7931 
+
+Median: 0.3165 
+
+95th percentile: 3.1512 (c) Objective error 
+
+Figure 4: Error distributions for the best LinearTransformer configuration ( n = 10 , m = 3, lay-ers=8, heads=2). 0 1 2 3 4
+
+NMSE per Sample 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+> Frequency
+
+Distribution of NMSE (Normalized MSE) 
+
+Mean: 0.1713 
+
+Median: 0.1058 
+
+95th percentile: 0.5127 
+
+(a) NMSE distribution 0.0 0.2 0.4 0.6 0.8 1.0 
+
+Max Constraint Violation 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+> Frequency
+
+Distribution of Constraint Violations 
+
+Mean: 0.0518 
+
+Median: 0.0000 
+
+95th percentile: 0.2775 (b) Constraint violation 0 10 20 30 40 
+
+Objective Function Error 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+8000 
+
+> Frequency
+
+Distribution of Objective Function Errors 
+
+Mean: 1.2222 
+
+Median: 0.5577 
+
+95th percentile: 4.4532 (c) Objective error 
+
+Figure 5: Error distributions for the best SoftmaxTransformer configuration ( n = 10 , m = 3, layers=16, heads=8). 0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 
+
+NMSE per Sample 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+> Frequency
+
+Distribution of NMSE (Normalized MSE) 
+
+Mean: 0.0819 
+
+Median: 0.0474 
+
+95th percentile: 0.2609 
+
+(a) NMSE distribution 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 
+
+Max Constraint Violation 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+> Frequency
+
+Distribution of Constraint Violations 
+
+Mean: 0.0388 
+
+Median: 0.0082 
+
+95th percentile: 0.1573 (b) Constraint violation 0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5 
+
+Objective Function Error 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+8000 
+
+> Frequency
+
+Distribution of Objective Function Errors 
+
+Mean: 0.4520 
+
+Median: 0.1938 
+
+95th percentile: 1.6922 (c) Objective error 
+
+Figure 6: Error distributions for the best LinearTransformer configuration ( n = 10 , m = 6, lay-ers=8, heads=1). 28 0 1 2 3 4 5 6
+
+NMSE per Sample 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+8000 
+
+> Frequency
+
+Distribution of NMSE (Normalized MSE) 
+
+Mean: 0.1494 
+
+Median: 0.0941 
+
+95th percentile: 0.4383 (a) NMSE distribution 0.0 0.1 0.2 0.3 0.4 0.5 0.6 
+
+Max Constraint Violation 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+> Frequency
+
+Distribution of Constraint Violations 
+
+Mean: 0.0374 
+
+Median: 0.0000 
+
+95th percentile: 0.1589 (b) Constraint violation 0 5 10 15 20 
+
+Objective Function Error 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+8000 
+
+> Frequency
+
+Distribution of Objective Function Errors 
+
+Mean: 0.7031 
+
+Median: 0.3349 
+
+95th percentile: 2.5663 (c) Objective error 
+
+Figure 7: Error distributions for the best SoftmaxTransformer configuration ( n = 10 , m = 6, layers=16, heads=8). 0.0 0.5 1.0 1.5 2.0 2.5 3.0 
+
+NMSE per Sample 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+8000 
+
+> Frequency
+
+Distribution of NMSE (Normalized MSE) 
+
+Mean: 0.0711 
+
+Median: 0.0417 
+
+95th percentile: 0.2339 
+
+(a) NMSE distribution 0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 
+
+Max Constraint Violation 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+> Frequency
+
+Distribution of Constraint Violations 
+
+Mean: 0.0286 
+
+Median: 0.0155 
+
+95th percentile: 0.1009 (b) Constraint violation 0 2 4 6 8 10 12 14 
+
+Objective Function Error 
+
+0
+
+2000 
+
+4000 
+
+6000 
+
+8000 
+
+> Frequency
+
+Distribution of Objective Function Errors 
+
+Mean: 0.2542 
+
+Median: 0.1339 
+
+95th percentile: 0.8288 (c) Objective error 
+
+Figure 8: Error distributions for the best LinearTransformer configuration ( n = 10 , m = 9, lay-ers=8, heads=2). 0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 
+
+NMSE per Sample 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+> Frequency
+
+Distribution of NMSE (Normalized MSE) 
+
+Mean: 0.1160 
+
+Median: 0.0724 
+
+95th percentile: 0.3495 
+
+(a) NMSE distribution 0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 
+
+Max Constraint Violation 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+> Frequency
+
+Distribution of Constraint Violations 
+
+Mean: 0.0253 
+
+Median: 0.0097 
+
+95th percentile: 0.0954 (b) Constraint violation 0 2 4 6 8 10 12 14 16 
+
+Objective Function Error 
+
+0
+
+1000 
+
+2000 
+
+3000 
+
+4000 
+
+5000 
+
+6000 
+
+7000 
+
+8000 
+
+> Frequency
+
+Distribution of Objective Function Errors 
+
+Mean: 0.3726 
+
+Median: 0.1993 
+
+95th percentile: 1.1886 (c) Objective error 
+
+Figure 9: Error distributions for the best SoftmaxTransformer configuration ( n = 10 , m = 9, layers=16, heads=8). 29 F Toy Model: Statistical Suboptimality of Predict-then-Optimize 
+
+Problem Setup. Consider two assets with random returns r1, r 2 having unknown means μ1, μ 2.Let w ∈ [0 , 1] be the weight on asset 1. Define the mean gap δ := μ1 − μ2. For simplicity, we assume the assets are uncorrelated with equal variance. Consequently, the portfolio variance is proportional to w2 + (1 − w)2, i.e., Var  wr 1 + (1 − w)r2
+
+ = σ2 w2 + (1 − w)2.
+
+Without loss of generality, we absorb the scale factor σ2 into the risk-aversion parameter by re-defining λ ← λσ 2; thus λ below should be interpreted as the coefficient on the variance term. We adopt a standard mean-variance utility: 
+
+U (w; δ) := μ2 + wδ − λ w2 + (1 − w)2, λ > 0.
+
+By completing the square for the quadratic penalty, maximizing the utility is equivalent to mini-mizing the distance between w and a shifted target. Letting u := w − 1/2, the objective simplifies to: max  
+
+> u∈[−1/2,1/2]
+
+uδ − 2λu 2.
+
+Because the toy-model utility is quadratic in w with curvature 2 λ, the utility suboptimality satisfies 
+
+U (w⋆; δ) − U (w; δ) = 2 λ (w − w⋆)2, so MSE to the oracle allocation is directly proportional to the utility gap. This justifies MSE-to-oracle as the evaluation metric. 
+
+Assumptions. This toy model makes several simplifying assumptions to enable closed-form in-sights. First, we consider only two assets with uncorrelated returns and equal variances, so the portfolio variance simplifies to σ2 w2 + (1 − w)2. Second, we use a mean–variance objective with fixed risk aversion λ > 0 and a box constraint w ∈ [0 , 1], which induces the clipped linear decision rule. Third, we adopt a Bayesian formulation in which the true mean gap δ follows a Gaussian prior N (0 , τ 2) and the estimate ˆδ is a noisy Gaussian signal; this conjugate structure yields the posterior mean E[δ | ˆδ] and the corresponding linear shrinkage factor in closed form. 
+
+Oracle vs. Predict-then-Optimize. If the true gap δ were known, the optimal allocation w⋆
+
+(derived by setting the derivative to zero and clipping to the feasible set) would be: 
+
+w⋆(δ) = Π [0 ,1] 
+
+ 12 + δ
+
+4λ
+
+
+
+.
+
+In the standard Predict-then-Optimize (PtO) approach, we observe samples, compute the empirical mean gap ˆδ = ˆ μ1 − ˆμ2, and simply plug it into the oracle formula: 
+
+wpto (ˆδ) = Π [0 ,1] 
+
+12 + ˆδ
+
+4λ
+
+!
+
+.
+
+End-to-End Learning. (E2E) In contrast, an end-to-end learner seeks the action that max-imizes expected utility given the noisy signal ˆδ. This corresponds to maximizing the conditional expectation: 
+
+E[U (w; δ) | ˆδ] = const + u E[δ | ˆδ] − 2λu 2.
+
+The solution to this problem uses the posterior mean of the gap, not the raw estimate: 
+
+we2e (ˆδ) = Π [0 ,1] 
+
+12 + E[δ|ˆδ]4λ
+
+!
+
+.
+
+30 The Gaussian Case: Explicit Shrinkage. To see why the end-to-end policy outperforms PtO, assume a Gaussian prior on the true gap δ ∼ N (0 , τ 2) and a sampling distribution ˆδ ∼ N (δ, s 2)(where s2 ∝ 1/n ). In particular, under the i.i.d. Gaussian return model with n samples per asset, we have 
+
+s2 = 2σ2
+
+n .
+
+The posterior expectation is a linear shrinkage of the observed signal: 
+
+E[δ|ˆδ] = ρˆδ, where ρ = τ 2
+
+τ 2 + s2 ∈ (0 , 1) .
+
+Substituting this into the general end-to-end update yields the explicit decision rule: 
+
+we2e (ˆδ) = Π [0 ,1] 
+
+12 + ρ ˆδ
+
+4λ
+
+!
+
+.
+
+Comparing the equations for wpto and we2e reveals that PtO implicitly assumes ρ = 1. However, because ρ < 1 in finite samples, the end-to-end model outperforms PtO by shrinking the noisy estimate ˆδ toward the prior (zero), thereby reducing the variance of the decision. Moreover, since 
+
+we2e (ˆδ) maximizes the conditional expected utility for each fixed ˆδ, for any measurable policy 
+
+w(ˆδ) ∈ [0 , 1] we have 
+
+E
+
+h
+
+U
+
+
+
+we2e (ˆδ); δ
+
+ ˆδ
+
+i
+
+≥ E
+
+h
+
+U
+
+
+
+w(ˆδ); δ
+
+ ˆδ
+
+i
+
+.
+
+Taking expectations over ˆδ and using the tower property yields 
+
+E
+
+h
+
+U
+
+
+
+we2e (ˆδ); δ
+
+i 
+
+≥ E
+
+h
+
+U
+
+
+
+w(ˆδ); δ
+
+i 
+
+.
+
+In particular, choosing w(ˆδ) = wpto (ˆδ) gives 
+
+E
+
+h
+
+U
+
+
+
+we2e (ˆδ); δ
+
+i 
+
+≥ E
+
+h
+
+U
+
+
+
+wpto (ˆδ); δ
+
+i 
+
+.
+
+Empirical verification. We empirically validate the conclusions of the toy model by Monte Carlo simulation. In each trial, we sample δ ∼ N (0 , τ 2) and generate a noisy estimate ˆδ | δ ∼ N (δ, s 2)with s2 = 2 σ2/n . We then compute the PtO and end-to-end decisions 
+
+wpto (ˆδ) = Π [0 ,1] 
+
+12 + ˆδ
+
+4λ
+
+!
+
+, we2e (ˆδ) = Π [0 ,1] 
+
+12 + ρ ˆδ
+
+4λ
+
+!
+
+, ρ = τ 2
+
+τ 2 + s2 ,
+
+and evaluate the realized utility 
+
+U (w; δ) = μ2 + wδ − λ w2 + (1 − w)2,
+
+averaging over 10 5 trials to estimate expected utilities. We also compute the oracle decision 
+
+woracle (δ) = Π [0 ,1] 
+
+  12 + δ
+
+> 4λ
+
+, which has access to the true δ, and define regret as the expected utility loss relative to the oracle: Regret( w) = E[U (woracle )] − E[U (w)]. 31 10 1 10 2 10 3  
+
+> Sample size n
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Optimal shrinkage
+> Optimal Shrinkage vs Sample Size
+> PtO ( = 1)
+> Shrinkage effect
+
+(a) Shrinkage vs. Sample Size 10 1 10 2 10 3  
+
+> Sample size n
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+> 0.04
+> 0.05
+> Regret:  [Uoracle ] [U]
+> Regret vs Sample Size
+> PtO
+> E2E
+
+(b) Regret vs. Sample Size 0.0 0.2 0.4 0.6 0.8 1.0   
+
+> || (binned)
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> 0.45
+> Mean | w woracle |
+> Decision Error vs Signal Strength
+> PtO
+> E2E
+
+(c) Error vs. Signal Strength 
+
+Figure 10: Empirical verification of predict-then-optimize (PtO) suboptimality compared to end-to-end learning. (a) The optimal shrinkage factor ρ = τ 2/(τ 2 + s2) increases toward 1 as sample size n grows; the shaded region shows the shrinkage effect that E2E exploits while PtO uses ρ = 1. 
+
+(b) Regret for both methods; E2E consistently achieves lower regret than PtO across all sample sizes. (c) Decision error |w − woracle | as a function of observed signal strength |ˆδ|; PtO error grows linearly with signal strength while E2E remains stable due to shrinkage. Parameters: τ 2 = 0 .01, 
+
+σ2 = 0 .5, λ = 0 .2. 
+
+Results. Figure 10 reports three key findings. Panel (a) shows the optimal shrinkage factor ρ
+
+as a function of sample size n; the shaded region represents the shrinkage effect that E2E exploits while PtO implicitly uses ρ = 1. Panel (b) compares the regret of both methods: E2E consistently achieves lower regret than PtO across all sample sizes, with the gap largest in the low-data regime and vanishing as n → ∞ (where ρ → 1). Panel (c) analyzes decision error |w − woracle | as a function of observed signal strength |ˆδ|: PtO error grows linearly with |ˆδ| because it overreacts to noisy estimates, while E2E error remains stable due to shrinkage. These results confirm the theoretical prediction that PtO is statistically suboptimal under finite-sample estimation noise, and that the suboptimality arises precisely from the failure to shrink predictions toward the prior mean. 
+
+Connection to Neural End-to-End Learning. The closed-form rule 
+
+we2e (ˆδ) = Π [0 ,1] 
+
+12 + ρ ˆδ
+
+4λ
+
+!
+
+, ρ = τ 2
+
+τ 2 + s2 ,
+
+shows that a decision-aware policy should shrink noisy estimates before optimizing, with the shrink-age level increasing as the effective estimation noise s2 grows. While the Bayes-optimal ρ depends on unknown problem statistics (e.g., τ 2 and s2), an end-to-end trained model can implicitly learn 
+
+an analogous attenuation from data by directly optimizing a downstream decision objective (e.g., expected utility/regret or supervision from oracle allocations). This viewpoint helps explain why Time2Decide can outperform PtO in practice: PtO effectively corresponds to ρ = 1, so it can overreact to noisy return signals, whereas Time2Decide can learn to temper its response when the signal-to-noise ratio is low. In particular, providing covariance information via our CAT tokeniza-tion supplies explicit second-order statistics about the market environment, which can inform how much to trust the return signal and yield more calibrated decisions under uncertainty. 32 G Negativity Case: Parity Barrier for Pure-Data Linear Atten-tion 
+
+We show a simple obstruction: with only pure data tokens, linear attention cannot synthesize even-degree statistics (e.g., covariance). Intuitively, every attention layer contributes one factor of the data, so any finite stack remains an odd-degree function of the inputs unless we inject constants or explicit second-order tokens. 
+
+Proposition G.1. Let tokens be zi = xi ∈ Rn for i = 1 , . . . , N and let all per-token maps be linear: 
+
+qj = xj WQ, k i = xiWK , v i = xiWV . With linear attention oj = PNi=1 ⟨qj , k i⟩ vi, we have 
+
+oj =
+
+h NX
+
+> i=1
+
+(V x i)x⊤
+
+> i
+
+i
+
+M ⊤xj , M := WQW ⊤ 
+
+> K
+
+, V := WV ,
+
+so oj is linear in xj and quadratic in {xi}Ni=1 , hence an odd -degree function of the dataset. Conse-quently, such a layer and any finite stack cannot construct even-degree statistics like PNi=1 xix⊤ 
+
+> i
+
+or any map invariant under the global flip xi 7 → − xi.Proof. We compute 
+
+⟨qj , k i⟩ = ( xj WQ)( xiWK )⊤ = x⊤ 
+
+> j
+
+WQW ⊤ 
+
+> K
+
+xi = x⊤ 
+
+> j
+
+M x i.
+
+Thus 
+
+oj =
+
+> N
+
+X
+
+> i=1
+
+(x⊤ 
+
+> j
+
+M x i) ( V x i) = 
+
+ NX
+
+> i=1
+
+(V x i)x⊤
+
+> i
+
+
+
+M ⊤xj =: SV M ⊤xj ,
+
+where SV := PNi=1 (V x i)x⊤ 
+
+> i
+
+is a quadratic sketch of the data. Under the global sign flip xi 7 → − xi
+
+for all i = 1 , . . . , N , we have SV 7 → SV , while xj 7 → − xj , so oj = SV M ⊤xj 7 → − oj . Thus, the map is odd and cannot equal a flip-invariant even statistic such as PNi=1 xix⊤ 
+
+> i
+
+. Each additional linear-attention layer multiplies by one more linear factor in the data, raising the degree by one, while linear/ReLU maps do not introduce even-degree terms. Therefore, no finite-depth stack of such components can yield even-degree statistics without adding constant channels or explicit second-order tokens. 
+
+Empirical validation. To validate this theoretical limitation, we conduct a simple covariance learning experiment where models must learn to estimate covariance matrices from unseen mul-tivariate time series. We compare two transformer variants: (i) LinearTransformer with linear attention and input projection layers, and (ii) BasicLinearTransformer with linear attention and no input projection layers. Each model processes sequences of length 50 with 4 variables and predicts the empirical covariance matrix using the Frobenius norm loss. The models are trained on 5000 sample series and tested on 1000 sample series. Tables 17 and 18 summarize the R ² performance across different architectures and configura-tions. The results confirm our theoretical prediction: LinearTransformer achieves R ² 0.9935, while BasicLinearTransformer (without input projection) performs significantly worse with R ² 0.2827. These empirical results support our theoretical analysis: while linear attention can learn co-variance patterns when equipped with proper input projections/embeddings, removing these pro-jections creates a fundamental barrier to learning even-degree statistics. 33 Model Layers Heads Hidden R²
+
+LinearTransformer 4 2 16 0.9935 LinearTransformer 4 4 16 0.9892 Table 17: LinearTransformer covariance learning performance (R ²) with input projection layers. Model Layers Heads R²
+
+BasicLinearTransformer 4 4 0.2827 BasicLinearTransformer 8 4 0.2473 BasicLinearTransformer 4 2 0.2234 BasicLinearTransformer 8 2 0.1953 Table 18: BasicLinearTransformer covariance learning performance (R ²) without input projection layers. 
+
+## H Additional Portfolio Optimization Results 
+
+This section presents comprehensive MSE results for portfolio optimization across different rebal-ancing constraints γ ∈ { 0.5, 0.75 , 1.0, 1.25 , 1.5, 1.75 , 2.0} and return loss weights λr ∈ { 0, 10 , 50 , 100 ,
+
+200 , 300 , 500 , 1000 , 3000 , 5000 , 10000 , 20000 , 40000 , 80000 , 160000 , 320000 }. In most of our experi-ments, SFT achieves a better performance with a small λr (focusing primarily on allocation predic-tion), while Time2Decide requires a larger λr value to balance both return and allocation predictions effectively. Table 19: MSE results for γ = 0 .5 across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0425 0.0425 0.0425 0.0425 0.0425 0.0425 0.0425 0.0425 0.0425 Pretrained 0.0447 0.0447 0.0447 0.0447 0.0447 0.0447 0.0447 0.0447 0.0447 SFT 0.0408 0.0462 0.0559 0.0566 0.0538 0.0626 0.0610 0.0626 0.0624 Predict-then-Optimize 0.0245 0.0245 0.0245 0.0245 0.0245 0.0245 0.0245 0.0245 0.0245 Time2Decide 0.0635 0.0618 0.0521 0.0526 0.0482 0.0477 0.0439 0.0367 0.0346 
+
+Table 20: MSE results for γ = 0 .5 across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0425 0.0425 0.0425 0.0425 0.0425 0.0425 0.0425 Pretrained 0.0447 0.0447 0.0447 0.0447 0.0447 0.0447 0.0447 SFT 0.0622 0.0621 0.0627 0.0621 0.0610 0.0618 0.0614 Predict-then-Optimize 0.0245 0.0245 0.0245 0.0245 0.0245 0.0245 0.0245 Time2Decide 0.0340 0.0339 0.0326 0.0325 0.0325 0.0323 0.0323 
+
+Table 21: MSE results for γ = 0 .75 across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0444 0.0444 0.0444 0.0444 0.0444 0.0444 0.0444 0.0444 0.0444 Pretrained 0.0458 0.0458 0.0458 0.0458 0.0458 0.0458 0.0458 0.0458 0.0458 SFT 0.0411 0.0499 0.0554 0.0548 0.0527 0.0635 0.0643 0.0648 0.0639 Predict-then-Optimize 0.0294 0.0294 0.0294 0.0294 0.0294 0.0294 0.0294 0.0294 0.0294 Time2Decide 0.0646 0.0607 0.0501 0.0495 0.0510 0.0476 0.0417 0.0378 0.0359 
+
+34 Table 22: MSE results for γ = 0 .75 across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0444 0.0444 0.0444 0.0444 0.0444 0.0444 0.0444 Pretrained 0.0458 0.0458 0.0458 0.0458 0.0458 0.0458 0.0458 SFT 0.0637 0.0632 0.0635 0.0634 0.0633 0.0626 0.0624 Predict-then-Optimize 0.0294 0.0294 0.0294 0.0294 0.0294 0.0294 0.0294 Time2Decide 0.0352 0.0351 0.0350 0.0348 0.0348 0.0347 0.0346 
+
+Table 23: MSE results for γ = 1 .0 across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 Pretrained 0.0500 0.0500 0.0500 0.0500 0.0500 0.0500 0.0500 0.0500 0.0500 SFT 0.0413 0.0504 0.0542 0.0553 0.0528 0.0681 0.0688 0.0690 0.0680 Predict-then-Optimize 0.0360 0.0360 0.0360 0.0360 0.0360 0.0360 0.0360 0.0360 0.0360 Time2Decide 0.0629 0.0561 0.0504 0.0566 0.0503 0.0478 0.0436 0.0414 0.0387 
+
+Table 24: MSE results for γ = 1 .0 across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 Pretrained 0.0500 0.0500 0.0500 0.0500 0.0500 0.0500 0.0500 SFT 0.0683 0.0681 0.0669 0.0680 0.0675 0.0672 0.0673 Predict-then-Optimize 0.0360 0.0360 0.0360 0.0360 0.0360 0.0360 0.0360 Time2Decide 0.0386 0.0391 0.0387 0.0387 0.0388 0.0387 0.0387 
+
+Table 25: MSE results for γ = 1 .25 across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 Pretrained 0.0514 0.0514 0.0514 0.0514 0.0514 0.0514 0.0514 0.0514 0.0514 SFT 0.0446 0.0560 0.0550 0.0523 0.0523 0.0683 0.0678 0.0685 0.0672 Predict-then-Optimize 0.0376 0.0376 0.0376 0.0376 0.0376 0.0376 0.0376 0.0376 0.0376 Time2Decide 0.0639 0.0501 0.0489 0.0498 0.0486 0.0452 0.0416 0.0400 0.0390 
+
+Table 26: MSE results for γ = 1 .25 across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 Pretrained 0.0514 0.0514 0.0514 0.0514 0.0514 0.0514 0.0514 SFT 0.0667 0.0681 0.0678 0.0675 0.0679 0.0678 0.0676 Predict-then-Optimize 0.0376 0.0376 0.0376 0.0376 0.0376 0.0376 0.0376 Time2Decide 0.0391 0.0393 0.0394 0.0395 0.0395 0.0395 0.0395 
+
+Table 27: MSE results for γ = 1 .5 across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0505 0.0505 0.0505 0.0505 0.0505 0.0505 0.0505 0.0505 0.0505 Pretrained 0.0523 0.0523 0.0523 0.0523 0.0523 0.0523 0.0523 0.0523 0.0523 SFT 0.0445 0.0557 0.0529 0.0532 0.0689 0.0698 0.0693 0.0692 0.0698 Predict-then-Optimize 0.0413 0.0413 0.0413 0.0413 0.0413 0.0413 0.0413 0.0413 0.0413 Time2Decide 0.0574 0.0490 0.0472 0.0457 0.0461 0.0435 0.0423 0.0414 0.0410 
+
+35 Table 28: MSE results for γ = 1 .5 across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0505 0.0505 0.0505 0.0505 0.0505 0.0505 0.0505 Pretrained 0.0523 0.0523 0.0523 0.0523 0.0523 0.0523 0.0523 SFT 0.0683 0.0686 0.0690 0.0679 0.0677 0.0680 0.0681 Predict-then-Optimize 0.0413 0.0413 0.0413 0.0413 0.0413 0.0413 0.0413 Time2Decide 0.0412 0.0415 0.0418 0.0420 0.0420 0.0420 0.0419 
+
+Table 29: MSE results for γ = 1 .75 across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0539 0.0539 0.0539 0.0539 0.0539 0.0539 0.0539 0.0539 0.0539 Pretrained 0.0567 0.0567 0.0567 0.0567 0.0567 0.0567 0.0567 0.0567 0.0567 SFT 0.0583 0.0515 0.0544 0.0541 0.0732 0.0724 0.0723 0.0727 0.0721 Predict-then-Optimize 0.0472 0.0472 0.0472 0.0472 0.0472 0.0472 0.0472 0.0472 0.0472 Time2Decide 0.0626 0.0538 0.0486 0.0474 0.0472 0.0457 0.0448 0.0445 0.0442 
+
+Table 30: MSE results for γ = 1 .75 across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0539 0.0539 0.0539 0.0539 0.0539 0.0539 0.0539 Pretrained 0.0567 0.0567 0.0567 0.0567 0.0567 0.0567 0.0567 SFT 0.0711 0.0716 0.0718 0.0720 0.0721 0.0725 0.0726 Predict-then-Optimize 0.0472 0.0472 0.0472 0.0472 0.0472 0.0472 0.0472 Time2Decide 0.0444 0.0448 0.0452 0.0453 0.0454 0.0455 0.0455 
+
+Table 31: MSE results for γ = 2 .0 across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0586 0.0586 0.0586 0.0586 0.0586 0.0586 0.0586 0.0586 0.0586 Pretrained 0.0604 0.0604 0.0604 0.0604 0.0604 0.0604 0.0604 0.0604 0.0604 SFT 0.0620 0.0620 0.0567 0.0565 0.0769 0.0754 0.0771 0.0770 0.0771 Predict-then-Optimize 0.0553 0.0553 0.0553 0.0553 0.0553 0.0553 0.0553 0.0553 0.0553 Time2Decide 0.0618 0.0575 0.0524 0.0526 0.0506 0.0499 0.0490 0.0488 0.0488 
+
+Table 32: MSE results for γ = 2 .0 across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0586 0.0586 0.0586 0.0586 0.0586 0.0586 0.0586 Pretrained 0.0604 0.0604 0.0604 0.0604 0.0604 0.0604 0.0604 SFT 0.0766 0.0768 0.0769 0.0767 0.0763 0.0772 0.0771 Predict-then-Optimize 0.0553 0.0553 0.0553 0.0553 0.0553 0.0553 0.0553 Time2Decide 0.0491 0.0503 0.0502 0.0506 0.0506 0.0505 0.0507 
+
+## I Additional Results with Noisy Data 
+
+To further support our theory in Appendix F, we present detailed results for the noisy data ex-periments. Specifically, we generated the returns by scaling the raw time series by a factor of 0.01, adding Gaussian noise with a standard deviation of 0.01, and clipping the values to the range [−0.3, 0.8]. The summary of these results is presented in the main text (Table 5), while the detailed breakdown between different weights of return loss is provided below. We can see that with the added noise, the end-to-end Time2Decide dominates other strategies in most cases. This aligns with our theory. Note that for Predict-then-Optimize, we use the original TimePFN for prediction. 36 This is because we find that fine-tuning the model on the noisy data leads to worse performance, as presented in Table 47. Table 33: MSE results for γ = 0 .5 with noisy data across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0336 0.0336 0.0336 0.0336 0.0336 0.0336 0.0336 0.0336 0.0336 Pretrained 0.0409 0.0409 0.0409 0.0409 0.0409 0.0409 0.0409 0.0409 0.0409 SFT 0.0358 0.0329 0.0324 0.0354 0.0373 0.0395 0.0383 0.0431 0.0433 Predict-then-Optimize 0.0224 0.0224 0.0224 0.0224 0.0224 0.0224 0.0224 0.0224 0.0224 Time2Decide 0.0423 0.0232 0.0353 0.0377 0.0421 0.0371 0.0596 0.0666 0.0594 
+
+Table 34: MSE results for γ = 0 .5 with noisy data across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0336 0.0336 0.0336 0.0336 0.0336 0.0336 0.0336 Pretrained 0.0409 0.0409 0.0409 0.0409 0.0409 0.0409 0.0409 SFT 0.0451 0.0465 0.0499 0.0506 0.0490 0.0471 0.0462 Predict-then-Optimize 0.0224 0.0224 0.0224 0.0224 0.0224 0.0224 0.0224 Time2Decide 0.0540 0.0507 0.0446 0.0409 0.0361 0.0332 0.0310 
+
+Table 35: MSE results for γ = 0 .75 with noisy data across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0356 0.0356 0.0356 0.0356 0.0356 0.0356 0.0356 0.0356 0.0356 Pretrained 0.0428 0.0428 0.0428 0.0428 0.0428 0.0428 0.0428 0.0428 0.0428 SFT 0.0349 0.0347 0.0357 0.0393 0.0467 0.0402 0.0449 0.0419 0.0400 Predict-then-Optimize 0.0300 0.0300 0.0300 0.0300 0.0300 0.0300 0.0300 0.0300 0.0300 Time2Decide 0.0302 0.0277 0.0245 0.0303 0.0343 0.0388 0.0400 0.0578 0.0549 
+
+Table 36: MSE results for γ = 0 .75 with noisy data across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0356 0.0356 0.0356 0.0356 0.0356 0.0356 0.0356 Pretrained 0.0428 0.0428 0.0428 0.0428 0.0428 0.0428 0.0428 SFT 0.0410 0.0429 0.0451 0.0467 0.0461 0.0465 0.0461 Predict-then-Optimize 0.0300 0.0300 0.0300 0.0300 0.0300 0.0300 0.0300 Time2Decide 0.0516 0.0461 0.0421 0.0385 0.0347 0.0330 0.0330 
+
+Table 37: MSE results for γ = 1 .0 with noisy data across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0403 0.0403 0.0403 0.0403 0.0403 0.0403 0.0403 0.0403 0.0403 Pretrained 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 SFT 0.0422 0.0408 0.0426 0.0458 0.0440 0.0500 0.0485 0.0432 0.0427 Predict-then-Optimize 0.0407 0.0407 0.0407 0.0407 0.0407 0.0407 0.0407 0.0407 0.0407 Time2Decide 0.0413 0.0452 0.0390 0.0347 0.0371 0.0422 0.0392 0.0460 0.0487 
+
+Table 38: MSE results for γ = 1 .0 with noisy data across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0403 0.0403 0.0403 0.0403 0.0403 0.0403 0.0403 Pretrained 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 0.0485 SFT 0.0419 0.0431 0.0433 0.0455 0.0459 0.0491 0.0492 Predict-then-Optimize 0.0407 0.0407 0.0407 0.0407 0.0407 0.0407 0.0407 Time2Decide 0.0485 0.0474 0.0450 0.0420 0.0400 0.0387 0.0373 
+
+37 Table 39: MSE results for γ = 1 .25 with noisy data across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0415 0.0415 0.0415 0.0415 0.0415 0.0415 0.0415 0.0415 0.0415 Pretrained 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 SFT 0.0448 0.0432 0.0441 0.0460 0.0451 0.0468 0.0454 0.0428 0.0422 Predict-then-Optimize 0.0446 0.0446 0.0446 0.0446 0.0446 0.0446 0.0446 0.0446 0.0446 Time2Decide 0.0420 0.0467 0.0412 0.0377 0.0394 0.0372 0.0394 0.0332 0.0410 
+
+Table 40: MSE results for γ = 1 .25 with noisy data across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0415 0.0415 0.0415 0.0415 0.0415 0.0415 0.0415 Pretrained 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 0.0479 SFT 0.0426 0.0420 0.0437 0.0447 0.0460 0.0476 0.0489 Predict-then-Optimize 0.0446 0.0446 0.0446 0.0446 0.0446 0.0446 0.0446 Time2Decide 0.0408 0.0423 0.0410 0.0412 0.0398 0.0391 0.0381 
+
+Table 41: MSE results for γ = 1 .5 with noisy data across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0449 0.0449 0.0449 0.0449 0.0449 0.0449 0.0449 0.0449 0.0449 Pretrained 0.0529 0.0529 0.0529 0.0529 0.0529 0.0529 0.0529 0.0529 0.0529 SFT 0.0454 0.0449 0.0474 0.0480 0.0453 0.0489 0.0471 0.0449 0.0445 Predict-then-Optimize 0.0522 0.0522 0.0522 0.0522 0.0522 0.0522 0.0522 0.0522 0.0522 Time2Decide 0.0550 0.0510 0.0421 0.0408 0.0414 0.0382 0.0344 0.0353 0.0384 
+
+Table 42: MSE results for γ = 1 .5 with noisy data across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0449 0.0449 0.0449 0.0449 0.0449 0.0449 0.0449 Pretrained 0.0529 0.0529 0.0529 0.0529 0.0529 0.0529 0.0529 SFT 0.0441 0.0434 0.0446 0.0454 0.0482 0.0523 0.0503 Predict-then-Optimize 0.0522 0.0522 0.0522 0.0522 0.0522 0.0522 0.0522 Time2Decide 0.0391 0.0400 0.0408 0.0404 0.0409 0.0418 0.0411 
+
+Table 43: MSE results for γ = 1 .75 with noisy data across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0506 0.0506 0.0506 0.0506 0.0506 0.0506 0.0506 0.0506 0.0506 Pretrained 0.0582 0.0582 0.0582 0.0582 0.0582 0.0582 0.0582 0.0582 0.0582 SFT 0.0549 0.0546 0.0518 0.0515 0.0545 0.0541 0.0529 0.0506 0.0503 Predict-then-Optimize 0.0633 0.0633 0.0633 0.0633 0.0633 0.0633 0.0633 0.0633 0.0633 Time2Decide 0.0408 0.0436 0.0444 0.0431 0.0394 0.0404 0.0402 0.0396 0.0400 
+
+Table 44: MSE results for γ = 1 .75 with noisy data across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0506 0.0506 0.0506 0.0506 0.0506 0.0506 0.0506 Pretrained 0.0582 0.0582 0.0582 0.0582 0.0582 0.0582 0.0582 SFT 0.0496 0.0574 0.0575 0.0574 0.0564 0.0576 0.0580 Predict-then-Optimize 0.0633 0.0633 0.0633 0.0633 0.0633 0.0633 0.0633 Time2Decide 0.0414 0.0430 0.0437 0.0437 0.0459 0.0468 0.0473 
+
+38 Table 45: MSE results for γ = 2 .0 with noisy data across different return loss weights (Part 1). 
+
+Strategy λr =0 λr =10 λr =50 λr =100 λr =200 λr =300 λr =500 λr =1000 λr =3000 Uniform 0.0585 0.0585 0.0585 0.0585 0.0585 0.0585 0.0585 0.0585 0.0585 Pretrained 0.0664 0.0664 0.0664 0.0664 0.0664 0.0664 0.0664 0.0664 0.0664 SFT 0.0614 0.0614 0.0578 0.0591 0.0624 0.0620 0.0606 0.0603 0.0562 Predict-then-Optimize 0.0781 0.0781 0.0781 0.0781 0.0781 0.0781 0.0781 0.0781 0.0781 Time2Decide 0.0484 0.0494 0.0490 0.0506 0.0478 0.0485 0.0487 0.0481 0.0476 
+
+Table 46: MSE results for γ = 2 .0 with noisy data across different return loss weights (Part 2). 
+
+Strategy λr =5000 λr =10000 λr =20000 λr =40000 λr =80000 λr =160000 λr =320000 Uniform 0.0585 0.0585 0.0585 0.0585 0.0585 0.0585 0.0585 Pretrained 0.0664 0.0664 0.0664 0.0664 0.0664 0.0664 0.0664 SFT 0.0661 0.0653 0.0643 0.0647 0.0652 0.0652 0.0653 Predict-then-Optimize 0.0781 0.0781 0.0781 0.0781 0.0781 0.0781 0.0781 Time2Decide 0.0481 0.0487 0.0503 0.0516 0.0539 0.0557 0.0557 
+
+Table 47: Predict-then-Optize MSE Results Using Different TimePFN Checkpoints 
+
+Checkpoint γ = 0 .5 γ = 0 .75 γ = 1 .0 γ = 1 .25 γ = 1 .5 γ = 1 .75 γ = 2 .0
+
+Original Checkpoint 0.0224 0.0300 0.0407 0.0446 0.0522 0.0633 0.0781 
+
+Fine-tuned on Noisy Data 0.0219 0.0301 0.0412 0.0452 0.0528 0.0638 0.0783 
+
+39

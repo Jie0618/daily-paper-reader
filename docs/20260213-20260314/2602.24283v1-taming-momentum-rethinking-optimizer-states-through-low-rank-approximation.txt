@@ -1,0 +1,1451 @@
+Title: Taming Momentum: Rethinking Optimizer States Through Low-Rank Approximation
+
+URL Source: https://arxiv.org/pdf/2602.24283v1
+
+Published Time: Mon, 02 Mar 2026 02:17:25 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+Published as a conference paper at ICLR 2026 
+
+# TAMING MOMENTUM : RETHINKING OPTIMIZER 
+
+# STATES THROUGH LOW -R ANK APPROXIMATION 
+
+Zhengbo Wang 1,2 Jian Liang 2,3∗ Ran He 2,3 Zilei Wang 1 Tieniu Tan 2,3,41 University of Science and Technology of China  
+
+> 2
+
+NLPR & MAIS, Institute of Automation, Chinese Academy of Sciences  
+
+> 3
+
+School of Artificial Intelligence, University of Chinese Academy of Sciences  
+
+> 4
+
+Nanjing University 
+
+zhengbowang@mail.ustc.edu.cn, liangjian92@gmail.com 
+
+## ABSTRACT 
+
+Modern optimizers like Adam and Muon are central to training large language models, but their reliance on first- and second-order momenta introduces sig-nificant memory overhead, which constrains scalability and computational effi-ciency. In this work, we reframe the exponential moving average (EMA) used in these momenta as the training of a linear regressor via online gradient flow. Building on this equivalence, we introduce LoRA-Pre, a novel low-rank opti-mizer designed for efficient pre-training. Specifically, LoRA-Pre reduces the optimizer’s memory footprint by decomposing the full momentum matrix into a compact low-rank subspace within the online linear learner, thereby maintain-ing optimization performance while improving memory efficiency. We empir-ically validate LoRA-Pre’s efficacy by pre-training models from the Llama ar-chitecture family, scaling from 60M to 1B parameters. LoRA-Pre achieves the highest performance across all model sizes. Notably, LoRA-Pre demonstrates re-markable rank efficiency, achieving comparable or superior results using only 1/8 the rank of baseline methods. Beyond pre-training, we evaluate LoRA-Pre’s ef-fectiveness in fine-tuning scenarios. With the same rank, LoRA-Pre consistently outperforms all efficient fine-tuning baselines. Specifically, compared to standard LoRA, LoRA-Pre achieves substantial improvements of 3.14 points on Llama-3.1-8B and 6.17 points on Llama-2-7B, validating our approach’s effectiveness across both pre-training and fine-tuning paradigms. Our code is publicly available at https://github.com/mrflogs/LoRA-Pre .
+
+## 1 INTRODUCTION 
+
+Large Language Models (LLMs) (Guo et al., 2025; Yang et al., 2025; Grattafiori et al., 2024; Brown et al., 2020; Comanici et al., 2025; Touvron et al., 2023; Jaech et al., 2024) have become the cen-terpiece of modern deep learning. Trained on trillions of tokens from heterogeneous sources and scaled to unprecedented parameter counts, they demonstrate remarkable generalization and transfer capabilities. Beyond this, some LLMs have reasoning abilities and leverage external tools (Guo et al., 2025; Yang et al., 2025). These advances have transformed LLMs from statistical learners into versatile systems, driving breakthroughs across research and real-world applications. However, the success of LLMs comes with formidable training and adaptation costs (Grattafiori et al., 2024). The vast number of trainable parameters demands enormous memory and compu-tational resources during pre-training and fine-tuning. A key contributor to this burden lies in the optimizer states. For instance, Adam (Kingma & Ba, 2015), the de facto optimizer for training LLMs, maintains not only the model weights but also first- and second-order moment estimates of the gradients. This triples memory usage and further exacerbates scalability bottlenecks, underscor-ing the urgent need for more efficient optimization strategies. 
+
+> ∗
+
+Corresponding author. 
+
+1
+
+> arXiv:2602.24283v1 [cs.LG] 27 Feb 2026
+
+Published as a conference paper at ICLR 2026 To address this, a series of low-rank optimization methods has emerged. One prominent line of research achieves optimizer state compression through projected gradient descent (Zhao et al., 2024; Chen et al., 2024; Hao et al., 2024; Modoranu et al., 2025). These methods initialize projection matrices via SVD or random mappings, project gradients into smaller subspaces for optimizer state computation, and then project them back to achieve parameter updates, thereby compressing the optimization overhead. Additionally, such methods require periodic subspace updates to enable high-rank parameter updates following W = ∆ WT1 + ∆ WT2 + · · · . However, due to the inability to update subspaces instantly, error accumulation occurs in optimizer state computation, leading to suboptimal performance. This motivates the need for a more dynamic approach that can rapidly adapt to changing gradient subspaces. In this paper, we propose LoRA-Pre, a novel low-rank optimizer for LLM pre-training that ad-dresses these limitations through a different approach. Our key insight is an interesting mathemati-cal connection between the exponential moving average (EMA) of momentum and linear regression. Specifically, we demonstrate that EMA momentum updates are mathematically equivalent to train-ing an online linear regressor with gradient descent on the online gradient flow: 
+
+m ← β · m + (1 − β) · g ⇐⇒ min  
+
+> m
+
+L(m; g) = 12 · ∥ m − g∥2 
+
+> F
+
+, (1) where m ∈ Rp×q represents the momentum, g is the online gradient, and β is the momentum coefficient. This equivalence reveals that momentum accumulation can be viewed as fitting a linear model to approximate the gradient history. Leveraging this theoretical insight, we develop a memory-efficient optimizer through momentum compression via low-rank factorization. Instead of maintaining the full momentum matrix m, we decompose it as the product of two low-rank matrices: m = mB · mA, where mB ∈ Rp×r and 
+
+mA ∈ Rr×q , with r ≪ min( p, q ). This factorization reduces memory complexity from p × q to 
+
+(p + q) × r, yielding substantial memory savings for large-scale models. The low-rank momentum is then updated by solving min mB ,m A L(mB , m A; g) = 12 · ∥ mB mA − g∥2 
+
+> F
+
+, with explicit update rules derived in Theorem 3.1. This theoretical framework enables us to compress any momentum-based optimizer. We demon-strate its versatility by developing LoRA-Pre variants for both Adam (Kingma & Ba, 2015) and Muon (Jordan et al., 2024) optimizers, with detailed algorithms provided in Appendix B. Extensive experiments across pre-training and fine-tuning tasks validate the effectiveness of our method, while ablation studies demonstrate strong robustness across different rank variations. Our main contributions are summarized as follows: • We establish a novel theoretical connection showing that exponential moving aver-age (EMA) momentum updates are mathematically equivalent to training a linear regressor via online gradient flow. • Based on this insight, we propose LoRA-Pre, a memory-efficient low-rank optimizer for pre-training that compresses optimizer states by factorizing the momentum matrix into low-rank components. We construct LoRA-Pre variants for both Adam and Muon optimizers, mathematically derive their low-rank update rules through our regression formulation, and achieve substantial memory reduction while preserving optimization dynamics. • We provide extensive experimental validation across both pre-training and fine-tuning tasks, demonstrating that LoRA-Pre achieves superior performance with remarkable rank efficiency compared to existing baselines, confirming both the efficiency and effectiveness of our approach across diverse model scales and application scenarios. 
+
+## 2 RELATED WORKS 
+
+Low-Rank Adaptation. The scaling of Large Language Models (LLMs) has spurred the develop-ment of Parameter-Efficient Fine-Tuning (PEFT) methods (Hu et al., 2022; Liu et al., 2024; Wang et al., 2025; Ding et al., 2023; Liu et al., 2022; 2023; Hayou et al., 2024; Wang et al., 2024a; Edalati et al., 2023; Zhang et al., 2023; Tastan et al., 2025; Wang et al., 2023; 2024c;b), which aim to adapt pre-trained models to downstream tasks with reduced computational and memory overhead. Among 2Published as a conference paper at ICLR 2026 these PEFT methods, Low-Rank Adaptation (LoRA) (Hu et al., 2022) and its variants (Wang et al., 2025; 2024a; Hayou et al., 2024; Liu et al., 2024; Yen et al., 2025) have emerged as the predominant methods in the field. LoRA is grounded in the principle that weight updates during fine-tuning possess an intrinsic low-rank structure (Aghajanyan et al., 2021). By re-parameterizing these updates as the product of two low-rank matrices, LoRA substantially reduces the number of trainable parameters while maintain-ing competitive performance, thereby enabling efficient adaptation of LLMs with limited computa-tional resources. The effectiveness of LoRA has inspired a line of research aimed at addressing its shortcomings. For instance, LoRA+ (Hayou et al., 2024) introduces differential learning rates for the two low-rank matrices to improve convergence and final task performance. DoRA (Liu et al., 2024) decomposes pre-trained weights into magnitude and direction components, applying LoRA specifically to the directional component to better capture fine-tuning dynamics. Recent works like LoFT (Tastan et al., 2025) and LoRA-Pro (Wang et al., 2025) establish theoretical connections be-tween LoRA and full fine-tuning via projected gradient equivalents. While effective for fine-tuning, existing LoRA-based methods face fundamental challenges when applied to pre-training from scratch. Unlike fine-tuning, where small adaptations naturally exhibit low-rank structure, pre-training from random initialization requires full-rank weight updates to learn diverse representations across the entire parameter space (Lialin et al., 2024; Kamalakara et al., 2022). This mismatch between LoRA’s low-rank assumption and pre-training’s full-rank require-ments results in suboptimal performance in the pre-training stage. 
+
+Low-Rank Pre-Training. The pre-training cost of LLMs has surged dramatically with the rapid ex-pansion of model scale. A promising direction for mitigating these costs is compressing optimizer states into a low-rank subspace, a strategy that significantly reduces memory footprint and com-munication overhead (Zhao et al., 2024; Modoranu et al., 2025; Ma et al., 2025; Han et al., 2024; Zmushko et al., 2025; Chen et al., 2024; Hao et al., 2024; Shen et al., 2025; Mahdavinia & Mahdavi, 2025; Zhang et al., 2025). For instance, GaLore (Zhao et al., 2024) utilizes Singular Value De-composition (SVD) to project gradient information into a low-rank subspace for state compression, subsequently projecting the optimized gradients back for parameter updates. To enhance compu-tational efficiency, Flora (Hao et al., 2024) substitutes the expensive SVD operation with random projection, while Fira (Chen et al., 2024) incorporates SGD momentum to leverage gradient infor-mation from the complementary subspace. However, these projection-based methods typically rely on periodic subspace updates to amortize costs, which often results in optimization discontinuities and error accumulation due to the lag in subspace adaptation. Recent works have explored online strategies to address these limitations. MLorc (Shen et al., 2025) employs randomized SVD for online momentum compression. MoFaSGD (Mahdavinia & Mahdavi, 2025) utilizes momentum factorization to approximate full-rank momentum online, ensuring non-convex convergence. Similarly, ADAPM (Zhang et al., 2025) compresses first-order momentum into a low-rank subspace via linear regression. In contrast, our proposed LoRA-Pre fundamentally reformulates momentum maintenance as an online regression task. By directly evolving low-rank factors via online gradient flow at every step, our approach achieves continuous subspace adaptation, effectively eliminating the instabilities associated with periodic updates or heuristic approximations. 
+
+## 3 METHOD 
+
+We begin by revisiting the de facto standard optimizer, Adam (Kingma & Ba, 2015), in Section 3.1. Then, we establish a connection between the exponential moving average and an online linear re-gressor over past gradients in Section 3.2. Finally, Section 3.3 introduces our efficient optimizer, LoRA-Pre, which compresses optimizer states through low-rank parameterization. 3.1 PRELIMINARY 
+
+We first review Adam (Kingma & Ba, 2015), the de facto optimizer in modern deep learning, which combines the benefits of AdaGrad (Duchi et al., 2011) and RMSProp (Hinton et al., 2012) by main-taining estimates of the first and second moments of gradients to achieve adaptive learning rates and robust performance. 3Published as a conference paper at ICLR 2026 𝑚 ′ ← 𝛽 1 ⋅ 𝑚 + 1 − 𝛽 1 ⋅ 𝑔 
+
+𝑚 𝒈 𝒕 −𝟏 … 𝒈 𝟏 
+
+𝐿 𝑚 ; 𝑔 𝑡 = 1
+
+2 ⋅ 𝑚 − 𝑔 𝑡 𝐹  
+
+> 2
+> Online Gradient Flow
+> update:
+
+𝑚 ′ ← 𝑚 − 1 − 𝛽 1 ⋅ 𝜕𝐿    
+
+> 𝜕𝑚
+> Equivalent
+> Form
+> Low -Rank
+> Compression
+> 𝒈 𝒕 𝒈 𝒕 −𝟏 …𝒈 𝟏 𝒈 𝒕 +𝟏
+
+𝐿 𝑚 𝐵 , 𝑚 𝐴 ; 𝑔 𝑡 = 1
+
+2 ⋅ 𝑚 𝐵 𝑚 𝐴 − 𝑔 𝑡 𝐹 
+
+> 2
+> update:
+
+𝑚 𝐵 
+
+𝑚 𝐴 
+
+𝑚 𝐴  
+
+> ′
+
+← 𝑚 𝐴 − 1 − 𝛽 1 ⋅ 𝜕 2𝐿  
+
+> 𝜕 𝑚 𝐴
+> 2
+> −1𝜕𝐿
+> 𝜕 𝑚 𝐴
+
+𝑚 𝐵  
+
+> ′
+
+← 𝑚 𝐵 − 1 − 𝛽 1 ⋅ 𝜕 2𝐿  
+
+> 𝜕 𝑚 𝐵
+> 2
+> −1𝜕𝐿
+> 𝜕 𝑚 𝐵
+
+Your Momentum is a Secret Online Linear Learner! 
+
+> Online Gradient Flow 𝒈 𝒕 𝒈 𝒕 +𝟏
+
+Figure 1: Illustration of our LoRA-Pre method. In this work, we establish a novel connection: 
+
+the exponential moving average (EMA) update for optimizer momentum is mathematically equiva-lent to training a linear regressor using online gradient descent . Leveraging this equivalence, we propose compressing the optimizer states (i.e., the momenta) using low-rank matrices to reduce the memory footprint. Finally, the closed-form update rules for these matrices without requiring back-propagation are given by Theorem 3.1. Consider an optimization problem where xt ∈ X represents a data point drawn from a distribution 
+
+pdata , L(·) : X → R is a loss function, and θ ∈ Rd are the optimized parameters. The Adam optimizer (Kingma & Ba, 2015) updates θ according to the following steps: 
+
+gt = ∂L(xt)
+
+∂θ , xt ∼ pdata (x), (Gradient Computation) (2) 
+
+mt = β1 · mt−1 + (1 − β1) · gt, (EMA of the First Moment) (3) 
+
+vt = β2 · vt−1 + (1 − β2) · g2 
+
+> t
+
+, (EMA of the Second Moment) (4) 
+
+ˆmt = mt
+
+1 − βt
+
+> 1
+
+, ˆvt = vt
+
+1 − βt
+
+> 2
+
+, (Bias-Correction) (5) 
+
+θt+1 = θt − γ
+
+√ˆvt + ϵ · ˆmt. (Parameter Update) (6) Here, mt and vt represent the Exponential Moving Average (EMA) of the first- and second-order moments, respectively. The hyper-parameters include the learning rate γ, the exponential decay rates β1, β 2 ∈ [0 , 1) for the moment estimates, and a small constant ϵ > 0 for numerical stability. Similar to the Adam optimization process, momentum also plays a critical role in other modern opti-mizers (Shazeer & Stern, 2018; Jordan et al., 2024), enhancing stability and convergence. However, storing momentum states introduces significant memory overhead. Our work directly addresses this by compressing the momentum term to reduce the optimizer’s memory footprint. 3.2 YOUR MOMENTUM IS A SECRET ONLINE LINEAR REGRESSOR 
+
+To begin with, we reveal an interesting connection: momentum updates in modern optimizers are secretly performing online linear regression. Specifically, updating the momentum m via EMA is mathematically equivalent to optimizing m as the parameter of a linear regressor using online gradient flow. To illustrate this, consider the first-order momentum as an example. The standard EMA update for the first-order momentum can be rewritten as follows: 
+
+mt+1 = β · mt + (1 − β) · g, (7) 
+
+= mt
+
+|{z} 
+
+> weight
+
+− (1 − β)
+
+| {z }
+
+> lr
+
+· (mt − g)
+
+| {z }
+
+> gradient
+
+. (8) 4Published as a conference paper at ICLR 2026 As shown in Equation (8), the EMA update is mathematically equivalent to a gradient descent step where the parameter being optimized is the momentum m, the learning rate is 1−β, and the gradient is ∂L (mt;g) 
+
+> ∂m
+
+= mt −g. This reformulation reveals that EMA updates essentially function as an online linear regressor that continuously adjusts the momentum weights based on incoming gradients. The underlying objective being minimized is: 
+
+min  
+
+> m
+
+L(m; g) = 12 · ∥ m − g∥2 
+
+> F
+
+. (9) This insight opens a new avenue for optimizer footprint optimization: since momentum parameters are linear model weights, we can apply standard model compression techniques to reduce optimizer memory usage during training. 3.3 LORA-P RE : L OW -R ANK ONLINE LINEAR REGRESSION 
+
+We now introduce LoRA-Pre, a new low-rank optimizer for pre-training. Building on the equiv-alence between exponential moving averages and online linear regression, LoRA-Pre compresses the momentum term m via a low-rank factorization, inspired by the LoRA technique (Hu et al., 2022). This approach can be applied to any momentum-based optimizer, such as Adam (Kingma & Ba, 2015) and Muon (Jordan et al., 2024). We detail the compression strategies for both first- and second-order momentum terms below. 
+
+First-Order Momentum Compression. Having established that momentum updates are equivalent to gradient descent on the objective min m L(m; g) = 12 ·∥ m−g∥2 
+
+> F
+
+in Section 3.2, we can now apply low-rank compression to reduce memory usage. Instead of storing and updating the full momentum matrix m ∈ Rp×q directly, we decompose it into the product of two low-rank matrices mB ∈ Rp×r
+
+and mA ∈ Rr×q , r ≪ min( p, q ), i.e., m = mB · mA. This factorization transforms our original optimization problem into: 
+
+min  
+
+> mB,m A
+
+L(mB , m A; g) = 12 · ∥ mB mA − g∥2 
+
+> F
+
+. (10) To maintain memory efficiency, we solve this optimization problem using standard gradient descent on the factorized matrices mB and mA. To ensure computational efficiency, we derive closed-form update rules for these matrices without requiring back-propagation, which is given by Theorem 3.1. We resort to Newton’s method for updating since the solution can be expressed in the form of EMA. 
+
+Theorem 3.1. Assume both matrices mB ∈ Rp×r and mA ∈ Rr×q are full rank. For the objective min mB ,m A L(mB , m A; g) = 12 · ∥ mB mA − g∥2 
+
+> F
+
+, Newton’s method yields the following closed-form update rules: 
+
+mB ← (1 − γ1) · mB + γ1 · gm AT (mAmTA)−1, (11) 
+
+mA ← (1 − γ1) · mA + γ1 · (mTB mB )−1mTB g. (12) 
+
+Here, γ1 is the learning rate for the factorized optimization problem. Proof. See Appendix A. 
+
+Second-Order Momentum Compression. The compression of second-order momentum v presents additional challenges due to the constraints imposed by Adam’s parameter update rule. Since Equa-tion (6) requires the square root of momentum, i.e., √v, the second-order momentum must be element-wise positive. A naive approach would parameterize the second momentum as v = vB · vA and optimize using the regression loss L(vB , v A; g) = 12 · ∥ vB vA − g2∥2 
+
+> F
+
+. From Theorem 3.1, we derive the corresponding parameter update rule: 
+
+vB ← (1 − γ2) · vB + γ2 · g2vTA(vAvTA)−1, (13) 
+
+vA ← (1 − γ2) · vA + γ2 · (vTB vB )−1vTB g2. (14) Unfortunately, this approach cannot guarantee that vi,j > 0, ∀i, j , making the computation of √v =√vB vA problematic. 5Published as a conference paper at ICLR 2026 To address this issue, we re-parameterize the second-order momentum as v = ( vB vA)◦2, where ◦
+
+denotes the Hadamard product. This re-parameterization ensures element-wise positivity while maintaining the low-rank structure. We then formulate the optimization of low-rank matrices vB
+
+and vA as: 
+
+min  
+
+> vB,v A
+
+L(vB , v A; g) = 12 · ∥ vB vA − | g|∥ 2 
+
+> F
+
+. (15) Its update rule can thus be directly derived from Theorem 3.1. 
+
+vB ← (1 − γ2) · vB + γ2 · | g|vTA(vAvTA)−1, (16) 
+
+vA ← (1 − γ2) · vA + γ2 · (vTB vB )−1vTB |g|. (17) 
+
+Low-Rank Optimizer Algorithms. As shown before, our method can be applied to any optimizer with momentum to compress its optimizer state during pre-training and fine-tuning stages. The detailed pseudo-codes of LoRA-Pre optimizer for AdamW (Kingma & Ba, 2015) and Muon (Jordan et al., 2024) are provided in Appendix B. 
+
+## 4 EXPERIMENTAL RESULTS 
+
+In this section, we present extensive experiments to evaluate the effectiveness of our proposed method, LoRA-Pre. Our evaluation encompasses both memory-efficient pre-training and memory-efficient fine-tuning on downstream tasks. We begin by assessing LoRA-Pre’s pre-training capabilities in Section 4.1. Following the exper-imental setup of GaLore (Zhao et al., 2024), we train Llama (Touvron et al., 2023) models from scratch with varying model sizes of 60M, 130M, 350M, and 1B parameters. All models are trained on the Colossal Clean Crawled Corpus (C4) dataset (Raffel et al., 2020), a large-scale cleaned dataset specifically designed for language model pre-training. To simulate realistic pre-training conditions, the models are trained on sufficiently large volumes of data without repetition. Subsequently, we evaluate LoRA-Pre’s fine-tuning performance in Section ?? . We fine-tune both Llama-3.1-8B (Grattafiori et al., 2024) and Llama-2-7B (Touvron et al., 2023) models on a 100k subset sampled from the MetaMathQA dataset (Yu et al., 2024). The fine-tuned models are then evaluated on the GSM8K (Cobbe et al., 2021) and MATH-500 (Lightman et al., 2024) datasets. Finally, we present an ablation study of LoRA-Pre in Appendix 4.3. 
+
+Implementation Details. To ensure a fair comparison, we align the experimental setup with that of GaLore (Zhao et al., 2024). By default, LoRA-Pre is applied to all parameters in the attention and MLP layers, while other parameters are optimized using the standard Adam (Kingma & Ba, 2015) optimizer. We set the default ranks for the 60M, 130M, 350M, and 1B parameter models to 128, 256, 256, and 512, respectively. The optimal learning rate is selected from the set {0.01, 0.005, 0.001, 0.0005, 0.0001 } based on validation perplexity. To maintain strict fairness in comparison, we retain the same scale factor of 0.25 as used in GaLore (Zhao et al., 2024). For memory-efficient fine-tuning tasks, we set the default rank as 8 and set the learning rate as 2e − 5 by default. 4.1 MEMORY -E FFICIENT PRE -TRAINING 
+
+In this section, we evaluate the pre-training performance of our proposed method, LoRA-Pre. Our experimental setup strictly follows that of GaLore (Zhao et al., 2024). We compare LoRA-Pre against several baseline methods, including both full optimizers and low-rank optimizers: 1) 
+
+Adam (Kingma & Ba, 2015): The de facto optimizer in modern deep learning that utilizes first-and second-order momentum statistics to dynamically adjust learning rates and stabilize training. 2) Muon (Jordan et al., 2024): A novel preconditioned optimizer that updates parameters by or-thogonalizing the first-order momentum. 3) GaLore (Zhao et al., 2024): A low-rank optimizer that projects gradients using SVD and computes optimizer states in a reduced subspace. 4) Low-Rank (Kamalakara et al., 2022): A traditional low-rank approach that directly represents weights through learnable low-rank factorization W = BA . 5) LoRA (Hu et al., 2022): The most widely adopted low-rank method for fine-tuning that factorizes weights as W = W0 +BA . For pre-training scenarios, we maintain W0 as the full-rank initialization matrix. 6) ReLoRA (Lialin et al., 2024): A LoRA variant designed for pre-training that periodically merges BA into W and initializes BA 
+
+6Published as a conference paper at ICLR 2026 Table 1: Comparison with low-rank algorithms on pre-training various sizes of Llama models on the C4 dataset. We report the validation perplexity ( ↓) on a hold-out C4 test set. The best and second-best performance within the low-rank optimizers are highlighted with bold and underline. ∗ denotes the results are reproduced by ourselves. Model Size 60M 130M 350M 1B 
+
+r/d model 128 / 512 256 / 768 256 / 1024 512 / 2048 Training Tokens 1.1B 2.2B 6.4B 13.1B Adam (Kingma & Ba, 2015) 34.09 25.08 18.80 15.56 Muon (Jordan et al., 2024) 28.43 21.86 16.17 13.41 GaLore (Zhao et al., 2024) 34.88 25.36 18.95 15.64 Low-Rank (Kamalakara et al., 2022) 78.18 45.51 37.41 142.53 LoRA (Hu et al., 2022) 34.99 33.92 25.58 19.21 ReLoRA (Lialin et al., 2024) 37.04 29.37 29.08 18.33 SLTrain (Han et al., 2024) 34.15 26.04 19.42 16.14 LORO (Mo et al., 2025) 33.96 24.59 18.84 15.19 Fira* (Chen et al., 2024) 31.19* 24.51* 17.22* 14.31 
+
+LoRA-Pre Adam 32.57 23.78 16.36 13.53 LoRA-Pre Muon 30.76 23.05 16.97 13.92 with optimizer state resets. 7) SLTrain (Han et al., 2024): A sparse plus low-rank approach that pa-rameterizes weights as W = S + BA , where both components are jointly optimized. 8) LORO (Mo et al., 2025): A method that optimizes LoRA parameters by strictly constraining updates within the low-rank manifold. 9) Fira (Chen et al., 2024): A method that improves upon GaLore with the Norm-Based Scaling and the Norm-Growth Limiter. We pre-trained Llama series models of different sizes to evaluate LoRA-Pre against these baseline methods. By default, all low-rank optimizers are built upon the Adam (Kingma & Ba, 2015) opti-mizer foundation. To demonstrate the generalizability of our approach, we also evaluate LoRA-Pre with Muon (Algorithm 2), as our method is compatible with any momentum-based optimizer. The results, presented in Table 1, demonstrate that our method achieves superior performance across multiple model scales. Specifically, LoRA-Pre Adam and LoRA-Pre Muon attain either the highest or second-highest performance across almost all four model sizes (60M, 130M, 350M, and 1B), val-idating the effectiveness of our approach. While Fira yields competitive results on the 60M model, LoRA-Pre consistently outperforms it on the larger scales (130M, 350M, and 1B), likely because our method avoids the error accumulation associated with Fira’s projected gradients. Furthermore, LoRA-Pre Adam outperforms the previous best efficient baselines by substantial margins of 0.81, 2.45, and 1.6 perplexity points for the 130M, 350M, and 1B models, respectively. Furthermore, when integrated with the Muon (Jordan et al., 2024) optimizer, LoRA-Pre Muon achieves addi-tional improvements on both 60M and 130M scale models, demonstrating our method’s ability to generalize across different optimizers. 4.2 MEMORY -E FFICIENT FINE -T UNING 
+
+In this section, we evaluate the fine-tuning performance of LoRA-Pre on mathematical tasks. We fine-tune Llama-2-7B and Llama-3.1-8B models on the MetaMath100k dataset and assess their per-formance on GSM8K (Cobbe et al., 2021) and MATH-500 (Lightman et al., 2024). To ensure a fair comparison, we maintain identical hyper-parameters and training configurations across all methods. We select several memory-efficient fine-tuning baselines for comparison, including: 1) LoRA (Hu et al., 2022): the standard low-rank fine-tuning method. 2) rsLoRA (Kalajdzievski, 2023): an im-proved LoRA variant that optimizes the scaling factor through rank-stabilized normalization. 3) 
+
+DoRA (Liu et al., 2024): a LoRA extension that decomposes weight updates into magnitude and directional components for more effective optimization. 4) GaLore (Zhao et al., 2024): a memory-efficient optimizer that projects gradients into low-rank subspaces using SVD decomposition. To demonstrate cross-optimizer compatibility, we evaluate Muon-based versions, including: 1) Ga-
+
+7Published as a conference paper at ICLR 2026 Table 2: Results of memory-efficient fine-tuning methods. We compare our method with effi-cient fine-tuning methods including LoRA (Hu et al., 2022), rsLoRA (Kalajdzievski, 2023), and DoRA (Liu et al., 2024), and an efficient optimizer GaLore (Zhao et al., 2024). The models are fine-tuned on the MetaMath100k (Yu et al., 2024) dataset, and evaluated on GSM8K (Cobbe et al., 2021) and MATH-500 (Lightman et al., 2024). We highlight the best performance on Adam-like optimizer and Muon-like optimizer with bold .Method Llama-3.1-8B Llama-2-7B GSM8K MATH-500 Average GSM8K MATH-500 Average LoRA (Hu et al., 2022) 70.76 17.06 43.91 44.62 7.34 25.98 rsLoRA (Kalajdzievski, 2023) 71.06 17.46 44.26 48.79 5.75 27.27 DoRA (Liu et al., 2024) 71.06 17.86 44.46 44.39 6.55 25.47 GaLore (Zhao et al., 2024) 65.08 18.65 41.87 36.44 8.33 22.39 
+
+LoRA-Pre Adam 76.44 17.66 47.05 57.35 6.94 32.15 
+
+GaLore Muon (Zhao et al., 2024) 63.41 18.06 40.74 33.11 4.37 18.74 LoRA Muon (Hu et al., 2022) 70.30 19.25 44.78 35.15 6.15 20.65 
+
+LoRA-Pre Muon 72.65 20.83 46.74 47.20 6.15 26.68 
+
+Lore Muon : which apply the GaLore (Zhao et al., 2024) algorithm to the Muon optimizer, and 2) 
+
+LoRA Muon : which optimizes LoRA with the Muon optimizer. The results are presented in Table 2. LoRA-Pre consistently achieves the highest scores across all experimental configurations, demonstrating superior performance regardless of the base model or optimizer used. The improvements are particularly notable across different settings: when training Llama-3.1-8B with Adam, LoRA-Pre shows an average improvement of 2.59 points over the second-best method, while with Llama-2-7B and Adam, this improvement increases to 4.88 points. When using the Muon optimizer, LoRA-Pre maintains its advantage with improvements of 1.96 and 6.03 points for the respective models. These results confirm LoRA-Pre’s effectiveness across diverse experimental conditions and its robust compatibility with different optimizers. 4.3 ABLATION STUDY  
+
+> (a) (b)
+
+Figure 2: Rank efficiency comparison across efficient optimization methods. Perplexity versus rank for 60M (left) and 130M (right) models, demonstrating LoRA-Pre’s superior performance at lower ranks compared to baseline methods. 
+
+Ablation of Different Rank. To systematically evaluate how rank selection affects the performance of LoRA-Pre compared to other efficient optimization methods, we conduct comprehensive experi-ments across different rank configurations. We evaluate LoRA-Pre (both Adam and Muon variants) against GaLore (Zhao et al., 2024) on 60M and 130M parameter models. We test ranks of {4, 16, 64, 128 } for the 60M model and {16, 64, 128, 256 } for the 130M model to observe performance trends across different memory budgets. 8Published as a conference paper at ICLR 2026 Figure 2 shows that all methods improve with increasing rank, but exhibit different rank efficiency. LoRA-Pre consistently achieves better perplexity at lower ranks compared to GaLore. First, all methods show improved performance with increasing rank, but they differ significantly in their rank efficiency. When comparing specific configurations, the efficiency differences become clear. On the 60M model, LoRA-Pre Adam at rank=16 achieves comparable performance to GaLore at rank=128, representing an 8× reduction in rank requirement. Similarly, on the 130M model, LoRA-Pre Adam at rank=16 matches GaLore’s performance at rank=256, representing a 16 × efficiency improvement. LoRA-Pre Muon shows higher rank tolerance than LoRA-Pre Adam. We attribute LoRA-Pre’s rank efficiency to its continuous subspace adaptation mechanism. GaLore performs periodic subspace updates, creating intervals where the subspace becomes misaligned with the gradient structure. To compensate for this error accumulation, GaLore requires larger subspaces. In contrast, LoRA-Pre adjusts its subspace at each step, maintaining better alignment and thus achieving effective optimiza-tion with smaller subspaces. To gain deeper insights into this rank efficiency, we examine the training dynamics of LoRA-Pre Muon across different rank configurations. Figure 3 visualizes the perplexity trajectories for the 130M model with ranks of 256, 128, 64, and 16. The results reveal an intriguing convergence pat-tern: while smaller ranks initially exhibit higher perplexity values, this performance gap dimin-ishes rapidly as training progresses. This behav-ior demonstrates that LoRA-Pre’s dynamic sub-space update mechanism can efficiently capture the evolving momentum structure during training, even when operating with constrained ranks. This rapid adaptation capability explains why LoRA-Pre maintains competitive performance across a wide range of rank settings, making it both ro-bust to rank selection and practically appealing for memory-constrained training scenarios. Figure 3: Test perplexity for LoRA-Pre Muon with different ranks during training. Table 3: Results of pre-training using different efficient Muon optimizers.                   
+
+> Model Size 60M 130M 350M Muon (Jordan et al., 2024) 28.43 21.86 16.17 Muon w/o momentum 32.15 24.23 17.33 GaLore Muon (Zhao et al., 2024) 34.39 25.16 19.24 Fira Muon (Chen et al., 2024) 34.45 24.85 17.40
+> LoRA-Pre Muon 30.76 23.05 16.97
+
+Ablation of Low-Rank Muon Optimizers. In this section, we evaluate the effectiveness of current efficient optimizers by extending them to the recently proposed Muon optimizer (Jordan et al., 2024). Since existing efficient optimizers were originally designed for Adam (Kingma & Ba, 2015), their compatibility and performance with other optimizers remain unexplored. We conduct experiments on 60M, 130M, and 350M parameter models, comparing LoRA-Pre against GaLore (Zhao et al., 2024) and Fira (Chen et al., 2024) by adapting their implementations to use Muon. Standard Muon serves as the upper bound, while Muon without momentum provides the lower bound. The Muon-based algorithm for LoRA-Pre is presented in Algorithm 2. The results in Table 3 reveal two significant findings. First, LoRA-Pre Muon consistently outper-forms all other efficient optimizers, achieving improvements of 3.54, 1.80, and 0.43 points over the second-best method at 60M, 130M, and 350M parameters, respectively. Second, projection-based methods surprisingly perform worse than basic Muon without momentum, despite incorporating mo-mentum computation. This counterintuitive result exposes fundamental generalization limitations of projection-based gradient descent methods when applied to different optimizers. We attribute this phenomenon to the periodic subspace updates in projection-based methods, which introduce mo-mentum computation errors that subsequently affect Muon’s orthogonal update calculations. In 9Published as a conference paper at ICLR 2026 contrast, LoRA-Pre continuously updates its subspace, enabling better capture of the orthogonal space during Muon’s update process and achieving superior performance. 
+
+## 5 CONCLUSION 
+
+In this paper, we present LoRA-Pre, a novel low-rank efficient optimizer. We establish that EMA momentum updates are mathematically equivalent to training an online linear regressor with gra-dient descent on the online gradient flow. Building on this insight, we propose compressing the momentum component through low-rank factorization, deriving update rules that maintain the EMA form while operating in a compressed parameter space. We provide two variants: LoRA-Pre Adam and LoRA-Pre Muon. Extensive experiments on pre-training and fine-tuning tasks demonstrate that LoRA-Pre achieves competitive or superior performance across all evaluated tasks and model sizes. Notably, our method exhibits excellent rank robustness, requiring only 1/8 or fewer ranks compared to previous methods while achieving comparable results. The approach generalizes effectively to various optimizers, making it a versatile solution for memory-efficient optimization. 
+
+## ACKNOWLEDGEMENT 
+
+This work was funded by the National Natural Science Foundation of China under Grants (62276256, U2441251, 62550062, 62425606, 32341009) and the Young Elite Scientists Sponsorship Program by CAST (2023QNRC001). We gratefully acknowledge Jie Cheng and Zhen Yang for providing computational resources and for their valuable discussions, which were critical to this work. 
+
+## REFERENCES 
+
+Armen Aghajanyan, Sonal Gupta, and Luke Zettlemoyer. Intrinsic dimensionality explains the ef-fectiveness of language model fine-tuning. In ACL-IJCNLP , 2021. Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are few-shot learners. In NeurIPS , 2020. Xi Chen, Kaituo Feng, Changsheng Li, Xunhao Lai, Xiangyu Yue, Ye Yuan, and Guoren Wang. Fira: Can we achieve full-rank training of llms under low-rank constraint? arXiv preprint arXiv:2410.01623 , 2024. Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, et al. Training verifiers to solve math word problems. arXiv preprint arXiv:2110.14168 , 2021. Gheorghe Comanici, Eric Bieber, Mike Schaekermann, Ice Pasupat, Noveen Sachdeva, Inderjit Dhillon, Marcel Blistein, Ori Ram, Dan Zhang, Evan Rosen, et al. Gemini 2.5: Pushing the frontier with advanced reasoning, multimodality, long context, and next generation agentic capa-bilities. arXiv preprint arXiv:2507.06261 , 2025. Ning Ding, Yujia Qin, Guang Yang, Fuchao Wei, Zonghan Yang, Yusheng Su, Shengding Hu, Yulin Chen, Chi-Min Chan, Weize Chen, et al. Parameter-efficient fine-tuning of large-scale pre-trained language models. Nature Machine Intelligence , 5(3):220–235, 2023. John Duchi, Elad Hazan, and Yoram Singer. Adaptive subgradient methods for online learning and stochastic optimization. JMLR , 12(7), 2011. Ali Edalati, Marzieh Tahaei, Ivan Kobyzev, Vahid Partovi Nia, James J Clark, and Mehdi Reza-gholizadeh. Krona: Parameter efficient tuning with kronecker adapter. In NeurIPS Workshop ,2023. Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, et al. The llama 3 herd of models. arXiv preprint arXiv:2407.21783 , 2024. 10 Published as a conference paper at ICLR 2026 Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948 , 2025. Andi Han, Jiaxiang Li, Wei Huang, Mingyi Hong, Akiko Takeda, Pratik Kumar Jawanpuria, and Bamdev Mishra. Sltrain: a sparse plus low rank approach for parameter and memory efficient pretraining. In NeurIPS , 2024. Yongchang Hao, Yanshuai Cao, and Lili Mou. Flora: Low-rank adapters are secretly gradient compressors. In ICML , 2024. Soufiane Hayou, Nikhil Ghosh, and Bin Yu. Lora+: Efficient low rank adaptation of large models. In ICML , 2024. Geoffrey Hinton, Nitish Srivastava, and Kevin Swersky. Neural networks for machine learning lecture 6a overview of mini-batch gradient descent, 2012. Edward J Hu, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, Weizhu Chen, et al. Lora: Low-rank adaptation of large language models. In ICLR , 2022. Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richardson, Ahmed El-Kishky, Aiden Low, Alec Helyar, Aleksander Madry, Alex Beutel, Alex Carney, et al. Openai o1 system card. arXiv preprint arXiv:2412.16720 , 2024. Keller Jordan, Yuchen Jin, Vlado Boza, Jiacheng You, Franz Cesista, Laker Newhouse, and Jeremy Bernstein. Muon: An optimizer for hidden layers in neural networks, 2024. URL https: //kellerjordan.github.io/posts/muon/ .Damjan Kalajdzievski. A rank stabilization scaling factor for fine-tuning with lora. arXiv preprint arXiv:2312.03732 , 2023. Siddhartha Rao Kamalakara, Acyr Locatelli, Bharat Venkitesh, Jimmy Ba, Yarin Gal, and Aidan N Gomez. Exploring low rank training of deep neural networks. arXiv preprint arXiv:2209.13569 ,2022. Diederik Kingma and Jimmy Ba. Adam: A method for stochastic optimization. In ICLR , 2015. Vladislav Lialin, Sherin Muckatira, Namrata Shivagunde, and Anna Rumshisky. Relora: High-rank training through low-rank updates. In ICLR , 2024. Hunter Lightman, Vineet Kosaraju, Yuri Burda, Harrison Edwards, Bowen Baker, Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe. Let’s verify step by step. In ICLR , 2024. Pengfei Liu, Weizhe Yuan, Jinlan Fu, Zhengbao Jiang, Hiroaki Hayashi, and Graham Neubig. Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language pro-cessing. ACM Computing Surveys , 55(9):1–35, 2023. Shih-Yang Liu, Chien-Yi Wang, Hongxu Yin, Pavlo Molchanov, Yu-Chiang Frank Wang, Kwang-Ting Cheng, and Min-Hung Chen. Dora: Weight-decomposed low-rank adaptation. In ICML ,2024. Xiao Liu, Kaixuan Ji, Yicheng Fu, Weng Tam, Zhengxiao Du, Zhilin Yang, and Jie Tang. P-tuning: Prompt tuning can be comparable to fine-tuning across scales and tasks. In ACL , 2022. Chao Ma, Wenbo Gong, Meyer Scetbon, and Edward Meeds. Swan: Sgd with normalization and whitening enables stateless llm training. In ICML , 2025. Pouria Mahdavinia and Mehrdad Mahdavi. Low-rank momentum factorization for memory efficient training. TMLR , 2025. URL https://openreview.net/forum?id=W3D3TVo9a3 .Zhanfeng Mo, Long-Kai Huang, and Sinno Jialin Pan. Parameter and memory efficient pretraining via low-rank riemannian optimization. In ICLR , 2025. Ionut-Vlad Modoranu, Mher Safaryan, Erik Schultheis, and Dan Alistarh. Svd-free low-rank adap-tive gradient optimization for large language models. arXiv preprint arXiv:2505.17967 , 2025. 11 Published as a conference paper at ICLR 2026 Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, and Peter J Liu. Exploring the limits of transfer learning with a unified text-to-text transformer. JMLR , 21(140):1–67, 2020. Noam Shazeer and Mitchell Stern. Adaptive learning rates with sublinear memory cost. In ICML ,2018. Wei Shen, Yaxiang Zhang, Minhui Huang, Mengfan Xu, Jiawei Zhang, and Cong Shen. Mlorc: Momentum low-rank compression for large language model adaptation. arXiv preprint arXiv:2506.01897 , 2025. Nurbek Tastan, Stefanos Laskaridis, Martin Tak´ aˇ c, Karthik Nandakumar, and Samuel Horv´ ath. LoFT: Low-rank adaptation that behaves like full fine-tuning. In ICML Workshop , 2025. URL 
+
+https://openreview.net/forum?id=AigAsBDtdj .Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei, Niko-lay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al. Llama 2: Open founda-tion and fine-tuned chat models. arXiv preprint arXiv:2307.09288 , 2023. Shaowen Wang, Linxi Yu, and Jian Li. Lora-ga: Low-rank adaptation with gradient approximation. In NeurIPS , 2024a. Zhengbo Wang, Jian Liang, Ran He, Nan Xu, Zilei Wang, and Tieniu Tan. Improving zero-shot generalization for clip with synthesized prompts. In ICCV , 2023. Zhengbo Wang, Jian Liang, Ran He, Zilei Wang, and Tieniu Tan. Connecting the dots: Collaborative fine-tuning for black-box vision-language models. In ICML , 2024b. Zhengbo Wang, Jian Liang, Lijun Sheng, Ran He, Zilei Wang, and Tieniu Tan. A hard-to-beat baseline for training-free clip-based adaptation. In ICLR , 2024c. Zhengbo Wang, Jian Liang, Ran He, Zilei Wang, and Tieniu Tan. Lora-pro: Are low-rank adapters properly optimized? In ICLR , 2025. An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388 , 2025. Jui-Nan Yen, Si Si, Zhao Meng, Felix Yu, Sai Surya Duvvuri, Inderjit S Dhillon, Cho-Jui Hsieh, and Sanjiv Kumar. Lora done rite: Robust invariant transformation equilibration for lora optimization. In ICLR , 2025. Longhui Yu, Weisen Jiang, Han Shi, YU Jincheng, Zhengying Liu, Yu Zhang, James Kwok, Zhen-guo Li, Adrian Weller, and Weiyang Liu. Metamath: Bootstrap your own mathematical questions for large language models. In ICLR , 2024. Qingru Zhang, Minshuo Chen, Alexander Bukharin, Pengcheng He, Yu Cheng, Weizhu Chen, and Tuo Zhao. Adaptive budget allocation for parameter-efficient fine-tuning. In ICLR , 2023. Yimu Zhang, Yuanshi Liu, and Cong Fang. Adapm: a partial momentum algorithm for llm training. 
+
+arXiv preprint arXiv:2510.09103 , 2025. Jiawei Zhao, Zhenyu Zhang, Beidi Chen, Zhangyang Wang, Anima Anandkumar, and Yuandong Tian. Galore: Memory-efficient llm training by gradient low-rank projection. In ICML , 2024. Philip Zmushko, Aleksandr Beznosikov, Martin Tak´ aˇ c, and Samuel Horv´ ath. Frugal: Memory-efficient optimization by reducing state overhead for scalable training. In ICML , 2025. 12 Published as a conference paper at ICLR 2026 
+
+# Taming Momentum: Rethinking Optimizer States Through Low-Rank Approximation ————Appendix———— 
+
+The structure of the Appendix is as follows, • Appendix A contains the proofs of the theorems in the main manuscript. • Appendix B details the optimization algorithms of the proposed method. • Appendix C provides theoretical analysis of approximation error and convergence of the proposed method. • Appendix D provides additional experiments of our method. • Appendix E details the LLM usage in this paper. 
+
+## A PROOF OF THEORETICAL RESULTS 
+
+Theorem. Assume matrices mB ∈ Rp×r and mA ∈ Rr×q are both full rank. For the objective min mB ,m A L(mB , m A; g) = 12 · ∥ mB mA − g∥2 
+
+> F
+
+, Newton’s method yields the following closed-form update rules: 
+
+mB ← (1 − γ1) · mB + γ1 · gm AT (mAmTA)−1, (18) 
+
+mA ← (1 − γ1) · mA + γ1 · (mTB mB )−1mTB g. (19) 
+
+Here, γ1 is the learning rate for the factorized optimization problem. 
+
+Proof. We aim to derive Newton’s method update rules for the optimization problem 
+
+min mB ,m A L(mB , m A; g) = 12 · ∥ mB mA − g∥2 
+
+> F
+
+. Our approach begins with computing the first-order gradients, then proceeds to the Hessian computation, and finally establishes the connection to exponential moving average (EMA) updates. To start, we compute the first-order partial derivatives: 
+
+∂L ∂m B
+
+= ( mB mA − g)mTA, (20) 
+
+∂L ∂m A
+
+= mTB (mB mA − g). (21) While standard gradient descent would directly use these gradients to update the parameters, we instead pursue Newton’s method because it yields a more elegant form that naturally resembles EMA updates. For Newton’s method, we need the second-order derivatives (Hessian matrices). Computing these second-order partial derivatives gives us: 
+
+HBB = ∂2L∂m 2
+
+> B
+
+= ∂ (mB mA − g) mTA
+
+
+
+∂m B
+
+= mAmTA ⊗ Ip, (22) 
+
+HAA = ∂2L∂m 2
+
+> A
+
+= ∂ mTB (mB mA − g)
+
+∂m A
+
+= Iq ⊗ mTB mB . (23) Using these Hessian matrices, we can now compute the Newton directions by solving the linear systems H · d = ∇L, which yields: vec (dmB ) = H−1 
+
+> BB
+
+vec 
+
+ ∂L ∂m B
+
+
+
+=⇒ dmB = mB − gm TA(mAmTA)−1, (24) vec (dmA ) = H−1
+
+> AA
+
+vec 
+
+ ∂L ∂m A
+
+
+
+=⇒ dmA = mA − (mTB mB )−1mTB g. (25) 13 Published as a conference paper at ICLR 2026 The key insight emerges when we apply these Newton directions with learning rate γ1. Substituting the Newton directions into the update formula x ← x − γ1dx, we obtain: 
+
+mB ← mB − γ1 · dmB
+
+= mB − γ1 · mB − gm TA(mAmTA)−1
+
+= (1 − γ1) · mB + γ1 · gm TA(mAmTA)−1, (26) 
+
+mA ← mA − γ1 · dmA
+
+= mA − γ1 · mA − (mTB mB )−1mTB g
+
+= (1 − γ1) · mA + γ1 · (mTB mB )−1mTB g. (27) These final expressions reveal the remarkable property that Newton’s method naturally produces up-date rules in the form of exponential moving averages, where each new parameter value is a weighted combination of the previous value and a target value derived from the optimization objective. To further illustrate this connection, we note that in the uncompressed case where we optimize 
+
+min m L(m; g) = 12 ∥m − g∥2 
+
+> F
+
+, Newton’s method similarly yields the classic EMA update: 
+
+m ← m − γ · H−1
+
+> mm
+
+∂L ∂m 
+
+= (1 − γ) · m + γ · g. (28) This consistency across problem formulations demonstrates the fundamental nature of this EMA-like structure in Newton’s method and justifies our preference for this approach over standard gradi-ent descent. 
+
+## B DETAILED ALGORITHMS OF LORA-P RE FOR ADAM AND MUON 
+
+## OPTIMIZERS 
+
+This section presents the LoRA-Pre algorithms for both Adam (Kingma & Ba, 2015) and Muon (Jor-dan et al., 2024) optimizers. B.1 ALGORITHM OF LORA-P RE FOR ADAM 
+
+The Adam optimizer update rules under LoRA-Pre have been established in Section 3. 
+
+First-order momentum updates : For the first-order momentum term with parameterization m =
+
+mB mA, the update rules are: 
+
+m′ 
+
+> B
+
+← (1 − γ1) · mB + γ1 · gm AT (mAmTA)−1, (29) 
+
+m′ 
+
+> A
+
+← (1 − γ1) · mA + γ1 · (mTB mB )−1mTB g. (30) By default, we set 1 − γ1 = √β1, which ensures that after the update, m′ = m′ 
+
+> B
+
+m′ 
+
+> A
+
+= β1 ·
+
+mB mA + · · · , making the EMA coefficient consistent with standard Adam. 
+
+Second-order momentum updates : For the second-order momentum term with parameterization 
+
+v = ( vB vA)◦2, the update rules are: 
+
+v′ 
+
+> B
+
+← (1 − γ2) · vB + γ2 · | g|vTA(vAvTA)−1, (31) 
+
+v′ 
+
+> A
+
+← (1 − γ2) · vA + γ2 · (vTB vB )−1vTB |g| . (32) Analogously, we set 1 − γ2 = β0.25 2 by default, which ensures that v′ = ( v′ 
+
+> B
+
+v′
+
+> A
+
+)◦2 = β2 ·
+
+(vB vA)◦2 + · · · .
+
+Complete algorithm : Based on these update formulas, Algorithm 1 presents the complete LoRA-Pre implementation for the Adam optimizer, demonstrating how these factorized momentum updates integrate seamlessly into the standard Adam framework. 14 Published as a conference paper at ICLR 2026 
+
+Algorithm 1 Comparison of Adam and Adam with LoRA-Pre 
+
+Require: Initial learning rate γ, weight decay λ, β1, β 2 ∈ [0 , 1) , γ1, γ 2 ∈ [0 , 1) , ϵ > 0
+
+1: Initialize parameters θ0, time step t ← 0,first moment m0 ← 0, second moment v0 ← 0 ,first low-rank moment mB, 0 ← 0, mA, 0 ∼ N (0 , 0.02) ,second low-rank moment vB, 0 ← 0, vA, 0 ∼ N (0 , 0.02) .
+
+2: repeat 
+
+3: t ← t + 1 
+
+4: gt ← ∇ θ Lt(θt−1)
+
+5: # Update first moment 
+
+6: mt ← β1 · mt−1 + (1 − β1) · gt
+
+7: mt ← β1 · mB,t −1mA,t −1 + (1 − β1) · gt
+
+8: mB,t ← (1 − γ1) · mB,t −1 + γ1 · gtmTA,t −1(mA,t −1mTA,t −1)−1
+
+9: mA,t ← (1 − γ1) · mA,t −1 + γ1 · (mTB,t −1mB,t −1)−1mTB,t −1gt
+
+10: # Update second moment 
+
+11: vt ← β2 · vt−1 + (1 − β2) · g◦2
+
+> t
+
+12: vt ← β2 · (vB,t −1vA,t −1)◦2 + (1 − β2) · g◦2
+
+> t
+
+13: vB,t ← (1 − γ2) · vB,t −1 + γ2 · | gt| · vTA,t −1(vA,t −1vTA,t −1)−1
+
+14: vA,t ← (1 − γ2) · vA,t −1 + γ2 · (vTB,t −1vB,t −1)−1vTB,t −1 · | gt|
+
+15: ˆmt ← mt/(1 − βt
+
+> 1
+
+)
+
+16: ˆvt ← vt/(1 − βt
+
+> 2
+
+)
+
+17: θt ← θt−1 − γ ˆmt√ˆvt+ϵ + λ θ t−1
+
+!
+
+18: until stopping criterion is met 
+
+19: return Optimized parameters θt
+
+15 Published as a conference paper at ICLR 2026 B.2 ALGORITHM OF LORA-P RE FOR MUON 
+
+In this section, we present the LoRA-Pre algorithm for the Muon (Jordan et al., 2024) optimizer. 
+
+First-order momentum updates : For the Muon optimizer, we derive the LoRA-Pre algorithm by first reformulating the momentum update. The Muon momentum term can be equivalently written as: 
+
+m′ = μ · m + g
+
+= m − (1 − μ) · m + g
+
+= m − (1 − μ) · (m − g) + μ · g
+
+= m − (1 − μ) ·
+
+
+
+(m − g) − μ
+
+1 − μ · g
+
+
+
+. (33) By treating the Muon update as the solution to an optimization problem, we can derive the equivalent objective function: 
+
+L(m; g) = 12 · ∥ m − g∥2 
+
+> F
+
+− μ
+
+1 − μ · ⟨ m, g ⟩F . (34) After applying low-rank factorization m = mB · mA, the objective becomes: 
+
+L(mB , m A; g) = 12 · ∥ mB mA − g∥2 
+
+> F
+
+− μ
+
+1 − μ · ⟨ mB mA, g ⟩F . (35) We aim to derive Newton’s method update rules for this modified objective. Computing the first-order gradients: 
+
+∂L ∂m B
+
+= ( mB mA − g)mTA − μ
+
+1 − μ · gm TA, (36) 
+
+∂L ∂m A
+
+= mTB (mB mA − g) − μ
+
+1 − μ · mTB g. (37) The Hessian matrices have the same structure as before since the additional linear term doesn’t affect the second derivatives: 
+
+HBB = ∂2L∂m 2
+
+> B
+
+= ∂ (mB mA − g)mTA
+
+
+
+∂m B
+
+= mAmTA ⊗ Ip, (38) 
+
+HAA = ∂2L∂m 2
+
+> A
+
+= ∂ mTB (mB mA − g)
+
+∂m A
+
+= Iq ⊗ mTB mB . (39) Using these Hessian matrices, we can now compute the Newton directions by solving the linear systems H · d = ∇L, which yields: vec (dmB ) = H−1 
+
+> BB
+
+vec 
+
+ ∂L ∂m B
+
+
+
+=⇒ dmB = mB − 11 − μ · gm AT (mAmTA)−1, (40) vec (dmA ) = H−1
+
+> AA
+
+vec 
+
+ ∂L ∂m A
+
+
+
+=⇒ dmA = mA − 11 − μ · (mTB mB )−1mTB g. (41) The key insight emerges when we apply these Newton directions with learning rate γ1. Substituting the Newton directions into the update formula x ← x − γ1 · dx, we obtain: 
+
+mB ← mB − γ1 · dmB
+
+= mB − γ1 ·
+
+
+
+mB − 11 − μ · gm TA(mAmTA)−1
+
+
+
+= (1 − γ1) · mB + γ1
+
+1 − μ · gm TA(mAmTA)−1, (42) 
+
+mA ← mA − γ1 · dmA
+
+= mA − γ1 ·
+
+
+
+mA − 11 − μ · (mTB mB )−1mTB g
+
+
+
+= (1 − γ1) · mA + γ1
+
+1 − μ · (mTB mB )−1mTB g. (43) 16 Published as a conference paper at ICLR 2026 Similarly, we set 1 − γ1 = √μ.
+
+Complete algorithm : Based on these update formulas, Algorithm 2 presents the complete LoRA-Pre implementation for the Muon optimizer, demonstrating how these factorized momentum updates integrate seamlessly into the standard Muon framework. 
+
+Algorithm 2 Comparison of Muon and Muon with LoRA-Pre 
+
+Require: Initial learning rate γ, weight decay λ, momentum μ ∈ [0 , 1) , γ1 ∈ [0 , 1) 
+
+1: Initialize parameters θ0, time step t ← 0,first moment m0 ← 0,first low-rank moment mB, 0 ← 0, mA, 0 ∼ N (0 , 0.02) .
+
+2: repeat 
+
+3: t ← t + 1 
+
+4: gt ← ∇ θ Lt(θt−1)
+
+5: # Update first moment 
+
+6: mt ← μ · mt−1 + gt
+
+7: mt ← μ · mB,t −1mA,t −1 + gt
+
+8: mB,t ← (1 − γ1) · mB,t −1 + γ1 
+
+> 1−μ
+
+· gtmTA,t −1(mA,t −1mTA,t −1)−1
+
+9: mA,t ← (1 − γ1) · mA,t −1 + γ1 
+
+> 1−μ
+
+· (mTB,t −1mB,t −1)−1mTB,t −1gt
+
+10: Ot ← NewtonSchulz5( mt)
+
+11: θt ← θt−1 − γ Ot + λ θ t−1
+
+!
+
+12: until stopping criterion is met 
+
+13: return Optimized parameters θt
+
+## C THEORETICAL ANALYSIS OF APPROXIMATION ERROR AND 
+
+## CONVERGENCE 
+
+In this appendix, we provide a rigorous theoretical analysis of the LoRA-Pre Adam optimizer. We explicitly analyze the approximation error introduced by the low-rank factorization of the optimizer states, and prove the convergence fidelity of the algorithm in non-convex settings. C.1 PROBLEM SETUP AND ALGORITHM DYNAMICS 
+
+Consider the unconstrained optimization problem min θ∈Rp×q f (θ). Let gt = ∇f (θt−1) be the stochastic gradient at step t. We denote the states of Standard Adam as mt, v t and the effective states of LoRA-Pre Adam as ˜mt, ˜vt.
+
+1. Standard Adam Dynamics The standard optimizer updates its moments using exponential moving averages (EMA) with decay rates β1, β 2 ∈ [0 , 1) :
+
+mt = β1 · mt−1 + (1 − β1) · gt, (44) 
+
+vt = β2 · vt−1 + (1 − β2) · g◦2 
+
+> t
+
+. (45) 
+
+2. LoRA-Pre Dynamics LoRA-Pre maintains low-rank factors (mB,t , m A,t ) to approximate the gradient history. Let γ1 be the update rate. The exact simultaneous update rules (Online Least Squares) can be compactly expressed using the Moore-Penrose pseudo-inverse (·)†:
+
+mB,t = (1 − γ1) · mB,t −1 + γ1 · gtm†
+
+> A,t −1
+
+, (46) 
+
+mA,t = (1 − γ1) · mA,t −1 + γ1 · m†
+
+> B,t −1
+
+gt, (47) 17 Published as a conference paper at ICLR 2026 where the Tikhonov regularized pseudo-inverses for the full-rank factors are defined as m† 
+
+> A
+
+=
+
+mTA(mAmTA + λ · I)−1 and m† 
+
+> B
+
+= ( mTB mB + λ · I)−1mTB with damping factor λ > 0.We define the canonical projection operators associated with the factors at step t − 1:• PA ≜ m†
+
+> A,t −1
+
+mA,t −1 (Projection onto Row Space of mA). • PB ≜ mB,t −1m† 
+
+> B,t −1
+
+(Projection onto Column Space of mB ). Let bmt = mB,t mA,t be the low-rank history reconstruction. Analogous updates apply to the second moment factors using the gradient magnitude |gt|, producing the reconstruction bht = vB,t vA,t .
+
+3. Effective Moments for Update Crucially, LoRA-Pre computes the effective moments for the parameter update by combining the low-rank history with the exact current gradient: 
+
+˜mt = β1 · bmt−1 + (1 − β1) · gt, (48) 
+
+˜vt = β2 · (bht−1)◦2 + (1 − β2) · g◦2 
+
+> t
+
+. (49) Note that for the second moment, LoRA-Pre approximates the history of magnitudes bh and then squares it. C.2 ASSUMPTIONS 
+
+Assumption 1 (Regularity and Boundedness) . The objective function and stochastic gradients sat-isfy the following conditions: 1. L-Smoothness: The objective function f is L-smooth: ∥∇ f (x) − ∇ f (y)∥F ≤ L∥x − y∥F .2. Bounded Gradients: The stochastic gradients are uniformly bounded in both Frobenius and infinity norms. There exist constants G and G∞ such that for all t, ∥gt∥F ≤ G and 
+
+∥gt∥∞ ≤ G∞.3. Lipschitz Smooth Update: The optimizer uses a smoothed damping term ϵ > 0. The update mapping is defined as ϕ(m, v ) = m√v+ϵ . This function is Lipschitz continuous with respect to both arguments, with constants Lm = 1√ϵ and Lv = G 
+
+> 2ϵ1.5
+
+.
+
+Assumption 2 (Subspace Approximation Capability) . The gradient dynamics admit a low-rank structure. Crucially, we assume this structure holds for both the gradient direction and its element-wise magnitude. Let PB,t , PA,t denote the projections onto the subspaces maintained by the opti-mizer at step t. We assume there exists a bound δ ≥ 0 such that: 
+
+∥gt − (PB,t gt + gtPA,t )∥F ≤ δ, (50) 
+
+∥| gt| − (PB,t |gt| + |gt|P A,t )∥F ≤ δ. (51) 
+
+The second inequality ensures that the second-moment estimator (based on |gt|) also admits a bounded reconstruction error. 
+
+Assumption 3 (Reference Optimizer Descent) . Let ut = mt/(√vt + ϵ) be the update direction of the standard full-rank Adam optimizer. We assume that in expectation, ut is a valid descent direction aligned with the true gradient: 
+
+E[⟨∇ f (θt), u t⟩] ≥ cE[∥∇ f (θt)∥2 
+
+> F
+
+], (52) 
+
+for some constant c > 0. This assumption anchors the convergence of LoRA-Pre Adam to the theoretical behavior of standard Adam. 
+
+C.3 BOUNDEDNESS OF FACTOR RECONSTRUCTION ERROR 
+
+We first prove that the error of the stored low-rank history bmt is uniformly bounded. We strictly enforce the time-scale alignment condition: β1 = (1 − γ1)2.
+
+Lemma C.1. Let Emt = ∥mt − bmt∥F . Under Assumptions 1 and 2, Emt is uniformly bounded by a constant Ebound .
+
+18 Published as a conference paper at ICLR 2026 
+
+Proof. Step 1: Exact Expansion of LoRA Dynamics Substitute the update rules (46) and (47) into 
+
+bmt = mB,t mA,t :
+
+bmt =
+
+h
+
+(1 − γ1)mB,t −1 + γ1gtm†
+
+> A,t −1
+
+i
+
+·
+
+h
+
+(1 − γ1)mA,t −1 + γ1m†
+
+> B,t −1
+
+gt
+
+i
+
+= (1 − γ1)2 bmt−1 + γ1(1 − γ1)( PB gt + gtPA) + γ21 Qt, (53) where Qt = gtm†
+
+> A,t −1
+
+m†
+
+> B,t −1
+
+gt is the quadratic interaction term. Using the condition β1 = (1 −
+
+γ1)2, this implies γ1 = 1 − √β1. The expansion becomes: 
+
+bmt = β1 bmt−1 + (1 − pβ1)pβ1(PB gt + gtPA) + (1 − pβ1)2Qt. (54) 
+
+Step 2: Constructing the Recursive Error We form the difference with the standard Adam update 
+
+mt = β1mt−1 + (1 − β1)gt:
+
+mt − bmt = β1(mt−1 − bmt−1) + Rt, (55) where the residual driving term Rt is: 
+
+Rt = (1 − β1)gt − (1 − pβ1)pβ1(PB gt + gtPA) − (1 − pβ1)2Qt. (56) 
+
+Step 3: Bounding the Residual Magnitude 
+
+We explicitly bound the norm of the driving residual Rt. Applying the triangle inequality to the residual definition (56), we decompose the total bound into linear and quadratic contributions: 
+
+∥Rt∥F ≤ (1 − pβ1)
+
+h
+
+gt + pβ1(gt − P B gt − gtPA)
+
+i
+
+> F
+
+| {z }
+
+> Linear Term
+
++ (1 − pβ1)2∥Qt∥F
+
+| {z }
+
+> Quadratic Term
+
+. (57) 
+
+1. The Linear Term: Using the homogeneity of the norm and the triangle inequality, followed by the substitution of the gradient bound ∥gt∥F ≤ G (Assumption 1) and the subspace residual bound 
+
+δ (Assumption 2), we derive: 
+
+∥Linear ∥F = (1 − pβ1) gt + pβ1(gt − P B gt − gtPA) F
+
+≤ (1 − pβ1)
+
+
+
+∥gt∥F + pβ1∥gt − P B gt − gtPA∥F
+
+
+
+≤ (1 − pβ1)G + pβ1(1 − pβ1)δ. (58) 
+
+2. The Quadratic Term: Bounding ∥Qt∥F requires the spectral norm of the regularized pseudo-inverses. As established in the setup, m† 
+
+> A
+
+= mTA(mAmTA +λI )−1 and m† 
+
+> B
+
+= ( mTB mB +λI )−1mTB .Let the Singular Value Decomposition (SVD) of the factor be U ΣV T . Substituting this into either inverse form reveals that the singular values are governed by h(σ) = σσ2+λ . Analyzing the function 
+
+f (x) = xx2+λ for x ≥ 0, we find its maximum at x = √λ, yielding the uniform spectral bound 
+
+∥M †∥2 ≤ 12√λ .Using the sub-multiplicativity of the Frobenius norm (specifically ∥ABC ∥F ≤ ∥ A∥F ∥B∥2∥C∥F ), we strictly bound Qt:
+
+∥Qt∥F = ∥gtm†
+
+> A,t −1
+
+m†
+
+> B,t −1
+
+gt∥F
+
+≤ ∥ gt∥F · ∥ m†
+
+> A,t −1
+
+∥2 · ∥ m†
+
+> B,t −1
+
+∥2 · ∥ gt∥F
+
+= ∥gt∥2 
+
+> F
+
+· ∥ m†
+
+> A,t −1
+
+∥2 · ∥ m†
+
+> B,t −1
+
+∥2
+
+≤ G2
+
+ 12√λ
+
+2
+
+= G2
+
+4λ ≜ CQ. (59) Substituting both bounds back into the residual equation: 
+
+∥Rt∥F ≤ (1 − pβ1)G + pβ1(1 − pβ1)δ + (1 − pβ1)2CQ ≜ ∆res . (60) 19 Published as a conference paper at ICLR 2026 
+
+Step 4: Convergence to Steady State 
+
+The error dynamics follow the linear recursion inequality Emt ≤ β1Emt−1 + ∆ res . Since the mo-mentum parameter satisfies 0 ≤ β1 < 1, this geometric series converges to a finite steady state as 
+
+t → ∞ :
+
+lim  
+
+> t→∞
+
+Emt ≤ ∆res 
+
+1 − β1
+
+≜ Ebound . (61) To derive the explicit bound, we substitute the expression for ∆res derived in Equation (60) and factor the denominator using 1 − β1 = (1 − √β1)(1 + √β1):
+
+Ebound = (1 − √β1)G + √β1(1 − √β1)δ + (1 − √β1)2CQ
+
+(1 − √β1)(1 + √β1)= (1 − √β1) G + √β1δ + (1 − √β1)CQ
+
+
+
+(1 − √β1)(1 + √β1) . (62) Canceling the common factor (1 − √β1) from the numerator and denominator, we obtain the final uniform bound: 
+
+Ebound = G + √β1δ + (1 − √β1)CQ
+
+1 + √β1
+
+. (63) This confirms that the reconstruction error is uniformly bounded by a constant determined by the gradient magnitude G, the subspace residual δ, and the quadratic interaction CQ.C.4 JOINT EFFECTIVE MOMENT ERROR 
+
+We now derive the error bounds for the effective moments ˜mt and ˜vt used in the parameter update, explicitly accounting for the non-linear square term in ˜vt.
+
+Lemma C.2. Let ∆m = ∥mt − ˜mt∥F and ∆v = ∥vt − ˜vt∥F denote the effective moment errors. Let d be the total number of parameters. The errors are bounded by: 
+
+∆m ≤ β1Ebound , (64) 
+
+∆v ≤ β2
+
+ 2G∞Ebound + σ2
+
+> total
+
+ , (65) 
+
+where σ2 
+
+> total
+
+= √d 
+
+> 4
+
+G2 
+
+> ∞
+
+represents the intrinsic variance bound derived from Popoviciu’s inequality. Proof. 1. First Moment Error Analysis 
+
+We compare the effective first moment ˜mt with the standard Adam moment mt. Subtracting their definitions: 
+
+mt − ˜mt = β1(mt−1 − bmt−1) + (1 − β1)( gt − gt) = β1(mt−1 − bmt−1). (66) The current gradient terms cancel out. Taking the Frobenius norm and applying Lemma C.1, we obtain: 
+
+∆m ≤ β1Ebound . (67) 
+
+2. Second Moment Error Analysis 
+
+We analyze the error in the second moment estimate. Standard Adam updates the second moment as 
+
+vt = β2vt−1 + (1 − β2)g◦2 
+
+> t
+
+. LoRA-Pre updates the effective second moment as ˜vt = β2(bht−1)◦2 +(1 − β2)g◦2 
+
+> t
+
+.Subtracting the two equations, the term (1 − β2)g◦2 
+
+> t
+
+involving the current gradient cancels out ex-actly. The error is strictly propagated from the history terms: 
+
+vt − ˜vt = β2
+
+h
+
+vt−1 − (bht−1)◦2i
+
+. (68) To rigorously bound this, we introduce an auxiliary variable ht−1, defined as the exact exponential moving average of the gradient magnitudes |g| (i.e., hk = β2hk−1 + (1 − β2)|gk|). We apply the triangle inequality to decompose the error into two structurally distinct terms: 
+
+∆v ≤ β2
+
+∥vt−1 − (ht−1)◦2∥F
+
+| {z }
+
+> Term I: Intrinsic Variance
+
++ ∥(ht−1)◦2 − (bht−1)◦2∥F
+
+| {z }
+
+> Term II: Approximation Error
+
+ . (69) 20 Published as a conference paper at ICLR 2026 
+
+Term I: Intrinsic Variance (Popoviciu’s Bound). This term captures the discrepancy between “the mean of squares” and “the square of the mean”. Let us focus on a single parameter index j. The EMA formulation can be interpreted as a weighted expectation Ew over the history of gradients, where the weights sum to 1. Thus: 
+
+vt−1,j = Ew[|gτ,j |2] and (ht−1,j )2 = ( Ew[|gτ,j |]) 2. (70) The difference vt−1,j − (ht−1,j )2 is precisely the variance of the random variable |gτ,j | under the EMA probability measure. Since the gradient magnitude is bounded, i.e., |gτ,j | ∈ [0 , G ∞], we invoke Popoviciu’s Inequality, which states that the variance of any bounded random variable on interval [a, b ] is bounded by 14 (b − a)2. Here, [a, b ] = [0 , G ∞]. Thus, for every element j:
+
+vt−1,j − (ht−1,j )2 ≤ 14 (G∞ − 0) 2 = 14 G2
+
+> ∞
+
+. (71) We generalize this to the full parameter matrix by computing the Frobenius norm over all d elements: 
+
+∥vt−1 − (ht−1)◦2∥F =
+
+vuut dX
+
+> j=1
+
+|vt−1,j − (ht−1,j )2|2 ≤
+
+s
+
+d ·
+
+ 14 G2
+
+> ∞
+
+2
+
+=
+
+√d
+
+4 G2
+
+> ∞
+
+. (72) We define this constant bound as σ2 
+
+> total
+
+≜ √d 
+
+> 4
+
+G2
+
+> ∞
+
+.
+
+Term II: Approximation Error. This term represents the propagation of the low-rank reconstruction error through the squaring operation. Consider the function f (x) = x2. For inputs restricted to the domain [0 , G ∞], the derivative is bounded by |f ′(x)| = |2x| ≤ 2G∞. By the Mean Value Theorem, the function is Lipschitz continuous with constant Lsq = 2 G∞. Applying this element-wise to the vectors ht−1 and bht−1:
+
+(ht−1,j )2 − (bht−1,j )2 ≤ 2G∞ ht−1,j − bht−1,j . (73) Squaring both sides and summing over all j to recover the Frobenius norm: 
+
+> d
+
+X
+
+> j=1
+
+(ht−1,j )2 − (bht−1,j )2 2
+
+≤ 4G2
+
+> ∞
+> d
+
+X
+
+> j=1
+
+ht−1,j − bht−1,j 
+
+> 2
+
+. (74) Taking the square root yields: 
+
+∥(ht−1)◦2 − (bht−1)◦2∥F ≤ 2G∞∥ht−1 − bht−1∥F . (75) Substituting the bound from Lemma C.1 ( ∥ht−1 − bht−1∥F ≤ E bound ), we have: Term II ≤ 2G∞Ebound . (76) Combining the bounds for Term I and Term II, we obtain the final bound for the second moment error: 
+
+∆v ≤ β2
+
+ σ2 
+
+> total
+
++ 2 G∞Ebound 
+
+ . (77) C.5 CONVERGENCE ANALYSIS 
+
+Theorem C.3. Let the step size be ηt = η/ √t. Under Assumptions 1, 2, and 3, LoRA-Pre Adam (with update rule ϕ(m, v ) = m/ √v + ϵ) converges to a neighborhood of a stationary point: 
+
+min  
+
+> 1≤t≤T
+
+E[∥∇ f (θt)∥2] ≤ Cinit 
+
+√T + Cnoise 
+
+ Ebound + σ2
+
+> total
+
+2 , (78) 
+
+where Cinit depends on the initial function gap and Cnoise depends on the Lipschitz constants of the update rule. 
+
+21 Published as a conference paper at ICLR 2026 
+
+Proof. 1. Bounding the Update Direction Error 
+
+Let ut = ϕ(mt, v t) and ˜ut = ϕ( ˜ mt, ˜vt) be the ideal and actual update directions, respectively. We analyze the theoretical update function ϕ(m, v ) = m√v+ϵ (using the smoothed denominator for Lipschitz continuity). The partial derivatives are bounded as follows: • W.r.t m: ∥∇ mϕ∥ ≤ 1√ϵ ≜ Lm.• W.r.t v: ∥∇ v ϕ∥ ≤ sup v≥0 −m 
+
+> 2( v+ϵ)1.5
+
+≤ G 
+
+> 2ϵ1.5
+
+≜ Lv .Using the moment error bounds from Lemma C.2, the total direction error ξt = ∥ut − ˜ut∥F satisfies: 
+
+ξt ≤ Lm∆m + Lv ∆v
+
+≤ 1
+
+√ϵ (β1Ebound ) + G
+
+2ϵ1.5 β2(2 G∞Ebound + σ2
+
+> total
+
+)
+
+≤
+
+ β1
+
+√ϵ + GG ∞β2
+
+ϵ1.5
+
+| {z }
+
+> K1
+
+Ebound +
+
+ Gβ 2
+
+2ϵ1.5
+
+| {z }
+
+> K2
+
+σ2 
+
+> total
+
+≜ ξtotal . (79) Here, ξtotal is a uniform deterministic upper bound on the direction error. 
+
+2. One-Step Descent Analysis in Expectation 
+
+Since the objective function f is L-smooth, we apply the Descent Lemma conditioned on the current state θt:
+
+Et[f (θt+1 )] ≤ f (θt) − ηtEt[⟨∇ f (θt), ˜ut⟩] + Lη 2
+
+> t
+
+2 Et[∥˜ut∥2]. (80) Let Gstep = G/ √ϵ be the bound on the update norm ∥˜ut∥. We decompose the inner product term: 
+
+−Et[⟨∇ f, ˜ut⟩] = −Et[⟨∇ f, u t⟩] + Et[⟨∇ f, u t − ˜ut⟩]. (81) Using Assumption 3 ( Et[⟨∇ f, u t⟩] ≥ c∥∇ f ∥2) and applying Cauchy-Schwarz followed by Young’s Inequality ( ab ≤ c 
+
+> 2
+
+a2 + 12c b2) to the error term: 
+
+Et[⟨∇ f, u t − ˜ut⟩] ≤ ∥∇ f ∥ξtotal 
+
+≤ c
+
+2 ∥∇ f ∥2 + 12c ξ2
+
+> total
+
+. (82) Substituting this back into the descent inequality, the descent term −c∥∇ f ∥2 is partially offset by the error: 
+
+Et[f (θt+1 )] ≤ f (θt) − ηt
+
+
+
+c∥∇ f ∥2 − c
+
+2 ∥∇ f ∥2 − 12c ξ2
+
+> total
+
+
+
++ Lη 2
+
+> t
+
+2 G2
+
+> step
+
+= f (θt) − cη t
+
+2 ∥∇ f ∥2 + ηt
+
+2c ξ2 
+
+> total
+
++ Lη 2
+
+> t
+
+2 G2
+
+> step
+
+. (83) 
+
+3. Global Convergence 
+
+Taking the total expectation and summing from t = 1 to T :
+
+> T
+
+X
+
+> t=1
+
+cη t
+
+2 E[∥∇ f (θt)∥2] ≤ f (θ1) − f ∗ + ξ2
+
+> total
+
+2c
+
+> T
+
+X
+
+> t=1
+
+ηt + LG 2
+
+> step
+
+2
+
+> T
+
+X
+
+> t=1
+
+η2 
+
+> t
+
+. (84) Dividing by c 
+
+> 2
+
+ST (where ST = P ηt), we isolate the minimum gradient norm: 
+
+min  
+
+> t
+
+E[∥∇ f ∥2] ≤ 2( f (θ1) − f ∗)
+
+cS T
+
++ 1
+
+c2 ξ2 
+
+> total
+
++ LG 2
+
+> step
+
+c
+
+P η2
+
+> t
+
+ST
+
+. (85) Given ηt = η/ √t, we have ST ≥ √T and P η2 
+
+> t
+
+≈ ln T . Thus, as T → ∞ , the first and third terms vanish ( O(1 /√T ) and O(ln T / √T )), leaving the constant error floor. Defining Cnoise = 
+
+> 1
+> c2
+
+max( K1, K 2)2 (noting that ξ2 
+
+> total
+
+≤ 2 max( K1, K 2)2(Ebound + σ2
+
+> total
+
+)2), we conclude: 
+
+min  
+
+> t
+
+E[∥∇ f ∥2] ≤ Cinit 
+
+√T + Cnoise (Ebound + σ2
+
+> total
+
+)2. (86) 22 Published as a conference paper at ICLR 2026 This confirms that the algorithm converges to a neighborhood determined by the approximation quality Ebound and intrinsic variance σ2
+
+> total
+
+.
+
+## D ADDITIONAL EXPERIMENTAL RESULTS 
+
+D.1 HYPERPARAMETER SENSITIVITY ANALYSIS : T HE COUPLING OF β AND γ
+
+In this section, we evaluate the sensitivity of LoRA-Pre Adam to variations in its momentum hyper-parameters. A key design principle of LoRA-Pre is that the low-rank update coefficients (γ1, γ 2) are 
+
+not independent hyperparameters requiring separate tuning. Instead, they are analytically coupled with the standard Adam momentum coefficients (β1, β 2) to ensure consistent decay dynamics. 
+
+Derivation of the Coupling Strategy. Formally, the update rules for the low-rank momentum components mB and mA are defined as: 
+
+m′ 
+
+> B
+
+← (1 − γ1) · mB + γ1 · gm TA(mAmTA)−1, (87) 
+
+m′ 
+
+> A
+
+← (1 − γ1) · mA + γ1 · (mTB mB )−1mTB g. (88) When reconstructing the effective full-rank momentum m ≈ mB mA, the decay behavior can be approximated by expanding the product of the updated factors. Ignoring higher-order cross terms, the effective decay rate is the product of the individual decay rates: 
+
+m′ = m′ 
+
+> B
+
+m′ 
+
+> A
+
+≈ (1 − γ1)2 · mB mA + O(γ21 ) ≈ (1 − γ1)2 · m. (89) To align this trajectory with standard Adam optimization (where momentum decays by β1), we enforce the coupling constraint (1 − γ1)2 = β1. Similarly, for the second moment, since LoRA-Pre approximates the gradient magnitude bh ≈ | g| and subsequently squares it ( ˜v = bh◦2), the decay rate compounds twice, leading to the condition (1 − γ2)4 = β2. Consequently, the learning dynamics are strictly governed by β, eliminating the need to grid-search γ.
+
+Empirical Verification. We conducted sensitivity studies on the 60M parameter model by varying 
+
+β1 and β2 around their standard default values ( β1 = 0 .9, β 2 = 0 .95 ). The results are summarized in Table 4. Table 4: Sensitivity Analysis of Momentum Parameters β. We report the validation perplexity on the 60M model. The method exhibits stability around the default settings derived from standard Adam ( β1 = 0 .9, β 2 = 0 .95 ). Extreme values (e.g., β → 1) cause the implicit γ to vanish, leading to training instability. 
+
+Parameter Value Perplexity Status 
+
+β1 (fix β2 = 0 .95 )
+
+0.90 ( Default ) 32.57 Optimal 
+
+0.95 37.62 Stable 0.99 1458.92 Diverged 
+
+β2 (fix β1 = 0 .90 )
+
+0.90 34.61 Stable 0.95 ( Default ) 32.57 Optimal 
+
+0.999 1301.58 Diverged As shown in Table 4, LoRA-Pre achieves the best performance at the configuration inherited from standard Adam. While the optimizer is robust within a reasonable range, extreme values (e.g., 
+
+β1 = 0 .99 or β2 = 0 .999 ) lead to numerical instability. This is expected: as β → 1, the derived update rate γ approaches zero (e.g., for β2 = 0 .999 , γ2 ≈ 2.5 × 10 −4), causing the low-rank factors to adapt too slowly to track the shifting gradient subspace. This confirms that our coupling strategy is effective, but the “sweet spot” for low-rank adaptation dynamics aligns with, but is more sensitive than, full-rank optimization. 23 Published as a conference paper at ICLR 2026 
+
+## E STATEMENT OF THE USE OF LARGE LANGUAGE MODELS 
+
+The use of LLMs in this work was restricted to paper writing assistance. They were not used to generate results, derive proofs, or conduct analysis without human verification. The disclosure here, as well as in the submission form, fulfills the ICLR requirement that all contributions of LLMs be acknowledged transparently. 24

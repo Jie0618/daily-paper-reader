@@ -1,0 +1,1265 @@
+Title: On Convergence Analysis of Network-GIANT: An approximate Hessian-based fully distributed optimization algorithm
+
+URL Source: https://arxiv.org/pdf/2602.14830v1
+
+Published Time: Tue, 17 Feb 2026 03:20:47 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# On Convergence Analysis of Network-GIANT: An approximate Hessian-based fully distributed optimization algorithm 
+
+Souvik Das, Luca Schenato, Fellow,IEEE , and Subhrakanti Dey, Fellow, IEEE 
+
+Abstract — In this paper, we present a detailed con-vergence analysis of a recently developed approximate Newton-type fully distributed optimization method for smooth, strongly convex local loss functions, called Network-GIANT (adapted from the Federated learning al-gorithm GIANT possessing mixed linear-quadratic conver-gence properties), which has been empirically illustrated to show faster linear convergence properties compared to its gradient-based counterparts, and several other exist-ing second order distributed algorithms, while having the same communication complexity (per iteration) as its first order distributed counterparts. By using consensus based parameter updates, and a local Hessian based descent direction at the individual nodes with gradient tracking, we first explicitly characterize a global linear convergence rate for Network-GIANT when the local objective functions are smooth and strongly convex, which can be computed as the spectral radius of a 3 × 3 matrix dependent on the Lipschitz continuity ( L) and strong convexity ( μ) parameters of the objective functions, and the spectral norm ( σ) of the underlying undirected graph represented by a doubly stochastic consensus matrix. We provide an explicit bound on the step size parameter η, below which this spectral radius is guaranteed to be less than 1. Furthermore, we de-rive a mixed linear-quadratic inequality based upper bound for the optimality gap norm, which allows us to conclude that, under small step size values, asymptotically, as the algorithm approaches the global optimum, it achieves a locally linear convergence rate of 1 − η(1 − γμ ) for Network-GIANT, provided the Hessian approximation error γ (be-tween the harmonic mean of the local Hessians and the global hessian (the arithmetic mean of the local Hessians) is smaller than μ. This asymptotically linear convergence rate of ≈ 1 − η explains the faster convergence rate of Network-GIANT for the first time. Numerical experiments are carried out with a reduced CovType dataset for binary logistic regression over a variety of graphs to illustrate the above theoretical results. 
+
+I. I NTRODUCTION 
+
+Distributed optimization and learning generally refer to the paradigm where multiple agents optimize a global cost func-tion or train a global model collaboratively, often by optimiz-
+
+This publication has emanated from research conducted with the financial support of Swedish Research Council (VR) Grant 2023-04232. Souvik Das and Subhrakanti Dey are with the Department of Elec-trical Engineering, Uppsala University, Sweden. (e-mail: {souvik.das, subhrakanti.dey }@angstrom.uu.se). Luca Schenato is with the Department of Information Engineering, University of Padova, Italy. e-mail: (schenato@dei.unipd.it). 
+
+ing their local cost functions or training a local model based on their local data sets. In applications such as networked autonomous systems, Internet of Things (IoT), collaborative robotics and smart manufacturing, moving large amounts of locally collected data to a central processing unit can be expensive from both communication and storage point of view. Additionally, distributed optimization/learning prevents sharing of raw data, thus guaranteeing data privacy to a certain extent. Distributed/decentralized optimization or learning can occur over a network consisting of a central server with multiple local nodes (Federated Learning), or over a fully distributed setting without a central server, where nodes only communicate to their neighbours. There have been significant progress in recent years in both settings - see [1], [2], [3] for an extensive survey on these topics focusing on their key challenges and opportunities. In this work, we will primarily focus on the topic of fully distributed optimization where nodes collaboratively optimize a global cost which is a sum of local cost functions. We will also restrict ourselves to convex, and in particular, strongly convex cost functions. In this context, distributed optimization or learning algorithms proceed in an iterative fashion, where each node updates its local estimate of the global optimization variable based on consensus-type averaging of its own infor-mation and the information received from its neighbours, com-bined with (typically) a gradient-descent type algorithm with a suitably chosen step size (constant or diminishing with time). Without going into a detailed literature survey of gradient based distributed optimization algorithms, we refer the readers to [4], [5]. For strongly convex functions, it is well known that gradient based techniques achieve linear (exponential) convergence with a constant step size. Replicating this in a fully distributed setting requires a gradient-tracking algorithm where each node keeps a vector that keeps a local estimate of the global gradient [6]. A detailed convergence analysis was carried out in [6] to illustrate linear convergence of gradient-tracking based distributed first order optimization algorithms for smooth and strongly convex functions over undirected graphs, whereas a sublinear convergence rate O(1 /k ) was guaranteed for smooth convex functions that are not strongly convex. A gradient-tracking based distributed first-order op-timization with an additional distributed eigenvector tracking was presented in [7], with a provable linear convergernce rate. It is well known that for strongly convex and smooth 
+
+> arXiv:2602.14830v1 [math.OC] 16 Feb 2026 2
+
+functions, centralized optimization algorithms using curvature (or Hessian) information of the cost function, such as the Newton-Raphson method, achieves faster locally quadratic convergence in the vicinity of the optimum. In the context of fully distributed optimization algorithms utilizing Newton-type methods, achieving quadratic convergence is difficult, primarily due to the fact that communicating local Hessian information to neighboring nodes is infeasible for large model size or parameter dimension, and the underlying consensus algorithm essentially slows down the convergence to at best a linear rate. Computation of the Hessian and its inversion is another bottleneck, which has motivated a plethora of recent approximate Newton-type Federated learning algorithms [8], [9], [10], [11], which can also display a mixed linear-quadratic convergence rate. In the fully distributed regime, earlier ex-amples of second order optimization algorithms include [12], [13], [14], [15] that approximate the Hessian based on Taylor series expansion and historical data. More recent works, such as [16] developed a fully distributed version of DANE [17] (termed as Network-DANE) to overcome the high compu-tational costs of the existing algorithms, and [18] captured the second order information of the objective functions based on an augmented Lagrangian function along with gradient diffusion technique to come up with a distributed algorithm leveraging the Hessian information of the objective function. Recent papers such as [19] and [20] have shown however, that the superlinear convergence properties of Federated second order optimization algorithms such as GIANT can be retrieved only when exact averages of gradients or parameters can be computed via finite-time exact consensus [19], or through distributed finite-time set consensus [20], both of which can require up to O(N ) (where N is the number of nodes) con-sensus rounds between two successive optimization iterations, thus making them infeasible for large networks. In this article, we focus on a recently developed fully distributed optimization algorithm called Network -GIANT 
+
+[21], which combined gradient tracking with consensus based updates and a descent direction computed by the product of the inverse local Hessian and the gradient tracking vector at each node. Built on an extension of the approximate Newton-type federated learning algorithm GIANT [22], it was shown that Network -GIANT leverages gradient tracking to achieve semi-global exponential convergence to the exact optimal solution for a sufficiently small step-size, and enjoys a low communication overhead of O(n) per iteration at each node, where n is the dimension of the decision space, thus making it comparable to first-order distributed optimization techniques. The authors of [21] empirically also demonstrated a superior convergence rate compared to gradient-tracking based first order methods, as well as a number of other second order distributed optimization algorithms, including the well-known Network-DANE [16]. Although [21] proved semi-global exponential convergence using a two-time-scale separation principle that guarantees linear convergence and empirically verified its superior performance, an explicit ex-pression for the actual convergence rate was not established. In addition, while a superior linear convergence was empirically demonstrated compared to its first order optimization counter-parts, there was no analytical justification for this observation. In this paper, we set out to provide a deeper analysis of the convergence of Network-GIANT and provide partial answers to some of the above unanswered questions. 
+
+Contributions 
+
+The main contributions are highlighted below:  
+
+> •
+
+We first provide a global linear convergence result with an explicitly computable rate for Network -GIANT for a sufficiently small step size η. In a similar vein to [6], utilizing a linear convergence result for a damped Newton algorithm, we establish a linear inequality for a three-dimensional system consisting of the norms of consensus error, gradient tracking error and the optimality gap error. We show that the linear convergence rate is explicitly given by the spectral radius of an associated 
+
+3 × 3 matrix dependent on the step size η, Lipschitz continuity ( L) and strong convexity parameter ( μ) of the local cost functions, and the spectral norm ( σ) of the doubly-stochastic consensus matrix of the underlying graph connecting the nodes.  
+
+> •
+
+We also provide an explicit (albeit conservative) upper bound on the step size below which Network -GIANT is guaranteed to converge linearly (i.e. the aforementioned spectral radius is less than 1).  
+
+> •
+
+Finally, we derive a mixed linear-quadratic inequality based upper bound for the optimality gap norm, under the condition that the error due to Hessian approximation is sufficiently small. Exploring this result further, we argue that under a small step-size η assumption, the gradient-tracking and consensus error norms decay much faster than the optimality gap error, and asymptotically as the algorithm approaches the optimum, Network -GIANT 
+
+displays a network-independent approximate local linear convergence rate of 1−η, which explains analytically the superior convergence rate of Network -GIANT compared to its first-order counterparts.  
+
+> •
+
+We illustrate the above findings through a distributed logistic-regression example with a reduced CovType dataset over regular expander type and Erd˝ os–R´ enyi random graphs with varying degrees of connectivity. Furthermore, we refer the readers to [21] for a thorough comparison of Network -GIANT with other state-of-the-art fully distributed second-order algorithms. 
+
+II. P ROBLEM FORMULATION 
+
+We consider a fully distributed unconstrained optimization problem over a communication network that can be modeled by a connected and time-invariant graph G = ( N , E), where 
+
+N = {1, 2, ..., N } denotes the set of nodes and E ⊆ N × N 
+
+the set of bidirectional edges connecting the nodes. Nodes can only directly communicate with their 1-hop neighbors. The network can be equivalently described by a weight matrix 
+
+W ∈ RN ×N , where the element wij is positive if there is an edge (i, j ) ∈ E and zero otherwise. The consensus matrix 
+
+W is chosen to be symmetric and doubly stochastic, which implies that W 1 = 1 (here 1 ∈ RN ×1 is a column vector 3
+
+of all 1’s), and the eigenvalues of W lie in (−1, 1] . It is possible to construct this matrix in a distributed way, for example using the Metropolis algorithm [23]. We will use the following conventions for vector and matrix norms: the vector norm ∥.∥ represents the 2-norm, whereas for a matrix, ∥.∥
+
+denotes the Frobenius norm. The matrix 2-norm (or spectral norm), if used, will be denoted by ∥.∥2. It is a well known fact that σ = W − 1 
+
+> N
+
+11 T 
+
+> 2
+
+satisfies 0 < σ < 1.The unconstrained optimization problem is a fully dis-tributed version of the Federated optimization problem consid-ered in [22]: The unconstrained global optimization problem is defined as 
+
+f (x⋆) = min 
+
+> x∈Rn
+
+(
+
+f (x) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+fi(x)
+
+)
+
+, (1) where f(x) denotes the local loss function for the i-th node. 
+
+Remark 1: In typical distributed machine learning applica-tions, the local loss function is often chosen as 
+
+fi(x) = 1
+
+m
+
+> m
+
+X
+
+> j=1
+
+lij (xT aij ) + ˜λ
+
+2 ∥x∥2 . (2) where each node i ∈ N owns m data samples {aij } j ∈{1, ..., m }, each associated with a convex, twice differentiable and smooth loss function lij (·). The overall cost function at node i is given by the sum of the local empirical error and a regularization term. Typical examples of such loss functions are linear regression or logistic regression problems. We make the following standard assumption regarding the local loss functions fi(·):
+
+Assumption 1: The local objective fi(·) is μ-strongly con-vex and L-smooth, i.e. there exists a constant L such that ∀x, x ′ ∈ Rn, and for all i ∈ {1, 2, . . . , N },
+
+∥∇ fi(x) − ∇ fi(x′)∥2 ⩽ L ∥x − x′∥, and μI ⩽ ∇2fi(x) ⩽
+
+LI, where I denotes an identity matrix of size N × N , Note that this assumption implies that the global objective function 
+
+f (x) is also μ-strongly convex and L-smooth. Assumption 1 guarantees the uniqueness of the minimizer of (1) and is standard in second-order optimization, and can often be guaranteed by the addition of a regularizer to the cost function if it is not strictly convex. We define the following matrices xk, sk, ∇k ∈ RN ×n, such that: 
+
+xk =
+
+
+
+xk
+
+> 1
+
+xk
+
+> 2
+
+...
+
+xkN
+
+ , sk =
+
+
+
+sk
+
+> 1
+
+sk
+
+> 2
+
+...
+
+skN
+
+ , ∇k =
+
+
+
+∇f1(xk 
+
+> 1
+
+)
+
+∇f2(xk 
+
+> 2
+
+)
+
+...
+
+∇fN (xkN )
+
+ . (3) In order to avoid Kronecker-product based cumbersome notations, we define the relevant vectors in the row-vector format throughout the paper. We assume that each node i
+
+keeps a local copy xki ∈ R1×n of the global state vector xk
+
+at the k-th iteration, and a vector ski ∈ R1×n that tracks the global average gradient ∇f (xk) = 1
+
+> N
+
+PNi=1 ∇fi(xki ), where 
+
+∇fi(xki ) ∈ R1×n, denotes the local gradient at the node i. We also define the global Hessian as ∇2f (xk) = 1 
+
+> N
+
+∇2fi(xki ), and with a slight abuse of notation ∇2f (˜ x) = ∇2f (xk) |xki =˜ xT
+
+for further analysis. 
+
+III. A LGORITHM DESCRIPTION 
+
+The Network-GIANT algorithm is given by the two fol-lowing consensus-based updates at each node i at iteration k,one for the parameter vector xki , and the other one being the familiar update for the gradient-tracking vector ski [6], as given below: 
+
+xk+1  
+
+> i
+
+=
+
+> n
+
+X
+
+> j=1
+
+wij xki − ηs ki ∇2fi(xki )−1
+
+sk+1  
+
+> i
+
+=
+
+> n
+
+X
+
+> j=1
+
+wij ski + ∇fi(xk+1  
+
+> i
+
+) − ∇ fi(xki ), s 0 
+
+> i
+
+= ∇fi(x0 
+
+> i
+
+),
+
+(4) where ˜Hik = ∇2fi(xki ) is the local Hessian at the i-th node at the k-the iteration, which is invertible due to the strong convexity assumption on fi(x). 0 < η < 1 is a stepsize that needs to be chosen carefully. 
+
+Remark 2: Note that although the above algorithm requires an inverse local Hessian computation at each node, there are computationally efficient iterative approximate Hessian inverse calculation methods, e.g. a variation of the standard conjugate-gradient algorithm called LiSSA [24]. There are also similar methods for computing the product of inverse Hessian and gradients. These techniques can be used to alleviate the computational burden for Hessian inversion at the nodes in case of high dimensional problems. Using the matrix notation from (3), one can write the above algorithm compactly as follows: 
+
+xk+1 = W xk − ηyk
+
+sk+1 = W sk + ∇k+1 − ∇ k, s0 = ∇0. (5) Here yk = [ yk 
+
+> 1
+
+yk 
+
+> 2
+
+. . . , y kN ]T , where yki = ski ∇2fi(xki )−1.For the purpose of the subsequent convergence analysis of the algorithm given in (4), we also define the following average quantities ¯xk = 1T xk 
+
+> N
+
+= 1
+
+> N
+
+PNi=1 xki , ¯sk = 1T sk 
+
+> N
+
+=
+
+> 1
+> N
+
+PNi=1 ski and gk = ∇f (xk) = 1T ∇k 
+
+> N
+
+. Using a similar inductive proof as in [6], it follows that ¯sk = gk, that is, the average gradient tracking vector tracks the average global gradient at all steps, when initialized as s0 = ∇0.
+
+IV. C ONVERGENCE ANALYSIS 
+
+In this section, we provide two main results regarding the convergence of the Network-GIANT algorithm given by (5). First, under Assumptions 1(a) and 1(b), we establish that for a sufficiently small step size η, the Network-GIANT algorithm enjoys a linear convergence rate, implying that the optimality gap || ¯xk − x⋆|| decays exponentially with the iteration number 
+
+k. We are able to provide an explicit expression for an upper bound ¯η such that for η < ¯η, this result holds true. In the second result, with additional assumptions on the Lipschitz continuity of the Hessians of the local loss functions and a small enough approximation error bound for the error between the true Hessian of f (x), and the one given by the harmonic mean of the local Hessians, we prove a mixed linear-quadratic inequality based upper bound for the optimality gap in the Network-GIANT algorithm. 4
+
+A. Linear Convergence Analysis of Network-GIANT 
+
+Before we proceed further, we quote the following results that have been established in [6] under Assumption 1. We also define the three error terms: ∥xk − 1¯xk∥, ∥sk − 1gk∥,and ∥¯xk − x⋆∥, which correspond to the norms of the con-sensus error , gradient tracking error , and the optimality gap ,respectively. 
+
+Lemma 1: Under Assumption 1, we have (i) 
+
+∥∇ k − ∇ k−1∥ ⩽ L ∥xk − xk−1∥ , (6) 
+
+∥gk − gk−1∥ ⩽ L
+
+√N ∥xk − xk−1∥ . (7) (ii) 
+
+∥sk∥ ⩽ ∥sk − 1gk∥ + L ∥xk − 1x⋆∥ , (8) 
+
+⩽ ∥sk − 1gk∥ + L ∥xk − 1¯xk∥ + L√N ∥¯xk − x⋆∥ .
+
+We will also need another result concerning the global linear convergence of a damped Newton method, stated as follows. 
+
+Lemma 2: Consider a column vector z ∈ Rn, and afunction u(z) that satisfies the smoothness and convexity assumptions in Assumption 1 (a)-(b). A damped Newton iterative update to find z⋆, the unique minimum of u(z) can be written as 
+
+z+ = z − η[∇2u(z)] −1∇u(z), 0 < η < 1. (9) It can be shown that if η ⩽ μL , then 
+
+z+ − z⋆ ⩽ (1 − η μL ) ∥z − z⋆∥ . (10) 
+
+Proof: Define Hz = [ ∇2u(z)] −1 R 10 ∇2(z⋆+λ(z−z⋆)dλ .Then one can show that 
+
+[∇2u(z)] −1∇u(z) = [ ∇2u(z)] −1(∇u(z) − ∇ u(z⋆)) =
+
+
+
+[∇2u(z)] −1
+
+Z 10
+
+∇2(z⋆ + λ(z − z⋆)dλ 
+
+
+
+(z − z⋆)= Hz (z − z⋆) (11) which implies 
+
+z+ − z⋆ = ( I − ηH z )( z − z⋆)
+
+Using μL I ⩽ Hz ⩽ Lμ I, it then follows that 
+
+(1 − η Lμ )I ⩽ (I − ηH z ) ⩽ (1 − η μL )I.
+
+Therefore, if η ⩽ μL , we obtain 0 ⩽ I − ηH z ⩽ (1 − η μL )I,implying ∥I − ηH z ∥2 ⩽ (1 − η μL ), from which the proof follows. 
+
+Remark 3: It is well known that a standard Newton’s method, initialized with a damped stage where the step size 
+
+η is chosen by a backtracking line search, will eventually allow η → 1, as the gradient norm falls below a certain threshold, resulting in a local quadratic convergence of the Newton’s method with η = 1 [25]. However, the damped Newton’s method with a fixed step size η also enjoys a global linear convergence for a sufficiently small η for strongly convex and smooth functions, as shown in the above proof. Interestingly, the global linear convergence of a slightly more general damped Newton’s method is left as an exercise in [26]. Using the above two lemmas, one can show the following result: 
+
+Theorem 1: Consider the NETWORK-GIANT algorithm given by (5), implemented with a doubly stochastic consensus matrix W with a spectral norm σ = W − 1 
+
+> N
+
+11 T 
+
+> 2
+
+< 1.Assuming η ⩽ μL , and that Assumption 1 (a)-(b) holds, we can show the following inequality: 
+
+
+
+∥xk+1 − 1¯xk+1 ∥∥sk+1 − 1gk+1 ∥√N ∥¯xk+1 − x⋆∥
+
+ ⩽ G(η)
+
+
+
+∥xk − 1¯xk∥∥sk − 1gk∥√N ∥¯xk − x⋆∥
+
+
+
+G(η) = 
+
+
+
+σ + η Lμημ η Lμ
+
+2L + η L2 
+
+> μ
+
+σ + η Lμ η L2
+
+> μ
+
+η Lμημ 1 − η μL
+
+ (12) 
+
+Proof: See Appendix A for a proof. It is clear from (12) that the three error norms will go to zero exponentially fast as long as the spectral radius ρ(G(η)) < 1.Since G(η) is a matrix with all positive elements, from the Perron-Frobenius theorem, the largest eigenvalue is real and positive. In the next theorem, we provide an upper bound on the step size η that ensures that the spectral radius ρ(G(η)) <
+
+1.
+
+Theorem 2: If one chooses η < ¯η = (1 −σ)2 
+
+> 2(2 −σ)( κ+κ3)
+
+, where 
+
+κ = Lμ is the condition number of the global Hessian, we can show that ρ(G(η)) < 1.
+
+Proof: See Appendix B. 
+
+Remark 4: In [6], which established a linear convergence result for the gradient tracking based first-order distributed optimization algorithm, the authors showed that (see Lemma 2 in [6]) when η < 1 
+
+> L
+
+(using the notation of our paper), the spectral radius of the corresponding matrix 
+
+¯G(η) = 
+
+ σ η 02L + ηL 2 σ + ηL ηL 2
+
+ηL 0 1 − ημ 
+
+
+
+is upper bounded, and for a specific value of η = μL2 ( 1−σ 
+
+> 6
+
+)2,the spectral radius ρ( ¯G(η)) < 1.Using a similar analysis as in the proof of Theorem 2 in our paper, one can obtain a tighter bound on η compared to 1 
+
+> L
+
+,which is given by η < ˜η = −(3 −σ)+ √(3 −σ)2+4(1 −σ)2(1+ κ)2L(1+ κ) ,for which, the spectral radius ρ( ¯G(η)) < 1.
+
+Remark 5: Note that the upper bounds on the step sizes for both the Network-GIANT algorithm and gradient tracking based algorithm in [6], given by ¯η, and ˜η are simply sufficient conditions, as the evolution of the three error norms in (12) are given by inequalities rather than equalities. Thus while choosing an η below the corresponding upper bounds will definitely guarantee convergence, it may be possible to obtain faster convergence with a larger step size. For example, for a graph with σ = 0 .7, and L = 5 , μ = 1 (i.e. a mild condition number of 5), it can be shown through numerical computation for 0 < η < ˜η, that the smallest value of ρ( ¯G(η)) is 0.9954 
+
+for the distributed gradient tracking algorithm in [6]. Similar conservative convergence rates based on Theorems 1 and 2 can be found for the Network-GIANT algorithm. 5
+
+Remark 6: It is also not possible to directly compare ¯η and 
+
+˜η as functions of only σ and the condition number κ, since ˜η
+
+also depends on L, the Lipschitz continuity parameter. 
+
+B. A Mixed Linear-Quadratic Inequality for the Optimality Gap 
+
+Motivated by the conservativeness of the global linear con-vergence results in the previous subsection, we investigate why we obtain substantially faster convergence rates for Network-GIANT in numerical results, than those predicted by Theorems 1 and 2. To this end, we show that under some further assump-tions, one can obtain a mixed linear-quadratic convergence rate of the optimality gap norm ∥¯xk − x⋆∥. Before we proceed, we define the true global Hessian (arithmetic mean of the local Hessians) as Htr (xk) = 1
+
+> N
+
+PNi=1 ˜Hki , and the approximate Hessian given by the harmonic mean of the local Hessians as 
+
+Happ (xk) = 
+
+ 1
+
+> N
+
+PNi=1 ( ˜Hki )−1
+
+−1
+
+.We make the following two assumptions, the first of which is standard in the analysis of Newton-type optimization algo-rithms. 
+
+Assumption 2: We assume that the Hessians of all the local cost functions are Lipschitz continuous, i.e. 
+
+∇2fi(x) − ∇ 2fi(y) ⩽ ¯L ∥x − y∥ , ∀i. (13) The second assumption is on the tightness of the approxi-mation of global hessian by the harmonic mean of the local Hessians. 
+
+Assumption 3: There exists a sufficiently small γ such that 
+
+∥Htr (x) − Happ (x)∥ ⩽ γ, ∀x.
+
+Remark 7: Note that it is not generally possible to obtain useful explicit analytical bounds on ∥Htr (x) − Happ (x)∥,although it has been empirically illustrated in [22] that for the regression based local loss functions fi(x) =
+
+> 1
+> m
+
+Pmj=1 lij (xT aij ) + λ 
+
+> 2
+
+∥x∥2, when the data samples are homogeneously distributed across the different agents, and the individual local Hessian approximation based on the local sample set is reasonably accurate, one can indeed approximate the arithmetic mean Htr (x) by the harmonic mean Happ (x)
+
+within a reasonably good accuracy. Furthermore, note that the following linear quadratic inequality result is not limited to the Network-GIANT algorithm only, as any distributed approximate-Newton algorithm that can achieve a global Hes-sian approximation within a small error will satisfy the mixed linear-quadratic inequality result stated below. 
+
+Theorem 3: Under Assumptions 1, 2, and 3, one can show that if γ < μ, and η < 1, given specific error norms 
+
+∥¯xk − x⋆∥ , ∥xk − 1¯xk∥ , ∥sk − 1gk∥ at iteration k, the opti-mality gap error norm ∥¯xk+1 − x⋆∥ at iteration k + 1 satisfies the following mixed linear-quadratic inequality: 
+
+∥¯xk+1 − x⋆∥ ⩽
+
+
+
+1 − η(1 − γμ )
+
+
+
+∥¯xk − x⋆∥
+
++ η ¯Lμ√N ∥xk − 1¯xk∥ ∥ ¯xk − x⋆∥ + η ¯L
+
+2μ ∥¯xk − x⋆∥2
+
++ ημ√N ∥sk − 1gk∥ + ηL μ√N ∥xk − 1¯xk∥ . (14) 
+
+Proof: See Appendix C. It was illustrated with a comprehensive set of numerical results in [21] that Network-GIANT outperforms first-order optimization algorithms based on gradient tracking and a num-ber of other distributed optimization methods using different types of Hessian approximation techniques, such as Network-DANE [27], and various other Network-Newton methods in-cluding the one presented in [28]. While it is generally difficult to compare exact convergence rates of various distributed Newton type methods, Theorem 3 provides an explanation why Network-GIANT provides a faster linear convergence rate than the gradient tracking based first order algorithm, e.g. in [6]. An intuitive explanation follows like this: note that when the step-size η is small, from Theorem 1, it is clear that the matrix G(η) is diagonally dominant, and the consensus error norm and the gradient tracking error norm decay faster with an approximate linear rate of σ < 1, while the optimality gap norm decays at a slower rate of 1 − η μL . Thus it is clear that when the consensus error norm and the gradient tracking error norm are sufficiently small, the linear quadratic convergence result in Theorem 3 above indicates that the optimality gap norm at time iteration k +1 depends on a linear and a quadratic term of the optimality gap norm at iteration 
+
+k. Clearly, the quadratic term will only dominate in the early stages when the optimality gap is larger (see [29] for a similar convergence behaviour for a centralized approximate Newton method). Asymptotically, as the optimality gap decreases, the linear term will dominate and the asymptotic convergence rate is given by (1 − η(1 − γμ )) . When the hessian approximation error γ is sufficiently small compared to the strong convexity constant μ, then this linear convergence rate is approximately 
+
+(1 − η), which is much faster than the corresponding rate of the gradient tracking based first order method, given by approximately (1 − ημ ) in the third diagonal entry of ¯G(η).In the next section, we will illustrate these somewhat qualitative arguments through numerical illustrations via a logistic regression based binary classification algorithm based on a CovType data set. We will compare Network-GIANT and the gradient tracking based first order method from [6], as well as a Nesterov-acceleration based gradient tracking algorithm ACC-NGD-SC [30]. Note that to avoid repetition, we do not include comparative performance results with other second or-der approximate Newton algorithms that were already reported in [21]. 
+
+V. N UMERICAL ANALYSIS 
+
+This section empirically studies the convergence prop-erties of Network -GIANT . Extensive comparisons of 
+
+Network -GIANT with other first-order and second-order distributed algorithms were reported in [21, §V] and will, therefore, not be included in the numerical analysis of this article. Here, we pose the following research questions: (a) How does the connectivity of the underlying graph affect the convergence rate? (b) What is the rate of convergence of the algorithm, when the consensus steps of the decision variable and the 6
+
+gradient tracker, as described in Theorem 2, are com-bined with the mixed linear-quadratic optimality gap error norm? We observed that for a graph with higher connectivity, with a small spectral norm, ensures faster convergence in comparison to a graph with less connectivity and a spectral norm close to 1. Moreover, when η is small, we numerically verified that Network -GIANT achieves a faster convergence, given by 1 − η in contrast to its gradient tracking based first order counterpart.  
+
+> Experimental setup:
+
+For the experiments, we considered a binary logistic classification problem given by the distributed optimization problem 
+
+min 
+
+> x∈Rn
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+1
+
+m
+
+> m
+
+X
+
+> j=1
+
+log 
+
+
+
+1 + exp   − vij (x⊤uij )
+
++ ˜λ
+
+2 ∥x∥2 ,
+
+where ˜λ is the regularizer chosen to be 0.01 across all experiments. We performed distributed classification on areduced CovType dataset [31], consisting of 566602 sample points and n = 10 features. After random reshuffling to minimize bias, the samples (uij , v ij ) were uniformly distributed across the N nodes with ( m samples each). The variables 
+
+x(0) were initialized uniformly randomly, and we imposed 
+
+∇fi(xi(0)) = si(0) for each i = {1, 2, . . . , N }.The experiments were conducted on d-regular expander graphs and Erd˝ os-R´ enyi graphs  denoted by G(N, p ) with 
+
+N = 20 nodes and different graph parameters, summarized in Table I. Here d and p denote the degree of the expander graph and the edge/connection probability associated with the Erd˝ os-R´ enyi graph, respectively, and σ is the spectral radius of these graphs. We assumed that each agent can exchange data                     
+
+> Graph Type d/pσd/pσ
+> Expander d= 4 0.8800 d= 14 0.3026
+> Erd˝ os–R´ enyi p= 0 .20.8699 p= 0 .75 0.4416
+
+TABLE I : Spectral norm ( σ) for different graph parameters. with their 1-hop neighbors. The consensus weight matrices of these graphs were constructed using the Metropolis-Hastings algorithm [32].  
+
+> Results and discussions:
+
+In the following experiments, the true optimal solution x∗ and the corresponding optimal value 
+
+f (x∗), used as baselines, are obtained from the centralized Newton-Raphson algorithm with backtracking line search. Figure 1 displays the convergence of different errors, namely, the consensus error (CE), the gradient-tracking error (Grad-T), and the optimality gap error (OE), for two different graph configurations of d-regular expander graphs. The details regarding the spectral norm and the graph parameters are summarized in Table I, and the corresponding stepsizes were picked according to Table II. We observed that for small stepsize ( η) choices, and for an expander graph with degree d = 14 and an Erd˝ os-R´ enyi graph with connection probability p = 0 .75 (both of which exhibit a higher degree of connectivity and a lower spectral norm), the consensus error dynamics and the gradient-tracking                     
+
+> Graph Type d/pηd/pη
+> Expander d= 4 0.05 d= 14 0.07
+> Erd˝ os–R´ enyi p= 0 .20.05 p= 0 .75 0.07
+
+TABLE II : Stepsize η for different graph configurations. error achieve a faster convergence rate in comparison with the optimality gap error dynamics decaying at a slower rate of 
+
+1 − η μL . This is consistent with the observation reported in the assertion of [21, Theorem 2]. For graphs with a lower degree of connectivity, faster convergence is not distinctly observed, as shown in Figure 1. A similar behavior was observed for the Erd˝ os-R´ enyi graph with a lower connection probability as well, which we omit here for brevity. We further observe that 0 200 400 600 800 1000       
+
+> Iterations
+> 10 -10
+> 10 0
+> Error norms CE(d=4)
+> OE(d=4)
+> Grad-T(d=4)
+> CE(d=14)
+> OE(d=14)
+> Grad-T(d=14)
+
+Fig. 1 : Errors associated with Network -GIANT . Here the acronyms, ‘CE’, ‘OE’, and ‘Grad-T’, are short forms for consensus error, optimality gap error, and gradient-tracking error, respectively. when the consensus and gradient tracking errors converge to sufficiently small values, the linear term in the optimality error gap dominates the quadratic term at a later stage of consensus when ¯xk lies in a neighborhood of x∗. 
+
+> Empirical evidence for improved rate of convergence:
+
+Figures 2 and 3 illustrate that when η is small, the ratio rk, defined by 
+
+rk := ∥xk+1 − x∗∥∥xk − x∗∥ ⩽ 1 − η + ηγ μ ≈ 1 − η for each k, (15) provided that the Hessian approximation error γ is sufficiently small. Two observations are noteworthy here. First, we report that for both the graph models, (rk)k∈N converges asymptot-ically approximately to the limiting value of 1 − η, provided 
+
+η and the Hessian approximation error are small. This is consistent with our discussion preceding §V. For a larger stepsize value η = 0 .07 and a lower graph connectivity d = 4 
+
+in Figures 2 and 3 (both top figures), the above convergence property no longer remains valid. Similar behavior was ob-served for larger values of stepsizes beyond 0.07 , although the overall Network-GIANT algorithm still converges. However, for graphs with a higher degree of connectivity, a locally asymptotic approximate convergence rate of 1 − η is seen in Figures 2 and 3 (both bottom figures). Finally, we observed a slightly improved rate of convergence when the spectral norm of the graph is small, even for larger values of η. This trend is consistent for both the d-regular expander graph and the 7Iterations                                 
+
+> 050 100 150 200 250 300 350
+> rk !
+> 0.85
+> 0.9
+> 0.95
+> 1
+> rk(2=0:01)2=0:01rk(2=0:03)
+> 2=0:03rk(2=0:05)2=0:05
+> rk(2=0:07)2=0:07
+
+Iterations                                 
+
+> 050 100 150 200 250 300 350
+> rk !
+> 0.85
+> 0.9
+> 0.95
+> 1
+> rk(2=0:01)2=0:01rk(2=0:03)
+> 2=0:03rk(2=0:05)2=0:05
+> rk(2=0:07)2=0:07
+
+Fig. 2: Rate of convergence, as defined in (15), of 
+
+Network -GIANT for d-regular expander graph with d = 4 
+
+(top) and d = 14 (bottom). Iterations                                 
+
+> 050 100 150 200 250 300 350
+> rk !
+> 0.85
+> 0.9
+> 0.95
+> 1
+> rk(2=0:01)2=0:01rk(2=0:03)
+> 2=0:03rk(2=0:05)2=0:05
+> rk(2=0:07)2=0:07
+
+Iterations                                 
+
+> 050 100 150 200 250 300 350
+> rk !
+> 0.85
+> 0.9
+> 0.95
+> 1
+> rk(2=0:01)2=0:01rk(2=0:03)
+> 2=0:03rk(2=0:05)2=0:05
+> rk(2=0:07)2=0:07
+
+Fig. 3: Rate of convergence, as defined in (15), of 
+
+Network -GIANT for Erd˝ os–R´ enyi graph with p = 0 .2 (top) and p = 0 .75 (bottom). Erd˝ os-R´ enyi graph. An exact characterization of the region of (σ, η ) where this locally approximate asymptotic convergence rate of 1 − η for the optimality gap holds, remains an open problem for future investigation. 
+
+Comparison with state-of-the-art algorithms: For comparing 
+
+Network -GIANT with the gradient-tracking based first-order method developed in [6], termed as ‘GradTrack’ for con-venience, and a Nesterov-accelerated version of the gradi-ent tracking based optimization algorithm (ACC-NGD-SC) [30], we considered the full CovType dataset, and solve the multinomial logistic classification problem [33, Chapter 4]. Specifically, we solve the distributed optimization problem (1), where local objective function is defined by 
+
+fi(x) := − 1
+
+mimiX
+
+> j=1
+> M
+
+X
+
+> l=1
+
+1{vij =l} log 
+
+
+
+φl(uij ; x)
+
+
+
++ λ ∥x∥2 ,λ > 0 is the regularization penalty, and 
+
+φl(uij ; x) = 
+
+
+
+> exp
+
+ (xl)⊤uij
+
+  
+
+> 1+ PM−1
+> l=1 exp
+
+ (xl)⊤uij
+
+ for l = 1 , . . . , M − 1,  
+
+> 11+ PM−1
+> l=1 exp
+
+ (xl)⊤uij
+
+ for l = M. 
+
+Here the parameters x := ( x1 x2 · · · xM −1)⊤ are (M − 1) ×
+
+(d + 1) -dimensional matrices, where xl ∈ RN +1 for each 
+
+l ∈ { 1, . . . , M }. The full CovType dataset consists of 581012 
+
+data points with 54 -dimensional feature vectors distributed among 7 classes. For these experiments, the regularizer λ was chosen to be 0.001 . The stepsizes for different algorithms were chosen according to Table III. For ACC-NGD-SC                     
+
+> Algorithms d= 4 d= 14 p= 0 .2p= 0 .75
+> GradTrack 0.08 0.18 0.08 0.12
+> Network -GIANT 0.075 0.08 0.075 0.08 ACC-NGD-SC 0.09 0.29 0.2 0.3
+
+TABLE III : Stepsize η for different algorithms and graph models. [30], we considered a grid of [0 .035 , 0.3] , and the step-sizes, 
+
+η ∈ [0 .035 , 0.3] , corresponding the values reported in Table III corresponding to the best result obtained. The momentum parameter was chosen to be α = √μη as stated in [30], where 
+
+μ is the strong convexity parameter. For the dataset considered, 
+
+μ ≃ 0.002 was computed empirically. 1 It is observed that Network-GIANT comfortably outperforms the ACC-NGD-SC algorithm as well, illustrating that using approximate curvature information can provide significant improvement in convergence rate in distributed optimization. 
+
+VI. C ONCLUSIONS 
+
+This paper focused on derivation of a number of de-tailed convergence results of a recently developed approximate Newton-type fully distributed optimization algorithm called Network-GIANT. For strongly convex local cost functions with the step size below an explicit bound, a global linear                          
+
+> 1In our experiments, we observed that a larger αcan be appropriately chosen to obtain a damped response; see Figure 5 for more details. 8020 40 60 80 100
+> Iterations
+> 10 -10
+> 10 -5
+> 10 0
+> log jjf (Xk ) ! f (x$)jj
+> GradTrack(d=4)
+> Network-GIANT(d=4)
+> GradTrack(d=14)
+> Network-GIANT(d=14)
+> Acc-DNGD-SC(d=4)
+> Acc-DNGD-SC(d=14)
+
+(a) d-regular expander graph with d = 4 and d = 14 .0 20 40 60 80 100                   
+
+> Iterations
+> 10 -8
+> 10 -6
+> 10 -4
+> 10 -2
+> 10 0
+> log jjf (Xk ) ! f (x$)jj
+> GradTrack(p=0:2)
+> Network-GIANT(p=0:2)
+> GradTrack(p=0:75)
+> Network-GIANT(p=0:75)
+> Acc-DNGD-SC(p=0:2)
+> Acc-DNGD-SC(p=0:75)
+
+(b) Erd˝ os-R´ enyi graph with p = 0 .2 and p = 0 .75 .
+
+Fig. 4 : Comparison of Network -GIANT with GradTrack and ACC-NGD-SC. 0 20 40 60 80 100                                          
+
+> Iterations
+> 10 -10
+> 10 -5
+> 10 0
+> log jjf (Xk ) ! f (x$)jj
+> GradTrack(d=4)
+> Network-GIANT(d=4)
+> GradTrack(d=14)
+> Network-GIANT(d=14)
+> Acc-DNGD-SC(d=4)
+> Acc-DNGD-SC(d=14)020 40 60 80 100
+> Iterations
+> 10 -8
+> 10 -6
+> 10 -4
+> 10 -2
+> 10 0
+> log jjf (Xk ) ! f (x$)jj
+> GradTrack(p=0:2)
+> Network-GIANT(p=0:2)
+> GradTrack(p=0:75)
+> Network-GIANT(p=0:75)
+> Acc-DNGD-SC(p=0:2)
+> Acc-DNGD-SC(p=0:75)
+
+Fig. 5 : Comparison when α > √μη was chosen, keeping all other parameter identical, and considered α = 0 .05 . A damped response for ACC-NGD-SC [30] is reported. convergence result is shown, which can be explicitly computed as the spectral radius of a 3 × 3 matrix, the elements of which depend on the cost function Lipschitz continuity ( L)and strong convexity ( μ) parameters, the step size ( η) and the spectral norm ( σ) of the underlying consensus matrix. A mixed linear-quadratic inequality based iterative upper bound is also established for the optimality gap, which indicates that for small step sizes and a negligible Hessian approximation error, Network-GIANT achieves an asymptotic approximate local linear convergence rate of 1−η, which provides a mathematical justification as to why Network-GIANT is empirically seen to achieve a faster convergence rate than its first order gradient-tracking based counterparts. Ongoing and future work will focus on extensions of Network-GIANT to graphs with com-pressed and noisy communication, incorporating acceleration techniques such as Nesterov-acceleration and heavy-ball type methods, and more general (e.g. directed) graphs. 
+
+APPENDIX IPROOF OF THEOREM 1
+
+We prove three norm inequalities in (12) individually. 
+
+Consensus error norm :First, note that, using the state/parameter update equation of (5), we have (using W 1 = 1)
+
+xk+1 − 1¯xk+1 = W xk − 1¯xk − η(I − 1
+
+N 11 T )yk,
+
+where I denotes the identity matrix of order N ×N . Noting that the 2-norm I − 1 
+
+> N
+
+11 T 
+
+> 2
+
+⩽ 1 for all n > 1, ∥yk∥ ⩽ 1 
+
+> μ
+
+∥sk∥,and ∥W xk − 1¯xk∥ ⩽ σ ∥xk − 1¯xk∥, it follows that 
+
+∥xk+1 − 1¯xk+1 ∥ ⩽ σ ∥xk − 1¯xk∥ + ημ ∥sk∥ .
+
+Finally using equation (ii) of Lemma 1, we have 
+
+∥xk+1 − 1¯xk+1 ∥ ⩽ (σ + η Lμ ) ∥xk − 1¯xk∥
+
++ ημ ∥sk − 1gk∥ + η Lμ
+
+√N ∥¯xk − x⋆∥
+
+Gradient tracking error norm :Next, using a result from [6], we have 
+
+∥sk+1 − 1gk+1 ∥ ⩽ σ ∥sk − 1gk∥ + L ∥xk+1 − xk∥ .
+
+Next, by using 
+
+xk+1 − xk = ( W − I)xk − ηyk = ( W − I)( xk − 1¯xk) − ηyk,
+
+and ∥W − I∥2 ⩽ 2, we get (after substituting for ∥yk∥ ⩽ 
+
+> 1
+> μ
+
+∥sk∥, and some rearranging) 
+
+∥sk+1 − 1gk+1 ∥ ⩽ (2 L + η L2
+
+μ ) ∥xk − 1¯xk∥
+
++ ( σ + η Lμ ) ∥sk − 1gk∥ + η L2
+
+μ
+
+√N ∥¯xk − x⋆∥
+
+Optimality gap norm :To simplify the following analysis, we use ˜xk = ¯ xTk , ˜x⋆ =(x⋆)T , and ˜ski = ( ski )T . Once again, averaging both sides of the state/parameter update equation in (5), and using the shorthand notation ˜Hki = ∇2fi(xki ) for the local Hessians (note that these matrices are positive definite symmetric), we can write 
+
+˜xk+1 − ˜x⋆ = ˜ xk − ˜x⋆ − η 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+( ˜Hki )−1 ˜ski
+
+= ˜ xk − ˜x⋆ − η 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+( ˜Hki )−1(˜ ski − ∇ f (˜ xk) + ∇f (˜ xk)) 9
+
+where ∇f (˜ xk) = ( ∇f (¯ xk)) T . Define 
+
+¯Hki = ( ˜Hki )−1∇f (˜ xk)= ( ˜Hki )−1
+
+Z 10
+
+∇2f (˜ x⋆ + λ(˜ xk − ˜x⋆)) dλ (˜ xk − ˜x⋆)
+
+Consequently, one can write 
+
+˜xk+1 − ˜x⋆ = ( I − η
+
+P ¯Hki
+
+N )(˜ xk − ˜x⋆)
+
+− η 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+( ˜Hki )−1(˜ ski − ∇ f (˜ xk)) 
+
+Using a similar technique as in the Proof of Lemma 2, one can show that μL I ⩽ ¯Hki ⩽ Lμ I, and hence 
+
+
+
+1 − η Lμ
+
+
+
+I ⩽ I − η
+
+P ¯Hki
+
+N ⩽
+
+
+
+1 − η μL
+
+
+
+I
+
+It follows then that if η ⩽ μL , we have 
+
+0 ⩽ I − η
+
+P ¯Hki
+
+N ⩽
+
+
+
+1 − η μL
+
+
+
+I,
+
+and finally, I − η  
+
+> P¯Hki
+> N2
+
+⩽ (1 − η μL ).This allows us to write 
+
+∥˜xk+1 − ˜x⋆∥ ⩽ (1 − η μL ) ∥˜xk − ˜x⋆∥
+
++ η 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+( ˜Hki )−1(˜ ski − ∇ f (˜ xk)) 
+
+Denoting Sa = η 1
+
+> N
+
+PNi=1 ( ˜Hki )−1(˜ ski − ∇ f (˜ xk)) , using the strong convexity of the local cost functions and the fact that the norm of the transpose of a vector is the same as the norm of the vector, it is easy to show that 
+
+Sa ⩽ ημ
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ski − ∇ f (¯ xk)) 
+
+⩽ ημ
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ski − ∇ f (xk) + ∇f (xk) − ∇ f (¯ xk)) 
+
+⩽ ημ
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ski − ∇ f (xk) + ∥∇ f (xk) − ∇ f (¯ xk)) ∥
+
+!
+
+⩽ ημ
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ski − gk + ημL
+
+√N ∥xk − 1¯xk∥
+
+where we have used the Lipschitz continuity of the gradients. Finally, noting again that ∥˜xk − ˜x⋆∥ = ∥¯xk − x⋆∥, and 
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ski − gk ⩽
+
+vuut 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ski − gk 
+
+> 2
+
+= ∥sk − 1gk∥√N ,
+
+we have 
+
+√N ∥¯xk+1 − x⋆∥ ⩽ (1 − η μL )√N ∥¯xk − x⋆∥
+
++ ηL μ ∥xk − 1¯xk∥ + ημ ∥sk − 1gk∥
+
+Combining the three inequalities for the three error norms, we obtain the inequality in (12). 
+
+APPENDIX II PROOF OF THEOREM 2
+
+In order to analyze the spectral radius of the matrix G(η)
+
+defined in (12), we first recall that since G(η) is a positive ma-trix, its spectral radius is real valued and positive. Therefore, we need to investigate under what conditions on the step-size 
+
+η, this real eigenvalue lies between 0 and 1. First, note that at η = 0 , the eigenvalues G(0) are σ, σ , and 1. Clearly, the spectral radius ρ(G(η)) = 1 at η = 0 . From continuity of eigenvalues as a function of the elements of the matrix, we know that ρ(G(η)) is a continuous function of η.Next, we evaluate the derivative of ρ(G(η)) with respect to η
+
+at η = 0 . Define α = 1 − η μL , and β = σ + η Lμ , and δ = η Lμ
+
+for simplifications. By analyzing the characteristic polynomial of G(η), one can write that an eigenvalue λ of G(η) satisfies the following equation 
+
+(λ − α)( λ − β)2 − (λ − α)(2 δ + δ2) − 2δ2(λ − β)
+
+− 2δ3 − 2δ2 = 0 
+
+Taking the derivative with respect to η, and substituting λ = 1 ,and δ = 0 at η = 0 , one can get after some algebra 
+
+( ∂λ ∂η + μL )(1 − σ)2 = 0 .
+
+Since σ < 1, this implies that ∂λ ∂η < 0 at η = 0 . Therefore, from continuity of eigenvalues as a function of the matrix elements, it follows that the largest eigenvalue remains real and decreases as η increases slightly from 0. Since the other two eigenvalues are σ < 1 at η = 0 , we obtain that ρ(G(η)) < 1
+
+for a sufficiently small η > 0.Next, we check for what values of η, we have a solution λ =1. Clearly, one such value, as we saw earlier, is η = 0 . By substituting λ = 1 (and consequently, (λ−α) = η μL , (λ−β) = 1 − σ − η Lμ ) the characteristic polynomial, and discarding the solution η = 0 , we get 
+
+μL
+
+
+
+(1 − σ − η Lμ )2 − η Lμ (2 + η Lμ )
+
+
+
+− η2 L3
+
+μ3 − η L2
+
+μ2 (1 − σ − η Lμ )+ 1
+
+μ
+
+
+
+(1 − σ − η Lμ )( −η L2
+
+μ − 2η L2
+
+μ − η2 L3
+
+μ2
+
+
+
+= 0 
+
+After some algebraic manipulation, surprisingly, the above equation yields a single solution ¯η = (1 −σ) μL   
+
+> 2(2 −σ)(1+( Lμ)2
+
+). Since at η = 0 , the eigenvalues are 1, σ, σ , and the spectral radius is less than 1 in the immediate vicinity of η > 0, and there is only one other value η = ¯ η, where an eigenvalue can be 1,we conclude that the magnitudes of all the eigenvalues (and hence the spectral radius) are less than 1 for 0 < η < ¯η.By noting that ¯η < μL (thus satisfying the global convergence condition on the step size for the damped Newton method), and substituting κ = Lμ , we complete the proof of Theorem 2. 
+
+APPENDIX III PROOF OF THEOREM 3
+
+Similar to the optimality error norm proof of Theorem 1, we work with the transposed notations ˜xk, ˜x⋆, ˜ski , and ∇f (˜ xk).10 
+
+We adapt a similar proof technique as presented in [24]. As before, we can write 
+
+˜xk+1 − ˜x⋆
+
+= ˜ xk − ˜x⋆ − η 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+( ˜Hki )−1(˜ ski − ∇ f (˜ xk) + ∇f (˜ xk)) = ˜ xk − ˜x⋆ − η 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+( ˜Hki )−1(˜ ski − ∇ f (˜ xk)) 
+
+| {z }
+
+> S1
+
+− η 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+( ˜Hki )−1∇f (˜ xk)) 
+
+| {z }
+
+> S2
+
+We note that S2 can be written as 
+
+S2 = η(Happ (xk)) −1
+
+Z 10
+
+∇2f (˜ x⋆ + λ(˜ xk − ˜x⋆)) dλ (˜ xk − ˜x⋆)
+
+This allows us to write 
+
+˜xk+1 − ˜x⋆
+
+=
+
+I − η(Happ (xk)) −1
+
+Z 10
+
+∇2f (˜ x⋆ + λ(˜ xk − ˜x⋆)) dλ 
+
+| {z } 
+
+> δ(˜ xk)
+
+
+
+× (˜ xk − ˜x⋆) + S1
+
+= (1 − η)(˜ xk − ˜x⋆) + η(Happ (xk)) −1 [Happ (xk) − δ(˜ xk)] 
+
+× (˜ xk − ˜x⋆) + S1
+
+It follows then from strong convexity and η < 1
+
+∥˜xk+1 − ˜x⋆∥ ⩽
+
+
+
+(1 − η) + ημ ∥Happ (xk) − δ(˜ xk)∥
+
+
+
+× ∥ ˜xk − ˜x⋆∥ + ∥S1∥ (16) One can now show (recalling that vT = ∥v∥ for a vector 
+
+v)
+
+∥Happ (xk) − δ(˜ xk)∥
+
+⩽ ∥Happ (xk) − Htr (xk)∥ + ∥Htr (xk) − δ(˜ xk)∥
+
+⩽ γ +
+
+Z 10
+
+∇2f (xk) − ∇ 2f (˜ xk) dλ 
+
++
+
+Z 10
+
+∇2f (˜ xk) − ∇ 2f (˜ x∗ + λ(˜ xk − ˜x∗)) dλ 
+
+⩽ γ + ¯L
+
+√N ∥xk − 1¯xk∥ + ¯L
+
+2 ∥¯xk − x⋆∥
+
+where the last term in the last inequality is due to the Lipschitz continuity of the global Hessian. Using the above result in (16), we obtain (observing that since γ < μ , and η < 1, η(1 − γμ ) < 1)
+
+∥¯xk+1 − x⋆∥ ⩽
+
+
+
+1 − η(1 − γμ )
+
+
+
+∥¯xk − x⋆∥
+
++ η ¯Lμ√N ∥xk − 1¯xk∥ ∥ ¯xk − x⋆∥ + η ¯L
+
+2μ ∥¯xk − x⋆∥2
+
++ ∥S1∥
+
+Finally, noting that ∥S1∥ is the same as the quantity Sa defined in the Proof of Theorem 1, we can obtain the final expression for the upper bound on ∥¯xk+1 − x⋆∥ given in (14). 
+
+REFERENCES 
+
+[1] L. Yuan, Z. Wang, L. Sun, P. S. Yu, and C. G. Brinton, “Decentralized federated learning: A survey and perspective,” IEEE Internet of Things Journal , vol. 11, no. 21, pp. 34 617–34 638, 2024. [2] C. Liu, N. Bastianello, W. Huo, Y. Shi, and K. H. Johansson, “A survey on secure decentralized optimization and learning,” arXiv preprint arXiv:2408.08628 , 2024. [3] T. Yang, X. Yi, J. Wu, Y. Yuan, D. Wu, Z. Meng, Y. Hong, H. Wang, Z. Lin, and K. H. Johansson, “A survey of distributed optimization,” Annual Reviews in Control , vol. 47, pp. 278–305, 2019. [Online]. Available: https://www.sciencedirect.com/science/article/pii/S1367578819300082 [4] A. Nedi´ c and J. Liu, “Distributed optimization for control,” Annual Review of Control, Robotics, and Autonomous Systems , vol. 1, no. 1, pp. 77–103, 2018. [5] A. Nedic, “Distributed gradient methods for convex machine learning problems in networks: Distributed Optimization,” IEEE Signal Process-ing Magazine , vol. 37, no. 3, pp. 92–101, 2020. [6] G. Qu and N. Li, “Harnessing smoothness to accelerate distributed optimization,” IEEE Transactions on Control of Network Systems , vol. 5, no. 3, pp. 1245–1260, 2018. [7] C. Xi, V. S. Mai, R. Xin, E. H. Abed, and U. A. Khan, “Linear convergence in optimization over directed graphs with row-stochastic matrices,” IEEE Transactions on Automatic Control , vol. 63, no. 10, pp. 3558–3565, 2018. [8] C. T. Dinh, N. H. Tran, T. D. Nguyen, W. Bao, A. R. Balef, B. B. Zhou, and A. Y. Zomaya, “DONE: distributed approximate Newton-type method for federated edge learning,” IEEE Transactions on Parallel and Distributed Systems , vol. 33, no. 11, pp. 2648–2660, 2022. [9] G. Sharma and S. Dey, “On analog distributed approximate Newton with determinantal averaging,” in 2022 IEEE 33rd Annual International Symposium on Personal, Indoor and Mobile Radio Communications (PIMRC) . IEEE, 2022, pp. 1–7. [10] M. Safaryan, R. Islamov, X. Qian, and P. Richt´ arik, “FedNL: Making Newton-type methods applicable to federated learning,” in 39th Inter-national Conference on Machine Learning, ICML 2022 , 2022. [11] M. Sen, A. Qin, and K. M. C, “FAGH: Accelerating federated learning with approximated global hessian,” arXiv e-prints , pp. arXiv–2403, 2024. [12] A. Mokhtari, Q. Ling, and A. Ribeiro, “Network Newton distributed optimization methods,” IEEE Transactions on Signal Processing , vol. 65, no. 1, pp. 146–161, 2016. [13] D. Bajovic, D. Jakovetic, N. Krejic, and N. K. Jerinkic, “Newton-like method with diagonal correction for distributed optimization,” SIAM Journal on Optimization , vol. 27, no. 2, pp. 1171–1203, 2017. [14] N. Bof, R. Carli, G. Notarstefano, L. Schenato, and D. Varagnolo, “Multiagent Newton–Raphson optimization over lossy networks,” IEEE Transactions on Automatic Control , vol. 64, no. 7, pp. 2983–2990, 2018. [15] J. Zhang, Q. Ling, and A. M.-C. So, “A Newton tracking algorithm with exact linear convergence for decentralized consensus optimization,” 
+
+IEEE Transactions on Signal and Information Processing over Networks ,vol. 7, pp. 346–358, 2021. [16] H. Ye, C. He, and X. Chang, “Accelerated distributed approximate Newton method,” IEEE Transactions on Neural Networks and Learning Systems , vol. 34, no. 11, pp. 8642–8653, 2022. [17] O. Shamir, N. Srebro, and T. Zhang, “Communication-efficient dis-tributed optimization using an approximate Newton-type method,” in 
+
+International conference on machine learning . PMLR, 2014, pp. 1000– 1008. [18] Z. Qu, X. Li, L. Li, and Y. Hong, “Distributed second-order method with diffusion strategy,” in 2023 IEEE International Conference on Systems, Man, and Cybernetics (SMC) . IEEE, 2023, pp. 2022–2027. [19] A. Maritan, G. Sharma, S. Dey, and L. Schenato, “Fully-distributed optimization with Network Exact Consensus-GIANT,” in 2024 IEEE 25th International Workshop on Signal Processing Advances in Wireless Communications (SPAWC) . IEEE, 2024, pp. 436–440. [20] J. Zhang, K. You, and T. Bas ¸ar, “Distributed adaptive Newton methods with global superlinear convergence,” Au-tomatica , vol. 138, p. 110156, 2022. [Online]. Available: https://www.sciencedirect.com/science/article/pii/S0005109821006865 11 
+
+[21] A. Maritan, G. Sharma, L. Schenato, and S. Dey, “Network-GIANT: Fully distributed Newton-type optimization via harmonic hessian con-sensus,” in 2023 IEEE Globecom Workshops (GC Wkshps) , 2023, pp. 902–907. [22] S. Wang, F. Roosta, P. Xu, and M. W. Mahoney, “GIANT: Globally improved approximate Newton method for distributed optimization,” 
+
+Advances in Neural Information Processing Systems , vol. 31, 2018. [23] L. Xiao, S. Boyd, and S.-J. Kim, “Distributed average consensus with least-mean-square deviation,” Journal of parallel and distributed computing , vol. 67, no. 1, pp. 33–46, 2007. [24] N. Agarwal, B. Bullins, and E. Hazan, “Second-order stochastic optimization for machine learning in linear time,” Journal of Machine Learning Research , vol. 18, no. 116, pp. 1–40, 2017. [Online]. Available: http://jmlr.org/papers/v18/16-491.html [25] S. Boyd and L. Vandenberghe, Convex Optimization . Cambridge University Press, March 2004. [26] B. Polyak, “Introduction to Optimization,” Translations Series in Math-ematics and Engineering. New York: Optimization Software Inc. Publi-cations Division , 1987. [27] B. Li, S. Cen, Y. Chen, and Y. Chi, “Communication-efficient distributed optimization in networks with gradient tracking and variance reduction,” 
+
+The Journal of Machine Learning Research , vol. 21, no. 1, 2020. [28] A. Mokhtari, Q. Ling, and A. Ribeiro, “Network Newton distributed optimization methods,” IEEE Transactions on Signal Processing , 2016. [29] M. A. Erdogdu and A. Montanari, “Convergence rates of sub-sampled Newton methods,” in Advances in Neural Information Processing Sys-tems , C. Cortes, N. Lawrence, D. Lee, M. Sugiyama, and R. Garnett, Eds., vol. 28. Curran Associates, Inc., 2015. [30] G. Qu and N. Li, “Accelerated distributed Nesterov gradient descent,” 
+
+IEEE Transactions on Automatic Control , vol. 65, no. 6, pp. 2566–2581, 2019. [31] D. Dua and C. Graff, “UCI Machine Learning Repository,” 2019, DOI: http://archive.ics.uci.edu/ml. [32] L. Xiao, S. Boyd, and S.-J. Kim, “Distributed average consensus with least-mean-square deviation,” Journal of parallel and distributed computing , vol. 67, no. 1, pp. 33–46, 2007. [33] T. Hastie, R. Tibshirani, and J. Friedman, The Elements of Statistical Learning , 2nd ed., ser. Springer Series in Statistics. Springer, New York, 2009, Data Mining, Inference, and Prediction. [Online]. Available: https://doi.org/10.1007/978-0-387-84858-7 
+
+Souvik Das is a postdoctoral researcher in the Department of Electrical Engineering at Uppsala University, Sweden. He received his doctoral degree from the Centre for Systems and Con-trol at the IIT Bombay in 2025. His research interests are broadly in the field of optimization and optimization-based control, and security and privacy of cyber-physical systems. 
+
+Luca Schenato (Fellow, IEEE) received the Dr.Eng. degree in electrical engineering from the University of Padova, Padova, Italy, in 1999, and the Ph.D. degree in electrical engineering and computer sciences from the University of Califor-nia (UC), Berkeley, Berkeley, CA, USA, in 2003. He was a Postdoctoral Researcher in 2004 and Visiting Professor during 2013–2014 with UC Berkeley. He is currently a Full Professor with the Information Engineering Department, University of Padova. His interests include networked con-trol systems, multi-agent systems, wireless sensor networks, distributed optimisation and synthetic biology. Luca Schenato has been awarded the 2004 Researchers Mobility Fellowship by the Italian Ministry of Education, University and Research (MIUR), the 2006 Eli Jury Award in U.C. Berkeley and the EUCA European Control Award in 2014, and IEEE Fellow in 2017. He served as Associate Editor for IEEE Trans. on Automatic Control from 2010 to 2014 and he is he is currently Senior Editor for IEEE Trans. on Control of Network Systems and Associate Editor for Automatica. 
+
+Subhrakanti Dey (Fellow, IEEE) received the Ph.D. degree from the Department of Systems Engineering, Research School of Information Sciences and Engineering, Australian National University, Canberra, in 1996. He is currently a Professor and Head of the Signals and Systems division in the Dept of Electrical Engineering at Uppsala University, Sweden. He has also held professorial positions at NUI Maynooth, Ireland and University of Melbourne, Australia. His current research interests include networked control systems, distributed machine learning and optimization, and detection and estimation theory for wireless sensor networks. He is currently a Senior Editor for IEEE Transactions of Control of Network Systems and IEEE Transactions on Signal and Information Processing over Networks, and an Associate Editor for Automatica. He also served as a Senior Editor for IEEE Control Systems Letter until 2025.

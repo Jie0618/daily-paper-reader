@@ -1,0 +1,630 @@
+Title: A Gauss-Newton Method with No Additional PDE Solves Beyond Gradient Evaluation for Large-Scale PDE-Constrained Inverse Problems
+
+URL Source: https://arxiv.org/pdf/2603.06899v1
+
+Published Time: Tue, 10 Mar 2026 00:20:01 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+# A Gauss–Newton Method with No Additional PDE Solves Beyond Gradient Evaluation for Large-Scale PDE-Constrained Inverse Problems 
+
+Cash Cherry · Samy Wu Fung · Luis Tenorio ·
+
+Ebru Bozda˘ gAbstract Partial Differential Equation (PDE)-constrained optimization problems of-ten take the form of an optimization of an objective function given as a sum of loss terms. Each function or gradient evaluation requires one or more PDE solves, which render these problems computationally demanding. While Gauss–Newton methods are well-suited for large-scale PDE-constrained optimization, their application to settings such as Full-Waveform Inversion (FWI) is hindered by the need for ad-ditional PDE solves to compute Jacobian–vector products. This paper proposes a Gauss–Newton approach that eliminates the need for extra PDE solves beyond those required for gradient computation. Our numerical experiments on FWI demonstrate that the proposed method achieves the efficiency of gradient-based schemes while retaining the fast convergence of Gauss–Newton methods. 
+
+Mathematics Subject Classification (2020) 65K10 · 86A15 · 86A22 
+
+1 Introduction 
+
+Large-scale Partial Differential Equation (PDE)-constrained optimization problems arise in a wide variety of scientific and engineering applications, including geophys-
+
+C. Cherry Department of Applied Mathematics & Statistics, Colorado School of Mines, Golden, CO E-mail: ccherry@mines.edu, now at the University of California Santa Barbara 
+
+S. Wu Fung Department of Applied Mathematics & Statistics, Colorado School of Mines, Golden, CO L. Tenorio Department of Applied Mathematics & Statistics, Colorado School of Mines, Golden, CO E. Bozda˘ gDepartments of Applied Mathematics & Statistics and Geophysics, Colorado School of Mines, Golden, CO  
+
+> arXiv:2603.06899v1 [math.OC] 6 Mar 2026 2Cash Cherry et al.
+
+ical inversions [38, 11], fluid dynamics [7, 18], medical imaging [24, 32], phase re-trieval [33, 26, 13], game theory [8, 6], and machine learning [19, 31, 39, 40]. In such problems, one seeks to optimize an objective functional subject to physical laws expressed as PDEs, which serve as equality constraints coupling the state and con-trol variables. These formulations are often computationally intensive because each evaluation of the objective function or its derivatives typically requires the solution of large-scale PDE systems. A common feature of these problems is an objective function F : Rp → R of the form min  
+
+> m
+
+F(m) with F(m) = N
+
+## ∑
+
+> i=1
+
+φi(m) + R(m), (1) where m ∈ Rp is a vector of the model parameters we wish to recover, each function 
+
+φi : Rp → R corresponds to a PDE-constrained subproblem associated with a partic-ular experiment or data sample, and R : Rp → R is a regularization term. This struc-ture naturally arises in inverse problems such as Full-Waveform Inversion (FWI), where recordings from each seismic measurement contribute an independent loss term [22, 2]. The same structure also arises in empirical risk minimization in ma-chine learning [1]. In large-scale settings, the computational cost of repeatedly solving PDEs until convergence of the model parameters prohibits explicit computations of the Jacobians or Hessians, which motivates the use of matrix-free optimization algorithms (i.e. no explicit computation of a Jacobian or Hessian). First-order methods, such as con-jugate gradient or limited-memory quasi-Newton methods, are often preferred due to their low per-iteration cost and scalability [25]. For problems where higher accu-racy is desired, Gauss–Newton (GN) methods, particularly in their conjugate gradi-ent (CG) variants, are frequently employed [15, 10, 12]. Matrix-free Gauss-Newton methods can achieve faster local convergence than first order methods without ex-plicitly forming or storing Jacobians [25]. Instead, they rely on matrix-free Jacobian– vector and vector–Jacobian products that can be computed at the cost of additional PDE solves to iteratively solve the linear Gauss-Newton system at each optimization iteration. However, a key drawback of Gauss–Newton–CG methods is their computational cost per GN iteration. Each GN iteration typically involves at least one inner CG iter-ation to solve a linear system, and every CG iteration requires at least one Jacobian– vector and one vector–Jacobian product, each corresponding to one or more addi-tional PDE solves. As a result, even though Gauss–Newton methods converge in fewer outer iterations than first-order schemes, their per-iteration cost may dominate the total runtime for large-scale PDE problems such as FWI. We propose a Gauss-Newton formulation whose updates do not require additional PDE solves beyond those already required for gradient computations. Our proposed method provides a compromise between first and second-order methods that retains the efficiency of gradient-based optimization while inheriting the fast local conver-gence properties of Gauss–Newton methods. We demonstrate the effectiveness of this approach on large-scale FWI problems, highlighting its computational advantages and scalability. Title Suppressed Due to Excessive Length 3
+
+2 Mathematical Background 
+
+We consider observations modeled as 
+
+di = Gi(m) + εi, i = 1, . . . , N,
+
+where Gi : Rp → Rn denotes a (nonlinear) forward operator that maps the model parameters m to predicted data space, and εi represents measurement error. In many applications (e.g., FWI, Direct Current Resistivity and medical imaging) it is common to have N ≪ p. The goal of the inverse problem is to recover the model parameters m
+
+that best explain the observed data di, i = 1, . . . , N, by solving a minimization problem similar to (1): min  
+
+> m
+
+F(m) with F(m) = Φ(m) + R(m), (2) where Φ is the sum of squared norms of residuals ri(m) ≡ Gi(m) − di, so that 
+
+Φ(m) = N
+
+## ∑
+
+> i=1
+
+φi(m) = 12
+
+> N
+
+## ∑
+
+> i=1
+
+∥ri(m)∥2,
+
+and R : Rp → R is a function used for regularization (e.g., Tikhonov [24], Total Vari-ation [30] or sparsity-promoting regularization [36]). For ease of presentation, we as-sume that R is twice continuously-differentiable, but the proposed methodology can also be applied when R is not differentiable, e.g., R(m) = ∥m∥1. Similarly, though we consider least squares misfits φi(m) = 12 ∥ri(m)∥2, our methodology may be applied to problems of the more general form in (1). To perform gradient-based optimization, one must first compute the gradient of the objective with respect to m, which takes the form 
+
+∇F(m) = N
+
+## ∑
+
+> i=1
+
+∇φi(m) + ∇R(m) = N
+
+## ∑
+
+> i=1
+
+Ji(m)⊤ri(m) + ∇R(m), (3) where Ji(m) ∈ Rn×p denotes the Jacobian matrix of Gi at m (sometimes called a 
+
+sensitivity matrix). Each gradient ∇φi typically requires one forward and one adjoint PDE solve. The prototypical first-order algorithm, gradient-descent (GD), has an up-date given by 
+
+mk+1 = mk + αk pGD  
+
+> k
+
+, with pGD  
+
+> k
+
+= −∇F(mk), (4) where the stepsize αk > 0 is usually chosen to either be constant or to satisfy a line-search condition [25]. The CG and LBFGS updates we use in our tests have similar updates, with the only difference being that pCG  
+
+> k
+
+and pLBFGS  
+
+> k
+
+are computed as func-tions of current and previous gradients and models to accelerate convergence. 4 Cash Cherry et al. 
+
+2.1 Gauss-Newton Method Gauss–Newton (GN) methods solve (2) through making iterative quadratic approx-imations of the objective function, each of which may be minimized by solving a linear system. At iteration k, the (standard) Gauss–Newton method constructs a lo-cal quadratic approximation centered at the current iterate mk using a Hessian ap-proximation that neglects second-order terms involving the residuals [25]. The GN approximation to the Hessian of F at the kth step is given by 
+
+HGN  
+
+> k
+
+= N
+
+## ∑
+
+> i=1
+
+Ji(mk)⊤Ji(mk) + ∇2R(mk), (5) where ∇2R is the Hessian of the regularizer. The first term approximates the Hessian of the data misfit Φ(m) by neglecting second-order derivative terms in the residuals, while the second term provides the exact Hessian contribution from regularization. The GN step pGN  
+
+> k
+
+based on the Hessian approximation (5) is defined as the solu-tion of the quadratic minimization problem 
+
+pGN  
+
+> k
+
+= argmin 
+
+> p
+
+(∇Φ(mk) + ∇R(mk)) ⊤ p + 12 p⊤HGN  
+
+> k
+
+p, (6) which has explicit solution 
+
+pGN  
+
+> k
+
+= −  HGN 
+
+> k
+
+−1 ∇F(mk). (7) The model parameters are then updated as mk+1 = mk + αk pGN  
+
+> k
+
+, where αk > 0 is again a step size parameter chosen using linesearch or trust region methods. In practice, matrix-free variants such as Gauss–Newton–CG are commonly em-ployed to avoid explicitly forming or inverting the Jacobian matrices [3, 15, 27]. These methods solve the linear system (7) iteratively using conjugate gradient iter-ations, requiring only matrix-vector products with HGN  
+
+> k
+
+. Although these approaches can be effective in many PDE-constrained optimization settings, they become compu-tationally burdensome in applications such as FWI. In such problems, each Jacobian– vector product Ji(mk)v or vector–Jacobian product Ji(mk)⊤w requires solving an ad-ditional sensitivity or adjoint PDE . Since multiple such products are required within every conjugate-gradient iteration, the cumulative cost of these PDE solves may dom-inate the overall runtime. This computational bottleneck motivates the development of Gauss–Newton methods that retain their favorable convergence properties while substantially reducing, or ideally eliminating, the need for additional PDE solves be-yond those required for gradient computation. 
+
+3 An Efficient Gradient-Only Gauss-Newton Method (GOGN) 
+
+To address the computational limitations of traditional Gauss-Newton methods dis-cussed in Section 2, we propose an efficient Gradient–Only Gauss–Newton (GOGN) approach that, in comparison to a Gauss-Newton CG approach, eliminates the need Title Suppressed Due to Excessive Length 5
+
+for PDE solves beyond those required to compute the gradient, so that it may be ap-plied with roughly the same computational expense as a first-order algorithm. The key insight is to reformulate the optimization problem in a way that allows us to construct the Gauss-Newton Hessian approximation using only the gradients already computed during each iteration. 3.1 Problem Reformulation We begin by reformulating the objective function (2). Rather than treating Φ as a direct sum of norm-squared residuals and using the Jacobian matrices of the operators 
+
+Gi, we focus on the norm of the residuals, and use their Jacobian matrices. This is the general approach considered in [25] for nonlinear least-squares with Gauss-Newton. Thus, we define 
+
+ρi(m) = p2φi(m) = ∥ri(m)∥, i = 1, . . . , N,
+
+so that φi(m) = ρi(m)2/2, and Φ is then rewritten as, 
+
+Φ(m) = N
+
+## ∑
+
+> i=1
+
+φi(m) = 12
+
+> N
+
+## ∑
+
+> i=1
+
+ρi(m)2 = 12 ∥ρ(m)∥2, (8) where ρ(m) = [ ρ1(m), ρ2(m), . . . , ρN (m)] ⊤ collects the residual norms across the N
+
+terms that we are already differentiating separately. The key advantage of this re-formulation is that we now view Φ as the objective functional of a nonlinear least-squares problem in terms of the vector-valued function ρ that maps from Rp to RN .This perspective enables us to apply Gauss-Newton methodology to (8) in a compu-tationally efficient manner. 3.2 Constructing the GOGN Jacobian from Available Gradients To apply the Gauss-Newton method to the reformulated problem (8), we require the Jacobian of ρ. The crucial observation is that this Jacobian can be constructed entirely from the gradients ∇φi, which are already available from the gradient computation in (3). Since ∇φi(m) = ρi(m)∇ρi(m), we have, 
+
+∇ρi(m) = ∇φi(m) 
+
+> ρi(m)
+
+= ∇φi(m) 
+
+> p2φi(m)
+
+. (9) The Jacobian of ρ at m is therefore given by 
+
+JGO (m) = [ ∇ρ1(m), ∇ρ2(m), . . . , ∇ρN (m)] ⊤
+
+=
+
+ ∇φ1(m) 
+
+> p2φ1(m)
+
+, ∇φ2(m) 
+
+> p2φ2(m)
+
+, . . . , ∇φN (m) 
+
+> p2φN(m)
+
+⊤
+
+∈ RN×p. (10) The advantage of this reformulation is that constructing JGO (m) requires only the gradients ∇φi(m) and the function values φi(m), both of which are already computed 6 Cash Cherry et al. 
+
+during the standard gradient evaluation step. No additional PDE solves are required to form this Jacobian ; in contrast to traditional Gauss-Newton methods where each Jacobian-vector product would necessitate solving sensitivity equations. 3.3 The Gradient-Only Gauss-Newton Update With the GOGN Jacobian at hand, we now derive the GOGN update-step. The Gauss-Newton approximation to the Hessian of F = Φ + R at step k is given by 
+
+HGO  
+
+> k
+
+= JGO (mk)⊤JGO (mk) + ∇2R(mk),
+
+where the first term approximates the Hessian of the data misfit Φ and the second term is the exact Hessian of the regularizer. At iteration k, the GOGN step pGO  
+
+> k
+
+solves the quadratic minimization problem 
+
+pGO  
+
+> k
+
+= argmin 
+
+> p
+
+(∇Φ(mk) + ∇R(mk)) ⊤ p + 12 p⊤HGO  
+
+> k
+
+p, (11) which yields the explicit update formula 
+
+pGO  
+
+> k
+
+= −  HGO 
+
+> k
+
+−1 ∇F(mk). (12) The model parameters are then updated as mk+1 = mk + αkpGO  
+
+> k
+
+, where αk > 0 is a step size determined by linesearch. Importantly, computing this update requires no additional PDE solves beyond those already performed for gradient evaluation, as the matrix JGO (mk) is constructed directly from available gradient information. The regularization term R(mk) plays a crucial role in ensuring that HGO  
+
+> k
+
+remains positive definite and invertible, which is essential for the method’s stability and convergence. 3.4 Convergence Analysis For completeness, we provide the convergence properties of the GOGN method un-der standard regularity conditions. The analysis is standard and relies on the well-posedness of the regularizer. 
+
+Theorem 1 Let C = {m | F(m) ≤ F(m0)} be the sublevel set defined by a starting point m0, and assume C is compact. Suppose F has Lipschitz-continuous gradients on an open set containing C , and the regularizer satisfies 
+
+μI ⪯ ∇2R(m) ⪯ MI (13) 
+
+for all m ∈ C with 0 < μ ≤ M < ∞. Consider the GOGN iterates, mk+1 = mk +
+
+αk pGO  
+
+> k
+
+, where pGO  
+
+> k
+
+is given by (12) , and αk is chosen to satisfy the Wolfe condi-tions [25]. Then 
+
+lim  
+
+> k→∞
+
+∥∇F(mk)∥ = 0. (14) Title Suppressed Due to Excessive Length 7
+
+Proof Since the gradients ∇φi, i = 1, . . . , N, are continuous on C , so is the GOGN Ja-cobian JGO defined in (10), which is therefore bounded on C . This implies in turn that for each m ∈ C , the matrix JGO (m)⊤JGO (m) is positive semi-definite with bounded eigenvalues λi(m): 0 ≤ λi(m) ≤ MJ , where 
+
+MJ = max  
+
+> m∈C
+
+∥ JGO (m)⊤JGO (m) ∥2 < ∞
+
+Using the spectral bounds on ∇2R(m) from (13), we obtain a bounded spectrum for the regularized GOGN Hessian: 
+
+μI ⪯ HGO  
+
+> m
+
+= JGO (m)⊤JGO (m) + ∇2R(m) ⪯ (M + MJ )I (15) for all m ∈ C . Since HGO  
+
+> m
+
+is positive definite with μ > 0, it is invertible with   
+
+> 1
+> M+MJ
+
+I ⪯  HGO 
+
+> m
+
+−1 ⪯ 1 
+
+> μ
+
+I. (16) In addition, for any m ∈ C with ∇F(m)̸ = 0, we have 
+
+∇F(m)⊤pGO = −∇F(m)⊤  HGO 
+
+> m
+
+−1 ∇F(m) ≤ − 1  
+
+> M+MJ
+
+∥∇F(m)∥2 < 0. (17) This shows that pGO  
+
+> k
+
+is a descent direction at every iteration. Since αk satisfies the Wolfe conditions, we have F(mk+1) < F(mk), which implies that all iterates remain in the sublevel set C . To prove the convergence of the gradients, note that by the Wolfe conditions and the descent property, Zoutendijk’s theorem [25, Theorem 3.2] guarantees ∞
+
+## ∑
+
+> k=0
+
+cos 2(θk)∥∇F(mk)∥2 < ∞, (18) where θk ∈ (0, π) is the angle between the steepest descent direction −∇F(mk) and the search direction pGO  
+
+> k
+
+. This implies cos 2(θk)∥∇F(mk)∥2 → 0, and convergence of the gradients follows once we show that cos (θk) is uniformly bounded away from zero. By definition, cos (θk) = −∇F(mk)⊤pGO   
+
+> k
+> ∥pGO
+> k∥ ∥ ∇F(mk)∥
+
+= ∇F(mk)⊤  HGO     
+
+> k
+> −1∇F(mk)
+> ∥ HGO
+> k
+> −1∇F(mk)∥ ∥ ∇F(mk)∥
+
+. (19) Using the Cauchy-Schwarz inequality and the spectral bounds on  HGO 
+
+> mk
+
+−1, we ob-tain cos (θk) ≥   
+
+> 1
+> M+MJ
+> ∥∇F(mk)∥2
+> 1
+> μ∥∇F(mk)∥2
+
+= μ  
+
+> M+MJ
+
+> 0, k ∈ Z+ (20) Since cos (θk) ≥ μ/(M + MJ ) > 0 for all k, we have cos 2(θk) ≥
+
+ μ  
+
+> M+MJ
+
+2
+
+> 0, which combined with Zoutendijk’s condition implies ∥∇F(mk)∥ → 0. ⊓⊔
+
+This theorem guarantees global convergence of GOGN to a stationary point under mild regularity conditions. The lower bound μ > 0 on the regularizer Hessian ensures that the approximate Hessian HGO  
+
+> k
+
+remains uniformly positive definite, which is crit-ical for both the descent property and the uniform bound on the cosine of the search angle. 8 Cash Cherry et al. 
+
+3.5 Summary and Computational Discussion The proposed GOGN method achieves computational efficiency through a system-atic reformulation of the optimization problem. By viewing the objective as a least-squares problem in terms of per-source residual norms, we enable the construction of a Jacobian JGO directly from the gradients ∇φi already computed during standard gra-dient evaluation. This eliminates the need for additional PDE solves that would other-wise be required for traditional Jacobian-vector products in Gauss-Newton methods. The resulting GOGN update can be computed efficiently, particularly when N ≪ p as is typical in large-scale inverse problems. This approach provides a favorable com-promise between first-order and traditional second-order methods. In particular, it empirically exhibits the fast local convergence properties characteristic of Gauss-Newton methods while maintaining a per-iteration computational cost comparable to that of gradient-based methods. Importantly, the GOGN reformulation can be ap-plied to general misfit functions φi which are not sums of squares , as long as we have access to the gradients ∇φi, making it applicable in more cases than traditional Gauss-Newton methods. As long as the data misfit Φ is a sum of differentiable functions φi,
+
+the GOGN approach can rewrite Φ as a sum of squares and exploit this structure using only the gradients ∇φi.
+
+We also note that in all our numerical experiments we use in the regularization function R(m) = 12 ∥D(m−m0)∥2 a discretization D of νI−∆, where ∆ is the Laplace operator (known to be negative semi-definite), and ν > 0 controls the length scale of heterogeneity promoted by the regularizer. The choice to use an operator of this form is a common smoothness regularizer in FWI [4, 37]. Furthermore, our choice of regularization operator has an invertible Hessian D⊤D and thus fits within the theoretical assumptions in (13) (as opposed to the more standard choice to use a discretization of ∆, which leads to a singular Hessian). 
+
+4 Related Work 
+
+The work most closely related to ours is the source-subspace method of [34], which projects the data of a nonlinear least-squares problem onto a low-dimensional sub-space. Our approach extends this framework in two key directions. First, our method applies to general sums of misfit functions of the form (1), whereas the source-subspace method is restricted to nonlinear least-squares formulations. Second, our formulation accommodates a broader class of regularization strategies, rather than being tied to the structure inherent in least-squares problems. The source-subspace strategy has demonstrated strong empirical success in large-scale seismic imaging, including regional-scale full waveform inversion (FWI) of the Southern Californian crust by [35], which shows its effectiveness in regimes where the number of data samples satisfies N ≪ p.More broadly, our work can be viewed as a subspace-method approach for large-scale inverse problems. Subspace methods mitigate the computational burden of form-ing or inverting full Hessian matrices by restricting optimization updates to carefully constructed low-dimensional subspaces. For example, Kennett and Williamson [17] Title Suppressed Due to Excessive Length 9
+
+proposed projecting the Newton Hessian onto subspaces in model space, with basis vectors chosen to capture dominant features of the inverse problem. These ideas were later extended to multi-parameter joint inversion settings [16]. Multilevel finite ele-ment and finite volume strategies for direct current resistivity inversion [11] can also be interpreted within this broader subspace-reduction paradigm. The Newton–CG method, which has been widely used in PDE-constrained opti-mization [15, 27, 20, 9, 5, 21], can similarly be viewed as implicitly projecting the Hessian onto a Krylov subspace. In practice, constructing and exploring such sub-spaces requires repeated Jacobian–vector and vector–Jacobian products, each corre-sponding to additional PDE solves. Although conjugate gradient is more economical than explicitly forming and projecting the Hessian, as in [17], the total cost still scales with the dimension of the Krylov subspace. More recently, randomized sketching techniques have been proposed to construct low-rank Hessian approximations [14], providing an alternative mechanism for di-mensionality reduction. However, these model-space projection approaches gener-ally require a number of additional PDE solves that grows linearly with the subspace dimension. In contrast, our data-space projection method does not require any addi-tional PDE solves beyond those already needed for gradient computation, yielding a fundamentally different and more economical scaling behavior. 
+
+5 Numerical Experiments 
+
+We demonstrate the effectiveness of GOGN on FWI examples. Our experiments are run using Deepwave [28] on a 2021 MacBook Pro with an Apple M1 Pro Chip and 16 GB of RAM. 5.1 Experimental Setup We consider an acoustic FWI problem associated with a 2D scalar wave equation 
+
+∆ui − 1  
+
+> c2
+> ∂2
+> ∂t2
+
+ui = fi, i = 1, . . . , N, (21) on the square domain Ω = [ 0km , 480km ]2 with PML (Perfectly Matched Layer) absorbing boundary conditions. Here, ui is the ith state variable (or wavefield), c
+
+is the inhomogeneous wave speed parameter (to be reconstructed), and fi(x,t) = 
+
+s(t)δ (x − xs 
+
+> i
+
+) is the ith source-term, where the source-time function s(t) is a Ricker wavelet with a frequency of .1Hz, δ is the 2-dimensional Dirac delta distribution, and 
+
+xs 
+
+> i
+
+is the location of the ith source. To compute the wave-equation solutions, we use the finite-difference scheme im-plemented in the package Deepwave [28], which approximately solves (21) in rect-angular domains. Considering perturbations of the inhomogeneous P-wave speed c
+
+from a reference speed c0 = 3000 m/s, we discretize the dimensionless parameter 
+
+δ c/c0 onto a 200 × 200 grid, and represent it by a model parameter vector m ∈ Rp,
+
+with p = 40 , 000 . We record the output at 200 time steps with ∆t = 1s, though it 10 Cash Cherry et al. 
+
+should be noted that this is not necessarily the time step of the numerical solver, as Deepwave will take finer time steps when necessary to satisfy the CFL condition [28]. We consider wave speed perturbations of up to 5% , which gives a minimum speed of 2850 m/s and a minimum of at least 11 cells per wavelength, thus we can expect our simulations to remain numerically stable. The mapping from a proposed model parameter vector to (preprocessed) synthetic seismograms at observed times 0 , ∆t, . . . , (nt − 1)∆t, for the ith event defines the ith parameter-to-observable mapping Gi : Rp → Rn. We can thus write di = Gi(m) + εi,
+
+where εi is the previously mentioned observational noise. For the purpose of these examples, we generate this observational noise as follows: Letting F and F −1 denote the FFT and its inverse applied over time, and letting zi ∼ Nn(0, I) be a standard Gaussian vector, we set 
+
+εi = σ Re (F−1(zi ⊙ F(Gi(m)))) ,
+
+where σ > 0 is the noise level, and ⊙ is the Hadamard product. This ensures that the noise concentrates on the same frequency bands as our observations, so that we avoid a total inverse crime; however, it should be noted that we generate the data for these inversions using the same computational grid, when it would be more appropriate to use a different computational grid to generate data that we use to invert it. We also employ a receiver-weighting approach common in the FWI community [29], which for brevity we leave in Appendix A.1. We regularize our problem using a smoothing Tikhonov-based regularizer of the form 
+
+R(m) = 12 ∥D(m − m0)∥2, (22) where D is a finite difference discretization of the smoothing operator λ (νI −∆ ). The effect of this regularization is a balance of smoothing and limiting the perturbation distance from m0, and has been useful in FWI [4, 37]. Furthermore, this regularizer has an invertible Hessian D⊤D whose inverse may be used as smoothing operator, enabling it to both fit into our framework and also to be utilized in standard practice FWI methodology, which applies such a smoothing operator to updates as a form of regularization [22]. Finally, we test our algorithms on the reconstruction of a low velocity anomaly shaped like a smiley face under two source configurations. Sources and receivers sampled from a uniform distribution give an ideal configuration (as they lead to more accurate recoveries of the target model); however, source-receiver configurations for real-world regional and global scale seismic imaging are constrained by the distri-bution of receivers, which is subject to geographic and budgetary constraints, and the distribution of earthquakes along fault lines. For this reason, we also consider a realistic source coverage that mimics this by including a region with a high density of receivers, similar to the west coast of the US, and a region with a low density of receivers, similar to the Pacific Ocean. To test the effect of a increased number of sources, we have also tried adding more sources to these configurations by randomly perturbing the source locations to obtain two more configurations with additional sources. All configurations are shown in Figure 1, along with the target model. Title Suppressed Due to Excessive Length 11       
+
+> Fig. 1 Our four source-receiver configurations displayed over the speed perturbation δc/c0for our target model - on the top left, we sample 8 sources and 300 receivers from a uniform distribution over the square
+> [100km ,400km ]2,and on the top right, we transform 5 source and 181 receiver locations from around the Pacific ocean to be contained in our domain, and configurations in the bottom row comprising versions of the top row with additional sources added (so that each has 25 sources)
+
+5.2 Algorithmic Setup We compare the performance of the current “best practice” optimization algorithms for FWI, including Nonlinear Conjugate Gradient (NLCG) and limited-memory BFGS (LBFGS) [22], with GOGN and the Gauss-Newton-CG method developed in [9] (GNCG). As our work is mainly measured in terms of number of PDE-solves (for-ward and adjoint), we stop our optimizations at the first iteration exceeding the com-putational cost of 100 PDE solves. For each iteration we set a maximum of 10 lin-search iterations. We start with a maximum step size of 1 for GNCG, and .05 /∥pk∥∞
+
+for other algorithms to keep the maximum magnitude of perturbations introduced in each iteration at or below 5%. For up to 5 subsequent step lengths, we use quadratic interpolation based on the directional derivative and objective value at the current it-erate, as well as the objective value at the last attempted step length. If this does not work we switch to Armijo backtracking. We accept the first step length that decreases the objective. For each algorithm, we employ the preconditioning (or regularization) strategies that yield the best performance in our experiments (and that have been found success-ful in the literature). For NLCG and LBFGS, it is common to incorporate a diagonal preconditioner approximating the diagonals of the Hessian at the initial iterate m0,where we consider a diagonal approximation to the data-misfit Hessian of the form 
+
+Hdiag 0 = diag (∇2Φ(m0)1), where 1 is a vector of ones (with safeguard to avoid neg-ative values), and precondition our NLCG iterates with the Hessian approximation 
+
+Hdiag 0 + D⊤D. This is similar to the smoothing considered in [37], which was found successful for FWI, and will apply more smoothing in regions with less data cover-12 Cash Cherry et al. Uniform Coverage, σ = 0.1        
+
+> Realistic Coverage, σ=0.1
+> Fig. 2 Convergence plots for uniformly distributed receiver coverage (top row) and realistic coverage (bottom row) for nonlinear conjugate gradient (NLCG), limited-memory BFGS (LBFGS), gradient-only Gauss-Newton (GOGN) and Gauss-Newton CG (GNCG), with X-axes across all images denoting number of PDE solves during optimization, and Y-axes denoting model error (left), gradient norm (middle), and objective function values (right) for 8 and 5 sources, respectively, at a noise level of σ=0.1
+> Fig. 3 Model reconstructions for noise level 0 .1 based on the experiments in Figure 2
+
+age (similar to the smoothing strategy used in [2]), while at the same time correcting for imbalanced data coverage. Thus, in one step, the effect is similar to the separate application of preconditioning and smoothing developed in [22]. For LBFGS, we use the same Hessian approximation used in NLCG to initial-ize our inverse Hessian approximation, but must subsequently apply smoothing with the operator (D⊤D)−1, following usual practice in FWI. Note we can compute a factorization of D in advance in order to apply the smoothing operator efficiently. As the GOGN update is given by the solution to (JGO ⊤JGO + D⊤D)pk = ∇F(mk),
+
+it is already smooth, and thus does not require any preconditioning or additional smoothing– it is worth mentioning that we solve the this system with the formula 
+
+pk = ( D⊤D)−1JGO ⊤(I + JGO (D⊤D)−1JGO ⊤)−1(JGO (mk − m0) − ρk) − (mk − m0),Title Suppressed Due to Excessive Length 13 Uniform Coverage, σ = 0.1        
+
+> Realistic Coverage, σ=0.1
+> Fig. 4 Convergence plots for uniformly distributed receiver coverage (top row) and realistic coverage (bottom row), with X-axes across all images denoting number of PDE solves during optimization, and Y-axes denoting model error (left), gradient norm (middle), and objective function values (right) for 25 sources at a noise level of σ=0.1
+> Fig. 5 Final reconstructions from the experiments in Fig. 4
+
+which requires the computation of (D⊤D)−1JGO ⊤ using N products with (D⊤D)−1
+
+and the inversion of an N × N matrix I + JGO (D⊤D)−1JGO ⊤. For GNCG, we use the strategy developed by [9], which uses a history of products with previous iterations’ Gauss-Newton Hessians to form a quasi-Newton preconditioner [23]. We initialize this preconditioner with 300 Richardson iterations applied to Hdiag 0 + D⊤D, as it is required that the preconditioner used for the CG solution be a linear operator (as opposed to initializing with CG iterations, which converge faster than Richardson iterations but act as a nonlinear operator, and thus can not be used). 14 Cash Cherry et al. 
+
+5.3 Results and Discussion In Figure 2, we show convergence plots for model error ∥mtrue − mk∥ (left column), gradient norm (middle column), and objective function values (right column). These are shown for uniform receiver coverage with 8 sources (top row) and realistic re-ceiver coverage with 5 sources (bottom row), and are all run with noise level σ = 0.1. To make a fair comparison, we plot these results over the number of PDE solves in the x-axis, which is the primary computational budget in large-scale PDE constrained optimization problems. In this plots, we observe that GOGN outperforms all other methods when using realistic receiver coverage but remains competitive for the uni-formly distributed receiver coverage. The corresponding reconstructions are shown in Figure 3. Similar results are shown in the case of 25 sources as shown in Figure 4 for convergence and Figure 5. Additional experiments for different noise levels are provided in Appendix A.2. These results indicate that GOGN is a competitive algorithm, offering improved efficiency in terms of PDE solves. While its performance is comparable to existing methods under uniformly distributed receiver coverage, GOGN appears particularly promising for more realistic receiver configurations. The mechanisms underlying this behavior are not yet fully understood, but we suspect that this is connected to greater ill-conditioning of the matrix I + JGO (D⊤D)−1JGO ⊤, which corresponds with a more difficult optimization landscape whose ill-conditioning is likely better captured by the GOGN Hessian than by CG or LBFGS. Because GOGN requires fewer PDE solves to achieve meaningful model im-provements, a natural strategy is to employ GOGN during the early stages of inver-sion to take advantage of its rapid initial convergence, and then transition to CG or GNCG for a small number of final iterations (potentially only one iteration of GNCG) to refine the inversion result, exploiting their superior long-term convergence prop-erties. We expect this strategy may be especially useful when the source–receiver geometry is more favorable. This strategy is motivated by the observation that the ef-fectiveness of the GOGN update depends on the rank and conditioning of the matrix ˜J. When ˜ J is severely rank-deficient, the amount of informative curvature captured by GOGN is limited; in the extreme case where ˜ J has rank one, the method effectively reduces to standard gradient descent. It is also worth considering the comparison with LBFGS. Unlike GOGN, LBFGS does not require the solution of an N × N system to compute an update, but instead directly computes an update using dot products with vectors based on the update his-tory of the optimization. Furthermore for LBFGS, only one vector, the model update, must be smoothed by the application of D⊤D, instead of the N separate gradients which must be smoothed to apply GOGN. However, in taking on these small ad-ditional costs to implement GOGN instead of LBFGS, we achieve better iterations early in the optimization, and a reconstruction that is more robust to observational noise. The former benefit is easily explained- LBFGS requires an update history to build its best approximation to the inverse Hessian, while GOGN approximates the Hessian using only information from the current iteration. In this sense, GOGN has a “head-start” in comparison with LBFGS. The latter observation is more difficult Title Suppressed Due to Excessive Length 15 
+
+to explain, and further research is required to see if this robustness to observational noise is problem or implementation-dependent. 
+
+6 Conclusion 
+
+We proposed GOGN, a computationally efficient Gauss–Newton–type method for large-scale, regularized PDE-constrained optimization. By rewriting a sum of objec-tives as a sum of squares, we obtain a structured approximation to the Hessian that can be assembled from gradients of the individual objectives. When these objectives correspond to distinct physical states, this approximation incurs no additional PDE solves beyond those required to compute the gradient of the full objective. Through numerical experiments in full-waveform inversion, we have shown that GOGN is a competitive optimization method, particularly in terms of efficiency mea-sured by PDE solves. While its performance is comparable to standard approaches such as CG and GNCG under idealized, uniformly distributed receiver coverage, GOGN shows particular promise for more realistic receiver coverage used in regional and global scale FWI. The effectiveness of GOGN is influenced by the rank and con-ditioning of the approximate Jacobian matrix, which governs how much curvature in-formation can be captured. In regimes where this matrix is severely rank-deficient, the method naturally degenerates toward gradient descent, limiting the attainable model improvement. These observations suggest a practical hybrid strategy in which GOGN is used during the early stages of inversion to exploit its rapid initial convergence, followed by a transition to CG or GNCG to leverage their superior long-term convergence properties when the source–receiver configuration is more favorable. Understanding the precise relationship between acquisition geometry, the structure of approximate Jacobian matrix, and the performance of GOGN remains an important direction for future work. 
+
+Acknowledgments 
+
+This study is supported by the National Science Foundation projects with grant num-bers EAR-1945565 and OAC-2103621. 
+
+References 
+
+1. Bottou, L., Curtis, F.E., Nocedal, J.: Optimization methods for large-scale ma-chine learning. SIAM review 60 (2), 223–311 (2018) 2. Bozda˘ g, E., Peter, D., Lefebvre, M., Komatitsch, D., Tromp, J., Hill, J., Pod-horszki, N., Pugmire, D.: Global adjoint tomography: first-generation model. Geophysical Journal International 207 (3), 1739–1766 (2016). DOI 10.1093/gji/ ggw356 16 Cash Cherry et al. 
+
+3. Bui-Thanh, T., Ghattas, O., Martin, J., Stadler, G.: A computational framework for infinite-dimensional bayesian inverse problems part i: The linearized case, with application to global seismic inversion. SIAM Journal on Scientific Com-puting 35 (6), A2494–A2523 (2013) 4. Bui-Thanh, T., Ghattas, O., Martin, J., Stadler, G.: A computational framework for infinite-dimensional bayesian inverse problems part i: The linearized case, with application to global seismic inversion. SIAM J. Sci. Comput. 35 (6), A2494–A2523 (2013). DOI 10.1137/12089586X 5. Castellanos, C., M´ etivier, L., Operto, S., Brossier, R., Virieux, J.: Fast full wave-form inversion with source encoding and second-order optimization methods. Geophys. J. Int. 200 (2), 720–744 (2015). DOI 10.1093/gji/ggu427 6. Chow, Y.T., Fung, S.W., Liu, S., Nurbekyan, L., Osher, S.: A numerical algorithm for inverse problem from partial boundary measurement arising from mean field game problem. Inverse Problems 39 (1), 014001 (2022) 7. Cotter, S.L., Dashti, M., Robinson, J.C., Stuart, A.M.: Bayesian inverse prob-lems for functions and applications to fluid mechanics. Inverse problems 25 (11), 115008 (2009) 8. Ding, L., Li, W., Osher, S., Yin, W.: A mean field game inverse problem. Journal of Scientific Computing 92 (1), 7 (2022) 9. Epanomeritakis, I., Akc ¸elik, V., Ghattas, O., Bielak, J.: A newton-cg method for large-scale three-dimensional elastic full-waveform seismic inversion. Inverse Problems 24 (3), 034015 (2008). DOI 10.1088/0266-5611/24/3/034015 10. Fung, S.W.: Large-scale parameter estimation in geophysics and machine learn-ing. Ph.D. thesis, Emory University (2019) 11. Fung, S.W., Ruthotto, L.: A multiscale method for model order reduction in pde parameter estimation. Journal of Computational and Applied Mathematics 350 ,19–34 (2019) 12. Fung, S.W., Ruthotto, L.: An uncertainty-weighted asynchronous admm method for parallel pde parameter estimation. SIAM Journal on Scientific Computing 
+
+41 (5), S129–S148 (2019) 13. Fung, S.W., Wendy, Z.: Multigrid optimization for large-scale ptychographic phase retrieval. SIAM Journal on Imaging Sciences 13 (1), 214–233 (2020) 14. Gower, R., Kovalev, D., Lieder, F., Richt´ arik, P.: Rsn: randomized subspace new-ton. Advances in Neural Information Processing Systems 32 (2019) 15. Haber, E.: Computational methods in geophysical electromagnetics. SIAM (2014) 16. Kennett, B., Sambridge, M., Williamson, P.: Subspace methods for large inverse problems with multiple parameter classes. Geophysical Journal International 
+
+94 (2), 237–247 (1988). DOI 10.1111/j.1365-246X.1988.tb05898.x 17. Kennett, B., Williamson, P.: Subspace methods for large-scale nonlinear inver-sion, pp. 139–154. Springer Netherlands, Dordrecht (1988). DOI 10.1007/ 978-94-009-2857-2 \ 718. Lesnic, D.: Inverse problems with applications in science and engineering. Chap-man and Hall/CRC (2021) 19. Liu, S., Kabanikhin, S., Strijhak, S., Wang, Y.A., Zhang, Y.: Revisiting linear machine learning through the perspective of inverse problems. Journal of Inverse Title Suppressed Due to Excessive Length 17 
+
+and Ill-posed Problems 33 (2), 281–303 (2025) 20. Mang, A., Ruthotto, L.: A lagrangian gauss–newton–krylov solver for mass-and intensity-preserving diffeomorphic image registration. SIAM Journal on Scien-tific Computing 39 (5), B860–B885 (2017) 21. M´ etivier, L., Brossier, R., Operto, S., Virieux, J.: Full waveform inversion and the truncated newton method. SIAM Review 59 (1), 153–195 (2017). DOI 10.1137/16M1093239 22. Modrak, R., Tromp, J.: Seismic waveform inversion best practices: regional, global and exploration test cases. Geophysical Journal International 206 (3), 1864–1889 (2016). DOI 10.1093/gji/ggw202 23. Morales, J.L., Nocedal, J.: Automatic preconditioning by limited memory quasi-newton updating. SIAM Journal on Optimization 10 (4), 1079–1096 (2000). DOI 10.1137/S1052623497327854. URL https://doi.org/10. 1137/S1052623497327854 
+
+24. Mueller, J.L., Siltanen, S.: Linear and nonlinear inverse problems with practical applications. SIAM (2012) 25. Nocedal, J., Wright, S.: Numerical Optimization, 2 edn. Springer Series in Op-erations Research and Financial Engineering. Springer, New York, NY (2006). DOI 10.1007/978-0-387-40065-5 26. Parada, R., Fung, S.W., Osher, S.: Fast partial fourier transforms for large-scale ptychography. Inverse Problems and Imaging pp. 0–0 (2025) 27. Petra, N., Martin, J., Stadler, G., Ghattas, O.: A computational framework for infinite-dimensional bayesian inverse problems, part ii: Stochastic newton mcmc with application to ice sheet flow inverse problems. SIAM Journal on Scientific Computing 36 (4), A1525–A1555 (2014) 28. Richardson, A.: Deepwave (2023). DOI 10.5281/zenodo.8381177 29. Ruan, Y., Lei, W., Modrak, R., ¨ Orsvuran, R., Bozda˘ g, E., Tromp, J.: Balancing unevenly distributed data in seismic tomography: a global adjoint tomography example. Geophysical Journal International 219 (2), 1225–1236 (2019). DOI 10.1093/gji/ggz356. URL http://dx.doi.org/10.1093/gji/ggz356 
+
+30. Rudin, L.I., Osher, S., Fatemi, E.: Nonlinear total variation based noise removal algorithms. Physica D: nonlinear phenomena 60 (1-4), 259–268 (1992) 31. Ruthotto, L., Haber, E.: Deep neural networks motivated by partial differential equations. Journal of Mathematical Imaging and Vision 62 (3), 352–364 (2020) 32. Ruthotto, L., Kugel, H., Olesch, J., Fischer, B., Modersitzki, J., Burger, M., Wolters, C.: Diffeomorphic susceptibility artifact correction of diffusion-weighted magnetic resonance images. Physics in Medicine & Biology 57 (18), 5715 (2012) 33. Shechtman, Y., Eldar, Y.C., Cohen, O., Chapman, H.N., Miao, J., Segev, M.: Phase retrieval with application to optical imaging: a contemporary overview. IEEE signal processing magazine 32 (3), 87–109 (2015) 34. Tape, C.: Seismic tomography of southern california using adjoint meth-ods. Phd thesis, California Institute of Technology (2009). DOI 10. 7907/B9KK-S206. URL https://resolver.caltech.edu/CaltechETD: etd-05062009-183823 18 Cash Cherry et al. 
+
+35. Tape, C., Liu, Q., Maggi, A., Tromp, J.: Seismic tomography of the southern california crust based on spectral-element and adjoint methods. Geophysical Journal International 180 (1), 433–462 (2010) 36. Tibshirani, R.: Regression shrinkage and selection via the lasso. Journal of the Royal Statistical Society Series B: Statistical Methodology 58 (1), 267–288 (1996) 37. Trinh, P., Brossier, R., M´ etivier, L., Virieux, J., Wellington, P.: Bessel smoothing filter for spectral-element mesh. Geophysical Journal International 209 (3), 1489– 1512 (2017). DOI 10.1093/gji/ggx103 38. Tromp, J., Tape, C., Liu, Q.: Seismic tomography, adjoint methods, time reversal and banana-doughnut kernels. Geophysical Journal International 160 (1), 195– 216 (2005). DOI 10.1111/j.1365-246X.2004.02453.x 39. Wu Fung, S., Tyrv¨ ainen, S., Ruthotto, L., Haber, E.: Admm-softmax: an admm approach for multinomial logistic regression. ETNA-Electronic Transactions on Numerical Analysis 52 (2020) 40. YE, J., WAN, C., FUNG, S.W.: Adaptive uncertainty-weighted admm for dis-tributed optimization. J. Appl. Numer. Optim 4(2), 273–290 (2022) 
+
+A Appendix 
+
+A.1 Additional Experimental Details 
+
+We employ a receiver-weighting approach [29], where the observations are weighted based on source-receiver geometry. Rewriting the unweighted data misfit Φ(m) = 12 ∥ri(m)∥2 as a sum over misfits of individual seismograms 
+
+Φ(m) = 12
+
+> N
+
+∑
+
+> i=1
+> nr
+
+∑
+
+> j=1
+
+∥si j (m) − sobs  
+
+> i j
+
+∥2,
+
+where N is the number of sources, nr is the number of receivers, sobs  
+
+> i j
+
+is the recorded seismogram for this source-receiver pair, and si j (m) is the corresponding simulated seismogram, we can consider a weighted data misfit 
+
+Φ(m) = 12
+
+> N
+
+∑
+
+> i=1
+> nr
+
+∑
+
+> j=1
+
+w2 
+
+> i j
+
+∥si j (m) − sobs  
+
+> i j
+
+∥2.
+
+In particular, the observation associated with the ith source and jth receiver is weighted by the factor 
+
+wi j = 1     
+
+> ∥sobs
+> i j ∥
+> q
+> n−1
+> r∑nr
+> ℓ=1k(∥xri−xr
+> ℓ∥)
+
+,
+
+where xri is the ith receiver location, and k is a Gaussian function 
+
+k(r) = 1
+
+> (2π)1/2σk
+
+e−r2/2σ 2 
+
+> k
+
+,
+
+with chosen value σk = 100. Dividing by the norm of the observed waveform ∥sobs  
+
+> i j
+
+∥ adjusts for the decay of amplitudes as waveforms travel away from the source, while dividing by the factor 
+
+q
+
+n−1 
+
+> r
+
+∑nr 
+
+> ℓ=1
+
+k(∥xri − xr
+
+> ℓ
+
+∥)
+
+adjusts for receiver density. Without the former weighting factor then, measurements with short distances from the source to receiver are weighted more heavily in the gradient, and without the latter, stronger updates will be made in regions with more receivers, leading to spatially imbalanced updates. Title Suppressed Due to Excessive Length 19 
+
+A.2 Additional Experiments 
+
+We summarize the results of a few additional experiments to show the impact of changing the noise level. We consider the same four source-receiver configurations as in Figure 1, which showcase realistic and uniformly distributed coverage with different numbers of sources. In addition to the noise level σ = 0.1consider in previously, we consider the two more noise levels σ = 0.01 and σ = 1.0, and compare the performance of each algorithm. (Relative) optimization statistics as a function of the number of PDE solves are displayed in Figures 6, 8, 10, and 12, while the final reconstructions are displayed in Figures 7, 9, 11, and 13. The general trend in these experiments is that, for the low noise level σ = 0.01, a similar reconstruction is reached by each algorithm, with GOGN outperforming or matching the performance of other algorithms after a small number of simulations in terms of model error and objective function value. These advantages are clear with realistic data coverage, but more subtle with uniform coverage. When the noise level is increased to σ = 1.0, GOGN’s advantages at optimizing the objective function disappear, however, it still generally outperforms other algorithms in terms of model error, and it can be visually confirmed that the reproductions are less corrupted by the noise. This evidence suggests that GOGN is more robust to the difficulties of realistic source-receiver configurations and observational error than CG, LBFGS, and GN-CG. 20 Cash Cherry et al. Uniform Coverage, σ = 0.01 
+
+Realistic Coverage, σ = 0.01 
+
+Fig. 6 Convergence plots for uniformly distributed receiver coverage (top row) and realistic coverage (bottom row), with X-axes across all images denoting number of PDE solves during optimization and Y-axes denoting model error (left), gradient norm (middle), and objective function values (right) for 8 and 5 sources, respectively, at a noise level of σ = 0.01 
+
+Fig. 7 Final reconstructions from the experiments in Figure 6 Title Suppressed Due to Excessive Length 21 Uniform Coverage, σ = 0.01 
+
+Realistic Coverage, σ = 0.01 
+
+Fig. 8 Convergence plots for uniformly distributed receiver coverage (top row) and realistic coverage (bottom row), with X-axes across all images denoting number of PDE solves during optimization, and Y-axes denote model error (left), gradient norm (middle), and objective function values (right) for 25 sources at a noise level of σ = 0.01 
+
+Fig. 9 Final reconstructions from the experiments in Figure 8 22 Cash Cherry et al. Uniform Coverage, σ = 1.0
+
+Realistic Coverage, σ = 1.0
+
+Fig. 10 Convergence plots for uniformly distributed receiver coverage (top row) and realistic coverage (bottom row). X-axes across all images denotes number of PDE solves during optimization. Y-axes denote model error (left), gradient norm (middle), and objective function values (right) for 8 and 5 sources, re-spectively, at a noise level of σ = 1.0
+
+Fig. 11 Final reconstructions from the experiments in Figure 10 Title Suppressed Due to Excessive Length 23 Uniform Coverage, σ = 1.0
+
+Realistic Coverage, σ = 1.0
+
+Fig. 12 Convergence plots for uniformly distributed receiver coverage (top row) and realistic coverage (bottom row), with X-axes across all images denoting number of PDE solves during optimization, and Y-axes denoting model error (left), gradient norm (middle), and objective function values (right) for 25 sources at a noise level of σ = 1.0
+
+Fig. 13 Final reconstructions from the experiments in Figure 12
