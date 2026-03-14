@@ -1,0 +1,2992 @@
+Title: HTMuon: Improving Muon via Heavy-Tailed Spectral Correction
+
+URL Source: https://arxiv.org/pdf/2603.10067v1
+
+Published Time: Thu, 12 Mar 2026 00:05:59 GMT
+
+Number of Pages: 37
+
+Markdown Content:
+# HTMuon: Improving Muon via Heavy-Tailed Spectral Correction 
+
+## Tianyu Pang ∗1, Yujie Fang ∗2, Zihang Liu 3,4 , Shenyang Deng 1, Lei Hsiung 1,Shuhua Yu 5, Yaoqing Yang 11Dartmouth College 
+
+> 2
+
+## Microsoft 
+
+> 3
+
+## International Computer Science Institute 
+
+> 4
+
+## University of California, Berkeley 
+
+> 5
+
+## Meta 
+
+Abstract 
+
+Muon has recently shown promising results in LLM training. In this work, we study how to further improve Muon . We argue that Muon ’s orthogonalized update rule suppresses the emergence of heavy-tailed weight spectra and over-emphasizes the training along noise-dominated directions. Motivated by the Heavy-Tailed Self-Regularization (HT-SR) theory, we propose HTMuon . HTMuon preserves Muon ’s ability to capture parameter interdependencies while producing heavier-tailed updates and inducing heavier-tailed weight spectra. Experiments on LLM pretraining and image classification show that HTMuon consistently improves performance over state-of-the-art baselines and can also serve as a plug-in on top of existing 
+
+Muon variants. For example, on LLaMA pretraining on the C4 dataset, HTMuon reduces perplexity by up to 0 .98 compared to Muon . We further theoretically show that HTMuon corresponds to steepest descent under the Schatten-q norm constraint and provide convergence analysis in smooth non-convex settings. The implementation of HTMuon is available at https://github.com/TDCSZ327/HTmuon .
+
+# 1 Introduction 
+
+Optimizers play a central role in training Large language models (LLMs). A well-designed optimizer can help LLMs learn more effectively from large-scale datasets (Semenov et al., 2025), leading not only to lower training loss but also to improved generalization (Foret et al., 2020; Kaddour et al., 2022). Over the decades, optimizers have often been developed from a vector-based view, where gradients are treated as flattened vectors during updates. Within this framework, Adam (Kingma, 2014) and AdamW (Loshchilov and Hutter, 2017) have become the default choices for training LLMs (Groeneveld et al., 2024; OLMo et al., 2024). A key reason is that they incorporate first- and second-order moment information in an element-wise manner, allowing them to adapt to the different statistical patterns (e.g., local geometry of the loss landscape) across individual coordinates. However, an overly element-wise update scheme often ignores interdependencies among coordinates (e.g., geometric correlations among parameters), which can limit the effectiveness of the optimizer. Although recent work (Liu et al., 2024b; Wang et al., 2025a; Zhang et al., 2024; Zhou et al., 2023) has gone beyond Adam and its variants by using layer-wise or module-wise learning rates to capture parameters’ relationships, whether these adjustments are sufficient to capture the complex coupling across these parameters remains to be seen. Recently, Muon (Jordan et al., 2024) has been proposed as a representative matrix-based optimizer *.Building on earlier matrix-based optimizers such as AdaGrad (Duchi et al., 2011) and Shampoo (Gupta et al., 2018), Muon performs preconditioning on the momentum matrix, and its update can be interpreted as an  
+
+> *Equal contribution.
+> *Matrix-based optimizers use matrix-valued preconditioners, which can better capture geometry-induced dependencies among different parameters.
+
+1
+
+> arXiv:2603.10067v1 [cs.LG] 10 Mar 2026
+
+orthogonalization step, which effectively captures geometry interdependencies among parameters. Moreover, the orthogonalization update can be viewed as the steepest descent under the Schatten −∞ norm constraint (Bernstein and Newhouse, 2024; Pethick et al., 2025), which leads to a competitive convergence rate and improved stability (Chen et al., 2025; Ma et al., 2026; Shen et al., 2025). Muon has shown promising results (Liu et al., 2025a; Shah et al., 2025; Wang et al., 2025b; Wen et al., 2025) and has been adopted in large-scale LLM training, including Moonshot’s Kimi K2 (Team et al., 2025) and GLM-4.5 (Zeng et al., 2025). However, some studies have found that the improved performance of Muon is inversely proportional to the model scale and the number of training steps (Semenov et al., 2025; Wen et al., 2025). The orthogonalization step in Muon update sets all singular values of the momentum matrix to one, which means it assigns the same weight to each singular-vector direction of the updates. Although this may help Muon decrease the loss faster in the early phase of training (Shen et al., 2025), it is well known that directions associated with small singular values tend to be more noise-dominated (Chen et al., 2024; Defilippis et al., 2025; Liu et al., 2025c; Sharma et al., 2023). In Section 3.2, we conduct experiments to show that using uniform weights on all singular vector directions may be suboptimal. More importantly, the orthogonalization step makes the spectrum of the momentum update matrix light-tailed. This, in turn, makes the spectrum of learned weight matrices light-tailed. Here, the spectrum refers to the empirical spectral density (ESD) of the weight matrices. However, a line of work by Martin and Mahoney (2021); Martin et al. (2021) shows that well-trained neural networks—namely, networks that have extracted strong correlations in their weights through learning from data—tend to have heavy-tailed ESDs in their weight matrices (Hodgkinson et al., 2025; Kothapalli et al., 2025). Within a reasonable range, the degree of heavy-tailedness is strongly correlated with model quality (Martin et al., 2021). Motivated by these observations, they proposed the Heavy-Tailed Self-Regularization theory (HT-SR), which has been supported by extensive empirical studies and further theoretical analyses (Defilippis et al., 2025; Martin and Hinrichs, 2025; Yang et al., 2023). In Section 3.3, we empirically show that the Muon optimizer leads to a less heavy-tailed weight ESD, and it performs worse than variants of Muon that induce more heavy-tailed spectra. Based on this, we claim that the Muon update rule, which sets all singular values of the momentum matrix to one, limits the final quality that the model can achieve. Motivated by this observation, we propose a matrix-based optimizer HTMuon . HTMuon aims to make Muon ’s momentum update more heavy-tailed, which can lead to more heavy-tailed weight ESDs, while preserving 
+
+Muon ’s advantage in capturing interdependencies among parameters. The design of HTMuon is simple: we raise the singular values of the momentum matrix to the power of p, where p ∈ (0 , 1). See Algorithm 3. Setting p = 1 reduces the method to SGDM (Sutskever et al., 2013), whose updates are independent across parameters. In contrast, p = 0 recovers Muon , which, as discussed earlier, leads to less heavy-tailed updates. Therefore, we choose p ∈ (0 , 1) in HTMuon to maintain the matrix-based ability to model parameter coupling, while producing updates that are more heavy-tailed than those of Muon . Unless otherwise specified, we use 
+
+p = 0 .125 for HTMuon throughout. We discuss the specific choice of p in Section 5.7. To evaluate the empirical performance of HTMuon , we study a range of models and tasks, including training LLaMA models (Touvron et al., 2023) on the C4 dataset, GPT-2 models on the OpenWebText dataset and training image classification models using the ResNet (He et al., 2016) and ViT (Dosovitskiy, 2020) architectures. All of these tasks are standard and have been widely used in prior literature (He et al., 2025; Yuan et al., 2024; Zhao et al., 2024). We compare HTMuon against commonly used baseline optimizers such as Adam , Muon , Cautious (Liang et al., 2024), GaLore (Zhao et al., 2024), Sophia (Liu et al., 2024a), Mars (Yuan et al., 2024), SOAP (Vyas et al., 2024), COSMOS (Liu et al., 2025b), and show that HTMuon not only achieves superior performance but can also serve as a plug-in module on top of existing Muon variants like NorMuon (Li et al., 2025), AdaMuon 
+
+(Si et al., 2025) to further improve test performance. Moreover, our analysis reveals that HTMuon produces update and weight matrices that are more heavy-tailed than those of Muon during training, consistent with prior work on HT-SR theory. Finally, we present theoretical results showing that HTMuon is equivalent to the steepest-descent method under the Schatten −q norm constraint, generalizing Muon ’s equivalence to steepest descent under a Schatten −∞ norm constraint, this provides a matrix-version of pbSGD (Zhou et al., 2020) and also places HTMuon within the linear minimization oracle framework (Bernstein and Newhouse, 2024; Pethick et al., 2025). We also provide a convergence analysis, showing that HTMuon matches the sample 2complexity upper bound of Muon and SGDM in smooth non-convex settings. To summarize, the main contributions of our work are the following: 
+
+• We argue that Muon ’s orthogonalized update rule biases updates toward noise-dominated directions and suppresses the emergence of heavy-tailed ESDs in the model’s weight matrices, thereby limiting generalization performance according to HT-SR theory. 
+
+• We propose HTMuon , an optimizer that makes Muon updates more heavy-tailed while preserving Muon ’s strength in modeling parameter interdependence. We demonstrate HTMuon ’s effectiveness in improving performance on both LLM pretraining and image classification tasks relative to state-of-the-art optimizers including Cautious (Liang et al., 2024), Mars (Yuan et al., 2024), SOAP (Vyas et al., 2024), NorMuon 
+
+(Li et al., 2025), AdaMuon (Si et al., 2025), COSMOS (Liu et al., 2025b), etc. For example, HTMuon reduces perplexity by 0 .92 compared to Muon when training LLaMA-60M on the C4 dataset, and by 0 .98 when training LLaMA-135M on C4. Moreover, HTMuon can be used as an add-on method in combination with existing Muon variants to achieve further improvements. We also design two accelerated implementations of HTMuon . Using these implementations, we show that HTMuon outperforms Muon on LLaMA-1B, highlighting its potential for training large-scale models. 
+
+• We present theoretical results analyzing HTMuon . Specifically, we show that it is equivalent to steepest descent under a Schatten −q norm constraint, and we provide a convergence analysis demonstrating that HTMuon matches the sample-complexity upper bounds of Muon and SGDM in nonconvex smooth settings. These results support HTMuon ’s competitive convergence rate and improved training stability. 
+
+# 2 Related Work 
+
+Pretraining Optimizers. A strong optimizer is critical for successful LLM training. For a long time, Adam 
+
+(Kingma, 2014) and AdamW (Loshchilov and Hutter, 2017) have been the dominant choices. In recent years, a number of methods have emerged that build on the Adam family: some focus on reducing gradient variance (e.g., MARS (Yuan et al., 2024) and Cautious (Liang et al., 2024)), while others target memory efficiency (e.g., Lion (Chen et al., 2023), Adam-mini (Zhang et al., 2024) and GaLore (Zhao et al., 2024)). However, these Adam variants remain vector-based optimizers and have difficulty capturing interdependencies among parameters. Some works (Wang et al., 2025a; Zhou et al., 2023) extend Adam by using layer- or module-wise learning rates to capture relationships among parameters at a coarse level. Recently, Muon (Jordan et al., 2024) has been proposed as a representative matrix-based optimizer. It uses the momentum matrix as a preconditioner, which better captures interdependencies among parameters and improves training stability. 
+
+Muon has shown promising results in LLM training (Liu et al., 2025a; Shah et al., 2025; Wen et al., 2025). Following this line, several Muon variants have emerged, including NorMuon (Li et al., 2025) and AdaMuon (Si et al., 2025). 
+
+Heavy-tailed Phenomenon. Heavy tailed weight spectrum in machine learning have been observed and studied in various forms. Among the most prominent empirical findings are a series of works by Martin and Mahoney (2021); Martin et al. (2021), which propose the HT-SR theory for deep neural networks. They observe that well-trained networks often exhibit heavy-tailed spectra in their weight matrices, and the degree of heavy-tailedness is strongly correlated with model quality. Furthermore, they quantify this behavior via power-law fits to the ESDs of weight matrices. From a theoretical perspective, a number of studies (Dandi et al., 2024; Defilippis et al., 2025; Hodgkinson et al., 2022; Kothapalli et al., 2025; Simon et al., 2023; Simsekli et al., 2020) have used tools such as stochastic differential equations, random matrix theory, eigenlearning framework, and approximate message passing to characterize power-law behavior in weight ESDs and its strong connections to generalization bounds and test loss. Empirically, treating HT-SR theory as a diagnostic tool, subsequent work has explored layer-wise hyperparameter scheduling (He et al., 2025; Liu et al., 2024b; Zhou et al., 2023) and layer-wise pruning (Hu et al., 2025; Lu et al., 2024) based on the power-law fit to 3improve training performance and efficiency. In this work, motivated by HT-SR theory, we use HTMuon to make Muon updates more heavy-tailed to improve training. 
+
+# 3 Motivation for HTMuon 
+
+In this section, we first briefly introduce HT-SR theory and then use two examples to motivate the importance of heavy-tailed spectra for the design of HTMuon. 
+
+## 3.1 Background on HT-SR Theory 
+
+The HT-SR theory (Martin and Mahoney, 2021; Martin et al., 2021) offers a principled lens for analyzing the ESD of neural network weight matrices. Empirically, well-trained models tend to exhibit more heavy-tailed ESDs, and the degree of heavy-tailedness correlates with training quality. Based on prior work (Martin and Mahoney, 2021; Zhou et al., 2023), heavy-tailedness is quantified by fitting a power law (PL) to the ESD and using the resulting PL exponent α as the metric. Given a network with L layers and weight matrices {Wl}Ll=1 of shape n × m, we compute the ESD by extracting the eigenvalues of the correlation matrix Xl = W ⊤ 
+
+> l
+
+Wl for each module. We fit a power law (PL) to the ESD in the form p(λ) ∝ λ−α, λmin < λ < λ max , where p(λ) denotes the eigenvalue density within the specified range. The PL exponent α serves as a proxy for the degree of heavy-tailedness, smaller α indicates a more heavy-tailed weight ESD, and more heavy-tailed spectra are often associated with better model quality. 
+
+## 3.2 Unit Singular Values May Be Suboptimal 
+
+In this subsection, we introduce an intriguing empirical finding: for Muon implementation, the numerically accelerated version by Newton Schulz, which we call Muon NS (see Algorithm 1) can outperform the theoretically exact implementation Muon SVD (see Algorithm 2). LLaMA-60M LLaMA-135M 
+
+> 20.0
+> 22.5
+> 25.0
+> 27.5
+> 30.0
+> Perplexity (  ↓ ) Muon_NS
+> Muon_SVD
+
+(a) Muon NS vs Muon SVD 10 2 10 1 10 0 
+
+> Normalized Singular Values
+> 10 0
+> 10 1
+> 10 2
+> Count
+> Step 1
+> Step 9000
+> Step 19000
+
+(b) Muon NS Update Spectrum 10 3 10 2 10 1 10 0 
+
+> Normalized Singular Values
+> 10 2
+> 10 3
+> Step 1
+> Step 9000
+> Step 19000
+
+(c) Muon SVD Update Spectrum 
+
+Figure 1: Muon NS vs. Muon SVD on C4 dataset. (a) Validation perplexity for LLaMA-60M/135M trained: 
+
+Muon NS consistently achieves lower perplexity than Muon SVD . Both Learning rates for 60M is 0.03 and for 135M is 0.02. (b)(c) Spectra of update matrices at steps 1 /9000 /19000 shown in different colors: Muon SVD 
+
+enforces an exactly ”all-ones” spectrum in the update matrices; Muon NS stays close to one but retains noticeable deviations, implicitly down-weighting noise-dominated singular-vector directions and correlating with improved performance. The theoretical Muon update in Algorithm 2 has a similar form to polar decomposition: Ot = UtV ⊤ 
+
+> t
+
+=(MtM ⊤ 
+
+> t
+
+)− 12 Mt. This is equivalent to setting all singular values of the momentum matrix Mt to one. In practice, however, computing Ut and Vt exactly via SVD is expensive, so Muon uses a Newton Schulz iteration (Higham and Schreiber, 1990) to approximate Ot. In Figure 1, we train LLaMA-60M and LLaMA-135M on C4 dataset using Muon SVD and Muon NS , with identical hyperparameters for each model. Figure 1c 4visualizes the singular-value distributions of the Muon update matrix at different training steps. Although the Newton-Schulz iteration closely approximates the ”all-ones” singular spectrum, many singular values still deviate noticeably from one. Meanwhile, as shown in Figure 1a, Muon NS outperforms Muon SVD on both LLaMA-60M and LLaMA-135M. This suggests that keeping the same weight for all singular-vector directions throughout training may not be the most helpful. In particular, directions associated with smaller singular values are often more noise-dominated (Chen et al., 2024; Defilippis et al., 2025; Liu et al., 2025c; Sharma et al., 2023; Wang et al., 2023); enforcing exactly equal weights across all directions yields a light-tailed update, which can make late-stage training more sensitive to noise and limit model capacity. In contrast, due to the polynomial used in the Newton-Schulz steps, Muon NS implicitly assigns smaller weights to noise-dominated singular-vector directions, which improves performance. This observation also supports the motivation for making Muon updates more heavy-tailed. 
+
+Algorithm 1 Muon  
+
+> 1:
+
+Input: Initial weights W0 ∈ Rm×n, loss function L, learning rate η, momentum parameter β, weight decay λ. 
+
+> 2:
+
+Initialize M0 ∈ Rm×n ← 0 
+
+> 3:
+
+for t = 1 , 2, . . . do  
+
+> 4:
+
+Gt ← ∇ WL(Wt) 
+
+> 5:
+
+Mt ← βMt−1 + (1 − β)Gt 
+
+> 6:
+
+Ot ← NewtonSchulz5 (Mt) 
+
+> 7:
+
+s ←
+
+q
+
+max  1, mn
+
+ 
+
+> 8:
+
+Wt+1 ← Wt − ηλ Wt − ηs Ot 
+
+> 9:
+
+end for Algorithm 2 Muon SVD  
+
+> 1:
+
+Input: Initial weights W0 ∈ Rm×n, loss function L, learning rate η, momentum parameter β, weight decay λ. 
+
+> 2:
+
+Initialize M0 ∈ Rm×n ← 0 
+
+> 3:
+
+for t = 1 , 2, . . . do  
+
+> 4:
+
+Gt ← ∇ WL(Wt) 
+
+> 5:
+
+Mt ← βMt−1 + (1 − β)Gt 
+
+> 6:
+
+Ut, Σt, V ⊤ 
+
+> t
+
+← SVD (Mt) 
+
+> 7:
+
+Ot ← UtV ⊤ 
+
+> t
+> 8:
+
+s ←
+
+q
+
+max  1, mn
+
+ 
+
+> 9:
+
+Wt+1 ← Wt − ηλ Wt − ηs Ot 
+
+> 10:
+
+end for 
+
+## 3.3 From Updates to Weights: Muon Produces Lighter-Tailed Weight Spectra 
+
+In this section, we show that Muon ’s orthogonalization update makes weight matrices ESDs less heavy-tailed, which, based on HT-SR theory, may limit the model performance. We train LLaMA-60M and LLaMA-135M on the C4 dataset using Muon NS and COSMOS , a variant of Muon 
+
+(Liu et al., 2025b). In Figure 2, we visualize the average fitted PL exponent ¯α for the trained LLaMA models across layers under the two optimizers. We find that ¯α across layers is higher for Muon , indicating that Muon 
+
+makes the weight ESD less heavy-tailed. We further observe that Muon yields higher perplexity (PPL) than 
+
+COSMOS on both models. Based on HT-SR theory, this indicates that Muon ’s orthogonalized update rule may limit the model’s final quality, which motivates us to make Muon update more heavy-tailed, leading to more heavy-tailed weight matrices. 5LLaMA-60M LLaMA-135M   
+
+> 4.0
+> 4.2
+> 4.4
+> 4.6
+> 4.8
+> 5.0 ̄
+> α
+> Muon
+> COSMOS (a) Average PL ¯ αLLaMA-60M LLaMA-135M
+> 22
+> 24
+> 26
+> 28
+> 30
+> Perplexity (  ↓ ) Muon
+> COSMOS (b) Perplexity
+
+Figure 2: (a)Average PL ¯α of weight ESDs for LLaMA-60M and LLaMA-135M trained on C4 with Muon 
+
+and COSMOS . Muon yields a higher mean ¯α, indicating less heavy-tailed spectra than COSMOS ; (b) COSMOS 
+
+outperforms Muon for LLaMA-60M and LLaMA-135M models on C4 datatset. 
+
+# 4 Methodology 
+
+In this section, we introduce our method HTMuon . Our design goal is to preserve Muon ’s ability to capture parameter interdependencies while making its updates more heavy-tailed, which in turn leads to more heavy-tailed weight ESDs. We put HTMuon in Algorithm 3. HTMuon is similar to Muon , and the only difference is that we consider a different power transform of the momentum matrix’s singular p in line 7. It is easy to know that when p = 1, HTMuon reduces to SGDM . SGDM can be viewed as a vector-based optimizer and has limited ability to capture interdependencies among parameters. When p = 0, HTMuon reduces to Muon ; as discussed in Section 3.3, this update makes weight-matrix ESDs less heavy-tailed. We therefore propose HTMuon with p ∈ (0 , 1). We believe HTMuon helps mitigate the design limitations of Muon and SGDM : On the one hand, in this regime, HTMuon remains a matrix-based optimizer and thus retains the ability to capture parameter interdependencies. On the other hand, HTMuon updates are more heavy-tailed than Muon updates, and we illustrate this with a simple example: suppose that during training, the singular values of the momentum matrix Mt follow sk = s1k−s, where s1 is the largest singular value of 
+
+Mt. By Lemma 4.1, the PL exponent α of the HTMuon update matrix Ot is 1 + 12sp , it is easy to find that when p → 0, the α will increase, this means HTMuon update is more heavy-tailed than Muon ’s, which will in turn lead to more heavy-tailed weight ESDs. 
+
+Lemma 4.1 (Proof in Appendix A.3) . Suppose the singular values of matrix W ∈ Rn×m follow sk =
+
+s1k−s, 1 ≤ k ≤ m, we have PL exponent α of W satisfies α = 1 + 12s .
+
+# 5 Experiments 
+
+In this section, we evaluate HTMuon on various pretraining tasks, and compare it with state-of-the-art pretraining optimizers, including Adam (Kingma, 2014), AdamW (Loshchilov and Hutter, 2017), SGDM (Sutskever et al., 2013), NorMuon (Li et al., 2025), AdaMuon (Si et al., 2025), Cautious (Liang et al., 2024), GaLore (Zhao et al., 2024), Sophia (Liu et al., 2024a), Mars (Yuan et al., 2024), SOAP (Vyas et al., 2024), COSMOS (Liu et al., 2025b). We provide detailed definitions of these optimizers in Appendix D. Unless otherwise specified, all Muon results in our experiments use the Muon NS implementation. We demonstrate that HTMuon achieves superior performance than these optimizers across all datasets. In addition, we show that HTMuon can be used as an add-on method to combine with existing Muon variant optimizers to achieve further improvements. Furthermore, to reduce the overhead of SVD in HTMuon , we design two acceleration schemes that significantly cut the computational cost while still outperforming Muon . To ensure a fair comparison, we reproduce all results of the baseline methods with the codebases provided in previous papers. 6Algorithm 3 HTMuon  
+
+> 1:
+
+Input: Initial weights W0 ∈ Rm×n, loss function L, learning rate η, momentum parameter β, weight decay λ, power p ∈ (0 , 1).  
+
+> 2:
+
+Initialize M0 ∈ Rm×n ← 0 
+
+> 3:
+
+for t = 1 , 2, . . . do  
+
+> 4:
+
+Gt ← ∇ WL(Wt) 
+
+> 5:
+
+Mt ← βMt−1 + (1 − β)Gt 
+
+> 6:
+
+Ut, Σt, V ⊤ 
+
+> t
+
+← SVD (Mt) 
+
+> 7:
+
+Ot ← UtΣpt V ⊤ 
+
+> t
+> 8:
+
+s ←
+
+q
+
+max  1, mn
+
+ 
+
+> 9:
+
+Wt+1 ← Wt − ηλ Wt − ηs Ot 
+
+> 10:
+
+end for 
+
+Table 1: Comparison with dominant Pretraining Optimizers on LLaMA Models of Varying Sizes on the C4 dataset. Lower perplexity indicates better performance. Detailed hyperparameters are provides in Table 18, 19 and 20 in Appendix C. 
+
+LLaMa-60M LLaMa-135M LLaMa-350M 
+
+Adam 32.21 23.01 17.11 
+
+AdamW 31.85 23.33 16.96 
+
+Muon 28.80 22.23 16.81 
+
+HTMuon 27.88 21.25 16.79 
+
+## 5.1 Experimental Setup 
+
+Tasks. We conduct experiments on various pretraining tasks, including: 1) LLM Pretraining , in which we pretrain LLaMA-family models on the C4 dataset (Raffel et al., 2020), GPT-2 family models on the OpenWebText dataset (Gokaslan and Cohen, 2019). 2) Image Classification , where we train ResNet models on the CIFAR-100 and CIFAR-10 datasets (Krizhevsky and Hinton, 2009) and train ViT-tiny on the ImageNet-1K dataset (Deng et al., 2009). 
+
+Models. For LLM pretraining, we evaluate HTMuon on LLaMA-60M, LLaMA-135M, LLaMA-350M, LLaMA-1B (Touvron et al., 2023) and GPT-2 small (125M) (Radford et al., 2019). For image classification, we use ResNet18, ResNet50 (He et al., 2016) and ViT-tiny (Dosovitskiy, 2020). Unless otherwise specified, we use p = 0 .125 for HTMuon throughout. We discuss the specific choice of 
+
+p in Section 5.7. All baseline methods and HTMuon are carefully tuned for a fair comparison. For detailed hyperparameter settings, please refer to Appendix C. 
+
+## 5.2 LLM Pretraining 
+
+In this section, we evaluate HTMuon against several baseline optimizers on C4 and OpenWebText datasets. 
+
+HTMuon consistently outperforms Muon . In Table 1, We find that HTMuon consistently outperforms Muon 
+
+across three model scales (60M, 135M, and 350M) on C4 dataset. In particular, on LLaMA-60M, HTMuon 
+
+achieves a PPL that is 0.92 lower than Muon and 4.33 lower than Adam ; on LLaMA-135M, HTMuon is 0.98 lower than Muon and 2.08 lower than AdamW . In Table 2, we show that on GPT-2 small, HTMuon achieves a PPL that is 0.26 lower than Muon and 2.99 lower than AdamW . In Figure 9 in Appendix B, we provide the training loss curves of HTMuon and Muon . These results suggest that HTMuon ’s update rule effectively mitigates the limitations of Muon updates. 7Table 2: Comparison with dominant Pretraining Optimizers on GPT-2 small on the OpenWebText dataset. Lower perplexity indicates better performance. Hyperparameter settings are provided in Appendix C.      
+
+> AdamW Muon HTMuon
+> GPT-2 small 25.19 22.46 22.20
+
+HTMuon consistently outperforms other variants of Muon . In Figure 3, we find that HTMuon consistently outperforms Muon variant optimizers like AdaMuon and NorMuon . Specifically, on LLaMA-60M, our PPL is 0.29 lower than that of NorMuon , the strongest baseline after HTMuon ; on LLaMA-135M, we outperform NorMuon 
+
+by 0.74 PPL and AdaMuon by 1.18 PPL. Moreover, we observe that combining HTMuon with NorMuon yields further gains , reducing PPL by an additional 0.33 on LLaMA-60M and 0.14 on LLaMA-135M. Muon HTMuon AdaMuon NorMuon HTMuon +NorMuon 27.0 
+
+> 27.5
+> 28.0
+> 28.5
+> 29.0
+> Perplexity (  ↓ )
+
+(a) LLaMA-60M 21.0  
+
+> 21.5
+> 22.0
+> 22.5
+
+(b) LLaMA-135M 
+
+Figure 3: Comparison with Muon variant optimizers on LLaMA-60M and 135M on C4 dataset. All optimizers are carefully tuned via grid search; detailed results and hyperparameter settings are provided in Table 7 and 19 in Appendix B and C. 
+
+HTMuon consistently outperforms state-of-the-art pretraining optimizers. In Figure 4, we compare 
+
+HTMuon with state-of-the-art optimizers on LLaMA-60M and LLaMA-135M. HTMuon consistently outperforms all competing methods at both scales. For example, compared to COSMOS (the second-best method), HTMuon 
+
+effectively reduces PPL by 1.07 on LLaMA-60M and by 1.04 on LLaMA-135M. In Appendix B, we include more recent optimizers, including GaLore and Sophia .Muon HTMuon Cautious MARS SOAP COSMOS 27.5 
+
+> 28.0
+> 28.5
+> 29.0
+> 29.5
+> 30.0
+> Perplexity (  ↓ )
+
+(a) LLaMA-60M 21.0  
+
+> 21.5
+> 22.0
+> 22.5
+> 23.0
+> 23.5
+
+(b) LLaMA-135M 
+
+Figure 4: Comparison with state-of-the-art pretraining optimizers on LLaMA-60M and 135M on C4 dataset. All optimizers are carefully tuned via grid search; detailed results and hyperparameter settings are provided in Table 7 and 19 in Appendix B and C. 8Table 3: Results on CIFAR-100 and CIFAR-10 dataset. Higher accuracy indicates better performance. CIFAR-100 CIFAR-10 Optimizer ResNet18 ResNet50 ResNet18 ResNet50                       
+
+> SGDM 77.82 78.57 95.15 95.16
+> Muon 77.95 79.85 95.39 95.97
+> NorMuon 77.82 79.78 95.57 96.03
+> HTMuon 78.24 80.16 95.63 96.13
+> HTMuon +NorMuon 78.51 80.22 95.40 96.04
+
+Table 4: Results on ImageNet-1K. Hyperparameter settings are provided in Appendix C.      
+
+> Adam Muon HTMuon
+> ViT-Tiny 67.67 71.02 71.16
+
+## 5.3 Image Classification 
+
+In this section, we compare HTMuon against several baseline optimizers on CIFAR and ImageNet-1K datasets. In Table 3, we find that, when training ResNet18 and ResNet50 on CIFAR-10 and CIFAR-100, HTMuon 
+
+consistently achieves higher accuracy than SGDM , Muon , and NorMuon . For example, relative to Muon , HTMuon 
+
+improves accuracy by up to 0.31 % on CIFAR-100 and up to 0.24 % on CIFAR-10. Moreover, on CIFAR-100, combining HTMuon with NorMuon further improves the accuracy of both ResNet18 and ResNet50. In Table 4, we show that HTMuon also outperforms Muon and Adam when training ViT-tiny on ImageNet-1K. 
+
+## 5.4 More Efficient Implementations of HTMuon 
+
+In this section, to reduce the overhead introduced by SVD in HTMuon , we consider two acceleration strategies: 
+
+(i) Apply HTMuon every fixed number of training steps and use Muon otherwise. In Figure 5a and 5c, we evaluate applying HTMuon on LLaMA-60M and LLaMA-135M every 5, 10, and 25 steps. Compared to using HTMuon at every step, this strategy greatly reduces runtime overhead, making it competitive with 
+
+Muon , while still outperforming Muon . We also observe that smaller intervals lead to better performance, further supporting the effectiveness of our optimizer. Based on these findings, we train LLaMA-1B on C4 using HTMuon with interval = 5. As shown in Table 5, 
+
+HTMuon still outperforms Muon , highlighting its potential for large-scale training. 
+
+(ii) Replace the SVD with a numerical iterative method for faster computation. In Algorithm 3, We note that the HTMuon update Ot = UtΣpt V ⊤ 
+
+> t
+
+admits the factorization Ot = ( UtV ⊤ 
+
+> t
+
+) ( VtΣpt V ⊤ 
+
+> t
+
+). For the UtV ⊤ 
+
+> t
+
+part, this is Muon ’s update; we can consider Newton-Schulz with 5 steps. To compute VtΣpt V ⊤
+
+> t
+
+efficiently, we apply the NS root routine to M ⊤ 
+
+> t
+
+Mt in Algorithm 5, since M ⊤ 
+
+> t
+
+Mt = VtΣ2 
+
+> t
+
+V ⊤ 
+
+> t
+
+, we have 
+
+VtΣpt V ⊤ 
+
+> t
+
+= ( M ⊤ 
+
+> t
+
+Mt) p 
+
+> 2
+
+. Accordingly, NS root uses Newton-Schulz iterations to approximate matrix square roots and applies successive square-root operations for [1 − log 2 p] rounds. Combining these two, we obtain 
+
+HTMuon NS in Algorithm 4. In Figure 5b and 5d, comparing HTMuon NS with HTMuon with interval= 1, we find HTMuon NS substantially reduces runtime overhead, while only slightly increases PPL. We also apply 
+
+HTMuon NS on LLaMA-60M and LLaMA-135M every 5, 10, and 25 steps. We find that this further reduces runtime overhead while still maintaining better performance than Muon , for example, HTMuon NS (interval = 5) achieves 0.59 s/step compared to Muon ’s 0.51 s/step in Table 9(which only introduces a minor increase in overhead), Table 8 shows that HTMuon NS (interval = 5) still outperforms Muon by 0.38 PPL. We also evaluate HTMuon + NorMuon with different intervals. As observed earlier, using larger intervals reduces runtime overhead while still outperforming NorMuon . Please refer to Figure 10 in Appendix B. 9Algorithm 4 HTMuon NS  
+
+> 1:
+
+Input: Initial weights W0 ∈ Rm×n, loss function L, learning rate η, momentum parameter β, weight decay λ, power p. 
+
+> 2:
+
+Initialize M0 ∈ Rm×n ← 0 
+
+> 3:
+
+for t = 1 , 2, . . . do  
+
+> 4:
+
+Gt ← ∇ WL(Wt) 
+
+> 5:
+
+Mt ← βMt−1 + (1 − β)Gt 
+
+> 6:
+
+O′ 
+
+> t
+
+← NS5 (Mt) 
+
+> 7:
+
+O′′  
+
+> t
+
+← NS 2p root (M⊤ 
+
+> t
+
+Mt) 
+
+> 8:
+
+Ot ← O′
+
+> t
+
+O′′  
+
+> t
+> 9:
+
+s ←
+
+q
+
+max  1, mn
+
+ 
+
+> 10:
+
+Wt+1 ← Wt − ηλ Wt − ηs Ot 
+
+> 11:
+
+end for Algorithm 5 NS root  
+
+> 1:
+
+Input: Positive definite matrix Xn×n, small constant ε, power p, ns steps T . 
+
+> 2:
+
+for t = 1 , 2, . . . , [log 2 2 
+
+> p
+
+] do  
+
+> 3:
+
+α ← ∥ X∥F 
+
+> 4:
+
+X ← X 
+
+> ∥X∥F+ε
+> 5:
+
+Y ← X, Z ← I 
+
+> 6:
+
+for i = 1 , 2, . . . , T do  
+
+> 7:
+
+Q ← 3.0I − ZY  
+
+> 8:
+
+Y ← 0.5Y Q  
+
+> 9:
+
+Z ← 0.5QZ  
+
+> 10:
+
+end for  
+
+> 11:
+
+X ← √αY , X ← X+X⊤ 
+
+> 2
+
++ ϵI 
+
+> 12:
+
+end for 
+
+Table 5: We train LLaMA-1B with interval= 5 on C4. Hyperparameter settings are provided in Table 20 in Appendix C.        
+
+> Adam AdamW Muon HTMuon
+> LLaMA-1B 15.22 15.11 14.33 14.17
+
+Besides reporting per-step runtime overhead, we also report the wall-clock time for Muon , HTMuon and 
+
+HTMuon NS with intervals. To better report wall-clock time, we rerun training on NVIDIA RTX PRO 6000 GPUs: LLaMA-60M on C4 using 2 GPUs, and LLaMA-135M on C4 using 4 GPUs. We use the optimal hyperparameter settings reported in the Table 19. We summarize the PPL and wall-clock time of Muon ,
+
+HTMuon , HTMuon NS , HTMuon (Interval = 5), and HTMuon NS (Interval = 5) in the Table 10 in Appendix B. We observe that for LLaMA-60M, HTMuon NS (Interval = 5) achieves only a ∼6% additional overhead yet outperforms Muon by 0.34 PPL. Moreover, the time for HTMuon NS (Interval = 5) to reach 28.84 PPL is 0.64 hour, compared to 0.67 hour for Muon . For LLaMA-135M, HTMuon NS (Interval = 5) incurs only ∼11% additional overhead while outperforming Muon by 0.25 PPL; it reaches 22.27 PPL in 1.32 hour, compared to 1.40 hour for Muon. We also give the FLOPs analysis for Muon and HTMuon NS in Appendix B. We find that although HTMuon could take longer than Muon , the substantial gains achieved through heavy-tailed spectral correction suggest that HTMuon captures the correct inductive bias for learning. Furthermore, we believe that efficient variants such as HTMuon NS with interval-based updates provide a strong balance between performance and efficiency. 10 Muon Interval=1 Interval=5 Interval=10 Interval=25 Time(sec) 27.0 
+
+> 27.5
+> 28.0
+> 28.5
+> 29.0
+> Perplexity (  ↓ )
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+
+(a) HTMuon LLaMA-60M 27.0  
+
+> 27.5
+> 28.0
+> 28.5
+> 29.0
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+
+(b) HTMuon NS LLaMA-60M 21.0  
+
+> 21.5
+> 22.0
+> 22.5
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+
+(c) HTMuon LLaMA-135M 21.0  
+
+> 21.5
+> 22.0
+> 22.5
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> Time (sec)
+
+(d) HTMuon NS LLaMA-135M 
+
+Figure 5: we evaluate applying HTMuon and HTMuon NS on LLaMA-60M and LLaMA-135M every 1, 5, 10, and 25 steps. We report the average per-step runtime overhead for all methods. Detailed results and hyperparameter settings are provided in Table 8 and 9 in Appendix B. 
+
+## 5.5 Weight Spectrum Analysis 
+
+HTMuon successfully produces more heavy-tailed weight matrices. In Figure 6, we fit the layer-wise PL α for models trained with Muon and HTMuon . Across both LLaMA and ResNet models, we find that 
+
+HTMuon yields smaller α than Muon for most layers, leading to a lower average ¯α. Meanwhile, HTMuon achieves better performance, consistent with the HT-SR observation that better-trained models tend to have lower α.For more PL α plots, please refer to Figure 11a and 11b in Appendix B. 1 10 20 30 40 50   
+
+> Layer index
+> 5
+> 10
+> 15
+> α
+> Muon ( ̄α=4.786)
+> HTMuon ( ̄α=4.211)
+
+(a) LLaMA-60M on C4 1 10 20 30 40 50 60 70 80    
+
+> Layer index
+> 5
+> 10
+> 15
+> α
+> Muon ( ̄α=4.750)
+> HTMuon ( ̄α=4.347)
+
+(b) LLaMA-135M on C4 1 5 10 15 20 25 30 35 40 45 50    
+
+> Layer index
+> 2
+> 3
+> 4
+> α
+> Muon ( ̄α=2.488)
+> HTMuon ( ̄α=2.295)
+
+(c) ResNet50 on CIFAR-100 1 5 10 15 20 25 30 35 40 45 50    
+
+> Layer index
+> 2
+> 3
+> 4
+> 5
+> α
+> Muon ( ̄α=2.777)
+> HTMuon ( ̄α=2.364)
+
+(d) ResNet50 on CIFAR-10 
+
+Figure 6: Layer-wise PL α for LLaMA and ResNet model weights trained with Muon and HTMuon . All models used for visualization are trained using each optimizer’s best-performing hyperparameter configuration. For hyperparameter configurations, please refer to Appendix C. 
+
+Additional generalization metrics. In Figure 7, we visualize the layer-wise spectral norm and Frobenius norm for LLaMA models trained with Muon and HTMuon . We find that, for these models, HTMuon consistently yields smaller norms than Muon . This is consistent with prior findings (Miyato et al., 2018) that smaller spectral and Frobenius norms are often associated with better generalization. 
+
+## 5.6 Downstream Tasks 
+
+To further evaluate HTMuon ’s applicability to broader NLP scenarios, in this section, we evaluate LLaMA-1B model trained with HTMuon on 7 commonsense tasks using the lm eval harness framework. For all tasks we use the default prompt and perform zero-shot evaluation. As shown in the Table 6, HTMuon achieves the best test accuracy for 4 out of 7 commonsense tasks, and achieves the best average score across 7 tasks, significantly outperforming the second best optimizer ( Muon )by 1.05. This demonstrates the effectiveness of HTMuon on wider NLP scenarios. 11 1 10 20 30 40 50 
+
+> Layer index
+> 5
+> 10
+> Spectral Norm  Muon (Spectral Norm=7.091)
+> HTMuon (Spectral Norm=4.037)
+
+(a) LLaMA-60M on C4 1 10 20 30 40 50 60 70 80  
+
+> Layer index
+> 5
+> 10
+> 15
+> Spectral Norm  Muon (Spectral Norm=9.798)
+> HTMuon (Spectral Norm=4.903)
+
+(b) LLaMA-135M on C4 1 10 20 30 40 50  
+
+> Layer index
+> 20
+> 40
+> 60
+> 80
+> 100
+> Frobenius Norm  Muon (F_Norm=61.869)
+> HTMuon (F_Norm=35.092)
+
+(c) LLaMA-60M on C4 1 10 20 30 40 50 60 70 80  
+
+> Layer index
+> 50
+> 100
+> 150
+> Frobenius Norm  Muon (F_Norm=100.665)
+> HTMuon (F_Norm=50.382)
+
+(d) LLaMA-135M on C4 
+
+Figure 7: Layer-wise spectral norm and frobenius norm for LLaMA model weights trained with Muon and 
+
+HTMuon . All models used for visualization are trained using each optimizer’s best-performing hyperparameter configuration. For hyperparameter configurations, please refer to Appendix C. Table 6: Zero-shot evaluation results ( ↑) on seven commonsense reasoning benchmarks for the LLaMA-1B model pretrained with different methods. 
+
+Optimizer ARC-c ARC-e PIQA Hellaswag OBQA Winogrande BOOLQ Avg. 
+
+Adam 21.93 31.27 65.18 27.49 17.40 53.83 62.17 39.90 
+
+AdamW 21.16 32.37 64.25 27.29 17.80 52.49 62.23 39.66 
+
+Muon 20.56 32.66 65.13 31.53 17.00 51.22 62.14 40.03 
+
+HTMuon 22.18 33.16 66.59 33.76 17.20 52.72 61.93 41.08 
+
+## 5.7 Ablation Study 
+
+Varying different p. Since p is an additional hyperparameter introduced by HTMuon , we perform a grid search over p on LLaMA models in Figure 8. We find that p = 0 .125 is a good choice, which is why we use 
+
+p = 0 .125 in most experiments. In Appendix B.4.2, we discuss more about the hyperparameter sensitivity for 
+
+p, we show that although introducing p adds a tuning dimension and add hyperparameter search burden, 
+
+p = 0 .125 generalizes well across tasks and architectures and often can be optimal or near-optimal across tasks and architectures. We suggest that p = 0 .125 can serve as a recommended default for other tasks. HTMuon HTMuon +NorMuon 0 0.1 0.125 0.2 0.25 
+
+p
+
+27 
+
+28 
+
+29 
+
+30 
+
+> Perplexity (  ↓ )
+
+(a) LLaMA-60M 0 0.1 0.125 0.2 0.25 
+
+p
+
+21.0 
+
+21.5 
+
+22.0 
+
+22.5 (b) LLaMA-135M 
+
+Figure 8: We conduct grid search on p. We find p = 0 .125 is a strong choice. Note that p = 0 reduces to 
+
+Muon . Detailed results provided in Table 14 in Appendix C. 
+
+Varying learning rates. In Figure 12, we visualize performance across learning-rate grids for LLaMA models on C4 and ResNet models on CIFAR datasets. We find that, over most learning rates, HTMuon 
+
+consistently outperforms Muon and NorMuon , demonstrating the stability of HTMuon . For more details, please refer to Table 11, 12 and 13 in Appendix B. 12 Algorithm 6 HTMuon HT  
+
+> 1:
+
+Input: Initial weights W0 ∈ Rm×n, loss function L, learning rate η, momentum parameter β, weight decay λ, power α. 
+
+> 2:
+
+Initialize M0 ∈ Rm×n ← 0 
+
+> 3:
+
+for t = 1 , 2, . . . do  
+
+> 4:
+
+Gt ← ∇ WL(Wt) 
+
+> 5:
+
+Mt ← βMt−1 + (1 − β)Gt 
+
+> 6:
+
+Ut, Σt, Vt⊤ ← SVD (Mt) 
+
+> 7:
+
+Σtii ← i−α 
+
+> 8:
+
+Ot ← UtΣtVt⊤ 
+
+> 9:
+
+s ←
+
+q
+
+max  1, mn
+
+ 
+
+> 10:
+
+Wt+1 ← Wt − ηλ Wt − ηs Ot 
+
+> 11:
+
+end for Varying different ways to make Muon update more heavy-tailed. To better prove making Muon 
+
+update more heavy-tailed can improve performance, we design another optimizer HTMuon HT in Algorithm 6. Specifically, at each step, HTMuon HT directly replaces the singular values of the momentum matrix with a heavy-tailed sequence {i−α}mi=1 . As shown in Table 17, although HTMuon HT is not as strong as HTMuon , it still outperforms Muon on LLaMA models. This shows that merely inducing a heavy-tailed spectrum already yields non-trival gains, and our algorithm HTMuon further show that heavy tail spectral correction on top of preserved spectral information is more effective, we put more discussion about the performance improvement attribution in Appendix B.4.3. In Figure 11c and 11d, we visualize the layer-wise PL α for HTMuon HT , and as intended, it yields lower α than Muon across layers. 
+
+# 6 Theoretical Analysis 
+
+In this section, we provide theoretical understandings of HTMuon .
+
+Notation. For a vector v, we denote its l2 norm as ∥v∥2. For a matrix A, B ∈ Rm×n, we denote its spectral norm as ∥A∥, Frobenius norm as ∥A∥F, nuclear norm as ∥A∥∗, where ∥A∥∗ = Pri=1 σi. Here, {σi}ri=1 are singular values. For p > 1, we denote Schatten −p norm as ∥A∥p, where ∥A∥p = (Pri=1 σpi ) 1 
+
+> p
+
+. We use ⟨A, B⟩
+
+to denote the inner product between A and B, i.e., ⟨A, B⟩ = Tr  A⊤B.
+
+## 6.1 Update Under the Schatten −q Norm Constraint 
+
+We are here to provide a view of Schatten norm constrained optimization for HTMuon . To determine the descent direction at step t, we formulate the update as the following constrained minimization problem: min   
+
+> ∆W∈Rm×n
+
+f (Wt + ∆ W ) (1) subject to ∥∆W ∥q ≤ δ
+
+where ∥ · ∥ q denotes the Schatten −q norm. When we employ the first-order approximation for our optimization objective 
+
+f (Wt + ∆ W ) ≈ f (Wt) + Tr( ∇f (Wt)⊤∆W ) (2) It is straightforward to derive that optimizing this approximation is equivalent to the following objective: max  
+
+> ∆W
+
+Tr( fGt
+
+> ⊤
+
+∆W ) (3) subject to ∥∆W ∥q ≤ δ, 
+
+13 where fGt = −∇ f (Wt) denotes the negative gradient. 
+
+Theorem 6.1. Let fGt = U ΣV ⊤ be the SVD of the negative gradient fGt = −∇ f (Wt), where Σ =diag (σ1, . . . , σ r ). Let p be the conjugate exponent of q, satisfying 1/p ′ + 1 /q = 1 . The explicit solution 
+
+∆W ∗ to the optimization problem 3 is given by: 
+
+∆W ∗ = δ 1
+
+∥ fGt∥p′/q p′
+
+U Σp′−1V ⊤, (4) 
+
+where Σp′−1 = diag( σp′−11 , . . . , σ p′−1 
+
+> r
+
+).
+
+We put proof in Appendix A.1. Based on Theorem 6.1, when q ∈ (2 , ∞), p ′ ∈ (1 , 2), we can assume 
+
+p = p′ − 1 and find the ∆ W ∗ is exactly the update by HTMuon , which means HTMuon is equivalent to steepest descent under a Schatten −q norm constraint. It is well known that Muon can be viewed as the steepest descent under the Schatten −∞ norm constraint (Bernstein and Newhouse, 2024; Pethick et al., 2025), so 
+
+HTMuon generalizes Muon ’s equivalence to steepest descent under a Schatten −∞ norm constraint and this will also benefit training (Davis and Drusvyatskiy, 2025). 
+
+## 6.2 Convergence Analysis 
+
+Here we give the convergence analysis under a smooth non-convex setting for finding ϵ-stationary points, i.e. 
+
+∥∇ f (W )∥∗ ≤ ϵ. We consider the following stochastic optimization problem: min  
+
+> W∈Rm×n
+
+f (W ) = Eξ[f (W ; ξ)] , (5) where ξ is stochastic noise. We denote f ∗ = inf W f (W ), r = min {m, n }. We assume f ∗ > −∞ .For ease of theoretical analysis, we rewrite HTMuon in a stochastic setting and present it in Algorithm 7. We assume f is an L Frobenius norm Lipchitz smooth function. We assume that ∇f (W ; ξ) is an unbiased stochastic estimator of the true gradient ∇f (W ) and has a bounded variance. We also assume that Mt’s singular values are bounded by l.We then give assumptions below, some assumptions and definitions are adapted from Shen et al. (2025). 
+
+Assumption 6.2 (F-norm Lipschitz smooth ) . Define f : Rm×n → R is L Frobenius norm Lipschitz smooth if for any W , W ′ ∈ Rm×n, we have 
+
+∥∇ f (W ) − ∇ f (W ′)∥F ≤ L∥W − W ′∥F.
+
+Assumption 6.3 (Bounded variance) . We assume ∇f (W ; ξ) is an unbiased stochastic estimator of the true gradient ∇f (W ) and has a bounded variance, i.e. 
+
+E[∇f (W ; ξ)] = ∇f (W ),
+
+E∥∇ f (W ; ξ) − ∇ f (W )∥2F] ≤ σ2.
+
+Assumption 6.4 (Bounded singular value) . We assume the largest singular value σmax (Mt) ≤ l.
+
+Definition 6.5. We say W is an ϵ-nuclear norm stationary point of f if ∥∇ f (W )∥∗ ≤ ϵ.
+
+Theorem 6.6 (HTMuon ). Under Assumptions 6.2, 6.3 and 6.4, if we apply HTMuon in Algorithm 7 with adaptive learning rate ηt = ⟨Mt,ρ (Mt)⟩
+
+> L∥ρ(Mt)∥2F
+
+, ρ(Mt) = UtΣpt V ⊤ 
+
+> t
+
+, η = max {ηt}Tt=1 , batch size B = T and β = 1√T ,
+
+∆ = f (W0) − f ∗, we have 
+
+1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E∥∇ f (Wt)∥21+ p
+
+ ≤ 2Lr 1
+
+> s
+
+1 − ε′
+
+ 1 − ε′
+
+L + 1
+
+Lε ′
+
+  2σT + 4σ2
+
+T 3 + 4rl 2 
+
+> q
+
+L2η2
+
+T
+
+ + 2Lr 1
+
+> s
+
+1 − ε′
+
+∆
+
+T ,
+
+where s = 1+ p 
+
+> 1−p
+
+and 0 < ε ′ < 1.
+
+We put proof in Appendix A.2. Based on Theorem 6.6 and Definition 6.5, when B = T , the sample complexity upper bound is O(ϵ−4), which matches Muon ’s sample complexity in Appendix Theorem A.4 and 
+
+SGDM ’s sample complexity in Arjevani et al. (2023); Garrigos and Gower (2023). 14 7 Conclusion 
+
+In this work, motivated by HT-SR theory, we introduce HTMuon optimizer. HTMuon maintains Muon ’s capacity to model parameter interdependencies, while yielding more heavy-tailed updates and promoting more heavy-tailed weight spectra. It delivers consistent gains in accuracy and training stability on LLM pretraining and image classification, and can be seamlessly integrated into existing Muon variants. To reduce the SVD 
+
+overhead in HTMuon , we introduce two acceleration implementations that further lower runtime cost while still outperforming Muon . Finally, we establish a theoretical connection to steepest descent under a Schatten-q
+
+norm constraint and provide convergence analysis for smooth non-convex settings. 
+
+# Limitations 
+
+Despite achieving improvements in LLM pretraining and image classification, HTMuon has some potential limitations. Due to limited computational resources, we have not evaluated HTMuon on larger models than 1B or larger-scale datasets; we leave this to future work. In addition, HTMuon and HTMuon NS incur slightly higher per-step runtime overhead than Muon . While using HTMuon with larger update intervals can reduce this cost, achieving stronger performance typically requires more frequent HTMuon updates, which increases the overall runtime. Exploring better numerical methods to accelerate HTMuon is also part of future work. 
+
+# Acknowledgments 
+
+We thank our colleagues and funding agencies. This work is supported by the DARPA AIQ and DARPA DIAL programs, the U.S. Department of Energy under Award Number DE-SC0025584, Dartmouth College, and Lambda AI. 
+
+# References 
+
+Yossi Arjevani, Yair Carmon, John C Duchi, Dylan J Foster, Nathan Srebro, and Blake Woodworth. Lower bounds for non-convex stochastic optimization. Mathematical Programming , 199(1):165–214, 2023. Jeremy Bernstein and Laker Newhouse. Modular duality in deep learning. arXiv preprint arXiv:2410.21265 ,2024. Da Chang, Yongxiang Liu, and Ganzhao Yuan. On the convergence of muon and beyond. arXiv preprint arXiv:2509.15816 , 2025. Lei Chen, Joan Bruna, and Alberto Bietti. Distributional associations vs in-context reasoning: A study of feed-forward and attention layers. arXiv preprint arXiv:2406.03068 , 2024. Lizhang Chen, Jonathan Li, and Qiang Liu. Muon optimizes under spectral norm constraints. arXiv preprint arXiv:2506.15054 , 2025. Xiangning Chen, Chen Liang, Da Huang, Esteban Real, Kaiyuan Wang, Hieu Pham, Xuanyi Dong, Thang Luong, Cho-Jui Hsieh, Yifeng Lu, and Quoc V Le. Symbolic discovery of optimization algorithms. In 
+
+Thirty-seventh Conference on Neural Information Processing Systems , 2023. URL https://openreview. net/forum?id=ne6zeqLFCZ .Yatin Dandi, Luca Pesce, Hugo Cui, Florent Krzakala, Yue M Lu, and Bruno Loureiro. A random matrix theory perspective on the spectrum of learned features and asymptotic generalization capabilities. arXiv preprint arXiv:2410.18938 , 2024. Damek Davis and Dmitriy Drusvyatskiy. When do spectral gradient updates help in deep learning? arXiv preprint arXiv:2512.04299 , 2025. 15 Leonardo Defilippis, Yizhou Xu, Julius Girardin, Emanuele Troiani, Vittorio Erba, Lenka Zdeborov´ a, Bruno Loureiro, and Florent Krzakala. Scaling laws and spectra of shallow neural networks in the feature learning regime. arXiv preprint arXiv:2509.24882 , 2025. Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. Imagenet: A large-scale hierarchical image database. In 2009 IEEE conference on computer vision and pattern recognition , pages 248–255. Ieee, 2009. Alexey Dosovitskiy. An image is worth 16x16 words: Transformers for image recognition at scale. arXiv preprint arXiv:2010.11929 , 2020. John Duchi, Elad Hazan, and Yoram Singer. Adaptive subgradient methods for online learning and stochastic optimization. Journal of machine learning research , 12(7), 2011. Pierre Foret, Ariel Kleiner, Hossein Mobahi, and Behnam Neyshabur. Sharpness-aware minimization for efficiently improving generalization. arXiv preprint arXiv:2010.01412 , 2020. Guillaume Garrigos and Robert M Gower. Handbook of convergence theorems for (stochastic) gradient methods. arXiv preprint arXiv:2301.11235 , 2023. Aaron Gokaslan and Vanya Cohen. Openwebtext corpus. http://Skylion007.github.io/ OpenWebTextCorpus , 2019. Dirk Groeneveld, Iz Beltagy, Evan Walsh, Akshita Bhagia, Rodney Kinney, Oyvind Tafjord, Ananya Jha, Hamish Ivison, Ian Magnusson, Yizhong Wang, Shane Arora, David Atkinson, Russell Authur, Khyathi Chandu, Arman Cohan, Jennifer Dumas, Yanai Elazar, Yuling Gu, Jack Hessel, Tushar Khot, William Merrill, Jacob Morrison, Niklas Muennighoff, Aakanksha Naik, Crystal Nam, Matthew Peters, Valentina Pyatkin, Abhilasha Ravichander, Dustin Schwenk, Saurabh Shah, William Smith, Emma Strubell, Nishant Subramani, Mitchell Wortsman, Pradeep Dasigi, Nathan Lambert, Kyle Richardson, Luke Zettlemoyer, Jesse Dodge, Kyle Lo, Luca Soldaini, Noah Smith, and Hannaneh Hajishirzi. Olmo: Accelerating the science of language models. In Proceedings of the 62nd annual meeting of the association for computational linguistics (volume 1: Long papers) , pages 15789–15809, 2024. Vineet Gupta, Tomer Koren, and Yoram Singer. Shampoo: Preconditioned stochastic tensor optimization. In 
+
+International Conference on Machine Learning , pages 1842–1850. PMLR, 2018. Di He, Songjun Tu, Ajay Jaiswal, Li Shen, Ganzhao Yuan, Shiwei Liu, and Lu Yin. Alphadecay: Module-wise weight decay for heavy-tailed balancing in llms. arXiv preprint arXiv:2506.14562 , 2025. Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In 
+
+Proceedings of the IEEE conference on computer vision and pattern recognition , pages 770–778, 2016. Nicholas J Higham and Robert S Schreiber. Fast polar decomposition of an arbitrary matrix. SIAM Journal on Scientific and Statistical Computing , 11(4):648–655, 1990. Liam Hodgkinson, Umut Simsekli, Rajiv Khanna, and Michael Mahoney. Generalization bounds using lower tail exponents in stochastic optimizers. In International Conference on Machine Learning , pages 8774–8795. PMLR, 2022. Liam Hodgkinson, Zhichao Wang, and Michael W Mahoney. Models of heavy-tailed mechanistic universality. 
+
+arXiv preprint arXiv:2506.03470 , 2025. Yuanzhe Hu, Kinshuk Goel, Vlad Killiakov, and Yaoqing Yang. Eigenspectrum analysis of neural networks without aspect ratio bias. In Forty-second International Conference on Machine Learning , 2025. Keller Jordan, Yuchen Jin, Vlado Boza, Jiacheng You, Franz Cesista, Laker Newhouse, and Jeremy Bernstein. Muon: An optimizer for hidden layers in neural networks, 2024. URL https://kellerjordan.github. io/posts/muon/ .16 Jean Kaddour, Linqing Liu, Ricardo Silva, and Matt J Kusner. When do flat minima optimizers work? 
+
+Advances in Neural Information Processing Systems , 35:16577–16595, 2022. Diederik P Kingma. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 , 2014. Vignesh Kothapalli, Tianyu Pang, Shenyang Deng, Zongmin Liu, and Yaoqing Yang. From spikes to heavy tails: Unveiling the spectral evolution of neural networks. Transactions on Machine Learning Research ,2025. Alex Krizhevsky and Geoffrey Hinton. Learning multiple layers of features from tiny images. 2009. Zichong Li, Liming Liu, Chen Liang, Weizhu Chen, and Tuo Zhao. Normuon: Making muon more efficient and scalable. arXiv preprint arXiv:2510.05491 , 2025. Kaizhao Liang, Lizhang Chen, Bo Liu, and Qiang Liu. Cautious optimizers: Improving training with one line of code. arXiv preprint arXiv:2411.16085 , 2024. Hong Liu, Zhiyuan Li, David Hall, Percy Liang, and Tengyu Ma. Sophia: A scalable stochastic second-order optimizer for language model pre-training, 2024a. URL https://arxiv.org/abs/2305.14342 .Jingyuan Liu, Jianlin Su, Xingcheng Yao, Zhejun Jiang, Guokun Lai, Yulun Du, Yidao Qin, Weixin Xu, Enzhe Lu, Junjie Yan, Yanru Chen, Huabin Zheng, Yibo Liu, Shaowei Liu, Bohong Yin, Weiran He, Han Zhu, Yuzhi Wang, Jianzhou Wang, Mengnan Dong, Zheng Zhang, Yongsheng Kang, Hao Zhang, Xinran Xu, Yutao Zhang, Yuxin Wu, Xinyu Zhou, and Zhilin Yang. Muon is scalable for llm training. arXiv preprint arXiv:2502.16982 , 2025a. Liming Liu, Zhenghao Xu, Zixuan Zhang, Hao Kang, Zichong Li, Chen Liang, Weizhu Chen, and Tuo Zhao. Cosmos: A hybrid adaptive optimizer for memory-efficient training of llms. arXiv preprint arXiv:2502.17410 ,2025b. Zihang Liu, Yuanzhe Hu, Tianyu Pang, Yefan Zhou, Pu Ren, and Yaoqing Yang. Model balancing helps low-data training and fine-tuning. arXiv preprint arXiv:2410.12178 , 2024b. Zihang Liu, Tianyu Pang, Oleg Balabanov, Chaoqun Yang, Tianjin Huang, Lu Yin, Yaoqing Yang, and Shiwei Liu. Lift the veil for the truth: Principal weights emerge after rank reduction for reasoning-focused supervised fine-tuning. arXiv preprint arXiv:2506.00772 , 2025c. Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization. arXiv preprint arXiv:1711.05101 ,2017. Haiquan Lu, Yefan Zhou, Shiwei Liu, Zhangyang Wang, Michael W Mahoney, and Yaoqing Yang. Alphaprun-ing: Using heavy-tailed self regularization theory for improved layer-wise pruning of large language models. 
+
+Advances in neural information processing systems , 37:9117–9152, 2024. Jianhao Ma, Yu Huang, Yuejie Chi, and Yuxin Chen. Preconditioning benefits of spectral orthogonalization in muon, 2026. URL https://arxiv.org/abs/2601.13474 .Charles H Martin and Christopher Hinrichs. Setol: A semi-empirical theory of (deep) learning. arXiv preprint arXiv:2507.17912 , 2025. Charles H Martin and Michael W Mahoney. Implicit self-regularization in deep neural networks: Evidence from random matrix theory and implications for learning. Journal of Machine Learning Research , 22(165): 1–73, 2021. Charles H Martin, Tongsu Peng, and Michael W Mahoney. Predicting trends in the quality of state-of-the-art neural networks without access to training or testing data. Nature Communications , 12(1):4122, 2021. 17 Takeru Miyato, Toshiki Kataoka, Masanori Koyama, and Yuichi Yoshida. Spectral normalization for generative adversarial networks. arXiv preprint arXiv:1802.05957 , 2018. Team OLMo, Pete Walsh, Luca Soldaini, Dirk Groeneveld, Kyle Lo, Shane Arora, Akshita Bhagia, Yuling Gu, Shengyi Huang, Matt Jordan, et al. 2 olmo 2 furious. arXiv preprint arXiv:2501.00656 , 2024. Thomas Pethick, Wanyun Xie, Kimon Antonakopoulos, Zhenyu Zhu, Antonio Silveti-Falls, and Volkan Cevher. Training deep learning models with norm-constrained lmos. arXiv preprint arXiv:2502.07529 , 2025. Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, Ilya Sutskever, et al. Language models are unsupervised multitask learners. OpenAI blog , 1(8):9, 2019. Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, and Peter J Liu. Exploring the limits of transfer learning with a unified text-to-text transformer. 
+
+Journal of machine learning research , 21(140):1–67, 2020. Andrei Semenov, Matteo Pagliardini, and Martin Jaggi. Benchmarking optimizers for large language model pretraining. arXiv preprint arXiv:2509.01440 , 2025. Ishaan Shah, Anthony M. Polloreno, Karl Stratos, Philip Monk, Adarsh Chaluvaraju, Andrew Hojel, Andrew Ma, Anil Thomas, Ashish Tanwer, Darsh J Shah, Khoi Nguyen, Kurt Smith, Michael Callahan, Michael Pust, Mohit Parmar, Peter Rushton, Platon Mazarakis, Ritvik Kapila, Saurabh Srivastava, Somanshu Singla, Tim Romanski, Yash Vanjani, and Ashish Vaswani. Practical efficiency of muon for pretraining. 
+
+arXiv preprint arXiv:2505.02222 , 2025. Pratyusha Sharma, Jordan T Ash, and Dipendra Misra. The truth is in there: Improving reasoning in language models with layer-selective rank reduction. arXiv preprint arXiv:2312.13558 , 2023. Wei Shen, Ruichuan Huang, Minhui Huang, Cong Shen, and Jiawei Zhang. On the convergence analysis of muon. arXiv preprint arXiv:2505.23737 , 2025. Chongjie Si, Debing Zhang, and Wei Shen. Adamuon: Adaptive muon optimizer. arXiv preprint arXiv:2507.11005 , 2025. James B Simon, Madeline Dickens, Dhruva Karkada, and Michael R DeWeese. The eigenlearning framework: A conservation law perspective on kernel ridge regression and wide neural networks. Transactions on Machine Learning Research , 2023. Umut Simsekli, Ozan Sener, George Deligiannidis, and Murat A Erdogdu. Hausdorff dimension, heavy tails, and generalization in neural networks. Advances in Neural Information Processing Systems , 33:5138–5151, 2020. Ilya Sutskever, James Martens, George Dahl, and Geoffrey Hinton. On the importance of initialization and momentum in deep learning. In International conference on machine learning , pages 1139–1147. pmlr, 2013. Kimi Team, Yifan Bai, Yiping Bao, Guanduo Chen, Jiahao Chen, Ningxin Chen, Ruijue Chen, Yanru Chen, Yuankun Chen, Yutian Chen, et al. Kimi k2: Open agentic intelligence. arXiv preprint arXiv:2507.20534 ,2025. Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timoth´ ee Lacroix, Baptiste Rozi` ere, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971 , 2023. Nikhil Vyas, Depen Morwani, Rosie Zhao, Mujin Kwun, Itai Shapira, David Brandfonbrener, Lucas Janson, and Sham Kakade. Soap: Improving and stabilizing shampoo using adam. arXiv preprint arXiv:2409.11321 ,2024. 18 Jinbo Wang, Mingze Wang, Zhanpeng Zhou, Junchi Yan, and Lei Wu. The sharpness disparity principle in transformers for accelerating language model pre-training. arXiv preprint arXiv:2502.19002 , 2025a. Shuche Wang, Fengzhuo Zhang, Jiaxiang Li, Cunxiao Du, Chao Du, Tianyu Pang, Zhuoran Yang, Mingyi Hong, and Vincent YF Tan. Muon outperforms adam in tail-end associative memory learning. arXiv preprint arXiv:2509.26030 , 2025b. Zhichao Wang, Andrew Engel, Anand D Sarwate, Ioana Dumitriu, and Tony Chiang. Spectral evolution and invariance in linear-width neural networks. Advances in neural information processing systems , 36: 20695–20728, 2023. Kaiyue Wen, David Hall, Tengyu Ma, and Percy Liang. Fantastic pretraining optimizers and where to find them. arXiv preprint arXiv:2509.02046 , 2025. Yaoqing Yang, Ryan Theisen, Liam Hodgkinson, Joseph E Gonzalez, Kannan Ramchandran, Charles H Martin, and Michael W Mahoney. Test accuracy vs. generalization gap: Model selection in nlp without accessing training or testing data. In Proceedings of the 29th ACM SIGKDD Conference on Knowledge Discovery and Data Mining , pages 3011–3021, 2023. Huizhuo Yuan, Yifeng Liu, Shuang Wu, Xun Zhou, and Quanquan Gu. Mars: Unleashing the power of variance reduction for training large models. arXiv preprint arXiv:2411.10438 , 2024. Aohan Zeng, Xin Lv, Qinkai Zheng, Zhenyu Hou, Bin Chen, Chengxing Xie, Cunxiang Wang, Da Yin, Hao Zeng, Jiajie Zhang, et al. Glm-4.5: Agentic, reasoning, and coding (arc) foundation models. arXiv preprint arXiv:2508.06471 , 2025. Yushun Zhang, Congliang Chen, Ziniu Li, Tian Ding, Chenwei Wu, Diederik P Kingma, Yinyu Ye, Zhi-Quan Luo, and Ruoyu Sun. Adam-mini: Use fewer learning rates to gain more. arXiv preprint arXiv:2406.16793 ,2024. Jiawei Zhao, Zhenyu Zhang, Beidi Chen, Zhangyang Wang, Anima Anandkumar, and Yuandong Tian. Galore: Memory-efficient llm training by gradient low-rank projection. arXiv preprint arXiv:2403.03507 , 2024. Beitong Zhou, Jun Liu, Weigao Sun, Ruijuan Chen, Claire J Tomlin, and Ye Yuan. pbsgd: Powered stochastic gradient descent methods for accelerated non-convex optimization. In IJCAI , pages 3258–3266, 2020. Yefan Zhou, Tianyu Pang, Keqin Liu, Michael W Mahoney, and Yaoqing Yang. Temperature balancing, layer-wise weight analysis, and neural network training. Advances in Neural Information Processing Systems ,36:63542–63572, 2023. 19 A Proofs 
+
+Notation. For a vector v, we denote its l2 norm as ∥v∥2. For a matrix A, B ∈ Rm×n, we denote its spectral norm as ∥A∥, Frobenius norm as ∥A∥F, nuclear norm as ∥A∥∗, where ∥A∥∗ = Pri=1 σi, here 
+
+{σi}ri=1 are singular values, for p > 1, Schatten −p norm as ∥A∥p, where ∥A∥p = (Pri=1 σpi ) 1 
+
+> p
+
+. We denote 
+
+⟨A, B⟩ = Tr  A⊤B.
+
+## A.1 Update Under the Schatten −q Norm Constraint 
+
+Lemma A.1 (Von Neumann trace inequality) . For matrix A ∈ Rm×n, let σi(A) denote the i-th largest singular value of A, and let r = min( m, n ). Then for any A, B ∈ Rm×n, we have 
+
+⟨A, B⟩ = Tr  A⊤B ≤
+
+> r
+
+X
+
+> i=1
+
+σi(A) σi(B).
+
+Theorem A.2. Let fGt = U ΣV ⊤ be the SVD of the negative gradient fGt = −∇ f (Wt), where Σ =diag (σ1, . . . , σ r ). Let p be the conjugate exponent of q, satisfying 1/p ′ + 1 /q = 1 . The explicit solution ∆W ∗
+
+to the optimization problem 3 is given by: 
+
+∆W ∗ = δ 1
+
+∥ fGt∥p′/q p′
+
+U Σp′−1V ⊤, (6) 
+
+where Σp′−1 = diag( σp′−11 , . . . , σ p′−1 
+
+> r
+
+).
+
+Proof. First, by invoking Von Neumann’s trace inequality, we have the upper bound Tr( fGt
+
+> ⊤
+
+∆W ) ≤ X
+
+> i
+
+σi( fGt)σi(∆ W )The equality holds if and only if ∆ W shares the same left and right singular vectors as fGt. Thus, the optimal ∆W must take the form: ∆W = U ΛV ⊤, where Λ = diag( λ1, . . . , λ r ). (7) Here, λi ≥ 0 represents the singular values of ∆ W . The problem reduces to maximizing P 
+
+> i
+
+σiλi subject to 
+
+∥λ∥q ≤ δ. By H¨ older’s inequality, we have the upper bound: 
+
+X
+
+> i
+
+σiλi ≤ ∥ σ∥p′ ∥λ∥q ≤ ∥ σ∥p′ δ. (8) Equality is achieved if and only if λqi ∝ σp′ 
+
+> i
+
+, which implies: 
+
+λi = cσ p′/q i , (9) for some constant c ≥ 0. Using the conjugate property 1 /p ′ + 1 /q = 1, the exponent simplifies to: 
+
+p′
+
+q = p′
+
+
+
+1 − 1
+
+p′
+
+
+
+= p′ − 1. (10) Substituting this back yields the optimal singular values: 
+
+λi = c · σp′−1 
+
+> i
+
+, (11) 20 where c is a normalization constant. To determine c, we substitute these values into the active constraint 
+
+∥∆W ∥q = δ:
+
+X
+
+> i
+
+(cσ p′−1 
+
+> i
+
+)q
+
+!1/q 
+
+= c X
+
+> i
+
+σ(p′−1) qi
+
+!1/q 
+
+= δ. (12) Using the algebraic relation ( p′ − 1) q = p′, the term involving singular values simplifies to the Schatten −p′
+
+norm of fGt. Solving for c, we obtain: 
+
+c∥ fGt∥p′/q p′ = δ =⇒ c = δ
+
+∥ fGt∥p′/q p′
+
+. (13) Substituting c back into the expression ∆ W = U ΛV ⊤ yields the stated closed-form solution. □
+
+## A.2 Convergence Analysis 
+
+We consider the following stochastic optimization problem: min   
+
+> W∈Rm×n
+
+f (W ) = Eξ[f (W ; ξ)] ,
+
+where ξ is stochastic noise. We denote f ∗ = inf W f (W ), r = min {m, n }. We assume f ∗ > −∞ .We give the convergence analysis under a smooth non-convex setting for finding ϵ-stationary points, i.e. 
+
+∥∇ f (x)∥∗ ≤ ϵ.To better understand the proof, we give a stochastic version of HTMuon in Algorithm 7 for convergence analysis. 
+
+Algorithm 7 HTMuon Stochastic  
+
+> 1:
+
+Input: Initial weights W0 ∈ Rm×n, loss function L, learning rate ηt, momentum parameter β, batch size B, power p ∈ (0 , 1).  
+
+> 2:
+
+Initialize M0 ∈ Rm×n ← 0 
+
+> 3:
+
+for t = 1 , 2, . . . do  
+
+> 4:
+
+Sample batch {ξt,i }Bi=1 uniformly  
+
+> 5:
+
+Gt = 1
+
+> B
+
+PBi=1 ∇WL (Wt; ξt,i ) 
+
+> 6:
+
+Mt ← βMt−1 + (1 − β)Gt 
+
+> 7:
+
+Ut, Σt, V ⊤ 
+
+> t
+
+← SVD (Mt) 
+
+> 8:
+
+Ot ← UtΣpt V ⊤ 
+
+> t
+> 9:
+
+Wt+1 ← Wt − ηtOt 
+
+> 10:
+
+end for Lemma A.3. For t = 0 , 1, · · · , T, Mt and Wt are generated by Algorithm 7. Consider that M0 = G0, Mt =
+
+βMt−1 + (1 − β)Gt, under Assumptions 6.2 and 6.3, if we assume η = max {ηt}Tt=1 , under Assumption 6.4, we have 
+
+E∥∇ f (Wt)−Mt∥F ≤
+
+s
+
+1 − β
+
+1 + βσ
+
+√B + βtσ
+
+√B +
+
+√rl pβLη 
+
+1 − β ,
+
+where Gt = 1
+
+> B
+
+PBi=1 ∇f (Wt; ξt,i ) and B is batch size. 
+
+21 Proof. We define C0 = ∇f (W0), Ct = βCt−1 + (1 − β)∇f (Wt) = (1 − β) Pti=1 βt−i∇f (Wi) + βt∇f (W0), under Assumptions 6.2 and 6.3 we note that 
+
+E[∥∇ f (Wt − Ct)∥F]=E[∥∇ f (Wt) − (βCt−1 + (1 − β)∇f (Wt)) ∥F]=E[β∥∇ f (Wt − Ct−1)∥F]
+
+≤Eβ∥∇ f (Wt−1 − Ct−1)∥F
+
+
+
++Eβ∥∇ f (Wt−1)) − ∇ f (Wt)) ∥F
+
+
+
+≤Eβ∥∇ f (Wt−1 − Ct−1)∥F
+
+
+
++EβL ∥Wt−1 − Wt∥F
+
+
+
+≤Eβ∥∇ f (Wt−1 − Ct−1)∥F
+
+
+
++EβLη ∥Ut−1Σpt−1V ⊤
+
+> t−1
+
+∥F
+
+
+
+≤Eβ∥∇ f (Wt−1 − Ct−1)∥F + βLη √rl p
+
+≤βt∥∇ f (W0) − C0∥F +
+
+> t
+
+X
+
+> i=1
+
+βiLη √rl p
+
+≤√rl pβLη 
+
+1 − β .
+
+And follow the same proof in Section B.1 in Shen et al. (2025), we have 
+
+E[∥Ct − Mt∥F] ≤
+
+s
+
+1 − β
+
+1 + βσ
+
+√B + βt σ
+
+√B .
+
+So we have 
+
+E∥∇ f (Wt) − Mt∥F
+
+≤E[∥∇ f (Wt − Ct)∥F] + E[∥Ct − Mt∥F]
+
+≤
+
+s
+
+1 − β
+
+1 + βσ
+
+√B + βtσ
+
+√B +
+
+√rl pβLη 
+
+1 − β
+
+□
+
+Theorem A.4 (Muon (Shen et al., 2025)) . Under Assumptions 6.2 and 6.3, if we apply Muon with ηt = η,then 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+E∥∇ f (Wt)∥∗
+
+ ≤ Ef (W0) − f (WT )
+
+T η + Lrη 
+
+2 + 2σpr(1 − β)
+
+pB(1 + β) + 2βσ √r
+
+(1 − β)T √B + 2rηβL 
+
+1 − β .
+
+Where B is batch size. Denote ∆ = f (W0) − f ∗. If we set B = 1 , η =
+
+q (1 −β)∆  
+
+> rT L
+
+, 1 − β = min 
+
+n √L∆ 
+
+> σ√T
+
+, 1
+
+o
+
+, then 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+E∥∇ f (Wt)∥∗
+
+ ≤ O 4
+
+r r2L∆σ2
+
+T +
+
+r rL ∆
+
+T +
+
+√rσ 2
+
+√L∆T
+
+!
+
+.
+
+Thus, Muon can find an ϵ-nuclear norm stationary point of f with a complexity of O(r2Lσ 2∆ϵ−4).
+
+22 Theorem A.5 (HTMuon: Theorem 6.6) . Under Assumptions 6.2, 6.3 and 6.4, if we apply HTMuon in Algorithm 7 with adaptive learning rate ηt = ⟨Mt,ρ (Mt)⟩
+
+> L∥ρ(Mt)∥2F
+
+, ρ(Mt) = UtΣpt V ⊤ 
+
+> t
+
+and batch size B = T , then 
+
+1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E∥∇ f (Wt)∥21+ p
+
+ ≤ 2Lr 1
+
+> s
+
+1 − ε′
+
+ 1 − ε′
+
+L + 1
+
+Lε ′
+
+  2(1 − β)σB(1 + β) + 2β2σ2
+
+(1 − β2)BT + 2rl 2pβ2L2η2
+
+(1 − β)2
+
+ + 4Lr 1
+
+> s
+
+1 − ε′
+
+f (W0) − f (WT )
+
+T .
+
+Where s = 1+ p 
+
+> 1−p
+
+and 0 < ε ′ < 1. Furthermore, if we define β = 1√T , ∆ = f (W0) − f ∗, thus we have 
+
+1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E∥∇ f (Wt)∥21+ p
+
+ ≤ 2Lr 1
+
+> s
+
+1 − ε′
+
+ 1 − ε′
+
+L + 1
+
+Lε ′
+
+  2σT + 4σ2
+
+T + 4rl 2pL2η2
+
+T
+
+ + 4Lr 1
+
+> s
+
+1 − ε′
+
+∆
+
+T .
+
+Proof. Consider Mt = UtΣtV ⊤ 
+
+> t
+
+, we first define ρ(Mt) = UtΣpt V ⊤ 
+
+> t
+
+. By Assumption 6.2, we have 
+
+Ef (Wt) − f (Wt+1 )
+
+≥ Eηt⟨∇ f (Wt), ρ (Mt)⟩ − Lη 2
+
+> t
+
+2 ∥ρ(Mt)∥2F
+
+
+
+≥ Eηt⟨Mt, ρ (Mt)⟩ − Lη 2
+
+> t
+
+2 ∥ρ(Mt)∥2F − ηt⟨Mt − ∇ f (Wt), ρ (Mt)⟩.
+
+Here we consider adaptive learning rate ηt = ⟨Mt,ρ (Mt)⟩
+
+> L∥ρ(Mt)∥2F
+
+> 0, thus 
+
+Ef (Wt) − f (Wt+1 )
+
+≥ E ⟨Mt, ρ (Mt)⟩2
+
+L∥ρ(Mt)∥2F
+
+− ⟨Mt, ρ (Mt)⟩2
+
+2L∥ρ(Mt)∥2F
+
+
+
+− ηt∥Mt − ∇ f (Wt)∥F∥ρ(Mt)∥F
+
+
+
+≥ E ⟨Mt, ρ (Mt)⟩2
+
+L∥ρ(Mt)∥2F
+
+− ⟨Mt, ρ (Mt)⟩2
+
+2L∥ρ(Mt)∥2F
+
+
+
+− ⟨Mt, ρ (Mt)⟩
+
+L∥ρ(Mt)∥F
+
+∥Mt − ∇ f (Wt)∥F
+
+
+
+By 2 ab ≤ ε′a2 + b2 
+
+> ε′
+
+, where 0 < ε ′ < 1, we have 
+
+Ef (Wt) − f (Wt+1 )
+
+≥ E ⟨Mt, ρ (Mt)⟩2
+
+L∥ρ(Mt)∥2F
+
+− ⟨Mt, ρ (Mt)⟩2
+
+2L∥ρ(Mt)∥2F
+
+− ε′
+
+2L
+
+⟨Mt, ρ (Mt)⟩2
+
+∥ρ(Mt)∥2F
+
+− 12Lε ′ ∥Mt − ∇ f (Wt)∥2F
+
+
+
+≥ E 1 − ε′
+
+2L
+
+⟨Mt, ρ (Mt)⟩2
+
+∥ρ(Mt)∥2F
+
+− ∥Mt − ∇ f (Wt)∥2F
+
+2Lε ′
+
+
+
+By Holder’s Inequality, for p ∈ (0 , 1) and we set s = 1+ p 
+
+> 1−p
+
+and m = 1+ p 
+
+> 2p
+
+, we have 
+
+∥ρ(Mt)∥2F =
+
+> r
+
+X
+
+> i=1
+
+σ2pi ≤ r 1
+
+> s
+> r
+
+X
+
+> i=1
+
+(σ2pi )m
+
+! 1
+
+> m
+
+≤ r 1
+
+> s
+> r
+
+X
+
+> i=1
+
+σ1+ pi
+
+! 2pp+1 
+
+.
+
+Thus we have 
+
+⟨Mt, ρ (Mt)⟩2
+
+∥ρ(Mt)∥2F
+
+≥
+
+Pri=1 σ1+ pi
+
+2
+
+r 1
+
+> s
+
+Pri=1 σ1+ pi
+
+ 2pp+1 
+
+= ∥Mt∥21+ p
+
+r 1
+
+> s
+
+.
+
+Hence, we have 
+
+Ef (Wt) − f (Wt+1 ) ≥ E 1 − ε′
+
+2Lr 1
+
+> s
+
+∥Mt∥21+ p − ∥Mt − ∇ f (Wt)∥2F
+
+2Lε ′
+
+
+
+23 By Lemma A.3, we let η = max {ηt}Tt=1 , we have 
+
+E∥∇ f (Wt) − Mt∥2F ≤
+
+s
+
+1 − β
+
+1 + βσ
+
+√B + βtσ
+
+√B +
+
+√rl pβLη 
+
+1 − β
+
+!2
+
+≤ 2(1 − β)σB(1 + β) + 2β2tσ2
+
+B + 2rl 2pβ2L2η2
+
+(1 − β)2
+
+Thus we have 
+
+E 1 − ε′
+
+2Lr 1
+
+> s
+
+∥∇ f (Wt)∥21+ p
+
+
+
+≤ E 1 − ε′
+
+Lr 1
+
+> s
+
+∥∇ f (Wt) − Mt∥21+ p
+
+ + E 1 − ε′
+
+Lr 1
+
+> s
+
+∥Mt∥21+ p
+
+
+
+≤ E 1 − ε′
+
+L ∥∇ f (Wt) − Mt∥2F
+
+ + E 1 − ε′
+
+Lr 1
+
+> s
+
+∥Mt∥21+ p
+
+
+
+≤ E 1 − ε′
+
+L + 1
+
+Lε ′
+
+
+
+∥∇ f (Wt) − Mt∥2F + f (Wt) − f (Wt+1 )
+
+Thus we have 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E∥∇ f (Wt)∥21+ p
+
+
+
+≤ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E 2Lr 1
+
+> s
+
+1 − ε′
+
+ 1 − ε′
+
+L + 1
+
+Lε ′
+
+
+
+∥∇ f (Wt) − Mt∥2F
+
+ + 2Lr 1
+
+> s
+
+1 − ε′
+
+f (W0) − f (WT )
+
+T
+
+≤ 2Lr 1
+
+> s
+
+1 − ε′
+
+ 1 − ε′
+
+L + 1
+
+Lε ′
+
+  2(1 − β)σB(1 + β) + 2β2σ2
+
+(1 − β2)BT + 2rl 2pβ2L2η2
+
+(1 − β)2
+
+ + 2Lr 1
+
+> s
+
+1 − ε′
+
+f (W0) − f (WT )
+
+T
+
+We define B = T, β = 1√T , ∆ = f (W0) − f ∗, thus we have 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E∥∇ f (Wt)∥21+ p
+
+ ≤ 2Lr 1
+
+> s
+
+1 − ε′
+
+ 1 − ε′
+
+L + 1
+
+Lε ′
+
+  2σT + 2σ2
+
+(1 − β2)T 3 + 2rl 2pL2η2
+
+T (1 − β)2
+
+ + 2Lr 1
+
+> s
+
+1 − ε′
+
+∆
+
+T .
+
+When β = 1√T , it is easy to get 1 − β ≥ 12 , thus we have 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+E∥∇ f (Wt)∥21+ p
+
+ ≤ 2Lr 1
+
+> s
+
+1 − ε′
+
+ 1 − ε′
+
+L + 1
+
+Lε ′
+
+  2σT + 4σ2
+
+T 3 + 4rl 2pL2η2
+
+T
+
+ + 2Lr 1
+
+> s
+
+1 − ε′
+
+∆
+
+T .
+
+Based on Theorem 6.6 and Definition 6.5, when B = T , the sample complexity upper bound is O(ϵ−4), which matches Muon ’s sample complexity in Theorem A.4 and (Chang et al., 2025) and SGDM ’s sample complexity in Arjevani et al. (2023); Garrigos and Gower (2023). . □
+
+## A.3 Lemma for PL exponent α
+
+Lemma A.6. Suppose the singular values of matrix W ∈ Rn×m follow sk = s1k−s, 1 ≤ k ≤ n, we have PL exponent α of W satisfies α = 1 + 12s .
+
+Proof. Since we have sk = s1k−s, 1 ≤ k ≤ n, which means eigenvalues λk = λ1k−2s, 1 ≤ k ≤ n. Here we suppose Λ is a random variable distributed according to the empirical distribution from these eigenvalues, we can see that the distribution function takes the following form: 
+
+P(Λ > λ 1k−2s) = kn .
+
+24 By changing variables λ1k−s = λ, we get the cumulative distribution function of Λ: 
+
+P(Λ > λ ) ∼ λ− 12s .
+
+After that, we take the derivative with respect to λ, and we get the ESD: 
+
+p(λ) ∼ λ−( 12s +1 ).
+
+So we have α = 1 + 12s . □
+
+# B More Experimental Details 
+
+In this section, we present more experimental details. 
+
+## B.1 Muon and HTMuon Algorithms 
+
+In Algorithm 1 and 2, we give the implementations of Muon NS and Muon SVD . Muon NS corresponds to the commonly used five-step Newton Schulz implementation of Muon , whereas Muon SVD represents the theoretically exact SVD-based implementation. Empirically, we find that due to the numerical approximation in Muon NS , the singular values of the update matrix do not always equal 1 exactly. Such deviations may suppress weights along noise-dominated eigenvector directions, which could explain why Muon NS performs better than Muon SVD in practice. In Algorithm 4, we give the implementations of HTMuon NS . As discussed in Section 5.4, we note that the 
+
+HTMuon update Ot = UtΣpt V ⊤ 
+
+> t
+
+admits the factorization 
+
+Ot = ( UtV ⊤ 
+
+> t
+
+) ( VtΣpt V ⊤ 
+
+> t
+
+).
+
+For UtV ⊤ 
+
+> t
+
+part, this is Muon ’s update, we can consider Newton-Schulz with 5 steps. To compute the symmetric factor VtΣpt V ⊤ 
+
+> t
+
+efficiently, we apply the NS root routine to M ⊤ 
+
+> t
+
+Mt in Algorithm 5, since 
+
+M ⊤ 
+
+> t
+
+Mt = VtΣ2 
+
+> t
+
+V ⊤ 
+
+> t
+
+,
+
+we have VtΣpt V ⊤ 
+
+> t
+
+= ( M ⊤ 
+
+> t
+
+Mt) p 
+
+> 2
+
+. Accordingly, NS root uses NewtonSchulz iterations to approximate matrix square roots and applies successive square-root operations for [1 − log 2 p] rounds. 
+
+## B.2 Training Loss Curve 
+
+In Figure 9, we show the smoothed training loss curves for LLaMA-60M and LLaMA-135M on C4 dataset. We find in the later stages of training, HTMuon consistently achieves a noticeably lower training loss than 
+
+Muon , demonstrating the effectiveness and training stability. 
+
+## B.3 More Experiments Results 
+
+In Table 7, we conduct evaluations on LLaMA-60M and LLaMA-135M on the C4 datatset, comparing 
+
+HTMuon with multiple Muon -variant optimizers as well as other state-of-the-art optimizers. HTMuon consistently achieves the best results. Furthermore, combining HTMuon with other Muon -variant optimizers will achieve better performance. Detailed hyperparameters are reported in Appendix C. In Table 8 and 9, we report the perplexity and average per-step runtime for HTMuon , HTMuon NS , and 
+
+HTMuon+NorMuon under different update intervals. We measure per-step runtime on 4 NVIDIA A6000 GPUs. We find that increasing the interval substantially reduces the average overhead of HTMuon , while it still outperforms Muon . Under the same interval, HTMuon NS further reduces the average overhead and also remains better than Muon . Similarly, for HTMuon+NorMuon , larger intervals make its average overhead approach that of 
+
+NorMuon , while consistently outperforming NorMuon . For more visualizations, please refer to Figure 5 and 10. 25 4000 6000 8000 10000 
+
+> Steps
+> 3.25
+> 3.50
+> 3.75
+> 4.00
+> 4.25
+> Training Loss  Muon
+> HTMuon
+
+(a) LLaMa-60M on C4 5000 10000 15000 20000  
+
+> Steps
+> 3.00
+> 3.25
+> 3.50
+> 3.75
+> 4.00
+> 4.25
+> Training Loss  Muon
+> HTMuon
+
+(b) LLaMA-135M on C4 
+
+Figure 9: Training loss curves for LLaMA-60M and LLaMA-135M. Learning rate for both models and optimizers is 0.03. Both curves are smoothed via a simple moving average (uniform weights, window = 50). Table 7: We evaluate HTMuon on LLaMA-60M and LLaMA-135M, comparing it against several Muon variant optimizers and other state-of-the-art optimizers. Red indicates the best value, and blue denotes the second-best value. We find that HTMuon consistently outperforms these baselines. More hyperparameter details are provided in Appendix C.                                      
+
+> Muon HTMuon NorMuon HTMuon+NorMuon AdaMuon MARS SOAP Cautious COSMOS GaLore Sophia
+> LLaMa-60M 28.80 27.88 28.17 27.55 28.67 29.13 28.96 29.71 28.62 34.26 34.02 LLaMa-135M 22.23 21.25 21.99 21.11 22.43 22.42 22.43 23.15 22.15 25.11 25.63 NorMuon Interval=1 Interval=5 Interval=10 Interval=25 Time(sec) 27.0
+> 27.5
+> 28.0
+> 28.5
+> Perplexity (  ↓ )
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+
+(a) 
+
+HTMuon +NorMuon 
+
+LLaMA-60M 21.0  
+
+> 21.5
+> 22.0
+> 22.5
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> Time (sec)
+
+(b) 
+
+HTMuon +NorMuon 
+
+LLaMA-135M 
+
+Figure 10: we evaluate applying HTMuon + NorMuon on LLaMA-60M and LLaMA-135M every 1, 5, 10, and 25 steps (while other steps applying NorMuon ) . We report the average per-step runtime overhead for all methods. Detailed results and hyperparameter settings are provided in Table 8 and 9 in Appendix C. In Table 10, we summarize the PPL and wall-clock time of Muon , HTMuon , HTMuon NS , HTMuon (Interval = 5), and HTMuon NS (Interval = 5). To better report the wall-clock time, we rerun training on NVIDIA RTX PRO 6000 GPUs: LLaMA-60M on C4 using 2 GPUs, and LLaMA-135M on C4 using 4 GPUs. We find that although HTMuon can take longer than Muon , the substantial gains achieved through heavy-tailed spectral correction suggest that HTMuon captures the correct inductive bias for learning. Furthermore, we believe that efficient variants such as HTMuon NS with interval-based updates provide a strong balance between performance and efficiency. Here we also give the FLOPs analysis for Muon and HTMuon NS , we consider initial weights W0 ∈ Rm×n.26 Table 8: We report the exact PPL obtained when training LLaMA-60M and LLaMA-135M using HTMuon ,
+
+HTMuon NS , and HTMuon+NorMuon under different update intervals. For Muon and NorMuon , interval updates are not applicable; therefore, we only report their PPL after training. LLaMA-60M LLaMA-135M Optimizer 1 5 10 25 1 5 10 25 
+
+Muon 28.80 22.23 
+
+HTMuon 27.88 28.36 28.58 28.64 21.25 22.01 22.13 22.20 
+
+HTMuon NS 28.03 28.42 28.67 28.74 21.35 22.05 22.14 22.20 
+
+NorMuon 28.17 21.99 
+
+HTMuon +NorMuon 27.55 27.85 28.01 28.12 21.11 21.61 21.81 21.95 Table 9: We report the average per-step runtime overhead obtained when training LLaMA-60M and LLaMA-135M using HTMuon , HTMuon NS , and HTMuon+NorMuon under different update intervals. We measure per-step runtime on 4 NVIDIA A6000 GPUs. For Muon and NorMuon , interval updates are not applicable; therefore, we only report average per-step runtime overhead. LLaMA-60M LLaMA-135M Optimizer 1 5 10 25 1 5 10 25 
+
+Muon 0.51 0.59 
+
+HTMuon 1.26 0.67 0.61 0.54 1.70 0.82 0.70 0.63 
+
+HTMuon NS 0.66 0.59 0.56 0.54 0.92 0.68 0.64 0.63 
+
+NorMuon 0.54 0.60 
+
+HTMuon +NorMuon 1.27 0.70 0.64 0.59 1.78 0.86 0.81 0.72 
+
+• FLOPs analysis for Muon (Algorithm 1): 
+
+FM uon = 20 mnr + O(mn ).
+
+• FLOPs analysis for HTMuon NS (Algorithm 4): 
+
+FHT M uon N S = 20 mnr + 4 mn 2 + 6 LT n 3 + O(n2),
+
+where r = min( m, n ), L =
+
+h
+
+log 2
+
+ 2
+
+> p
+
+i 
+
+and T=ns steps in Algorithm 4. Compared to Muon , the additional FLOPs in HTMuon NS mainly come from the Newton{Schulz iterations used for the fractional power approximation. In Figure 11a, 11b, we visualize the layer-wise PL exponent α for ResNet18 on CIFAR-100 and CIFAR-10 dataset to further support that HTMuon makes the updated matrices more heavy-tailed than Muon .
+
+## B.4 More Ablation Study 
+
+B.4.1 Varying learning rates 
+
+In Figure 12, Table 11, 12 and 13, we conduct learning grid search on LLaMA and ResNet models, our experiments show that for most learning rates, HTMuon outperforms Muon and NorMuon , which exhibits our method’s effectiveness and robustness. 27 Table 10: We report the perplexity and wall-clock time of when training LLaMA-60M and LLaMA-135M using Muon , HTMuon , HTMuon NS , HTMuon (Interval=5), HTMuon NS (Interval=5). We measure wall-clock time on 4 NVIDIA RTX PRO 6000 GPUs. LLaMA-60M LLaMA-135M Optimizer PPL Time PPL Time(hour) 
+
+Muon 28.84 0.67 22.27 1.40 
+
+HTMuon NS (Interval=5) 28.50 0.71 22.02 1.55 
+
+HTMuon (Interval=5) 28.36 1.02 22.04 2.40 
+
+HTMuon NS 28.06 0.87 21.36 2.17 
+
+HTMuon 27.87 2.46 21.24 6.57 1 5 10 15 20   
+
+> Layer index
+> 2
+> 3
+> 4
+> 5
+> 6
+> α
+> Muon ( ̄α=2.879)
+> HTMuon ( ̄α=2.492)
+
+(a) ResNet18 on CIFAR-100 1 5 10 15 20    
+
+> Layer index
+> 1
+> 2
+> 3
+> 4
+> 5
+> α
+> Muon ( ̄α=2.888)
+> HTMuon ( ̄α=2.511)
+
+(b) ResNet18 on CIFAR-10 1 10 20 30 40 50    
+
+> Layer index
+> 10
+> 20
+> α
+> Muon ( ̄α=4.786)
+> HTMuon_HT ( ̄α=4.376)
+
+(c) HTMUON HT 60M 1 10 20 30 40 50 60 70 80    
+
+> Layer index
+> 5
+> 10
+> α
+> Muon ( ̄α=4.750)
+> HTMuon_HT ( ̄α=3.809)
+
+(d) HTMUON HT 135M 
+
+Figure 11: (a)(b): Layer-wise PL α for ResNet-18 model weight ESDs on CIFAR-100 and CIFAR-10 trained with Muon and HTMuon . (c)(d): Layer-wise PL α for LLaMA model weight ESDs trained with 
+
+Muon and HTMuon HT . All models used for visualization are trained using each optimizer’s best-performing hyperparameter configuration. For hyperparameter configurations, please refer to Appendix C. 
+
+B.4.2 Varying different p
+
+In table 14, we give the exact results for ablation study on p in Figure 8, we test multiple values of p on LLaMA-60M and LLaMA-135M on the C4 dataset, and find that p = 0 .125 is a robust choice. We therefore use p = 0 .125 in most experiments. Here we discuss more about hyperparameter sensitivity for p. Although introducing p adds a tuning dimension and add hyperparameter search burden, also we only do grid search on LLaMA models to obtain the optimal p = 0 .125, we will clarify that p = 0 .125 can serve as a recommended default for other tasks. 
+
+• p = 0 .125 generalizes well across tasks and architectures. In our paper, we also use p = 0 .125 for 
+
+HTMuon when training GPT-2 small on OpenWebText dataset, ResNet-18 and ResNet-50 on CIFAR datasets, Tables 2, 12and 13 in our paper show that HTMuon consistently outperforms Muon .
+
+• p = 0 .125 is often optimal or near-optimal across tasks and architectures. To explore whether 
+
+p = 0 .125 is also close to optimal on other tasks, we performed grid searches over p on the CIFAR and OpenWebText datasets in Table 15 and 16. We find that on CIFAR-10, p = 0 .125 achieves the best performance for both ResNet-18 and ResNet-50, and on OpenWebText, p=0.125 also yields the best result for GPT-2 small. While on CIFAR-100 a larger value (e.g., p = 0 .2) can perform slightly better, this does not change our overall conclusion that p=0.125 is a strong and practical recommended default. 
+
+B.4.3 Varying different ways to make Muon update more heavy-tailed 
+
+In Algorithm 6, we explore another way HTMuon HT to make Muon updates more heavy-tailed , which directly replaces the momentum matrix’s singular values with a pre-specified heavy-tailed distribution. We use 
+
+α = 0 .25 in Algorithm 6 for experiments. In Table 17, we find that, although HTMuon HT is not as strong as 28 Muon HTMuon NorMuon HTMuon +NorMuon 0.01 0.02 0.03 0.04                    
+
+> Learning rate
+> 27
+> 28
+> 29
+> 30
+> Perplexity (  ↓ )(a) LLaMA-60M on C4 0.01 0.02 0.03 0.04
+> Learning rate
+> 21
+> 22
+> 23
+> 24 (b) LLaMA-135M on C4 0.015 0.02 0.025 0.03
+> Learning rate
+> 77.0
+> 77.5
+> 78.0
+> 78.5
+> Accuracy (  ↑ )(c) ResNet18 on CIFAR-100 0.015 0.02 0.025 0.03
+> Learning rate
+> 79.0
+> 79.5
+> 80.0
+> 80.5
+> Accuracy (  ↑ )
+> (d) ResNet50 on CIFAR-100 0.01 0.015 0.02 0.025
+> Learning rate
+> 95.0
+> 95.2
+> 95.4
+> 95.6
+> 95.8 (e) ResNet18 on CIFAR-10 0.01 0.015 0.02 0.025
+> Learning rate
+> 95.6
+> 95.8
+> 96.0
+> 96.2 (f) ResNet50 on CIFAR-10
+
+Figure 12: We conduct learning-rate grid searches for Muon , NorMuon , HTMuon , and HTMuon+NorMuon across various datasets and architectures, including LLaMA models on C4 and ResNet models on CIFAR-100 and CIFAR-10. We find that HTMuon outperforms Muon and NorMuon across most learning rates, demonstrating the effectiveness and robustness of our method. 
+
+HTMuon , it consistently outperforms Muon . In Figure 11c and 11d, we visualize the layer-wise PL exponent α
+
+for LLaMA-60M and LLaMA-135M, and observe that HTMuon HT also yields consistently smaller α than Muon 
+
+across layers. This suggests that the proposed heavy-tailed spectral correction can indeed improve Muon .Since some readers maybe confused that the performance improvement attribution of our method HTMuon 
+
+is from inducing heavy tails or preserving singular value information. Here we discuss more about the performance improvement attribution for our algorithm HTMuon based on HTMuon HT . Our motivation for heavy-tail spectral correction is that Muon enforces unit singular values for update matrices. This induces a light-tailed spectrum and can over-emphasize noise-dominated directions, which may limit performance. Guided by HT-SR theory, we therefore consider heavy-tailed spectral correction. We study two ways of introducing heavy-tailed spectra: HTMuon HT (which merely induces heavy tails) and HTMuon (which introduces heavy tail spectral correction on top of preserved spectral information). Below, we discuss the benefits of merely inducing heavy tails versus preserving singular value information. 
+
+• Merely inducing a heavy-tailed spectrum already yields non-trivial gains . Our HTMuon HT 
+
+ablation enforces a rigid, pre-specified heavy-tailed spectral distribution. In Table 12 of our paper, although this design discards the data-driven singular-value structure, HTMuon HT still outperforms 
+
+Muon in perplexity by 0.28 on LLaMA-60M and by 0.58 on LLaMA-135M. We would like to kindly emphasize that this is not ”poor performance.” First, Muon is a strong baseline: in Table 1, Muon 
+
+outperforms the widely used Adam/AdamW by up to 3.21 PPL on LLaMA-60M and 135M. Under such a strong baseline, simply replacing the spectrum with a pre-defined heavy-tailed distribution that ignores data information yet still yields gains provides direct evidence that heavy-tail correction itself 29 Table 11: Detailed results for learning rate grid search on C4. Red indicates the best value, and blue denotes the second-best value. LLaMA-60M LLaMA-135M Optimizer 0.01 0.02 0.03 0.04 0.01 0.02 0.02 0.04 
+
+Muon 28.80 28.99 28.88 29.93 22.23 22.51 22.59 23.73 
+
+NorMuon 28.63 28.59 28.17 29.07 21.99 22.17 22.06 22.76 
+
+HTMuon 28.48 28.75 27.88 30.22 22.95 21.96 21.25 21.92 
+
+HTMuon +NorMuon 30.14 28.63 27.55 28.03 22.71 21.82 21.11 21.76 Table 12: Detailed results for learning rate grid search on CIFAR-100. Red indicates the best value, and blue denotes the second-best value. ResNet18 ResNet50 Optimizer 0.015 0.02 0.025 0.03 0.015 0.02 0.025 0.03 
+
+Muon 77.10 77.16 77.95 77.53 79.15 79.41 79.67 79.85 
+
+NorMuon 76.75 77.82 77.64 77.63 79.13 79.78 79.74 79.61 
+
+HTMuon 77.18 77.65 78.24 78.21 79.55 80.03 80.16 80.07 
+
+HTMuon +NorMuon 77.51 77.78 78.51 78.02 79.60 80.03 79.93 80.22 
+
+is effective. Second, the improvement of HTMuon HT is not insignificant: as suggested by Table 2 in (Liu et al., 2025b) and (He et al., 2025) and Figure 2 in (Wen et al., 2025), after carefully tune the hyperparameters of the baselines on LLaMA/C4, an improvement of ≥ 0.2 PPL over Muon is generally regarded as non-negligible. For example, COSMOS outperforms Muon by 0.15 PPL for LLaMA-135M in (Liu et al., 2025b) and AlphaDecay outperforms Adam by 0.11 PPL for LLaMA-1B in (He et al., 2025). Therefore, these results strongly indicate that merely inducing heavy-tail correction is already useful. Moreover, in Figure 1 of our motivating experiment, we observe that Muon NS outperforms Muon SVD ,this further suggests that strictly enforcing a light-tailed, unit-singular-value spectrum may be overly restrictive, and that relaxing it via heavy-tail correction can be beneficial. 
+
+• Heavy tail spectral correction on top of preserved spectral information is more effective. 
+
+We acknowledge that the data-driven spectral information encoded in singular values is important, as it reflects meaningful structure learned from data. Our method HTMuon therefore performs heavy-tail spectral correction based on the current spectral information: specifically, we raise singular values to the power p (as motivated by Lemma 4.1) to give the spectrum a heavier tail than Muon ’s unit-spectrum, without discarding the learned geometry. This combination preserves directional information while attenuating noise-dominated directions more than signal-aligned ones compared to Muon , leading to stronger gains than using a rigid, pre-specified heavy-tailed spectrum alone. 
+
+# C Detailed Hyperparameters 
+
+Since in practice our Muon is a hybrid MuonwithAdamW variant(Jordan et al., 2024), we use the same hyperpa-rameter settings as AdamW for the small subset of parameters updated with AdamW .
+
+## C.1 Hyperparameter settings for LLM pretraining 
+
+For the C4 task, we adopt the LLaMA architecture specifications listed in Table 18 to ensure reproducibility and consistency with prior work. All model variants are trained with a uniform maximum sequence length of 30 Table 13: Detailed results for learning rate grid search on CIFAR-10. Red indicates the best value, and blue denotes the second-best value. ResNet18 ResNet50 Optimizer 0.01 0.015 0.02 0.025 0.01 0.015 0.02 0.025 
+
+Muon 95.10 95.39 95.25 95.36 95.8 95.90 95.97 95.90 
+
+NorMuon 95.30 95.35 95.57 95.24 95.74 96.03 95.91 95.75 
+
+HTMuon 95.27 95.23 95.63 95.39 96.13 95.84 96.07 95.86 
+
+HTMuon +NorMuon 95.36 95.25 95.40 95.17 96.02 95.85 96.04 95.97 Table 14: Detailed results for ablation study on p on C4 dataset. Red indicates the best value, and blue denotes the second-best value. LLaMA-60M LLaMA-135M Optimizer 0 0.1 0.125 0.2 0.25 0 0.1 0.125 0.2 0.25 HTMuon 28.80 27.91 27.88 28.56 29.97 22.23 21.33 21.25 21.66 22.43 HTMuon+NorMuon 28.17 27.48 27.55 28.15 29.54 21.99 21.21 21.11 21.33 22.1 256, a batch size of 512, and an aggregate of 13K tokens per batch. For LLaMA-60M, we run all experiments on two NVIDIA L40 GPUs or two NVIDIA A6000 GPUs without gradient accumulation; for LLaMA-135M, we run all experiments on four NVIDIA L40 GPUs or four NVIDIA A6000 GPUs without gradient accumulation; for LLaMA-350M, we run all experiments on four NVIDIA RTX PRO 6000 Blackwell without gradient accumulation; for LLaMA-1B, we run all experiments on four NVIDIA RTX PRO 6000 Blackwell with gradient accumulation. For the OpenWebText task, we consider a uniform maximum sequence length of 1024 , a batch size of 480 and 10000 iterations for GPT-2 small. we run all experiments on four NVIDIA RTX PRO 6000 Blackwell with gradient accumulation=8. We do learning rate grid search on {0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 } for Muon and HTMuon , we set learning rate= 6 e − 4 for AdamW . We consider weight decay= 0 .1 for all optimizers. We apply p = 0 .125 for all LLM pretraining experiments. In our experiments, we apply Muon updates to the embedding and output layers during training. For more detailed hyperparameter settings, please refer to Table 19 and 20. 
+
+## C.2 Hyperparameter settings for Image classification 
+
+For training on CIFAR datasets, we set batch size = 512 and we set p = 0 .125. We run all the experiments on one NVIDIA L40 GPU. For more detailed hyperparameter settings, please refer to Table 21 and 22. For training on ImageNet-1K datasets, we set batch size = 1024 and we set p = 0 .03125. We run all the experiments on one NVIDIA RTX PRO 6000 Blackwell. We set learning rate for {0.003, 0.004, 0.005 } for 
+
+Adam , Muon , HTMuon .
+
+# D Baseline Optimizers 
+
+In this section, we provide the algorithms for all optimizers evaluated in our study. We adopt the following notation: wt denotes the model parameters at step t, gt the corresponding gradient, η the learning rate, λ
+
+the weight decay, β1 and β2 the moment decay rates, ϵ a numerical stability constant, gnorm the gradient norm, and m and v the first and second moments, respectively. All operations are element-wise unless stated otherwise. 31 Table 15: Detailed results for ablation study on p for HTMuon on CIFAR datasets. Red indicates the best value. ResNet18 ResNet50 Dataset 0 0.1 0.125 0.2 0.25 0 0.1 0.125 0.2 0.25 CIFAR-10 95.39 95.14 95.63 95.46 95.49 95.97 95.88 95.95 95.95 95.95 CIFAR-100 77.95 77.65 78.24 78.58 78.32 79.67 79.40 80.16 80.30 80.27 Table 16: Detailed results for ablation study on p for HTMuon on OpenWebText dataset. Red indicates the best value. Optimizer 0 0.1 0.125 0.2 0.25 
+
+HTMuon 22.46 22.40 22.20 22.49 22.83 Table 17: Detailed results for HTMuon HT . Red indicates the best value, and blue denotes the second-best value. We use α = 0 .25 and learning rate = 0 .03 in Algorithm 6 for experiments.                  
+
+> Muon HTMuon NorMuon HTMuon+NorMuon HTMuon HT HTMuon HT+NorMuon
+> LLaMa-60M 28.8 27.88 28.17 27.55 28.52 28.02 LLaMa-135M 22.23 21.25 21.99 21.11 21.65 21.26
+
+Table 18: Hyperparameters of LLaMA models. Params Hidden Intermediate Heads Blocks Steps Data amount Batch Size 60M 512 1376 8 8 10K 1B 512 135M 768 2048 12 12 20K 2B 512 350M 1024 2736 16 24 60K 6B 512 1B 2048 5461 32 24 90K 9B 512 
+
+NorMuon (Li et al., 2025): A Muon -based optimizer that applies normalized and orthogonalized gradient updates with shape-aware scaling. We put the implementations in Algorithm 8. 
+
+AdaMuon (Si et al., 2025): An adaptive variant of Muon that incorporates second-moment information into orthogonalized updates. We put the implementations in Algorithm 9. 
+
+MARS (Yuan et al., 2024): A momentum-based adaptive optimizer included as a representative adaptive baseline. We put the implementations in Algorithm 10. 
+
+SOAP (Vyas et al., 2024): An optimizer that applies stochastic orthogonalization or projection to gradient updates. We put the implementations in Algorithm 11. 
+
+Cautious (Liang et al., 2024): An optimizer that modifies update application in a conservative manner based on gradient information. We put the implementations in Algorithm 12. 
+
+COSMOS (Liu et al., 2025b): An optimizer that incorporates geometry-aware scaling into its parameter updates. We put the implementations in Algorithm 13. 
+
+GaLore (Zhao et al., 2024): A memory-efficient optimizer that performs low-rank gradient projection to reduce optimizer-state and update costs, enabling large-model training under limited GPU memory. We put the implementations in Algorithm 14. 
+
+Sophia (Liu et al., 2024a): : A second-order optimizer that uses a Hessian-based (diagonal) curvature estimate to precondition gradients and applies clipped updates for stability and efficiency in large-scale training. We put the implementations in Algorithm 15. 32 Table 19: Hyperparameters for LLaMA-60M and LLaMA-135M On C4 Dataset. The boldfaced values denote the optimal hyperparameters. LLaMA-60M LLaMA-135M Optimizer LR WD LR WD 
+
+Adam 1e-3 1e-5 1e-3 1e-5 
+
+AdamW 1e-3 0.1 1e-3 0.1 
+
+Muon {0.01 ,0.02,0.03,0.04 } 0.1 {0.01 ,0.02,0.03,0.04 } 0.1 
+
+NorMuon {0.01,0.02, 0.03 ,0.04 } 0.1 {0.01 ,0.02,0.03,0.04 } 0.1 
+
+AdaMuon {6e-4, 1e-3, 5e-3 , 1e-2 } 0.1 { 1e-3, 5e-3, 1e-2 , 2e-2 } 0.1 
+
+MARS {1e-3, 2e-3, 3e-3 , 4e-3 } 0.1 {1e-3, 2e-3 , 3e-3, 4e-3 } 0.1 
+
+SOAP {2e-3, 3e-3 , 4e-3 } 0.01 { 2e-3, 3e-3 , 4e-3 } 0.01 
+
+Cautious {1e-3, 2e-3, 3e-3, 4e-3 } 0 {1e-3, 2e-3 , 3e-3, 4e-3 } 0
+
+COSMOS {1e-3, 2e-3, 3e-3 , 4e-3 } 0.1 {1e-3, 2e-3 , 3e-3, 4e-3 } 0.1 
+
+GaLore {5e-3, 1e-2, 2e-2 , 3e-2, 4e-2 } 0 {5e-3, 1e-2, 2e-2 , 3e-2, 4e-2 } 0
+
+Sophia {1e-4, 2e-4,3e-4, 4e-4 , 5e-4, 6e-4 } 0.1 {1e-4, 2e-4 ,3e-4, 4e-4, 5e-4, 6e-4 } 0.1 
+
+HTMuon {0.01,0.02, 0.03 ,0.04 } 0.1 {0.01,0.02, 0.03 ,0.04 } 0.1 
+
+HTMuon +NorMuon {0.01,0.02, 0.03 ,0.04 } 0.1 {0.01,0.02, 0.03 ,0.04 } 0.1 Table 20: Hyperparameters for LLaMA-350M and LLaMA-1B On C4 Dataset. The boldfaced values denote the optimal hyperparameters. LLaMA-350M LLaMA-1B Optimizer LR WD LR WD 
+
+Adam 1e-3 1e-5 6e-4 1e-6 
+
+AdamW 1e-3 0.1 6e-4 0.1 
+
+Muon {0.0025, 0.005 ,0.01,0.015 } 0.1 {0.005 ,0.01 } 0.1 
+
+HTMuon {0.0025, 0.005 ,0.01,0.015 } 0.1 {0.005 ,0.01 } 0.1 Table 21: Hyperparameters for ResNet18 and ResNet50 On CIFAR-100 Dataset. The boldfaced values denote the optimal hyperparameters. ResNet18 ResNet50 Optimizer LR WD LR WD 
+
+SGDM {0.1,0.2, 0.3 ,0.4 } 5e-4 {0.1,0.2, 0.3 ,0.4 } 5e-4 
+
+Muon {0.015,0.02, 0.025 ,0.03 } 0.1 {0.015,0.02,0.025, 0.03 } 0.1 
+
+NorMuon {0.015, 0.02 ,0.025,0.03 } 0.1 {0.015, 0.02 ,0.025,0.03 } 0.1 
+
+HTMuon {0.015,0.02, 0.025 ,0.03 } 0.1 {0.015,0.02, 0.025 ,0.03 } 0.1 
+
+HTMuon +NorMuon {0.015,0.02, 0.025 ,0.03 } 0.1 {0.015,0.02, 0.025, 0.03 } 0.1 Table 22: Hyperparameters for ResNet18 and ResNet50 On CIFAR-10 Dataset. The boldfaced values denote the optimal hyperparameters. ResNet18 ResNet50 Optimizer LR WD LR WD 
+
+SGDM {0.1, 0.2 ,0.3,0.4 } 5e-4 {0.1,0.2, 0.3 ,0.4 } 5e-4 
+
+Muon {0.01, 0.015 ,0.02,0.025 } 0.1 {0.01,0.015, 0.02 ,0.025 } 0.1 
+
+NorMuon {0.01,0.015, 0.02 ,0.025 } 0.1 {0.01, 0.015 ,0.02,0.025 } 0.1 
+
+HTMuon {0.01,0.015, 0.02 ,0.025 } 0.1 {0.01 ,0.015,0.02,0.025 } 0.1 
+
+HTMuon +NorMuon {0.01,0.015, 0.02 ,0.025 } 0.1 {0.01,0.015, 0.02 ,0.025 } 0.1 33 Algorithm 8 NorMuon  
+
+> 1:
+
+Input: Initial weights W0 ∈ Rm×n, loss function L, learning rate η, momentum parameters ( β1, β 2), perturbation parameter ε, weight decay λ. 
+
+> 2:
+
+Initialize momentum M0 ∈ Rm×n ← 0, second moment v0 ∈ Rm ← 0 
+
+> 3:
+
+for t = 1 , 2, . . . do  
+
+> 4:
+
+Gt ← ∇ WL(Wt) 
+
+> 5:
+
+Mt ← β1Mt−1 + (1 − β1)Gt 
+
+> 6:
+
+Ot ← NS5( Mt) 
+
+> 7:
+
+vt ← β2vt−1 + (1 − β2) mean cols (Ot ⊙ Ot) 
+
+> 8:
+
+Vt ← ExpandRows( vt) (Vt ∈ Rm×n) 
+
+> 9:
+
+bOt ← Ot ⊘ (√Vt + ε) 
+
+> 10:
+
+ˆη ← 0.2 η √mn ∥ bOt∥F 
+
+> 11:
+
+Wt+1 ← Wt − ηλ Wt − ˆη bOt 
+
+> 12:
+
+end for Algorithm 9 AdaMuon  
+
+> 1:
+
+Input: Initial 2D-weights W0 ∈ Rn×m, loss function L, learning rate η, weight decay λ, momentum β,Newton–Schulz steps T , small constant ε. 
+
+> 2:
+
+Output: Updated weights W 
+
+> 3:
+
+Initialize first-momentum M0 ← 0, second-momentum V0 ← 0 
+
+> 4:
+
+for each iteration t = 1 , 2, . . . do  
+
+> 5:
+
+Compute gradient: Gt = ∇Wt L(Wt) 
+
+> 6:
+
+Update first momentum: Mt = β · Mt−1 + Gt 
+
+> 7:
+
+Compute sign-stabilized orthogonal direction: Ot = Newton–Schulz(Sign( Mt), T ) 
+
+> 8:
+
+Update second momentum: Vt = β · Vt−1 + (1 − β) · (Ot ⊙ Ot) 
+
+> 9:
+
+Apply second momentum update: ˆOt = Ot ⊘ (√Vt + ε · 1) 
+
+> 10:
+
+RMS-aligned: γt = 0.2·√mn   
+
+> ∥ˆOt∥F
+> 11:
+
+Update weights: Wt+1 = Wt − η
+
+
+
+γt ˆOt + λWt
+
+ 
+
+> 12:
+
+end for Algorithm 10 MARS  
+
+> 1:
+
+Hyperparameters: β1, β 2, γ, ϵ, η, λ, g norm  
+
+> 2:
+
+State: m, v, g t−1 
+
+> 3:
+
+for t = 1 , 2, . . . do  
+
+> 4:
+
+ct = gt + γ β1 
+
+> 1−β1
+
+(gt − gt−1) 
+
+> 5:
+
+ˆct = ct max {1, gnorm  
+
+> ∥ct∥2
+
+}, 
+
+> 6:
+
+mt = β1 mt−1 + (1 − β1) ˆ ct 
+
+> 7:
+
+vt = β2 vt−1 + (1 − β2) ˆ c2 
+
+> t
+> 8:
+
+ˆmt = mt
+
+> 1−βt
+> 1
+
+, ˆvt = vt 
+
+> 1−βt
+> 2
+> 9:
+
+wt+1 = wt − η ˆmt√ˆvt+ϵ − η λ w t. 
+
+> 10:
+
+end for 
+
+34 Algorithm 11 SOAP 
+
+1: Hyperparameters: β1, β 2, μ, k, ϵ, block size , g norm 
+
+2: Partition all parameters into block size × block size 
+
+3: Update Rules for Each Block: 
+
+4: for t = 1 , 2, . . . do 
+
+5: ˆgt = gt max {1, gnorm  
+
+> ∥gt∥2
+
+}
+
+6: ˆgt = QA ˆgt QB
+
+7: mt = β1 mt−1 + (1 − β1) ˆ gt, vt = β2 vt−1 + (1 − β2) ˆ g2
+
+> t
+
+8: ˆmt = mt
+
+> 1−βt
+> 1
+
+, ˆvt = vt
+
+> 1−βt
+> 2
+
+9: wt+1 = wt − ηt Q⊤
+
+> A
+
+ ˆmt√ˆvt+ϵ
+
+
+
+Q⊤
+
+> B
+
+10: GA = μ G A + (1 − μ) ˆ gt ˆg⊤ 
+
+> t
+
++ ϵI, GB = μ G B + (1 − μ) ˆ g⊤ 
+
+> t
+
+ˆgt + ϵI 
+
+11: if t mod k = 0 : QA = QR( GA QA), QB = QR( GB QB )
+
+12: end for Algorithm 12 Cautious 
+
+1: Hyperparameters: β1, β 2, ϵ, η, λ, g norm 
+
+2: State: m, v 
+
+3: for t = 1 , 2, . . . do 
+
+4: ˆgt = gt max {1, gnorm  
+
+> ∥gt∥2
+
+}
+
+5: mt = β1 mt−1 + (1 − β1) ˆ gt
+
+6: vt = β2 vt−1 + (1 − β2) ˆ g2
+
+> t
+
+7: ˆmt = mt
+
+> 1−βt
+> 1
+
+, ˆvt = vt
+
+> 1−βt
+> 2
+
+8: ut = ˆmt√ˆvt+ϵ , st = I ut · ˆgt > 0
+
+9: ˆut = ut·st 
+
+> mean( st)
+
+, wt+1 = wt − η ˆut − η λ w t
+
+10: end for Algorithm 13 COSMOS 
+
+1: For an m × n layer W , the algorithm maintain four matrices: U ∈ Rn×r , S ∈ Rr×r, V ∈ Rm×r , and 
+
+M ∈ Rm×n per layer. 
+
+2: Input: Learning rate η, combination weight γ, projection rank r ≪ n, momentum parameters ( β1, β 2), perturbation parameter ϵ. For simplicity, we omit the initialization. 
+
+3: for t = 0 , . . . do 
+
+4: Sample batch Mt
+
+5: Gt ← ∇ W ϕMt (Wt)
+
+6: Mt ← β1Mt−1 + (1 − β1)Gt
+
+7: Ut ← QR  β2Ut−1St−1 + (1 − β2)G⊤ 
+
+> t
+
+GtUt−1
+
+
+
+8: St ← U ⊤
+
+> t
+
+ β2Ut−1St−1U ⊤ 
+
+> t−1
+
++ (1 − β2)G⊤ 
+
+> t
+
+Gt
+
+ Ut
+
+9: Vt ← β2Vt−1 + (1 − β2)( GtUt) ⊙ (GtUt)
+
+10: At = MtUt/(1 − βt
+
+> 1
+
+)
+
+p(Vt + ϵ)/(1 − βt
+
+> 2
+
+)
+
+!
+
+U ⊤
+
+> t
+
+11: Bt ← NORM 
+
+
+
+NS5 
+
+ Mt − MtUtU ⊤
+
+> t
+
+∥Mt − MtUtU ⊤ 
+
+> t
+
+∥F
+
+ 
+
+12: ˜Gt ← At + γ · Bt · √m
+
+13: Wt+1 ← Wt − η · NORM ( ˜Gt) · √m
+
+14: end for 
+
+35 Algorithm 14 GaLore  
+
+> 1:
+
+For an m × n layer W , the algorithm maintains a rank-r subspace projector (left or right, depending on the shape) and Adam moments in the projected space.  
+
+> 2:
+
+Input: Learning rate η, scale factor α, projection rank r, subspace change frequency T , Adam parameters (β1, β 2), numerical constant ϵ. For simplicity, we omit the initialization.  
+
+> 3:
+
+for t = 0 , 1, . . . do  
+
+> 4:
+
+Sample batch Bt 
+
+> 5:
+
+Gt ← ∇ W ϕBt (Wt) 
+
+> 6:
+
+if t mod T = 0 then  
+
+> 7:
+
+U, Σ, V ← SVD (Gt) 
+
+> 8:
+
+if m ≤ n then  
+
+> 9:
+
+Pt ← U[: ,1: r] {left projector } 
+
+> 10:
+
+else  
+
+> 11:
+
+Qt ← V[: ,1: r] {right projector } 
+
+> 12:
+
+end if  
+
+> 13:
+
+else  
+
+> 14:
+
+if m ≤ n then  
+
+> 15:
+
+Pt ← Pt−1 {reuse projector } 
+
+> 16:
+
+else  
+
+> 17:
+
+Qt ← Qt−1 {reuse projector } 
+
+> 18:
+
+end if  
+
+> 19:
+
+end if  
+
+> 20:
+
+if m ≤ n then  
+
+> 21:
+
+Rt ← P ⊤ 
+
+> t
+
+Gt {project to compact space, Rt ∈ Rr×n} 
+
+> 22:
+
+else  
+
+> 23:
+
+Rt ← GtQt {project to compact space, Rt ∈ Rm×r } 
+
+> 24:
+
+end if  
+
+> 25:
+
+UPDATE (Rt) by Adam in the projected space:  
+
+> 26:
+
+Mt ← β1Mt−1 + (1 − β1)Rt 
+
+> 27:
+
+Vt ← β2Vt−1 + (1 − β2)( Rt ⊙ Rt) 
+
+> 28:
+
+ˆMt ← Mt/(1 − βt+1 1 ) 
+
+> 29:
+
+ˆVt ← Vt/(1 − βt+1 2 ) 
+
+> 30:
+
+Nt ← ˆMt/(
+
+p ˆVt + ϵ) 
+
+> 31:
+
+if m ≤ n then  
+
+> 32:
+
+˜Gt ← α · PtNt {project back to original space } 
+
+> 33:
+
+else  
+
+> 34:
+
+˜Gt ← α · NtQ⊤ 
+
+> t
+
+{project back to original space } 
+
+> 35:
+
+end if  
+
+> 36:
+
+Wt+1 ← Wt − η · ˜Gt 
+
+> 37:
+
+end for 
+
+36 Algorithm 15 Sophia  
+
+> 1:
+
+Input: Parameters θ1, learning rates {ηt}Tt=1 , hyperparameters λ, γ, β 1, β 2, ϵ , curvature estimator choice 
+
+Estimator ∈ { Hutchinson , Gauss-Newton-Bartlett }. 
+
+> 2:
+
+Set m0 ← 0, v0 ← 0, and h1−k ← 0.  
+
+> 3:
+
+for t = 1 , . . . , T do  
+
+> 4:
+
+Compute minibatch loss Lt(θt).  
+
+> 5:
+
+gt ← ∇ Lt(θt).  
+
+> 6:
+
+mt ← β1mt−1 + (1 − β1) gt. 
+
+> 7:
+
+if t mod k = 1 then  
+
+> 8:
+
+ˆht ← Estimator (θt).  
+
+> 9:
+
+ht ← β2ht−k + (1 − β2) ˆht. 
+
+> 10:
+
+else  
+
+> 11:
+
+ht ← ht−1. 
+
+> 12:
+
+end if  
+
+> 13:
+
+θt ← θt − ηtλθ t {weight decay } 
+
+> 14:
+
+θt+1 ← θt − ηt · clip 
+
+ mt 
+
+> max {γ·ht, ϵ }
+
+, 1
+
+
+
+. 
+
+> 15:
+
+end for 
+
+37

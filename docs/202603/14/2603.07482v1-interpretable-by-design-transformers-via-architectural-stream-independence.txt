@@ -1,0 +1,760 @@
+Title: Interpretable-by-Design Transformers via Architectural Stream Independence
+
+URL Source: https://arxiv.org/pdf/2603.07482v1
+
+Published Time: Tue, 10 Mar 2026 01:07:35 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# Interpretable-by-Design Transformers via Architectural Stream Independence 
+
+Clayton Kerce *
+
+Georgia Tech Research Institute 
+
+clayton.kerce@gtri.gatech.edu and Alexis Fox Georgia Tech Research Institute 
+
+alexis.fox@duke.edu 
+
+Abstract 
+
+While transformers achieve strong perfor-mance, their internal decision-making pro-cesses remain opaque. We investigate whether architectural constraints can enforce inter-pretability by design through architectural stream independence : maintaining a token stream (carrying symbolic structure) and con-textual semantics in separated streams that remain independently observable throughout processing, with integration delayed until out-put. We validate this principle through the Late Fu-sion Architecture (LFA), which demonstrates 
+
+interpretable symbolic heads through all the final layers , while standard transform-ers show dissolution by the third of six lay-ers; we quantify this effect by introducing the Token-Position Dependence Score (PDS), with PDS max = 0.276 and 0.058, respec-tively. Crucially, intervention experiments demonstrate functional modularity: suppress-ing LFA’s recency heads causes minimal se-mantic damage (Cohen’s d = −0.158 ) versus catastrophic entanglement in baselines ( d =
+
+−0.672 ). LFA demonstrates that architectural con-straints improve underlying learning mech-anisms, averaging 42% stability versus 19% and 11% for baseline comparisons, with ex-tremes from 50% on LFA’s best pairs (6 of 12 heads position-invariant) down to 0% com-plete collapse in over-constrained cases. By preventing premature entanglement, architec-tural independence steers models toward se-mantic understanding over positional heuris-tics, establishing interpretability as an archi-tectural design criterion enforceable through structural constraints rather than post-hoc analysis.       
+
+> *This work was partially supported by contract HR001125C0302
+
+1 Introduction 
+
+Despite the success of transformer-based language models, their internal mechanisms remain largely opaque. When models exhibit failures, e.g. re-cency bias (Guo and Vosoughi, 2025), sycophancy (Sharma et al., 2024), or spurious correlations (Yang et al., 2024), practitioners lack tools for un-derstanding and addressing root causes. Post-hoc interpretability methods (Belinkov et al., 2017; Clark et al., 2019) reveal what models learn or where they attend, but do not provide paths toward models that are interpretable by design .It is natural to ask: Can we identify specific mechanisms within a model’s internal activations that control high-level behaviors? This work di-rectly addresses a strong form of explainability: rather than analyzing what emerged during train-ing, can we design architectures that are more interpretable by construction? We answer af-firmatively by demonstrating that architectural constraints can promote transparent reasoning pathways whose internal mechanisms are modu-lar and independently observable. To this end, we test a specific architectural hy-pothesis: architectural stream independence —maintaining a token stream and contextual se-mantics in separated streams that remain in-dependently observable throughout processing— preserves functional modularity, creating models whose mechanisms can be directly observed and independently intervened upon. This contrasts with immediate integration architectures that im-mediately mix symbolic structure and contextual information, causing symbolic structure signals to dissolve into entangled representations. This design is motivated by intuitions about dis-tinct computational roles—symbolic routing via attention, pattern discovery through circuit for-mation, and contextual elaboration via the feed-forward network (Appendix B)— that benefit from 
+
+> arXiv:2603.07482v1 [cs.LG] 8 Mar 2026
+
+architectural separation. We implement architec-tural stream independence through asymmetric information flow : a frozen position stream ( XT ,carrying symbolic structure) influences contextual updates ( XE ) without being corrupted by gradient flow, with symmetric combination only at the out-put layer (lm head). Unlike DeBERTa’s additive decomposition within attention (He et al., 2021), our approach maintains independent observabil-ity: symbolic structure remains a clean, surgically analyzable signal throughout all transformer lay-ers. 
+
+Notation. We distinguish between the absolute token index i ∈ { 0, . . . , T − 1} and the relative token position p = itarget − i (used in interven-tion analysis). We denote layer index by ℓ and 
+
+head index by h. The model maintains two par-allel streams: a frozen token stream XT encod-ing symbolic structure, and a mutable contextual stream XE .We validate this through the Late Fusion Ar-chitecture (LFA), demonstrating: (1) functional transparency as a design criterion with quan-titative metrics; (2) systematic comparison of four architectural variants isolating constraint ef-fects; and (3) empirical validation showing LFA maintains interpretable position channels in lay-ers 4-5 (PDS max = 0.276) where immediate inte-gration architectures show premature dissolution (PDS max = 0.058), with measurably lower inter-vention collateral damage (Cohen’s d = −0.158 
+
+vs. −0.672 for entangled baselines). Our coreference experiments show that LFA’s specialists concentrate in mid-to-late layers (top head L4.H3: 48.3%), while standard transform-ers’ best heads are distributed across layers (best head L1.H5: 46.9%; Table 3). We validate using small models (13M-22M parameters) on TinySto-ries, providing clean evidence that interpretabil-ity can be designed into architectures through principled constraints , offering a path toward transparent, explainable language models where internal reasoning processes can be directly ob-served and understood. 
+
+2 Architecture and Design Principles 
+
+2.1 Architectural Stream Independence: The Design Principle 
+
+We define architectural stream independence as maintaining a token stream and contextual se-mantics in separated streams that remain indepen-dently observable throughout transformer process-ing, with integration occurring only at the output layer. This design principle creates transparent reasoning pathways where distinct mechanisms can be directly observed and independently inter-vened upon. Standard transformers violate this principle through immediate integration : token position encodings and token identities are added at layer 0 and immediately mixed with semantic features via dense attention. By layer 2, symbolic struc-ture dissolves into distributed semantic representa-tions, making it impossible to isolate which heads track symbolic identities versus meaning (Fig-ure 1, Std-T panel). 
+
+The Late Fusion Architecture (LFA) imple-ments architectural stream independence through delayed integration: token stream and contex-tual semantics remain separated until output-layer combination. This “late fusion” timing preserves functional modularity—by keeping streams inde-pendent until the model has developed rich seman-tic representations, we create mechanisms that re-main independently observable and intervention-able. This design generates four testable predictions: 1. Preserved observability: LFA maintains in-dependently observable symbolic heads in deep layers (L4-L5), validated by high PDS 2. Early dissolution: Immediate integration ar-chitectures show symbolic structure dissolv-ing by layer 2, validated by low PDS 3. Functional independence: Separated streams enable surgical interventions on 
+
+recency heads without semantic damage 4. Entangled opacity: Immediate integration creates inseparable mechanisms where inter-ventions cause catastrophic collateral dam-age 
+
+2.2 Stream Separation Mechanism 
+
+We implement architectural stream independence through separation of streams . The model main-tains: • Frozen token stream ( XT ): preserves sym-bolic structure and token position unchanged • Embedding stream ( XE ): accumulates se-mantic updates Formally: 
+
+X(0)  
+
+> T
+
+= TokenEmbedding (input ), X(0)  
+
+> E
+
+= 0 
+
+X(ℓ) 
+
+> T
+
+= X(0)  
+
+> T
+
+(frozen across all layers) (1) The embedding stream updates via: 
+
+X(ℓ) 
+
+> E
+
+= X(ℓ−1)  
+
+> E
+
++ Attn (Q, K, X (0)  
+
+> T
+
+)+ FFN (XT + XE ) (2) Critically, while the FFN incorporates posi-tional information into semantic processing (ob-serving XT + XE ), it maintains architectural sep-aration by writing only to XE . This asymmetric information flow allows token position and sym-bolic structure to inform semantic learning while preserving the token stream as a clean, indepen-dently observable signal. Attention similarly reads from both streams but writes only to XE .The streams remain separated until lm head combines them for final prediction: logits = LM head (LayerNorm (XT + XE )) (3) This delayed symmetric combination is the “late” in late fusion— symbolic structure remains independently observable throughout all internal processing, with no gradient flow corrupting XT .
+
+2.3 Distinction from Prior Disentanglement 
+
+DeBERTa computes separate position-content at-tention terms but allows immediate mixing (He et al., 2021). Our frozen stream enforces ar-chitectural separation with no gradient flow be-tween streams. DeBERTa disentangles how atten-tion is computed; we control where updates are written. This architectural constraint, combined with independent channels (ChannelLayerNorm + Kronecker mixing), maintains complete separa-tion throughout all transformer layers until the fi-nal output. 
+
+2.4 Why Asymmetric Flow Maintains Architectural Independence 
+
+The asymmetric information flow ( XT → XE , but 
+
+XT frozen) is critical for maintaining architectural stream independence: 1. Position never corrupted: XT receives no gradient updates, remaining a clean position signal                         
+
+> Property Immediate Stream Integration Independence (Std-T) (LFA) Position encoding Added at L0 Frozen in XT
+> Stream separation None XT/XEdistinct Information flow Bidirectional XT→XEonly Position observable L5 No (PDS=0.058) Yes (PDS=0.276) Integration timing Every layer lm head only Gradient flow to XTYes No
+
+Table 1: Immediate integration vs. architectural stream independence. LFA maintains independent observability through asymmetric information flow and delayed symmetric combination. 
+
+2. Semantics benefit from position: FFN ob-serves XT +XE , enabling position-aware se-mantic processing 3. Independent observability preserved: 
+
+Both streams remain surgically analyzable and interventionable 4. Delayed integration: Symmetric com-bination (lm head) occurs between independently-evolved, mature repre-sentations High PDS in deep layers validates that archi-tectural independence is maintained: position sig-nals remain distinct and independently observable. If premature integration occurred (as in standard transformers), position would dissolve into dis-tributed semantic representations, destroying inde-pendent observability. Table 1 summarizes the architectural contrast between early and late fusion. 
+
+2.5 Architectural Constraints Frozen Token Stream (FTS): Token embeddings initialize X(0)  
+
+> T
+
+, while X(0)  
+
+> E
+
+= 0. In FTS, at-tention reads from the frozen token stream and writes to the embedding stream; XT is held fixed across layers while all parameters train end-to-end. Channelization is preserved by construc-tion (identity WV and WO in FTS). Complete stream separation is maintained throughout all transformer layers; fusion occurs only at the out-put layer (lm head). See Appendix A for the for-mal update rules. 
+
+2.6 Model Configurations 
+
+We train four models to test our hypothesis and ablate architectural components (Table 2): Model Attn FFN Params Val Loss Std-T dns dns 22.2M 1.8114 D-Cas dns dns 21.2M 1.8399 LFA ind dns 18.5M 1.9063 CFM ind ind 13.4M 2.1019  
+
+> Table 2: Model configurations and training perfor-mance. All models have 6 layers, 6 heads, 384d em-beddings, trained on 2M samples from TinyStories for 2 epochs.
+
+LFA (Late Fusion Architecture): Implements architectural stream independence via FTS + in-dependent attention + dense FFN. Maintains sep-arated streams with integration delayed until out-put. 
+
+Std-T (Standard Transformer): Single-stream with dense attention and FFN (GPT-2 style). Immediate integration baseline. 
+
+D-Cas (Dense Attention Baseline): FTS + dense attention + dense FFN. Tests whether frozen stream alone improves interpretability. 
+
+CFM (Channel-Factored Model): FTS + in-dependent attention + independent FFN. Tests whether excessive constraint degrades learning. All models use 6 layers, 6 heads, trained on TinyStories for 2 epochs. Model sizes vary by constraint (13.4M-22.2M parameters). The dense FFN in LFA serves a dual computational role: (1) it observes both streams to inform seman-tic updates, enabling rich contextual processing while (2) writing only to XE , maintaining ar-chitectural separation. Unlike CFM’s indepen-dent FFN which cannot coordinate across heads, LFA’s dense FFN enables semantic coordination while preserving channel independence in atten-tion. Critically, fusion occurs only at lm head, combining the frozen token stream ( XT ) with ma-tured semantic representations ( XE ). While our experiments focus on validating the interpretabil-ity benefits of architectural separation, the compu-tational motivations behind these design choices are discussed in Appendix B. 
+
+3 Explainability Methodology: Isolating Positional from Semantic Reasoning 
+
+3.1 Coreference Resolution Analysis 
+
+We construct a ground truth dataset of 29 corefer-ence instances across 13 diagnostic prompts, each specifying a pronoun (query token) and correct antecedent. The dataset includes minimal pairs testing specific phenomena: competing nouns (se-mantic appropriateness vs. positional recency), gender resolution, and plurality agreement. For example, competing noun pairs test whether mod-els attend to semantically appropriate targets re-gardless of position: “Tim saw a key and a box. He used it” vs. “Tim saw a box and a key . He used it.” 
+
+Example behavior: Consider the minimal pair testing semantic appropriateness versus positional recency. For “Tim saw a box and a key. He used it” (key first), LFA’s top coreference head (L4.H3) attends to “key” with weight 0.303. When posi-tions reverse (“Tim saw a key and a box. He used it”, key last), the same head increases attention to “key” (0.409), demonstrating token position-invariant semantic tracking—it identifies the se-mantically appropriate tool regardless of position. Std-T lacks such specialization. Its best per-forming head (L3.H2) shows weaker attention to the correct antecedent in both positions (0.226 and 0.324), and the stability metric for this min-imal pair shows the architectural difference: LFA has 0.50 stability (6 stable heads across the pair), while Std-T has 0.25 stability (1 stable head). CFM’s 0% stability (no consistent heads) reveals complete failure to develop semantic specialists, demonstrating pure recency bias. We define three metrics quantifying attention patterns. Mean Attention Weight measures av-erage attention mass from query to correct an-tecedent: Attn mean = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+α(i) 
+
+> q→t
+
+(4) 
+
+Top1 Accuracy is the percentage where the cor-rect antecedent receives highest attention: Top1 = |{ i : arg max j α(i) 
+
+> q→j
+
+= t}| 
+
+N × 100% (5) 
+
+Stability measures consistent target preference across position variations: Stability = |{ heads : target first = target last }| |total heads | ×100% 
+
+(6) See Appendix J for complete dataset specifica-tion and examples. 
+
+3.2 Token-Position Dependence Score 
+
+To measure whether architectural separation suc-cessfully preserves symbolic structure and token position as an independently observable signal, we introduce the Token-Position Dependence Score (PDS). High PDS indicates position remains dis-tinct (maintained stream independence); low PDS indicates position has dissolved into semantic rep-resentations (premature integration). The delayed integration timing in LFA refers to when symbolic structure ceases to be independently observable :LFA maintains observability throughout all layers, integrating only at output. For each head and minimal pair (target first vs. last): PDS (ℓ,h ) = 1
+
+K
+
+> K
+
+X
+
+> k=1
+
+α(k) 
+
+> q→tlast
+
+− 1
+
+K
+
+> K
+
+X
+
+> k=1
+
+α(k)
+
+> q→tfirst
+
+(7) where K = 29 minimal pairs. We use threshold PDS > 0.075 (μ + σ for Std-T) for descriptive counts, but interventions use ranked top-k selec-tion. See Appendix C for threshold justification and full distributions. 
+
+3.3 Measuring Functional Transparency via Intervention 
+
+To validate that positional mechanisms are func-tionally independent from semantic processing, we perform targeted lesion studies using rela-tive token position (p). For each model, we rank heads by PDS, select top-k recency heads 
+
+(k ∈ { 1, 2, 3, 5}), and apply soft gating to out-puts ( g ∈ { 1.0, 0.75 , 0.5, 0.25 , 0.0}). We measure impact using Semantic Preference Score (SPS) on 60 competing-noun prompts: SPS = 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+
+
+α(m) 
+
+> q→semantic
+
+− α(m)
+
+> q→distractor
+
+
+
+(8) where M = 58 (after filtering), semantic = tool, distractor = container. We quantify functional independence using Co-hen’s d effect size (Eq. 9), where small |d| near zero indicates transparent functional decomposi-tion. We include matched-random suppression, semantic suppression (bottom-k PDS), and base-line controls. See Appendix D for complete gat-ing protocol, soft-suppression curves, and per-category analyses. 
+
+d = μintervention − μbaseline 
+
+σpooled 
+
+(9) 
+
+4 Transparent Functional Decomposition 
+
+Architectural stream independence preserves functional modularity by preventing immediate                             
+
+> Head Mean Attn Top1 Acc LFA Std-T LFA Std-T L4.H3 0.323 0.033 48.3% 6.9% L3.H5 0.265 0.047 48.3% 6.9% L4.H0 0.211 0.045 44.1% 13.1% L4.H1 0.286 0.060 37.2% 13.1% L3.H0 0.225 0.049 46.9% 4.8%
+> Table 3: Coreference specialization: LFA vs. Std-T. LFA’s top 5 coreference heads (ranked by mean at-tention) compared to the same head positions in Std-T. LFA concentrates specialists in L3-L4; these same po-sitions in Std-T show weak, diffuse patterns. Std-T’s actual best heads (L1.H5: 46.9%, L3.H2: 44.8%) are distributed across different layers, requiring search to locate.
+
+entanglement of symbolic structure and context .We test this via coreference resolution, which requires entity tracking across token positions without positional confounds. Predictions: (1) LFA shows concentrated specialization (few strong heads), (2) Std-T shows diffuse patterns (many weak heads), (3) heads are token position-invariant . Section 5.1 validates prediction (1), Section 4.2 validates (3). 
+
+4.1 Coreference Head Specialization 
+
+LFA exhibits strong head specialization concen-trated in identifiable locations. The top head (L4.H3) correctly resolves 48.3% of all instances with mean attention 0.323; co-primary head L3.H5 achieves identical coverage (48.3%) with mean 0.265. These heads concentrate in mid-to-late layers (L3-L4), forming a coherent, easily identifiable processing module. Std-T develops specialists with comparable peak performance (best head L1.H5: 46.9%), but distributes them diffusely across layers. Table 3 compares LFA’s top coreference heads to the same head positions in Std-T, revealing the architec-tural difference: LFA’s concentration in L3-L4 versus Std-T’s distribution across L1, L3, and other layers. This concentration enables direct observation—when analyzing coreference in LFA, one examines L4.H3; in Std-T, specialists must be located through search across all 36 heads. LFA’s top 5 heads all exceed 37% Top1 accuracy; those same head positions in Std-T show weak, incon-sistent patterns, with most below 15% (see Ap-pendix E for complete results across all 36 heads). 4.2 Token-Position-Invariant Semantic Understanding 
+
+The competing nouns minimal pair tests whether models prefer semantically appropriate targets over positional recency. For “Tim saw a key/box. He used it” vs. “Tim saw a box/key. He used it” , robust models should attend to key (the usable tool) regardless of position. Across the competing-noun minimal pairs, LFA shows higher stability: mean stability 0.42 (range 0.27–0.50; 3–6 stable heads per pair). Std-T averages 0.19 (range 0.125–0.25; 1 stable head per pair), while CFM averages 0.11 (range 0– 0.33). The range extremes reveal architectural fail-ure modes: LFA achieves 50% stability on two of three pairs, with 6 of 12 heads maintaining semantic preference regardless of relative token position (L4.H3, L3.H5, L4.H0, L3.H0, L4.H2, L3.H4), demonstrating that stream separation en-ables robust semantic learning. In contrast, CFM exhibits complete collapse (0% stability) on two of three pairs, where excessive architectural con-straint prevents any head from learning position-invariant preferences, forcing pure recency bias. This demonstrates that architectural design deter-mines not just typical behavior (42% vs 11% mean stability) but also failure modes: stream inde-pendence enables semantic understanding, while over-constraint can prevent it entirely. See Ap-pendix G for per-head stability analysis. 
+
+4.3 Quantitative Validation 
+
+The architectural difference is statistically robust: LFA’s top 5 specialists co-locate in L3-L4 and all exceed 37% Top1 accuracy with mean atten-tion above 0.21. For those same five head posi-tions, Std-T averages 0.05 mean attention and 9% Top1 accuracy, demonstrating that LFA’s architec-tural constraints create predictable, concentrated specialization rather than distributed patterns re-quiring exhaustive search. This localization en-ables transparent analysis— practitioners can di-rectly examine L4.H3 for coreference behavior— while maintaining comparable peak performance to Std-T’s best distributed heads (see Appendix E for complete head-wise results). 
+
+5 Validating Explainability Through Intervention Analysis 
+
+5.1 Token-Position Dependence Analysis Temporal validation: Figure 1 validates our de-sign hypothesis by showing when positional pro-cessing occurs. LFA maintains 5 token position-dependent heads in layers 4-5 (architectural in-dependence preserved throughout), while Std-T concentrates 2-3 heads in layers 0-1 with zero by layer 5 (immediate integration followed by disso-lution). This is not merely “different layers”— it demonstrates that LFA maintains separated streams throughout all transformer layers, allow-ing both position and semantics to develop inde-pendently, while Std-T immediately entangles po-sition with under-developed features. 
+
+Why architectural stream independence matters: The distinction between immediate in-tegration (Std-T) and delayed integration (LFA) is not merely that they use “different layers.” Imme-diate integration forces symbolic structure and to-ken position to mix with under-developed seman-tic representations at layer 0—when the model has no contextual understanding yet. This immediate entanglement means position becomes correlated noise that cannot be surgically removed (§5.2). LFA maintains complete separation until the out-put layer (lm head), allowing position and seman-tics to evolve independently through all 6 trans-former layers. High PDS at layers 4-5 validates this separation is maintained: token position sig-nals remain distinct and independently observable even in deep layers, unlike Std-T where immedi-ate mixing causes position to dissolve by layer 2. The architecture never fuses streams internally— only at the final output does lm head combine 
+
+XT + XE for prediction. This architectural differ-ence explains why LFA interventions cause min-imal collateral damage while Std-T interventions are catastrophic. Our hypothesis predicts LFA maintains distinct position channels in deep layers (L4-L5) while Std-T’s immediate integration causes position sig-nals to dissolve. Using threshold PDS > 0.075 for counts, Table 4 confirms this: LFA has 5 recency heads in L4-L5 (max PDS = 0.276 at L5.H0), Std-T has 0 in L5 (max = 0.058), and CFM has 0 in L4-L5 (max = 0.032). Figure 1 shows layer-wise distribution. LFA’s deep-layer concentration (5 of 7 heads in L4-L5) validates architectural stream independence: po-Model Total L4-L5 Max L5 Avg PDS PDS >0.075 Heads PDS LFA 7 5 0.276 0.061 Std-T 3 1 0.058 0.032 CFM 5 0 0.032 0.042 
+
+Table 4: Token-Position dependence by layer. LFA maintains distinct symbolic channels in deep layers (5 of 7 heads in L4-L5, max L5 PDS = 0.276), validat-ing architectural independence is maintained. Std-T dissolves by L5 (max = 0.058), CFM fails to integrate (max = 0.032). 0 1 2 3 4 5
+
+> Layer
+> 0
+> 1
+> 2
+> 3
+> Recency Heads
+> (PDS  threshold)
+
+Recency-Head Distribution 
+
+by Layer 
+
+> LFA
+> Std-T
+
+Figure 1: Temporal validation of architectural stream independence. LFA concentrates positional 
+
+processing in layers 4-5, maintaining complete stream separation throughout all transformer layers. Std-T processes position in layers 0-1, causing immediate entanglement and dissolution by mid-layers. CFM’s mid-layer concentration reflects failed integration— excessive constraint prevents late-layer coordination. This layer distribution directly validates the architec-tural hypothesis: separated streams preserve distinct 
+
+symbolic channels in deep layers. 
+
+sitional information preserved in distinct channels until final layers. Std-T’s early-layer concentra-tion (2 of 3 heads in L0-L1) confirms immediate integration, with position information metabolized into semantic representations by layer 2. LFA’s maximum layer-5 PDS (0.276) is 5× higher than Std-T (0.058) and 9× higher than CFM (0.032), validating architectural constraint success. 
+
+5.2 Functional Transparency via Intervention 
+
+Our competing-noun test requires distinguishing semantically appropriate targets (tools) from po-sitional distractors (containers). If position mech-anisms are transparent and functionally indepen-dent , interventions should affect position tracking while preserving semantic discrimination. If en-tangled , interventions affect both. We quantify via Semantic Preference Score (SPS, Eq. 8) and Co-Baseline Recency Random Semantic 
+
+> 0.000
+> 0.005
+> 0.010
+> 0.015
+> 0.020
+> SPS
+
+Intervention Effects on 
+
+Semantic Preference 
+
+> LFA
+> Std-T
+
+Figure 2: Functional transparency via intervention. 
+
+SPS under baseline and recency head suppression (PDS 
+
+> 0.075). LFA demonstrates functional independence (d = −0.158 ), Std-T shows moderate entanglement (d = −0.298 ), CFM reveals complete opacity ( d =
+
+−0.672 ). Error bars: SEM. 
+
+hen’s d (Eq. 9), where small |d| indicates func-tional transparency. Suppressing LFA’s 7 recency heads (hard sup-pression) yields minimal semantic impact: Co-hen’s d = −0.158 (p = 0.028 ). SPS de-creases from 0.0058 to 0.0008, explained by the removal of relative token position tracking. Crit-ically, semantic processing remains intact—the model distinguishes tools from containers based on meaning, independently of relative position .This demonstrates functional transparency : to-ken position tracking and semantic understanding operate through distinct, observable mechanisms. Ranked, soft-gated interventions (top-k heads, gate g ∈ { 1.0, 0.75 , 0.5, 0.25 , 0.0}) reveal shal-low, near-linear responses in LFA (e.g., ∆SPS = +0.00215 for k = 1), while Std-T collapses (∆SPS ≈ −0.008 ). This exposes controllable modularity : late fusion localizes positional in-fluence into surgically targetable heads (see Ap-pendix D for complete gate-response curves). In contrast, suppressing CFM’s 5 recency heads causes catastrophic degradation: d = −0.672 
+
+(p < 0.0001 ). SPS drops from 0.0201 to 0.0068— losing both position tracking and semantic dis-crimination. CFM’s “position heads” were load-bearing for semantic processing; position and se-mantics became entangled, destroying both when ablated. Std-T falls between ( d = −0.298 , p < 
+
+0.0001 ), indicating moderate entanglement. Ta-ble 5 shows LFA achieves 4.2× lower collateral damage than CFM (0.158 vs. 0.672). These results validate that architectural stream independence creates transparent, indepen-Model Layers # Heads Cohen’s d p-value LFA L5 7 -0.158 0.028 Std-T L1, L4 3 -0.298 <0.0001 CFM L2 5 -0.672 <0.0001         
+
+> Table 5: Functional transparency via intervention: ef-fect sizes for recency head suppression. Negative Cohen’s dindicates performance degradation. LFA demonstrates functional independence ( d=−0.158 )while CFM reveals entangled opacity ( d=−0.672 ).
+
+dently observable reasoning mechanisms .When Std-T and CFM immediately mix position and semantics, information becomes entangled, preventing independent observation. LFA’s parallel processing until deeper layers maintains functional independence: the distinct position channel (L5.H0, PDS = 0.276) can be analyzed and intervened upon independently. This vali-dates our design hypothesis: architectural stream independence with delayed integration enables 
+
+interpretability by design . See Appendix F for control conditions and per-category analyses. 
+
+5.3 Interpretation: Transparent Functional Decomposition 
+
+The intervention results validate that architectural stream independence creates transparent, inde-pendently observable reasoning mechanisms .When Std-T and CFM add token position encod-ings at layer 0 and immediately mix them via dense attention, token position information be-comes correlated noise : statistically dependent on semantic features. Attempting to remove position (via suppression) unavoidably damages semantics—the surgery is not surgical. LFA’s architectural separation processes posi-tion and semantics in parallel channels through-out all transformer layers, maintaining orthogo-nality through independent attention. The dis-tinct position channel (L5.H0, PDS = 0.276) can be suppressed with minimal semantic impact— surgical noise cancellation without destroying the signal. This validates our design hypothesis: ar-chitectural stream independence with delayed in-tegration enables debuggability by design. Inter-pretability need not be post-hoc. 
+
+5.4 Architectural Ablations 
+
+Table 2 decomposes performance costs: frozen positional stream alone (D-Cas) costs 1.6% vs. Std-T (1.8399 vs. 1.8114), proving channel iso-lation is nearly free. Channel factorization (LFA) adds 3.6% (1.9063), achieving modularity for 5% total cost. Excessive constraint (CFM) adds 11% (2.1019), exceeding the threshold where learning breaks. The dense FFN in LFA observes both streams while maintaining separation, enabling se-mantic coordination while preserving channel in-dependence in attention. See Appendix H for de-tailed ablation analysis. 
+
+6 Related Work 
+
+Disentanglement and specialization. DeBERTa (He et al., 2021) computes separate content-position attention terms; DeepSeek-V3’s MLA decouples RoPE for efficiency. These improve performance but don’t measure functional trans-parency via intervention. Extensive attention anal-ysis (Clark et al., 2019; Voita et al., 2019; Ko-valeva et al., 2019) reveals emergent head spe-cialization for syntax and coreference. We ask: can we design for specialization rather than hop-ing it emerges? Our architectural constraints in-duce functional modularity intentionally, validated through intervention experiments (4.2× lower col-lateral damage than entangled baselines). See Ap-pendix I for detailed DeBERTa comparison. 
+
+Critical behavioral difference: While De-BERTa computes position-content separately 
+
+within attention, streams re-combine in the residual stream with full gradient flow, causing position signals to dissolve by mid-layers (similar to standard transformers). Our gradient isolation maintains PDS=0.276 at L5, enabling surgical interventions (Cohen’s d = −0.158 ) impossible in gradient-coupled architectures. The distinction is not computational (how attention is computed) but architectural (where gradients flow), which determines interventionability. 
+
+Mechanistic interpretability and architec-tural design. Recent work reverse-engineers cir-cuits (Elhage et al., 2021; Wang et al., 2022; Ols-son et al., 2022); dictionary learning (Cunningham et al., 2023) decomposes activations via auxiliary models. Prior architectural work explores sparse attention (Child et al., 2019), mixture of experts (Shazeer et al., 2017), and modular networks (An-dreas et al., 2016). We complement by design-ing for interpretability a priori , validating archi-tectural stream independence as a measurable de-sign principle (Cohen’s d, PDS metrics). 
+
+Post-hoc explainability methods. Attention visualization (Jain and Wallace, 2019), gradient attribution (Sundararajan et al., 2017), layer-wise probing (Tenney et al., 2019; Belinkov et al., 2017) analyze entangled representations post-hoc. We design for transparency, creating architec-tures where position and semantics are archi-tecturally separated, enabling direct observation without post-hoc decomposition. 
+
+7 Conclusion 
+
+Architectural stream independence—maintaining separated streams with asymmetric information flow until output-layer integration—creates trans-parent, independently observable reasoning mech-anisms. The Late Fusion Architecture (LFA) val-idates this principle: interpretable position heads in deep layers (max PDS = 0.276 vs. 0.058 for immediate integration), surgical interventions with minimal collateral damage (Cohen’s d =
+
+−0.158 vs. −0.672 for entangled baselines), and concentrated coreference specialization (top head 48.3Std-T specialists distributed across layers). The design principle generalizes beyond frozen streams—any architecture maintaining indepen-dent observability (gating, conditional computa-tion, stream separation) should exhibit similar benefits. LFA achieves this with modest cost (5.2stream separation itself (D-Cas: 1.6 We validate at controlled scale (13M-22M pa-rameters, TinyStories) with quantitative metrics: 
+
+(1) Cohen’s d for intervention collateral damage, 
+
+(2) PDS for independent observability, (3) system-atic comparison isolating constraint effects. These metrics establish functional transparency as a first-class architectural design criterion —interpretability need not rely solely on post-hoc analysis. Architectural constraints can force mod-els to compute in ways humans can directly ob-serve and understand. 
+
+Design principles for practitioners: Architec-tural stream independence requires three compo-nents: (1) gradient isolation between information types (frozen streams, gating), (2) channel factor-ization preventing cross-head interference, (3) de-layed dense integration for coordination. Abla-tions reveal frozen streams alone are insufficient (D-Cas: no specialization); excessive constraint breaks learning (CFM: 0% stability). The archi-tectural sweet spot balances independence (inter-pretability) with coordination (performance). Critical questions remain: Does transparency hold at billion-parameter scale? Can architec-tural and additive disentanglement (DeBERTa-style) combine for performance and explainabil-ity? Can transparency metrics guide automated architecture search? Future work must address the 100× scale gap and validate generalization to high-stakes domains where understanding model reasoning is critical. 
+
+8 Limitations 
+
+Scale: We validate at 13M-22M parameters on TinyStories for mechanistic analysis. Whether ar-chitectural constraints provide benefits at billion-parameter scale and real-world tasks remains open. The 100× parameter gap means our fiings are proof-of-concept, not evidence LFA is imme-diately deployable at production scale. 
+
+Task scope: Validation focuses on recency bias in coreference resolution. We do not test high-order reasoning (multi-hop inference, ab-stract planning) where entanglement might enable interactions required for complex reasoning. 
+
+Automation: Identifying intervention targets requires computing PDS, inspecting patterns, and designing tests. Fully automated interpretability remains an open challenge. 
+
+Complementarity with prior work: Our ap-proach differs from DeBERTa’s disentangled at-tention in mechanism (architectural separation vs. additive decomposition) and objective (functional transparency vs. performance). Whether combin-ing approaches yields both benefits remains open. 
+
+References                  
+
+> Jacob Andreas, Marcus Rohrbach, Trevor Darrell, and Dan Klein. 2016. Neural module networks. In Pro-ceedings of the IEEE Conference on Computer Vi-sion and Pattern Recognition , pages 39–48. Yonatan Belinkov, Nadir Durrani, Fahim Dalvi, Has-san Sajjad, and James R. Glass. 2017. What do neu-ral machine translation models learn about morphol-ogy? CoRR , abs/1704.03471. Rewon Child, Scott Gray, Alec Radford, and Ilya Sutskever. 2019. Generating long sequences with sparse transformers. In arXiv preprint arXiv:1904.10509 .Kevin Clark, Urvashi Khandelwal, Omer Levy, and Christopher D. Manning. 2019. What does BERT look at? an analysis of BERT’s attention. In Pro-ceedings of the 2019 ACL Workshop BlackboxNLP: Analyzing and Interpreting Neural Networks for
+
+NLP , pages 276–286. Association for Computa-tional Linguistics. Hoagy Cunningham, Aidan Ewart, Logan Riggs, Robert Huben, and Lee Sharkey. 2023. Sparse au-toencoders find highly interpretable features in lan-guage models. arXiv preprint arXiv:2309.08600 .Nelson Elhage, Neel Nanda, Catherine Olsson, Tom Henighan, Nicholas Joseph, Ben Mann, Amanda Askell, Yuntao Bai, Anna Chen, Tom Conerly, and 1 others. 2021. A mathematical framework for trans-former circuits. Transformer Circuits Thread .Mor Geva, Roei Schuster, Jonathan Berant, and Omer Levy. 2021. Transformer feed-forward layers are key-value memories. In Proceedings of the 2021 Conference on Empirical Methods in Natural Lan-guage Processing , pages 5484–5495. Association for Computational Linguistics. Xiaobo Guo and Soroush Vosoughi. 2025. Serial posi-tion effects of large language models. In Findings of the Association for Computational Linguistics: ACL 2025 , pages 927–953. Pengcheng He, Xiaodong Liu, Jianfeng Gao, and Weizhu Chen. 2021. DeBerTa: Decoding-enhanced BERT with disentangled attention. In International Conference on Learning Representations .Sarthak Jain and Byron C. Wallace. 2019. Attention is not explanation. Olga Kovaleva, Alexey Romanov, Anna Rogers, and Anna Rumshisky. 2019. Revealing the dark secrets of BERT. arXiv preprint arXiv:1908.08593 .nostalgebraist. 2020. Interpreting gpt: the logit lens. Blog post. Catherine Olsson, Nelson Elhage, Neel Nanda, Nicholas Joseph, Nova DasSarma, Tom Henighan, Ben Mann, Amanda Askell, Yuntao Bai, Dawn Drain, and 1 others. 2022. In-context learning and induction heads. arXiv preprint arXiv:2209.11895 .Mrinank Sharma, Meg Tong, Tomasz Korbak, David Duvenaud, Amanda Askell, Samuel R. Bow-man, Newton Cheng, Esin Durmus, Zac Hatfield-Dodds, Scott R. Johnston, Shauna Kravec, Timo-thy Maxwell, Sam McCandlish, Kamal Ndousse, Oliver Rausch, Nicholas Schiefer, Da Yan, Miranda Zhang, and Ethan Perez. 2024. Towards understand-ing sycophancy in language models. In Interna-tional Conference on Learning Representations .Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le, Geoffrey Hinton, and Jeff Dean. 2017. Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. In 
+
+International Conference on Learning Representa-tions .Mukund Sundararajan, Ankur Taly, and Qiqi Yan. 2017. Axiomatic attribution for deep networks. In 
+
+Proceedings of the 34th International Conference on Machine Learning , volume 70 of Proceedings of Machine Learning Research , pages 3319–3328. PMLR. Ian Tenney, Dipanjan Das, and Ellie Pavlick. 2019. BERT rediscovers the classical NLP pipeline. In 
+
+Proceedings of the 57th Annual Meeting of the Asso-ciation for Computational Linguistics , pages 4593– 4601. Elena Voita, David Talbot, Fedor Moiseev, Rico Sen-nrich, and Ivan Titov. 2019. Analyzing multi-head self-attention: Specialized heads do the heavy lifting, the rest can be pruned. arXiv preprint arXiv:1905.09418 .Kevin Wang, Alexandre Variengien, Arthur Conmy, Buck Shlegeris, and Jacob Steinhardt. 2022. In-terpretability in the wild: a circuit for indirect ob-ject identification in gpt-2 small. arXiv preprint arXiv:2211.00593 .Yu Yang, Eric Gan, Gintare Karolina Dziugaite, and Baharan Mirzasoleiman. 2024. Identifying spurious biases early in training through the lens of simplic-ity bias. In Proceedings of the 27th International Conference on Artificial Intelligence and Statistics (AISTATS) .
+
+A Token-Factored Architecture and Frozen Token Stream Variant 
+
+This appendix specifies the architecture used throughout the paper to avoid confusion with ad-ditive disentanglement methods (e.g., DeBERTa). Our design is an architectural separation of streams, not a decomposition inside attention. The separation is enforced by where updates are writ-ten, not by extra attention terms. 
+
+A.1 Stream Factorization 
+
+Each layer maintains two streams: 
+
+X(l) = X(l) 
+
+> T
+
++ X(l)
+
+> E
+
+X(0)  
+
+> T
+
+= TokenEmbedding (input ids )
+
+X(0)  
+
+> E
+
+= 0 .
+
+(10) 
+
+XT is the token stream (interpretable, token-linked), while XE is the embedding-like stream (contextual, abductive). The key architectural con-straint is that attention updates only XT , and the FFN updates only XE .A.2 Factored Self-Attention (LFA/CFM) 
+
+Let CLN (·) denote channel-wise layer normaliza-tion applied independently per head. Queries and keys observe both streams, but values are com-puted only from XT :
+
+X(l) 
+
+> attn
+
+= CLN (X(l−1)  
+
+> T
+
++ X(l−1)  
+
+> E
+
+) (11) 
+
+Q(l) = X(l)
+
+> attn
+
+WQ (12) 
+
+K(l) = X(l)
+
+> attn
+
+WK (13) 
+
+V (l) = X(l−1)  
+
+> T
+
+˜WV (14) 
+
+X(l) 
+
+> T
+
+= X(l−1)  
+
+> T
+
++ Attention (Q(l), K (l), V (l)).
+
+(15) To preserve channelization, the value and output projections must respect head structure. In the token-factored case we use Kronecker-lifted mix-ing, ˜WV = Whead ⊗ Idhead and ˜WO = W ′ 
+
+> head
+
+⊗
+
+Idhead , so each head remains a structured channel. This ensures attention performs symbolic routing over token-linked representations while keeping contextual updates separate. 
+
+A.3 FFN Update (Observes Both Streams, Maintains Separation) 
+
+The FFN consumes the combined state but writes only to XE :
+
+X(l) 
+
+> ffn
+
+= CLN (X(l) 
+
+> T
+
++ X(l−1)  
+
+> E
+
+) (16) 
+
+X(l) 
+
+> E
+
+= X(l−1)  
+
+> E
+
++ FFN (X(l) 
+
+> ffn
+
+). (17) Critically, while FFN observes both streams, it writes only to XE , maintaining architectural sep-aration. Attention routes token-linked informa-tion while the FFN integrates semantics into the embedding-like stream, but the streams remain distinct—fusion occurs only at the output layer (lm head). 
+
+A.4 Frozen Token Stream Variant 
+
+The frozen token stream variant fixes the token-like stream to the input while still training all pa-rameters end-to-end. In FTS, the attention path uses raw token-stream values and an identity out-put projection ( ˜WV = I, ˜WO = I), preserving channelization by construction. This stream up-date mode is shared by D-Cas, LFA, and CFM; the models differ only in their mixing constraints (dense vs. independent attention/FFN): 
+
+X(l) 
+
+> T
+
+= X(0)  
+
+> T
+
+(18) 
+
+X(l) 
+
+> E
+
+= X(l−1)  
+
+> E
+
+(19) 
+
++ Attention (Q(l), K (l), X (0)  
+
+> T
+
+) (20) 
+
++ FFN (X(l) 
+
+> ffn
+
+). (21) “Frozen” refers to the representation being held constant (no residual writes into XT ), not to frozen weights. This prevents gradual drift of token-linked channels and maintains complete architec-tural separation—the streams never fuse within the transformer; fusion occurs only at the output layer (lm head). 
+
+B Reasoning Types as Design Motivation 
+
+Our architectural design is motivated by observa-tions that transformers perform computationally distinct operations that may benefit from separa-tion: 
+
+B.1 Symbolic Manipulation (Attention) 
+
+Attention mechanisms perform discrete routing: selecting which input tokens to aggregate. This includes direct copying (induction heads (Olsson et al., 2022)), entity tracking (coreference res-olution), and syntactic operations (subject-verb agreement). These operations are symbolic in the sense that they route information between specific token positions without transforming content. 
+
+Tested in this work: Coreference experiments (§4) validate that LFA’s attention develops spe-cialized heads for symbolic routing (L4.H3 re-solves 48.3% of instances).Position tracking ex-periments (§5.1) confirm distinct position-routing heads emerge in layers 4-5. 
+
+B.2 Inductive Pattern Discovery (Circuits) 
+
+Transformers learn algorithmic patterns from training data—induction heads that complete se-quences (Olsson et al., 2022), IOI circuits that re-solve indirect objects (Wang et al., 2022), and syn-tactic circuits (Clark et al., 2019). These learned patterns are inductive in the sense that they gener-alize from training examples to nove inputs. 
+
+Tested in this work: Token-Position Depen-dence Score (§5.1) measures inductive bias toward recency. Competing-noun minimal pairs (§4.2) test whether semantic circuits generalize beyond positional heuristics. LFA’s mean stability of 0.42 Unconstrained Space Symbolic Space 
+
+X(ℓ−1) 
+
+> E
+
++
+
+X′
+
+> E
+
++
+
+X(ℓ)
+
+> E
+
+XT
+
+XT
+
+> Residual Accumulate
+
++
+
+CLN 
+
+Attn ℓ   
+
+> Context XE
+> Q/K
+> V = XT
+> Update XE
+
++
+
+CLN 
+
+FFN ℓ  
+
+> Prompt XT
+> Update XE
+
+Figure 3: LFA architecture showing frozen symbolic stream XT and evolving embedding stream XE .
+
+across competing-noun pairs (range 0.27–0.50) validates token position-invariant pattern learning. 
+
+B.3 Abductive Elaboration (FFN) 
+
+Feed-forward networks enrich representations with contextual information not present in the in-put. They function as y-value memories (Geva et al., 2021), retrieving semantic associations that enable generating appropriate continuations. This is abductive in the sense that the FFN introduces novel content beyond what attention routes from the input. 
+
+Not tested in this work: We isolate the FFN architecturally (writes only to XE ) but do not ana-lyze what semantic information it contributes. Fu-ture work could apply logit lens techniques (nos-talgebraist, 2020) or vocabulary projection meth-ods to examine FFN contributions to generation. Our contribution is demonstrating that separating 
+
+FFN updates from attention routing enables inter-pretable position tracking—the abductive content of FFN processing remains for future investiga-tion. 
+
+B.4 Architectural Implications 
+
+These three computational modes suggest differ-ent architectural needs: • Symbolic routing benefits from channeliza-tion (independent heads) to prevent cross-head interference • Inductive patterns benefit from frozen token streams to preserve clean symbolic structure across layers • Abductive elaboration benefits from dense FFN to integrate rich semantic associations LFA implements these principles: independent attention (symbolic channelization), frozen XT
+
+(stable inductive substrate), dense FFN (abductive integration). Our experiments validate the first two (§4-5); the third remains assumed based on prior work (Geva et al., 2021) andrepresents a direction for future investigation. 
+
+Distinction from cognitive science: While we borrow terminology from philosophical logic (de-duction, induction, abduction), we do not claim transformers implement these reasoning modes in the formal sense. The terms serve as useful analogies for architectural design—our contribu-tion is demonstrating that architectures motivated by these distinctions produce measurable inter-pretability benefits, not validating the reasoning taxonomy itself. 
+
+C Token-Position Dependence Score (PDS) Analysis 
+
+The Token-Position Dependence Score (PDS) measures how much a head’s attention varies when the target appears in different positions. We use threshold PDS > 0.075 for descriptive counts in the main paper, which corresponds to μ + σ for the Std-T distribution. Figure 4 shows the full PDS distribution across all heads for each model. LFA exhibits a bi-modal distribution with a clear separation be-tween position-dependent heads (PDS > 0.075 )and position-invariant heads (PDS < 0.05 ). This confirms our architectural hypothesis: indepen-dent channels create distinct functional modules. Std-T shows a unimodal distribution centered near zero with few position-dependent heads, consis-tent with early fusion dissolving position signals. CFM’s distribution is similar to Std-T, showing that excessive constraint prevents the emergence of position-tracking mechanisms. LFA Std-T 
+
+> 0.0
+> 0.1
+> 0.2
+> Position Dependence Score (PDS)
+
+PDS Distribution by Model 
+
+Figure 4: PDS distribution across all heads. LFA shows bimodal separation between position-dependent (PDS > 0.075 ) and position-invariant heads. Std-T and CFM show unimodal distributions centered near zero, indicating position signals dissolve or fail to form. 
+
+The threshold PDS > 0.075 was selected based on the Std-T distribution to provide a conservative criterion for identifying recency heads. However, all intervention experiments use ranked top-k se-lection rather than threshold-based selection, en-suring results are not sensitive to threshold choice. 
+
+D Intervention Protocol and Gate Curves 
+
+We perform soft-gated interventions by mul-tiplying head outputs by a gate value g ∈{1.0, 0.75 , 0.5, 0.25 , 0.0}. For each model, we rank heads by PDS and select top-k recency heads where k ∈ { 1, 2, 3, 5}.Figure 5 and Figure 6 show the complete gate-response curves for k = 1 and k = 3 interven-tions. LFA demonstrates near-linear, shallow re-sponses: as we suppress recency heads, seman-tic preference (SPS) changes gradually and pre-dictably. This validates functional transparency— position mechanisms can be surgically removed without catastrophic semantic damage. In contrast, Std-T and CFM show steep, non-linear collapses. Even partial suppression (gate = 0.75) causes large drops in SPS, indicating posi-tion and semantics are entangled. Full suppres-sion (gate = 0.0) is catastrophic for CFM, validat-ing that its “position heads” were load-bearing for semantic processing. 0.0 0.2 0.4 0.6 0.8 1.0             
+
+> Gate (g)
+> 0.0025
+> 0.0050
+> 0.0075
+> 0.0100
+> 0.0125
+> 0.0150
+> 0.0175
+> 0.0200
+> SPS
+> LFA
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Gate (g)
+> SPS
+> Std-T
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Gate (g)
+> SPS
+> DeBERTa
+> Recency Semantic Random
+
+Figure 5: Gate response curves for top-1 recency head intervention. LFA shows shallow, linear re-sponse (functional independence). Std-T and CFM show steep, non-linear collapse (entanglement). 0.0 0.2 0.4 0.6 0.8 1.0             
+
+> Gate (g)
+> 0.005
+> 0.010
+> 0.015
+> 0.020
+> SPS
+> LFA
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Gate (g)
+> SPS
+> Std-T
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Gate (g)
+> SPS
+> DeBERTa
+> Recency Semantic Random
+
+Figure 6: Gate response curves for top-3 recency head intervention. Pattern consistent with k = 1 :LFA maintains linearity, baselines show catastrophic entanglement. 
+
+Control conditions: We include three control interventions: (1) matched-random suppression (suppress random k heads), (2) semantic suppres-sion (suppress bottom-k PDS heads), and (3) base-line (no intervention). All results in the main paper report hard suppression (gate = 0.0) unless other-wise specified. E Complete Coreference Results 
+
+Table 3 in the main paper shows the top 5 heads by mean attention. Figure 7 provides a complete view of all 36 heads (6 layers × 6 heads) for LFA, Std-T, and CFM. 0 1 2 3 4 5                                                                 
+
+> Head
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> Layer
+> 0.02 0.00 0.00 0.00 0.03 0.02
+> 0.00 0.00 0.00 0.02 0.01 0.00
+> 0.00 0.01 0.01 0.03 0.01 0.01
+> 0.00 0.01 0.09 0.04 0.09 0.01
+> 0.12 0.05 0.07 0.23 0.00 0.18
+> 0.28 0.02 0.01 0.04 0.10 0.01
+> LFA
+> PDS Heatmap
+> 012345
+> Head
+> 0.06 0.04 0.07 0.00 0.08 0.00
+> 0.00 0.01 0.01 0.07 0.01 0.19
+> 0.00 0.00 0.02 0.00 0.00 0.03
+> 0.00 0.04 0.05 0.02 0.01 0.02
+> 0.00 0.05 0.02 0.01 0.12 0.03
+> 0.06 0.00 0.00 0.00 0.00 0.01
+> Std-T
+> PDS Heatmap
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> Position Dependence Score (PDS)
+
+Figure 7: PDS heatmap acrss all heads. Each cell shows PDS for layer ℓ, head h. LFA concentrates high-PDS heads in layers 4-5 (late fusion). Std-T shows weak position signals in layers 0-1 that dissolve by mid-layers (early fusion). CFM shows mid-layer con-centration without late-layer integration (failed fusion). 
+
+The heatmap validates the temporal hypothe-sis visually: LFA’s position-dependent heads (dark red, PDS > 0.2) concentrate in the bottom-right quadrant (layers 4-5). Std-T’s weak signals (light colors) appear in the top rows (layers 0-1) and fade completely by layer 5. CFM shows scattered mid-layer activation without coherent late-layer inte-gration, confirming excessive constraint prevents the model from developing functional position-tracking mechanisms. Quantitatively (alignment scores over corefer-ence instances), LFA has 12 heads with Top1 ac-curacy > 30% versus 7 for Std-T. LFA’s top 10 mean-attention heads range from 0.179 to 0.323, while Std-T’s top 10 range from 0.098 to 0.315. This indicates LFA has more heads clearing a high-accuracy threshold, while Std-T’s strongest heads are fewer and more dispersed. 
+
+F Extended Intervention Analysis 
+
+Beyond the primary intervention results in Sec-tion 5.2, we performed per-category analyses breaking down competing-noun prompts by se-mantic relationship type (tool-container, agent-patient, possessor-possessed). Results are con-sistent across all categories: LFA demonstrates 
+
+|d| < 0.2 in all cases, while CFM shows |d| > 0.5
+
+in all categories. We also tested asymmetric interventions: sup-pressing recency heads on tool-first prompts only versus container-first prompts only. LFA shows symmetric responses (difference < 0.01 ), con-firming position mechanisms are truly position-invariant. Std-T shows asymmetric responses (dif-ference > 0.05 ), indicating position and semantics interact in complex, entangled ways. 
+
+G Stability Analysis 
+
+Stability measures whether heads maintain con-sistent target preference across position variations. For each head, we compute the percentage of min-imal pairs where the head attends to the same se-mantic target regardless of position. Across the three competing-noun pairs, LFA’s stability ratios are 0.50, 0.27, and 0.50 (mean 0.42), corresponding to 3–6 stable heads per pair. Std-T’s ratios are 0.25, 0.20, and 0.125 (mean 0.19), with one stable head per pair. CFM’s ratios are 0.0, 0.33, and 0.0 (mean 0.11), with 0–1 sta-ble heads. These patterns indicate LFA maintains more consistent semantic preference under order swaps, while CFM often shows recency bias. 
+
+H Detailed Ablation Analysis 
+
+Table 2 in the main paper shows validation loss for all four models. Here we decompose the per-formance cost: 
+
+Frozen stream cost: D-Cas vs. Std-T = 1.6% (1.8399 vs. 1.8114). This minimal cost proves stream separation itself does not harm perfor-mance. 
+
+Channel factorization cost: LFA vs. D-Cas = 3.6% (1.9063 vs. 1.8399). Independent attention channels add modest cost by restricting gradient flow and forcing heads into specialized roles. 
+
+Excessive constraint cost: CFM vs. LFA = 10.2% (2.1019 vs. 1.9063). Factorizing both attention and FFN exceeds the threshold where architectural constraints prevent the model from learning effective representations. The dense FFN in LFA observes both streams while maintaining architectural separation, en-abling gradient coordination for semantic updates while preserving channel independence in atten-tion. This architectural choice balances inter-pretability (independent channels, complete sep-aration) with learnability (coordinated semantic processing). 
+
+I Comparison to DeBERTa and Multi-Head Latent Attention 
+
+DeBERTa (He et al., 2021): Disentangled attention computes three terms within atten-tion: content-content ( QcKTc ), content-position (QcKTp ), and position-content ( QpKTc ). This ad-ditive decomposition improves performance by computing richer attention patterns, but does not enforce architectural separation. Position and content remain mixed in the same representation space with full gradient flow between them. Our frozen stream creates architectural barriers: posi-tion lives in XT , semantics in XE , with no gra-dient updates flowing between streams; they re-main separated until fusion at the output layer (lm head). 
+
+Multi-Head Latent Attention (MLA): 
+
+DeepSeek-V3’s MLA decouples RoPE positional embeddings from value/key compression for KV cache efficiency. The goal is computational efficiency, not interpretability. MLA allows im-mediate mixing of position and content, whereas LFA maintains complete separation throughout all transformer layers through architectural stream independence, integrating only at the output. Our contribution is orthogonal: we demonstrate that preventing premature integration affects func-tional transparency and interventionability, inde-pendent of how attention is computed within lay-ers. 
+
+J Dataset Specification 
+
+The coreference dataset contains 29 instances across 13 diagnostic prompts. Each instance spec-ifies: (1) prompt text, (2) query token position, (3) correct antecedent token, (4) competing distractor tokens. Examples: 
+
+Competing nouns: “Tim saw a key and a box. He used it.” (target: key, distractor: box) vs. “Tim saw a box and a key. He used it.” (target: key, distractor: box). 
+
+Gender resolution: “Sarah and Tom went to the park. She played.” (target: Sarah, distractor: Tom). 
+
+Plurality: “The dogs and the cat ran. They stopped.” (target: dogs, distractor: cat). The competing nouns subset (12 minimal pairs, 58 instances after filtering) is used for intervention experiments. The full dataset is used for corefer-ence specialization analysis. 
+
+K Applications to High-Stakes Domains 
+
+In clinical NLP, legal AI, and financial analysis, understanding why a model made a prediction is as important as the prediction itself. LFA’s archi-tectural transparency enables: 
+
+Error diagnosis: When a clinical entity extrac-tion model fails, developers can inspect position heads (L5.H0) separately from semantic heads (L4.H3). If position heads are active, the error may be recency bias; if semantic heads are weak, the error is content understanding. 
+
+Bias mitigation: By identifying which heads track position versus semantics, developers can apply targeted interventions (e.g., suppress re-cency heads during inference) without retraining the entire model. 
+
+Regulatory compliance: In domains requir-ing model explainability (EU AI Act, FDA medi-cal device approval), head-level transparency pro-vides auditable reasoning traces. Unlike standard models where position and semantics are entan-gled black boxes, LFA enables pointing to specific components: “The model attended to X because position head L5.H0 tracked recency and seman-tic head L4.H3 validated appropriateness.” These applications require functional transparency—the ability to intervene on specific mechanisms without collateral damage. Our re-sults validate that LFA provides this transparency by design, whereas standard architectures do not.

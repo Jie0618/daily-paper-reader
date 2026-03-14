@@ -1,0 +1,617 @@
+Title: DNN-Enabled Multi-User Beamforming for Throughput Maximization under Adjustable Fairness
+
+URL Source: https://arxiv.org/pdf/2602.15617v1
+
+Published Time: Wed, 18 Feb 2026 01:51:20 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# DNN-Enabled Multi-User Beamforming for Throughput Maximization under Adjustable Fairness 
+
+Kaifeng Lu, Markus Rupp, Stefan Schwarz Institute of Telecommunications, Technische Universität (TU) Wien Email: kaifeng.lu@tuwien.ac.at 
+
+© 2026 IEEE. Personal use of this material is permitted. This is the author’s version of the work accepted for publication in IEEE International Conference on Machine Learning in Communications and Networking (ICMLCN 2026). 
+
+Abstract —Ensuring user fairness in wireless communications is a fundamental challenge, as balancing the trade-off between fairness and sum rate leads to a non-convex, multi-objective optimization whose complexity grows with network scale. To alleviate this conflict, we propose an optimization-based unsu-pervised learning approach based on the wireless transformer (WiT) architecture that learns from channel state information (CSI) features. We reformulate the trade-off by combining the sum rate and fairness objectives through a Lagrangian multiplier, which is updated automatically via a dual-ascent algorithm. This mechanism allows for a controllable fairness constraint while simultaneously maximizing the sum rate, effectively realizing a trace on the Pareto front between two conflicting objectives. Our findings show that the proposed approach offers a flexible solu-tion for managing the trade-off optimization under prescribed fairness. 
+
+Index Terms —wireless communications, fairness, transformer, multi-objective optimization, Pareto front 
+
+I. I NTRODUCTION 
+
+Deep neural networks (DNNs) have shown strong poten-tial for addressing a wide range of problems in next-generation wireless networks. As the network scales, channel state information (CSI) is considered as one of the essential learning features, providing a rich, unified repre-sentation that captures key spatiotemporal relationships and propagation characteristics across numerous tasks. Leverag-ing CSI as the input, DNNs have been applied to solve multiple problems such as radio resource management and joint communication-and-sensing, yielding robust, low-latency decisions in interference-limited, time-varying channels. In particular, DNNs have been used to tackle localization [1]–[3], user clustering in cell-free MIMO [4], channel prediction [5], [6], and energy-efficiency aware power control for green com-munications [7]–[9] among other tasks.Thus, CSI serves as a bridge between machine learning and wireless communication tasks, enabling consistent and efficient solutions. As mobile systems keeps evolving, the Quality of Service (QoS) requirements are becoming more strict and diverse, aiming to deliver comparable benefits for all users [10]. However, ensuring users’ fairness across the network remains a fundamental challenge, as the feasible fairness solutions are characterized by the Pareto front in a non-convex multi-objective sum rate trade-off [11]. To address this, DNNs have emerged as a practical alternative to complex multi-gradient decent (MGD) algorithms. In [12], a weighted-sum objective with deep reinforcement learning tackles the non-convex optimization, whereas [13] uses a transformer-based DNN, training for power allocation that maximizes the minimum spectral efficiency across subcarriers. A common limitation is that using fixed weights or a max–min formulation cannot guarantee a certain level of fairness. In practice, fairness tends to decrease when maximizing the sum rate, making the achieved fairness highly dependent on the weight selection. To formulate a solution that maximizes throughput while achieving a prescribed fairness level, we propose an unsuper-vised learning approach based on the transformer architecture in which the fairness target is explicitly identified.  
+
+> •
+
+We formulate a composite objective that couples the sum rate with a fairness constraint measured by Jain’s index 
+
+J, which is not the only possible fairness definition but is well suited to our setting; see Section II-A for details. Unlike [12], which uses a convex combination, we adopt a Lagrangian approach with a hinge penalty on the sum rate that only activates when a violation occurs on the target fairness lower bound JLB . 
+
+> •
+
+A controllable dual multiplier λ scales the penalty, and an adaptive dual-ascent scheme automatically updates λ
+
+to ensure the fairness constraint is satisfied. Then the sum rate is maximized at the target fairness.  
+
+> •
+
+By selecting a set of lower bound values JLB for DNN training, we obtain separate points in the sum rate versus fairness plane whose trace approximates the Pareto front, thereby enabling us to specify the maximized sum rate at prescribed fairness levels. II. S YSTEM MODEL AND PROBLEM FORMULATION 
+
+We consider a multi-user multiple-input multiple-output (MIMO) downlink broadcast transmission with a single transmitter base station equipped with Nt antennas, serving Nu single antenna user equipments (UEs). Each broadcast link is a frequency-flat narrow-band multiple-input single-output (MISO) channel where we consider a single subcarrier of an orthogonal frequency division multiplexing (OFDM) transmission. 
+
+A. Downlink Input-Output Relationship 
+
+For each user u ∈ U , {1, . . . , N u}, the channel vector is represented by hu ∈ CNt×1. Let fu ∈ CNt×1 denote the 
+
+> arXiv:2602.15617v1 [cs.LG] 17 Feb 2026
+
+beamforming vector of user u, and let xu denote user u’s transmit signal. The overall received signal at user u is: 
+
+yu = hH 
+
+> u
+
+fuxu + hH
+
+> u
+
+∑
+
+> ℓ∈U \{ u}
+
+fℓxℓ + nu, (1) where, nu ∼ CN (0 , σ 2
+
+> u
+
+) is complex Gaussian noise. In the input-output relationship, hH 
+
+> u
+
+fuxu is the useful signal at target user u, whereas the summation term represents the inter-user interference from other users ℓ 6 = u, and vector fℓ
+
+denotes the beamformer of the ℓ-th interfering user. We assume 
+
+E(|xu|2) = 1 , a total power budget at the base station (BS) of Ptot with equal power allocation to all users, and the subcarrier bandwidth is B. Specifically, we can decompose the beamformer of any user u ∈ U as: 
+
+fu = Pu˜fu, ‖˜fu‖2 = 1 , Pu =
+
+√ Ptot 
+
+Nu
+
+. (2) With the abovementioned assumptions, the instantaneous signal to interference and noise ratio (SINR) and the achiev-able throughput of user u are: 
+
+SINR u = |hH 
+
+> u
+
+fu|2
+
+> Nu
+
+∑ 
+
+> ℓ=1 ,ℓ 6=u
+
+|hH 
+
+> u
+
+fℓ|2 + σ2
+
+> u
+
+(3) 
+
+Ru = log 2(1 + SINR u) . (4) 
+
+a) Fairness Index: The system’s fairness level is quan-tified by Jain’s index, calculated from each user’s achievable throughput [14]: 
+
+J =
+
+(∑Nu 
+
+> u=1
+
+Ru
+
+)2
+
+Nu
+
+∑Nu 
+
+> u=1
+
+R2
+
+> u
+
+. (5) Jain’s fairness index is a function of the user rate Ru; it lies in 
+
+(1 /N u, 1) and increases as the user rates become more equal. Consequently, it is coupled closely with the sum-rate through the same variable Ru, resulting in a composite objective that is consistent with Ru and exhibits stable gradients during training. 
+
+b) Weighted SLNR Beamforming: Following our prior work [15], where we adopt a weighted SLNR (wSLNR) ap-proach, we use this method as a heuristic benchmark in our simulations and as a clear, interpretable baseline for comparison with our DNN-based beamforming: wSLNR u =
+
+∣∣hH 
+
+> u
+
+fu
+
+∣∣2
+
+∑Nu  
+
+> ℓ=1 ,ℓ 6=u
+
+ωℓ
+
+∣∣hH 
+
+> ℓ
+
+fu
+
+∣∣2 + σ2
+
+> n
+
+. (6) Here, ∣∣hH 
+
+> ℓ
+
+fu
+
+∣∣2 denotes the leakage power from user u to other user ℓ. The weight ωℓ serves as a penalty factor that prioritizes users suffering from a weak channel gain, while penalizing those with stronger channels. The weights ωℓ are calculated by taking the inverse of the channel gain and raising it to a tunable exponent αℓ:
+
+ωℓ = ˜ωℓ
+
+∑ 
+
+> ℓ∈U
+
+˜ωℓ
+
+, ˜ωℓ = 1
+
+(
+
+‖hℓ‖2)αℓ . (7) Finally, the optimal beamforming vector can be derived from the Rayleigh quotient: 
+
+fu ∝
+
+
+
+> Nu
+
+∑ 
+
+> ℓ=1 ,ℓ 6=u
+
+ωℓhℓhH 
+
+> ℓ
+
++ σ2
+
+> n
+
+INt
+
+
+
+> −1
+
+hu. (8) 
+
+B. Problem Formulation 
+
+Our target is to develop a general and flexible method for maximizing the downlink sum throughput while maintaining fairness across users. In other words, for a given Jain’s index lower bound JLB , we aim to find the Pareto optimal sum rate. 
+
+max  
+
+> {fu}Nu u=1
+> Nu
+
+∑
+
+> u=1
+
+Ru
+
+s.t. J ≥ JLB ,
+
+> Nu
+
+∑
+
+> u=1
+
+‖fu‖2 ≤ Ptot .
+
+(9) Here, we isolate the contribution of the power domain, avoid-ing joint impact on balancing the fairness, so that we can obtain a deployment-agnostic solution that remains applicable when power control is unavailable. III. T RANSFORMER -B ASED SUM RATE FAIRNESS 
+
+OPTIMIZATION 
+
+The transformer DNN architecture was first introduced in [16] and subsequently extended to the wireless domain with a task-specific wireless transformer (WiT) in [3]. While the prior study used CSI-based learning for resource management and localization [3], here we broaden the scope to the fairness-oriented beamforming task. 
+
+A. Training Data 
+
+We take two sub-steps before inputting the CSI sequence into the WiT. We begin by decomposing the CSI into a normalized channel vector and signal to noise ratios (SNRs), which makes a numerically stable representation that effec-tively handles the large dynamic range and variance of wireless signals while reducing the gradient fluctuation for robust training: 
+
+˜hu = hu
+
+‖hu‖ , βu = ‖hu‖2
+
+σ2
+
+> u
+
+. (10) Then, we split the normalized channel vector into real and imaginary parts, and take the logarithms of the SNR. For each user, the concatenated CSI feature vector is: h =[ ℜ(˜hu), ℑ(˜hu), 10 log 10 (βu) ]. The feature length is Nf =2Nt + 1 . By vertically stacking these features for all users 
+
+u ∈ U , we form the CSI input sequence H ∈ RNu×Nf ,where each row represents each user’s CSI feature. Let the complete dataset be Htot = {Hn
+
+}Ntot  
+
+> n=1
+
+Hn ∈ RNu×Nf , with the total number of data ∣∣Htot 
+
+∣∣ = Ntot . We partition it into three disjoint subsets: training set Htrain , validation set Hval ,and test set Htest , where Htot , Htrain ∪ H val ∪ H test ,with the number of sequences ∣∣Htrain 
+
+∣∣ = Ntrain , ∣∣Hval 
+
+∣∣ =
+
+Nval , ∣∣Htest 
+
+∣∣ = Ntest respectively. Input    
+
+> Input Sequence Normalization & Feature extension
+> FC
+> Embeded CSI
+> Features
+> Norm & Add
+> Norm & Add
+> Multi-head Attention
+> Attended CSI Features
+> Output
+> Feature Input & Embedding Block Transformer Encoder Output Regression Block
+> Multi-Attention Blocks
+> : ℝ → ℝ
+> nput  Seq
+> FC
+> t
+> Feat
+> MHA
+> FC
+> FC
+
+Fig. 1: Transformer-DNN architecture for throughput maximization under adjustable fairness 
+
+B. Model Architecture 
+
+Building on the foundation in [3], Fig. 1 demonstrates a transformer-DNN architecture adopted in this work. It bal-ances fairness while optimizing the overall sum rate by using an explicit loss function. 
+
+a) Feature Input and Embedding Block: For each in-put batch of size Nb, we first normalize the random batch selection from the training set. Then we sample (without repetition) an index set Ib ⊆ { 1, . . . , N train }, |Ib| = Nb
+
+and stack the selected sequences to form the batch tensor: 
+
+Hbu = Stack ({Hn : n ∈ Ib}) ∈ RNb×Nu×Nf . We embed the Hbu features into an Ne-dimensional space using a fully connected (FC) layer ϕ : RNf → RNe . The embedded features are Hemb = ϕ(Hbu ) ∈ RNb×Nu×Ne , which are then fed into the transformer encoder. 
+
+b) Transformer Encoder: The transformer encoder con-sisting of Natt multi-attention blocks with Nhead parallel multi-head attention (MHA) layers and a FC layer [16], [17]. In each transformer encoder, the input and output shapes are identical so that the attended CSI features at the output are 
+
+A ∈ RNb×Nu×Ne .Our task primarily requires the intra-sequence dependencies; therefore, Nhead is a key hyperparameter, since multiple heads allow each head to focus on different relationships among the CSI sequence elements. 
+
+c) Output Regression Block: At the output block, we employ a FC layer for regression design. Since the model must infer continuous-valued targets from CSI features, a regression over a FC layer is sufficient. In our task, we first slice the attended tensor A along the user’s dimension over each batch, obtaining au , A(: , u, :) ∈ RNb×Ne , u = 1, . . . , N u.Each au is then sent through the FC layer, which produces a regression output — a quasi-beamformer for each user 
+
+˜fu ∈ R2N t ×Nb formed by horizontally stacking the real parts and imaginary parts. The predicted beamformer of the FC layer’s output is normalized by ˆfu(: , k ) = ˜fu(: , k )/‖˜fu(: , k )‖,where the normalization is applied on each column. The predicted beamformers of all users are then used to calculate the training loss. 
+
+C. Loss Function and Training Algorithm 
+
+Our major goal is to solve the maximization problem in Eq. (9), but two practical issues arise. First, maximizing the sum rates ∑N u u=1 Ru naturally pushes down the Jain index 
+
+J in Eq. (5). Furthermore, J varies during training, so the hard constraint J ≥ JLB cannot be satisfied at every iteration. Second, the DNN can naturally optimize the objective without any constraints, and fixed-weight linear convex combinations of throughput and fairness do not ensure a prescribed fairness level. To address these conflicting issues, we incorporate the fairness constraint into the maximization process via a Lagrangian approach, namely a hinge-loss penalty. 
+
+L = −
+
+(
+
+S + λ min (J − JLB , 0))
+
+,
+
+S , 1
+
+NbNb∑
+
+> k=1
+
+˜Sk, J , 1
+
+NbNb∑
+
+> k=1
+
+Jk,
+
+(11) which explicitly penalizes violations when J < JLB by a tunable dual variable λ, thereby preserving controllable fairness while still prioritizing sum-rate improvement. In the loss calculation Eq. (11), we operate on batches of size Nb. Let Rk,u denote the u-th user rate in the k-th stream of the batch. The k-th sum rate Sk = ∑Nu 
+
+> u=1
+
+Rk,u . Similarly, the k-th Jain’s index Jk is computed by Eq. (5). Because 
+
+Jk ∈ (0 , 1) , the sum-rate term must be normalized to a comparable scale; otherwise, the network will over-concentrate on throughput and ignore the fairness. We therefore normalize the sum rate per batch with Max-Min scaling: 
+
+˜Sk = Sk − Smin 
+
+Smax − Smin 
+
+, (12) After the scaling, the mean sum rate S and mean Jain’s index 
+
+J are calculated over the batch. The advantages of Max-Min scaling are that it leverages both extremes, reduces cross-batch fluctuations in the normalization factor, and aligns the normalized sum rate scale with J ∈ (0 , 1) , which together improve training stability. In contrast, other methods such as batch-max scaling or Z-score standardization are less suitable: batch-max scaling focuses on the single largest value in each batch, which can induce cross-batch loss fluctuations as Smax Algorithm 1 Adaptive Dual-Multiplier Training for Fairness-Constrained Sum-Rate Maximization  
+
+> 1:
+
+Initialize Θ(0) , λ(0) > 0, JLB ∈ (0 , 1) , ηλ, δ, and ǫ; 
+
+> 2:
+
+Set the outer loop counter n ← 1, and the inner loop steps 
+
+M ← ⌈ Ntrain /N b⌉ 
+
+> 3:
+
+repeat  
+
+> 4:
+
+for m = 1 to M do  
+
+> 5:
+
+Input training batch H(m) 
+
+> bu
+> 6:
+
+Predict beamformer ˆf (m) 
+
+> u
+
+with Θ(m) 
+
+> 7:
+
+Compute k-th S(m) 
+
+> k
+
+and J(m) 
+
+> k
+
+; normalize S(m)
+
+> k
+
+via Eq. (12)  
+
+> 8:
+
+Compute S(m), J (m), and V (m) ← J(m) − JLB  
+
+> 9:
+
+Compute loss L(m) in Eq. (11)  
+
+> 10:
+
+if |V (m)| > ǫ then  
+
+> 11:
+
+λ(m) ← λ(m−1) + ηλ (JLB − J(m)) 
+
+> 12:
+
+else if |V (m)| ≤ ǫ then  
+
+> 13:
+
+λ(m) ← λ(m−1)  
+
+> 14:
+
+end if  
+
+> 15:
+
+Θ(m) ← Adam (Θ(m−1) , ∇ΘL(m)) 
+
+> 16:
+
+end for  
+
+> 17:
+
+n ← n + 1  
+
+> 18:
+
+until ‖∇ ΘL(n)‖ ≤ δ and |V |(n) ≤ ǫ 
+
+> 19:
+
+return Θ(n), λ(n), ˆf (n)
+
+> u
+
+varies between batches, while Z-score standardization drives the batch-averaged sum-rate term to zero (although it keeps gradients nonzero). It can harm backpropagation effectiveness when J > J LB , if used directly in a combined loss. Building on the above loss, Algorithm 1 automatically tunes the dual multiplier λ to enforce target fairness while maximizing the objective in Eq. (9). Here, Θ denotes the set of trainable parameters of the proposed DNN, including all weights and biases, which maps the input channel realizations to the predicted beamformers. In each iteration, the network updates Θ and predicts ˆfu. The initial values of λ and Θ are insensitive to the final result; the sensitive hyperparameters are the dual step ηλ and the tolerance ǫ. A larger ǫ relaxes the constraint and can drift away from the target JLB , whereas a too small ǫ leads to harder convergence because Jain’s index fluctuates across each training. Similarly, an overly large dual step size induces update fluctuations of λ, while a too small 
+
+ηλ does not have enough power to penalize the sum rate term. Hence, ηλ and ǫ must be chosen jointly to balance stability and accuracy. IV. S IMULATIONS 
+
+In this section, we present the simulation result to demon-strate the performance of the proposed adaptive fairness control algorithm in Section III. We use the wSLNR as defined in Eqs. (6) to (8) to generate the benchmark so-lutions, and we employ target JLB to train the DNN. For comprehensive comparison across scenarios, we also include maximum ratio transmission (MRT), zero forcing (ZF), and conventional SLNR as baseline beamforming schemes. TABLE I: Hyperparameters of the DNN                   
+
+> WiT parameters Training parameters
+> Emb. Factor ( Ne)4Batch size ( Nb)28
+> Blocks ( Natt )8Init. LR 0.002
+> Heads ( Nhead )4Tolerance ( ǫ)0.003
+> Feature dim. ( Nf)33 Dual step ( ηλ)0.01
+> Total Learnable Parameters. NL= 8 .73 ×10 5
+
+A. Simulation Setup 
+
+We simulate a single-cell wireless setup in which a base station (BS) equipped with Nt = 16 antenna elements serves 
+
+Nu = 12 single antenna users. The system operates in the sub-6 GHz band with a center frequency of 2 GHz. Users are randomly positioned within a circular area of radius 500 m centered at the BS. The total transmit power is Ptot = 10 W. For each BS–UE link, we assume a noise-limited Rayleigh fading channel to enable efficient training data generation. This setup is both computationally efficient and theoretically sufficient to realize the fairness–sum-rate Pareto front, because we only target the optimization at a certain specified fairness level. Additionally, it enables us to assess the feasibility of a task-specific WiT architecture, building on our previous work across various tasks [3]. Building on the above setup, we generate 50 000 inde-pendent samples by randomly placing the Nu users within the cell and computing the narrowband BS–UE channels for each sample. We then partition the dataset into training set, validation set, and test set: Ntrain = 32 000 , Nval = 8 000 , and 
+
+Ntest = 10 000 . The key training hyperparameters of the DNN are summarized in Table I. We use the fairness achieved by wSLNR with different αℓ as the lower bound JLB for DNN training. The DNN’s achieved fairness is denoted JDNN . Key statistics are summarized in Table II. 
+
+B. Performance Evaluation 
+
+In Fig. 2, we obtain 10 points that are used to predict the trace of the Pareto front achievable by the proposed DNN approach (blue curve in Fig. 2). During training, we observe a special case: choosing JLB = 0 .6 is effectively equivalent to sum-rate maximization, because the Jain’s index remains above 0.65 even when only the sum rate is maximized. Nevertheless, this solution is not globally sum-rate optimal, as wSLNR with αℓ = 0 achieves a higher mean sum rate, as shown in Fig. 2. Subsequently, the second term in Eq. (11) is always zero. The two curves intersect near J = 0 .7, beyond which the DNN starts to outperform wSLNR. As fairness increases, the mean sum rate of wSLNR degrades more rapidly than that of the DNN. Consistent with the same issue in [12], [13], wSLNR does not optimize the sum rate explicitly at a prescribed fairness level. Instead, fairness is calculated indirectly through αℓ, and the inverse-gain weighting ωℓ. On the one hand, a larger αℓ over-targets weak users and over-penalizes strong users; on the other hand, the sum rate is not calculated at a fixed fairness level. By contrast, the DNN is TABLE II: Performance comparison: adaptive fairness training vs. wSLNR, where Mean SR denotes the achievable mean sum rate in bit/s/Hz. 
+
+wSLNR DNN 
+
+αℓ Mean SR JLB JDNN λ Mean SR 
+
+0 30.48 0.60 0.658 0.000 29.99 
+
+0.5 29.47 0.70 0.693 0.897 29.53 
+
+0.7 27.94 0.75 0.746 1.274 28.75 
+
+0.85 26.29 0.80 0.801 2.200 27.36 
+
+1.0 24.59 0.86 0.861 2.212 25.58 
+
+1.1 23.57 0.90 0.901 2.467 24.23 
+
+1.3 21.94 0.93 0.929 2.677 23.12 
+
+1.8 19.40 0.96 0.958 3.002 21.84 
+
+2.0 18.75 0.97 0.967 3.421 21.34 
+
+5.0 15.26 0.973 0.973 3.771 21.10 
+
+trained with the hinge loss so that the adaptive dual λ explicitly anchors the fairness at a certain level within a small tolerance 
+
+ǫ and maximizes the overall achievable rate once the fairness constraint is satisfied. Consequently, for larger target fairness, the DNN exhibits better performance. For a complete cross-comparison, we list the converged adaptive λ and final fairness 
+
+JDNN in Table II. Next, we select comparable fairness pairs from Table II to evaluate both user-rate and sum-rate performance. Specif-ically, we train DNNs with target fairness levels JLB ∈{0.75 , 0.86 , 0.97 } and use the corresponding wSLNR base-lines configured with αℓ ∈ { 0.7, 1.0, 5.0}. As shown in Fig. 3, for fairness levels below 0.86 , wSLNR and DNN exhibit similar performance for weak users (10th percentile), whereas the DNN achieves higher rates for strong users (90th percentile) while maintaining weak-user performance. For larger fairness levels (e.g., J > 0.9), the DNN delivers substantial gains across nearly all users. This advantage is amplified in the sum-rate performance shown in Fig. 4, where the improvement for strong users is especially enhanced. To make the per-user comparison explicit, we sort the user rates in ascending order, align them by user index to produce the bar chart in Fig. 5. We use five pairs for a comprehensive comparison: DNN with 
+
+JLB = {0.6, 0.75 , 0.86 , 0.93 , 0.97 } versus the corresponding wSLNR with αℓ ∈ { 0.0, 0.7, 1, 0, 1.3, 5.0}. Aggregating these bars yields the mean sum rate comparison in Fig. 6, which mirrors the trends observed in Fig. 3 and Fig. 4: the larger the fairness target, the better the DNN performs. The underlying mechanism is as follows: The DNN, trained with a hinge loss and an adaptive dual λ, effectively drives the fairness into a certain region (within tolerance ǫ) and then maximizes the achievable rate subject to that constraint. As can be seen from the fifth column in Table II, higher fairness targets require larger λ to counteract the natural tendency of pure sum–rate maximization, which punishes the fairness. Although an exponential hinge loss can further strengthen 
+
+Fig. 2: Cross comparison on mean achievable rate and fairness between wSLNR (αℓ) and DNN trained with target JLB .the penalty, in practice, it over-penalizes throughput at lower fairness targets by over-emphasizing fairness. Thus, λ remains the key tuning parameter that directly controls the strength of the sum-rate penalty in the hinge loss. V. C ONCLUSION 
+
+In this work, we present an optimization-based learning approach using the WiT architecture, which leverages CSI as DNN input data and addresses an adjustable sum-rate versus fairness trade-off. Specifically, we employ a Lagrangian approach to formulate a hinge-loss objective and adaptively update the dual multiplier λ by dual ascent. The resulting curve is the Pareto front of our approach, which may remain strictly suboptimal. Moreover, this approach provides an adaptive control for balancing conflicting objectives and is therefore well-suited for tasks that require enforcing the constraints to a prescribed level. Looking ahead, our future work will investigate whether the DNN converges to the optimal solution of the fundamental optimization problem in Eq. (9). We will also extend the scenario setup and incorporate additional objectives such as energy efficiency. 
+
+Acknoweledgment: This work has been funded by the Vienna Science and Technology Fund (WWTF) [Grant ID: 10.47379/ICT25005]. REFERENCES [1] A. Salihu, M. Rupp, and S. Schwarz, “Self-supervised and invariant representations for wireless localization,” IEEE Transactions on Wireless Communications , vol. 23, no. 8, pp. 8281–8296, 2024. [2] P. Ferrand, A. Decurninge, and M. Guillaud, “DNN-based localization from channel estimates: Feature design and experimental results,” in                 
+
+> GLOBECOM 2020 - 2020 IEEE Global Communications Conference ,2020, pp. 1–6. [3] A. Salihu, S. Schwarz, and M. Rupp, “Attention aided CSI wireless localization,” in 2022 IEEE 23rd International Workshop on Signal Processing Advances in Wireless Communication (SPAWC) , 2022, pp. 1–5. [4] C. F. Mendoza, S. Schwarz, and M. Rupp, “Deep reinforcement learning for spatial user density-based AP clustering,” in 2022 IEEE 23rd International Workshop on Signal Processing Advances in Wireless Communication (SPAWC) , 2022, pp. 1–5.
+
+1  1 1
+
+# !   " "!$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+#   α   
+
+#   α   
+
+#   α   
+
+  ℓ   
+
+  ℓ   
+
+  ℓ   
+
+ 
+
+ 
+
+ 
+
+Fig. 3: User-rate ECDF at selected target fairness values from Table II; DNN (dashed) vs. wSLNR (solid). 
+
+1 1   1 1   1 1  1 1  1 1
+
+# $!  #  #"& 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+1 
+
+> 
+
+%   α   
+
+%   α  1 
+
+%   α   
+
+      
+
+      
+
+      
+
+ 
+
+ 
+
+ 
+
+Fig. 4: Sum-rate ECDF at selected target fairness values from Table II; DNN (dashed) vs. wSLNR (solid). 
+
+Fig. 5: Per-user rate comparison with users ordered by index (weakest to strongest) at selected matched-fairness pairs from Table II: DNN (darker bars) vs. wSLNR (lighter bars). 
+
+0 0 0 0  0 
+
+#    J 
+
+0
+
+0 
+
+
+
+0 
+
+
+
+0 
+
+>     
+
+Fig. 6: Mean sum rate comparison at selected matched-fairness pairs from Table II: DNN (darker bars) vs. wSLNR (lighter bars). 
+
+[5] P. Dong, H. Zhang, G. Y. Li, I. S. Gaspar, and N. NaderiAlizadeh, “Deep CNN-based channel estimation for mmWave massive MIMO systems,” 
+
+IEEE Journal of Selected Topics in Signal Processing , vol. 13, no. 5, pp. 989–1000, 2019. [6] F. Pasic, L. Eller, S. Schwarz, M. Rupp, and C. F. Mecklenbräuker, “Deep learning-based mmwave MIMO channel estimation using sub-6 Ghz channel information: CNN and UNet approaches,” in IEEE INFOCOM 2025 - IEEE Conference on Computer Communications Workshops (INFOCOM WKSHPS) , 2025, pp. 1–6. [7] C. F. Mendoza, M. Kaneko, M. Rupp, and S. Schwarz, “Accelerated deep reinforcement learning for uplink power control in a dynamic cell-free massive MIMO network,” IEEE Wireless Communications Letters ,vol. 13, no. 6, pp. 1710–1714, 2024. [8] T. Van Chien, E. Björnson, and E. G. Larsson, “Joint power allocation and load balancing optimization for energy-efficient cell-free massive MIMO networks,” IEEE Transactions on Wireless Communications ,vol. 19, no. 10, pp. 6798–6812, 2020. [9] M. Zaher, Ö. T. Demir, E. Björnson, and M. Petrova, “Learning-based downlink power allocation in cell-free massive MIMO systems,” IEEE Transactions on Wireless Communications , vol. 22, no. 1, pp. 174–188, 2023. [10] Y. Shi, L. Lian, Y. Shi, Z. Wang, Y. Zhou, L. Fu, L. Bai, J. Zhang, and W. Zhang, “Machine learning for large-scale optimization in 6G wireless networks,” IEEE Communications Surveys & Tutorials , vol. 25, no. 4, pp. 2088–2132, 2023. [11] D. Yeung and Y. Zhang, “Bi-objective optimization: A Pareto method with analytical solutions,” Applied Mathematics , vol. 14, pp. 57–81, 2023. [Online]. Available: https://doi.org/10.4236/am.2023.141004 [12] M. Rahmani, M. Bashar, M. J. Dehghani, A. Akbari, P. Xiao, R. Tafa-zolli, and M. Debbah, “Deep reinforcement learning-based sum rate fair-ness trade-off for cell-free mMIMO,” IEEE Transactions on Vehicular Technology , vol. 72, no. 5, pp. 6039–6055, 2023. [13] I. Chafaa, G. Bacci, and L. Sanguinetti, “Transformer-based power optimization for max-min fairness in cell-free massive MIMO,” IEEE Wireless Communications Letters , vol. 14, no. 8, pp. 2316–2320, 2025. [14] S. Schwarz, C. Mehlfuhrer, and M. Rupp, “Throughput maximizing mul-tiuser scheduling with adjustable fairness,” in 2011 IEEE International Conference on Communications (ICC) , 2011, pp. 1–5. [15] K. Lu, S. Schwarz, and M. Rupp, “On the role of channel gain weighting for fairness in cell-free MIMO,” in 2025 28th International Workshop on Smart Antennas (WSA) , 2025, pp. 26–31. [16] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. Kaiser, and I. Polosukhin, “Attention is all you need,” in Proceedings of the 31st International Conference on Neural Information Processing Systems , ser. NIPS’17. Curran Associates Inc., 2017, p. 6000–6010. [17] T. Lin, Y. Wang, X. Liu, and X. Qiu, “A survey of transformers,” AI Open , vol. 3, pp. 111–132, 2022.
