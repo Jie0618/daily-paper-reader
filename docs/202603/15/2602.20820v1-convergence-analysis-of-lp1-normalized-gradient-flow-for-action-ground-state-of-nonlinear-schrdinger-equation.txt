@@ -1,0 +1,2923 @@
+Title: Convergence analysis of $L^{p+1}$-normalized gradient flow for action ground state of nonlinear Schr\"odinger equation
+
+URL Source: https://arxiv.org/pdf/2602.20820v1
+
+Published Time: Wed, 25 Feb 2026 01:49:49 GMT
+
+Number of Pages: 22
+
+Markdown Content:
+CONVERGENCE ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW FOR ACTION GROUND STATE OF NONLINEAR SCHR ¨ ODINGER EQUATION 
+
+WEI LIU, TINGFENG WANG, AND XIAOFEI ZHAO 
+
+Abstract. This paper presents a rigorous convergence analysis of the Lp+1 -normalized gradient flow with asymptotic Lagrange multiplier (GFALM) method for computing the action ground state of the nonlinear Schr¨ odinger equation in the focusing case. First, a general global convergence theory is established for the semi-discrete GFALM scheme, guaranteeing the existence of an accumulation point and a convergent subsequence. Then, under additional non-degeneracy assumptions, a local exponential convergence rate is rigorously proven. This result is further extended to the fully discrete case using a Fourier pseudo-spectral discretization. The analysis is achieved by characterizing the local geometry of the Lp+1 -constrained manifold near the ground state, establishing a quadratic growth property of the energy functional, and deriving a Lojasiewicz-type gradient inequality. Finally, the paper also investigates the exponential convergence of the associated continuous-time gradient flow, providing a theoretical foundation for future numerical discretizations. This work extends existing convergence analyses for energy ground states, addressing the challenges posed by the Lp+1 constraint, especially the absence of an inner-product structure. 
+
+Keywords. nonlinear Schr¨ odinger equation; action ground state; normalized gradient flow; Lp+1 
+
+constraint; convergence analysis; full discretization. 
+
+AMS(2010) subject classifications. 65M12, 35K20, 35K35, 35K55, 65Z05 
+
+1. Introduction 
+
+The nonlinear Schr¨ odinger equation (NLS) widely applies in quantum mechanics, nonlinear optics and deep water waves. Its stationary state solution ψ(x, t ) = e iωt φ(x) with i∂tψ(x, t ) = − 1
+
+2 ∆ψ(x, t ) + V (x) ψ(x, t ) + β|ψ(x, t )|p−1ψ(x, t ), x ∈ Rd, t > 0,
+
+is relevant to many wave coherent structures that are of importance in applications, and the standing wave or solitary wave φ(x) solves the stationary NLS: 
+
+− 1
+
+2 ∆φ(x) + V (x) φ(x) + β∣∣φ(x)∣∣p−1φ(x) + ω φ (x) = 0 , x ∈ Rd. (1.1) Here d ∈ N+, V (x) denotes an external potential function, ω ∈ R is called the chemical potential, p > 1 is a given exponent, and β ∈ R measures the strength of the nonlinear self-interaction with β > 0 and β < 0corresponding to the defocusing and focusing cases, respectively. For d ≥ 3, 1 < p < (d + 2) /(d − 2) is assumed for well-posedness [ 6, 33 ]. As a matter of fact, under certain conditions, ( 1.1 ) possesses infinitely many [ 7, 36 ] nontrivial solutions, i.e., φ 6 = 0. To characterize the stable and physically relevant ones, two kinds of ground states (GSs) have been defined in the literature. The first kind is the energy GS that minimizes the energy functional E(φ) subject to a constrained mass m > 0: min {E(φ) : ‖φ‖L2 = m}, where E(φ) := 1
+
+2 ‖∇ φ‖2 
+
+> L2
+
++
+
+∫
+
+> Rd
+
+V |φ|2 dx + 2β
+
+p + 1 ‖φ‖p+1  
+
+> Lp+1
+
+. (1.2) In this case, the chemical potential ω in ( 1.1 ) becomes the Lagrange multiplier, and very rich studies [1, 2, 4, 5, 8, 9, 12 , 15 , 16 , 17 , 19 , 26 , 29 , 38 , 42 ] have been devoted to the mathematical analysis and computational methods of such GS. The second kind of GS considers the action functional Sω (φ) with a prescribed ω ∈ R:
+
+Sω (φ) := E(φ) + ω‖φ‖2 
+
+> L2
+
+, (1.3) which is minimized among all nontrivial stationary state solutions. It has a variational characterization via the minimization of Sω (φ) under the associated Nerhari constraint, i.e., min {Sω(φ) : Kω (φ) = 0 , φ 6 = 0 }, (1.4)  
+
+> 1
+> arXiv:2602.20820v1 [math.NA] 24 Feb 2026 2W. LIU, T. WANG, AND X. ZHAO
+
+where Kω(φ) = 1 
+
+> 2
+
+‖∇ φ‖2 
+
+> L2
+
++ ∫ 
+
+> Rd
+
+V |φ|2 dx + β‖φ‖p+1  
+
+> Lp+1
+
++ ω‖φ‖2 
+
+> L2
+
+. This action GS problem was popularized by Berestycki and Lions [ 6] for the focusing NLS, i.e., β < 0, which has received adequate further investigations on the theoretical side [ 3, 6, 18 , 21 , 22 , 34 ]. In particular, it has been understood recently in [ 18 , 27 ] by theories and in [ 32 , 37 ] by more general numerical experiments that any energy GS for the focusing NLS must also be an action GS, while the reverse is believed to fail [ 18 ]. This indicates that the set of focusing action GS in fact contains a broader class of standing waves for ( 1.1 ). To numerically compute the action GS, a direct gradient flow of the constrained minimization ( 1.4 ) has been utilized in [37 ], and we in [ 32 ] by deriving a mathematically equivalent formulation of ( 1.4 ): min 
+
+{
+
+Q(u) = 1
+
+2 ‖∇ u‖2 
+
+> L2
+
++
+
+∫
+
+> Rd
+
+V |u|2 dx + ω‖u‖2 
+
+> L2
+
+: ‖u‖p+1 = 1 
+
+}
+
+, (1.5) have proposed a simpler scheme named the normalized gradient flow with asymptotic Lagrange multiplier (GFALM). The GFALM preserves the monotonic decay of Q and can efficiently find the action GS. The practical effectiveness of GFALM is so far in the awaiting of theoretical support, and this is going to be the theme of the paper. For corresponding works on the defocusing case, we refer to [ 10 , 30 , 31 , 32 ]. Assuming β < 0 in ( 1.1 ), this paper aims to develop systematic convergence theories for GFALM in computing the focusing action GS. To this end, we shall first briefly review GFALM from [ 32 ], and then for its semi-discretization version, we shall present a general and global convergence theory that guarantees under minor conditions an accumulation point and convergent subsequence of the numerical series produced from the scheme. Subsequently, our main effort will be devoted to rigorously establishing the practically observed exponential convergence rate of GFALM and extending this result to the fully discrete case. The existing convergence analysis works so far are only devoted to the energy GS ( 1.2 ), e.g., [ 13 ,
+
+19 , 20 , 25 , 26 , 40 ], where the analysis can indeed benefit from the mass constraint, thanks to the linear inner-product structure of the L2 setup. Our target problem ( 1.5 ) with the Lp+1 constraint can be viewed as a generalization, and the absence of inner-product structure makes the geometric analysis and algebraic manipulations essentially different from the L2 case. To address these challenges, we develop a new local convergence framework tailored to the Lp+1 -constrained manifold: First, we characterize the local geometry of the Lp+1 -sphere, elucidating the differential-geometric structure of the constraint set near GS; Then, under suitable non-degeneracy assumptions, we establish a quadratic growth property of the Q functional in a neighborhood of the GS, which yields an equivalence between the difference in functional values and the squared discrete H1-distance between functions; Building on this, we show the Lyapunov stability of the scheme, and lastly, by deriving a discrete Lojasiewicz-type gradient inequality, we obtain the exponential convergence of the GFALM towards its accumulation point. The counterpart of exponential convergence analysis is also established in the end for the continuous gradient flow of (1.5 ), giving rise to the theoretical possibility for more future design of numerical discretizations. The rest of the paper is organized as follows. In Section 2, we review the GFALM method and establish its first broadly applicable convergence result. Section 3 develops the analytical framework that rigorously proves the optimal exponential convergence rate of the GFALM, and extend this framework to the fully discrete case using Fourier spectral discretization. Section 4 investigates the convergence for the continuous-time normalized gradient flow. Some conclusions are drawn in Section 5. For later use, let us here collect and clarify some notation and conventions: 〈· , ·〉 denotes the standard L2-inner product; a . b means |a| ≤ C b and a & b means |a| ≥ C b , for some constant C > 0 independent of temporal discretization parameters (such as the time step τ and the time level n); a ≍ b means both 
+
+a . b and b . a.2. GFALM method and its global convergence 
+
+This section will first briefly review the Lp+1 -formulation of the GS and the GFALM proposed in [32 ]. Then, a basic but broadly applicable global convergence result of GFALM will be established. 2.1. Preliminary of GFALM method. Throughout the work, we consider β < 0 in ( 1.1 ) or ( 1.3 ). For numerical computation and theoretical analysis, we consider the problem on a bounded domain Ω ⊂ Rd
+
+with appropriate boundary conditions (e.g., homogeneous Dirichlet or periodic boundary conditions). This truncation is justified since the GS under consideration exhibits decay at infinity and the truncation error becomes negligible by choosing Ω sufficiently large. ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 3
+
+Assumption (A). Let 1 < p < d+2  
+
+> d−2
+
+for d ≥ 3 and 1 < p < ∞ for d = 1 , 2. Assume that V ∈ L∞(Ω) and V (x) ≥ 0 for all x ∈ Ω. For simplicity, we denote X = H1(Ω). For all p satisfying Assumption (A) , X is (compactly) embedded into Lp+1 (Ω), and the related functionals Sω , Kω and Q are well-defined in H1(Ω). When 
+
+V ∈ L∞(Ω), the linear operator − 1 
+
+> 2
+
+∆ + V has a countably infinite discrete set of eigenvalues with the smallest eigenvalue λ0 being simple [ 23 ]: 
+
+λ0 := inf   
+
+> u∈X, ‖u‖L2=1
+
+( 1
+
+2 ‖∇ u‖2 
+
+> L2
+
++
+
+∫
+
+> Ω
+
+V |u|2 dx
+
+)
+
+. (2.1) For the existence of GS, one needs to confine the ω as: 
+
+Assumption (B). Assume that ω satisfies ω > −λ0.Under Assumptions (A) &(B) , the GS φg of ( 1.3 ) is guaranteed and can be equivalently described as the following Lp+1 -normalization formulation (detailed in [ 32 ]): φg = ( Q(ug)/(−β)) 1/(p−1) ug, where 
+
+ug ∈ arg min { Q(u) : u ∈ S p+1 } (2.2) with Sp+1 := {u ∈ X : ‖u‖Lp+1 = 1 } and a quadratic energy functional 
+
+Q(u) := 1
+
+2 ‖∇ u‖2 
+
+> L2
+
++
+
+∫
+
+> Ω
+
+V |u|2 dx + ω‖u‖2 
+
+> L2
+
+. (2.3) We shall still refer to ug from ( 2.2 ) as GS for simplicity. It in some sense could be viewed as a general-ization of the energy GS with prescribed mass, whose analysis however is quite different, as we shall see later due to the absence of inner-product structure. To solve ( 2.2 ), it is natural to consider a normalized gradient flow. With the variation of the quadratic functional Q,
+
+∇Q(u) := δQ 
+
+δ¯u (u, ¯u) = 
+
+(
+
+− 1
+
+2 ∆ + V + ω
+
+)
+
+u =: Au, 
+
+the continuous normalized gradient flow associated with ( 2.2 ) reads: for u = u(x, t ), 
+
+∂tu = −A u + λ(u) |u|p−1u, t ≥ 0, x ∈ Ω, (2.4) where λ(u) = 〈Au, |u|p−1u〉/ ‖u‖2pL2p is the Lagrange multiplier to enforce the constraint ‖u‖Lp+1 = 1. In such a way, it is straightforward to deduce from ( 2.2 ) that d
+
+dt ‖u(·, t )‖p+1  
+
+> Lp+1
+
+= 0 , d
+
+dt Q(u(·, t )) = −2‖∂tu(·, t )‖2 
+
+> L2
+
+≤ 0, ∀t ≥ 0. (2.5) The continuous-time gradient flow ( 2.4 ) forms an effective foundation for numerical computations, while its direct discretizations could suffer from the complexity of λ(u) on practical efficiency [ 31 ] and numerical analysis. Further discussion of ( 2.4 ) will be presented in Section 4.By the Euler–Lagrange equation of ( 2.2 ), we have at any stationary point ˜u ∈ S p+1 ,
+
+A˜u = ˜λ(˜u)|˜u|p−1 ˜u with ˜λ(˜u) := Q(˜u)
+
+‖˜u‖p+1 
+
+> Lp+1
+
+= Q(˜u).
+
+Motivated by this observation, [ 32 ] proposed using the asymptotic Lagrange multiplier in ( 2.4 ) followed by a piecewise normalization step in time, which leads to 
+
+
+
+∂tu = −
+
+(
+
+A − ˜λ(u(·, t n)) |u(·, t n)|p−1
+
+)
+
+u, t ∈ [tn, t n+1 ) ,u(x, t n) = u(x, t + 
+
+> n
+
+) = u(x, t − 
+
+> n
+
+)
+
+‖u(x, t − 
+
+> n
+
+)‖Lp+1 
+
+, n ≥ 0, (2.6) where tn = nτ (n ∈ N) with a selected time step size τ > 0, and u(x, 0) is some initial guess for the minimizer of ( 2.2 ). This simplification of the multiplier yields considerable flexibility in the time discretization of ( 2.6 ). 4 W. LIU, T. WANG, AND X. ZHAO 
+
+A backward-forward Euler discretization has been further suggested for ( 2.6 ) in [ 32 ], forming the following GFALM scheme on a box domain Ω ⊂ Rd with homogeneous Dirichlet or periodic boundary conditions: 1
+
+τ
+
+(˜un+1 − un) = −˜μn+1 , ˜μn+1 =
+
+(
+
+− 1
+
+2 ∆ + α
+
+)˜un+1 +
+
+(
+
+V + ω − ˜λ(un)|un|p−1 − α
+
+)
+
+un, (2.7a) 
+
+un+1 = ˜un+1 /‖˜un+1 ‖Lp+1 . (2.7b) Here α ≥ 0 is a stabilization parameter, which is chosen to such that 
+
+α ≥ 1
+
+2 max 
+
+{
+
+0, ess sup x∈Ω
+
+(V (x) + ω)}
+
++ 1
+
+2 , (2.8) to ensure the unconditional decay of the energy Q stated below. 
+
+Lemma 2.1 (Energy-decaying property) . Under Assumptions (A) &(B) , and with α satisfying (2.8 ), the GFALM scheme (2.7 ) possesses the unconditional energy-decaying property for Q(u): ∀ τ > 0,
+
+Q(un+1 ) − Q(un) ≤ − τ 2‖∇ ˜μn+1 ‖2 
+
+> L2
+
++ τ (τ + 4) ‖˜μn+1 ‖2
+
+> L2
+
+2‖˜un+1 ‖2
+
+> Lp+1
+
+≤ − τ 2‖˜μn+1 ‖2
+
+> H1
+
+2‖˜un+1 ‖2
+
+> Lp+1
+
+, n ≥ 0. (2.9) 
+
+Proof. Following the proof of Theorem 2.4 in [ 32 ], the GFALM scheme ( 2.7 ) implies the identity 
+
+Q(˜un+1 ) = ˜λ(un)
+
+∫
+
+> Ω
+
+|un|p−1|˜un+1 |2dx − 1
+
+2 ‖∇ (˜un+1 − un)‖2
+
+> L2
+
+−
+
+∫
+
+> Ω
+
+( 2
+
+τ + 2 α − V − ω + ˜λ(un)|un|p−1
+
+)
+
+|˜un+1 − un|2dx.
+
+Applying the facts that ˜λ(un) = Q(un) > 0, ∫ 
+
+> Ω
+
+|un|p−1|˜un+1 |2dx ≤ ‖ un‖p−1 
+
+> Lp+1
+
+‖˜un+1 ‖2 
+
+> Lp+1
+
+= ‖˜un+1 ‖2 
+
+> Lp+1
+
+,and 2 α − V − ω + ˜λ(un)|un|p−1 ≥ α ≥ 1 
+
+> 2
+
+a.e. x ∈ Ω, results in 
+
+Q(˜un+1 ) ≤ Q(un)‖˜un+1 ‖2 
+
+> Lp+1
+
+− 1
+
+2 ‖∇ (˜un+1 − un)‖2 
+
+> L2
+
+−
+
+( 1
+
+2 + 2
+
+τ
+
+)
+
+‖˜un+1 − un‖2 
+
+> L2
+
+.
+
+The assertion is obtained immediately by substituting ˜un+1 − un = −τ ˜μn+1 (2.7a ) and noting that 
+
+Q(un+1 ) = Q(˜un+1 )/‖˜un+1 ‖2 
+
+> Lp+1
+
+. 
+
+2.2. A basic unconditional convergence result. The capability of GFALM ( 2.7 ) to effectively com-pute the GS of ( 1.3 ) has already been demonstrated in [ 32 ], which is not yet theoretically analyzed. Here, we provide the first convergence result, which is basic but general and global, for the semi-discrete GFALM ( 2.7 ) with any step size τ > 0. 
+
+Theorem 2.2 (Accumulation point & unconditional convergent subsequence) . Suppose that Assump-tions (A) &(B) hold and α satisfies (2.8 ). Furthermore, for d ≥ 3, we additionally assume 1 < p ≤
+
+d/ (d − 2) . Let u0 ∈ H1(Ω) ∩ S p+1 . Then, for every fixed τ > 0:(i) the solution {un}∞ 
+
+> n=0
+
+of (2.7 ) has a strongly convergent subsequence {unj }∞ 
+
+> j=0
+
+in H1(Ω) ;(ii) every accumulation point u⋆ ∈ S p+1 of {un}∞ 
+
+> n=0
+
+in H1(Ω) satisfies the Euler-Lagrange equation of (2.2 ) in the weak sense, i.e., 
+
+〈A u⋆, v 〉 = ˜λ(u⋆) 〈|u⋆|p−1u⋆, v 〉 , ∀v ∈ H1(Ω) , (2.10) 
+
+and all accumulation points possess the same Lagrange multiplier and energy: ˜λ(u⋆) = Q(u⋆) = inf n≥0 Q(un).
+
+The proof of Theorem 2.2 will be given after establishing the following lemmas. The first is a tool for bounding the H1-norm by the functional Q.
+
+Lemma 2.3. Under Assumptions (A) &(B) , there exists a constant C0 > 0 depending only on λ0 and ω
+
+such that 
+
+Q(v) ≥ C0‖v‖2 
+
+> H1
+
+, ∀v ∈ X. (2.11) ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 5
+
+Proof. Since V (x) ≥ 0, it is clear from ( 2.1 ) that λ0 ≥ 0. If ω > 0, the assertion is straightforward: 
+
+Q(v) = 〈A v, v 〉 ≥ 1
+
+2 ‖∇ v‖2 
+
+> L2
+
++ ω‖v‖2 
+
+> L2
+
+≥ min 
+
+{ 1
+
+2 , ω 
+
+}
+
+‖v‖2 
+
+> H1
+
+.
+
+If −λ0 < ω ≤ 0, we perform the following decomposition for A:
+
+A = λ0 + ω
+
+2λ0
+
+A0 +
+
+( λ0 − ω
+
+2λ0
+
+A0 + ωI 
+
+)
+
+,
+
+with A0 = − 1 
+
+> 2
+
+∆ + V and I the identity. Therefore, 
+
+Q(v) = 〈A v, v 〉 ≥ λ0 + ω
+
+4λ0
+
+‖∇ v‖2 
+
+> L2
+
++ λ0 + ω
+
+2 ‖v‖2 
+
+> L2
+
+≥ (λ0 + ω) min 
+
+{ 1
+
+4λ0
+
+, 1
+
+2
+
+}
+
+‖v‖2 
+
+> H1
+
+,
+
+which yields the assertion since λ0 + ω > 0. 
+
+Denote μn := Aun − ˜λ(un)|un|p−1un = Aun − Q(un)|un|p−1un, then subtracting μn from ( 2.7a )gives 
+
+˜μn+1 − μn = − 1
+
+2 ∆ (˜un+1 − un) + α (˜un+1 − un) = τ
+
+2 ∆˜μn+1 − τ α ˜μn+1 .
+
+Rearranging the terms above yields the following elliptic resolvent equation (with the same boundary conditions as in ( 2.7 )): (1 + τ α ) ˜μn+1 − τ
+
+2 ∆˜μn+1 = μn. (2.12) Based on ( 2.12 ), we then establish for the numerical solution some uniform-in-time bounds. 
+
+Lemma 2.4. Under Assumptions (A) &(B) , for the GFALM scheme (2.7 ) with α satisfying (2.8 ), the following uniform upper bounds hold: 
+
+‖un‖H1 . 1, τ ‖˜μn+1 ‖H1 . 1, ‖˜un+1 ‖H1 . 1, ∀n ∈ N.
+
+Proof. By Lemma 2.3 and the energy decay ( 2.9 ), we see that ‖un‖2 
+
+> H1
+
+. Q(un) ≤ Q(u0) for all n ≥ 0. To bound τ ‖˜μn+1 ‖H1 , we take the L2 inner product of ( 2.12 ) with ˜μn+1 , yielding that (1 + τ α ) ‖˜μn+1 ‖2 
+
+> L2
+
++ τ
+
+2 ‖∇ ˜μn+1 ‖2 
+
+> L2
+
+= 〈μn, ˜μn+1 〉
+
+= ∣∣〈A un − ˜λ(un)|un|p−1un, ˜μn+1 〉∣∣
+
+. ‖un‖H1 ‖˜μn+1 ‖H1 + Q(un)‖un‖pLp+1 ‖˜μn+1 ‖Lp+1 
+
+. ‖˜μn+1 ‖H1 .
+
+Noting that α ≥ 1/2, we get τ ‖˜μn+1 ‖H1 . 1. Furthermore, we can find 
+
+‖˜un+1 ‖H1 = ‖un − τ ˜μn+1 ‖H1 ≤ ‖ un‖H1 + τ ‖˜μn+1 ‖H1 . 1,
+
+which completes the proof. 
+
+Lemma 2.5. Under Assumptions (A) &(B) , for the GFALM scheme (2.7 ) with α satisfying (2.8 ), the following uniform lower bound holds: 
+
+‖˜un+1 ‖Lp+1 & 1
+
+1 + √Q(un) − Q(un+1 ) & 1, ∀n ∈ N.
+
+Proof. By the triangle inequality, 1 = ‖un‖Lp+1 = ∥∥˜un+1 + τ ˜μn+1 ∥∥Lp+1 ≤ ∥∥˜un+1 ∥∥Lp+1 + τ ∥∥˜μn+1 ∥∥Lp+1 . (2.13) The Sobolev embedding H1(Ω) ֒ → Lp+1 (Ω) and the energy decay ( 2.9 ) state that 
+
+τ ∥∥˜ μn+1 ∥∥Lp+1 . τ ∥∥˜ μn+1 ∥∥H1 . ∥∥˜ un+1 ∥∥Lp+1 
+
+√Q(un) − Q(un+1 ). (2.14) Noting that Q(ug) ≤ Q(un+1 ) ≤ Q(un) ≤ Q(u0), the combination of ( 2.13 ) and ( 2.14 ) completes the proof immediately. 6 W. LIU, T. WANG, AND X. ZHAO 
+
+Proof of Theorem 2.2 . By ( 2.7a ), we have (1 + τ α )˜un+1 − τ
+
+2 ∆˜un+1 = un + τ (α − V − ω) un + τ ˜λ(un)|un|p−1un =: g(un).
+
+Substituting ( 2.7b ) into it gives (1 + τ α )un+1 − τ
+
+2 ∆un+1 = ‖˜un+1 ‖−1 
+
+> Lp+1
+
+g(un). (2.15) Taking the L2 inner product of it with −∆un+1 yields (1 + τ α )‖∇ un+1 ‖2 
+
+> L2
+
++ τ
+
+2 ‖∆un+1 ‖2 
+
+> L2
+
+≤ ‖ ˜un+1 ‖−1 
+
+> Lp+1
+
+‖g(un)‖L2 ‖∆un+1 ‖L2 . (2.16) From the definition of g(un) and the Sobolev embedding H1(Ω) ֒ → L2p(Ω) (which holds under the assumption on p), we obtain 
+
+‖g(un)‖L2 . (1 + τ )‖un‖L2 + τ ‖un‖pL2p . (1 + τ )‖un‖L2 + τ ‖un‖pH1 . (2.17) Inserting ( 2.17 ) into ( 2.16 ) and then employing the uniform bound of ‖˜un+1 ‖−1 
+
+> Lp+1
+
+provided by Lemma 2.5 ,we get τ 
+
+> 2
+
+‖∆un+1 ‖2 
+
+> L2
+
+. [(1 + τ )‖un‖L2 + τ ‖un‖pH1
+
+] ‖∆un+1 ‖L2 , which leads to 
+
+‖∆un+1 ‖L2 . (1 + τ −1)‖un‖L2 + ‖un‖pH1 .
+
+It means that for all n ∈ N+, un ∈ H2(Ω) and ‖un‖H2 ≤ Cτ ‖un‖H1 , where Cτ > 0 depends on τ .The uniform H1-bound of {un}∞ 
+
+> n=0
+
+in Lemma 2.4 implies the uniform H2-bound of {un}∞ 
+
+> n=1
+
+(for every fixed τ > 0). By the Banach-Alaoglu theorem, there exists a weakly convergent subsequence {unj }∞
+
+> j=0
+
+in H2(Ω), and the compact embedding of H2(Ω) ֒ → H1(Ω) implies the strong convergence of {unj }∞
+
+> j=0
+
+in the H1-norm (see also [ 11 ]). This establishes the first assertion of Theorem 2.2 .Now we turn to the second assertion of Theorem 2.2 . Let u⋆ ∈ S p+1 be an accumulation point of 
+
+{un}∞ 
+
+> n=0
+
+with {unj }∞ 
+
+> j=0
+
+a subsequence converging strongly to u⋆ in the H1-norm. Denoting 
+
+a (u, v ) = 
+
+∫
+
+> Ω
+
+[ 1
+
+2 ∇u · ∇ ¯v + ( V + ω) u ¯v − ˜λ(u)|u|p−1u ¯v
+
+]
+
+dx,
+
+we can find that for all v ∈ H1(Ω), 
+
+a (unj , v ) − a (u⋆, v ) = 
+
+∫
+
+> Ω
+
+[ 1
+
+2 ∇ (unj − u⋆) · ∇ v + ( V + ω) ( unj − u⋆) v
+
+]
+
+dx
+
+− (Q(unj ) − Q(u⋆)) 
+
+∫
+
+> Ω
+
+|unj |p−1unj v dx
+
+− Q(u⋆)
+
+∫
+
+> Ω
+
+(|unj |p−1unj − | u⋆|p−1u⋆) v dx. (2.18) It is easy to observe that 
+
+|Q(unj ) − Q(u⋆)| =
+
+∣∣∣∣Re 
+
+∫
+
+> Ω
+
+[ 1
+
+2 ∇(unj + u⋆) · ∇ (unj − u⋆) + ( V + ω)( unj + u⋆)(unj − u⋆)
+
+]
+
+dx
+
+∣∣∣∣
+
+. (‖unj ‖H1 + ‖u⋆‖H1 ) ‖unj − u⋆‖H1 . ‖unj − u⋆‖H1 .
+
+Note that 
+
+|unj |p−1unj − | u⋆|p−1u⋆ =
+
+∫ 10
+
+( p + 1 
+
+2 |uρ|p−1(unj − u⋆) + p − 1
+
+2 |uρ|p−3u2 
+
+> ρ
+
+(unj − u⋆)
+
+)
+
+dρ, 
+
+where uρ := ρu nj + (1 − ρ)u⋆, and ‖uρ‖Lp+1 ≤ ρ‖unj ‖Lp+1 + (1 − ρ)‖u⋆‖Lp+1 = 1, ∀ ρ ∈ [0 , 1]. We can obtain ∣∣∣∣∫
+
+> Ω
+
+(|unj |p−1unj − | u⋆|p−1u⋆) v dx
+
+∣∣∣∣ ≤ p max  
+
+> 0≤ρ≤1
+
+‖uρ‖p−1 
+
+> Lp+1
+
+‖unj − u⋆‖Lp+1 ‖v‖Lp+1 
+
+. ‖unj − u⋆‖H1 ‖v‖H1 .ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 7
+
+Substituting these estimates into ( 2.18 ) yields 
+
+∣∣a (unj , v ) − a (u⋆, v ) ∣∣ . ‖unj − u⋆‖H1 ‖v‖H1 + ∣∣Q(unj ) − Q(u⋆)∣∣‖unj ‖pLp+1 ‖v‖Lp+1 
+
++
+
+∣∣∣∣∫
+
+> Ω
+
+(|unj |p−1unj − | u⋆|p−1u⋆) v dx
+
+∣∣∣∣
+
+. ‖unj − u⋆‖H1 ‖v‖H1 .
+
+The H1-strong convergence of the subsequence {unj }∞ 
+
+> j=0
+
+implies that, for all v ∈ H1(Ω), lim  
+
+> j→∞
+
+a (unj , v ) = a (u⋆, v ) .
+
+On the other hand, noting that μn = Aun − ˜λ(un)|un|p−1un, we find from ( 2.12 ) and the the energy decay ( 2.9 ) that for any v ∈ H1(Ω), 
+
+〈μn, v 〉 = (1 + τ α ) 〈˜μn+1 , v 〉 + τ
+
+2
+
+〈∇˜μn+1 , ∇v〉 ≤ (1 + ατ ) ‖˜μn+1 ‖H1 ‖v‖H1
+
+. (α + τ −1) ‖˜un+1 ‖Lp+1 
+
+√Q(un) − Q(un+1 ) ‖v‖H1
+
+> n→∞
+
+−−−−→ 0.
+
+This means that |a (unj , v )| = |〈 μnj , v 〉| j→∞ 
+
+−−−→ 0, and so 
+
+a (u⋆, v ) = 
+
+∫
+
+> Ω
+
+[ 1
+
+2 ∇u⋆ · ∇ ¯v + ( V + ω) u⋆ ¯v − ˜λ(u⋆)|u⋆|p−1u⋆ ¯v
+
+]
+
+dx = 0 , ∀ v ∈ H1(Ω) ,
+
+which confirms ( 2.10 ). Finally, since the energy sequence {Q(un)} is non-increasing and bounded from below, it has a unique limit, i.e., 
+
+˜λ(u⋆) = Q(u⋆) = lim  
+
+> j→∞
+
+Q(unj ) = lim  
+
+> n→∞
+
+Q(un) = inf  
+
+> n≥0
+
+Q(un).
+
+
+
+Remark 1. When d ≥ 3, for the case of Dirichlet boundary conditions with some regularity assumption on the boundary ∂Ω, we can get rid of the additional assumption p ≤ d/ (d − 2) made in Theorem 2.2 by employing the W 2,q estimate for the linear elliptic equation ( 2.15 ) (see, e.g., [ 23 , Sect. 9.6]): 
+
+∥∥un+1 ∥∥W 2,q ≤ C(τ ) ∥∥˜un+1 ∥∥−1 
+
+> Lp+1
+
+‖g(un)‖Lq , q := 2d
+
+p(d − 2) ∈
+
+( 2d
+
+d + 2 , 2d
+
+d − 2
+
+)
+
+, (2.19) where C(τ ) > 0 depends on τ but is independent of n. Actually, since ∥∥˜un+1 ∥∥−1 
+
+> Lp+1
+
+. 1 by Lemma 2.5 
+
+and ‖g(un)‖Lq . (1 + τ ) ‖un‖Lq + τ ‖un‖pLpq . (1 + τ ) ‖un‖H1 + τ ‖un‖pH1 . 1 + τ by Lemma 2.4 and continuous embeddings H1(Ω) ֒ → Lq (Ω) and H1(Ω) ֒ → Lpq (Ω), ( 2.19 ) establishes the boundedness of sequence {un}∞ 
+
+> n=1
+
+in W 2,q (Ω) for fixed τ > 0. Then, the strongly convergent subsequence in H1 follows from the compact embedding W 2,q (Ω) ֒ → H1(Ω). 3. Exponential convergence of GFALM 
+
+This section is devoted to rigorously establishing an exponential convergence rate of the semi-discrete GFALM scheme ( 2.7 ). For simplicity of notation, we will assume that functions within the discussion are all real-valued. Extensions to complex-valued cases could also be done in the same manner, which will be discussed in the end. 3.1. Geometry near GS. To conduct a rigorous local convergence analysis of the semi-discrete GFALM scheme ( 2.7 ), we first characterize the local geometry structure of the constraint manifold Sp+1 near ug .Specifically, we introduce local coordinates around ug, impose a crucial non-degeneracy assumption, and establish a local equivalence between the energy error and the H1 error. Define the constraint functional G(u) := 2
+
+> p+1
+
+(‖u‖p+1  
+
+> Lp+1
+
+−1), where G(u) = 0 is equivalent to u ∈ S p+1 .It is easy to verify that G(u) has first- and second-order Gˆ ateaux derivatives: 
+
+DG(u)[ v] = 2 〈| u|p−1u, v 〉, D2G(u)[ w, v ] = 2 p〈| u|p−1w, v 〉, ∀u, v, w ∈ Lp+1 (Ω) .
+
+Moreover, by virtue of the following lemma, G(u) is of class C2(Lp+1 (Ω) , R) (see also [ 39 , Proposition 1.12]). 
+
+Lemma 3.1 (Theorem A.2 of [ 39 ]) . On a bounded domain Ω, for 1 < p < ∞, the mapping u 7 → | u|p−1
+
+from Lp+1 (Ω) to L p+1  
+
+> p−1
+
+(Ω) is continuous. 8 W. LIU, T. WANG, AND X. ZHAO 
+
+Clearly, the tangent space at u ∈ S p+1 = {u ∈ X : G(u) = 0 } reads 
+
+Tu := {ξ ∈ X : DG(u)[ ξ] = 2 〈|u|p−1u, ξ 〉 = 0 }.
+
+Assume that λg is the corresponding Lagrange multiplier of GS ug, i.e., 
+
+Aug = λg |ug|p−1ug. (3.1) We now introduce a local coordinate near the GS ug :
+
+χ : R × T ug → X, (r, ξ ) 7 → (1 + r) ug + ξ. 
+
+Clearly, χ is a bijection onto the image, with the inverse 
+
+χ−1 : u ∈ X 7 → (r(u), ξ (u)) =
+
+(
+
+〈| ug|p−1ug, u 〉 − 1, u − 〈| ug|p−1ug, u 〉 ug
+
+)
+
+∈ R × T ug .
+
+Denote the neighborhood region of ug as Uδ(ug) := {u ∈ X : ‖u − ug‖H1 ≤ δ}. The following lemma shows that the normalization ‖u‖Lp+1 = 1 can uniquely determine r as a C2 function of ξ ∈ T ug . The proof is based on the implicit function theorem and some basic calculations given in Appendix A.
+
+Lemma 3.2. Under Assumption (A) , there exists some δ > 0 such that for any u ∈ Uδ(ug) admitting the representation u = χ(r, ξ ), the implicit relation ‖u‖Lp+1 = 1 yields a unique C2 map 
+
+r : Tug ,δ → Rδ, ξ 7 → r(ξ),
+
+where Tug ,δ ⊂ T ug and Rδ ⊂ R are neighborhoods of zero, satisfying r(0) = 0 and 
+
+|r(ξ)| . ‖ξ‖2 
+
+> Lp+1
+
+. ‖ξ‖2 
+
+> H1
+
+. (3.2) Under assumptions of Lemma 3.2 , we also obtain that, when δ is small enough, for u ∈ Uδ(ug)∩S p+1 ,
+
+‖u − ug‖H1 = ‖ru g + ξ‖H1 ≤ | r| · ‖ ug‖H1 + ‖ξ‖H1 . ‖ξ‖H1 ,
+
+and, conversely, there exists C > 0 such that 
+
+‖u − ug‖H1 =‖ru g + ξ‖H1 ≥ −| r| · ‖ ug‖H1 + ‖ξ‖H1 ≥ − C‖ξ‖2 
+
+> H1
+
++ ‖ξ‖H1
+
+≥ (1 − C‖ξ‖H1 ) ‖ξ‖H1 .
+
+For δ sufficiently small, it follows that ‖ξ‖H1 . ‖u − ug‖H1 . In other words, u − ug is also equivalent to 
+
+ξ in the discrete H1-norm, i.e., 
+
+‖u − ug‖H1 ≍ ‖ ξ‖H1 , ∀ u ∈ Uδ(ug ) ∩ S p+1 . (3.3) For technique analysis reason, we need ug to be a non-degenerate minimizer of Q on Sp+1 . Here we impose a standard non-degeneracy (coercivity) condition on the second-order variation of the Lagrangian 
+
+L(u, λ ) := Q(u) − λ G (u), (3.4) restricted to the tangent space. Define the linear operator Lv := Av − p λ g|ug |p−1v, ∀ v ∈ X. 
+
+Proposition 3.3 (Uniqueness) . Assume that there exists a constant c > 0 such that 
+
+D2
+
+> u
+
+L(ug, λ g )[ ξ, ξ ] ≥ c ‖ξ‖2 
+
+> H1
+
+, ∀ ξ ∈ T ug . (3.5) 
+
+Then, for a sufficiently small δ > 0, there holds 
+
+Q(u) − Q(ug) ≍ ‖ u − ug‖2 
+
+> H1
+
+, ∀ u ∈ Uδ(ug) ∩ S p+1 , (3.6) 
+
+so that the constrained minimization problem (2.2 ) admits ug as the unique minimizer in Uδ(ug ) ∩ S p+1 .Proof. It is direct to see that 
+
+Q(u) − Q(ug) = 〈A u, u 〉 − 〈A ug, u g〉 = 〈A (u + ug) , (u − ug)〉
+
+= 〈A (u − ug) , u − ug〉 + 2 〈A ug, u − ug〉
+
+= 〈A (u − ug) , u − ug〉 + 2 λg
+
+〈|ug |p−1ug, u − ug
+
+〉 . (3.7) ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 9
+
+By expanding the constraint functional, we have 
+
+G(u) = G(ug ) + DG(ug )[ u − ug] + 
+
+∫ 10
+
+(1 − ρ)D2G(ug + ρ(u − ug))[ u − ug, u − ug] d ρ
+
+= G(ug ) + 2 〈|ug|p−1ug , u − ug
+
+〉 + p 〈|ug|p−1 (u − ug) , u − ug
+
+〉
+
++ 2 p
+
+∫ 10
+
+(1 − ρ)
+
+〈( 
+
+|ug + ρ(u − ug )|p−1 − | ug|p−1)
+
+(u − ug), u − ug
+
+〉
+
+dρ. (3.8) By H¨ older’s inequality, and combining with Lemma 3.1 , we have 
+
+∣∣∣∣∫ 10
+
+(1 − ρ)
+
+〈( 
+
+|ug + ρ(u − ug )|p−1 − | ug|p−1)
+
+(u − ug), u − ug
+
+〉
+
+dρ
+
+∣∣∣∣
+
+.
+
+∥∥∥|ug + ρ(u − ug)|p−1 − | ug |p−1
+
+∥∥∥L p+1 
+
+> p−1
+
+‖u − ug‖2 
+
+> Lp+1
+
+= o
+
+(
+
+‖u − ug‖2
+
+> Lp+1
+
+)
+
+. (3.9) Since G(u) = G(ug ) = 0, it follows from ( 3.8 ) and ( 3.9 ) that 
+
+〈|ug|p−1ug, u − ug
+
+〉 = − p
+
+2
+
+〈|ug|p−1 (u − ug) , u − ug
+
+〉 + o(‖u − ug‖2
+
+> Lp+1
+
+) .
+
+Substituting this into ( 3.7 ) yields 
+
+Q(u) − Q(ug ) = 〈A (u − ug) , u − ug〉 − p λ g
+
+〈|ug|p−1 (u − ug ) , u − ug
+
+〉 + o(‖u − ug‖2
+
+> Lp+1
+
+)
+
+= 〈L (u − ug) , u − ug〉 + o(‖u − ug‖2
+
+> H1
+
+) . (3.10) Note that the first- and second-order Gˆ ateaux derivatives of the Lagrangian ( 3.4 ) read 
+
+DuL(u, λ )[ v1] = DQ(u)[ v1] − λ DG(u)[ v1] = 2 〈Au − λ|u|p−1u, v 1
+
+〉 ,
+
+D2
+
+> u
+
+L(ug, λ g )[ v2, v 1] = 2 〈Av2 − p λ g|ug |p−1v2, v 1
+
+〉 = 2 〈L v2, v 1〉 , ∀v1, v 2 ∈ X. 
+
+By ( 3.5 ), we have 
+
+〈L ξ, ξ 〉 & ‖ξ‖2 
+
+> H1
+
+, ∀ ξ ∈ T ug . (3.11) On the other hand, for all ξ ∈ T ug ,
+
+〈L ξ, ξ 〉 = 〈A ξ, ξ 〉 − pλ g
+
+〈|ug |p−1ξ, ξ 〉 . ‖ξ‖2 
+
+> H1
+
++ pλ g ‖ug‖pLp+1 ‖ξ‖2 
+
+> Lp+1
+
+. ‖ξ‖2 
+
+> H1
+
+.
+
+Consequently, 
+
+〈L ξ, ξ 〉 ≍ ‖ ξ‖2 
+
+> H1
+
+, ∀ ξ ∈ T ug . (3.12) Moreover, for all u ∈ Uδ(ug ) ∩ S p+1 with δ chosen as in Lemma 3.2 , we can write 
+
+u − ug = r(ξ)ug + ξ with r(ξ) = O(‖ξ‖2
+
+> H1
+
+) , ξ ∈ T ug ,
+
+and deduce that 
+
+〈L (u − ug), u − ug 〉 = 〈L ξ, ξ 〉 + 2 r 〈L ug, ξ 〉 + r2〈L ug , u g〉 = 〈L ξ, ξ 〉 + O(‖ξ‖4
+
+> H1
+
+) , (3.13) where 〈L ug , ξ 〉 = 〈(Aug − p λ g |ug|p−1ug), ξ 〉 = (1 − p) λg 〈| ug |p−1ug, ξ 〉 = 0. Substituting ( 3.12 )-( 3.13 )into ( 3.10 ), and applying ‖u − ug‖2 
+
+> H1
+
+≍ ‖ ξ‖2 
+
+> H1
+
+stated in ( 3.3 ), we can conclude that for all u ∈ Uδ (ug) ∩Sp+1 with δ > 0 small enough, 
+
+Q(u) − Q(ug) = 〈L ξ, ξ 〉 + o(‖ξ‖2
+
+> H1
+
+) ≍ ‖ ξ‖2 
+
+> H1
+
+≍ ‖ u − ug‖2 
+
+> H1
+
+,
+
+which completes the proof of Proposition 3.3 . 
+
+3.2. Exponential convergence rate. Now we are ready to present the convergence rate result for the semi-discrete GFALM scheme ( 2.7 ). 
+
+Theorem 3.4 (Main Result) . Suppose that Assumptions (A) &(B) hold and that the stabilization pa-rameter α satisfies (2.8 ). Let ug be the GS defined by (2.2 ) and suppose that it satisfies the non-degeneracy condition in Proposition 3.3 . Then, there exists a constant δ0 > 0 such that for any initial data u0 ∈ Uδ0 (ug ) ∩ S p+1 and any τ > 0, the GFALM scheme (2.7 ) converges to the GS at the rate: 
+
+‖un − ug‖H1 ≤ C e−anτ / (1+ τ ), ∀ n ∈ N, (3.14) 
+
+where C, a > 0 are constants independent of n and τ .10 W. LIU, T. WANG, AND X. ZHAO 
+
+We then turn to the proof of Theorem 3.4 . As a preparation, we give some estimations derived from the energy decaying property. 
+
+Lemma 3.5. Assume that Assumptions (A) &(B) hold, and let α satisfy (2.8 ). For the solution of (2.7 ),we have 
+
+τ ∥∥˜ μn+1 ∥∥H1 . √Q(un) − Q(un+1 ), ∥∥un+1 − un∥∥H1 . √Q(un) − Q(un+1 ), ∀n ∈ N.
+
+Proof. From the decay of energy ( 2.9 ), we have 
+
+τ 2 ∥∥˜μn+1 ∥∥2 
+
+> H1
+
+≤ 2 ∥∥˜un+1 ∥∥2
+
+> Lp+1
+
+(Q(un) − Q(un+1 )) .
+
+Combining the continuous embedding H1֒ → Lp+1 with the uniform bounds provided by Lemma 2.4 , we obtain 
+
+τ 2 ∥∥˜μn+1 ∥∥2 
+
+> H1
+
+. ∥∥˜un+1 ∥∥2
+
+> H1
+
+(Q(un) − Q(un+1 )) . Q(un) − Q(un+1 ),
+
+which gives the first estimate. Furthermore, from the normalization step ( 2.7b ), we have 
+
+∥∥un+1 − un∥∥H1 = ∥∥un+1 − ˜un+1 + ˜un+1 − un∥∥H1
+
+≤ ∥∥un+1 ∥∥H1
+
+∣∣∥∥˜un+1 ∥∥Lp+1 − 1∣∣ + ∥∥˜un+1 − un∥∥H1
+
+= ∥∥un+1 ∥∥H1
+
+∣∣∥∥˜ un+1 ∥∥Lp+1 − ‖ un‖Lp+1 
+
+∣∣ + ∥∥˜ un+1 − un∥∥H1
+
+. ∥∥˜ un+1 − un∥∥H1 = τ ∥∥˜ μn+1 ∥∥H1 . √Q(un) − Q(un+1 ),
+
+which completes the proof. 
+
+We can then show that the numerical solution un for all n ∈ N can stay within a local range of 
+
+Uδ(ug ) ∩ S p+1 , which is crucial for convergence proof. 
+
+Lemma 3.6 (Lyapunov stability) . Let the assumptions in Theorem 3.4 hold and let δ > 0 be a sufficiently small constant that meets the requirements of Lemma 3.2 and Proposition 3.3 . Then, there exists a δ0 > 0
+
+such that for all u0 ∈ Uδ0 (ug) ∩ S p+1 , the solution of (2.7 ) with initial guess u0 satisfies 
+
+‖un − ug‖H1 ≤ δ, ∀ n ∈ N.
+
+Proof. From ( 3.6 ), there exist constants 0 < c 1 ≤ c2 such that 
+
+c1 ‖u − ug‖2 
+
+> H1
+
+≤ Q(u) − Q(ug ) ≤ c2 ‖u − ug‖2 
+
+> H1
+
+, ∀ u ∈ Uδ(ug) ∩ S p+1 . (3.15) By Lemma 3.5 ,
+
+∥∥un+1 − un∥∥H1 . √Q(un) − Q(un+1 ) .
+
+√
+
+Q(u0) − Q(ug) . ‖u0 − ug‖H1 , ∀ n ∈ N,
+
+and we can say for a constant c3 > 0 that 
+
+∥∥un+1 − un∥∥H1 ≤ c3
+
+∥∥u0 − ug
+
+∥∥H1 . (3.16) Fix δ0 > 0 such that δ0 < δ 
+
+> 2
+
+min 
+
+{√ c1 
+
+> c2
+
+, 1
+
+> c3
+
+}
+
+. We now proceed to show that the assertion of the lemma holds for this δ0. We argue by contradiction, supposing that there exists n1 ∈ N+ with ‖un1 − ug‖H1 > δ .Since, by ( 3.16 ), ∥∥un+1 − un∥∥H1 ≤ c3δ0 < δ/ 2, there exists 0 6 = n2 < n 1 such that δ/ 2 < ‖un2 − ug‖H1 ≤
+
+δ. Using ( 3.15 ) at u0 and un2 , respectively, one obtains 
+
+Q(un2 ) − Q(ug) ≥ c1‖un2 − ug‖2 
+
+> H1
+
+> c 1δ2/4,Q(u0) − Q(ug) ≤ c2
+
+∥∥u0 − ug
+
+∥∥2 
+
+> H1
+
+≤ c2δ20 .
+
+Due to δ0 < δ
+
+> 2
+
+√ c1 
+
+> c2
+
+, we have c2δ20 < c 1δ2/4 and thus Q(u0) < Q (un2 ), which contradicts the energy decay in Lemma 2.1 . 
+
+Under the non-degeneracy condition, we can establish the following Lojasiewicz-type gradient in-equality near the GS as the last tool. ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 11 
+
+Lemma 3.7 (Lojasiewicz-type gradient inequality) . Suppose that Assumptions (A) &(B) hold, and the non-degeneracy condition in Proposition 3.3 hold for the GS ug. Then, there exists a sufficiently small 
+
+δ > 0 such that 
+
+Q(u) − Q(ug) . ‖μ(u)‖2 
+
+> H−1
+
+, ∀ u ∈ Uδ(ug) ∩ S p+1 , (3.17) 
+
+where μ(u) := Au − Q(u)|u|p−1u.Proof. Note that μ(ug) = Aug − Q(ug)|ug|p−1ug = Aug − λg |ug|p−1ug = 0. For every u ∈ Uδ(ug ) ∩ S p+1 ,denoting v := u − ug, we have 
+
+〈μ(u), v 〉 = 〈μ(u) − μ(ug), v 〉
+
+= 〈A v, v 〉 − 〈Q(u)|u|p−1u − Q(ug)|ug|p−1ug, v 〉
+
+= 〈A v, v 〉 − (Q(u) − Q(ug)) 〈|u|p−1u, v 〉 − λg
+
+〈|u|p−1u − | ug|p−1ug, v 〉 .
+
+Applying the facts ( Q(u) − Q(ug)) 〈|u|p−1u, v 〉 . ‖v‖2 
+
+> H1
+
+‖u‖pLp+1 ‖v‖Lp+1 = O (‖v‖3
+
+> H1
+
+) and 
+
+〈|u|p−1u − | ug|p−1ug, v 〉 =
+
+∫ 10
+
+p 〈|ug + ρ v |p−1v, v 〉 dρ
+
+= p 〈|ug|p−1v, v 〉 +
+
+∫ 10
+
+p 〈( |ug + ρ v |p−1 − | ug|p−1) v, v 〉 dρ
+
+= p 〈|ug|p−1v, v 〉 + O
+
+(∥∥|ug + ρ v |p−1 − | ug|p−1∥∥L p+1 
+
+> p−1
+
+‖v‖2
+
+> Lp+1
+
+)
+
+= p 〈|ug|p−1v, v 〉 + o (‖v‖2 
+
+> H1
+
+), (3.18) we obtain 
+
+〈μ(u), v 〉 = 〈A v, v 〉 − pλ g
+
+〈|ug|p−1v, v 〉 + o (‖v‖2
+
+> H1
+
+) = 〈L v, v 〉 + o (‖v‖2
+
+> H1
+
+) .
+
+From the definition of H−1-norm and the coercivity property ( 3.11 ) of the operator L, we have for some constant c > 0 that 
+
+‖μ(u)‖H−1 ≥ 〈L v, v 〉
+
+‖v‖H1
+
++ o (‖v‖H1 ) ≥ c‖v‖H1 + o (‖v‖H1 ) .
+
+Using the local equivalence between ‖v‖2 
+
+> H1
+
+and Q(u) − Q(ug), we find when δ > 0 is small enough, 
+
+‖μ(u)‖H−1 ≥ c
+
+2 ‖v‖H1 &
+
+√
+
+Q(u) − Q(ug),
+
+which proves the assertion. 
+
+Noting that μn = Aun − Q(un)|un|p−1un = μ(un), the following result is a direct application of Lemma 3.6 and Lemma 3.7 :
+
+Lemma 3.8. Under the conditions of Theorem 3.4 , there exists some δ0 > 0 such that for all u0 ∈
+
+Uδ0 (ug ) ∩ S p+1 ,
+
+Q(un) − Q(ug) ≤ CLo ‖μn‖2 
+
+> H−1
+
+, ∀ n ∈ N, (3.19) 
+
+with CLo > 0 a constant independent of n, τ .Proof of Theorem 3.4 . From the elliptic equation ( 2.12 ), we can derive that 
+
+〈μn, v 〉 . (1 + τ α ) ∥∥˜μn+1 ∥∥L2 ‖v‖L2 + τ ∥∥∇˜μn+1 ∥∥L2 ‖∇ v‖L2 . (∥ ∥˜μn+1 ∥∥L2 + τ ∥∥˜μn+1 ∥∥H1
+
+) ‖v‖H1 ,
+
+which by noting the definition of H−1-norm can give ‖μn‖H−1 . ∥∥˜μn+1 ∥∥L2 +τ ∥∥˜μn+1 ∥∥H1 . By Lemma 2.1 
+
+and the H1-bound of ˜un+1 in Lemma 2.4 , we have 
+
+τ ‖μn‖2 
+
+> H−1
+
+. τ ‖˜μn+1 ‖2 
+
+> L2
+
++ τ 3 ∥∥˜ μn+1 ∥∥2
+
+> H1
+
+. (1 + τ )
+
+(
+
+τ ‖˜μn+1 ‖2 
+
+> L2
+
++ τ 2 ∥∥˜μn+1 ∥∥2
+
+> H1
+
+)
+
+. (1 + τ ) (Q(un) − Q(un+1 )) .
+
+Hence, for some constant cD > 0 satisfying cD ≤ CLo ,
+
+Q(un) − Q(un+1 ) ≥ cD
+
+τ
+
+1 + τ ‖μn‖2 
+
+> H−1
+
+,12 W. LIU, T. WANG, AND X. ZHAO 
+
+which combining with ( 3.19 ) gives 
+
+Q(un) − Q(un+1 ) ≥ cD
+
+CLo 
+
+τ
+
+1 + τ
+
+(Q(un) − Q(ug)).
+
+Denoting a0 = cD /C Lo ∈ (0 , 1], we then have 
+
+Q(un+1 ) − Q(ug) ≤
+
+(
+
+1 − a0τ
+
+1 + τ
+
+) (Q(un) − Q(ug)), n ∈ N. (3.20) Using ( 3.20 ) recursively, we find that for every τ > 0, 
+
+Q(un) − Q(ug) ≤
+
+(
+
+1 − a0τ
+
+1 + τ
+
+)n (Q(u0) − Q(ug)) ≤ exp 
+
+(
+
+−n a0τ
+
+1 + τ
+
+) (Q(u0) − Q(ug)).
+
+Using the local equivalence Q(un) − Q(ug) ≍ ‖ un − ug‖2 
+
+> H1
+
+from Proposition 3.3 , we complete the proof of Theorem 3.4 by setting a = a0/2. 
+
+3.3. Full discretization and its convergence analysis. Now we look at the case of fully discretized GFALM, practically used in [ 32 ]. Consider the periodic boundary conditions for ( 2.7 ), which can then be efficiently implemented in the spatial direction by the Fourier pseudospectral discretization [ 35 ]. For notational simplicity, we present the one-dimensional case, i.e., d = 1 , x = x. Higher dimensional cases can be done in the same manner by tensor-product constructions. 3.3.1. GFALM with Fourier pseudospectral discretization. Let the computational domain be Ω = [ x0, x 0+
+
+L] ⊂ R and set the spatial step size h := L/M with M > 0 a positive even integer. Denote Γh := 
+
+{0, 1, . . . , M − 1} , Ωh := {xj = x0+jh : j = 0 , 1, . . . , M −1}, and Xh := {uh = ( u0, u 1, . . . , u M−1)⊤ : uj ∈
+
+R, j ∈ Γh}. Let YM := span {ϕj (x) : j ∈ Γh} be the cardinal trigonometric interpolation space where 
+
+ϕj (x) = 1
+
+M
+
+> M/ 2
+
+∑
+
+> l=−M/ 2
+
+1
+
+al
+
+eilσ (x−xj ) with al =
+
+{
+
+1, |l| < M/ 2,
+
+2, |l| = M/ 2, σ := 2π
+
+L ,
+
+satisfying the cardinality property ϕj (xl) = δj,l . The interpolation operator Ih : L2(Ω) → YM is then defined by 
+
+Ihu(x) := 
+
+> M−1
+
+∑
+
+> j=0
+
+uj ϕj (x), with uj := u(xj ). (3.21) Differentiating ( 3.21 ) twice yields the matrix Dxx ∈ RM×M defined by 
+
+∂2
+
+> x
+
+Ihu(xj ) = 
+
+> M−1
+
+∑
+
+> l=0
+
+ul
+
+d2
+
+dx2 ϕl(xj ) =: ( Dxx u)j , (Dxx )j,l := d2
+
+dx2 ϕl(xj ).
+
+First, we introduce some discrete (semi-)norms. For any grid function uh, v h ∈ Xh with periodicity, the discrete inner product, discrete L2-norm and forward-difference semi-norm are denoted by 
+
+〈uh, v h〉h := h
+
+> M−1
+
+∑
+
+> j=0
+
+uj vj , ‖uh‖h := √〈uh, u h〉h, ‖∇ huh‖h := 
+
+√
+
+〈δ+ 
+
+> x
+
+uh, δ + 
+
+> x
+
+uh〉h,
+
+where ( δ+ 
+
+> x
+
+uh)j := ( uj+1 − uj )/h . We also introduce the discrete H1-(semi-)norms and discrete Lp-norms: 
+
+|uh|1,h := √〈− Dxx uh, u h〉h, ‖uh‖1,h := 
+
+√
+
+‖uh‖2 
+
+> h
+
++ |uh|21,h , ‖uh‖h,p := 
+
+(
+
+h
+
+> M−1
+
+∑
+
+> j=0
+
+|uj |p
+
+)1/p 
+
+.
+
+Note that the matrix −Dxx is real symmetric and positive semidefinite [ 35 ]. Hence, there exists a unique real symmetric matrix ( − Dxx 
+
+) 1 
+
+> 2
+
+such that −Dxx = ( − Dxx 
+
+) 1 
+
+> 2
+
+( − Dxx 
+
+) 1 
+
+> 2
+
+. Then, for any 
+
+uh, v h ∈ Xh, by symmetry and the Cauchy–Schwarz inequality, 
+
+|〈− Dxx uh, v h〉h| ≤ 
+
+∥∥∥( − Dxx 
+
+) 1 
+
+> 2
+
+uh
+
+∥∥∥h
+
+∥∥∥( − Dxx 
+
+) 1 
+
+> 2
+
+vh
+
+∥∥∥h
+
+= |uh|1,h |vh|1,h .
+
+Some more basic properties that will be useful are presented below, the proof can be found in, e.g., [14 , 24 , 28 ]. 
+
+Lemma 3.9. For any grid function uh ∈ Xh and any p ≥ 1, the following properties hold. ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 13 
+
+(i) Equivalence of the semi-norms: ‖∇ huh‖h ≤ | uh|1,h ≤ π 
+
+> 2
+
+‖∇ huh‖h.(ii) Discrete Sobolev embedding: ‖uh‖h,p +1 . √‖uh‖2 
+
+> h
+
++ ‖∇ huh‖2 
+
+> h
+
+. ‖uh‖1,h .
+
+The GS in the discrete setting reads 
+
+u∗ 
+
+> h
+
+∈ arg min {Qh(uh) : uh ∈ S h,p +1 } , (3.22) where Sh,p +1 := {uh ∈ Xh : ‖uh‖h,p +1 = 1 } and 
+
+Qh(uh) := 1
+
+2 |uh|21,h + h
+
+> M−1
+
+∑
+
+> j=0
+
+Vj |uj |2 + ω‖uh‖2
+
+> h
+
+.
+
+with Vj = V (xj ). We now give the following assumption as a discrete analogue of Assumption (B) .
+
+Assumption (C). Assume that ω satisfies ω > −λ′
+
+> 0
+
+, where 
+
+λ′ 
+
+> 0
+
+:= inf    
+
+> uh∈Xh,‖uh‖h=1
+
+ 1
+
+2 |uh|21,h + h
+
+> M−1
+
+∑
+
+> j=0
+
+Vj |uj |2
+
+ . (3.23) Define the linear operator Ah : Xh → Xh as (Ahuh)j := 
+
+( 1
+
+2
+
+δQ h(uh)
+
+δu h
+
+)
+
+> j
+
+= − 1
+
+2 (Dxx uh)j + ( Vj + ω) uj , ∀ uh ∈ Xh.
+
+Under Assumption (C) , Ah is real symmetric and positive definite, and Qh(uh) = 〈A huh, u h〉h.
+
+Lemma 3.10. Under Assumptions (A) &(C) , there exists a constant C′ 
+
+> 0
+
+> 0 depending only on λ′ 
+
+> 0
+
+and 
+
+ω such that 
+
+Qh(vh) ≥ C′ 
+
+> 0
+
+‖vh‖21,h , ∀vh ∈ Xh.
+
+Proof. The assertion is the discrete analogue of Lemmas 2.3 whose proof follows the continuous case with each estimate in the continuum setting replaced by its discrete counterpart. The details are omitted for brevity. 
+
+We can now prove the existence of the discrete GS in ( 3.22 ). 
+
+Proposition 3.11 (Existence of discrete GS) . Under Assumptions (A) &(C) , there exists a GS u∗ 
+
+> h
+
+for the discrete constrained minimization (3.22 ).Proof. Let {ukh}∞ 
+
+> k=0
+
+⊂ S h,p +1 be a minimizing sequence with Qh(ukh) → Qg,h := inf uh ∈S h,p +1 Qh(uh)as k → ∞ . By Lemma 3.10 , {ukh}∞ 
+
+> k=0
+
+is bounded in ‖ · ‖ 1,h norm. Since the finite-dimensional vector space Xh is compact (for every fixed h > 0), {ukh}∞ 
+
+> k=0
+
+has an accumulation point u∗ 
+
+> h
+
+∈ Xh with a subsequence {ukj 
+
+> h
+
+}∞ 
+
+> j=0
+
+satisfying ‖ukj 
+
+> h
+
+− u∗
+
+> h
+
+‖1,h → 0 as j → ∞ . By the equivalence of norms in the finite-dimensional space, we have ‖ukj 
+
+> h
+
+− u∗
+
+> h
+
+‖h,p +1 → 0 (as j → ∞ ) and ‖u∗
+
+> h
+
+‖h,p +1 = lim j→∞ ‖ukj 
+
+> h
+
+‖h,p +1 = 1, i.e., u∗ 
+
+> h
+
+∈ S h,p +1 . Furthermore, 
+
+∣∣∣Qh(ukj 
+
+> h
+
+) − Qh(u∗
+
+> h
+
+)
+
+∣∣∣ =
+
+∣∣∣〈
+
+Ah
+
+(ukj 
+
+> h
+
++ u∗
+
+> h
+
+), (ukj 
+
+> h
+
+− u∗
+
+> h
+
+)
+
+〉
+
+> h
+
+∣∣∣ .
+
+(∥∥ukj
+
+> h
+
+∥∥1,h + ∥∥u∗
+
+> h
+
+∥∥1,h 
+
+) ∥∥ukj 
+
+> h
+
+− u∗
+
+> h
+
+∥∥1,h → 0,
+
+yielding that Qh(u∗
+
+> h
+
+) = lim j→∞ Qh(ukj 
+
+> h
+
+) = Qg,h . Hence, u∗ 
+
+> h
+
+∈ S h,p +1 is a discrete GS of ( 3.22 ). 
+
+With above discrete ingredients, we can write down the fully discrete GFALM scheme: for j ∈ Γh,1
+
+τ
+
+(˜un+1  
+
+> j
+
+− unj
+
+) = −˜μn+1  
+
+> j
+
+, (3.24a) 
+
+˜μn+1  
+
+> j
+
+= − 1
+
+2
+
+(Dxx ˜un+1 
+
+> h
+
+) 
+
+> j
+
++
+
+(
+
+Vj + ω − ˜λh(unh ) ∣∣unj
+
+∣∣p−1)
+
+unj + α (˜un+1  
+
+> j
+
+− unj
+
+) , (3.24b) 
+
+un+1  
+
+> j
+
+= ˜un+1  
+
+> j
+
+/‖˜un+1  
+
+> h
+
+‖h,p +1 , (3.24c) where α ≥ 0 is the selected stabilization parameter, and the discrete asymptotic Lagrange multiplier is defined as ˜λh(uh) = Qh(uh)/‖uh‖p+1  
+
+> h,p +1
+
+= Qh(uh). 14 W. LIU, T. WANG, AND X. ZHAO 
+
+Lemma 3.12 (Discrete energy stability) . Under Assumptions (A) &(C) , if 
+
+α ≥ 1
+
+2 max 
+
+{
+
+0, max 
+
+> j∈Γh
+
+(V (xj ) + ω)}
+
++ 1
+
+2 , (3.25) 
+
+the fully discrete GFALM (3.24 ) possesses the unconditional energy stability for Qh(uh): ∀ τ > 0,
+
+Qh(un+1  
+
+> h
+
+) − Qh(unh ) ≤ − τ 2 ∥∥˜μn+1 
+
+> h
+
+∥∥21,h + 4 τ ‖˜μn+1  
+
+> h
+
+‖2
+
+> h
+
+2‖˜un+1  
+
+> h
+
+‖2
+
+> h,p +1
+
+. (3.26) 
+
+Proof. The proof totally follows the lines of [ 32 ] and Lemma 2.1 for the semi-discretization ( 2.7 ), by replacing the continuous inner product and associated functionals with their discrete counterparts. The details are omitted for brevity. 
+
+3.3.2. Discrete geometry near GS. To conduct a rigorous local convergence analysis of the fully discrete GFALM scheme ( 3.24 ), we also need to characterize the local geometry structure of the discrete constraint manifold Sh,p +1 near u∗
+
+> h
+
+. We also introduce local coordinates around u∗
+
+> h
+
+, impose a crucial non-degeneracy assumption, and establish an equivalence between the energy error and the H1 error. Define the constraint functional Gh(uh) := 2
+
+> p+1
+
+(‖uh‖p+1  
+
+> h,p +1
+
+− 1), where Gh(uh) = 0 is equivalent to 
+
+uh ∈ S h,p +1 . The associated Lagrangian is 
+
+Lh(uh, λ ) := Qh(uh) − λ G h(uh), (3.27) and we define the tangent space at uh ∈ Sh,p +1 as 
+
+Tu,h := 
+
+{
+
+ξh ∈ Xh : DGh(uh)[ ξh] = 2 〈|uh|p−1uh, ξ h
+
+〉 
+
+> h
+
+= 0 
+
+}
+
+.
+
+Assume that λ∗ is the corresponding Lagrange multiplier of GS, i.e., (Ahu∗
+
+> h
+
+)j = λ∗ |u∗ 
+
+> j
+
+|p−1u∗ 
+
+> j
+
+. (3.28) We now introduce a local coordinate near the GS u∗
+
+> h
+
+:
+
+χh : R × T u∗  
+
+> h,h
+
+→ Xh, (r, ξ h) 7 → (1 + r) u∗ 
+
+> h
+
++ ξh.
+
+Clearly, χh is a bijection onto the image, with the inverse 
+
+χ−1 
+
+> h
+
+: uh ∈ Xh 7 → (r(uh), ξ h(uh)) =
+
+(
+
+〈| u∗
+
+> h
+
+|p−1u∗
+
+> h
+
+, u h〉h − 1, u − 〈| u∗
+
+> h
+
+|p−1u∗
+
+> h
+
+, u h〉h u∗
+
+> h
+
+)
+
+∈ R × T u∗ 
+
+> h,h
+
+.
+
+Then we can establish the following as a discrete analogue of Lemma 3.2 and Proposition 3.3 .
+
+Lemma 3.13. (i) Under Assumption (A) , there exists some δ > 0 such that for any uh ∈ Uh,δ (u∗
+
+> h
+
+) = 
+
+{uh ∈ Xh : ‖uh − u∗
+
+> h
+
+‖1,h ≤ δ} admitting the representation uh = χh(r, ξ h), the implicit relation ‖u‖h,p +1 
+
+= 1 produces a unique C2 map r : ξh ∈ T u∗  
+
+> h,h,δ
+
+7 → r(ξh) ∈ Rδ, where Tu∗  
+
+> h,h,δ
+
+⊂ T u∗  
+
+> h,h
+
+and Rδ ⊂ R are neighborhoods of zero, satisfying r(0) = 0 and 
+
+|r(ξh )| . ‖ξh‖2 
+
+> h,p +1
+
+. ‖ξh‖21,h . (3.29) 
+
+(ii) Under the non-degeneracy condition for some constant c > 0:
+
+D2
+
+> u
+
+Lh(u∗
+
+> h
+
+, λ ∗)[ ξh, ξ h] ≥ c ‖ξh‖21,h , ∀ ξh ∈ T u∗ 
+
+> h,h
+
+, (3.30) 
+
+there exists a sufficiently small δ > 0 such that 
+
+Qh(uh) − Qh(u∗
+
+> h
+
+) ≍ ‖ uh − u∗
+
+> h
+
+‖21,h , ∀ uh ∈ Uh,δ (u∗
+
+> h
+
+) ∩ S h,p +1 , (3.31) 
+
+and (3.22 ) admits u∗ 
+
+> h
+
+as the unique minimizer in Uh,δ (u∗
+
+> h
+
+) ∩ S h,p +1 .Proof. Statements (i) and (ii) are the discrete counterparts of Lemma 3.2 and Proposition 3.3 , respec-tively. In their proofs, the only estimate that does not directly generalize from the continuous case is the discrete version of ( 3.9 ): 
+
+〈( |u∗ 
+
+> h
+
++ ρ v h|p−1 − | u∗
+
+> h
+
+|p−1) vh, v h
+
+〉 
+
+> h
+
+= o
+
+(
+
+‖vh‖21,h 
+
+)
+
+.
+
+We discuss this in two cases. First, for 1 < p ≤ 2, we have the inequality 
+
+∣∣|z1|p−1 − | z2|p−1∣∣ ≤ | z1 − z2|p−1ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 15 
+
+for any z1, z 2 ∈ R. Combining this with H¨ older’s inequality yields 
+
+∣∣〈( |u∗ 
+
+> h
+
++ ρ v h|p−1 − | u∗
+
+> h
+
+|p−1) vh, v h
+
+〉
+
+> h
+
+∣∣ . ∥∥|u∗ 
+
+> h
+
++ ρ v h|p−1 − | u∗
+
+> h
+
+|p−1∥∥h, p+1 
+
+> p−1
+
+‖vh‖2
+
+> h,p +1
+
+≤
+
+h ∑
+
+> j∈Γh
+
+(
+
+|ρ v j |p−1) p+1 
+
+> p−1
+
+
+
+> p−1
+> p+1
+
+‖vh‖2
+
+> h,p +1
+
+≤ ρp−1 ‖vh‖p−1 
+
+> h,p +1
+
+‖vh‖2 
+
+> h,p +1
+
+= o
+
+(
+
+‖vh‖21,h 
+
+)
+
+, ∀ 0 ≤ ρ ≤ 1.
+
+Second, for p > 2, we use the Taylor expansion 
+
+|u∗ 
+
+> h
+
++ ρ v h|p−1 − | u∗
+
+> h
+
+|p−1 = ρ v h
+
+∫ 10
+
+(p − 1) |u∗ 
+
+> h
+
++ θρ v h|p−3 (u∗ 
+
+> h
+
++ θρ v h) d θ, 
+
+which gives 
+
+∣∣〈( |u∗ 
+
+> h
+
++ ρ v h|p−1 − | u∗
+
+> h
+
+|p−1) vh, v h
+
+〉
+
+> h
+
+∣∣ . ‖vh‖3 
+
+> h,p +1
+
+= o
+
+(
+
+‖vh‖21,h 
+
+)
+
+, ∀ 0 ≤ ρ ≤ 1. (3.32) Apart from this estimate, the proof follows exactly the same lines as in the continuous case, provided all relevant inner products, norms, and functionals are replaced by their discrete counterparts. 
+
+3.3.3. Exponential convergence rate. Now we are ready to present the error estimate result for the fully discrete GFALM scheme ( 3.24 ). 
+
+Theorem 3.14. Suppose that Assumptions (A) &(C) hold and that the stabilization parameter α satisfies 
+
+(3.25 ). For any fixed h, let u∗ 
+
+> h
+
+be the discrete GS defined by (3.22 ) and satisfies the non-degeneracy condition in Lemme 3.13 . Then, there exists a constant δ0 > 0 such that for any initial data u0 
+
+> h
+
+∈
+
+Uδ0 (u∗
+
+> h
+
+) ∩ S p+1 and any τ > 0, the fully discrete GFALM scheme (3.24 ) converges at the rate: 
+
+‖unh − u∗
+
+> h
+
+‖1,h ≤ C e−anτ / (1+ τ ), ∀ n ∈ N,
+
+where C, a > 0 are constants independent of n, τ .
+
+We then turn to the proof of Theorem 3.14 . Denote μnj = − 1 
+
+> 2
+
+(Dxx unh )j +( Vj +ω − ˜λ(unh ) ∣∣unj
+
+∣∣p−1)unj ,then similarly as ( 2.12 ), we can obtain the elliptic resolvent equation (1 + τ α ) ˜μn+1  
+
+> j
+
+− τ
+
+2
+
+(Dxx ˜μn+1 
+
+> h
+
+) 
+
+> j
+
+= μnj . (3.33) With the discrete H−1-norm defined as 
+
+‖uh‖−1,h = sup  
+
+> 06=vh∈Xh
+
+|〈 uh, v h〉h|
+
+‖vh‖1,h 
+
+, ∀ uh ∈ Xh,
+
+we can then derive the following estimates of the numerical solution. 
+
+Lemma 3.15. Under Assumptions (A) &(C) , and with α satisfying (3.25 ), for the fully discrete GFALM scheme (3.24 ), the following hold: 
+
+‖unh‖1,h . 1, τ ‖˜μn+1  
+
+> h
+
+‖1,h . 1, ‖˜un+1  
+
+> h
+
+‖1,h . 1, ‖˜un+1  
+
+> h
+
+‖−1 
+
+> h,p +1
+
+. 1, ∀n ∈ N.
+
+Lemma 3.16. Assume that the conditions of Theorem 3.14 hold. For the solution of (3.24 ), we have 
+
+τ ∥∥˜μn+1 
+
+> h
+
+∥∥1,h .
+
+√
+
+Qh(unh ) − Qh(un+1  
+
+> h
+
+), ∥∥un+1  
+
+> h
+
+− unh
+
+∥∥1,h .
+
+√
+
+Qh(unh ) − Qh(un+1  
+
+> h
+
+).
+
+Lemma 3.17 (Discrete Lyapunov stability) . Let the assumptions in Theorem 3.14 hold and let δ > 0 be a sufficiently small constant that meets the requirements of Lemma 3.13 . Then, there exist δ0 > 0 such that for all u0 
+
+> h
+
+∈ Uh,δ 0 (u∗
+
+> h
+
+) ∩ S h,p +1 , the solution of (3.24 ) with initial guess u0 
+
+> h
+
+satisfies 
+
+‖unh − u∗
+
+> h
+
+‖1,h ≤ δ, ∀ n ∈ N.
+
+Lemma 3.18 (Discrete Lojasiewicz-type gradient inequality) . Under the conditions of Theorem 3.14 ,there exist some δ0 > 0 such that for all u0 
+
+> h
+
+∈ Uh,δ 0 (u∗
+
+> h
+
+) ∩ S h,p +1 ,
+
+Qh(unh ) − Qh(u∗
+
+> h
+
+) ≤ CLo ‖μnh‖2
+
+> −1,h
+
+, ∀ n ∈ N. (3.34) 
+
+where 0 < C Lo < ∞ is a constant independent of n, τ .16 W. LIU, T. WANG, AND X. ZHAO 
+
+Lemmas 3.15 –3.18 are the discrete analogues of Lemmas 2.4 , 2.5 , 3.5 , 3.6 , and 3.8 , respectively. Their proofs follow the same logic as in the continuous case, with the only exception being Lemma 3.18 
+
+which requires the estimate ( 3.32 ). The subsequent proof of Theorem 3.14 essentially follows the same arguments as in the proof of Theorem 3.4 . For the sake of brevity, these proofs are omitted. 3.4. Numerical Verification. Now we give some numerical examples to demonstrate the practical con-vergence behavior of ( 3.24 ) with α selected as the minimum value satisfying the condition in Lemma 3.12 .
+
+Example 3.19 (Soliton in 1D) . Letting d = 1, V = 0, β = −1, and p = 3 in ( 1.1 ) yields 1
+
+2 ∂xx φ(x) + |φ(x)|2 φ(x) = ωφ (x), x ∈ R. (3.35) Its GS (up to a translation) is the soliton solution explicitly given as 
+
+φ∗(x) = √2ω sech( √2ω x ), u∗(x) = φ∗(x)/‖φ∗‖Lp+1 , x ∈ R.
+
+We take ω = 1, set the computational domain Ω = ( −32 , 32), and use a spatial grid of size M = 512. The initial data for ( 3.24 ) is chosen as u0 
+
+> h
+
+= Ihφ0/‖φ0‖h,p +1 with φ0(x) = e −x2/2, and the temporal iteration is stopped when the maximal residual of ˜μn+1 falls below 10 −11 , i.e., ‖˜μn+1 ‖L∞ < 10 −11 .
+
+Figure 1(a) displays the evolution of the error ‖unh − I hu∗‖H1 with respect to the iteration index n
+
+for step sizes τ = 1 , 0.5, 0.2, 0.1. The curves exhibit a clear exponential decay in n.           
+
+> 050 100 150 200 250
+> 10 -10
+> 10 -5
+> 10 0(a)
+> 0200 400 600 800 1000
+> 10 -5
+> 10 0
+> (b)
+
+Figure 1. Error of GFALM ( 3.24 ) along iteration (on logarithmic scale). (a): ‖unh −Ihu∗‖H1 under different τ in Example 3.19 (a); (b): ‖unh − u∗
+
+> h
+
+‖H1 under different initial data u0 in Example 3.20 .
+
+Example 3.20 (General 2D GS) . Take d = 2, β = −1, p = 3, ω = 1, and V (x) = (γ21 x21 + γ22 x22
+
+) /2with γ1 = γ2 = 1 in ( 1.1 ). The computational domain is taken as Ω = [ −4, 4] × [−4, 4] with a spatial grid of size 128 × 128. The explicit formula of the exact GS is not available in this case and we consider three different initial functions for ( 3.24 ): the Lp+1 -normalizations of 
+
+φa(x1, x 2) = √γ1γ2/π e−(γ21 x21+γ22 x22)/2, φb(x1, x 2) = φa(x1 − 1, x 2), φc = ( x1 + i x2)φa.
+
+Note that φa is real-valued and axisymmetric, while φb and φc are non-axisymmetric real/complex-valued. Using φa, we generate a high-fidelity reference GS u∗ 
+
+> h
+
+by evolving the scheme ( 3.24 ) under a small time step τ = 0 .01 to the final time t = 100. Figure 1(b) reports the evolution of the error ‖unh − u∗
+
+> h
+
+‖H1 under τ = 0 .1. It is observed that, across all tested initial data (and some more not shown for brevity), the solution of GFALM ( 3.24 ) converges towards the same accumulation point at the exponential rate as n increases. The above numerical results verify both the global convergence in Theorem 2.2 and the exponential convergence rate of GFALM ( 3.24 ). ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 17 
+
+3.5. Discussion and perspective. We end this section by making some remarks on the presented exponential convergence results, i.e., Theorems 3.4 &3.14 , for the mathematical assumptions and possible generalizations. i) Complex-valued case: The real-valued setup considered in the above analysis can indeed pro-vide the non-degeneracy assumed in Proposition 3.3 . In the complex-valued setting, continuous symmetries typically generate neutral directions (zero modes), so strict coercivity may fail. For instance, the phase invariance u 7 → eiθu leaves the energy unchanged, making ug a local mini-mizer only modulo phase. Apart from the non-degeneracy assumption, the core estimates and convergence arguments above remain valid in complex-valued contexts including the rotating case [30 , 32 ]. Consequently, provided that Proposition 3.3 holds in the target setting (for example, by imposing symmetry constraints or by establishing coercivity on the orthogonal complement of the zero modes), the exponential convergence result as well as the proof can be extended without essential difficulties. ii) Global exponential convergence: The GFALM starting from different regions of the constraint manifold Sp+1 may converge to distinct critical points. A central open question is whether, for any given initial guess, the GFALM sequence necessarily converges to a critical point of 
+
+Q on Sp+1 . A feasible analytical route is to build on the subsequential convergence results established in Section 2.2 , which, under mild assumptions, guarantee the existence of at least one convergent subsequence whose limit is a critical point. If, in addition, one can establish a (global) Lojasiewicz-type gradient inequality valid on a relatively large subregion of Sp+1 , or ensure the critical point possesses similar non-degenerate conditions, then it may be possible to upgrade “subsequence convergence” to convergence of the full sequence, thereby yielding a comprehensive global convergence theory. iii) Prior error estimate: The discrete GS u∗ 
+
+> h
+
+within discussion in general differs from the exact GS u∗ of ( 2.2 ). As numerically tested on the one-dimensional soliton example with analytical formula [ 32 ], their difference exhibits spectral convergence to zero under a vanishing spatial mesh size. To mathematically justify this, one would need an independent prior error estimate between 
+
+u∗ 
+
+> h
+
+and u∗, which combining with Theorem 3.14 can form the complete error analysis of GFALM. Such prior estimates exist for the mass constrained energy GS problem, e.g., [ 8, 41 ]. However, the direct application of existing frameworks to our problem also faces fundamental obstacles from the lack of an inner product in Lp+1 . Addressing the issues likely requires refined nonconvex constrained optimization tools which is beyond the scope of this paper and will be addressed in a future work. 4. On original continuous gradient flow 
+
+Note that the GFALM scheme was proposed based on the asymptotic flow ( 2.6 ), and the original flow ( 2.4 ) holds independent interest which could give rise to many more possible numerical approxima-tions. Thus, in this section, we investigate the continuous gradient flow ( 2.4 ) and also establish a local exponential convergence theory for it. For simplicity, we shall restrict our study to one dimension: d = 1, and assume that the gradient flow ( 2.4 ) admits a unique global solution u(t) := u(·, t ) with the following regularity assumption: 
+
+u ∈ C1 ((0 , ∞); H1(Ω) ) . (4.1) Noting that H1(Ω) ֒ → L2p(Ω) and H1(Ω) ֒ → L∞(Ω) for d = 1, the Lagrange multiplier λ(u) = 〈Au, |u|p−1u〉/ ‖u‖2pL2p is well-defined along the flow ( 2.4 ). Moreover, by the energy decaying property (2.5 ) and Lemma 2.3 , we have the uniform H1 bound: ‖u(t)‖H1 . 1, ∀ t > 0. 
+
+Lemma 4.1. Under Assumptions (A) &(B) , (3.5 ) and (4.1 ), for any sufficiently small δ > 0 that meets the requirements of Lemma 3.2 and Proposition 3.3 . Then there exists δ0 such that for all u(0) ∈
+
+Uδ0 (ug ) ∩ S p+1 , the solution to (2.4 ) with u(0) as initial data satisfies 
+
+‖u(t) − ug‖H1 ≤ δ, ∀ t ≥ 0.
+
+Proof. From ( 3.6 ), there exist constants 0 < c 1 ≤ c2 such that 
+
+c1 ‖u − ug‖H1 ≤ Q(u) − Q(ug ) ≤ c2 ‖u − ug‖H1 , ∀ u ∈ Uδ(ug) ∩ S p+1 .18 W. LIU, T. WANG, AND X. ZHAO 
+
+Fix δ0 such that δ0 < δ √c1/c 2. We now proceed to show that the conclusion of this lemma holds for this δ0. We argue by contradiction. Suppose that there exists t1 > 0 such that ‖u(t1) − ug‖H1 > δ . By the continuity of the mapping t 7 → ‖ u(t) − ug‖H1 , there exists t2 ∈ (0 , t 1) with ‖u(t2) − ug‖H1 = δ. On the one hand, using the lower quadratic bound at u(t2), 
+
+Q(u(t2)) ≥ Q(ug) + c1 ‖u(t2) − ug‖H1 ≥ Q(ug) + c1δ2.
+
+On the other hand, by the choosing of δ0, we have c2δ20 < c 1δ2, and therefore, 
+
+Q(u(0) ) ≤ Q(ug) + c2‖u(0) − ug‖2 
+
+> H1
+
+≤ Q(ug ) + c2δ20 < Q (u(t2)).
+
+This contradicts with ( 2.5 ). 
+
+For u ∈ Uδ(ug ) ∩ S p+1 , denote v = u − ug and N (u, u g) := λ(u)|u|p−1u − λg |ug|p−1ug. Then 
+
+N (u, u g) = λg
+
+(|u|p−1u − | ug|p−1ug
+
+) + (λ(u) − λg
+
+)|ug|p−1ug
+
++ (λ(u) − λg
+
+)( |u|p−1u − | ug|p−1ug
+
+). (4.2) Now we estimate λ(u)−λg. Writing λ(u) := f1(u)/g 1(u) with f1(u) := 〈A u, |u|p−1u〉 and g1(u) := ‖u‖2pL2p ,one has 
+
+Dλ(u)[ v] = g1(u) Df1(u)[ v] − f1(u) Dg1(u)[ v]
+
+(g1(u)) 2 ,
+
+with Df1(u)[ v] = 〈Au, p |u|p−1v〉 + 〈Av, |u|p−1u〉 , Dg1(u)[ v] = 2 p 〈| u|2p−2u, v 〉. By H¨ older’s inequality and the Sobolev embedding, we obtain 
+
+|D f1(u)[ v]| . ‖u‖p−1 
+
+> L∞
+
+‖u‖H1 ‖v‖H1 . ‖u‖pH1 ‖v‖H1 . ‖v‖H1 ,
+
+|D g1(u)[ v]| . ‖u‖p−1 
+
+> L∞
+
+‖u‖p−1 
+
+> Lp+1
+
+‖v‖Lp+1 . ‖u‖2p−1 
+
+> H1
+
+‖v‖H1 . ‖v‖H1 .
+
+For g1, we have the Taylor expansion 
+
+g1(u) − g1(ug ) = 
+
+∫ 10
+
+Dg1(ug + ρv )[ v] d ρ = O(‖v‖H1 ).
+
+Since |g1(ug )| > 0, for sufficiently small δ, g1(u) remains bounded away from zero, which yields |D λ(u)[ v]| .
+
+‖v‖H1 , and consequently the Taylor expansion, 
+
+λ(u) − λg = λ(u) − λ(ug ) = 
+
+∫ 10
+
+Dλ(ug + ρv )[ v] d ρ = O(‖v‖H1 ). (4.3) Note that, by writing v = u − ug = r(ξ)ug + ξ with ξ ∈ T ug , we have 〈|ug|p−1ug, v 〉 = r(ξ) = O(‖ξ‖2 
+
+> H1
+
+) = 
+
+O(‖v‖2 
+
+> H1
+
+). Substituting ( 4.3 ) into ( 4.2 ) and using process similar to ( 3.18 ) yields 
+
+〈N (u, u g), v 〉 = p λ g
+
+〈|ug|p−1v, v 〉 + (λ(u) − λg
+
+) 〈 |ug|p−1ug , v 〉 + o (‖v‖2
+
+> H1
+
+)
+
+= p λ g
+
+〈|ug|p−1v, v 〉 + o (‖v‖2
+
+> H1
+
+) . (4.4) Denote the manifold gradient of Q(u) as F(u) := Au − λ(u)|u|p−1u, and the Lojasiewicz-type gradient inequality near ug reads as follows. 
+
+Lemma 4.2. Under Assumptions (A) &(B) , (3.5 ) and (4.1 ), there exists some δ0 > 0 such that for 
+
+u(0) ∈ Uδ0 (ug ) ∩ S p+1 , the solution to (2.4 ) satisfies 
+
+Q(u(t)) − Q(ug) . ‖F (u(t)) ‖2 
+
+> H−1
+
+∀ t ≥ 0. (4.5) 
+
+Proof. By Lemma 4.1 and ( 4.4 ), for v(t) := u(t) − ug, we have ‖v(t)‖H1 ≤ δ and 
+
+〈F (u(t)) , v (t)〉 = 〈A u(t), v (t)〉 − λ(u(t)) 〈| u(t)|p−1 u(t), v (t)〉
+
+= 〈A u(t), v (t)〉 − λg 〈| ug |p−1ug, v (t)〉 − 〈N (u(t), u g ), v (t)〉
+
+= 〈A u(t), v (t)〉 − 〈A ug , v (t)〉 − p λ g
+
+〈|ug|p−1v(t), v (t)〉 + o(‖v(t)‖2
+
+> H1
+
+)
+
+= 〈L v(t), v (t)〉 + o(‖v(t)‖2
+
+> H1
+
+) .ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 19 
+
+Noting that 〈L v(t), v (t)〉 ≍ ‖ v(t)‖2 
+
+> H1
+
+implied by the non-degeneracy condition ( 3.5 ), we find that when 
+
+δ is small enough, 
+
+‖F (u(t)) ‖H−1 ≥ 〈F (u(t)) , v (t)〉
+
+‖v(t)‖H1
+
+= 〈L v(t), v (t)〉
+
+‖v(t)‖H1
+
++ o(‖v(t)‖H1 ) & ‖v(t)‖H1 , ∀ t ≥ 0.
+
+By Proposition 3.3 and Lemma 4.1 , the local equivalence between ‖v(t)‖2 
+
+> H1
+
+and Q(u(t)) − Q(ug) holds for all t ≥ 0, which completes the proof. 
+
+Now we are ready to state and prove the exponential convergence rate on the continuous flow ( 2.4 ). 
+
+Theorem 4.3 (Exponential convergence of original flow) . Under Assumptions (A) &(B) , (3.5 ) and (4.1 ).Then, there exists some δ0 > 0 such that the flow (2.4 ) with u(0) ∈ Uδ0 (ug) ∩ S p+1 satisfies 
+
+‖u(t) − ug ‖H1 ≤ C e−at , ∀ t > 0,
+
+where C, a > 0 are constants independent of t.Proof. The decaying property ( 2.5 ) states that d
+
+dt Q(u(t)) = −2‖F (u(t)) ‖2 
+
+> L2
+
+≤ − cD ‖F (u(t)) ‖2 
+
+> H−1
+
+,
+
+for some cD > 0. Combining with the Lojasiewicz-type gradient inequality ( 4.5 ) yields d
+
+dt
+
+[Q(u(t)) − Q(ug)] ≤ − cD
+
+CL
+
+[Q(u(t)) − Q(ug)],
+
+with some CL > 0. By Gr¨ onwall’s inequality and setting a0 := cD 
+
+> CL
+
+, we obtain 
+
+Q(u(t)) − Q(ug) ≤ e−a0t [Q(u(0)) − Q(ug)].
+
+The local equivalence Q(u(t)) − Q(ug) ≍ ‖ u(t) − ug‖2 
+
+> H1
+
+finishes the proof with a = a0/2. 
+
+5. Conclusion 
+
+The action ground state of the focusing nonlinear Schr¨ odinger equation can be formulated as an 
+
+Lp+1 -constrained minimization ( p > 1) [ 32 ], generalizing the traditional L2-constrained energy ground state problem. To compute these action ground states, a Gradient Flow with Asymptotic Lagrange Multiplier (GFALM) method has been proposed in [ 32 ]. While GFALM’s practical effectiveness has been demonstrated, rigorous analysis has been challenging due to the Lp+1 constraint, which lacks the inner-product structure present in the energy ground state problem. In this work, we carried out systematic convergence analysis for GFALM. Specifically, we proved a general global convergence result, guaranteeing the existence of accumulation points and convergent subsequences for the semi-discrete GFALM scheme. Furthermore, we developed a novel local convergence framework tailored to the Lp+1 -spherical manifold, demonstrating the numerically observed exponential convergence rate of the GFALM scheme under suitable non-degeneracy assumptions. This involved characterizing the local geometry of the constraint manifold, establishing a quadratic growth property of the functional, and deriving a Lojasiewicz-type gradient inequality. A parallel exponential convergence analysis was also provided for the continuous normalized gradient flow, laying the groundwork for future numerical discretization designs. 
+
+Acknowledgement 
+
+W. Liu is supportted by the NSFC grant 12571448 and the Innovation Research Foundation of NUDT (202402-YJRC-XX-002). T. Wang and X. Zhao are supported by National Key Research and Development Program of China, National MCF Energy R&D Program (No. 2024YFE03240400), NSFC 42450275, 12271413. 20 W. LIU, T. WANG, AND X. ZHAO 
+
+Appendix A. Proof of Lemma 3.2 
+
+Rewrite the relation ‖u‖Lp+1 = 1 as G(u) ≡ 0 and u := χ(r, ξ ). Defining an auxiliary mapping 
+
+˜G(r, ξ ) := G(χ(r, ξ )), we compute the (Gˆ ateaux) derivatives of ˜G with respect to each variable: 
+
+∂r ˜G(r, ξ ) = 2 〈|χ(r, ξ )|p−1χ(r, ξ ), u g
+
+〉 ,
+
+Dξ ˜G(r, ξ )[ v] = 2 〈|χ(r, ξ )|p−1χ(r, ξ ), v 〉 , ∀v ∈ T ug .
+
+With p > 1, one finds 
+
+˜G ∈ C2(R × T ug ; R), ˜G(0 , 0) = 0 , ∂r ˜G(0 , 0) = 2 6 = 0 .
+
+By the implicit function theorem, we obtain the first assertion of Lemma 3.2 .Clearly, r(0) = 0. To compute the Gˆ ateaux derivatives of r(ξ), we set ̂ G(ξ) := ˜G(r(ξ), ξ ) ≡ 0. By the chain rule, 
+
+D̂ G(ξ)[ v] = ∂r ˜G(r(ξ), ξ ) Dr(ξ)[ v] + Dξ ˜G(r(ξ), ξ )[ v] = 0 , ∀v ∈ T ug .
+
+Hence, 
+
+Dr(ξ)[ v] = − Dξ ˜G(r(ξ), ξ )[ v]
+
+∂r ˜G(r(ξ), ξ ) = −
+
+〈|χ(r(ξ), ξ )|p−1 χ(r(ξ), ξ ), v 〉
+
+〈| χ(r(ξ), ξ )|p−1 χ(r(ξ), ξ ), u g 〉 .
+
+Note that Dr(0)[ v] = 0 for all v ∈ T ug . For any v1 ∈ T ug , define 
+
+F (r, ξ ) := − f2(r, ξ )
+
+g2(r, ξ ) := −
+
+〈|χ(r, ξ )|p−1χ(r, ξ ), v 1
+
+〉
+
+〈| χ(r, ξ )|p−1χ(r, ξ ), u g 〉 .
+
+Let ˜F (ξ) = F (r(ξ), ξ ). Then, 
+
+D2r(ξ)[ v2 , v 1] = D ˜F (ξ)[ v2] = ∂r F (r(ξ), ξ ) Dr(ξ)[ v2 ] + DξF (r(ξ), ξ )[ v2 ], ∀v1, v 2 ∈ T ug , (A.1) and we handle each term on the right-hand-side of ( A.1 ) individually. Firstly, we have 
+
+∂r F (r, ξ ) = − g2(r, ξ ) ∂r f2(r, ξ ) − f2(r, ξ ) ∂r g2(r, ξ )
+
+(g2(r, ξ )) 2 ,
+
+with ∂r f2(r, ξ ) = p 〈|χ(r, ξ )|p−1ug, v 1
+
+〉 , ∂ r g2(r, ξ ) = p 〈|χ(r, ξ )|p−1ug, u g
+
+〉 . Secondly, 
+
+DξF (r, ξ )[ v2] = − g2(r, ξ ) Dξ f2(r, ξ )[ v2] − f2(r, ξ ) Dξ g2(r, ξ )[ v2]
+
+(g2(r, ξ )) 2 ,
+
+with Dξf2(r, ξ )[ v2 ] = p 〈|χ(r, ξ )|p−1v2, v 1
+
+〉 and Dξg2(r, ξ )[ v2] = p 〈|χ(r, ξ )|p−1v2, u g
+
+〉. By the H¨ older inequality and noting that ‖χ(r(ξ), ξ )‖Lp+1 = ‖ug‖Lp+1 = 1, we have 
+
+|f2(r(ξ), ξ )| ≤ ‖ v1‖Lp+1 , |g2(r(ξ), ξ )| ≤ 1,
+
+|∂rf2(r(ξ), ξ )| ≤ p‖v1‖Lp+1 , |∂r g2(r(ξ), ξ )| ≤ p, 
+
+∣∣Dξ f2(r(ξ), ξ )[ v2 ]∣∣ ≤ p‖v1‖Lp+1 ‖v2‖Lp+1 , ∣∣Dξg2(r(ξ), ξ )[ v2 ]∣∣ ≤ p‖v2‖Lp+1 .
+
+Denote ̂ g2(u) = 〈|u|p−1u, u g
+
+〉. Since ̂ g2(ug) = ‖ug‖p+1  
+
+> Lp+1
+
+= 1, for u ∈ Uh,δ (ug) ∩ S h,p +1 we have 
+
+|̂ g2(u) −̂ g2(ug)| ≤ 
+
+∫
+
+> Ω
+
+∣∣|u|p−1u − | ug|p−1ug
+
+∣∣ |ug | dx
+
+≤ p
+
+∫
+
+> Ω
+
+(|u|p−1 + |ug|p−1) |u − ug| | ug| dx
+
+≤ p
+
+(
+
+‖u‖p−1 
+
+> Lp+1
+
++ ‖ug‖p−1
+
+> Lp+1
+
+)
+
+‖u − ug‖Lp+1 ‖ug‖Lp+1 . δ. 
+
+Thus, when δ is sufficiently small, |g2(r(ξ), ξ )| is bounded away from zero. Plugging the above bounds into ( A.1 ) yields 
+
+∣∣∣D2r(ξ)[ v2 , v 1]
+
+∣∣∣ ≤ ∣∣∂r F (r(ξ), ξ )∣∣ ∣∣Dr(ξ)[ v2 ]∣∣ + ∣∣Dξ F (r(ξ), ξ )[ v2 ]∣∣ . ‖v1‖Lp+1 ‖v2‖Lp+1 . (A.2) According to the Taylor expansion with integral remainder, 
+
+r(ξ) = r(0) + Dr(0)[ ξ] + 
+
+∫ 10
+
+(1 − ρ)D2r(ρξ )[ ξ, ξ ] d ρ =
+
+∫ 10
+
+(1 − ρ)D2r(ρξ )[ ξ, ξ ] d ρ. ANALYSIS OF Lp+1 -NORMALIZED GRADIENT FLOW 21 
+
+Using ( A.2 ) gives |r(ξ)| . ‖ξ‖2 
+
+> Lp+1
+
+, which confirms the second assertion of Lemma 3.2 .
+
+References 
+
+[1] R. Altmann, P. Henning, and D. Peterseim , The J-method for the Gross–Pitaevskii eigenvalue problem , Numer. Math., 148 (2021), pp. 575–610. [2] X. Antoine, A. Levitt, and Q. Tang , Efficient spectral computation of the stationary states of rotating Bose–Einstein condensates by preconditioned nonlinear conjugate gradient methods , J. Comput. Phys., 343 (2017), pp. 92–109. [3] A. H. Ardila and H. Hajaiej , Global well-posedness, blow-up and stability of standing waves for supercritical NLS with rotation , J. Dyn. Differ. Equ., 35 (2023), pp. 1643–1665. [4] W. Bao and Y. Cai , Mathematical theory and numerical methods for Bose–Einstein condensation ,Kinet. Relat. Models, 6 (2013), pp. 1–135. [5] W. Bao and Q. Du , Computing the ground state solution of Bose–Einstein condensates by a normalized gradient flow , SIAM J. Sci. Comput., 25 (2004), pp. 1674–1697. [6] H. Berestycki and P.-L. Lions , Nonlinear scalar field equations, I. existence of a ground state ,Arch. Ration. Mech. Anal., 82 (1983), pp. 313–345. [7] H. Berestycki and P.-L. Lions , Nonlinear scalar field equations, II. existence of infinitely many solutions , Arch. Ration. Mech. Anal., 82 (1983), pp. 347–375. [8] E. Canc´ es, R. Chakir, and Y. Maday , Numerical analysis of nonlinear eigenvalue problems , J. Sci. Comput., 45 (2010), pp. 90–117. [9] S.-H. Chang, C.-C. Chien, and B.-F. Jeng , Computing wave functions of nonlinear Schr¨ odinger equations: A time-independent approach , J. Comput. Phys., 226 (2007), pp. 104–130. [10] Z. Chang, Z. Wen, X. Zhao , Deep neural network approaches for computing the defocusing action ground state of nonlinear Schr¨ odinger equation , Ann. Appl. Math., 41 (2025), pp. 42–76. [11] H. Chen, G. Dong, J. A. Iglesias, W. Liu, and Z. Xie , Second-order flows for approaching sta-tionary points of a class of nonconvex energies via convex-splitting schemes , SIAM J. Sci. Comput., 47 (2025), pp. A1604–A1627. [12] H. Chen, G. Dong, W. Liu, and Z. Xie , Second-order flows for computing the ground states of rotating Bose-Einstein condensates , J. Comput. Phys., 475 (2023), p. 111872. [13] Z. Chen, J. Lu, Y. Lu, and X. Zhang , On the convergence of Sobolev gradient flow for the Gross-Pitaevskii eigenvalue problem , SIAM J. Numer. Anal., 62 (2024), pp.667–691. [14] Y. Coudi´ ere, T. Gallou¨ et, and R. Herbin , Discrete Sobolev inequalities and Lp error estimates for finite volume solutions of convection diffusion equations , ESAIM Math. Model. Numer. Anal., 35 (2001), pp. 767–778. [15] I. Danaila and P. Kazemi , A new Sobolev gradient method for direct minimization of the Gross– Pitaevskii energy with rotation , SIAM J. Sci. Comput., 32 (2010), pp. 2447–2467. [16] I. Danaila and B. Protas , Computation of ground states of the Gross–Pitaevskii functional via Riemannian optimization , SIAM J. Sci. Comput., 39 (2017), pp. B1102–B1129. [17] C. M. Dion and E. Canc´ es , Ground state of the time-independent Gross–Pitaevskii equation ,Comput. Phys. Commun., 177 (2007), pp. 787–798. [18] S. Dovetta, E. Serra, and P. Tilli , Action versus energy ground states in nonlinear Schr¨ odinger equations , Math. Ann., 385 (2023) pp. 1545–1576. [19] E. Faou and T. J´ ez´ equel , Convergence of a normalized gradient algorithm for computing ground states , IMA J. Numer. Anal., 38 (2018), pp. 360–376. [20] Z. Feng, Q. Tang, and C. Wang , On the discrete normalized gradient flow for computing ground states of rotating Bose–Einstein condensates: energy dissipation and global convergence , IMA J. Numer. Anal., (2025), https://doi.org/10.1093/imanum/draf100 [21] R. Fukuizumi , Stability and instability of standing waves for the nonlinear Schr¨ odinger equation with harmonic potential , Discrete Contin. Dyn. Syst., 7 (2001), pp. 525–544. [22] R. Fukuizumi and M. Ohta , Instability of standing waves for nonlinear Schr¨ odinger equations with potentials , Differ. Integral Equ., 16 (2003), pp. 691–706. [23] D. Gilbarg and N. S. Trudinger , Elliptic Partial Differential Equations of Second Order ,Springer, 2001. [24] Y. Gong, Q. Wang, Y. Wang, and J. Cai , A conservative Fourier pseudo-spectral method for the nonlinear Schr¨ odinger equation , J. Comput. Phys., 328 (2017), pp. 354–370. 22 W. LIU, T. WANG, AND X. ZHAO 
+
+[25] P. Henning , The dependency of spectral gaps on the convergence of the inverse iteration for a nonlinear eigenvector problem . Math. Mod. Meth. Appl. S., 33 (2023), pp. 1517–1544 [26] P. Henning and D. Peterseim , Sobolev gradient flow for the Gross–Pitaevskii eigenvalue problem: Global convergence and computational efficiency , SIAM J. Numer. Anal., 58 (2020), pp. 1744–1772. [27] L. Jeanjean and S. Lu , On global minimizers for a mass constrained problem , Calc. Var. Part. Differ. Equ., 64 (2022) p. 214. [28] H. Kojima, T. Matsuo, and D. Furihata , Some discrete inequalities for central-difference type operators , Math. Comp., 86 (2017), pp. 1719–1739. [29] W. Liu and Y. Cai , Normalized gradient flow with Lagrange multiplier for computing ground states of Bose–Einstein condensates , SIAM J. Sci. Comput., 43 (2021), pp. B219–B242. [30] W. Liu, C. Wang, and X. Zhao , On action ground states of defocusing nonlinear Schr¨ odinger equations , Math. Models Methods Appl. Sci., 35 (2025), pp. 39–74. [31] W. Liu, Z. Wen, Y. Yuan, and X. Zhao , Computing defocusing action ground state of rotating nonlinear Schr¨ odinger equation: methods via various formulations and comparison , J. Comput. Phys., 538 (2025), p. 114193. [32] W. Liu, Y. Yuan, and X. Zhao , Computing the action ground state for the rotating nonlinear Schr¨ odinger equation , SIAM J. Sci. Comput., 45 (2023), pp. A397–A426. [33] S. I. Pohozaev , Eigenfunctions of the equation ∆u + λf (u) = 0, Sov. Math. Dokl., 5 (1965), pp. 1408–1411. [34] J. Shatah and W. A. Strauss , Instability of nonlinear bound states , Comm. Math. Phys., 100 (1985), pp. 173–190. [35] J. Shen, T. Tang, and L.-L. Wang , Spectral Methods: Algorithms, Analysis and Applications ,vol. 41 of Springer Series in Computational Mathematics, Springer-Verlag, Berlin, Heidelberg, 2011. [36] W. A. Strauss , Existence of solitary waves in higher dimensions , Comm. Math. Phys., 55 (1977), pp. 149–162. [37] C. Wang , Computing the least action ground state of the nonlinear Schr¨ odinger equation by a normalized gradient flow , J. Comput. Phys., 471 (2022) p. 111675. [38] H. Wang , A projection gradient method for computing ground state of spin-2 Bose-Einstein con-densates , J. Comput. Phys., 274 (2014), pp. 473–488. [39] M. Willem , Minimax Theorems , vol. 24 of Progress in Nonlinear Differential Equations and Their Applications, Birkh¨ auser Boston, Boston, MA, 1996. [40] Z. Zhang , Exponential convergence of Sobolev gradient descent for a class of nonlinear eigenprob-lems , Comm. Math. Sci., 20 (2022), pp. 377–403. [41] A. Zhou , An analysis of finite-dimensional approximations for the ground state solution of Bose–Einstein condensates , Nonlinearity, 17 (2003), pp. 541–550. [42] Q. Zhuang and J. Shen , Efficient SAV approach for imaginary time gradient flows with appli-cations to one- and multi-component Bose-Einstein condensates , J. Comput. Phys., 396 (2019), pp. 72–88.

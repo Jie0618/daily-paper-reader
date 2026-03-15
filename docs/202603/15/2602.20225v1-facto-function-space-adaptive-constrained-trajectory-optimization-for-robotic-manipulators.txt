@@ -1,0 +1,1649 @@
+Title: FACTO: Function-space Adaptive Constrained Trajectory Optimization for Robotic Manipulators
+
+URL Source: https://arxiv.org/pdf/2602.20225v1
+
+Published Time: Wed, 25 Feb 2026 01:05:12 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# FACTO: Function-space Adaptive Constrained Trajectory Optimization for Robotic Manipulators 
+
+Yichang Feng 1, Xiao Liang 2,∗, and Minghui Zheng 1,∗
+
+Abstract —This paper introduces Function-space Adaptive Constrained Trajectory Optimization (FACTO), a new trajectory optimization algorithm for both single- and multi-arm manipu-lators. Trajectory representations are parameterized as linear combinations of orthogonal basis functions, and optimization is performed directly in the coefficient space. The constrained problem formulation consists of both an objective functional and a finite-dimensional objective defined over truncated coefficients. To address nonlinearity, FACTO uses a Gauss-Newton approxi-mation with exponential moving averaging, yielding a smoothed quadratic subproblem. Trajectory-wide constraints are addressed using coefficient-space mappings, and an adaptive constrained update using the Levenberg-Marquardt algorithm is performed in the null space of active constraints. Comparisons with optimization-based planners (CHOMP, TrajOpt, GPMP2) and sampling-based planners (RRT-Connect, RRT*, PRM) show the improved solution quality and feasibility, especially in constrained single- and multi-arm scenarios. The experimental evaluation of FACTO on Franka robots verifies the feasibility of deployment. The supplemental video is available via this link. 
+
+I. Introduction Planning collision-free and dynamically feasible trajecto-ries that satisfy specific task constraints with time-continuous 
+
+feasibility remains difficult in cluttered workspaces. In many manipulation tasks, such as pick-and-place, door-handle grasp-ing, or multi-arm cooperation, only a few localized adjust-ments to the motion trajectory are needed to satisfy task constraints and avoid obstacles. Most existing approaches dis-cretize the continuous-time trajectory into a series of discrete waypoints and usually focus on finding a feasible solution in the discrete trajectory space. To guarantee time-continuous feasibility, some optimization-based motion planners [1]–[3] often increase the number of discrete waypoints, and some sampling-based motion planners [4], [5] often increase the sampling density in the configuration space. Waypoint-based optimization methods, such as CHOMP [1], TrajOpt [2], and GPMP2 [3], represent the trajectory by a series of support states. Although waypoint sparsity can reduce computational cost by reducing the number of dimensions, it compromises time-continuous safety because the feasibility of the transition between adjacent waypoints is not certified. To address this problem, some propose the              
+
+> 1Yichang Feng and Minghui Zheng are with the J. Mike Walker ’66 Department of Mechanical Engineering, Texas A&M University, Col-lege Station, TX 77843, USA ( e-mail: yichangfeng@tamu.edu; mhzheng@tamu.edu).
+> 2Xiao Liang is with the Zachry Department of Civil and Environmen-tal Engineering, Texas A&M University, College Station, TX 77843 USA (e-mail: xliang@tamu.edu).
+> ∗Corresponding Authors. The source code for this work will be made available in a public repository upon acceptance of the manuscript.
+
+up-sampling or convex-hull sweep methods for intermediate-point interpretation, but these methods always require addi-tional collision checks and Jacobian calculations. Others find smooth trajectories in early iterations with a good initial guess. Moreover, the trajectory-wide equality constraints from the task requirements scale with the number of support states, thereby increasing the linearization and checking costs when continuous-time guarantees are required. Sampling-based planners, like PRM [4], RRT [6], RRT-connect [5], and their asymptotically-optimal variants [7], [8], are probabilistically complete and adequate at explor-ing feasible configuration-space regions. However, they and their informed or heuristic variants [9], [10] cannot meet the task requirements. In this way, the implicit manifold configuration space (IMACS [11]), an unifying framework for constrained sampling, decouples the planner algorithms from the constraint-adherence methods [12], [13], and shows that guarantees are preserved. However, a large amount of computation is required for the addition-constraints check and the subsequent trajectory-optimization stage. We propose FACTO, Function-space Adaptive Constrained Trajectory Optimization. We formulate trajectory optimiza-tion directly in a function space and parameterize a time-continuous trajectory in a coefficient space, shown in Figure 1. It means that each joint trajectory is expressed as a linear combination of orthogonal basis functions rather than serial waypoints in an execution time period [0 , T ]. The optimization variables are instead the corresponding coefficients of the basis functions. Since most local-minima cases exhibit a sudden change in the sub-trajectory, introducing high-frequency noise, the truncated series of orthogonal basis functions can use a low bandwidth to ensure time-continuous safety. Since the number of linearly independent constraints is smaller than the number of coefficients to ensure the solution’s existence, the number of trajectory-wide constraint checks is also significantly reduced. Equality constraints, like boundary conditions and task frames, are enforced analytically by projecting search di-rections onto the null space of the active equality. It en-sures feasibility by construction and shrinks the search space. Trajectory-wide inequality constraints, such as joint limits, are handled using a compact active set , since the coefficients are global; updating a few active constraints refines the entire trajectory. Considering discontinuity and nonlinearity of the objective function, caused by the sampled collision check, the quadratic programming problem is constructed by the moving average of the gradient and curvature information. The overall optimization employs the Gauss–Newton method with adaptive trust regions to ensure a more robust and efficient convergence.          
+
+> arXiv:2602.20225v1 [cs.RO] 23 Feb 2026 Physical validation
+> Multi-arm collaboration
+> ξ(t) = ϕ(t) + ∑
+> iψi·φ(t)
+> t
+> ξFuntion bases Coefficients Offset function Trajectory in function space ξTrajectory-wide feasibility Optimal trajectory Feasible sub-space of constraints
+> Adptive optimization in null-space
+> Null space
+> Robot instance
+> . . .
+> Robot instance
+> . . .
+> FACTO
+> Real-world implementation Virtual-world simulation Fig. 1: Overview of the FACTO framework. (Top left) Joint trajectories are represented in a coefficient space using an offset function and a set of orthog-onal basis functions. (Top right) Equality and inequality constraints define a feasible subspace in coefficient space, within which the update step is selected. (Bottom right) Active constraints are enforced through null-space projection, enabling adaptive optimization while preserving feasibility. (Bottom left) In multi-arm settings, robot instances exchange only the information required for self-collision checking and coordination/collaboration tasks. Overall, these components form a complete FACTO pipeline for generating continuous-time, constraint-satisfying trajectories in both single- and multi-robot systems.
+
+The challenges of multi-robot trajectory optimization stem from the higher degrees of freedom, self-collision checking, and the construction of constraints for collaborative tasks. FACTO fully decouples the multi-robot system into individual robots and optimizes their trajectories independently. The cross-check matrix is adopted and simplified to ensure self-collision-free. The collaborative tasks are decentralized, and virtual task constraints are allocated to each robot in the fully decoupled multi-robot system. 
+
+Our contributions can be summarized as follows:  
+
+> •
+
+Optimization in a truncated function space. We formu-late collision- and task-aware trajectory optimization directly over truncated coefficients of orthogonal basis functions, yield-ing low-dimensional updates with trajectory-wide effect and smooth, low-bandwidth solutions.  
+
+> •
+
+Equality feasibility. We enforce the boundary and lin-earized task constraints via null-space projection, yielding a reduced-space SQP step that maintains equality feasibility throughout the iterations.  
+
+> •
+
+Sparse trajectory-wide limit enforcement. We maintain a small and active set of inequality constraints and enforce joint limits via coefficient-space bounds evaluated at a few critical time nodes, thereby avoiding dense sampling. Consid-ering the feasibility of the velocity and torque, we scale the execution time of each optimally parameterized trajectory.  
+
+> •
+
+Robust SQP updates. We introduce an EMA-regularized Gauss-Newton curvature and an adaptive trust-region scheme that stabilizes convergence for highly nonconvex and con-strained optimization problems.  
+
+> •
+
+Scalable multi-robot optimization. We exploit the block structure of multi-robot objectives and constraints to decouple the multi-robot system into per-robot subproblems, while handling collaborative task constraints through a decentralized coordination scheme. In summary, FACTO combines the efficiency of trajectory parameterization in the coefficient space with a supportive framework for constraint satisfaction and optimization over the entire trajectory. This is achieved by overcoming the key chal-lenges of waypoint-based methods, such as CHOMP, GPMP2, and TrajOpt, as well as sampling-based motion planners, such as RRT-Connect, IMACS, RRT*, and PRM. Our benchmark-ing experiment, with 800 unconstrained and 200 constrained tasks on a single-arm panda robot, and 40 unconstrained and 40 constrained tasks on a dual-arm panda robot, demonstrates the outstanding efficiency and effectiveness of FACTO. Addi-tionally, our physical experiment validates FACTO’s applica-bility across various tasks, including single-arm manipulation and dual-arm coordination/collaboration. II. Related Works The previous work is reviewed in this section using three key topics: trajectory representation , continuous-time (trajectory-wide) constraint enforcement , and optimizer glob-alization . We start with waypoint models and their limitations in time-continuous settings. Then we cover function-space parameterizations that motivate FACTO. Finally, we review sampling-based and learning-augmented planners. 
+
+A. Waypoint Parameterizations and Continuous-Time Gap 
+
+Most optimization-based motion planners numerically op-timize the discrete waypoints . CHOMP [1] uses the func-tional gradient for motion updates. Meanwhile, TrajOpt [2] convexifies the objective and adjusts trust regions for fast convergence. These methods work well on moderate problems but inherit a structural limitation: sparse waypoints break 
+
+time-continuous guarantees because local collision-avoidance updates omit information between waypoints. To address these issues, GPMP/GPMP2 [3] uses dense up-sampling, increas-ing collision checks and Jacobian evaluations, and TrajOpt uses convex-hull sweeps, assuming sufficient smoothness but sensitive to initial guess. Though GPMP-GRAPH [14], abatch optimizer, and GOMP [15], integrating deep learning, extend the scope, the discretization burden remains. The time-continuous issue is also faced by the SQP- and MPC-style formulations for avoidance and coordination [16]–[20] when dealing with trajectory-wide inequalities. Recent work has pushed waypoint pipelines toward better practice. Warm-start and reuse across related problems can improve the solution feasibility with high speed [21], and multimodal optimization seeks diverse solutions in the pres-ence of nonconvexity [22]. Hybrid schemes also interleave sampling with local optimization to quickly repair or refine candidates in clutter [23]. These works improve the reliability and efficiency, though the continuous-time guarantee still requires dense checking or conservative bounds. However, these waypoint models still make time-continuous safety and constraint handling scale with sampling density ,meaning that improving one may worsen runtime. Sometimes, their local effects on the entire trajectory also lead to planning failure, no matter how many waypoints are deployed. These motivate trajectory parameterization in a space where smooth-ness and continuous-time reasoning are intrinsic. 
+
+B. Function-Space Parameterizations 
+
+An alternative is to optimize over a function space defined by trajectory parameterizations, such as Gaussian processes or basis functions. Such parameterizations reduce the number of optimization variables and propagate local changes globally. Within the GP family [3], [14], recent efforts tend to increase modeling and inference flexibility beyond classical GPMP2 by variational unifications [24], differentiable formulations [25], or constrained inference procedures [26]. In parallel, a Fourier-based parameterization is proposed to produce low-bandwidth motions [27], offering a practical way to achieve sparse sampling without losing expressiveness. FACTO follows this line to propose a generic framework with two elements: (i) an orthogonal basis, such as trigonomet-ric, Chebyshev/Legendre, compact splines/wavelets, that yields closed-form derivatives and well-conditioned updates; and (ii) 
+
+coefficient-space enforcement of trajectory-wide constraints via convex envelopes, removing dense inter-sample checks. 
+
+C. Mechanisms for Trajectory-Wide Safety 
+
+Prior works address the between-waypoints gap by (i) up-sampling, proposed by GPMP2 [28] to insert dense intermedi-ate states, or by (ii) convex-hull sweeps, proposed by TrajOpt [2], which requires high smoothness and good initializations. Some recent works improve the efficiency of safety veri-fication without compromising the guarantees. For example, the learned proxy collision checking aims to replace some geometric queries with fast predictors [29], while safe planning under uncertainty considers constraints imposed by partial observability and risk [30]. Our function-space method instead expresses continuous-time envelopes in coefficient space. Joint limits then become a few convex hulls despite the sampling density, and boundary constraints are enforced via null-space projection. This shift underlies FACTO’s ability to certify continuous-time proper-ties without exploding the number of constraints. 
+
+D. Sampling-Based Planning and Manifold Variants 
+
+Sampling-based planners build trees or roadmaps to ex-plore feasible regions: RRT, RRT*, RRT-Connect, LQR-RRT*, RRTX, NoD-RRT, and BIT* improve quality, bidirection-ality, control-awareness, and replanning [5]–[8], [10], [31], [32], with memory and efficiency refinements (RRT-FN [33], CODE3 [9]). PRM variants target dynamics, multi-arm, or workspace-guided sampling [34]–[39]. Recent methods, such as tensorized global planning [40], continue to expand the algorithmic design space. Atlas, tangent-bundle, and IMACS methods [11]–[13] use local projections to remain on con-straint manifolds. Modern comparative surveys further clarify the empirical tradeoffs among these families across dimen-sions, constraints, and environmental structure [41]. Though these approaches are probabilistically complete, graph or tree construction entails a large amount of collision checks and yields non-smooth paths. And optimization is still required to satisfy continuous-time constraints, which FACTO’s function-space optimizer directly targets. In prac-tice, sampling and optimization are increasingly composed in layered stacks. [42] proposes hybrid bilevel formulations for collaborative manipulation. [43] introduces reactive motion-generation modules that blend optimization with sampling. 
+
+E. Learning-Augmented Planning 
+
+Learning augments both optimization- and sampling-based planners through warm starts, cost shaping, collision predic-tors, and motion primitives. Such priors can accelerate conver-gence or bias exploration, but continuous-time constraints are not guaranteed. Recent methods include learning to accelerate grasp-optimized planning [15] and proxy collision detection [29]. In broader planning stacks, task-and-motion integration frameworks combine symbolic search with blackbox sampling components [44]. For manipulation settings related to our tasks, dual-arm coordination and twisting-like behaviors have also been studied in contemporary systems [45], [46]. FACTO, as a numerical trajectory optimizer, proposes a framework for continuous-time guarantees provided by ana-lytic equalities and coefficient-space envelopes. It does not integrate any learning-based technique, which makes it much more reliable, efficient, and easier to implement. 
+
+F. Solver Backbones and Globalization 
+
+Deterministic solvers span Newton/quasi-Newton (LM, BFGS [28], [47]–[51]) and trust-region methods [52], [53], with operator-splitting QP backends such as OSQP [54] and ADMM [55]. Stochastic optimizers (SGD, Adam, RMSProp, AdaGrad [56]–[59]) and trajectory perturbation schemes (STOMP [60] and variants [22], [30], [61], [62]) reduce sensitivity to local minima at the expense of many rollouts. FACTO employs a Gauss–Newton backbone with adap-tive trust regions and curvature smoothing, using the low-dimensional and orthogonal coefficientization to maintain compact and stable convergence. Recent whole-body and mobile-manipulation planners further highlight the importance of solver globalization and stable real-time updates [63]. 
+
+Summary 
+
+Waypoint discretization and sampling link continuous-time guarantees with the sampling density and collision-check volume. Function-space parameterizations of FACTO address these concerns by (i) optimizing a small set of smooth basis coefficients, (ii) enforcing equalities analytically via null-space projections, and (iii) imposing trajectory-wide inequalities as compact coefficient-space constraints. III. FACTO: Overview FACTO basically treats the constrained trajectory optimiza-tion problem as a sequential quadratic programming problem over the coefficients in the null space of the constraints, which parameterize a trajectory using serial basis functions. Therefore, Section IV first explains how we parameterize the trajectory in a finite coefficient space. Then, Sections V-VI detail how the objective function and its constraints are constructed in the coefficient space. Finally, Section VII shows how FACTO performs the null-space trajectory optimization using a convexified objective and linearized constraints, in-cluding how we scale the minimal execution time. IV. FACTO: Trajectory Parameterization 
+
+A. Orthogonal Basis for Trajectory Parameterization 
+
+Most motion planners encode a trajectory as discrete way-points from the start θ0 to the goal θg ,
+
+ξ = [ θ⊤ 
+
+> 0
+
+, θ⊤ 
+
+> 1
+
+, . . . , θ⊤ 
+
+> T
+
+]⊤, (1) but sparse supports can miss between-sample collisions and induce discontinuities in functional gradients [1]. Densification [3] improves coverage at the expense of numerous additional collision checks and Jacobian evaluations. To maintain sparsity while ensuring time-continuity, the trajectory parameterized by a linear combination of time-continuous basis functions offers a promising approach. In this formula, trajectory optimization is achieved by modifying the coefficients of their corresponding basis functions rather than the discrete waypoints. It means that the behaviors of collision avoidance and the task execution can have a trajectory-wide rather than waypoint-wise effect. In this way, we formulate trajectory optimization as the problem of finding optimal coefficients that parameterize a function subspace via serial truncated basis functions. Each joint trajectory is expressed in an orthogonal basis over the time interval [0 , T ].Let {ϕn(t)}Nn=0 be orthogonal basis functions. By stacking 
+
+ϕ(t) := [ ϕ0(t), . . . , ϕ N (t)] ⊤ ∈ RN +1 and collecting coeffi-cients in ψ ∈ RN +1 , the single-DoF trajectory becomes 
+
+ξ(t) = ϕ(t)⊤ψ + φ(t), (2) where a low-order boundary lift φ(t) is adopted for the non-periodic motion to enforce [ξ(0) , ˙ξ(0)] = [θ0, ˙θ0] and 
+
+[ξ(T ), ˙ξ(T )] = [ θg , ˙θg ]. It decouples endpoint feasibility from the coefficients while preserving orthogonality. Considering an M -DoF manipulator, this paper uses avectorized form ψ = vec([ ψ⊤ 
+
+> 1
+
+, . . . , ψ⊤ 
+
+> M
+
+]⊤) ∈ RM (N +1) , where each element stacks the trajectory coefficients of the m-th joint: ψm = [ ψm, 0, . . . , ψ m,n , . . . , ψ m,N ] ∈ RN +1 . In cor-respondence, the high-dimensional orthogonal basis function can be formulated as 
+
+Φ(t) = IM ×M ⊗ ϕ(t)⊤ ∈ RM ×M (N +1) , (3) such that the M -DoF trajectory and its velocity and accelera-tion can be expressed as 
+
+ξ(t) = φ(t) + Φ(t)ψ, (4) 
+
+˙ξ(t) = ˙φ(t) + ˙Φ(t)ψ, (5) 
+
+¨ξ(t) = ¨ φ(t) + ¨Φ(t)ψ. (6) It indicates that velocity or acceleration penalties and dy-namics constraints couple linearly to ψ, enabling efficient Gauss–Newton steps and analytic null-space projections for equality feasibility, as emphasized in the introduction. 
+
+B. Function-Space Optimization with Orthogonal Basis 
+
+Let Θ ⊂ RM be a field of joint configuration and 
+
+T ⊆ [0 , T ] be any subset of the time interval. We define a trajectory/function set Ξ := {ξ : T → Θ}. Since ⟨· , ·⟩ w with a positive function w(t) is equivalent to the usual norm in L2
+
+space, we can say that (Ξ, +, ⟨· , ·⟩ w) is a Hilbert space. This study assumes the trajectories of each joint are linearly independent ξ = LMm=1 ξm, meaning that the trajectory optimality of each joint can be analyzed separately. Now, suppose there exists a candidate optimal trajectory ξ∗
+
+> m
+
+(t). Due to the orthogonality, the optimum can be yielded onto the span of {ϕn}Nn=0 :
+
+(ξ∗ 
+
+> m
+
+− φm)( t) ∈ span {ϕn(t)}Nn=0 , ξ∗ = φ +
+
+> M
+
+M
+
+> m=1
+
+ξ∗
+
+> m
+
+. (7) And the coefficient, a.k.a. the coordinates of the n-th basis function for the m-th joint, can be calculated by 
+
+ψ∗ 
+
+> m,n
+
+= ⟨ξ∗ 
+
+> m
+
+− φm, ϕ n⟩w
+
+∥ϕn∥w
+
+= 1
+
+∥ϕn∥w
+
+Z T
+
+> 0
+
+w (ξ∗ 
+
+> m
+
+− φm) ϕn(t) d t. 
+
+(8) Then, the m-th joint optimum can be approximately expressed by the linear combination of {ϕn}Nn=0 , and the equation is set up when the number of bases goes to infinity: 
+
+ξ∗
+
+> m
+
+(t) = φm(t) + lim  
+
+> N→∞
+> N
+
+X
+
+> n=0
+
+ψ∗ 
+
+> m,n
+
+ϕn(t). (9) V. FACTO: Objective Formulation The above section gives the intuitions behind the trajectory parameterization and optimization in the coefficient space. (8) and (9) show how the optimal trajectory ˆξ is expressed in a function subspace spanned by the basis functions, param-eterized by a coefficient vector ψ ∈ RM (N +1) . From this, the decision variables this study aims to optimize shift from the trajectory ξ to the coefficients ψ. Then, the constrained objective functional becomes 
+
+min  
+
+> ψ
+
+F(ψ) = 
+
+Z T
+
+> 0
+
+f ψ, Φ(t) dt
+
+s.t. Heq (ψ) = 0, Hieq (ψ) ≤ 0,
+
+(10) where f [·] is nonnegative and F, designed for the trajectory smoothness and safety, is continuously differentiable, Heq (ψ)and Hieq (ψ) denote the equality and inequality constraints, respectively, under the consideration of boundary conditions, task requirements, joint limits, etc. As explained in Section IV-A, one main advantage of adjusting the coefficients ψ rather than the trajectory ξ itself is the trajectory-wide effect of local collision avoidance, especially when the coefficients are truncated. That is because the truncated coefficients, in correspondence to finite bases 
+
+{ϕn(t)}Nn=1 , have a low-band impact when the trajectory is treated as a generalized multi-dimensional single. The low-band method can filter out high-frequency noise, leading to local minima where time-continuous safety is not ensured. In this way, the sub-space consisting of the truncated bases 
+
+{ϕn(t)}Nn=1 is no longer complete. Therefore, the objective functional of (10) becomes an objective function with afinite-dimensional variable Ψ, and the following parts will specify how the objective function, working objective, and its convexified version, as well as constraints, are constructed. In this paper, trajectory-wide refers to the continuous-time parameterization: trajectories are represented as smooth func-tions over [0 , T ], and any coefficient update affects the entire time interval. In practice, joint limits, obstacle avoidance, and task constraints are enforced via collocation at a small set of critical time nodes rather than through dense sampling. 
+
+A. Objective Functional 
+
+This study adopts the objective formula of [1]–[3] to balance between the smoothness and obstacle avoidance: 
+
+F(ψ) = ϱ Fsmooth (ψ) + Fobs (ψ) = 
+
+Z Tt=0 
+
+f (ψ, Φ) d t. (11) Unlike [1], [3], which utilizes the Euler-Lagrangian equation to derive the objective functional gradient: 
+
+¯∇ξF = ∂f ∂ξ − ddt∂f ∂ ˙ξ , (12) this study derives the objective function gradient by projecting (12) onto the bases {ϕn}Nn=0 of the function space: 
+
+∇ψ F = ⟨ ¯∇ξF, Φ⟩w. (13) 
+
+1) Trajectory smoothness: Similar to [1], [2], penalizing the squared joint velocity over [0 , T ] yields the smooth part: 
+
+Fsmooth (ψ) = 12 ∥ ˙ξ − ˙φ∥2 
+
+> w
+
+= 12 ∥ ˙Φ(t) ψ∥2
+
+> w
+
+.
+
+It yields a precomputable convex quadratic formula: 
+
+Fsmooth (ψ) = ψ⊤Q ψ, Q = 12 ∥ ˙Φ(t)∥2
+
+> w
+
+, (14) where Q depends only on the chosen basis and horizon, and it is well-conditioned for ordinary orthogonal families. 
+
+2) Obstacle avoidance: This study still uses the sphere tree 
+
+B = {B} NB
+
+> i=1
+
+, geometrically consisting of NB serial collision-check balls (CCB), and the signed distance field (SDF) for single-robot collision checks, as shown in Figure 2a. In this way, let x(Bi, t ) : Θ → E be the forward kinematics from the configuration space Θ ⊂ RM to the Euclidean space E ⊂ R3
+
+where the i-th CCB is located. Then, combining the signed B1,1                     
+
+> B1,28
+> Br,i
+> B2,1
+> B2,27
+> . . .
+> . . .
+> B1,1B1,2B1,28
+> B2,1B2,2B2,28
+> Shared frame
+> (a) Environment check . . .
+> B1,1B1,28 B1,2
+> . . .
+> B2,1
+> B2,28
+> B2,2
+> . . .  . . .
+> B1,1
+> B1,2
+> B1,28
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> . . .
+> B2,1B2,28 B2,2(b) Self check Fig. 2: Environment- and self-collision check for the dual-arm system. (a) Each robot ris represented by its sphere tree Br, all rooted in a shared frame. Environment distances are obtained by evaluating each sphere Br,i in Br
+> against the workspace SDF. (b) For the self-collision check, all collision-check bodies are vectorized into the unified list B=L2r=1 Br. A multi-robot allowed-collision matrix Acm determines which pairs in Bmust be tested. Green cells denote required distance queries, while orange cells indicate pairs excluded from checking. The structure captures the collision relationships of both intra-robot and cross-robot (shown in the off-diagonal blocks outlined in bold green) within a single framework.
+
+distance d(x) with the standard soft cost with buffer ϵ, the collision cost is calculated via the p-order piecewise function: 
+
+c(x) = 
+
+
+
+ϵ − d(x) d(x) < 0 
+
+> 1
+> p ϵ p−1
+
+(ϵ − d(x)) p 0 ≤ d(x) ≤ ϵ
+
+0 otherwise .
+
+(15) Different from [1], [3], which combine the collision cost 
+
+c(x) and the arc length R ∥ ˙x∥ dt for the obstacle part, this study generalizes the arc length part q ∈ [0 , 1] to avoid local minima caused by the combination while maintaining the arc length consideration: 
+
+Fobs (ψ) = 
+
+Z T
+
+> 0
+
+fo(Φ(t) ψ) d t
+
+=
+
+Z T
+
+> 0
+
+X
+
+> Bi∈B
+
+c x(Bi, t ) ∥ ˙x(Bi, t )∥q dt, 
+
+˙x(Bi, t ) = Ji
+
+ Φ(t) ψ · ˙Φ(t) ψ,
+
+(16) where Ji = ∂θ x is the Jacobian of the i-th CCB w.r.t. the joint configuration θ = Φ(t) ψ at t. Then, the obstacle function is calculated only based on the collision cost when q = 0 , while both the cost and arc length are considered when q = 1 .Since there is still no analytic solution for (16), this study adopts the discrete-time form and approximates the integral with a quadrature on nodes {tk, w k}:
+
+bFobs (ψ) = 
+
+> Kobs
+
+X
+
+> k=1
+
+wk fo
+
+ Φ(tk)ψ2. (17) Then, the Gauss–Newton linearization and quasi-Hessian es-timation can be applied to convexify the objective. 3) Multi-robot collision avoidance: Figure 2 illustrates the collision-checking process for the dual-arm system. To maintain computational efficiency, the multi-robot system is decomposed into individual robot instances, each equipped with its own sphere-tree representation. For a robot with index r, let Br = {B r,i }NBr 
+
+> i=1
+
+denote the set of collision-checking bodies (CCBs) in its sphere tree. All sphere trees share the same world-frame root, forming a set of parallel trees B1: NR = {Br}NR
+
+> r=1
+
+, as shown in Figure 2a. Environment checking then proceeds by applying the signed-distance eval-uation (16) to each robot’s sphere tree independently. To model interactions between robots, the individual sphere trees are stacked into a single vectorized list, 
+
+B =
+
+> NR
+
+M
+
+> r=1
+
+Br =
+
+> NR
+
+M
+
+> r=1
+> NBr
+
+M
+
+> i=1
+
+Br,i ,
+
+which enumerates all CCBs in the system. This allows col-lision relationships, both within and across robots, to be expressed in a unified binary matrix. A multi-robot allowed-collision matrix (ACM), denoted 
+
+Acm and visualized in Figure 2b, specifies which CCB pairs must be tested. Each entry Acm (i, j ) = true (green) in-dicates that the distance between the i-th and j-th CCBs in 
+
+B should be evaluated, while Acm (i, j ) = false (orange) marks pairs that can be skipped. This matrix extends the standard single-robot ACM by including cross-robot and intra-robot collision checks, as well as each robot’s internal collision structure. At each time t, all required pairwise distances determined by Acm are computed. For a given body Bi, the self-collision distance is defined as 
+
+dself (x(Bi, t )) = min  
+
+> Bj∈{ Acm ⊙B}\B i
+
+dist( Bi, Bj ),
+
+where ⊙ denotes elementwise filtering using the ACM. The re-sulting distances are cached back into the corresponding robot-level sphere trees B1: NR for use in subsequent evaluations. Finally, the obstacle cost (16) is computed by combining the environment distance from the SDF d(·) with the self-collision distance dself (·) obtained from the ACM-filtered sphere-tree checks. This provides a consistent mechanism for enforcing both environmental safety and multi-robot collision avoidance during trajectory optimization. 
+
+B. Working Objective 
+
+Combining the precomputable quadratic smoothness (14) and the discrete surrogate for obstacles (16), the objective becomes 
+
+bF(ψ) = ϱ
+
+2 ψ⊤Q ψ + X
+
+> k
+
+wk fo
+
+ Φ(tk)ψ2. (18) In the multi-robot case, the above objective function is used for a single robot instance based on the decoupled collision-check block (Section V-A3). A batch of objectives for multi-robot trajectory optimization is optimized with Gauss–Newton steps, analytic null-space projections for equality feasibility, and a compact active set for trajectory-wide inequalities. This coefficient-space formulation preserves continuous-time reasoning without dense waypoint sampling. VI. FACTO: Constraint construction 
+
+A. Boundary constraints 
+
+We impose boundary conditions directly in coefficient space using the lifted basis operator Φ(t) (Section IV-B). With start and goal joint states θ0, θg , the hard equations are 
+
+Φ(0) ψ = θ0 − φ(0) , Φ(T ) ψ = θg − φ(T ).
+
+In many tasks, it is advantageous to reduce actuation tran-sients at the boundaries. Let the joint dynamics be M(ξ) ¨ξ +
+
+Ψ(ξ, ˙ξ) ˙ξ + g(ξ) = u. A sufficient and simple device is to constrain boundary accelerations and velocities to zero: 
+
+¨Φ(0) ψ = ¨Φ(T ) ψ = 0
+
+˙Φ(0) ψ = ˙Φ(T ) ψ = 0, (19) which are linear equalities in ψ and are enforced exactly by null-space projection within each Gauss–Newton step. When a boundary lift is used (Sec. IV-A), the position equalities are satisfied analytically and only the desired boundary derivatives are retained as explicit constraints. 
+
+B. Task constraints 
+
+The task constraints from the specific task requirements, such as cup-holding and dual-arm collaboration, are encoded in the compact SE(3) group [64]. This section first specifies the task requirements and their encoding methods. It then provides evidence of the uniqueness of the locally optimal trajectory and an analysis of task errors. 
+
+1) Encoding in SE(3) and se (3) : Since all the task con-straints for trajectory optimization that this study focuses on are applied to the end-effector, we use the feasible ranges of Euler angles in the ZYX-order, as well as position, to define the end-effector task: 
+
+χ = [ xmin xmax ] = 
+
+
+
+ϑmin  
+
+> z
+
+ϑmax 
+
+> z
+
+ϑmin  
+
+> y
+
+ϑmax 
+
+> y
+
+ϑmin  
+
+> x
+
+ϑmax 
+
+> x
+
+pmin  
+
+> x
+
+pmax 
+
+> y
+
+pmin  
+
+> y
+
+pmax 
+
+> y
+
+pmin  
+
+> z
+
+pmax 
+
+> z
+
+
+
+. (20) Then, given the current posture x = [ ϑz , ϑ y , ϑ x, x, y, z ]⊤,adopting the active set method yields the desired posture 
+
+xdes = max   min( x, xmax ), xmin 
+
+. (21) It means that all equality and inequality task requirements are generalized as a feasible subspace χ by introducing the desired posture xdes , which is activated by the subspace boundary. Then, the desired transformation matrix Tdes in SE(3) and its corresponding twist ζdes in se (3) can be expressed as 
+
+Tdes =
+
+Rdes pdes 
+
+0⊤ 1
+
+
+
+, ζdes = log ∨(Tdes ), (22) where Rdes = Rz (ϑdes  
+
+> z
+
+)Ry (ϑdes  
+
+> y
+
+)Rx(ϑdes  
+
+> x
+
+), and Rz , Ry and 
+
+Rx in SO(3) denote the elemental rotation about axes z, y and 
+
+x, respectively, and ∧ and ∨ denote the hat and vee operators for gaining the corresponding skew matrix and vector [64]. Given the posture x, the current transformation matrix T
+
+and its twist ζ can be calculated in the same way as (22). So, the task constraint, encoded in SE(3) from (20), is 
+
+h := ζ − ζdes = 0. (23) In all, the task requirements, generally described by χ, are finally transferred into an equality constraint form se (3) . It makes the task-constraint expression and its linearization much more concise and compatible with current robotic dynamics libraries, such as Pinocchio [65]. 
+
+2) Time-continuous task constraint: Since (23) only defines the task constraint given the task requirement χ (20) for any waypoint, this section expands the task constraints from the waypoint scale to the trajectory scale. This study primarily focuses on the trajectory-wide task, which is a stricter requirement. Combining (4) and (23) yields 
+
+h(t) :=  ζ(ξ)−ζdes (ξ)(t) = 0, ξ(t) = ( φ+Φψ)( t). (24) Since the function space constructed by {ϕ(t)}Nn=0 is com-plete when N → ∞ due to Section IV-B, it can be concluded that there always exists a solution ψ under the task constraints (24) as long as the subspace on the manifold constructed by the constraints is contained inside the joint limits. However, this study employs a truncated set of basis func-tions, i.e., N is finite, to mitigate the side effects from the so-called high-frequency noise, cf. Section V. Therefore, it is necessary to discretize h(t) in (24) and use a small set of 
+
+collocation times to certify trajectory-wide constraints. In this way, Ktsk discrete nodes {tk}Ktsk  
+
+> k=1
+
+are first collected uniformly over the whole time period T , i.e., tk+1 − tk ≡ T / (Ktsk + 1) .Then, they assemble the trajectory-wide task constraints as 
+
+H(ψ) :=  h⊤ 
+
+> 1
+
+, . . . , h⊤
+
+> Ktsk
+
+⊤ = 0,
+
+hk = h Φ(tk)ψ.
+
+(25) This set is analytically projected via the null space at each Gauss-Newton step, ensuring feasibility by construction. 
+
+C. Joint limit constraints 
+
+Since there is either no analytic solution for ∥ξ(t)∥∞ =
+
+∥Φ(t)ψ∥∞ and ∥ξ(t)∥∞− = ∥Φ(t)ψ∥∞− , this study also adopts the discrete checking form of [27] to ensure the almost trajectory-wide joint-limit satisfaction: 
+
+θ⊕Klmt  
+
+> min
+
+≤ [Φ(t1)⊤ . . . Φ(tKlmt )⊤]⊤ψ ≤ θ⊕Klmt  
+
+> max
+
+, (26) where tk = k ·T / (Klmt +1) and Klmt denotes the total amount of sampled waypoints for the joint-limit check. We use a small set of check nodes, initialized uniformly and refined adaptively near potential violations, to achieve trajectory-wide feasibility in practice while avoiding dense uniform sampling. To prevent excessive fluctuations from frequent node changes, we update the node set conservatively (only when violations are detected), which keeps the optimiza-tion smooth and reliable. ∇F            
+
+> Act
+> Act ∆ψ=bct
+> Feasible sub-space
+> Task constraints
+> h1(ψ)h2(ψ)h3(ψ)
+> Boundary constraints
+> θ0
+> θg
+> Activated constraints Collision constraint Joint-limit constraint
+> Fig. 3: Illustration of the constraint structure used in trajectory optimization. Task constraints hi(ψ)(top left) restrict the solution to trajectories that satisfy task-specific requirements. Boundary constraints (top right) enforce initial and goal conditions on the trajectory coefficients. Activated constraints (bottom right), such as joint limits or collision constraints, become active only when the current iterate approaches the corresponding boundary. All active constraints are collected into the linearized system Act ∆ψ=bct (bottom left), which defines a feasible update subspace intersecting with the descent direction of the objective ∇F . The optimization then proceeds within this subspace to ensure constraint satisfaction while reducing the objective cost.
+
+D. Uniqueness of the local optimum under the constraints 
+
+Given a truncated function space Ξ′ = span {ϕ}Nn=1 ,let ξ∗ ∈ Ξ′ with ψ∗ ∈ RM (N +1) be a set of optimum. Given the boundary conditions (Section VI-A), joint limits (Section VI-C), and task requirements (Section VI-B2), let 
+
+K∗
+
+> bnd
+
+, K∗
+
+> lmt
+
+, and K∗ 
+
+> tsk
+
+be the number of active constraints for the boundary, limits, and task, respectively. This section only reserves the smooth part of (18) and treats the obstacle part as a set of inequality constraints, {d(xi,t ) >ϵ}NB , T i=1 , t =0 (16), because the optimum is collision-free. Then, let Kobs be the number of active obstacle constraints. Let ψ be in the convex neighborhood of the optimum ψ∗
+
+and K∗ = K∗ 
+
+> bnd
+
++ K∗ 
+
+> lmt
+
++ K∗ 
+
+> tsk
+
++ K∗ 
+
+> obs
+
+be the total number of active constraints. The constrained optimization problem, shown in Figure 3, can then be expressed as 
+
+∆ψ∗ = argmin 
+
+> ∆ψ
+
+12 (ψ + ∆ ψ)⊤Q(ψ + ∆ ψ),
+
+s.t. Act ∆ψ = bact .
+
+(27) where Act ∈ RK∗×M (N +1) and bact ∈ RK∗
+
+denote the active constraint, linearized at ψ. Under the KKT [47] condition, the optimal ∆ψ∗ must satisfy: 
+
+ Q −A⊤
+
+> ct
+
+Act O
+
+  ∆ψ∗
+
+λ∗
+
+
+
+=
+
+−Qψ
+
+bact 
+
+
+
+(28) where the Lagrangian multiplier λ∗ ∈ R+,K act , because all the constraints are active. Therefore, [∆ ψ∗, λ∗] exists uniquely as long as M (N + 1) ≥ Kact . It means that the task error and the number of task constraints are determined given a specific planning scenario, and that the error goes to 0 when N → ∞ .VII. FACTO: Constrained Trajectory Optimization for Multi-robot The above section introduces how to formulate the objective function in a coefficient space that accounts for both trajectory smoothness and safety, and how to construct constraints for boundary conditions, joint limits, and task requirements. Based on this, the section primarily focuses on FACTO (Algorithms 1 & 2), a sequential quadratic programming algorithm in the null space for multi-robot, and introduces an intuitive method for estimating the execution time of the generated motion. 
+
+Algorithm 1: FACTO 
+
+Input : Start/goal θ01: NR , θg 
+
+> 1: NR
+
+; basis {ϕ(t)}Nn=0 and lift φ(t); obstacle and task nodes {tj , w j }.
+
+Output: Coefficients ψ. 
+
+> 1
+
+Init: for R ∈ R do  
+
+> 2
+
+Extract start/goal: θ0, θg ← θ01: NR (R), θg 
+
+> 1: NR
+
+(R); 
+
+> 3
+
+Extract smoothness term: Q ← Q1: NR (R); 
+
+> 4
+
+ψ0 = argmin ψ ψ⊤Qψ,
+
+s.t. Φ(0) ψ = θ0, Φ(T )ψ = θg ; 
+
+> 5
+
+Set ψ1: NR (R) = ψ0, H = ηI, g = 0, λ = λ0. 
+
+> 6
+
+for i = 0 , 1, . . . do // Sequential QP  
+
+> 7
+
+Multi-robot collision check and update the collision information of B1: NR (Section V-A3);  
+
+> 8
+
+Calculate task constraints H1: NR ; 
+
+> 9
+
+for R ∈ R do // For each robot  
+
+> 10
+
+Extract coefficient: ψ ← ψ1: NR (R); 
+
+> 11
+
+ψ, ∆ψ = Update( ψ,B1: NR ,H1: NR ,R); 
+
+> 12
+
+Update the coefficient and step by 
+
+ψ1: NR (R) ← ψ, ∆ψ1: NR (R) ← ∆ψ; 
+
+> 13
+
+if ∥∆ψ1: NR ∥ ≤ stepTol or stationarity met then  
+
+> 14
+
+break . 
+
+> 15
+
+Estimate the execution time by 
+
+T = TimeScaler( ψ1: NR ,V lim ,U lim ,γ).
+
+A. Convexification of Objective Function 
+
+Though Section V-B introduces the work objective (18) for trajectory optimization in a coefficient space, it is still hard to find its optimum numerically due to the non-convexity. Therefore, we minimize the objective using a Gauss-Newton (GN). The obstacle term is written as a sum of squared residuals on the selected time points (Section V-A2), while the smoothness term contributes a known convex quadratic. 
+
+1) Residual linearization: Let {tk, w k}Kobs  
+
+> k=1
+
+be time points and weights, and rk(ψ) = √wk fo
+
+ Φ(tk)ψ be the scalar residual at node k with Φ(tk). Then, the linearized model is 
+
+rk(ψ, ∆ψ) ≈ rk(ψ) + g⊤ 
+
+> k
+
+∆ψ
+
+= rk(ψ) + 
+
+
+
+∂θ fo θ=Φ(tk )ψ
+
+⊤
+
+Φ(tk) ∆ ψ, (29) 
+
+2) Gauss-Newton term: Based on the quadratic form of (17), the residual linearization constructs a GN term at an optimization step: 
+
+bFobs (ψ) = X
+
+> k
+
+ rk(ψ) + g⊤ 
+
+> k
+
+∆ψ2 + O(∥∆ψ∥4)
+
+Algorithm 2: Update 
+
+Input : Coefficient ψ, sphere trees B1: NR , task constraints H1: NR , robot instance R.
+
+Output: Updated coefficient ψ, update step ∆ψ. 
+
+> 1
+
+Extract info: B ← B1: NR (R), H ← H1: NR (R);
+
+// 1) Obstacle residuals  
+
+> 2
+
+for {t, w } ∈ { tk, w k}Kobs  
+
+> k=1
+
+do  
+
+> 3
+
+Calculate the residual rj from the sphere tree B
+
+and do the linearization by (29);  
+
+> 4
+
+Estimate the gradient bg and Hessian bH of the obstacle function by (30); 
+
+// 2) EMA smooth  
+
+> 5
+
+Calculate the smoothed gradient g and Hessian H of the obstacle function by (31); 
+
+// 3) Linearize equalities and build reduced coordinates  
+
+> 6
+
+Stack all the linearized equalities (boundary and active task constraints by (34) and gain Aeq ∆ψ = beq . 
+
+> 7
+
+Get a feasible step ∆ψ0 and the null space N of the equations Aeq ;
+
+// 4) Reduced GN QP in z 
+
+> 8
+
+Gain the reduced gradient gred and Hessian Hred of the objective by (35); 
+
+// 5) Project inequalities  
+
+> 9
+
+Form the inequalities Aieq ∆ψ ≤ bieq and gain the reduced inequalities Ared ieq z ≤ bred ieq by (36); 
+
+// 6) Solve reduced QP for r-th robot 
+
+> 10
+
+z⋆ ← arg min  
+
+> z
+> 12
+
+z⊤Hred z + g⊤
+
+> red
+
+z,
+
+s.t. Ared ieq z ≤ hred ; 
+
+> 11
+
+Compose step ∆ψ ← ∆ψ0 + Nz⋆;
+
+// 7) Accept and update  
+
+> 12
+
+Estimate the trust ratio ρ = ared /pred by (37);  
+
+> 13
+
+if ρ ≥ ρmax then ψ ← ψ + ∆ ψ; λ ← γ↓λ; 
+
+> 14
+
+else if ρ ≤ ρmin then λ ← γ↑λ.Then, the GN standard components are 
+
+bH = X
+
+> k
+
+gkg⊤ 
+
+> k
+
+⪰ 0, bg = X
+
+> k
+
+rk gk. (30) These capture the curvature and gradient of ψ.
+
+3) Exponential moving average (EMA): To reduce the noise caused by frequent switches between the active (in-collision) and inactive (collision-free) CCB statuses during the GN term estimation, we adopt the unbiased EMA [27] to smooth the sequential estimation of the Hessian matrix and gradient: 
+
+g =
+
+Piι=1 β ι 
+
+> 1
+
+· bgι
+
+1 − (1 − β1)i , H =
+
+Piι=1 β ι 
+
+> 2
+
+· bHι
+
+1 − (1 − β2)i (31) with β1, β 2 ∈ (0 , 1) .According to the smoothness function of Section V-A1, its gradient and constant PSD curvature are ϱQψ and ϱQ,respectively. With a small LM-style damping λ ≥ 0, the convex surrogate around ψ reads 
+
+m(∆ ψ) = 12 ∆ψ⊤(ϱQ + H + λI)∆ ψ
+
++ ( ϱQψ + g)⊤∆ψ. (32) B. Null-space Trajectory Optimization 
+
+The above section explains how to approximate the non-linear objective function with a smooth and convex function. This section mainly focuses on how the null space method is applied to the approximated function. 
+
+1) Equality constraints and reduced coordinates: In this study, there are two types of equality constraints: boundary constraints (Section VI-A) and task constraints (Section VI-B). According to Section VI-D, the number of boundary con-straints and the selected task constraints is determined to get a unique optimum for the whole constrained optimization problem. Therefore, considering the nonlinearity of the task error h(ψ) in (23), we first linearize it at ψ by 
+
+h(ψ + ∆ ψ) ≈ h(ψ) + 
+
+
+
+∂θ h
+
+⊤
+
+| {z }
+
+> task Jacobian
+
+Φ(t) ∆ ψ = 0, (33) where θ = Φ(t)ψ and ∂θ h is the Jacobian of the task error in se (3) [64]. Then, the matrix Aeq and vector beq stack the boundary and linearized task constraints: 
+
+Aeq ∆ψ = beq ,
+
+Aeq =
+
+
+
+[Φ⊤(0) , Φ⊤(T )] ⊤
+
+[ ˙Φ⊤(0) , ˙Φ⊤(T )] ⊤
+
+∂θ h1 Φ(t1)
+
+...
+
+∂θ hK′ Φ(tKtsk )
+
+
+
+, beq = −
+
+
+
+00
+
+h1(ψ)
+
+...
+
+hKtsk (ψ)
+
+
+
+.
+
+(34) Then, we compute (i) a minimum-norm feasibility step 
+
+∆ψ0 = A†
+
+> eq
+
+beq and (ii) a null-space basis N generated by the QR decomposition [47], [66] such that Null( Aeq ) = range( N). Any feasible step decomposes as 
+
+∆ψ = ∆ ψ0 + N z,
+
+so the search is reduced to the smaller vector z whose dimension equals the nullity of Aeq . As shown in Figure 4, this projection enforces all equalities exactly at every GN iteration and shrinks the feasible searching space for trajectory optimization, especially under task constraints. 
+
+2) Reduced Gauss–Newton model with EMA curvature: 
+
+Section VII-A provides a convex GN surrogate at ψ with a precomputable smoothness quadratic Q, the EMA-smoothed GN terms H, g from obstacle residuals, and a small LM damping λ. Substituting ∆ψ = ∆ ψ0 + Nz yields a reduced, strictly convex model in z:
+
+mred (z) = 12 z⊤ N⊤(Q + Hk + λI)N
+
+| {z }
+
+> Hred
+> k
+
+z
+
++
+
+
+
+N⊤(Q + H + λI)∆ ψ0 + N⊤(s + g)
+
+| {z }
+
+> gred
+> ⊤
+
+z
+
+(35) All matrices are small (nullity-sized) and inherit the condi-tioning benefit of EMA smoothing. Robot instance                         
+
+> Null space
+> θ0
+> θg
+> Unconstrained
+> Constrained
+> Collision check Environment Cross & Self Constraints Individual & Collaborative task Smoothness Boundary Joint limit
+> F
+> Quadratic programming in the Null-space
+> Objective
+> Robot instance
+> Fig. 4: Overview of the FACTO optimization framework used for multi-robot trajectory generation. Each robot instance performs collision checking (environment, self, and cross-robot) and enforces individual or collaborative task constraints together with boundary and joint-limit conditions. These components contribute to the objective Fand the associated smoothness term ϱ. Active constraints are handled through a null-space projection, after which a quadratic program is solved in the remaining feasible subspace. The lower panel illustrates the resulting motion update: the unconstrained search direction (blue dash) is projected onto the null space to satisfy active constraints, yielding the constrained update (blue) between the initial configuration q0and the goal qg.
+
+3) Inequalities in the reduced space: Trajectory-wide in-equality constraints are imposed at the same collocation set: joint envelopes. Each linear/SOCP constraint in ∆ψ is pro-jected to z by left-multiplication with N and a shift by ∆ψ0:
+
+Aieq ∆ψ ≤ bieq ⇒ Aieq 
+
+ ∆ψ0 + Nz ≤ bieq , (36) which remains linear in z. Because the envelopes act in coefficient space, feasibility can be efficiently enforced using a small (adaptive) set of critical time nodes, avoiding dense, uniform sampling while maintaining trajectory-wide constraint satisfaction in practice. 
+
+4) Operator-splitting step and globalization: FACTO (Al-gorithm 2) minimizes mred (z) in (35) subject to the projected inequalities using the warm-started ADMM [67] and OSQP [54], an operator-splitting solver. A trust-region ratio 
+
+ρ = ared mred = F(ψ + ∆ ψ0 + Nz) − F (ψ)
+
+mred (z) (37) controls the damping λ: poor agreement increases λ to em-phasize stability; good agreement decreases λ. Accepted steps update ψ ← ψ + ∆ ψ.
+
+5) Outcome: The combination of analytic null-space pro-jection (exact equality feasibility), coefficient-space envelopes (time-continuous parameterization with sparse enforcement), and EMA-smoothed GN curvature (robust convergence) yields fast, well-conditioned steps that refine the entire trajectory with a handful of coefficients, even in the presence of task constraints in SE(3) .C. Multi-robot consideration 
+
+The above sections introduce how FACTO deals with the constrained nonlinear trajectory optimization problem of a single-robot system. In this section, we treat the multi-robot system R as a collection of decoupled single-robot systems 
+
+{Rr}NR
+
+> r=1
+
+, each treated as a robot instance. Each instance R
+
+consists of a sphere tree B for collision check, an objective 
+
+F(ψ) (10) affiliated with its work objective bF (ψ) (18), boundary constraints (Section VI-A), joint-limit constraints (Section VI-C), and task constraints H(ψ) (Section VI-B). As shown in Figure 4, different instances share their sphere tree information for cross-robot self-collision check and their end-effector postures for the collaborative task. All the data, calculated from the shared information, is then cached back to each instance. Based on that, the trajectory coefficient ψ
+
+of each instance R is optimized, which updates the trajec-tory bundle ψ1: NR , until the iteration meets the stationarity condition ∥∆ψ1: NR ∥
+
+> ψ1: NR
+
+≤ stepTol .
+
+D. Execution Time via Sampled Maximum–Torque Scaling 
+
+Though the optimal trajectory ξ = Φ(t)ψ is a continuous function over [0 , T ], it still cannot be called an optimal trajectory in a strict sense. That is because the execution time 
+
+T is not determined. This section introduces the way to adjust the execution time T to meet the joint torque requirement, while keeping the trajectory shape , i.e., the coefficients ψ,fixed. The idea of Algorithm 3 is simple: (i) sample torques over [0 , T ], (ii) estimate the worst (maximum) torque across samples and joints, and (iii) rescale T using the known 1/T 2
+
+law of inertial/Coriolis terms. 
+
+Algorithm 3: TimeScaler 
+
+Input: Coefficients bundle ψ1: NR , velocity and torque limits V lim  
+
+> j
+
+, U lim  
+
+> j
+
+, safety factor γ ∈ (0 , 1) 
+
+. Output: Adjusted T
+
+for R ∈ R do // For each robot instance 
+
+Extract coefficient ψ ← ψ1: NR (R);Extract velocity and torque limits of each joint-j:
+
+V lim  
+
+> j
+
+, U lim  
+
+> j
+
+← V lim  
+
+> j
+
+(R), U lim  
+
+> j
+
+(R);
+
+Vj ← ( ˙Φ · ψ + ˙ φ)j , T ← max j (V lim  
+
+> j
+
+/γV j );
+
+T1: NR (R) ← T
+
+Init: T ← max( T1: NR );
+
+for R ∈ R do // For each robot instance 
+
+for k = 1 , . . . , K max do 
+
+Sample tℓ = ℓT /L , compute uℓ, g(θℓ);
+
+U dyn ,obs  
+
+> j
+
+← max ℓ |uℓ,j − gℓ,j |,
+
+Gmax  
+
+> j
+
+← max ℓ |gℓ,j |,
+
+σ ← max 1,
+
+q
+
+max j U dyn ,obs  
+
+> j
+
+/(γU lim  
+
+> j
+
+) ;
+
+if σ ≤ 1 then break ;
+
+T ← min( σmax T, σT ), T1: NR (R) ← T ;
+
+return max( T1: NR )
+
+1) Initialization: The joint limit constraints of Section VI-C ensure all the generated trajectories ψ1: NR are in the feasible joint space. However, this study does not consider the joint velocity limit when optimizing ψ1: NR due to T ’s scalability. Therefore, TimeScaler initializes T according to the ve-locity limits of each joint V lim  
+
+> j
+
+and caches them in a vector 
+
+T1: NR . To ensure that all robots can execute within their velocity limits, the initialization adopts the maximum value, i.e., max( T1: NR ).
+
+2) Sampling: Choose L uniform sample times tℓ = ℓ T /L ,
+
+ℓ = [0 . . . L ], and evaluate 
+
+θℓ = Φ(tℓ)ψ, ˙θℓ = ˙Φ(tℓ)ψ, ¨θℓ = ¨Φ(tℓ)ψ.
+
+Compute the torques at current tℓ by the inverse-dynamics: 
+
+uℓ = M (θℓ) ¨θℓ + C(θℓ, ˙θℓ) ˙θℓ + g(θℓ) (38) with the mass matrix M , Coriolis C, and gravity vector g.
+
+3) Separate gravity from dynamic effort: Since the trajec-tory shape ψ is constant, we can say that θℓ, M (θℓ) and g(θℓ)
+
+are also constant, and that ˙θℓ ∝ 1/T and ¨θℓ ∝ 1/T 2 because ˙Φ
+
+and ¨Φ already include the time derivatives. So, the extracted dynamic part becomes 
+
+udyn  
+
+> ℓ
+
+:= uℓ − g(θℓ) (∝ 1/T 2). (39) 
+
+4) Worst-case torque and dynamic margin: For a joint j,
+
+U dyn ,obs  
+
+> j
+
+= max  
+
+> ℓ
+
+[ udyn  
+
+> ℓ
+
+]j , Gmax  
+
+> j
+
+= max  
+
+> ℓ
+
+[g(θℓ)] j .
+
+Given symmetric joint limits |uj | ≤ U lim  
+
+> j
+
+, the maximum dynamic margin allowed is U dyn ,lim  
+
+> j
+
+:= ς(U lim  
+
+> j
+
+− Gmax  
+
+> j
+
+) with a scalar ς ∈ (0 , 1) for the execution safety. 
+
+5) Closed-form time update: Because U dyn ∝ 1/T 2 the ratio between observed and allowed dynamic effort sets the required scale factor. With a safety margin γ ∈ (0 , 1) ,
+
+σ = max 
+
+ 1,
+
+vuut max  
+
+> j∈{ 1...M }
+
+U dyn ,obs 
+
+> j
+
+γ U dyn ,lim 
+
+> j
+
+ , (40) 
+
+Tnew = σ T old . (41) If the current trajectory already satisfies all limits, σ = 1 and 
+
+T are unchanged. VIII. Implementation of FACTO 
+
+A. Orthogonal Basis Functions 
+
+FACTO operates in a function space by parameterizing each joint trajectory as a linear combination of time-continuous orthogonal basis functions over [0 , T ], with a low-order bound-ary lift enforcing start- and goal-waypoint conditions. In the implementation, three families of orthogonal bases are supported: sine, cosine, and Chebyshev polynomials. All share the common form in (4)–(6), where ϕ(t) ∈ RN +1 and its derivatives are evaluated analytically. 
+
+1) Cosine basis: The cosine basis is defined by 
+
+ϕn(t) = cos( nπt/T ) , n = 0 , . . . , N, (42) which is orthogonal on [0 , T ] under the standard L2 inner product. The first and second derivatives follow directly as 
+
+˙ϕn(t) = − nπ T sin   nπt T
+
+ , ¨ϕn(t) = −   nπ T
+
+2 cos   nπt T
+
+ .
+
+This basis naturally represents smooth, non-periodic motions and is used with a linear boundary lift φ(t) to satisfy joint position and velocity constraints at t = 0 and t = T .2) Sine basis: The sine basis employs 
+
+ϕn(t) = sin( nπt/T ) , n = 1 , . . . , N + 1 , (43) which vanishes at both endpoints. When combined with the boundary lift, the coefficients ψ describe only the interior deformation of the trajectory, while endpoint feasibility is entirely carried by φ(t). Derivatives are 
+
+˙ϕn(t) = nπ T cos   nπt T
+
+ , ¨ϕn(t) = −   nπ T
+
+2 sin   nπt T
+
+ .
+
+3) Chebyshev basis: For polynomial representations, time is mapped to x(t) = 2 t/T −1 ∈ [−1, 1] , and the basis is given by Chebyshev polynomials of the first kind 
+
+ϕn(t) = Tn(x(t)) ,
+
+Tn(x) = cos( n arccos x), n = 0 , . . . , N. (44) They are orthogonal on [−1, 1] with respect to the weight 
+
+(1 − x2)− 12 and are evaluated via the three-term recurrence. First and second time derivatives are obtained by propagating  
+
+> dTn
+> dx
+
+and d2Tn 
+
+> dx 2
+
+and applying the chain rule with dx dt = 2 
+
+> T
+
+.
+
+4) Quadratic regularization: For all bases, a block-diagonal quadratic form Q = IM ×M ⊗diag( w0, . . . , w N ) is constructed in coefficient space, with wn ∝ n2, penalizing high-frequency components. Since ξ(t), ˙ξ(t), and ¨ξ(t) depend linearly on ψ
+
+through (4)–(6), smoothness costs, dynamic constraints, and equality projections remain linear or quadratic in ψ, preserving the sparse Gauss–Newton structure of FACTO in the chosen function space. 
+
+B. Single arm: cup carrying 
+
+Since the cup-carrying task requires the cup axis aligned with the world’s vertical, the task requirements in (20) become 
+
+χ = [ xmin xmax ] = 
+
+
+
+−π π 
+
+> π
+> 2
+
+− ϵτ π 
+
+> 2
+
++ ϵτ
+
+−π π
+
+−∞ ∞−∞ ∞−∞ ∞
+
+
+
+. (45) Then we just need to encode it in the se (3) and extract the 
+
+K′ task constraints with significant task error. 
+
+C. Dual arms: closed-chain collaboration on a rigid object. 
+
+We consider a dual-arm system, shown in Figure 5, with joint states qL(t) ∈ RML and qR(t) ∈ RMR , stacked as 
+
+q(t) = [ q⊤ 
+
+> L
+
+(t), q⊤ 
+
+> R
+
+(t)] ⊤ ∈ RM , M = ML + MR. (46) Let the end–effector forward kinematics be 
+
+TL(qL), TR(qR) ∈ SE(3) . Under rigid grasping, the two grippers must maintain a fixed relative transform . Rather than explicitly estimating an object pose, we enforce the closed chain by constraining the relative motion on SE(3) .TR(qR)          
+
+> To
+> TL(qL)
+> TgLTgR
+> Environment Collision Check
+> Self Collision Check
+> Fig. 5: Dual-arm motion planning pipeline. Robot configurations qLand qR
+> are mapped to end-effector poses TL(qL)and TR(qR). Candidate grasps,
+> TgLand TgR, are validated using self- and environment-collision checks.
+
+1) Relative transform on SE(3) : Define the instantaneous relative pose 
+
+TRL (t) ≜ T−1 
+
+> L
+
+(qL(t)) TR(qR(t)) ∈ SE(3) , (47) and its reference value at the initial configuration q0,
+
+T0 
+
+> RL
+
+≜ T−1 
+
+> L
+
+(qL, 0) TR(qR, 0). (48) Rigid closed-chain collaboration corresponds to TRL (t) = 
+
+T0 
+
+> RL
+
+for all t, expressed in Lie algebra via logarithm map 
+
+ξ(t) ≜ log 
+
+
+
+T0−1 
+
+> RL
+
+TRL (t)
+
+
+
+∈ se (3) , ξ(t) = 0. (49) 
+
+2) Implementation-aligned split: distance and relative pos-ture: In our implementation, we separate the constraint into (i) a relative distance term that preserves the magnitude of the translational part, and (ii) an optional relative posture term that additionally regulates the relative rotation and the displace-ment expressed in a shared frame. Let d(t) denote the trans-lation component of TRL (t), i.e., TRL (t) = ( RRL (t), d(t)) ,and let d0 = ∥d0∥ with d0 from T0
+
+> RL
+
+. The primary closed-chain condition is enforced as 
+
+epos (t) = ∥d(t)∥ − ∥ d0∥ = 0 , (50) which corresponds to preserving the inter–gripper distance. When the relative posture constraint is enabled, we addi-tionally regulate the rotational component RRL (t) and the displacement expressed in a common reference frame. We construct a center orientation Rc(t) ∈ SO(3) from the two end–effector frames using the group geometric mean 
+
+Rc(t) ≜ RL(t)
+
+
+
+R⊤ 
+
+> L
+
+(t)RR(t)
+
+1/2
+
+, (51) and define the posture error as 
+
+epost (t) = wp R⊤ 
+
+> c
+
+(t)d(t) − R0⊤ 
+
+> c
+
+d0
+
+> 2
+
++ wR log  (R0
+
+> RL
+
+)−1RRL (t) 2,
+
+(52) where the second term is the so (3) logarithm (equivalently the relative rotation angle), and R0 
+
+> c
+
+is computed at q0.In this way, the collaboration task constraint becomes 
+
+hk = [ e⊤
+
+> pos
+
+(tk), e⊤
+
+> post
+
+(tk)] ⊤ and it can be resolved by FACTO (Algorithm 1) based on the constraint linearization (34). IX. Numerical Evaluation In this section, the performance of FACTO is first eval-uated against six representative motion planners for single-arm manipulation across 800 unconstrained tasks provided by the motion bench maker (MBM [68]): CHOMP [1], TrajOpt [53], GPMP2 [3], RRT-Connect (RRT-C [5]), RRT* [7], and PRM [4]. For constrained manipulation, the frame-work is benchmarked against CHOMP and Atlas-RRT-Connect (Atlas-RRT-C [12]) across 200 tasks. We further validate the approach’s scalability using a dual-arm Franka robot across 40 unconstrained and 40 constrained scenarios. These benchmarks specifically focus on cluttered environments to assess continuous-time safety and dynamic smoothness. Fi-nally, physical experiments demonstrate the practical utility of FACTO for single-arm tasks and dual-arm coordination. 
+
+A. Metrics 
+
+We report the following metrics with mean and maximum values over N = 100 trials per scene:  
+
+> •
+
+Success rate (%): fraction of collision-free trials 1. 
+
+> •
+
+Computation time (s): wall-clock from problem instan-tiation to feasible trajectory, including the scaling of execution time T (Section VII-D).  
+
+> •
+
+Trajectory roughness : roughness measured via inte-grated squared acceleration with a normalized T = 1 .0:
+
+roughness = 1
+
+K − 1
+
+> K−1
+
+X
+
+> k=1
+
+∥θk−1 − 2θk + θk+1 ∥
+
+(tk − tk−1)2
+
+= ( K − 1) 
+
+> K−1
+
+X
+
+> k=1
+
+∥θk−1 − 2θk + θk+1 ∥,
+
+where θk = Ψ(tk)ψ and tk = k · T / (K − 1) .
+
+B. Planner Configuration and Evaluation Protocol 
+
+All planners were executed on a MacBook Pro equipped with a 2.3 GHz Intel Core i9 processor (single-threaded) and a 16 GB 2667 MHz DDR4 RAM. Considering fairness in comparisons, we use Pinocchio [65] for kinematic calcula-tions across all algorithms we want to benchmark. For the optimization-based algorithms, we use the same sphere-tree model and safety margin for collision check in a precomputed signed distance field [69]. Specifically, we reproduce the MoveIt-CHOMP [70], the Tesseract-TrajOpt [71] and GPMP2 using the Pinocchio [65] and OSQP [54] libraries. For the sampling-based algorithms, we replace the validation module of OMPL [72] with Pinocchio-FCL for the mesh-pair collision 
+
+> 1In our feasibility checks, we don’t consider the collision detection between the fingers and the environment, because at the initial and goal configurations of some tasks provided by MBM, the fingers are attached to the object they tend to grasp.
+
+query. In addition, IMACS [11], using a projection-based constrained space with a constraint Jacobian, is applied to the constrained sampling. The planning time for all planners is capped at 10 s, and memory usage is limited to 4 GB. 
+
+C. Parameter setting 
+
+Table I lists the parameters used for FACTO in all bench-mark scenarios. The same parameter set is used across trials within each scenario. In addition, we test the FACTO with 3 types of basis functions (sine, cosine, and Chebyshev) to demonstrate how our novel trajectory optimization framework, which searches for feasible coefficient solutions in a truncated sub-function space, performs across different scenarios. These 3 types of FACTO algorithms (FACTO-Cheby, FACTO-Sin, FACTO-Cos) share the same parameter setting.                                                     
+
+> TABLE I: Parameter settings of FACTO for benchmark scenarios.
+> Scenario ϵNϱ(β1, β 2)
+> bookshelf_small 0.065 65e-2 (0.250, 0.125) bookshelf_tall 0.065 65e-2 (0.250, 0.125) bookshelf_thin 0.065 65e-2 (0.250, 0.125) box 0.075 65e-2 (0.250, 0.125) kitchen 0.075 75e-2 (0.250, 0.125) cage 0.035 85e-3 (0.500, 0.250) table_under_pick 0.065 65e-3 (0.250, 0.125) table_pick 0.065 65e-2 (0.250, 0.125) kitchen_constr 0.075 75e-2 (0.250, 0.125) table_constr 0.065 75e-3 (0.250, 0.125) table_dual_arm 0.075 61e-2 (0.250, 0.125) table_dual_arm_constr 0.075 71e-2 (0.500, 0.250)
+
+The obstacle clearance parameter ϵ specifies the minimum safety margin enforced during optimization. For most scenes, a nominal value of ϵ = 0 .065 –0.075 provided stable conver-gence. In the cage environment, the margin was reduced to 
+
+ϵ = 0 .035 to accommodate narrow passages. The number of Fourier bases N determines the trajectory representation capacity. A default value of N = 6 was sufficient for open and moderately cluttered scenes. More constrained environments required higher expressiveness, with N = 7 for kitchen and 
+
+N = 8 for cage . The smoothness weight ϱ penalizes high-frequency components in the trajectory coefficients. A value of ϱ = 5 × 10 −2 was used in most scenarios, while a smaller weight ϱ = 5 × 10 −3 was applied in confined settings to allow finer local adjustments. The EMA weights (β1, β 2) smooth out the uneven updates to the obstacle function. These are fixed to 
+
+(0 .25 , 0.125) for all scenes except cage , where larger values 
+
+(0 .50 , 0.25) improve feasibility under tight constraints. The number of discrete waypoints for CHOMP and TrajOpt is fixed as 40 to be consistent with the maximum number of collision-check nodes for FACTO. As for GPMP2, the number of support waypoints matches the number of FACTO basis functions, and the number of up-sampled intermediate waypoints is fixed at 5. Moreover, their safety margin ϵ for collision-check and the smoothness weight ϱ are consistent with FACTO’s. We also finely tune some key parameters, such as the learning_rate of CHOMP and GPMP2, and the 
+
+init_trust_region_size of TrajOpt, to ensure good performance for the algorithms we have reproduced. All other parameters are set to their default values. For the sampling-based motion planners (RRT-C, RRT*, PRM, and IMACS-RRT-C), we use their default parameters, set the maximum computation-time budget as 10.0 s, and opt out of any path simplification method. Considering the validity of the start and goal waypoints, we also delete the meshes of the left and right fingers in the bookshelf and cage scenarios. 
+
+D. Benchmark for Single-arm Tasks 1) Result analysis for the unconstrained cases: Table II, Table III, and Table IV summarize single-arm unconstrained 
+
+planning in cluttered scenes. The main difficulty remains narrow passages (Figure 6) and steep collision gradients (Fig-ure 7). These effects show up in feasibility and roughness. 
+
+a) Comparison across algorithms: For planning reliabil-ity within a limited time budget, FACTO-Cos achieves the highest success rate of 94%-100%, which is even higher than RRT-C’s 92%-99%. For computational efficiency, the average running time of optimization-based planners (0.03 s-0.3 s) is much faster than that of sampling-based planners (0.2 s-4.7 s). In terms of trajectory smoothness, the average roughness of optimization-based planners is lower than that of sampling-based planners. More specifically, FACTO-Sin achieves the lowest rough-ness of 15-42 due to its straight-line initial guess, but it takes the highest computation cost in the FACTO family. Though the success rate of CHOMP and GPMP2 is lower than FACTO-Sin, they achieve sub-second smoothness with higher effi-ciency. That is because they both directly solve the objective, penalize constraint violations, and use line search rather than the constrained SQP by OSQP. This is also evident in the efficiency comparison between CHOMP/GPMP2 and TrajOpt-OSQP. GPMP2 is more reliable than CHOMP/TrajOpt because it parameterizes the trajectory space with a GP, rather than directly employing discrete waypoints as CHOMP/TrajOpt does. Moreover, RRT-C achieves the highest efficiency and success rate among sampling-based planners by bidirectional search without rewiring. PRM gains sub-second performance, and RRT* achieves the lowest roughness. 
+
+b) Comparison across scenarios: The planning difficulty increases as the number of obstacles surrounding the feasible solutions increases, the solutions approach the joint limits, and the solutions move farther from the initial guess. Therefore, we sort the difficulty of the 8 scenarios as cage > table_under_pick 
+
+= kitchen > box > table_pick > bookshelf , which is consistent with the success rate. In the 3 bookshelf scenes, most optimization-based plan-ners, except for TrajOpt, succeed in almost 100% of plan-ning tasks, and the computation time of FACTO-Cheby/Cos, and GPMP2 achieves 10 −2 s, showing their high reliability and efficiency over the sampling-based planners. However, CHOMP drops to 19% and 36% in cage and table_under_pick ,and GPMP2 drops to 74 % in kitchen , but FACTO-Cos still keeps high (94%-98%) in these scenes. For the sampling-based planner, RRT-C remains reliable and highly efficient, with only a slight performance decline in cage , where RRT* and PRM even drop to 0% and 17%. 
+
+c) Effect of function-space basis within FACTO: In the FACTO family, FACTO-Cheby/Cos achieves the highest ef-ficiency, meanwhile FACTO-Sin has the lowest roughness. Though FACTO-Cheby performs more efficiently in bookshelf 
+
+and cage scenes, FACTO-Cos is still the most reliable across all scenes, even better than RRT-C. 
+
+2) Result analysis for the constrained cases: Table Vreports two task-constrained single-arm scenes, shown in Figure 8. The constraint collapses the feasible set to a thin manifold. Small collision perturbations matter more. Curvature also grows quickly after projection or recovery steps. 
+
+a) Comparison across algorithms: For planning reliabil-ity, FACTO-Cos achieves the highest success rate (90% & 96%), FACTO-Cheby offers the best computational efficiency (0.18 s & 0.11 s on average), and FACTO-Sin yields the smoothest results (94 & 80 on average) in terms of roughness. Though IMACS-RRT-C has the third success rate (86% & 72 %), its computational cost is around ×20 higher than FACTO-Cos/Cheby since it uses the tangent bundle for almost every sample in the IMACS framework. CHOMP performs worst in both reliability and efficiency. 
+
+b) Constrained v.s. unconstrained tasks: The success rate of all planners declines except for FACTO-Sin in ta-ble_under_pick from the unconstrained task (Figure 7) to the constrained task (Figure 8) due to the restricted feasible space. Meanwhile, computational costs increase because the task constraint requires more numerical projections, thereby introducing greater search fluctuations for both convergence and sampling processes. 
+
+c) Basis effect within FACTO: Though FACTO-Sin has the lowest roughness and FACTO-Cheby has the smallest computation cost, FACTO-Cos still has the best balance among reliability, efficiency, and smoothness. 
+
+E. Dual-Arm Motion Planning 
+
+All planners were evaluated within a unified dual-arm planning framework. The experiments use two 7-DoF Franka Panda manipulators operating in a shared workspace. Both arms were modeled in a Pinocchio kinematic tree, with colli-sion checking handled by FCL. 
+
+1) Setup: The benchmark includes 40 trials per scenario, covering an unconstrained reach task (Figure 9a) and a task-constrained variant (Figure 9b). All planners used identical en-vironment meshes and start/goal configurations. Compared to single-arm planning, the dual-arm setting introduces stronger coupling and narrower feasible regions due to inter-arm inter-action. The FACTO parameter settings follow Table I. 
+
+2) Result analysis: Tables VI & VII evaluate dual-arm co-ordination in a table_under_pick scene, without and with a task constraint. In the unconstrained case, collision complexity and inter-arm coupling dominate. The constrained case adds a manifold requirement. That further reduces the feasible set and makes optimization steps more aggressive. Roughness grows quickly when feasibility is recovered by projection. 
+
+a) Comparison across algorithms: In the unconstrained case, FACTO-Cos achieves the highest success rate of 92.5%, TABLE II: Single-arm benchmark results of the unconstrained tasks in bookshelf scenarios. Scene Metric FACTO-Cheby FACTO-Sin FACTO-Cos CHOMP TrajOpt GPMP2 RRT-C RRT* PRM 
+
+bookshelf_small 
+
+Success (%) 93 97 98 98 67 97 96 47 78 Time (s) 0.0376 0.2114 0.0387 0.1010 0.1297 0.0624 0.6753 1.5649 0.8481 Time max (s) 0.1819 0.5763 0.1235 0.2410 0.4280 0.1594 9.5129 9.9939 8.4673 Roughness 52.41 17.32 52.02 36.59 96.17 22.52 75.15 61.16 178.60 Roughness max 100.31 66.30 85.62 54.06 579.64 37.42 555.34 198.49 408.42 
+
+bookshelf_tall 
+
+Success (%) 98 98 98 98 84 97 93 28 83 Time (s) 0.0260 0.2272 0.0272 0.0886 0.1348 0.0631 0.4828 1.4760 1.5758 Time max (s) 0.0922 0.6732 0.0785 0.2347 0.3479 0.2592 8.0935 9.3306 9.2312 Roughness 55.10 16.33 40.97 37.47 61.78 22.52 79.65 56.34 116.58 Roughness Max 100.07 47.35 85.75 59.75 235.97 37.42 455.57 172.87 553.57 
+
+bookshelf_thin 
+
+Success (%) 99 100 100 100 63 94 97 25 61 Time (s) 0.0457 0.1965 0.0478 0.0926 0.1426 0.0666 0.8085 3.2522 2.2643 Time max (s) 0.1210 0.7410 0.1043 0.2170 0.4900 0.1422 7.6820 9.6943 10.3143 Roughness 49.97 15.80 39.11 34.67 65.64 21.93 92.78 65.60 116.88 Roughness max 85.73 48.14 76.45 50.60 297.89 37.95 532.78 169.41 536.14 TABLE III: Single-arm benchmark results of the unconstrained tasks in box and cage scenarios. Scene Metric FACTO-Cheby FACTO-Sin FACTO-Cos CHOMP TrajOpt GPMP2 RRT-C RRT* PRM 
+
+box 
+
+Success (%) 90 92 98 98 22 93 99 4 85 Time (s) 0.0838 0.1430 0.0546 0.0961 0.2428 0.0590 0.2927 4.7499 1.9173 Time max (s) 0.3000 0.4993 0.2863 0.2390 0.4431 0.3306 4.4057 9.4519 9.5398 Roughness 40.91 18.43 53.14 33.94 225.98 22.48 120.63 68.01 178.07 Roughness max 78.90 92.20 103.93 46.99 472.49 40.59 466.65 139.62 443.24 
+
+cage 
+
+Success (%) 95 93 95 19 0 82 92 0 17 Time (s) 0.0794 0.3058 0.1345 0.1545 – 0.2133 3.7793 – 4.5376 Time max (s) 0.0544 0.7128 1.3377 0.2347 – 1.5455 10.0057 – 9.9040 Roughness 76.92 26.10 91.06 47.85 – 48.22 386.26 – 139.45 Roughness max 155.36 61.98 154.50 55.34 – 107.44 1322.45 – 435.91 TABLE IV: Single-arm benchmark results of the unconstrained tasks in kitchen and table_pick scenarios. Scene Metric FACTO-Cheby FACTO-Sin FACTO-Cos CHOMP TrajOpt GPMP2 RRT-C RRT* PRM kitchen Success (%) 87 90 94 85 43 74 99 55 78 Time (s) 0.1044 0.1710 0.0841 0.1592 0.2247 0.1126 0.5383 1.6377 1.2332 Time max (s) 0.3939 0.5831 0.9290 0.4375 0.5261 0.1998 6.0240 8.7961 8.2058 Roughness 81.45 41.94 79.26 53.69 299.30 33.01 189.48 149.74 274.39 Roughness max 133.54 106.45 154.38 115.46 212.52 46.36 824.69 506.71 630.49 
+
+table_pick 
+
+Success (%) 91 98 99 87 56 97 98 33 85 Time (s) 0.0633 0.3375 0.0421 0.1310 0.1517 0.0264 0.2306 2.9695 1.3845 Time max (s) 0.2597 0.6141 0.1033 0.3211 0.4177 0.2437 4.4521 9.8163 7.4833 Roughness 43.48 16.33 55.64 37.56 93.60 22.42 65.06 46.74 148.34 Roughness max 84.93 49.68 106.45 53.73 285.39 32.81 345.16 131.10 360.64 
+
+table_under_pick 
+
+Success (%) 69 87 98 36 56 83 98 16 84 Time (s) 0.0611 0.2244 0.0595 0.1588 0.2081 0.0906 0.2377 2.2044 1.8546 Time max (s) 0.2627 0.5974 0.2065 0.2366 0.4361 0.1840 5.6697 9.8101 10.0026 Roughness 210.35 40.15 85.40 45.78 340.49 34.31 144.66 138.89 134.11 Roughness max 380.34 115.31 137.13 63.45 771.20 53.78 377.17 298.94 553.52 
+
+(a) cage scenario (task-unconstrained): the end-effector is free of task constraints. The robot plans a collision-free reaching motion inside the box-like cage; representative snapshots along the trajectory are shown (green). Fig. 6: Result of cage scenario, single arm for unconstrained tasks (a) kitchen scenario (unconstrained): the end-effector is free of task constraints. The robot plans a collision-free reaching motion in a cluttered kitchen setting; representative snapshots along the trajectory are shown (green). 
+
+(b) table_under_pick scenario (unconstrained): the end-effector is free of task constraints. The robot plans a collision-free reaching motion under the table and around obstacles; representative snapshots along the trajectory are shown (green). Fig. 7: Single-arm result of the unconstrained tasks in kitchen and table_under_pick scenarios TABLE V: Single-arm benchmark results for task-constrained scenarios. Scene Metric FACTO-Cheby FACTO-Sin FACTO-Cos CHOMP IMACS-RRT-C 
+
+kitchen_constr 
+
+Success (%) 79 88 90 10 86 Time (s) 0.1800 0.5602 0.2077 1.5915 4.0364 Time max (s) 0.8345 1.6304 1.0268 1.8074 8.7817 Roughness 125.12 93.97 141.20 335.49 2117.17 Roughness max 482.55 266.14 424.33 1852.22 7570.24 
+
+table_under_pick_constr 
+
+Success (%) 77 88 96 9 72 Time (s) 0.1140 0.6585 0.1768 1.4922 4.1853 Time max (s) 0.5816 1.2603 0.9838 1.8341 10.0562 Roughness 169.83 79.69 177.56 347.06 2297.13 Roughness max 400.36 385.99 472.06 2043.64 5229.90 
+
+(a) kitchen scenario (constrained): the end-effector x-axis (red arrow) is constrained to align with the world z-axis. The robot plans a collision-free reaching motion while maintaining the orientation constraint; representative snapshots along the trajectory are shown (green). 
+
+(b) table_under_pick scenario (constrained): the end-effector x-axis (red arrow) is constrained to align with the world z-axis. The robot plans a collision-free reaching motion around the table and obstacles while maintaining the orientation constraint; representative snapshots along the trajectory are shown (green). Fig. 8: Single-arm results of the constrained tasks in kitchen and table scenarios TABLE VI: Benchmark results for unconstrained dual-arm coordination scenario. Scene Metric FACTO-Cheby FACTO-Sin FACTO-Cos CHOMP TrajOpt GPMP2 RRT-C RRT* PRM                                                                                   
+
+> table_under_pick
+> Success (%) 70 90 92.5 27.5 27.5 47.5 90 12.5 12.5 Time (s) 0.2056 0.4776 0.2421 0.4379 0.4767 0.3116 2.0272 7.0996 5.3386 Time max (s) 0.3828 1.0061 0.8534 0.5005 0.5297 0.8220 8.3906 8.1623 10.0060 Roughness 134.59 80.76 250.56 88.85 88.85 60.00 512.03 337.10 498.88 Roughness max 331.68 176.61 466.41 108.28 108.28 88.56 1013.21 628.82 847.33 TABLE VII: Benchmark results for constrained dual-arm coordination scenario. Scene Metric FACTO-Cheby FACTO-Sin FACTO-Cos CHOMP IMACS-RRT-C
+> table_under_pick_constr
+> Success (%) 62.5 77.5 87.5 7.5 27.5 Time (s) 0.2453 1.5373 0.3703 3.5326 4.2324 Time max (s) 0.3948 2.6837 0.6560 4.2109 8.6093 Roughness 197.39 129.74 322.18 95.55 1122.33 Roughness max 647.02 270.11 488.10 140.23 2674.44
+> (a) table_under_pick scenario (dual-arm, unconstrained): the end-effectors are free of task constraints. The two arms plan a coordinated collision-free reaching motion around the table and obstacles; representative snapshots along the trajectory are shown (green).
+> (b) table_under_pick scenario (dual-arm, constrained): the end-effectors x-axes (red arrows) are constrained to align with the world z-axis. The two arms plan a coordinated collision-free reaching motion while maintaining the orientation constraints; representative snapshots along the trajectory are shown (green). Fig. 9: Results of dual-arm coordination in a table scenario
+
+followed by RRT-C and FACTO-Sin (90%). However, RRT-C takes ×5 ∼ × 10 computation cost compared to FACTO-Sin/Cos. GPMP2 has the third-highest success rate of 47.5%, with a low computational cost (0.3 s on average). Its slightly higher average computation time is due to up-sampling. CHOMP and TrajOpt perform worse because they use dis-crete waypoints for trajectory representation, which leads to between-waypoint safety issues. RRT* and PRM perform worst within the 10 s time budget because their rewiring and query/connection processes require excessive computation, particularly in the dual-arm case with 14 dimensions. In the constrained case, FACTO-Cos has a significant lead over the others with a success rate of 87.5%. Though FACTO-Cheby’s computational time (0.2 s) and FACTO-Sin’s roughness (80) are less than FACTO-Cos’s (0.4 s, 322), their success rate (77.5%, 62.5%) is much lower. IMACS-RRT-C’s reliability follows the FACTO family, but its success rate is still below 50% with ×10 computation cost and roughness. CHOMP performs too poorly to implement. 
+
+b) Constrained v.s. unconstrained tasks: As in the single-arm case, all planners’ success rates of the dual-arm case decline as the feasible space shrinks. The FACTO-family drops slightly from 70%-92.5% to 62.5%-87.5%, while CHOMP and IMACS-RRT-C drop significantly from 27.5% & 90% to 7.5% & 27.5%. The reason is also similar to the single-arm case: when the feasible workspace is highly constrained, CHOMP cannot handle between-waypoint safety, and IMAC-RRT-C cannot project samples onto the constraint manifold within a 10 s time budget. Likewise, roughness and computational cost increase due to excessive manifold projection. X. Real-world Experiment Validation 
+
+A. System setup 
+
+All physical experiments are conducted on FR3 manipula-tors using a real-time control stack for deterministic trajectory replay. The low-level controller runs on an ASUS NUC with Ubuntu 22.04 and a real-time (RT) kernel. The robots are connected via Ethernet using UDP, and all commands are issued through the Franka Control Interface (FCI) with libfranka 0.15.0. Collision behaviors and safety limits are kept fixed across the entire suite. (a) table_under_pick scenario (hardware, unconstrained): the end-effector is free of task constraints. The FR3 executes a collision-free motion to retrieve a tube from under the table; representative snapshots along the trajectory are shown.              
+
+> (b) table_under_pick scenario (hardware, constrained): the end-effector x-axis (red arrow) is constrained to align with the world z-axis. The FR3 retrieves a tube from under the table and places it on the tabletop while maintaining the pose constraint; representative snapshots along the execution are shown. Fig. 10: Physical validation results of a single arm executing 2 tasks in the table scenario
+> (a) dual_arm_02 scenario (hardware, task-unconstrained): the end-effectors are free of task constraints. The two FR3 arms coordinate to swap the positions of two tubes; representative snapshots along the execution are shown.
+> (b) dual_arm_constr scenario (hardware, task-constrained): the end-effector z-axes (blue arrows) are constrained to align with the world z-axis. The two FR3 arms swap the positions of two tubes while maintaining the orientation constraints; representative snapshots along the execution are shown.
+> (c) dual_arm_collab scenario (hardware, task-unconstrained): the end-effectors are free of task constraints. The two FR3 arms collaboratively rotate a long roller by 90 ◦; representative snapshots along the execution are shown. Fig. 11: Physical validation results of the dual arms executing 3 tasks in 2 scenarios
+
+B. Experiment setup 
+
+To demonstrate the implementation potential of FACTO, we validate 10 physical demonstrations, comprising 6 single-arm trials across 3 scenarios (bookshelf, box, and table) and 4 dual-arm trials across 2 scenarios (box and table). Specifically, Figures 10a–10b compare the validation results for the unconstrained and constrained single-arm trials using the same initial and goal waypoints in the same workspace. Figures 11a–11b do a similar comparison of the dual-arm coordination trails. Moreover, Figure 11c validates the dual-arm collaboration. 
+
+C. Execution protocol 
+
+At the beginning of trail testing, each robot is moved to-wards a pre-defined initial waypoint. Then each robot executes its own joint trajectory parameterized by the coefficients ψ
+
+over the scaled execution time period T , where the reference joint velocity is computed according to (5) and joint accel-eration is interpolated by libfranka. In the dual-arm trial, we execute each robot’s trajectory in its own thread and subnet. 
+
+D. Efficiency and the effect of time-scaling 
+
+Table VIII lists the number of basis functions N and the scaled execution time of each robot trial, calculated by FACTO-Cos. It shows that all the unconstrained trials use 6 basis functions for trajectory parameterization and their scaled time ranges from 2.7 s to 5.8 s. Meanwhile, the basis amount for all constrained trials exceeds 6 and, for the dual-arm collaboration, even 8. It is consistent with our earlier observation that more constraints lead to greater shrinkage of the feasible space, thereby requiring a larger N to maintain TABLE VIII: Physical experiment suite and time-scaling settings. Robot Scenario N Scaled time (s) Single arm                     
+
+> bookshelf 62.754
+> bookshelf_half 63.517
+> box 64.626
+> table_pick 65.853
+> table_under_pick 65.138
+> table_under_pick_constr 75.291 Dual arms
+> dual_arm_01 63.110
+> dual_arm_02 63.285
+> dual_arm_constr 76.479
+> dual_arm_collab 84.084
+
+feasibility. In corresponding, their scaled time also increases, ranging from 4.0 s to 6.5 s. Overall, our physical experiment comprising 10 tasks across 6 scenarios for both single- and dual-arm systems demon-strates the high implementation potential of FACTO. All trajectories, parameterized by the optimized coefficients, can be executed smoothly and efficiently in a physical workspace. It also validates the effectiveness of FACTO’s TimeScalar 
+
+(cf. Algorithm 3). XI. Conclusion and Discussion This paper presents FACTO, a function-space adaptive constrained trajectory optimizer that parameterizes a function space of trajectories using finite coefficients as the coordinates of basis functions. It uses an EMA-smoothed, convexified objective to optimize the trajectory in the null space of the linearized constraint, with adaptive trust regions. The block structure is also proposed for the multi-robot system. The benchmark results on 800 single-arm unconstrained tasks validate FACTO’s high reliability relative to other optimization-based planners, such as CHOMP, TrajOpt, and GPMP2, and its high efficiency relative to sampling-based planners, such as RRT-Connect, RRT*, and PRM. These high performances are even more significant in 200 single-arm constrained tasks, showing FACTO’s handling of trajectory-wide constraints within a truncated coefficient space. The comparison between FACTO and CHOMP/GPMP2 further validates the effectiveness of the EMA-based GN method for fast, stable convergence and demonstrates efficiency gains from variable reduction achieved by coefficient-space trunca-tion. These well performances of FACTO in 40 unconstrained and 40 constrained dual-arm tasks further certify FACTO’s solvability of the multi-robot problem. The physical experiment demonstrates FACTO’s imple-mentation potential for single-arm manipulation and dual-arm coordination/collaboration tasks. It also validates the exe-cutability and smoothness of the well-parameterized trajectory under execution-time scaling, accounting for the velocity and torque limits of the FR3 arm. XII. Limitation and Future Work Although the benchmark demonstrates the high reliability and efficiency of FACTO relative to traditional optimization-and sampling-based motion planners, its per-step computa-tional cost remains higher than that of CHOMP and GPMP2, but much lower than that of TrajOpt. As we have analyzed the single-arm unconstrained benchmark results, it mainly comes from the QP solving procedure: CHOMP and GPMP2 directly penalize the avoidance constraints in their objectives and solve the QP problem via a single line-search step; however, FACTO and TrajOpt directly solves the constrained QP via OSQP, a operater splitting method alternating between linear system solve and constraint projection frequently in one QP step. Therefore, our future work will focus on balancing these two methods, leveraging the high efficiency of the penalty method and the high feasibility of the operator-splitting method. Moreover, although FACTO has the highest efficiency and reliability across 14 scenarios (12 single-arm and 2 dual-arm), its performance still declines as the number of arms, task difficulty, or the tightness of task constraints increases. Our future work will also integrate additional deep learning or reinforcement learning techniques to further improve the algorithmic robustness and adaptability to variant scenarios. References                                                                                                                      
+
+> [1] M. Zucker, N. Ratliff, A. D. Dragan, M. Pivtoraiko, M. Klingensmith, C. M. Dellin, J. A. Bagnell, and S. S. Srinivasa, “CHOMP: Covariant Hamiltonian optimization for motion planning,” The International Journal of Robotics Research , vol. 32, no. 9-10, pp. 1164–1193, 2013. [Online]. Available: https://doi.org/10.1177/0278364913488805 [2] J. Schulman, Y. Duan, J. Ho, A. Lee, I. Awwal, H. Bradlow, J. Pan, S. Patil, K. Goldberg, and P. Abbeel, “Motion planning with sequential convex optimization and convex collision checking,” The International Journal of Robotics Research , vol. 33, no. 9, pp. 1251–1270, June 2014. [Online]. Available: https://doi.org/10.1177/0278364914528132 [3] M. Mukadam, J. Dong, X. Yan, F. Dellaert, and B. Boots, “Continuous-time Gaussian process motion planning via probabilistic inference,”
+> The International Journal of Robotics Research ,vol. 37, no. 11, pp. 1319–1340, 2018. [Online]. Available: https://doi.org/10.1177/ 0278364918790369 [4] L. E. Kavraki, M. N. Kolountzakis, and J. .Latombe, “Analysis of probabilistic roadmaps for path planning,” IEEE Transactions on Robotics and Automation , vol. 14, no. 1, pp. 166–171, Feb. 1998. [Online]. Available: https://doi.org/10.1109/70.660866 [5] J. J. Kuffner and S. M. LaValle, “RRT-connect: An efficient approach to single-query path planning,” in Proceedings 2000 ICRA. Millennium conference. IEEE international conference on robotics and automation. Symposia proceedings (cat. no.00ch37065) ,vol. 2, Apr. 2000, pp. 995–1001 vol.2. [Online]. Available: https: //doi.org/10.1109/ROBOT.2000.844730 [6] S. LaValle, “Rapidly-exploring random trees :anew tool for path planning,” The annual research report ,1998. [Online]. Available: https://www.semanticscholar.org/ paper/Rapidly-exploring-random-trees-%3A-a-new-tool-for-LaValle/ d967d9550f831a8b3f5cb00f8835a4c866da60ad [7] S. Karaman and E. Frazzoli, “Sampling-based algorithms for optimal motion planning,” The international journal of robotics research , vol. 30, no. 7, pp. 846–894, 2011. [8] M. Otte and E. Frazzoli, “RRTX: Asymptotically optimal single-query sampling-based motion planning with quick replanning,” The International Journal of Robotics Research , vol. 35, no. 7, pp. 797–822, 2016. [Online]. Available: https://doi.org/10.1177/0278364915594679 [9] P. Rajendran, S. Thakar, A. M. Kabir, B. C. Shah, and S. K. Gupta, “Context-dependent search for generating paths for redundant manipulators in cluttered environments,” in 2019 IEEE/RSJ international conference on intelligent robots and systems (IROS) , 2019, pp. 5573– 5579. [Online]. Available: https://doi.org/10.1109/IROS40897.2019. 8967865 [10] J. D. Gammell, T. D. Barfoot, and S. S. Srinivasa, “Batch Informed Trees (BIT*): Informed asymptotically optimal anytime search,” The International Journal of Robotics Research , vol. 39, no. 5, pp. 543–567, 2020. [Online]. Available: https://doi.org/10.1177/0278364919890396
+
+[11] Z. Kingston, M. Moll, and L. E. Kavraki, “Exploring implicit spaces for constrained sampling-based planning,” The International Journal of Robotics Research , vol. 38, no. 10-11, pp. 1151–1178, Sept. 2019. [Online]. Available: https://doi.org/10.1177/0278364919868530 [12] L. Jaillet and J. M. Porta, “Path Planning Under Kinematic Constraints by Rapidly Exploring Manifolds,” IEEE Transactions on Robotics ,vol. 29, no. 1, pp. 105–117, Feb. 2013. [Online]. Available: https://ieeexplore.ieee.org/document/6352929 [13] B. Kim, T. T. Um, C. Suh, and F. C. Park, “Tangent bundle RRT: A randomized algorithm for constrained motion planning,” 
+
+Robotica , vol. 34, no. 1, pp. 202–225, Jan. 2016. [Online]. Available: https://www.cambridge.org/core/journals/robotica/article/ tangent-bundle-rrt-a-randomized-algorithm-for-constrained-motion-planning/ 73C83E4CB58FA3C424FED7A3C5936403 [14] E. Huang, M. Mukadam, Z. Liu, and B. Boots, “Motion planning with graph-based trajectories and Gaussian process inference,” in 
+
+2017 IEEE international conference on robotics and automation (ICRA) , May 2017, pp. 5591–5598. [Online]. Available: https: //doi.org/10.1109/ICRA.2017.7989659 [15] J. Ichnowski, Y. Avigal, V. Satish, and K. Goldberg, “Deep learning can accelerate grasp-optimized motion planning,” Science Robotics , vol. 5, no. 48, p. eabd7710, 2020. [Online]. Available: https://www.science.org/doi/abs/10.1126/scirobotics.abd7710 [16] J. Woolfrey, W. Lu, and D. Liu, “Predictive end-effector control of manipulators on moving platforms under disturbance,” IEEE Transactions on Robotics , vol. 37, no. 6, pp. 2210–2217, 2021. [Online]. Available: https://doi.org/10.1109/TRO.2021.3072544 [17] H. Mao and J. Xiao, “Real-time conflict resolution of task-constrained manipulator motion in unforeseen dynamic environments,” IEEE Transactions on Robotics , vol. 35, no. 5, pp. 1276–1283, 2019. [Online]. Available: https://doi.org/10.1109/TRO.2019.2924556 [18] D. J. Agravante, A. Cherubini, A. Sherikov, P.-B. Wieber, and A. Kheddar, “Human-humanoid collaborative carrying,” IEEE Transactions on Robotics , vol. 35, no. 4, pp. 833–846, 2019. [Online]. Available: https://doi.org/10.1109/TRO.2019.2914350 [19] Y. Mo, Z. Jiang, H. Li, H. Yang, and Q. Huang, “A kind of biomimetic control method to anthropomorphize a redundant manipulator for complex tasks,” Science China Technological Sciences ,vol. 63, no. 1, pp. 14–24, Jan. 2020. [Online]. Available: https: //doi.org/10.1007/s11431-019-9542-5 [20] A. M. Kabir, S. Thakar, R. K. Malhan, A. V. Shembekar, B. C. Shah, and S. K. Gupta, “Generation of synchronized configuration space trajectories with workspace path constraints for an ensemble of robots,” The International Journal of Robotics Research , vol. 40, no. 2-3, pp. 651–678, 2021. [Online]. Available: https://doi.org/10.1177/0278364920988087 [21] T. S. Lembono, A. Paolillo, E. Pignat, and S. Calinon, “Memory of motion for warm-starting trajectory optimization,” IEEE Robotics and Automation Letters , vol. 5, no. 2, pp. 2594–2601, 2020. [Online]. Available: https://doi.org/10.1109/LRA.2020.2972893 [22] T. Osa, “Multimodal trajectory optimization for motion planning,” The International Journal of Robotics Research , vol. 39, no. 8, pp. 983–1001, 2020. [Online]. Available: https://doi.org/10.1177/0278364920918296 [23] A. Kuntz, C. Bowen, and R. Alterovitz, “Fast anytime motion planning in point clouds by interleaving sampling and interior point optimization,” in Robotics research , N. M. Amato, G. Hager, S. Thomas, and M. Torres-Torriti, Eds. Cham: Springer International Publishing, 2020, pp. 929– 945. [24] L. C. Cosier, R. Iordan, S. N. T. Zwane, G. Franzese, J. T. Wilson, M. Deisenroth, A. Terenin, and Y. Bekiroglu, “A Unifying Variational Framework for Gaussian Process Motion Planning,” in Proceedings of The 27th International Conference on Artificial Intelligence and Statistics . PMLR, Apr. 2024, pp. 1315–1323. [Online]. Available: https://proceedings.mlr.press/v238/cosier24a.html [25] M. Bhardwaj, B. Boots, and M. Mukadam, “Differentiable gaussian process motion planning,” in 2020 IEEE international conference on robotics and automation (ICRA) , May 2020, pp. 10 598–10 604. [Online]. Available: https://doi.org/10.1109/ICRA40945.2020.9197260 [26] J. Li, K. Pompetzki, A. T. Le, H. Tong, J. Peters, and G. Chalvatzaki, “Constrained Gaussian Process Motion Planning via Stein Variational Newton Inference,” Apr. 2025, arXiv:2504.04936 [cs]. [Online]. Available: http://arxiv.org/abs/2504.04936 [27] Y. Feng, J. Wang, and G. Lu, “Optimal motion planning using fi-nite fourier series in a learning-based collision field,” arXiv preprint arXiv:2312.09073 , 2023. [28] J. Dong, M. Mukadam, F. Dellaert, and B. Boots, “Motion planning as probabilistic inference using gaussian processes and factor graphs.” in 
+
+Robotics: Science and systems , vol. 12, 2016, p. 4. [29] N. Das and M. Yip, “Learning-based proxy collision detection for robot motion planning applications,” IEEE Transactions on Robotics , vol. 36, no. 4, pp. 1096–1114, 2020. [30] M. Hibbard, A. P. Vinod, J. Quattrociocchi, and U. Topcu, “Safely: Safe stochastic motion planning under constrained sensing via duality,” 
+
+IEEE Transactions on Robotics , vol. 39, no. 5, pp. 3464–3478, 2023. [Online]. Available: https://doi.org/10.1109/TRO.2023.3297018 [31] A. Perez, R. Platt, G. Konidaris, L. Kaelbling, and T. Lozano-Perez, “LQR-RRT*: Optimal sampling-based motion planning with automatically derived extension heuristics,” in 2012 IEEE international conference on robotics and automation , May 2012, pp. 2537–2542. [Online]. Available: https://doi.org/10.1109/ICRA.2012.6225177 [32] Y. Li, R. Cui, Z. Li, and D. Xu, “Neural network approximation based near-optimal motion planning with kinodynamic constraints using RRT,” IEEE Transactions on Industrial Electronics , vol. 65, no. 11, pp. 8718–8729, 2018. [Online]. Available: https://doi.org/10.1109/TIE. 2018.2816000 [33] O. Adiyatov and H. A. Varol, “Rapidly-exploring random tree based memory efficient motion planning,” in 2013 IEEE international conference on mechatronics and automation , 2013, pp. 354–359. [Online]. Available: https://doi.org/10.1109/ICMA.2013.6617944 [34] L. Kavraki and J.-C. Latombe, “Randomized preprocessing of con-figuration for fast path planning,” in Proceedings of the 1994 IEEE international conference on robotics and automation . IEEE, 1994, pp. 2138–2145. [35] L. E. Kavraki, P. Svestka, J. . Latombe, and M. H. Overmars, “Probabilistic roadmaps for path planning in high-dimensional configuration spaces,” IEEE Transactions on Robotics and Automation ,vol. 12, no. 4, pp. 566–580, Aug. 1996. [Online]. Available: https://doi.org/10.1109/70.508439 [36] A. G. Hofmann, E. Fernandez, J. Helbert, S. D. Smith, and B. C. Williams, “Reactive integrated motion planning and execution,” in 
+
+Twenty-fourth international joint conference on artificial intelligence ,2015. [37] S. Dai, A. Hofmann, and B. Williams, “Fast-reactive probabilistic motion planning for high-dimensional robots,” SN Computer Science ,vol. 2, no. 6, p. 484, Oct. 2021. [Online]. Available: https: //doi.org/10.1007/s42979-021-00878-0 [38] M. Logothetis, P. Vlantis, C. Vrohidis, G. C. Karras, and K. J. Kyriakopoulos, “A motion planning scheme for cooperative loading using heterogeneous robotic agents,” in 2019 international conference on robotics and automation (ICRA) , 2019, pp. 9660–9666. [Online]. Available: https://doi.org/10.1109/ICRA.2019.8794323 [39] R. Luna, M. Moll, J. Badger, and L. E. Kavraki, “A scalable motion planner for high-dimensional kinematic systems,” The International Journal of Robotics Research , vol. 39, no. 4, pp. 361–388, 2020. [Online]. Available: https://doi.org/10.1177/0278364919890408 [40] A. T. Le, K. Pompetzki, J. Carvalho, J. Watson, J. Urain, A. Biess, G. Chalvatzaki, and J. Peters, “Global Tensor Motion Planning,” IEEE Robotics and Automation Letters , vol. 10, no. 7, pp. 7302–7309, July 2025. [Online]. Available: https://ieeexplore.ieee.org/document/ 11018416 [41] A. Orthey, C. Chamzas, and L. E. Kavraki, “Sampling-Based Motion Planning: A Comparative Review,” Annual Review of Control, Robotics, and Autonomous Systems , vol. 7, no. Volume 7, 2024, pp. 285–310, July 2024. [Online]. Available: https://www.annualreviews.org/content/ journals/10.1146/annurev-control-061623-094742 [42] T. Stouraitis, I. Chatzinikolaidis, M. Gienger, and S. Vijayakumar, “Online hybrid motion planning for dyadic collaborative manipulation via bilevel optimization,” IEEE Transactions on Robotics , vol. 36, no. 5, pp. 1452–1471, 2020. [Online]. Available: https://doi.org/10. 1109/TRO.2020.2992987 [43] M. Koptev, N. Figueroa, and A. Billard, “Reactive collision-free motion generation in joint space via dynamical systems and sampling-based MPC,” The International Journal of Robotics Research , vol. 43, no. 13, pp. 2049–2069, 2024. [Online]. Available: https://doi.org/10.1177/02783649241246557 [44] C. R. Garrett, T. Lozano-Pérez, and L. P. Kaelbling, “PDDLStream: Integrating symbolic planners and blackbox samplers via optimistic adaptive planning,” Proceedings of the International Conference on Automated Planning and Scheduling , vol. 30, no. 1, pp. 440–448, June 2020. [Online]. Available: https://ojs.aaai.org/index.php/ICAPS/article/ view/6739 [45] T. Lin, Z.-H. Yin, H. Qi, P. Abbeel, and J. Malik, “Twisting Lids Off with Two Hands,” Oct. 2024, arXiv:2403.02338 [cs]. [Online]. Available: http://arxiv.org/abs/2403.02338 [46] Y. Ren, Z. Zhou, Z. Xu, Y. Yang, G. Zhai, M. Leibold, F. Ni, Z. Zhang, M. Buss, and Y. Zheng, “Enabling versatility and dexterity of the dual-arm manipulators: a general framework toward universal cooperative manipulation,” IEEE Transactions on Robotics , vol. 40, pp. 2024–2045, 2024. [Online]. Available: https://doi.org/10.1109/TRO.2024.3370048 [47] J. Nocedal and S. Wright, Numerical optimization . Springer Science & Business Media, 2006. [48] K. Levenberg, “A method for the solution of certain non-linear problems in least squares,” Quarterly of Applied Mathematics ,vol. 2, no. 2, pp. 164–168, 1944. [Online]. Available: http: //www.jstor.org/stable/43633451 [49] T. Sugihara, “Solvability-unconcerned inverse kinematics by the levenberg–marquardt method,” IEEE Transactions on Robotics , vol. 27, no. 5, pp. 984–991, Oct. 2011. [Online]. Available: https://doi.org/10. 1109/TRO.2011.2148230 [50] H. Badreddine, S. Vandewalle, and J. Meyers, “Sequential quadratic programming (SQP) for optimal control in direct numerical simulation of turbulent flow,” Journal of Computational Physics , vol. 256, pp. 1–16, 2014. [51] F. E. Curtis, T. Mitchell, and M. L. Overton, “A BFGS-SQP method for nonsmooth, nonconvex, constrained optimization and its evaluation us-ing relative minimization profiles,” Optimization Methods and Software ,vol. 32, pp. 148–181, 2017. [52] A. R. Conn, N. I. M. Gould, and P. L. Toint, Trust-region methods .USA: Society for Industrial and Applied Mathematics, 2000. [53] J. Schulman, S. Levine, P. Abbeel, M. Jordan, and P. Moritz, “Trust region policy optimization,” in International conference on machine learning , 2015, pp. 1889–1897. [54] B. Stellato, G. Banjac, P. Goulart, A. Bemporad, and S. Boyd, “OSQP: an operator splitting solver for quadratic programs,” Mathematical Programming Computation , vol. 12, no. 4, pp. 637–672, Dec. 2020. [Online]. Available: https://doi.org/10.1007/s12532-020-00179-2 [55] S. Boyd, N. Parikh, E. Chu, B. Peleato, and J. Eckstein, “Distributed optimization and statistical learning via the alternating direction method of multipliers,” Foundations and Trends® in Machine Learning , vol. 3, no. 1, pp. 1–122, 2011. [Online]. Available: http://dx.doi.org/10.1561/2200000016 [56] L. Bottou, “On-line learning and stochastic approximations,” in 
+
+On-line learning in neural networks , D. Saad, Ed. Cambridge: Cambridge University Press, 1999, pp. 9–42, series Title: Publications of the newton institute. [Online]. Available: https://doi.org/10.1017/ CBO9780511569920.003 [57] D. P. Kingma and J. Ba, “Adam: A method for stochastic optimization,” 
+
+arXiv preprint arXiv:1412.6980 , 2014. [58] H. Geoffrey, N. Srivastava, and K. Swersky, “Neural networks for machine learning lecture 6a overview of mini-batch gradient descent,” Department of Computer Science, University of Toronto, Tech. Rep., Feb. 2012, issue: 14. [59] J. Duchi, E. Hazan, and Y. Singer, “Adaptive subgradient methods for online learning and stochastic optimization,” Journal of Machine Learning Research , vol. 12, pp. 2121–2159, July 2011. [60] M. Kalakrishnan, S. Chitta, E. Theodorou, P. Pastor, and S. Schaal, “STOMP: Stochastic trajectory optimization for motion planning,” in 2011 IEEE international conference on robotics and automation ,May 2011, pp. 4569–4574. [Online]. Available: https://doi.org/10.1109/ ICRA.2011.5980280 [61] L. Petrovi´ c, J. Perši´ c, M. Seder, and I. Markovi´ c, “Stochastic optimization for trajectory planning with heteroscedastic gaussian processes,” in 2019 european conference on mobile robots (ECMR) ,2019, pp. 1–6. [Online]. Available: https://doi.org/10.1109/ECMR.2019. 8870970 [62] Y. Feng, J. Wang, H. Zhang, and G. Lu, “Incrementally stochastic and accelerated gradient information mixed optimization for manipulator motion planning,” IEEE Robotics and Automation Letters , vol. 7, no. 4, pp. 9897–9904, 2022. [Online]. Available: https://doi.org/10.1109/LRA. 2022.3191206 [63] C. Wu, R. Wang, M. Song, F. Gao, J. Mei, and B. Zhou, “Real-time whole-body motion planning for mobile manipulators using environment-adaptive search and spatial-temporal optimization,” in 2024 IEEE international conference on robotics and automation (ICRA) , 2024, pp. 1369–1375. [Online]. Available: https://doi.org/10. 1109/ICRA57147.2024.10610192 [64] R. M. Murray, Z. Li, and S. S. Sastry, A Mathematical Introduction to Robotic Manipulation . Boca Raton: CRC Press, Dec. 2017. [65] J. Carpentier, G. Saurel, G. Buondonno, J. Mirabel, F. Lamiraux, O. Stasse, and N. Mansard, “The Pinocchio C++ library – Afast and flexible implementation of rigid body dynamics algorithms and their analytical derivatives,” Jan. 2019. [Online]. Available: https://laas.hal.science/hal-01866228 [66] “Eigen: Main Page.” [Online]. Available: https://libeigen.gitlab.io/docs/ index.html [67] G. Banjac, P. Goulart, B. Stellato, and S. Boyd, “Infeasibility Detection in the Alternating Direction Method of Multipliers for Convex Optimization,” Journal of Optimization Theory and Applications ,vol. 183, no. 2, pp. 490–519, Nov. 2019. [Online]. Available: https://doi.org/10.1007/s10957-019-01575-y [68] C. Chamzas, C. Quintero-Peña, Z. Kingston, A. Orthey, D. Rakita, M. Gleicher, M. Toussaint, and L. E. Kavraki, “MotionBenchMaker: A Tool to Generate and Benchmark Motion Planning Datasets,” IEEE Robotics and Automation Letters , vol. 7, no. 2, pp. 882–889, Apr. 2022. [Online]. Available: https://ieeexplore.ieee.org/document/9645379 [69] S. Osher and R. Fedkiw, “Signed distance functions,” in Level set methods and dynamic implicit surfaces . New York, NY: Springer New York, 2003, pp. 17–22. [Online]. Available: https: //doi.org/10.1007/0-387-22746-6_2 [70] “MoveIt: The MoveIt motion planning framework.” [Online]. Available: https://github.com/moveit/moveit [71] “trajopt,” Jan. 2026, original-date: 2018-06-06T13:18:04Z. [Online]. Available: https://github.com/tesseract-robotics/trajopt [72] I. A. Sucan, M. Moll, and L. E. Kavraki, “The Open Motion Planning Library,” IEEE Robotics & Automation Magazine , vol. 19, no. 4, pp. 72–82, Dec. 2012. [Online]. Available: https://ieeexplore.ieee.org/ document/6377468
