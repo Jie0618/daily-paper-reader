@@ -1,0 +1,2256 @@
+Title: Scalable Simulation-Based Model Inference with Test-Time Complexity Control
+
+URL Source: https://arxiv.org/pdf/2603.15292v1
+
+Published Time: Tue, 17 Mar 2026 06:20:42 GMT
+
+Number of Pages: 38
+
+Markdown Content:
+# Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Manuel Gloeckler 1 J.P. Manzano-Patr´ on 2 Stamatios N. Sotiropoulos 2 3 Cornelius Schr¨ oder 1
+
+Jakob H. Macke 1 4 
+
+# Abstract 
+
+Simulation plays a central role in scientific dis-covery. In many applications, the bottleneck is no longer running a simulator—it is choosing among large families of plausible simulators, each corre-sponding to different forward models/hypotheses consistent with observations. Over large model families, classical Bayesian workflows for model-selection are impractical. Furthermore, amortized 
+
+model-selection methods typically hard-code a fixed model prior—or complexity penalty—at training time, requiring users to commit to a par-ticular parsimony assumption before seeing the data. We introduce PRISM , a simulation-based encoder-decoder that infers a joint posterior over both discrete model structures and associated con-tinuous parameters, while enabling test-time con-trol of model complexity via a tunable model prior that the network is conditioned on. We show that PRISM scales to families with combinatorially many (up to billions) of model instantiations on a synthetic symbolic regression task. As a scientific application, we evaluate PRISM on biophysical modeling for diffusion MRI data, showing the ability to perform model selection across several multi-compartment models, on both synthetic and in-vivo neuroimaging data. 
+
+# 1. Introduction 
+
+Simulation is a cornerstone of scientific inquiry and dis-covery (Winsberg, 2019; Skuse, 2019) and is increasingly relevant as researchers tackle more complex scientific sys-
+
+> *
+
+Equal contribution 1Machine Learning in Science, Univer-sity of T ¨ubingen and T ¨ubingen AI Center, T ¨ubingen, Germany 
+
+> 2
+
+Sir Peter Mansfield Imaging Centre, School of Medicine, Uni-versity of Nottingham, UK 3National Institute for Health Re-search (NIHR) Nottingham Biomedical Research Centre, Queens Medical Centre, Nottingham, United Kingdom 4Max Planck Institute for Intelligent Systems, Department Empirical Infer-ence, T ¨ubingen, Germany. Correspondence to: Manuel Gloeck-ler <manuel.gloeckler@uni-tuebingen.de >, Jakob H. Macke 
+
+<jakob.macke@uni-tuebingen.de >.
+
+Preprint. March 17, 2026. Model family  
+
+> Model priors
+> ... ...
+
+... 
+
+> Parameter
+> priors
+> Model
+> complexity
+> observation
+> Parameter
+> posterior
+> Model posterior
+> ...
+> Model
+> complexities
+
+Amortized Inference a Training b
+
+Figure 1. PRISM overview. (a) During training, we sample from a model family M with a hierarchical prior p(M | λ), where λ
+
+controls a chosen notion of model complexity and approximate jointly the model posterior and the conditional parameter posterior 
+
+p(M, θ | x, λ ) by optimizing the loss L = L(M, p (M | x, λ ))+ 
+
+L(θM, p (θ | M λ, x)) , for model evaluations x ∼ pM(x | θM).
+
+(b) At inference time, we set λ to tune parsimony, and select or explore models in the combinatorial space, infer model parameters, and deploy the resulting posteriors in downstream analyses. 
+
+tems (Lavin et al., 2022). In practice, researchers often face multiple plausible models for the same process, reflecting different mechanistic assumptions, parameterizations, and levels of abstraction. This proliferation creates a persistent challenge across modeling communities: deciding which model configurations are most supported by data in a given experimental regime, and how strongly. For example, in computational neuroscience, Hodgkin– Huxley-type models (Hodgkin & Huxley, 1952) can be composed of many candidate ion-channel and morpho-logical components (Sch ¨olzel et al., 2020) to represent neural activity and propagation. In epidemiology, the canonical SIR model (Kermack & McKendrick, 1927) has spawned a broad family of compartmental extensions (e.g., SEIR/SIRS, stratified or structured variants), with trade-offs between interpretability, identifiability, and predictive per-formance (Hethcote, 2000; Keeling & Rohani, 2008). In diffusion magnetic resonance imaging (dMRI), a range of multi-compartment biophysical models have been proposed as potential biomarkers to indirectly infer tissue microstruc-ture from the scatter pattern of water molecules within the brain (Basser et al., 1994; Jelescu et al., 2020). Symbolic regression (Brunton et al., 2016; Biggio et al., 2021) can be seen through the same lens, where equations are con-1
+
+> arXiv:2603.15292v1 [stat.ML] 16 Mar 2026 Scalable Simulation-Based Model Inference with Test-Time Complexity Control
+
+structed by selecting components from a large library. In all these cases, models formalize competing hypotheses, and selecting among them is central to scientific discovery. Yet, even modest libraries of components induce combinatorial model spaces that cannot be exhaustively enumerated or fit one by one. The central task is to infer which component combinations and parameters are supported by data, often prioritizing simple explanations over complex ones. Bayesian model selection offers a principled framework to address this challenge, in particular by using criteria based on model-evidences (marginal likelihoods). However, there are two central challenges: First, Bayesian model selection methods must operate reliably over large model families. Conventional workflows (Gelman et al., 2020) are based on running Bayesian inference separately for each candi-date model (e.g., via MCMC) and comparing models via marginal likelihoods, which scale poorly with the number of models and require tractable likelihoods. A flexible alter-native is to amortize these costs by training neural networks to approximate key Bayesian computations once and reuse them across datasets. This connects to simulation-based inference (SBI) methods that learn posteriors, likelihood(-ratios) or model evidences from simulated data when likeli-hoods are unavailable (Cranmer et al., 2020a; Radev et al., 2023b; Deistler et al., 2025), and to “all-in-one” approaches that jointly learn posteriors and likelihood surrogates to sup-port downstream model comparison (Radev et al., 2023a; Gloeckler et al., 2024; Chang et al., 2025). A second key challenge is controlling the trade-off between model com-plexity and goodness-of-fit. In principle, a prior over models can be parameterized (here, by λ) to interpolate between “narrow” priors favoring simple models and “broad” priors allowing more complex ones. Choosing λ in advance is dif-ficult, and practitioners often adjust this parsimony trade-off after seeing the data. However, most model-selection or discovery methods effectively lock in these assumptions at training time, making post-hoc adjustment difficult without retraining. We propose PRISM , a PRI or-flexible Simulation-based 
+
+Model inference framework, based on a transformer encoder-decoder approach for simultaneous inference of models and model parameters (Fig. 1), which addresses both of these challenges. PRISM can identify posteriors over both model-components and associated parameters even in large model-spaces. In addition, it can amortize over a test-time tunable model prior. This allows practitioners to explore different complexities (e.g., in symbolic regression expressions with different number of terms, Fig. 2) and select one with-out having to retrain the pipeline. Compared to previous model-inference approaches (Schr ¨oder & Macke, 2024), we remove several highly restrictive design choices, e.g., the reliance on mixture density networks (and its associated need for analytic marginalization). Empirically, we show 0.0 1.0 λ                  
+
+> 0
+> 50
+> # components 015 Inputx
+> 0
+> 20 Output f(x)
+> Global posterior pred.
+> (λ=0.5,λ=0.1)
+> Figure 2. Illustration on symbolic regression task. Left: Ground-truth function and noisy observations (black, x < 10 ), compared to posterior predictives samples for two model complexities λ
+> (95% credible interval and one noiseless sample each, chosen as the simplest posterior draw). Right: Median number of model components as function of λ.Below: Equations of true function (black, 2 components), and two sampled equations for low and high complexity priors (2 and 9 components).
+
+that PRISM amortizes effectively over large model families with billions of distinct model candidates on a synthetic symbolic regression example. We then showcase the appli-cation of PRISM to inference of tissue microstructure from dMRI data, by considering a range of biophysical multi-compartment models (e.g. Ball-and-Sticks (Behrens et al., 2007)). We demonstrate that PRISM can enable model comparison and selection in the context of fiber orienta-tion estimation —on both synthetic and in-vivo data— and show that it outperforms previous SBI pipelines that con-sider each candidate model independently (Manzano-Patron et al., 2025). 
+
+# 2. Background and Notation 
+
+2.1. Bayesian parameter inference 
+
+Classically, we start with a probabilistic model M defined by model-specific parameters θM with prior p(θM | M )
+
+and a likelihood p(x | θM, M). Given model M and data xo, Bayes’ rule gives p(θM | xo, M) ∝ p(xo |
+
+θM, M) p(θM | M ). Classical methods (MCMC/VI) typi-cally require model-specific implementations and repeated computation for inference per dataset xo (Gilks et al., 1995; Beal, 2003). Simulation-based (a.k.a “likelihood-free”) approaches purely operate on samples x ∼ p(x | θM, M) without requiring likelihood-evaluations. They also readily permit 
+
+amortized inference, which trains a parameterized estimator (e.g., a neural posterior, likelihood, or likelihood-ratio esti-mator) on simulated pairs (θM, x) to enable fast test-time inference (Papamakarios & Murray, 2016; Lueckmann et al., 2017; Radev et al., 2020; 2021; Jeffrey & Wandelt, 2024; Reuter et al., 2025). However, standard SBI approaches generally assume a fixed, well-specified model; under mis-specification they may fail sharply out of distribution (Can-2Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+non et al., 2022; Kelly et al., 2025), making model construc-tion and selection prerequisites for reliable amortization. 
+
+2.2. Bayesian model selection 
+
+To select an appropriate model, we consider a fam-ily of candidate simulators or probabilistic models 
+
+M = {M 1, M2, . . . }. Bayesian model comparison treats the model identity M ∈ M as a discrete latent vari-able with prior p(M). Conditioning on data xo gives 
+
+P (M | xo) ∝ p(xo | M ) P (M). Therefore, the marginal likelihood (Bayesian evidence) 
+
+p(xo | M ) = 
+
+Z
+
+p(xo | θM, M) p(θM | M ) dθM
+
+is at the core of classical Bayesian model comparison (Jef-freys, 1939; Kass & Raftery, 1995; MacKay, 2003b, BMC). By averaging over the parameter prior, the evidence induces an Occam-type tradeoff: complex models that distribute probability mass broadly are penalized relative to simpler models that concentrate mass near data xo (Jeffreys, 1939; MacKay, 2003b). An alternative to model comparison or selection is the Bayesian model average over P (M | xo),which explicitly accounts for uncertainty over the model (Draper, 1995). Computing the evidence requires high-dimensional integra-tion, and is generally intractable. Furthermore, for large model families M, workflows that run inference and ev-idence estimation per model become prohibitive. While sometimes Bayesian model comparison is seen as nearly all-encompassing solution to model selection (MacKay, 2003a; Lotfi et al., 2022) the marginal likelihood penalizes a spe-cific notion of complexity implicitly defined by the prior, which may be misaligned with a given task. 
+
+# 3. Methods 
+
+3.1. Problem setting 
+
+We aim to estimate the joint posterior both over models and parameters p(M, θ|xo, λ ) = P (M| λ, xo)p(θ|M , xo) for data x ∈ Rdx (Fig. 1), as in Schr ¨oder & Macke (2024). To control model complexity at inference time, we introduce a hierarchical prior on models p(M| λ), where λ is a hy-perparameter that controls model complexity. As model space M we consider all combinations of C potential components, and index individual models as binary mask 
+
+M = ( M1, . . . , M C ) with Mi ∈ { 0, 1}, representing the presence or absence of a specific component. Each compo-nent is associated with either independent or shared parame-ters θM ∈ RdM sampled from a model-specific parameter prior p(θM|M ).This setup yields two coupled approximation problems: (i) learning the model posterior P (M | xo, λ ) (represented as Encoder          
+
+> Norm
+> Scale + Shift
+> Norm
+> MLP
+> Masked MHA
+> Cross attent.
+> Norm
+> Scale + Shift
+> Norm
+> Scale + Shift
+> Norm
+> MLP
+> Causal MHA
+> Cross attent.
+> Norm
+> Scale + Shift
+> Model tokens
+> Tokenizer
+> Model logits v-pred.
+> Parameter tokens
+> Figure 3. Architecture overview. PRISM is based on two parallel transformers to infer (i) the model posterior from tokenized model masks and (ii) the parameter posterior via a diffusion v-prediction network ( tdenotes diffusion time). Observations xenter through cross-attention; (λ, t )are injected via adaptive layer normalization (skip connections omitted).
+
+a high-dimensional multivariate binary distribution) and (ii) learning the parameter posterior p(θM | M λ, xo),whose dimension varies with M (i.e., θM ⊆ Θ ∈ Rdmax ,
+
+dM < d max ). Our goal is to amortize both quantities over observation and model space ( xo, M), while allowing test-time adjustment of λ.
+
+3.2. Model architecture of PRISM 
+
+PRISM uses a transformer-based encoder-decoder architec-ture with two decoding streams: One for the discrete model structure and a second that targets a posterior over continu-ous parameters given a model structure. These decoders are paired with a task-specific tokenizer, and both conditioned on observations x and model complexity λ (Fig. 3). 
+
+Model posterior decoder. We represent the model posterior as an autoregressive multivariate Bernoulli distribution over binary components M ∈ {0, 1}C :
+
+qϕ(M | x, λ ) = QCi=1 Bern 
+
+
+
+Mi; pϕ(M<i , x, λ )
+
+
+
+. We im-plement conditioning on x via cross-attention to the en-coder tokens, and inject the model-complexity parameter 
+
+λ through adaptive layer normalization (AdaLN, Peebles & Xie 2022; Fig. 3, λ-dependent scale and shift). A causal attention mask with a padding token enables strict autore-gressive decoding of the components. 
+
+Parameter posterior decoder. To capture complex, po-tentially multimodal posteriors over continuous parame-ters, we use a diffusion-based decoder. We adopt the EDM noise parameterization (Karras et al. (2022); i.e. 
+
+θt = θ + t ϵ, ϵ ∼ N (0, I)), and condition on the encoder 3Scalable Simulation-Based Model Inference with Test-Time Complexity Control a
+
+b c0 5θ0                             
+
+> 02θ1
+> 510 θ2True
+> 010 20 30 40 50 58
+> Model component index
+> 0.0
+> 1.0 λ
+> 0.
+> 1.0 Probability
+> Model posterior Parameter posterior
+> prior SBMI PRISM 104105
+> 106
+> Training data size
+> 0
+> 15
+> rRMSE 2152302502802100
+> Model space size
+> 10−1
+> 103
+> rRMSE
+> Figure 4. PRISM on symbolic regression task. (a) Model posterior across λand parameter posterior for the example in Fig. 2 (for λ= 0 .1). (b) Comparison to (Schr ¨oder & Macke, 2024) for a fixed prior. (c) Scaling to large model spaces for a fixed computational training budget; Red line indicates regimes beyond which not all models can be sampled during training.
+
+context via cross-attention. Diffusion time t is injected through AdaLN. The network is preconditioned for training on the v-prediction target (details in Sec. A.2), 
+
+vt = αtϵ−βtθ, vϕ(θt, t, x) = αt ˆϵϕ, θt,t, x−βt ˆθϕ, θt,t, x.
+
+The diffusion decoder defines an amortized approximation 
+
+qϕ(θ | M , x, λ ) over a global parameter vector Θ ∈ Rdmax .We condition on M using an M-dependent block atten-tion mask : for any inactive component ( Mi = 0 ), we mask (or remove) the corresponding parameter tokens from the diffusion-transformer input by masking all attention con-nections to and from that component’s parameter block (equivalently, remove the associated rows/columns in the attention matrix; Fig. 3, Masked MHA). This effectively marginalizes unused parameters, reducing Θ to θM, while retaining a single shared parameter decoder across all mod-els. When multiple components share global parameters, the associated tokens remain unmasked and attend to all active component tokens. 
+
+Tokenizer. The tokenizer produces a token sequence for each decoder. For model components, each component i ∈{1, . . . , C } is assigned a learnable component identification token, shared by both decoders. The model decoder addi-tionally requires the binary mask M = ( M1, . . . , M C ); we encode this by adding a learned embedding of Mi ∈ { 0, 1}
+
+to the corresponding token. The parameter decoder requires the diffusion-state input θt to be encoded as part of its token sequence. Rather than allocating a token per scalar pa-rameter (as in autoregressive parameterizations), diffusion permits structured grouping of parameters. We therefore use per-component parameter tokens: each component i is associated with a parameter subvector θi ∈ Rdi , projected into the token space using a component-specific linear map. Components with di = 0 contribute no parameter tokens, and shared parameters are represented by additional global tokens. 
+
+Encoder. The encoder maps the observation x (and optional auxiliary variables) to a sequence of fixed-size vectors. The encoder can be chosen in a task-dependent manner. We use a transformer encoder, with positional embeddings for sequential data and without positional embeddings for ex-changeable sets (e.g., unordered measurements). 
+
+3.3. Training 
+
+Training requires joint samples (λ, M, θM, x) from the generative process. We optimize two losses jointly: (i) a Bernoulli negative log-likelihood for the model decoder (implemented as binary cross-entropy over Mi), and (ii) a diffusion v-prediction objective for the parameter decoder (Salimans & Ho, 2022). The overall training objective is the sum of these terms (Fig. 1, details in Appendix A.2). Since we target regimes with large M-spaces, we use an online setup in which training data is generated on the fly. 
+
+3.4. Deployment 
+
+Having both a model and parameter posterior enables uncer-tainty quantification at two levels: local uncertainty condi-tional on a fixed model, and global uncertainty that marginal-izes over model uncertainty (Draper, 1995; Werner et al., 2021). Furthermore, the model posterior enables Bayesian model comparison/selection via q(M | xo, λ ).
+
+# 4. Results 
+
+We apply PRISM to two problems: We first illustrate and evaluate it on an additive symbolic regression task, before we apply it to dMRI to demonstrate its performance in a complex scientific application. 
+
+4.1. Toy Example: Symbolic Regression 
+
+We define the additive symbolic model family as 
+
+f (x|θ, M) = 
+
+> K−1
+
+X
+
+> k=0
+
+Mk ·gk(x|θk)+  
+
+> K+M−1
+
+X
+
+> m=K
+
+Mm·ϵm(x|θm)
+
+where gk are ‘base functions’ and ϵm represent different noise models, with a total of C = K + M components. We follow the protocol of Schr ¨oder & Macke (2024): each function is evaluated on an equidistant grid over [0 , 10] ,but we extend the basis library to K = 42 unique base functions and M = 8 noise models (Tab. 7). We allow 4Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+repeated components, yielding up to K = 100 compo-nents. Repeated components can have different parameters and thus induce distinct probabilistic models and create posterior degeneracies that must be handled by the joint model–parameter inference networks. We define the com-plexity λ, and the corresponding family of model priors 
+
+Mλ as p(M | λ) = Q 
+
+> k
+
+Ber( Mk, λ ) Q 
+
+> m
+
+Cat( MK:M ),
+
+with λ ∼ Unif([0 , 1]) . This definition gives rise to a simple yet intuitive complexity interpretation: λ close to 1 result in complex models with a lot of active model components 
+
+Mi = 1 , whereas λ → 0 results in sparse model samples. The noise models are unaffected and mutually exclusive. For all experiments we use as encoder a transformer with position encoding and 2 layers, and for model and parameter decoders 6 layers (details in Sec. A.2). We first evaluate PRISM at K = 50 base functions. The model-averaged posterior predictive closely matches the observations in terms of RMSE (Fig. 2, A.1, A.2, Sec. A.1). Importantly, the posterior mass is spread across multiple distinct structures, indicating model uncertainty (Fig.4a). Varying the complexity hyperparameter λ reshapes the pre-dicted posterior over M, yielding structurally simpler ex-planations with smaller number of components (Fig. 2a, 4a). At small λ, the posterior concentrates on constant-offset components ( i = 6 , 7, 49 , 50 ) and logarithmic ( i = 20 ) or logarithmic-like terms (e.g., √·, i = 21 ), consistent with the data (Tab. 7). While the predictive fit is preserved within the training domain ( x < 10 ) deviations and uncertainty increases for more complex models for generalizations to 
+
+x > 10 (Fig. 2 b). This illustrates that explicit test-time con-trol of the model prior p(M | λ) enables selecting a desired level of sparsity without retraining. For a direct comparison with prior work, we reproduce the largest setting in Schr ¨oder & Macke (2024) (SBMI, K = 15 ) with fixed model prior. PRISM clearly outperforms SBMI, even in the regime of small training data (Fig. 4b). 
+
+Scaling with model-space. Larger number of model compo-nents ( K ∈ { 30 , 50 , 80 , 100 }) result in model spaces from millions to O(10 30 ) configurations with up to dmax = 223 
+
+parameters, where per-model inference and evidence-based BMC are infeasible. In these settings, we train for a fixed time frame of 24 hours and then evaluate (irrespective of convergence). Up to model spaces of 230 , the noise floor adjusted RMSE (rRMSE) is close to zero (Fig. 4c). Per-formance drops afterwards, which is expected as only a small subset of the model space is seen during training, but remains good relative to the task complexity (e.g. prior rRMSE, see Appendix A.3 for a discussion). We evalu-ate posterior calibration via SBC (Talts et al., 2018, Ap-pendix A.1). Predictions remain well-calibrated even for large model spaces (Fig. A.2). However, deviations from the Bayesian posterior measured via relative Kernel Stein Dis-crepancy (rKSD, Liu et al. (2016), Appendix A.1) increases at the largest scales. We note that increasing network capac-ity mitigates this effect and consistently improves perfor-mance in both data-rich and data-limited regimes (Fig. A.2). We further investigate model selection by constraining eval-uation to a 200-model subspace and interpreting it as a 200-class classification problem in which data from many classes can be near-equivalent (i.e. redundant, functionally similar component combinations with a lot of noise). We therefore report top-5 accuracy, measuring whether the true model lies among the five highest-probability candidates. Top-5 accuracy remains high across scales ( > 90% , Tab. 1), and we see a weak block structure in the confusion matrix (Fig. A.3) indicating that PRISM reliably concentrates pos-terior mass on a small set of plausible structures even when the full combinatorial space is underexplored. This shows that PRISM can effectively leverage shared structure across related models to generalize to previously unseen configura-tions, yielding accurate and well-calibrated predictions even in under-sampled combinatorial spaces. 
+
+4.2. Case study: fiber orientation reconstruction using diffusion MRI Ball & Sticks  
+
+> Tensors
+> Fibers
+> Figure 5. dMRI models.
+
+We demonstrate applications of PRISM for biophysical model inference in in-vivo dif-fusion MRI (dMRI) neuroimaging data. DMRI is a non-invasive imaging technique that provides a powerful method to map microstructure and connectional architec-ture of the brain. This requires solving an inverse problem; biophysical models are used to link the diffusion profile of water molecules within brain tissue measured by the MR scanner to the microstructural fea-tures of interest that hinder or restrict wa-ter diffusion. Over the past two decades, dMRI has accumulated a broad ecosystem of such signal models (see Panagiotaki et al. (2012) for a review). Most models are built as combinations of primitive compartments (e.g., isotropic ‘ball’ components to represent restricted diffusion within cell bodies, anisotropic Gaussian compartments such as stick/tensor/zeppelin to define directionality, etc.). The task at hand, for example, is to select the number of ‘stick’ com-partments in each voxel of the image that represent different axonal fiber orientations given the data (Fig. 5). The structure of this problem with hundreds of thousands of voxel-wise estimations per brain (i.e. voxel-wise fittings) is inherently suited for inference amortization. Each dMRI dataset comprises multiple acquisitions with given diffusion-encoding settings, conventionally summarized by a gradient direction ⃗ b (‘ bvec ’) and a diffusion-weighting strength b
+
+( ‘ bval ’) (Fig. 6a). Recent simulation-based approaches have shown the potential of amortized frameworks for solv-5Scalable Simulation-Based Model Inference with Test-Time Complexity Control V1 V2    
+
+> ...
+> MRI acq.
+> 0
+> 1
+> 0100 acquisition index
+> 0
+> 1
+> MRI signal 01
+> Nominal
+> 0
+> 1
+> Empirical 01
+> Nominal
+
+a
+
+b
+
+cB1S B2S B3S                       
+
+> 0.0
+> 0.5
+> P(M |x)i
+> p(θ|x, B3S)
+> -3 3θ1-2 2θ7
+> -2
+> 2θ9
+> Model Parameter B
+> S
+> S2
+> S3
+> BS1
+> BS1
+> BS1
+> BS2
+> BS2
+> BS2
+> BS3
+> 0.005
+> 0.010
+> 0.015
+> Calibration error (parameters)
+> HCP-like
+> UKB-like BS2S 3S
+> B1S
+> B1S
+> B1S
+> B2S
+> B2S
+> B2S
+> BS3
+> Model configuration
+> 10−3
+> 100
+> rKSD (n=105)  syn. real (selected) real (fixed)
+> Figure 6. PRISM on dMRI. (a) Two example voxels (V1, V2) with acquired dMRI signal (black), posterior predictives (color; 95% quantile) and complex multimodal parameter posteriors (bot-tom, right, all marginals in Fig. A.6). Model posteriors (bottom, left) closely match unbiased Monte Carlo estimates (black). (b)
+> Left: Simulation-based calibration over 10 5simulations averaged over all λ,Mand θM.Right: Calibration error for individual models across the model space for two acquisition schemes (gray: expected error), indicating excellent calibration. (c) rKSD distance to the posterior on synthetic and experimental data for B3S-family models, for a ’fixed’ or a ’selected’ model on UKB data (see Fig. A.5 for HCP data). (Models with same label refer to differ-ences in prior.)
+
+ing inverse problems in dMRI (Eggl & De Santis, 2024; 2025; Manzano-Patron et al., 2025). However, learning in these prior studies is restricted to a fixed model with a fixed acquisition protocol, often tied to a specific noise level and model, thus only providing inference over parameters (but not on multiple models). PRISM can address all these lim-itations, allowing for rapid joint inference on models and model parameters that is amortized across voxels, dMRI ac-quisition settings, and noise settings. PRISM is fully trained on simulations, but we also evaluate on real-world data, namely to UK Biobank (UKB) (Sudlow et al., 2015) and HCP (Van Essen et al., 2012) datasets. 4.2.1. B ALL -AND -S TICKS MODEL 
+
+Following the specifications of Manzano-Patron et al. (2025) (Appendix B.2), we consider the multi-shell Ball-and-Sticks model (B3S) (Behrens et al., 2007; Jbabdi et al., 2012). Here, the normalized attenuation of the dMRI signal S/S 0 is explained as a combination of an isotropic ball compartment, 
+
+gB (b, ⃗ b) = exp( −bd ), and a weighted sum of up to N anisotropic sticks : gS (b, ⃗ b) = exp   − bd ⟨⃗ b,⃗μ⟩ 2. Model parameters include the diffusivity d, stick orientations ⃗μ ,and weights fk of each k = 1 , ..., K compartments. The inference network is conditioned on diffusion-weighted measurements S = [ s1, . . . , s n] (Fig. 6a) and the corre-sponding acquisition settings (b, ⃗ b), enabling amortization across acquisition protocols. Since S is an exchangeable set indexed by acquisition settings (not an IID sequence), we encode it with a shallow (2-layer) transformer without position embeddings. We use the same model prior as in Sec. 4.1. We amortize over a broad range of randomly generated in-vivo-like protocols, varying b-values (up to 
+
+b =6000 s/mm 2), gradient directions ⃗ b, and number of ac-quisitions ( n), enabling deployment across heterogeneous datasets. We consider models with N = 0 , 1, 2 and 3 stick compartments, amortizing across a range of fiber complexity representations. 
+
+Joint-posterior inference performance. For each voxel Vi, we infer a posterior over models and, conditional on the model probabilities, a posterior over its parameters in an amortized manner (Fig. 6a). The parameter posterior admits a complex multimodal geometry due to mixture symmetries and the posterior predictives closely match the observations (Fig. 6a, right, Fig. A.6, A.10). The inferred model posterior aligns closely with likelihood-based estimators of the evi-dence (Fig. 6a, down left; Fig. A.7, Appendix Sec. A.4.1), and both the model as well as the parameter posteriors are well calibrated across the full amortization scope in terms of SBC, i.e. it is neither over- nor underconfident when identifying models or parameters (Fig. 6b). To complement SBC with a discrepancy measure applicable to real experimental data, we apply rKSD to the parameter posterior (Fig. 6c). rKSD confirms excellent approximation on synthetic data, as well as on experimental data within the full PRISM pipeline. Importantly, if we restrict eval-uation to a specific model class as a control experiment, it reveals larger deviations under overly simple (or inap-propriate) models, consistent with expected performance degradations of SBI under model misspecification (Cannon et al., 2022). This analysis shows the importance of model selection for trustworthy predictions in this task. Overall, these results show that the inferred model posterior closely matches exact evidence-based BMC ( R2 = 0 .97 ;Fig. A.7), and that the parameter posterior is near the true posterior. Moreover, high effective sample sizes ( ≈ 60% 
+
+on synthetic data; ≈ 40% on real data, Tab. 2) suggest that remaining discrepancy can be corrected efficiently, e.g., via importance sampling (Dax et al., 2023). 6Scalable Simulation-Based Model Inference with Test-Time Complexity Control         
+
+> Figure 7. Downstream Tractography. Comparisons against MCMC (BedpostX) and previous SBI approaches. (a) 3-way fiber crossings from the Centrum Semiovale area. (b) Uncertainty of the third stick (fiber) orientation in terms of dispersion. High uncertainty (dark) indicates the third fibre is not supported by the data. Last row: Tractography of brain regions based on inferred posteriors. (c) Tractwise correlation with MCMC, compared to SBI joint (tract labels from a).
+
+Probabilistic tractography. The posterior distributions of fiber orientations can be used to identify probabilistic white-matter paths of anatomical connectivity. We use XTRACT (Warrington et al., 2022) to evaluate probabilistic tractogra-phy. We compare our reconstructed bundled tracts against the ones using posterior estimates from BedpostX (Behrens et al., 2003), an extensively-validated MCMC approach used as the reference, and the SBI joint approach with restricted model choice proposed in (Manzano-Patron et al., 2025). Compared to the SBI joint baseline, PRISM improves agree-ment with MCMC and increases coherence in crossing-fiber regions (Fig.7a). Especially the uncertainty of fiber orienta-tions is better matched and yields sharper contrast between white- and non-white matter (Fig.7b). These improvements directly translate into higher spatial correlation of the re-constructed bundle tracts with MCMC across brain regions (Fig. 7c), with mean correlations of 0.96 versus 0.86 for the SBI baseline. In addition, PRISM can be applied to a much larger set of datasets (i.e. arbitrary b,⃗ b) without retraining. However, the computational cost for PRISM generally in-creases compared to SBI joint (based on normalizing flows) and benefits from GPU acceleration. Overall, generating one thousand model posterior samples takes 5 ms and 50 ms for the parameter posterior (on Nvidia H100, Fig. A.4), allowing inference on e.g. the UKB dataset within 4 minutes (in batches of 30k voxels). 4.2.2. E XTENDED MODEL CLASSES 
+
+Finally, to assess whether PRISM can scale to larger and heterogeneous model spaces, we extend the approach to a substantially broader component library. We train a single 
+
+inference network amortized across the entire model space, which can either be queried for a specific model of interest, or to perform model selection over a model (sub)space. This setup is intended as a proof of principle demonstrating scal-ability and flexibility, rather than as a claim about optimal model choice. We extend B3S with three Zeppelin/Tensor components forming the BSZT space (and further spherical-convolution components e.g. Zhang et al. (2012); Sotiropou-los et al. (2012) to obtain BSZT+conv, Sec.B.2, Tab. 8). In total, this library then comprises 21 model components that can be grouped combinatorially, yielding a model family with up to 114 parameters (compared to up to 12 parameters in the B3S setting). Since candidates differ in parameteriza-tion, we penalize model complexity by parameter count via a dimension-penalizing prior (Sec. B.2.5) We first verify on synthetic data that inference is well calibrated (Fig. 8a, with minor deviation for BSZT+conv, Fig. A.8) and achieve generally low predictive RMSE and KSD, but a drop in ESS (Tab. 3, 4). PRISM distinguishes models when they are sufficiently different, but, as expected, it cannot reliably distinguish similar or equivalent models (Fig. A.9, Tab. 5). We ran model selection on UKB data (Sec. A.4.4), and investigated whether some fixed mod-els or the full Bayesian model average had strong statis-tical support on empirical data: Inferred models outper-form DTI (Basser et al., 1994) and maximum-likelihood methods such as Rumba (Garyfallidis et al., 2014; Canales-Rodr ´ıguez et al., 2015) in signal reconstruction and leave-one-out cross-validation (Fig. 8b). Mean performance is comparable among inferred models. Yet they often induce different uncertainty in fiber orientation estimates (Fig. 8c; Fig. A.11, Sec. A.11): principal directions largely agreed, but uncertainty could vary substantially. Overall, these results demonstrate that PRISM can amor-tize joint model-parameter inference across large, hetero-geneous, and combinatorial model spaces which would be intractable with per-model approaches. Can be used to discover data-consistent models within large model spaces (Sec. A.4.4, Fig. A.12) and, furthermore, can be applied to different experimental setups (e.g. acquisition protocols). Even in the setting of noisy, real world data, it yields model-and parameter-identifications that remain well calibrated, have competitive statistical performance on real data, and yield interpretable uncertainty estimates. 7Scalable Simulation-Based Model Inference with Test-Time Complexity Control c Rumba B3S B3T BSZT sel. 0 1 
+
+> Nominal 01
+> Nominal
+> 0
+> 1
+> Empirical
+
+b
+
+aDTI Rumba B3S B3T BSZT sel. 
+
+> 0.02
+> 0.1
+> RMSE
+> reconstruction
+> generalization (LOOCV)
+
+Model Parameter     
+
+> BS
+> BZ
+> 2S
+> B2S
+> B2S2
+> BSZ
+> BST
+> BST2
+> BZT
+> S2Z
+> Calibration error (parameters)
+> HCP-like
+> UKB-like
+> 0.01
+> 0.00
+> Figure 8. PRISM on an extended model family for dMRI. (a)
+> Calibration error for the BSZT model on average (left) and across model classes for the parameter posterior (right). (b) Reconstruc-tion and generalization RMSE for reference models as well as for B3S, B3T, BSZT sel. (i.e. the Bayesian model average) (general-ization estimated by leave-one-out cross-validation, LOOCV). (c)
+> Examples of predicted fiber orientation distributions (Sec. B.2.2) for a local patch.
+
+# 5. Related Work 
+
+In Approximate Bayesian Computation (ABC), likelihood-free model choice has been implemented by augmenting inference with a discrete model index and estimating pos-terior model probabilities via rejection sampling or SMC (Toni et al., 2009; Toni & Stumpf, 2010; Liepe et al., 2010). However, this approach requires sufficient summary statis-tics for consistency (Robert et al., 2011; Marin et al., 2014). ABC-RF further recasts model choice as supervised classifi-cation (Pudlo et al., 2016). Neural SBI amortizes inference and often uses classifier-like model selection (Pudlo et al., 2016) to infer posteriors over discrete model indices (Radev et al., 2021), with recent work addressing accuracy and vali-dation for moderately sized candidate sets (Kucharsk ´y et al., 2025; Elsem ¨uller et al., 2024; Schumacher et al., 2025), but omitting the parameter inference task. The need to perform explicit enumeration during training/evaluation, however, limits scalability to combinatorially large spaces. Model comparison can also be performed via evidence estimation using NPE/NLE/NRE plug-in estimators (Spurio Mancini et al., 2023) or flow-based normalizer recovery from un-normalized densities (e.g., ˜p/q ) (Srinivasan et al., 2024). “All-in-one” systems learn per-model posteriors and (surro-gate) likelihoods to enable evidence computation (Gloeckler et al., 2024; Radev et al., 2023a), with COMPASS (Gunes et al., 2025) extending this direction for model selection (but still requires per-model training and evaluation). Finally, SBMI (Schr ¨oder & Macke, 2024) performs joint inference over model identity and parameters for large model collec-tions, yet relies on restrictive approximation families and modeling choices (e.g., analytic marginalization of inactive dimensions). Mixture density networks can be limiting for complex posteriors and are often outperformed by more expressive generative models such as normalizing flows, dif-fusion models, and autoregressive decoders (Papamakarios et al., 2021; Karras et al., 2022). Symbolic regression seeks interpretable equations from data. Early methods relied on genetic programming (Schmidt & Lipson, 2009) or sparse regression over fixed bases (Brunton et al., 2016; Bakarji et al., 2023). More recent deep-learning approaches use graph neural networks (Cranmer et al., 2020b) or transform-ers (Biggio et al., 2021), but are typically deterministic and do not support systematic model comparison. 
+
+# 6. Discussion 
+
+We introduced PRISM, an amortized simulation-based in-ference framework for joint inference over discrete model structure and continuous parameters in large, combinatorial model families. By learning a joint posterior p(M, θ | x, λ ),PRISM supports not only model selection but also model discovery and efficient marginalization over model uncer-tainty within a single amortized system. One advantage of amortization is the ability to perform rapid Bayesian model averaging across large sets of plausible models. Rather than conditioning conclusions on a single model, predictions and downstream quantities can be marginalized over model identity, weighted by posterior probabilities. This makes un-certainty due to competing mechanistic hypotheses explicit and is particularly valuable in settings requiring repeated or time-critical inference. PRISM enables controlled exploration of model space via a tunable hierarchical prior p(M | λ) that trades off complex-ity and fit. Importantly, this trade-off needs not be fixed at training time. Choosing λ a priori is often difficult, and its effect on operational complexity (e.g., the number of active components) can be highly nonlinear. This situation mirrors a well-known issue in nonparametric Bayesian methods (Es-cobar & West, 1995; Teh et al., 2006; Ghahramani, 2013), where hyperparameters implicitly controlling model com-plexity (e.g., number of clusters in nonparametric clustering) are frequently adjusted after inspecting inferred solutions. By conditioning on λ, PRISM allows users to either fix it when strong prior knowledge is available, or to systemati-cally explore its effect post hoc, e.g. using cross-validation. These benefits come with limitations: Amortized joint infer-ence requires substantial simulation budgets. In large com-binatorial model spaces only a small fraction of possible configurations is explored during training. While PRISM generalizes well under such undersampling by leveraging 8Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+shared structure across models, posterior quality can de-grade when too large regions of model space remain unseen. In addition, large scale amortization benefits from larger neural networks with larger computational demands. Despite these challenges, PRISM shows that amortized in-ference can scale model discovery, selection, and averag-ing to regimes that are inaccessible to classical per-model Bayesian workflows, as well as across different measure-ment schemes, while retaining calibrated uncertainty over both model identity and parameters. PRISM provides a prac-tical foundation for simulation-based scientific inference in rich and heterogeneous model- and data-spaces, and which we expect to be useful across multiple scientific disciplines. 
+
+# Software and Data 
+
+We used jax (Bradbury et al., 2018) as backbone, hydra 
+
+(Yadan, 2019) to track all configurations as well as sev-eral utilities from sbi (Boelts et al., 2024). Code to re-produce results is available at https://github.com/ mackelab/prism .
+
+# Acknowledgments 
+
+We thank Stefan Wahl for feedback on the manuscript. We thank all members of the Mackelab for discussions and feed-back on the manuscript. This work was funded by the Ger-man Research Foundation (DFG) under Germany’s Excel-lence Strategy – EXC number 2064/1 – 390727645 and SFB 1233 ‘Robust Vision’ (276693517), the German Federal Ministry of Education (T ¨ubingen AI Center) the European Union (ERC, DeepCoMechTome, 101089288), the “Certifi-cation and Foundations of Safe Machine Learning Systems in Healthcare” project funded by the Carl Zeiss Foundation. MG is member of the International Max Planck Research School for Intelligent Systems (IMPRS-IS). JP and SS are supported by an ERC Consolidator Grant (101000969), and JP is also supported by a Wellcome Trust, UK bioimaging technology award (313367/Z/24/Z). 
+
+# References 
+
+Aganj, I., Lenglet, C., Sapiro, G., Yacoub, E., Ugurbil, K., and Harel, N. Reconstruction of the orientation distri-bution function in single-and multiple-shell q-ball imag-ing within constant solid angle. Magnetic resonance in medicine , 64(2):554–566, 2010. Alexander, D. C., Dyrby, T. B., Nilsson, M., and Zhang, H. Imaging brain microstructure with diffusion MRI: practicality and applications. NMR in Biomedicine , 32 (4):e3841, 2019. Bakarji, J., Champion, K., Nathan Kutz, J., and Brunton, S. L. Discovering governing equations from partial mea-surements with deep delay autoencoders. Proceedings of the Royal Society A , 479(2276):20230422, 2023. Basser, P. J., Mattiello, J., and LeBihan, D. Mr diffusion tensor spectroscopy and imaging. Biophysical Journal ,66(1):259–267, 1994. Beal, M. J. Variational Algorithms for Approximate Bayesian Inference . PhD thesis, Gatsby Computational Neuroscience Unit, University College London, 2003. Behrens, T. E., Woolrich, M. W., Jenkinson, M., Johansen-Berg, H., Nunes, R. G., Clare, S., Matthews, P. M., Brady, J. M., and Smith, S. M. Characterization and propa-gation of uncertainty in diffusion-weighted mr imaging. 
+
+Magnetic Resonance in Medicine: An Official Journal of the International Society for Magnetic Resonance in Medicine , 50(5):1077–1088, 2003. Behrens, T. E. J., Berg, H. J., Jbabdi, S., Rushworth, M. F. S., and Woolrich, M. W. Probabilistic diffusion trac-tography with multiple fibre orientations: What can we gain? NeuroImage , 34(1):144–155, 2007. Biggio, L., Bendinelli, T., Neitz, A., Lucchi, A., and Paras-candolo, G. Neural symbolic regression that scales. In 
+
+International Conference on Machine Learning , pp. 936– 945. PMLR, 2021. Bingham, C. An antipodally symmetric distribution on the sphere. The Annals of Statistics , 2(6):1201–1225, 1974. Boelts, J., Deistler, M., Gloeckler, M., Tejero-Cantero, ´A., Lueckmann, J.-M., Moss, G., Steinbach, P., Moreau, T., Muratore, F., Linhart, J., et al. sbi reloaded: a toolkit for simulation-based inference workflows. arXiv preprint arXiv:2411.17337 , 2024. Bradbury, J., Frostig, R., Hawkins, P., Johnson, M. J., Leary, C., Maclaurin, D., Necula, G., Paszke, A., VanderPlas, J., Wanderman-Milne, S., and Zhang, Q. JAX: composable transformations of Python+NumPy programs , 2018. Brunton, S. L., Proctor, J. L., and Kutz, J. N. Discovering governing equations from data by sparse identification of nonlinear dynamical systems. Proceedings of the national academy of sciences , 113(15):3932–3937, 2016. Canales-Rodr ´ıguez, E. J., Daducci, A., Sotiropoulos, S. N., Caruyer, E., Aja-Fern ´andez, S., Radua, J., Yur-ramendi Mendizabal, J. M., Iturria-Medina, Y., Melie-Garcia, L., Alem ´an-G ´omez, Y., et al. Spherical decon-volution of multichannel diffusion mri data with non-gaussian noise models and spatial regularization. PloS one , 10(10):e0138910, 2015. 9Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Cannon, P., Ward, D., and Schmon, S. M. Investigating the impact of model misspecification in neural simulation-based inference. arXiv preprint arXiv:2209.01845 , 2022. Chang, P. E., Loka, N., Huang, D., Remes, U., Kaski, S., and Acerbi, L. Amortized probabilistic conditioning for optimization, simulation and inference, 2025. Cranmer, K., Brehmer, J., and Louppe, G. The frontier of simulation-based inference. Proceedings of the National Academy of Sciences , 117(48):30055–30062, 2020a. Cranmer, M., Sanchez Gonzalez, A., Battaglia, P., Xu, R., Cranmer, K., Spergel, D., and Ho, S. Discovering sym-bolic models from deep learning with inductive biases. 
+
+Advances in neural information processing systems , 33: 17429–17442, 2020b. Dax, M., Green, S. R., Gair, J., Macke, J. H., Buonanno, A., and Sch ¨olkopf, B. Real-time gravitational wave science with neural posterior estimation. Phys. Rev. Lett. , 127: 241103, 2021. Dax, M., Green, S. R., Gair, J., P ¨urrer, M., Wildberger, J., Macke, J. H., Buonanno, A., and Sch ¨olkopf, B. Neural importance sampling for rapid and reliable gravitational-wave inference. Physical Review Letters , 130(17), April 2023. ISSN 1079-7114. Deistler, M., Boelts, J., Steinbach, P., Moss, G., Moreau, T., Gloeckler, M., Rodrigues, P. L., Linhart, J., Lappalainen, J. K., Miller, B. K., et al. Simulation-based inference: A practical guide. arXiv preprint arXiv:2508.12939 , 2025. Draper, D. Assessment and propagation of model uncer-tainty. Journal of the Royal Statistical Society Series B: Statistical Methodology , 57(1):45–70, 1995. Eggl, M. F. and De Santis, S. More with less: Simulation-based inference enables accurate diffusion-weighted mri with minimal acquisition time. bioRxiv , pp. 2024–11, 2024. Eggl, M. F. and De Santis, S. Simulation-based inference at the theoretical limit: Fast, accurate microstructural mri with minimal diffusion mri data. bioRxiv , pp. 2024–11, 2025. Elsem ¨uller, L., Schn ¨urch, M., B ¨urkner, P.-C., and Radev, S. T. A deep learning method for comparing Bayesian hierarchical models. Psychological Methods , 2024. Ad-vance online publication. Escobar, M. D. and West, M. Bayesian density estimation and inference using mixtures. Journal of the american statistical association , 90(430):577–588, 1995. Ferizi, U., Schneider, T., Panagiotaki, E., Nedjati-Gilani, G., Zhang, H., Wheeler-Kingshott, C. A. M., and Alexander, D. C. A ranking of diffusion MRI compartment models with in vivo human brain data. Magnetic Resonance in Medicine , 72(6):1785–1792, 2014. Ferizi, U., Schneider, T., Witzel, T., Wald, L. L., Zhang, H., Wheeler-Kingshott, C. A., and Alexander, D. C. White matter compartment models for in vivo diffusion mri at 300 mt/m. NeuroImage , 118:468–483, 2015. Ferizi, U., Scherrer, B., Schneider, T., Alipoor, M., Eufracio, O., Fick, R. H., Deriche, R., Nilsson, M., Loya-Olivas, A. K., Rivera, M., et al. Diffusion mri microstructure mod-els with in vivo human brain connectome data: results from a multi-group comparison. NMR in Biomedicine ,30(9):e3734, 2017. Fick, R. H., Wassermann, D., and Deriche, R. The dmipy toolbox: diffusion mri multi-compartment modeling and microstructure recovery made easy. Frontiers in neuroin-formatics , 13:64, 2019. Garyfallidis, E., Brett, M., Amirbekian, B., Rokem, A., Van Der Walt, S., Descoteaux, M., Nimmo-Smith, I., and Contributors, D. Dipy, a library for the analysis of diffusion mri data. Frontiers in neuroinformatics , 8:8, 2014. Gelman, A., Meng, X.-L., and Stern, H. Posterior predictive assessment of model fitness via realized discrepancies. 
+
+Statistica Sinica , 6(4):733–807, 1996. Gelman, A., Vehtari, A., Simpson, D., Margossian, C. C., Carpenter, B., Yao, Y., Kennedy, L., Gabry, J., B ¨urkner, P.-C., and Modr ´ak, M. Bayesian workflow. arXiv preprint arXiv:2011.01808 , 2020. Ghahramani, Z. Bayesian non-parametrics and the proba-bilistic approach to modelling. Philosophical Transac-tions of the Royal Society A: Mathematical, Physical and Engineering Sciences , 371(1984):20110553, 2013. Gilks, W. R., Richardson, S., and Spiegelhalter, D. Markov chain Monte Carlo in practice . CRC press, 1995. Gloeckler, M., Deistler, M., Weilbach, C. D., Wood, F., and Macke, J. H. All-in-one simulation-based inference. In 
+
+International Conference on Machine Learning , volume 235, pp. 15735–15766. PMLR, 2024. Gorham, J. and Mackey, L. Measuring sample quality with kernels. In Precup, D. and Teh, Y. W. (eds.), Proceed-ings of the 34th International Conference on Machine Learning , volume 70 of Proceedings of Machine Learn-ing Research , pp. 1292–1301. PMLR, 06–11 Aug 2017. 10 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Gunes, B., Buder, S., and Buck, T. A compass to model comparison and simulation-based inference in galactic chemical evolution, 2025. Hethcote, H. W. The mathematics of infectious diseases. 
+
+SIAM Review , 42(4):599–653, 2000. Hodgkin, A. L. and Huxley, A. F. A quantitative description of membrane current and its application to conduction and excitation in nerve. The Journal of Physiology , 117 (4):500–544, 1952. Jbabdi, S., Sotiropoulos, S. N., Savio, A. M., Gra ˜na, M., and Behrens, T. E. Model-based analysis of multishell diffusion mr data for tractography: How to get over fitting problems. Magnetic resonance in medicine , 68(6):1846– 1855, 2012. Jeffrey, N. and Wandelt, B. D. Evidence networks: Simple losses for fast, amortized, neural Bayesian model com-parison. Machine Learning: Science and Technology , 5 (1):015008, 2024. Jeffreys, H. The Theory of Probability . Clarendon Press, Oxford, 1939. Jelescu, I. O. and Budde, M. D. Design and validation of diffusion MRI models of white matter. Frontiers in Physics , 5:61, 2017. Jelescu, I. O., Palombo, M., Bagnato, F., and Schilling, K. G. Challenges for biophysical modeling of microstructure. 
+
+Journal of neuroscience methods , 344:108861, 2020. Karras, T., Aittala, M., Aila, T., and Laine, S. Elucidating the design space of diffusion-based generative models, 2022. NeurIPS 2022. Kass, R. E. and Raftery, A. E. Bayes factors. Journal of the American Statistical Association , 90(430):773–795, 1995. Keeling, M. J. and Rohani, P. Modeling Infectious Diseases in Humans and Animals . Princeton University Press, 2008. ISBN 9780691116174. Kelly, R. P., Warne, D. J., Frazier, D. T., Nott, D. J., Gutmann, M. U., and Drovandi, C. Simulation-based bayesian inference under model misspecification. arXiv preprint arXiv:2503.12315 , 2025. Kermack, W. O. and McKendrick, A. G. A contribution to the mathematical theory of epidemics. Proceedings of the royal society of london. Series A, Containing papers of a mathematical and physical character , 115(772):700–721, 1927. Kucharsk ´y, ˇS., Mishra, A., Habermann, D., Radev, S. T., and B ¨urkner, P.-C. Improving the accuracy of amortized model comparison with self-consistency, 2025. Lavin, A., Krakauer, D., Zenil, H., Gottschlich, J., Mattson, T., Brehmer, J., Anandkumar, A., Choudry, S., Rocki, K., Baydin, A. G., Prunkl, C., Paige, B., Isayev, O., Peter-son, E., McMahon, P. L., Macke, J., Cranmer, K., Zhang, J., Wainwright, H., Hanuka, A., Veloso, M., Assefa, S., Zheng, S., and Pfeffer, A. Simulation intelligence: To-wards a new generation of scientific methods. arXiv preprint arXiv:2112.03235 , 2022. Liepe, J., Barnes, C., Cule, E., Erguler, K., Kirk, P., Toni, T., and Stumpf, M. P. H. ABC-SysBio—approximate Bayesian computation in Python with GPU support. 
+
+Bioinformatics , 26(14):1797–1799, 2010. Liu, Q., Lee, J., and Jordan, M. A kernelized stein dis-crepancy for goodness-of-fit tests. In Balcan, M. F. and Weinberger, K. Q. (eds.), Proceedings of The 33rd Inter-national Conference on Machine Learning , volume 48 of 
+
+Proceedings of Machine Learning Research , pp. 276–284, New York, New York, USA, 20–22 Jun 2016. PMLR. Lotfi, S., Izmailov, P., Benton, G., Goldblum, M., and Wil-son, A. G. Bayesian model selection, the marginal likeli-hood, and generalization. In International Conference on Machine Learning , pp. 14223–14247. PMLR, 2022. Lu, C., Zhou, Y., Bao, F., Chen, J., Li, C., and Zhu, J. Dpm-solver++: Fast solver for guided sampling of diffusion probabilistic models. Machine Intelligence Research , 22 (4):730–751, June 2025. ISSN 2731-5398. Lueckmann, J.-M., Goncalves, P. J., Bassetto, G., ¨Ocal, K., Nonnenmacher, M., and Macke, J. H. Flexible statistical inference for mechanistic models of neural dynamics. 
+
+Advances in neural information processing systems , 30, 2017. MacKay, D. J. C. Model comparison and occam’s razor. In 
+
+Information Theory, Inference, and Learning Algorithms ,chapter 28, pp. 343–356. Cambridge University Press, Cambridge, UK, 2003a. ISBN 978-0521642989. MacKay, D. J. C. Information Theory, Inference, and Learn-ing Algorithms . Cambridge University Press, 2003b. ISBN 9780521642989. Manzano-Patron, J., Deistler, M., Schr ¨oder, C., Kypraios, T., Gon c¸ alves, P. J., Macke, J. H., and Sotiropoulos, S. N. Uncertainty mapping and probabilistic tractography using simulation-based inference in diffusion mri: A compari-son with classical bayes. Medical Image Analysis , 103: 103580, 2025. 11 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Marin, J.-M., Pillai, N. S., Robert, C. P., and Rousseau, J. Relevant statistics for Bayesian model choice. Jour-nal of the Royal Statistical Society: Series B (Statistical Methodology) , 76(5):833–859, 2014. Mattiello, J., Basser, P. J., and Le Bihan, D. The b ma-trix in diffusion tensor echo-planar imaging. Magnetic Resonance in Medicine , 37(2):292–300, 1997. Novikov, D. S. The present and the future of microstructure MRI: From a paradigm shift to normal science. Journal of Neuroscience Methods , 351:108947, 2021. Panagiotaki, E., Schneider, T., Siow, B., Hall, M. G., Lyth-goe, M. F., and Alexander, D. C. Compartment models of the diffusion MR signal in brain white matter: A tax-onomy and comparison. NeuroImage , 59(3):2241–2254, 2012. Papamakarios, G. and Murray, I. Fast ε-free inference of simulation models with Bayesian conditional density es-timation. Advances in neural information processing systems , 29, 2016. Papamakarios, G., Nalisnick, E., Rezende, D. J., Mohamed, S., and Lakshminarayanan, B. Normalizing flows for probabilistic modeling and inference. Journal of Machine Learning Research , 22(57):1–64, 2021. Peebles, W. and Xie, S. Scalable diffusion models with transformers. arXiv preprint arXiv:2212.09748 , 2022. Pudlo, P., Marin, J.-M., Estoup, A., Cornuet, J.-M., Gautier, M., and Robert, C. P. Reliable ABC model choice via random forests. Bioinformatics , 32(6):859–866, 2016. Radev, S. T., Mertens, U. K., Voss, A., Ardizzone, L., and K ¨othe, U. Bayesflow: Learning complex stochastic mod-els with invertible neural networks. IEEE transactions on neural networks and learning systems , 33(4):1452–1466, 2020. Radev, S. T., D’Alessandro, M., Mertens, U. K., Voss, A., K ¨othe, U., and B ¨urkner, P.-C. Amortized Bayesian model comparison with evidential deep learning. IEEE Transac-tions on Neural Networks and Learning Systems , 34(8): 4903–4917, 2021. Radev, S. T., Schmitt, M., Pratz, V., Picchini, U., K ¨othe, U., and B ¨urkner, P.-C. Jana: Jointly amortized neural ap-proximation of complex Bayesian models. In Conference on Uncertainty in Artificial Intelligence , volume 216, pp. 1695–1706. PMLR, 2023a. Radev, S. T., Schmitt, M., Schumacher, L., Elsem ¨uller, L., Pratz, V., Sch ¨alte, Y., K ¨othe, U., and B ¨urkner, P.-C. Bayesflow: Amortized bayesian workflows with neural networks, 2023b. Reuter, A., Rudner, T. G., Fortuin, V., and R ¨ugamer, D. Can transformers learn full bayesian inference in context? 
+
+arXiv preprint arXiv:2501.16825 , 2025. Robert, C. P., Cornuet, J.-M., Marin, J.-M., and Pillai, N. S. Lack of confidence in approximate Bayesian computation model choice. Proceedings of the National Academy of Sciences of the United States of America , 108(37):15112– 15117, 2011. Russakovsky, O., Deng, J., Su, H., Krause, J., Satheesh, S., Ma, S., Huang, Z., Karpathy, A., Khosla, A., Bernstein, M., Berg, A. C., and Fei-Fei, L. Imagenet large scale visual recognition challenge, 2015. Salimans, T. and Ho, J. Progressive distillation for fast sampling of diffusion models. arXiv preprint arXiv:2202.00512 , 2022. Schmidt, M. and Lipson, H. Distilling free-form natural laws from experimental data. science , 324(5923):81–85, 2009. Sch ¨olzel, C., Blesius, V., and Ernst, U. An understandable, extensible, and reusable implementation of the hodgkin– huxley model. Frontiers in Physiology , 11:583203, 2020. Schr ¨oder, C. and Macke, J. H. Simultaneous identifica-tion of models and parameters of scientific simulators. In Salakhutdinov, R., Kolter, Z., Heller, K., Weller, A., Oliver, N., Scarlett, J., and Berkenkamp, F. (eds.), Pro-ceedings of the 41st International Conference on Machine Learning , volume 235 of Proceedings of Machine Learn-ing Research , pp. 43895–43927. PMLR, 21–27 Jul 2024. Schumacher, L., Schn ¨urch, M., Voss, A., and Radev, S. T. Validation and comparison of non-stationary cognitive models: A diffusion model application. Computational Brain & Behavior , 8(2):191–210, 2025. Skuse, B. The third pillar. Physics World , 32(3):40–43, 2019. Song, Y. and Ermon, S. Generative modeling by estimating gradients of the data distribution. In Advances in Neu-ral Information Processing Systems , volume 32. Curran Associates, Inc., 2019. Sotiropoulos, S. N., Behrens, T. E., and Jbabdi, S. Ball and rackets: inferring fiber fanning from diffusion-weighted mri. Neuroimage , 60(2):1412–1425, 2012. Spurio Mancini, A., Docherty, M. M., Price, M. A., and McEwen, J. D. Bayesian model comparison for simulation-based inference. RAS Techniques and Instru-ments , 2(1):710–722, 2023. 12 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Srinivasan, R., Crisostomi, M., Trotta, R., Barausse, E., and Breschi, M. Bayesian evidence estimation from posterior samples with normalizing flows. Physical Review D , 110 (12):123007, 2024. Stejskal, E. O. and Tanner, J. E. Spin diffusion measure-ments: Spin echoes in the presence of a time-dependent field gradient. The Journal of Chemical Physics , 42(1): 288–292, 1965. Sudlow, C., Gallacher, J., Allen, N., Beral, V., Burton, P., Danesh, J., Downey, P., Elliott, P., Green, J., Landray, M., et al. Uk biobank: an open access resource for identifying the causes of a wide range of complex diseases of middle and old age. PLoS medicine , 12(3):e1001779, 2015. Talts, S., Betancourt, M., Simpson, D., Vehtari, A., and Gelman, A. Validating bayesian inference algo-rithms with simulation-based calibration. arXiv preprint arXiv:1804.06788 , 2018. Teh, Y. W., Jordan, M. I., Beal, M. J., and Blei, D. M. Hierarchical dirichlet processes. Journal of the american statistical association , 101(476):1566–1581, 2006. Thomas, C., Ye, F.-C., Irfanoglu, M. O., Modi, P., Saleem, K. S., Leopold, D. A., and Pierpaoli, C. Anatomical accuracy of brain connections derived from diffusion MRI tractography is inherently limited. Proceedings of the National Academy of Sciences , 111(46):16574–16579, 2014. Toni, T. and Stumpf, M. P. H. Simulation-based model se-lection for dynamical systems in systems and population biology. Bioinformatics , 26(1):104–110, 2010. Toni, T., Welch, D., Strelkowa, N., Ipsen, A., and Stumpf, M. P. H. Approximate Bayesian computation scheme for parameter inference and model selection in dynamical systems. Journal of the Royal Society Interface , 6(31): 187–202, 2009. Tournier, J.-D., Calamante, F., and Connelly, A. Robust determination of the fibre orientation distribution in dif-fusion MRI: Non-negativity constrained super-resolved spherical deconvolution. NeuroImage , 35(4):1459–1472, 2007. Van Essen, D. C., Ugurbil, K., Auerbach, E., Barch, D., Behrens, T. E., Bucholz, R., Chang, A., Chen, L., Cor-betta, M., Curtiss, S. W., et al. The human connectome project: a data acquisition perspective. Neuroimage , 62 (4):2222–2231, 2012. Warrington, S., Thompson, E., Bastiani, M., Dubois, J., Bax-ter, L., Slater, R., Jbabdi, S., Mars, R. B., and Sotiropou-los, S. N. Concurrent mapping of brain ontogeny and phy-logeny within a common space: Standardized tractogra-phy and applications. Science Advances , 8(42):eabq2022, 2022. Watson, G. S. Equatorial distributions on a sphere. 
+
+Biometrika , 52(1–2):193–201, 1965. Werner, M., Junginger, A., Hennig, P., and Martius, G. Informed equation learning. arXiv preprint arXiv:2105.06331 , 2021. Winsberg, E. Science in the age of computer simulation .University of Chicago Press, 2019. Yadan, O. Hydra - a framework for elegantly configuring complex applications. Github, 2019. Zhang, H., Schneider, T., Wheeler-Kingshott, C. A. M., and Alexander, D. C. NODDI: Practical in vivo neurite orientation dispersion and density imaging of the human brain. NeuroImage , 61(4):1000–1016, 2012. 13 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+# A. Experimental details 
+
+We first define the metrics we used to assess approximation quality across the amortization scope (Sec. A.1). We then provide additional training details (Sec. A.2). 
+
+A.1. Evaluation metrics 
+
+Having both a model posterior and a parameter posterior enables uncertainty quantification at two levels: local uncertainty conditioned on a fixed model, and global uncertainty that marginalizes over model uncertainty (Werner et al., 2021). Concretely, we evaluate the two posterior predictive distributions: Local : p(x | xo, M) ≈ Eq(θ|xo,M)[p(x | θM, M)] ,
+
+Global: p(x | xo) ≈ Eq(M,θ|xo)[p(x | θM, M)] . (1) The model posterior further supports Bayesian model comparison (BMC) over any user-specified subset {M i} ⊂ M
+
+by ranking models via q(Mi | xo, λ ) (Radev et al., 2020; Elsem ¨uller et al., 2024). Finally, it enables model discovery 
+
+by exploring the combinatorial space through samples M ∼ q(M | xo, λ ), surfacing plausible component combinations beyond hand-designed candidates. However, to measure performance we report the following quantities since exact reference posteriors are infeasible across our amortization scopes: (i) Predictive RMSE : We report local RMSE under a fixed model and global RMSE under the model-averaged posterior predictive (Gelman et al. 1996). We report relative RMSE (rRMSE) to the lower bound (noise floor) where appropriate. (ii) Calibration (SBC) : Simulation-based calibration (SBC) assesses self-consistency of the inferred posterior by testing rank uniformity for parameters and models drawn from the generative process (Talts et al., 2018). We report the absolute deviation of the SBC statistic from its nominal value. A well calibrated posterior is neither over- nor under-confident. However, calibration is a necessary, but not sufficient criterion for the correctness of the posterior distribution. (iii) Sample quality via (r)KSD : When likelihood scores are available, we evaluate posterior sample quality using (ker-nelized) Stein discrepancy, which does not require the posterior normalizing constant (Liu et al., 2016; Gorham & Mackey, 2017). We report a normalized rKSD to mitigate scale effects across models and parameter dimensionalities . 
+
+Predictive RMSE. For an observation xo and a fixed model M, we form the local posterior predictive and for the full model family the global (model-averaged) posterior predictive following Equation 1. We compute MSE on the predictive samples xi sampled from the local or global posterior predictive: 
+
+MSE( xi, xo,i ) = 1
+
+D
+
+> D
+
+X
+
+> j=1
+
+ ˆxji − xjo,i 
+
+2,
+
+where D is the dimensionality of xo. For local MSE (i.e. conditioned on a model) we use xi ∼ Eq(θ|xo,M)[p(x | θ, M)] ,and for global RMSE we use xi ∼ Eq(M,θ|xo)[p(x | θ, M)] . For a dataset of N observations we obtain the RMSE RMSE =
+
+vuut 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+MSE (xi, xo,i )
+
+As this includes irreducible error from noise within the simulator we normalize RMSE by a task-specific irreducible-error baseline. Concretely, for each ground-truth setting (M⋆, θ⋆) we generate R replicate observations x(r) 
+
+> o
+
+∼ p(x | θ⋆, M⋆)
+
+with different simulator seeds. Computing the RMSE on such a dataset yields RMSE min . We report rRMSE = RMSE −
+
+RMSE min so values close to 0 indicate performance near the simulation-noise floor. 14 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Calibration (SBC). Simulation-based calibration (SBC) checks self-consistency under the generative process: if (M, θ, x)
+
+are drawn from the simulator and we rerun inference on x, then suitable probability integral transform (PIT), e.g. rank statistics should be Uniform(0 , 1) (Talts et al., 2018). We apply SBC to both the model posterior q(M | x) (discrete) and the parameter posterior q(θ | M , x) (continuous, conditional on the generating mask). Notably this only allows performance evaluation of the uncertainty calibration in the well-specified (i.e. synthetic) case. More specifically, we sample for each trial t = 1 , . . . , T model, parameters and data: M(t) ∼ p(M), θ(t) ∼ p(θ | M (t)),
+
+x(t) ∼ p(x | θ(t), M(t)), and then compute the probabilities q(M | x(t)) and q(θ | M (t), x(t)). We then compute SBC for the model masks and the parameters separately: 
+
+Model SBC (discrete). Let ℓ(t) 
+
+> true
+
+= log q(M(t) | x(t)). Draw S masks fM(t,s ) ∼ q(M | x(t)) and set ℓ(t) 
+
+> s
+
+= log q( fM(t,s ) |
+
+x(t)). We use a randomized rank to handle ties: define n(t) 
+
+> <
+
+= P 
+
+> s
+
+1[ℓ(t) 
+
+> s
+
+< ℓ (t)
+
+> true
+
+] and n(t)= = P 
+
+> s
+
+1[ℓ(t) 
+
+> s
+
+= ℓ(t)
+
+> true
+
+], draw 
+
+K(t) ∼ Unif {0, . . . , n (t)= } and V (t) ∼ Unif(0 , 1) , and form u(t) 
+
+> model
+
+= ( n(t) 
+
+> <
+
++ K(t) + V (t))/(S + 1) . This is important in discrete cases as there is a non-zero probability to sample the exact same mask with exact same log probabilities. 
+
+Parameter SBC (continuous, conditional on the generating model). Let I(M(t)) be the active parameter indices under 
+
+M(t), and draw posterior samples θ(t,s ) ∼ q(θ | M (t), x(t)). For each j ∈ I (M(t)), compute the rank of the truth among samples, e.g. r(t) 
+
+> j
+
+= 1 + P 
+
+> s
+
+1[θ(t,s ) 
+
+> j
+
+< θ (t) 
+
+> j
+
+], and convert to a PIT value u(t) 
+
+> j
+
+= ( r(t) 
+
+> j
+
+− 0.5) /(S + 1) . We then assess uniformity by pooling all {u(t) 
+
+> j
+
+} across trials and active indices . 
+
+Calibration summary. Given PIT values {u} (either {u(t)
+
+> model
+
+} or the pooled {u(t) 
+
+> j
+
+}), we compare the empirical CDF bF (u) to the nominal F0(u) = u. As a scalar error we report CE = |G| −1 P 
+
+> g∈G
+
+| bF (g) − g| on a grid G ⊂ [0 , 1] . We use a uniform grid with 100 vertices as default. 
+
+(Relative) multi-scale KSD. To quantify how well samples from the parameter posterior match the target posterior, we use a preconditioned, multi-scale Kernel Stein Discrepancy (KSD, Liu et al. (2016); Gorham & Mackey (2017)) computed 
+
+conditional on the generating model M. For each trial (or voxel) we draw samples {θ(s)}Ss=1 ∼ q(θ | M , x) and evaluate them against the unnormalized log posterior log p(θ | M , x) = log p(x | θ, M) + log p(θ | M ), where the prior is applied only to the active dimensions indicated by θ-mask mθ (M) (effective dimension deff = P 
+
+> j
+
+mθ,j ). We obtain the score 
+
+∇θ log p(θ | M , x) by automatic differentiation. 
+
+Preconditioning. To reduce sensitivity to anisotropy and scale, we whiten samples in the active subspace using an empirical covariance preconditioner: with LL ⊤ ≈ dCov( θ ⊙ mθ ), we set P = L−1, transform samples to z = P θ, and transform scores accordingly sz = P −⊤ sθ (again masking inactive dimensions). 
+
+Multi-scale Stein kernel. In whitened space we use an RBF base kernel with multiple bandwidths kh(z, z′) = exp( −∥ z −
+
+z′∥2/(2 h2)) for h ∈ H , and average the corresponding Stein kernels uniformly across scales. We use a broad range (h ∈ { 0.1, 0.5, 1., 10 .}) to increase sensitivity to a broader range of “discrepancies”. The (squared) KSD is computed as the usual U-statistic over the resulting Stein Gram matrix H:
+
+KSD 2 = 1
+
+S(S − 1) 
+
+X
+
+> i̸=j
+
+Hij , KSD = 
+
+q
+
+max(KSD 2, 0) .
+
+Relative KSD (rKSD). Because KSD magnitude depends on dimension and problem, we also report a standardized discrepancy. Let KSD prior be the KSD obtained by replacing posterior samples with prior samples θ(s) ∼ p(θ | M ) (using the same S, mask, preconditioning, and bandwidth set). We then define rKSD = KSD /KSD prior , so rKSD < 1 indicates the approximation is closer to the target than the prior baseline. 
+
+A.2. Model architecture and training details 
+
+A.2.1. M ODEL DETAILS AND CONFIGURATIONS 
+
+The full model comprises (i) an encoder for the simulator output and global parameters (e.g. diffusion measurements and acquisition meta-data), (ii) a tokenizer that produces model component- and parameter-level token sequences together with structured attention masks, and (iii) two transformer decoders : an autoregressive (AR) decoder for the model posterior 
+
+qϕ(M | x, λ ) and a diffusion decoder for the parameter posterior qϕ(θ | M , x, λ ).15 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+We only vary the model dim and num layer across experiments, all other hyperparameters were fixed or derived from that. We used 4 attention heads, attention size is fixed to 16 (query/key/value projection dimension), and widening factor 4 (i.e. feedforward MLP expand the hidden dimension by 4 × model dim ). 
+
+Encoder. Encoders across tasks are represented by a standard self-attention transformer encoder. For the symbolic regression task we group 10 datapoints into a single token and additionally add a positional embedding. For the dMRI task we embed the acquisition settings i.e. (b,⃗ b) and diffusion signal S as follows: we use a Random Fourier Embedding for the b-value b,a linear mapping for the signal S and the bvec ⃗ b which all get concatenated into a token of size model dim , which is then transformed by a transformer without positional embedding (to ensure exchangeability). 
+
+Tokenizers. The learnable tokenizers have a similar structure but task-specific variations. All used tokenizers have a learnable “identification” vector per component in which the necessary information is provided for the decoders. The model decoder additionally requires the binary mask M = ( M1, . . . , M C ); we encode this by adding a learned embedding of the mask values Mi ∈ { 0, 1} to the corresponding token. (i) SymbolicTokenizer: We have several parameters per model component (Tab.7). Each parameter of θM ⊂ Θ
+
+is linearly projected to a model dim -dimensional vector and added to the component embedding. In addition to this embedding layer, we also need a component specific linear decoding layer to reduce the token to the respective parameter dimension. (ii) DMRITokenizer extends this to also allow for global or shared parameter per model component. For global parameters (i.e. shared diffusivity in B3S or the constraints on the fractions f ) we introduce a learnable identification token per dimension and add a linear projection of the value (e.g. fi) to each token. In a similar style shared parameters 
+
+get grouped into an additional token and are removed from the corresponding compartment tokens. We additionally construct a M-dependent block attention mask : if Mi = 0 , the corresponding parameter-token block is removed from the diffusion-transformer input and all attention connections to and from that block are masked. This implements attention-based marginalization of unused parameters and ensures θ predictions only depend on active compo-nents (Gloeckler et al., 2024). 
+
+Model-posterior decoder. Discrete model selection is implemented with an autoregressive transformer decoder, representing the model posterior as a multivariate Bernoulli distribution over M ∈ { 0, 1}C :
+
+qϕ(M | x, λ ) = 
+
+> C
+
+Y
+
+> i=1
+
+Bern 
+
+
+
+Mi pϕ(M<i , x, λ )
+
+
+
+. (2) Conditioning on x is implemented via cross-attention to the encoder tokens; λ is injected through adaptive layer normalization (AdaLN) (Peebles & Xie, 2022). Specifically we embed λ by a Random Fourier Embedding. Each AdaLN block then uses a MLP to predict a ”scale and shift” of size model dim that then scales or shifts the transformers hidden state. In contrast to Peebles & Xie (2022) we do not use additional gating. A causal attention mask (with the padding tokens) enforces strict autoregressive decoding. We can thus evaluate the probability within a single forward pass, but require C forward passes for sampling it autoregressively. The evaluation hence is O(C2) and naive sampling cost is O(C · C2) (O(C2) when using KV caching at cost of memory). 
+
+Parameter-posterior decoder. Continuous parameter inference uses an EDM-style diffusion transformer (Karras et al., 2022). For a global parameter vector Θ ∈ Rdmax , we sample t ∈ [10 −4, 80] and perturb parameters as 
+
+θt = θ + t ϵ, ϵ ∼ N (0, I), (3) conditioning on encoder tokens via cross-attention and injecting t via Gaussian–Fourier time embeddings and AdaLN. We train with v-prediction, 
+
+vt = αtϵ − βtθ, vϕ(θt, t, x) = αt ˆϵϕ, θt,t, x − βt ˆθϕ, θt,t, x.
+
+with αt, β t as the normalized SNR αt = 1√1+ t2 , β t = t√1+ t2 . Note, that vϕ(θt, t, x) does not need two evaluations for ˆϵ, ˆθ.From ˆθ as given by Karras et al. (2022) we obtain ˆϵ = ( θt − ˆθ)/t .16 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Sampling uses a 64-step EDM schedule on the probability flow ODE (Song & Ermon, 2019). If not specified otherwise, we use an ODE based solver e.g. the exponential Adams–Bashforth solver (Lu et al., 2025), which only requires a single forward pass per step. Given that we group parameters compartmentwise the number of tokens is thus O(C) and sampling cost O(T · C2), where T is the number of sampling steps in the diffusion model. To impose a consistent prior on θ across models, we reparameterize each task-specific prior into a standard-normal latent space via a bijection. Concretely, we introduce latent variables θ ∼ N (0, I) and define task parameters as θnatural = T (θ),where T maps unconstrained Euclidean latents to the appropriate constrained domain (see below, e.g. intervals, manifolds). This ensures that samples always satisfy the task constraints (e.g., positivity, simplex constraints, or manifold membership), while allowing us to use a consistent normal prior across dimensions. Additionally this allows to reduce dimensionality to the domains dimension and reduces degeneracy. We use the following bijective transforms within our experiments: • Uniform on an interval [a, b ] (componentwise): for θ ∼ N (0 , 1) , set u = Φ( z) ∈ (0 , 1) and 
+
+θ = a + ( b − a) u, 
+
+where Φ is the standard-normal CDF. • Uniform on the upper half-sphere: S2+ = {n ∈ R3 : ∥n∥2 = 1 , n z ≥ 0}: draw z1, z 2 ∼ N (0 , 1) , set u1 = Φ( z1),
+
+u2 = Φ( z2), and define 
+
+φ = 2 πu 1, θ = arccos( u2),
+
+n =  sin θ cos φ, sin θ sin φ, cos θ,
+
+which yields a uniform distribution over surface area on the hemisphere. • Simplex ∆K−1 (Dirichlet stick-breaking): for a Dirichlet prior π ∼ Dir( α), we use the stick-breaking construction with K −1 latent variables ϵ ∈ RK−1. We map ϵ to uniforms ui = Φ( ϵi) and then to Beta variables via the inverse regularized incomplete beta function: 
+
+vi = I−1 
+
+> ui
+
+(αi, b i) , bi = X
+
+> j>i
+
+αj ,
+
+followed by 
+
+πi = vi
+
+Y
+
+> j<i
+
+(1 − vj ), i = 1 , . . . , K − 1, πK =
+
+> K−1
+
+Y
+
+> j=1
+
+(1 − vj ).
+
+A.2.2. O NLINE TRAINING 
+
+Data is generated on the fly via a streaming SimulationDataset . A simulator runs on CPU (if not otherwise specified) and fills a ring buffer of size 10 5 in batch-size-sample chunks; a background thread refreshes consumed slots and host-to-device prefetch keeps the accelerator saturated. Training batches are fetched in a non-blocking manner indefinitely. Optimization uses RAdam (learning rate 5 · 10 −4), adaptive gradient clipping at 2.0, no scheduler, and an exponential moving average (EMA) tracking of parameters (decay 0.999). The objective combines an auto-regressive mask negative log-likelihood (implemented as binary-cross-entropy) and a diffusion v-prediction loss: 
+
+LM = −E
+
+" CX
+
+> i=1
+
+log Bern 
+
+
+
+Mi pϕ(M<i , x, λ )
+
+#
+
+, Lθ = Et, ϵ
+
+h
+
+ˆvϕ(θt, t, x, M) − vt
+
+> 22
+
+i
+
+. (4) Runs are executed on a single H100 GPU with 16 CPU cores, 32 GB host RAM. As final parameters we use the latest EMA parameter. 17 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+A.2.3. A DDITIONAL SPECIFICATIONS 
+
+For the symbolic regression tasks, we varied model dim ∈ { 32 , 64 , 128 } while keeping the number of layers fixed. We used 2 layers for the encoder and 6 layers for the decoder, and trained with a batch size of 4096. For the comparison with SBMI, we used model dim = 64 , reduced the decoder to 4 layers, and reduced the batch size to 1024. For the dMRI networks, we used model dim = 128 . The B3S model used layers (2 , 4, 6) for (encoder, model-selection, parameter inference), respectively, and the B3S simulator trained on a mixed acquisition scheme combining UKB and HCP-like data (Sec. B.2 for details). The BSZT model used layers (2 , 6, 8) for (encoder, model-selection, parameter inference), respectively, and trained on the same mixed acquisition scheme. The BSZT+conv model used model dim = 128 and the same stack depths as the BSZT model, but with the spherical-convolution extension enabled in the simulator and training data generation. As the spherical convolution is much more expensive, we ran the simulation here also on GPU. All dMRI networks were trained for 72 hours. 
+
+A.3. Additional symbolic regression results 0 1Model complexity λ                  
+
+> 0
+> 50
+> # components 015 Inputx
+> 0
+> 20 Output f(x)
+> Global posterior pred.
+> (λ=0.5,λ=0.1)b010 θ0
+> 15θ1
+> 02θ2True
+> 010 20 30 40 50 58
+> Model component index
+> 0.0
+> 1.0 λ
+> 0.
+> 1.0 Probability Model posterior Parameter posterior
+> a
+
+Figure A.1. (a) Illustration of symbolic regression given on the same ground truth function and noise model as in Fig. 2 but with 1000 observations. (b) Associated model and parameter posterior of the simple function (orange), which becomes more constrained compared to Fig. 2 with 10 observations. 
+
+For the same example function as in Fig. 2, we show in Fig. A.1 the results for 1000 observations as also used in our main evaluations. We can see that the model posterior is more certain about the number of components (Fig. A.1a right, Fig. A.1b left) . Yet, due to large and ’peaked’ noise for small x, the overall function is not identifiable and e.g. a square-root approximation to the log is similarly well supported by the data as the true logarithmic component. For each trained model with K ∈ { 15 , 30 , 50 , 80 , 100 } symbolic compo-nents, we evaluated rRMSE, rKSD, and calibration error (Fig. A.2). Both rRMSE and rKSD indicate a very good approximation up to 230 , with only a minor deviation at 250 and a clearer deviation afterwards. Across all K, calibration error remains very low and is typically close to the error expected at random. For K = 15 we observe larger (but still small) calibration deviations even though rRMSE and rKSD stay low. All in all, this does not imply that models with K > 50 are inherently poor: they still yield accurate and calibrated predictions, but they deviate from the Bayes-optimal predictor. 
+
+Limited Training Data For the task of K = 50 model components, the smallest network completed 553k update steps, whereas the largest network completed roughly 363k. If we assume that each batch corre-sponds to a new model (i.e., no model is repeated; an upper bound), this amounts to approximately 1.4–2.2 billion simulations used for training. Even under the most generous assumption that each batch contains a distinct model configuration, the smallest network would have explored only about 10 −4% of the full model space, with essentially one data point per visited model. Consequently, good performance necessarily relies on extrapolation across related models—this is the core benefit of 
+
+large-scale amortization . At the same time, the results suggest that achieving near Bayes-optimal performance requires covering at least a non-trivial fraction of the model space (e.g., for K = 30 we observed roughly two simulations per model configuration). 
+
+Classifier Perspective To assess the model-posterior network from a classification perspective, we treat each candidate model as a “class.” Because the full model space is too large for standard multi-class evaluation, we restrict evaluation to a random subspace M200 . Specifically, we sample 200 models (represented by their binary masks) and define the classifier 
+
+c(M | x) = arg max 
+
+> M∈M 200
+
+q(M | x), with x ∼ p(x | M ).
+
+18 Scalable Simulation-Based Model Inference with Test-Time Complexity Control a b c215         
+
+> 215
+> 230
+> 250
+> 280
+> 2100
+> Model space size
+> 0
+> 10
+> 20
+> rRMSE
+> 230
+> 250
+> 280
+> 2100
+> Model space size
+> 0.0
+> 0.1
+> 0.2
+> rKSD
+> 215
+> 230
+> 250
+> 280
+> 2100
+> Model space size
+> 0.0025
+> 0.0050
+> 0.0075
+> Calibration error
+> model posterior
+> parameter posterior
+> ~5M params ~2M params ~1M params
+> Figure A.2. Evaluation metrics across symbolic regression tasks. The rRMSE ( a), rKSD ( b) and calibration error ( c) across all considered model spaces (x-axis) and model sizes (colors). The gray shaded area indicates the expected Monte Carlo error if perfectly calibrated. Model sizes refer to model dim ∈ { 32 ,64 ,128 }.
+> Table 1. Classification metrics for symbolic classification across different settings as derived from the confusion matrices in Fig. A.3. Please note that even a Bayes optimal classifier will spread mass across multiple models.
+
+Metric 15 30 50 80 100 Accuracy (Top-1) 0.796 0.730 0.690 0.560 0.503 Accuracy (Top-5) 0.981 0.995 0.995 0.940 0.905 Macro precision 0.813 0.776 0.741 0.647 0.597 Macro recall 0.797 0.742 0.688 0.548 0.503 Macro F1 0.794 0.733 0.674 0.525 0.463 We then evaluate this classifier using standard metrics. First, we compute confusion matrices for K = 30 , 50 , 100 (Fig. A.3). We order models by similarity of their representative masks—i.e., by overlap in components rather than by direct functional equivalence. The resulting matrices are largely diagonal, indicating that the classifier typically recovers the true model, or a closely related one. From these confusion matrices we derive standard classification metrics (Tab. 1). Top-1 accuracy decreases monotonically with increasing K, from 0.796 at K = 15 to 0.503 at K = 100 , with corresponding declines in macro precision, recall, and F1. Yet, low accuracy is expected: as K grows, we have larger estimation error but also the number of plausible model configurations increases and many configurations become observationally near-indistinguishable, rendering exact identification of a single “true” model class increasingly ambiguous. In this setting, Top-5 accuracy is a more informative measure of posterior concentration than Top-1 accuracy (as, e.g., also employed for ImageNet (Russakovsky et al., 2015). For K ∈ { 15 , 30 , 50 }, the true model is almost always contained among the five highest-probability candidates (Top-5 accuracy ≥ 0.981 ), indicating that q(M | x) concentrates its mass on a very small set of alternatives even when the MAP choice is not always correct. For larger K, Top-5 accuracy remains high but declines (to 0.940 at K = 80 and 0.905 at K = 100 ). Importantly, this performance is achieved even though the training procedure cannot have covered all classes in M (and unlikely all the classes in M200 ), so the classifier must generalize to previously unseen model configurations. Overall, these results suggest that the model-posterior network retains substantial discriminative power at large K: while exact Top-1 accuracy is hard (or generally not possible) due to class degeneracy, the true model typically remains among a small set of highly plausible candidates. 
+
+A.4. Additional dMRI results 
+
+A.4.1. E XTENDED B3S INFERENCE PERFORMANCE EVALUATION 
+
+We further verify inference performance by evaluating parameter inference on both synthetic datasets and a real dataset (Tab. 2). Notably, while our likelihoods are comparatively “simple”, the induced posterior can still be highly complex—even within this constrained model family (Fig. A.6). This contrasts with other applications in simulation-based inference, where the likelihood (i.e. the simulator) is complicated but the associated posterior is often relatively simple (Dax et al., 2021). In addition to KSD and RMSE, we report the effective sample size (ESS), which provides a proxy for how well approximate 19 Scalable Simulation-Based Model Inference with Test-Time Complexity Control Model subset (as mask) 
+
+> Confusion matrix (K=30) Model subset (as mask)
+> Confusion matrix (K=50) Model subset (as mask)
+> Confusion matrix (K=100)
+
+a b c
+
+Figure A.3. Confusion matrix for model posterior network. For a subset of 200 randomly selected models (indicated by their binary mask, x/y axis, grouped by similarity) we show the confusion matrix averaged over random λ for the symbolic regression tasks with 
+
+K = 30 , K = 50 , K = 100 
+
+samples could be corrected toward the true posterior using, for example, importance sampling (cf. (Dax et al., 2021)). We compute the ESS as follows: Let wi = p(θi | x)/q (θi | x) denote importance weights for samples θi ∼ q(θ | x). We use the normalized ESS, 
+
+ESS = 1
+
+N
+
+PNi=1 wi
+
+2
+
+PNi=1 w2
+
+> i
+
+, (5) where N is the number of samples. On synthetic data, we obtain normalized ESS values of approximately 60 % on well-specified simulated data (Tab. 2). The ESS varies with diffusion steps of the sampling routine, but it quickly reaches its plateau with T = 32 network evaluations which takes around 100 ms for 1000 posterior samples (Fig. A.4). 0.0         
+
+> 0.2
+> 0.4
+> 0.6
+> ESS
+> 24816 32 64 128 256 512
+> Number of diffusion steps
+> 101
+> 102
+> 103
+> Run time (ms)
+
+Figure A.4. ESS and run times as a function of the number of diffusion steps for 1000 posterior samples for V2 B3S posterior in Fig. 6. Evalu-ated on an Nvidia H100. 
+
+We further evaluate the model posterior network under a stricter model-selection perspective. We therefore analyze the confusion matrix (Fig. A.7a). While it is straightforward to separate a Ball from a Stick, distinguishing among Stick-based models is substantially harder when they induce (near-) identical data distributions. This ambiguity also propagates to closely related composite models (e.g. BS vs. S). We attribute this primarily to three factors: First, we employ an informative fraction prior f ; a priori , the fraction associated with the third stick is already close to zero, so “removing” that component has only a minor effect on p(x | M ). Second, we use a single noise model across a wide range of noise scales (or SNRs). If B2S and B3S are already similar in the noiseless setting, they become virtually indistinguishable at most noise levels, except for very small noise. Third, there are multiple B2S and B1S variants that are not exactly but nearly equivalent in our configuration (differing primarily in the fraction prior). Consequently, the B2S variants must split probability mass among themselves, whereas the B3S model does not face the same internal ambiguity. To further validate these findings on real data, we compare the approximate model posterior against a ground-truth reference computed via evidence esti-mates on a random subset of 1000 voxels from UKB (e.g. dMRI data using the UK Biobank acquisition protocol). We estimate the evidence p(xo | M )
+
+using an importance sampling estimator based on q(θ | M , xo), which yields 20 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 10−3          
+
+> 100
+> rKSD (n=295)  syn. real (selected) real (fixed) BS2S 3S
+> B1S
+> B1S
+> B1S
+> B2S
+> B2S
+> B2S
+> B3S
+> Model configuration
+> 10−3
+> rKSD (n=105)  syn. real (selected) real (fixed) 01
+> Modelcomplexityλ
+> 0.0025
+> 0.0050
+> Calibration error
+> UKB-like
+> (n=105)
+> HCP-like
+> (n=295)
+
+a bb c   
+
+> BS2S 3S
+> B1S
+> B1S
+> B1S
+> B2S
+> B2S
+> B2S
+> B3S
+> Model configuration
+
+Figure A.5. Calibration for dMRI data. (a) Model posterior calibration in terms of SBC across λ for UKB- and HCP-like data. (b) rKSD on the UKB dataset for synthetic data (true model) and real data, comparing a fixed model to the model selected by the model-posterior network (same as Fig. 6c). (c) Same as (b) for the HCP dataset. 
+
+Table 2. Parameter inference performance metrics. Median and 10th/90th quantiles of performance metrics on synthetic and real data for the effective sample size (ESS), the Kernel Stein discrepancy (KSD) and the predictive rooted mean square error (RMSE). Obtained via the tailored B3S model. Synthetic is over the whole model space, where real is restricted to specific models. 
+
+Synthetic Real (UKB) Metric UKB-like HCP-like B1S B2S B3S ESS 0.615 [0 .098 , 0.962] 0.578 [0 .084 , 0.979] 0.177 [0 .021 , 0.695] 0 .384 [0 .053 , 0.685] 0 .276 [0 .070 , 0.621] 
+
+KSD 0.304 [0 .000 , 11 .753] 0.141 [0 .000 , 11 .867] 0 .306 [0 .000 , 1.546] 0 .389 [0 .000 , 1.390] 0 .062 [0 .000 , 0.758] 
+
+RMSE 0.020 [0 .012 , 0.076] 0.020 [0 .012 , 0.076] 0.030 [0 .019 , 0.054] 0 .023 [0 .015 , 0.034] 0 .020 [0 .014 , 0.032] 
+
+low-variance estimates in this setting. Concretely, we compute 
+
+p(xo | M ) ≈ 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+p(xo | M , θi
+
+> M
+
+) p(θM | M )
+
+q(θi 
+
+> M
+
+| M , xo) , θi 
+
+> M
+
+∼ q(θi 
+
+> M
+
+| M , xo), (6) which is an unbiased Monte Carlo estimator of the evidence. Evidence estimates using the prior showed high variance, but this estimator with N = 1024 samples showed a low enough variance for two independent estimators to closely agree (R2 = 0 .99 , Fig. A.7b). As a complementary check, we also consider a biased evidence proxy derived from the model posterior network, 
+
+p(xo | M ) ∝ qϕ(M | xo, λ )
+
+p(M | λ) , (7) which is likewise well aligned with the unbiased importance-sampling estimates ( R2 = 0 .97 , Fig. A.7 c). This demonstrates that models selected via the model-posterior network are well aligned with models selected through classical evidence-based model selection. Given these evidence estimates, we can assess how well the approximate model posterior probabilities match the corre-sponding ground-truth model posterior, 
+
+p(M | xo) ∝ p(xo | M ) p(M | λ), (8) across all λ. We observe that the total variation distance (equivalently, the ℓ1 distance up to a factor 1/2) remains low overall, but increases for small λ. This is consistent with model misspecification: for small λ, the network is biased toward “simple” observations, whereas our earlier results suggest that real data is more “complex” in the sense that more complex models have higher evidence. In conclusion, these experiments indicate that our model posterior approximation is accurate, and that the remaining unidentifiability is largely driven by the task configuration (Sec. B.2.4). A straightforward modification to mitigate this issue is to replace the single noise model with multiple noise regimes (e.g. small, medium, and large noise), since identifiability improves at lower noise levels where model-induced distributions are more separable. This is consistent with observations by Manzano-Patron et al. (2025), who report that identifiability is strongest at small noise scales and degrades as noise increases. 21 Scalable Simulation-Based Model Inference with Test-Time Complexity Control a-3 3                      
+
+> θ0
+> -3 3
+> θ1
+> -3 3
+> θ2
+> -3 3
+> θ3
+> -3 3
+> θ4
+> -3 3
+> θ5
+> -3 3
+> θ6
+> -3 3
+> θ7
+> -3 3
+> θ8
+> -3 3
+> θ9
+> -3 3
+> θ10-3 3
+> θ0
+> -3 3
+> θ1
+> -3 3
+> θ2
+> -3 3
+> θ3
+> -3 3
+> θ4
+> -3 3
+> θ5
+> -3 3
+> θ6
+> -3 3
+> θ7
+> -3 3
+> θ8
+> -3 3
+> θ9
+> -3 3
+> θ10
+
+## b
+
+Figure A.6. Parameter posterior for Ball-and-Stick model. Full parameter posterior distribution conditioned on the B3S model (a) for V1 (b) for V2 as shown in Fig. 6. a b c d0.0 0.5 1.0 
+
+Model complexity λ
+
+0.0 
+
+0.1 
+
+0.2 
+
+> TV distance
+
+0.0 0.5 1.0 
+
+P̂ (x|M )MC1 i
+
+0.0 
+
+0.5 
+
+1.0 
+
+> P̂ (x|M )MC2 i
+
+R = 0.99
+
+> 2
+
+B1S 
+
+B2S 
+
+B3S 0.0 0.5 1.0 
+
+P̂ (x|M )MC i
+
+0.0 
+
+0.5 
+
+1.0 
+
+> q̂ (x|M )i
+
+R = 0.97
+
+> 2
+
+B1S 
+
+B2S 
+
+B3S 
+
+Figure A.7. B3S model selection evaluation. (a) Confusion matrix for all models. (b) Alignment between two Monte Carlo (MC) approximations of the evidence. (c) Alignment between the approximated evidence obtained from the PRISM model posterior probabilities compared to MC approximations. (d) Total variation (TV) distance across different model complexities λ.
+
+22 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+A.4.2. E XTENDED MODEL SPACE INFERENCE 
+
+While Ball 3 Stick model space is relatively small, we can extend it by adding alternative compartments (see Sec. B.2, Tab. 8 for a table of considered compartments). Specifically a ’Stick’ (S) can be considered a degenerate (rank 1) special case of a ’Tensor’ (T) (Basser et al., 1994) (or of a ’Zeppelin’ (Z) which itself is a constrained ’Tensor’). We consider the Ball-Stick-Zeppelin-Tensor (BSZT) space which contain three times a SZT components (ie. analogous to B3S). We further extend this spaces to BSZT-conv which includes additional componenents that are based on spherical convolution (Canales-Rodr ´ıguez et al., 2015). See Fick et al. (2019) for an overview. We investigate the performance of models trained on the BSZT and BSZT+conv spaces (see Sec. B.2.5 for details). In contrast to B3S, which can be evaluated using relatively standard approaches (including classification-based analyses (Manzano-Patron et al., 2025)), these model spaces are substantially larger, which makes evaluation more challenging. Additionally, while smaller models can be accurately estimated with the investigated data (i.e. are relatively well-constrained up to symmetries), larger models such as B3T are under constrained. This can also be seen at the associated posteriors which show high degree of parameter degeneracy (Fig. A.10). We first consider simulation-based calibration. Overall, both the model and parameter predictions remain well-calibrated (Fig. A.8a,b, left), although the calibration error is now slightly higher than the level expected under perfect calibration. For the BSZT space, deviations from the expected behavior are largely confined to specific settings (notably HCP acquisitions and a subset of models), whereas the BSZT+conv space exhibits more systematic deviations. We attribute this loss in performance also to computational constraints: simulating dMRI models based on spherical convolution is substantially more expensive (even with an additional GPU), which limits the effective coverage of the enlarged model space during training. We further corroborate these trends using RMSE, ESS, and KSD (Tab. 3, 4). We additionally evaluate the model posterior network from a classification perspective on a randomly sampled model subspace (Fig. A.9). This is inherently a difficult task for two reasons. First, many “complex” models can represent “simpler” ones by setting the corresponding fraction parameters to (near) zero. Second, in this configuration we include genuinely equivalent models (since we removed informative fraction priors), and, more broadly, Stick, Zeppelin, and Ball components can be viewed as constrained parameterizations of the Tensor model. Despite these challenges, the confusion matrices remain largely concentrated along the diagonal, with off-diagonal mass primarily distributed among equivalent or closely related models, as expected. The top-5 accuracy is 94% for the BSZT space and 98% for the BSZT+conv space (Tab. 5; although the latter increase can be primarily attributed to increase class diversity within the subspace). We emphasize that this improvement should not be interpreted as a strict dominance of BSZT+conv; rather, it is at least partly explained by differences in the evaluated subset, which is more diverse in the BSZT+conv case and therefore can be easier to separate in a top-k sense.   
+
+> Table 3. Parameter inference performance metrics. Median and 10th/90th quantiles of performance metrics on synthetic and real data for the effective sample size (ESS), the Kernel Stein discrepancy (KSD) and the predictive rooted mean square error (RMSE) for the BSZT space model. Synthetic is over the whole model space, where real is restricted to specific models.
+
+Synthetic Real (UKB) Metric UKB-like HCP-like B3S B3Z B3T ESS 0.109 [0 .026 , 0.962] 0.081 [0 .028 , 0.986] 0.133 [0 .045 , 0.302] 0.131 [0 .040 , 0.398] 0.165 [0 .061 , 0.366] 
+
+KSD 1.144 [0 .000 , 7.086] 1.776 [0 .000 , 10 .411] 0.004 [0 .000 , 0.107] 0.000 [0 .000 , 0.014] 0.000 [0 .000 , 0.000] 
+
+RMSE 0.019 [0 .011 , 0.072] 0.019 [0 .011 , 0.072] 0.020 [0 .012 , 0.032] 0.020 [0 .012 , 0.032] 0.018 [0 .012 , 0.030]   
+
+> Table 4. Parameter inference performance metrics. Median and 10th/90th quantiles of performance metrics on synthetic and real data for the effective sample size (ESS), the Kernel Stein discrepancy (KSD) and the predictive rooted mean square error (RMSE) for the BSZT + conv model. Synthetic is over the whole model space, where real is restricted to specific models.
+
+Synthetic Real (UKB) Metric UKB-like HCP-like BS W SB No B 2TS W SBNo W
+
+ESS 0.073 [0 .025 , 0.453] 0.083 [0 .021 , 0.433] 0 .109 [0 .028 , 0.464] 0 .053 [0 .020 , 0.335] 0 .135 [0 .043 , 0.410] 
+
+KSD 3.873 [0 .671 , 22 .23] 6.597 [0 .922 , 35 .49] 0.001 [0 .000 , 0.016] 1 .000 [0 .089 , 4.306] 0 .000 [0 .000 , 0.000] 
+
+RMSE 0.021 [0 .013 , 0.072] 0.019 [0 .012 0 .073] 0.022 [0 .013 , 0.049] 0 .028 [0 .014 , 0.065] 0 .018 [0 .012 , 0.031] 
+
+23 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 0.0 0.5 1.0 
+
+Nominal credible level 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> Empirical credible level
+
+Model coverage 0.0 0.5 1.0 
+
+Model complexity λ
+
+0.000 
+
+0.005 
+
+0.010 
+
+> Calibration error
+
+Model selection 
+
+> S
+> BS
+> BZ
+> 2S
+> SZ
+> SZ
+> B2S
+> B2S
+> BSZ
+> 2SZ
+> BST
+> BST
+> BZT
+> S2Z
+> B2ST
+> BSZT
+> S2ZT
+> S2ZT
+> BS2ZT
+
+0.00 
+
+0.01 
+
+0.02 
+
+Parameter inference 
+
+HCP-like UKB-like 0.0 0.5 1.0 
+
+Nominal credible level 
+
+0.0 
+
+0.5 
+
+1.0 
+
+Parameter coverage a
+
+b0.0 0.5 1.0 Model complexity λ
+
+0.00 0.02 0.04 Calibration error 
+
+Model selection 
+
+> NBBD SS 
+> SD ZBS DS  
+> Z 
+> ZD BS  
+> BSD DZ  
+> S 
+> 2S BZD DNo  
+> 2SD
+
+Model 0.00 0.01 0.02 0.03 
+
+Parameter inference HCP-like UKB-like 0.0 0.5 1.0 
+
+Nominal credible level 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> Empirical credible level
+
+Model coverage 0.0 0.5 1.0 
+
+Nominal credible level 
+
+0.0 
+
+0.5 
+
+1.0 
+
+Parameter coverage 
+
+Figure A.8. SBC evaluation for extended dMRI model spaces. Calibration plot and error (over λ and models) for the model trained on 
+
+(a ) the BSZT and (b) BSZT + conv space. None | G 
+
+> None | R
+> None | G
+> None | R
+
+a b
+
+Figure A.9. Confusion matrices for PRISM on dMRI data with full model family. (a) on a 50 model subspace for the BSZT space model (b) on a 50 model subspace for the BSZT+conv space model 
+
+24 Scalable Simulation-Based Model Inference with Test-Time Complexity Control a-3 3                                     
+
+> θ0
+> -3 3
+> θ1
+> -3 3
+> θ2
+> -3 3
+> θ3
+> -3 3
+> θ4
+> -3 3
+> θ5
+> -3 3
+> θ6
+> -3 3
+> θ7
+> -3 3
+> θ8
+> -3 3
+> θ9
+> -3 3
+> θ10
+> -3 3
+> θ11
+> -3 3
+> θ12
+> -3 3
+> θ13-3 3
+> θ0-3 3
+> θ1-3 3
+> θ2-3 3
+> θ3-3 3
+> θ4-3 3
+> θ5-3 3
+> θ6-3 3
+> θ7-3 3
+> θ8-3 3
+> θ9-3 3
+> θ10-3 3
+> θ11-3 3
+> θ12-3 3
+> θ13-3 3
+> θ14-3 3
+> θ15-3 3
+> θ16-3 3
+> θ17-3 3
+> θ18-3 3
+> θ19-3 3
+> θ20-3 3
+> θ21-3 3
+> θ22
+
+## b
+
+Figure A.10. Parameter posterior for dMRI. Parameter posterior for the two voxels shown in Fig. 6 as estimated by the BSZT-space model. (a) Posterior for the B3S model (different from previous due to unshared diffusivity and uninformative fraction prior). (b) Posterior for the B3T model showing large degeneracy due to symmetries and nonidentifiability on current datasets. 
+
+A.4.3. DMRI FOD RESULTS 
+
+Joint model–parameter inference assigns, for each voxel, both a model M and a corresponding parameter vector θM. This flexibility is a major strength, but it also complicates standard per-parameter analyses: parameters are model-specific, and their interpretation can change across models. For example, in B3S one can extract inferred diffusion “orientations” by inspecting the directions of the Stick compartments together with their associated fractions, but an analogous procedure is not directly comparable across other model classes. To enable a consistent analysis across models, we instead map each posterior sample (θM, M) to a universal representation: the Orientation Distribution Function (ODF). The ODF is a spherical distribution that provides a common summary of the orientation content implied by any model in our family. We detail this conversion in Sec. B.2. This representation allows us to visualize and compare joint (or model-averaged) posterior distributions in a single object that captures both the predicted orientation structure and its associated uncertainty. For a slice of HCP data, we compare the fODF predicted by the baseline method Rumba (Canales-Rodr ´ıguez et al., 2015) (maximum-likelihood spherical deconvolution with anatomical priors) to posterior-predictive fODFs obtained from B3S, B3T, and the BSZT-space model average. Overall, we observe substantial qualitative agreement in the dominant diffusion directions across methods on this dataset, while the associated uncertainty differs markedly between approaches. In particular, PRISM yields uncertainty estimates that vary spatially and across configurations, reflecting both measurement noise and model ambiguity in a principled way. A key limitation is that determining the “most faithful” fiber orientation in vivo is itself an open problem, and a definitive evaluation of orientation accuracy is beyond the scope of this work. Consequently, agreement or disagreement in fODF uncertainty should not be over-interpreted as direct evidence of greater anatomical correctness. What we can assess reliably, however, is statistical accuracy relative to the observed dMRI signal. Using this criterion, we find that posterior samples produced by PRISM are better aligned with the observed data than those from the baseline methods, indicating that the inferred models are better supported by the measurements (Fig. 8). 25 Scalable Simulation-Based Model Inference with Test-Time Complexity Control Rumba (spherical deconvolution) B3S posterior predictive FODs B3T posterior predictive FODs Model average posterior predictive FODs 
+
+Figure A.11. Posterior predictive fiber orientation distributions for a classical spherical deconvolution based method (Rumba, (Canales-Rodr ´ıguez et al., 2015), as implemented in dipy (Garyfallidis et al., 2014)), presuming the B3S model, the B3T or by considering the 
+
+global posterior predictive FOD averaged over all possible tensor-based models. 
+
+26 Scalable Simulation-Based Model Inference with Test-Time Complexity Control  
+
+> Table 5. Classification metrics across BSZT spaces (macro-averaged).
+
+Metric B3S space BSZT space BSZT + conv space 
+
+Accuracy (Top-1, Macro) 0.351 0.428 0.422 Accuracy (Top-5, Macro) 0.933 0.940 0.980 Macro precision 0.362 0.404 0.420 Macro recall 0.351 0.428 0.422 Macro F1 0.337 0.403 0.408 A.4.4. A DDITIONAL MODEL SELECTION RESULTS 
+
+Model selection is performed on a (prior-weighted) evidential basis, i.e. by choosing the model with the largest marginal likelihood (Bayesian evidence). In practice, we consider two complementary procedures: (i) Model selection (within a user-specified subspace). Given a user-selected subspace Msub ⊂ M, we select 
+
+M∗ = arg max 
+
+> M∈ Msub
+
+q(M | xo). (9) For a uniform prior ( λ = 1 .0), this is equivalent to selecting the model with maximal Bayesian evidence. We solve this problem exactly by evaluating q(M | xo) for every M ∈ Msub and returning the maximizer. (ii) Model discovery followed by model selection. We first solve the global optimization problem 
+
+M∗ = arg max  
+
+> M∈ M
+
+q(M | xo). (10) Since this is a discrete optimization over a large model space, we approximate it by drawing 100 samples from the model posterior and selecting the model with the highest posterior probability among the sampled set. This “discovery” step can yield many distinct models across the brain; to obtain a compact and interpretable set, we restrict attention to the 10 most frequently selected models, denoted Mtop10 . We then perform voxel-wise selection within Mtop10 using procedure (i). As in the symbolic regression task, the model-complexity prior strongly influences selection. When restricting model comparison to the B(1/2/3)(S/Z/T) subset, more complex models become less probable as λ decreases. However, the rate of this decline depends on the acquisition: for HCP data, complex models remain competitive over a wider range of λ
+
+(Fig. A.12 a). Beyond such constrained comparisons, the learned model posterior enables exploratory analysis over the full combinatorial space and highlights high-probability component combinations. Notably, when selecting over the full BSZT space, combinations such as BZT, BT, or BZ consistently rank highest across all λ. This suggests that models that dominate within the restricted B(1/2/3)(S/Z/T) subset (e.g., B3T) can often be replaced by simpler multi-component alternatives once the search space is expanded (Fig. A.12 b). Expanding further to the BSZT + conv space shifts the posterior mass again: Watson- or Bingham-stick variants combined with Balls or Tensor components (and NODDI-style formulations) become substantially more dominant (Fig. A.12 b). These shifts underscore that model-selection outcomes are conditional on the candidate set: there may always exist a better model outside the chosen search space, so claims about the “best” model should be framed relative to the models considered. Overall, the posterior concentrates on multi-compartment combinations that better explain the diffusion MRI signal, consistent with prior cross-validation studies (Panagiotaki et al., 2012; Ferizi et al., 2014; 2015; 2017). However, detailed analysis remains for future work. While the selected models are consistent with observed data, to answer domain-specific question it’s better to constrain the spaces/priors to compare ”appropriate” models for the question at hand. 27 Scalable Simulation-Based Model Inference with Test-Time Complexity Control aa b c
+
+> UKB (n=105) HCP (n=295)
+> Ball
+> B1S
+> B2S
+> B3S
+> B1Z
+> B2Z
+> B3Z
+> B1T
+> B2T
+> B3T
+
+0 1. 
+
+0.1 
+
+0.3 
+
+> frequency
+
+0 1. λ
+
+0.1 
+
+0.3 
+
+> frequency
+
+0 0.5 1
+
+Model complexity 
+
+2
+
+4
+
+6
+
+8
+
+10 
+
+> Rank (1 = best)
+
+Model 
+
+> BZ (dof=6)
+> BZT (dof=13)
+> BT (dof=8)
+> BSZ (dof=10)
+> B3Z (dof=16)
+> BS (dof=5)
+> B2Z (dof=11)
+> BZ2T (dof=20)
+> BST (dof=12)
+> 2Z (dof=9)
+> B (dof=1)
+> B2ZT (dof=18)
+
+0 0.5 1
+
+Hyperparameter 
+
+2
+
+4
+
+6
+
+8
+
+10 
+
+> Rank (1 = best)
+
+Model              
+
+> BS (dof=6)
+> BS (dof=8)
+> 2TS (dof=20)
+> TS (dof=11)
+> BNo (dof=8)
+> BTS (dof=13)
+> 2TS (dof=18)
+> TS (dof=13)
+> 2TS S(dof=25)
+> BS Z (dof=16)
+> Z(dof=5)
+> No (dof=6)
+
+Model complexity 
+
+Figure A.12. Model selection results on extended model spaces a Model selection frequencies if constrained to a set of B(1/2/3)(S/Z/T) models for the UKB and HCP dataset. b) Top 10 ranking of the whole BSZT space across lambda for the UKB dataset. c) Top 10 ranking of the BSZT+conv space across lambda for the UKB dataset. 
+
+28 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+# B. Problem specifications 
+
+B.1. Symbolic regression problem specifications 
+
+We list all components in Tab. 7 as well as their naming. For K = 15 we used exactly the setting as reported in Schr ¨oder & Macke (2024) with noise model ’NoiseObserver’,’NoiseIncreasing’, ’NoiseDecreasing’, ’NoiseQuadratic’, ’NoiseQuadraticDecreasing’;otherwise, we used all noise models. Note that we allow for repeated components. For all settings investigated, the symbolic base functions are given by Tab. 6.    
+
+> Table 6. Explicit listing of base function (see Tab. 7 for definitions) in order i.e. mask index icorresponds to the i’th base function listed.
+
+Setting Basis functions 
+
+K=15 Linear, Linear, Quadratic, ShiftedSquare, Cubic, Sinusoidal, Cosinusoidal, ConstantWide, Con-stantPositive, TanhRight, TanhLeft, GaussianBump, GaussianWide, RampUp, RampDown 
+
+K=30 Linear, Quadratic, ShiftedSquare, Cubic, Sinusoidal, Cosinusoidal, ConstantWide, ConstantPosi-tive, TanhRight, TanhLeft, TanhCentered, GaussianBump, GaussianWide, RampUp, RampDown, QuarticScaled, QuinticScaled, SinusoidalPhase, CosinusoidalPhase, ExponentialDecay, Sat-uratingExponential, Logarithmic, SquareRoot, Reciprocal, AbsoluteValue, InverseQuadratic, Lorentzian, Sigmoid, DampedSinusoidal, DampedCosinusoidal 
+
+K=50 Linear, Quadratic, ShiftedSquare, Cubic, Sinusoidal, Cosinusoidal, ConstantWide, ConstantPosi-tive, TanhRight, TanhLeft, TanhCentered, GaussianBump, GaussianWide, RampUp, RampDown, QuarticScaled, QuinticScaled, SinusoidalPhase, CosinusoidalPhase, ExponentialDecay, Sat-uratingExponential, Logarithmic, SquareRoot, Reciprocal, AbsoluteValue, InverseQuadratic, Lorentzian, Sigmoid, DampedSinusoidal, DampedCosinusoidal, ExponentialGrowth, Power-LawDecay, ArctangentStep, HyperbolicSecant, SincDecay, AbsoluteSinusoidal, RectifiedLinear, Softplus, Gompertz, LinearFractional, SineSquared, TriangularBump, Linear, Quadratic, Shifted-Square, Cubic, Sinusoidal, Cosinusoidal, ConstantWide, ConstantPositive 
+
+K=80 Linear, Quadratic, ShiftedSquare, Cubic, Sinusoidal, Cosinusoidal, ConstantWide, ConstantPosi-tive, TanhRight, TanhLeft, TanhCentered, GaussianBump, GaussianWide, RampUp, RampDown, QuarticScaled, QuinticScaled, SinusoidalPhase, CosinusoidalPhase, ExponentialDecay, Sat-uratingExponential, Logarithmic, SquareRoot, Reciprocal, AbsoluteValue, InverseQuadratic, Lorentzian, Sigmoid, DampedSinusoidal, DampedCosinusoidal, ExponentialGrowth, Power-LawDecay, ArctangentStep, HyperbolicSecant, SincDecay, AbsoluteSinusoidal, RectifiedLin-ear, Softplus, Gompertz, LinearFractional, SineSquared, TriangularBump, Linear, Quadratic, ShiftedSquare, Cubic, Sinusoidal, Cosinusoidal, ConstantWide, ConstantPositive, TanhRight, TanhLeft, TanhCentered, GaussianBump, GaussianWide, RampUp, RampDown, QuarticScaled, QuinticScaled, SinusoidalPhase, CosinusoidalPhase, ExponentialDecay, SaturatingExponen-tial, Logarithmic, SquareRoot, Reciprocal, AbsoluteValue, InverseQuadratic, Lorentzian, Sig-moid, DampedSinusoidal, DampedCosinusoidal, ExponentialGrowth, PowerLawDecay, Arctan-gentStep, HyperbolicSecant, SincDecay, AbsoluteSinusoidal, RectifiedLinear, Softplus 
+
+Continued on next page 
+
+29 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Setting Basis functions 
+
+K=100 Linear, Quadratic, ShiftedSquare, Cubic, Sinusoidal, Cosinusoidal, ConstantWide, ConstantPosi-tive, TanhRight, TanhLeft, TanhCentered, GaussianBump, GaussianWide, RampUp, RampDown, QuarticScaled, QuinticScaled, SinusoidalPhase, CosinusoidalPhase, ExponentialDecay, Sat-uratingExponential, Logarithmic, SquareRoot, Reciprocal, AbsoluteValue, InverseQuadratic, Lorentzian, Sigmoid, DampedSinusoidal, DampedCosinusoidal, ExponentialGrowth, Power-LawDecay, ArctangentStep, HyperbolicSecant, SincDecay, AbsoluteSinusoidal, RectifiedLin-ear, Softplus, Gompertz, LinearFractional, SineSquared, TriangularBump, Linear, Quadratic, ShiftedSquare, Cubic, Sinusoidal, Cosinusoidal, ConstantWide, ConstantPositive, TanhRight, TanhLeft, TanhCentered, GaussianBump, GaussianWide, RampUp, RampDown, QuarticScaled, QuinticScaled, SinusoidalPhase, CosinusoidalPhase, ExponentialDecay, SaturatingExponen-tial, Logarithmic, SquareRoot, Reciprocal, AbsoluteValue, InverseQuadratic, Lorentzian, Sig-moid, DampedSinusoidal, DampedCosinusoidal, ExponentialGrowth, PowerLawDecay, Arctan-gentStep, HyperbolicSecant, SincDecay, AbsoluteSinusoidal, RectifiedLinear, Softplus, Gom-pertz, LinearFractional, SineSquared, TriangularBump, Linear, Quadratic, ShiftedSquare, Cubic, Sinusoidal, Cosinusoidal, ConstantWide, ConstantPositive, TanhRight, TanhLeft, TanhCentered, GaussianBump, GaussianWide, RampUp, RampDown, QuarticScaled 
+
+B.2. dMRI problem specifications 
+
+B.2.1. B ACKGROUND 
+
+Diffusion MRI (dMRI) modelling is an inverse problem : given diffusion-encoding settings and noisy magnitude measure-ments, we seek latent tissue parameters that determine the expected signal attenuation. In the pulsed-gradient spin-echo (PGSE) experiment, the encoding is conveniently summarized by the b-tensor (or, in the common single-direction case, by a scalar b and a unit direction g ∈ S2) (Stejskal & Tanner, 1965; Mattiello et al., 1997). A useful starting point is to model water motion as Brownian diffusion. If spin displacements over the effective diffusion time satisfy a Gaussian law (as for free Brownian motion, or as an approximation for hindered diffusion in tissue at the voxel scale), then the displacement ∆x has density 
+
+p(∆ x) = N 0, 2∆ D,
+
+with diffusion time ∆ and a positive definite diffusion tensor D ≻ 0. In PGSE, the normalized signal can be written (under narrow-pulse and Gaussian phase approximations) as the characteristic function of the displacement distribution evaluated at the encoding wavevector, SS0
+
+≈ E
+
+h
+
+ei q⊤∆xi
+
+.
+
+For Gaussian ∆x this expectation is available in closed form and yields a mono-exponential attenuation in the encoding strength. In the single-direction case one obtains 
+
+S(b, g)
+
+S0
+
+≈ exp   − b D app (g), Dapp (g) = g⊤D g .
+
+This second-order parameterization defines diffusion tensor imaging (DTI) (Basser et al., 1994), 
+
+S(b, g)
+
+S0
+
+= exp  −b g⊤Dg  , D ≻ 0.
+
+Mathematically, DTI assumes that within each voxel the ensemble displacement is adequately summarized by a single 
+
+multivariate Gaussian (equivalently, by its covariance), so that direction-dependent signal decay is fully captured by the quadratic form g⊤Dg . DTI provides a low-dimensional description of anisotropy and a dominant local orientation, but it is not expressive enough when multiple micro-environments and/or multiple fiber orientations contribute within the same voxel, in which case the voxel-scale displacement distribution is better described as non-Gaussian or multi-compartment (Alexander et al., 2019; Novikov, 2021). 30 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Orientation distributions and spherical convolution. Many forward models describe a single-fiber response conditional on an orientation n ∈ S2. In the same spirit as DTI—where hindered diffusion within a voxel is approximated by a single Gaussian displacement (equivalently, a single diffusion tensor)—a single-fiber kernel can be seen as a locally oriented response. If a voxel contains dispersion and/or multiple fiber populations, a single Gaussian (single tensor) is no longer adequate, and the signal is better modeled as an average over orientations. This is achieved by integrating the single-fiber kernel against an orientation distribution function (ODF). When the kernel depends on n only through the inner product 
+
+g⊤n, this average becomes a spherical convolution: 
+
+g(b, g) = 
+
+Z
+
+> S2
+
+gsf 
+
+ b, g⊤n | θ p(n | ϕ) dn,
+
+with a parametric ODF p(n | ϕ) (e.g. Watson or Bingham) or a nonparametric ODF as in spherical deconvolution (Tournier et al., 2007). Dispersion-aware models can improve orientation estimates, but add degrees of freedom and can increase sensitivity to acquisition design and regularization (Behrens et al., 2007; Jbabdi et al., 2012). 
+
+Why model choice matters. In practice, model choice should be guided by anatomy and acquisition. The compartment family and priors should reflect plausible voxel-scale structure (e.g. single bundle vs. crossings; dispersed vs. tightly aligned orientations; presence/absence of free-water-like signal) and be supported by the available b-values, SNR, and gradient sampling. Without such constraints, flexible mixtures may fit the signal while implying implausible tissue configurations, which can propagate to downstream fiber reconstruction and tractography (Thomas et al., 2014; Ferizi et al., 2014). Accordingly, it is often useful to constrain inference via explicit priors, structured model selection, and sensitivity checks across plausible compartment families (Panagiotaki et al., 2012; Alexander et al., 2019; Jelescu & Budde, 2017). Toolkits such as DMIPY expose these kernels as composable modules, enabling rapid specification of multi-compartment mixtures, dispersed kernels, and acquisition-dependent forward operators (Fick et al., 2019). Other libraries such as DIPY 
+
+(Garyfallidis et al., 2014) provide a collection of established, easy-to-use pipelines (with limited but practical tuning, e.g. tissue-specific options for white vs. grey matter). Widely used packages such as FSL provide end-to-end workflows for diffusion processing and modelling. In particular, BedpostX performs Bayesian estimation via MCMC and uses shrinkage priors (ARD) to discourage unsupported fibre populations, helping stabilize inference under typical acquisitions. B.2.2. I MPLEMENTATION DETAILS (T ABLE 8). To connect the components in Table 8 within a single generative model, we use a multi-compartment formulation in which the normalized diffusion signal is a convex mixture of K+1 candidate signal compartments and one noise model selected from a small family: 
+
+S(b,⃗ b | Θ)
+
+S0
+
+=
+
+> K
+
+X
+
+> k=0
+
+Mk fk gk
+
+
+
+b,⃗ b | θk
+
+
+
+So ∼ p S(b,⃗ b | Θ)
+
+S0
+
+| fMm, θm
+
+!
+
+(11) Each gk(b,⃗ b | θk) is a compartment kernel from the library in Table 8 (e.g. Ball, Stick, Zeppelin, Tensor, and dis-persed/convolutional variants such as Watson/Bingham sticks and zeppelins), with compartment-specific parameters θk
+
+(diffusivities, orientations, dispersion parameters, etc.). The weights f = ( f0, . . . , f K ) are fractions constrained to the simplex fk ≥ 0, PKk=0 fkMk = 1 which we encode using a Dirichlet prior, f ∼ Dirichlet( α).The binary indicators Mk ∈ { 0, 1} implement structural model selection by turning candidate compartments on/off, while the noise indicators fMm ∈ { 0, 1} select among candidate noise models ϵm (e.g. Gaussian or Rician magnitude noise; Table 8). Noise models are treated as mutually exclusive ; we enforce PM −1 
+
+> m=0
+
+fMm = 1 so that exactly one noise model is active. Collecting all unknowns yields Θ =
+
+
+
+f , {Mk, θk}Kk=0 , { fMm, θ(ϵ) 
+
+> m
+
+}M −1
+
+> m=0
+
+
+
+, and the priors over θk and θ(ϵ) 
+
+> m
+
+are taken directly from Table 8. 
+
+Parametric spherical convolution. We implement two parametric representations of orientation distribution functions (ODFs) on S2 (Watson, 1965; Bingham, 1974). The Watson distribution (axially symmetric, antipodally symmetric) is 
+
+fW (n | μ, κ ) = CW (κ) exp  κ(μ⊤n)2, n ∈ S2, CW (κ) = 14π 1F1
+
+  12 ; 32 ; κ . (12) 31 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+It is parameterized by μ ∈ S2 and κ ∈ R (3 degrees of freedom: 2 for μ and 1 for κ). The Bingham distribution (elliptical, antipodally symmetric), as implemented in Fick et al. (2019), is 
+
+fB(n | A) = CB(A) exp  n⊤An , n ∈ S2, A = κ μμ ⊤ + β μβ μ⊤ 
+
+> β
+
+, (13) with axes μ, μβ ∈ S2 and concentrations κ, β ∈ R. The normalizer CB(A) has no closed form and is approximated via numerical integration. To implement spherical convolutions with a fixed single-fiber response kernel—as required by dispersion/convolutional components (e.g. NODDI-style formulations)—we compute convolutions in the spherical-harmonics (SH) basis (Garyfallidis et al., 2014; Fick et al., 2019). We approximate an ODF by a truncated SH expansion f (n) ≈ PLℓ=0 
+
+Pℓm=−ℓ cℓm Yℓm (n)
+
+and represent an axially symmetric response kernel R(n) by its zonal SH coefficients {rℓ}ℓ (equivalently, a Legendre series). In this representation, spherical convolution reduces to per-band multiplication, ˜cℓm = rℓ cℓm , which is more efficient and numerically stable than direct quadrature over S2 (Garyfallidis et al., 2014; Fick et al., 2019). In practice, we (i) project the Watson/Bingham ODF onto SH coefficients (truncated to L = 13 ), (ii) apply the coefficient-wise multiplication by {rℓ},and (iii) reconstruct the convolved angular profile on the required gradient directions. 
+
+Conversion to ODF. To compare fiber-orientation uncertainty across heterogeneous model configurations, we map each fitted model to an orientation distribution function (ODF), denoted by ODF( n), whenever possible. For models already defined via an ODF (or an ODF convolved with a response kernel), this mapping is immediate. For tensor-based compartments, we use the analytical single-tensor ODF of Aganj et al. (2010). Given a diffusion tensor D = R diag( λ) R⊤
+
+with eigenvalues λ = ( λ1, λ 2, λ 3) and eigenvectors R ∈ R3×3 (columns), the induced ODF on directions n ∈ S2 is 
+
+ODF T (n | D) = 14π pdet( D)  n⊤D−1n3/2 = 14π √λ1λ2λ3
+
+ n⊤D−1n3/2 . (14) This includes the axially symmetric Zeppelin tensor by setting λ = ( λ∥, λ ⊥, λ ⊥) and choosing R such that its principal axis aligns with μ:
+
+ODF Z (n | μ, λ ∥, λ ⊥) = 14π
+
+q
+
+λ∥λ2
+
+> ⊥
+
+ n⊤D−1 
+
+> Z
+
+n3/2 , DZ = R(μ) diag( λ∥, λ ⊥, λ ⊥) R(μ)⊤. (15) The Stick arises as the limiting case λ⊥ → 0 (rank-1), yielding an ODF concentrated on a single axis (in the distributional sense), 
+
+ODF S (n | μ) ∝ δ(n; μ) + δ(n; −μ).
+
+Any model configuration can thus be represented in ODF-space as a mixture, with mixture weights given by the fractions f :
+
+ODF( n | M , Θ) = PKk=0 fk Mk ODF Mk (n | θk). Given a posterior over (M, Θ), we define the posterior predictive ODF in local (model-conditional) and global (model-averaged) form as ODF local (n | M k, xo) = Ep(θk |M k ,xo)[ODF Mk (n |
+
+θk)] and ODF global (n | xo) = Ep(M,Θ|xo)[ODF( n | M , Θ)] .
+
+Model Prior Because candidate components differ substantially in parameter count, we quantify model complexity by the number of parameters rather than by the number of components. We use a dimension-penalized prior over model indicators 
+
+p(M | λ) = Y
+
+> k
+
+Ber  Mk, p k(λ, dim (θMk )) ,
+
+with logit (pk) = logit (p0) − (1 − λ) · λmax · dim (θMk ) and pk = σ(logit (pk)) . Therefore pk decreases with increasing parameter dimension of θMk . We draw λ ∼ Unif([0 , 1]) and set λmax = 4 and p0 = 0 .5.B.2.3. R ANDOM ACQUISITION PROTOCOL GENERATION 
+
+We generated random bvals and bvecs as follows: (i) UKB-like : We fixed n = 105 acquisitions. For each acquisition, we sampled the b-value from a mixture of (a) a fixed “typical” UKB-like set {btyp  
+
+> i
+
+}ni=1 and (b) a uniform draw brand  
+
+> i
+
+∼ Unif(0 , 6000) , with mixture weights (0 .5, 0.5) . We 32 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+then applied a small dropout mask mi ∼ Bernoulli(0 .99) (i.e. 1% zeros) and set bi ← mi bi. For directions, we drew random unit vectors grand  
+
+> i
+
+∼ Unif( S2) by sampling ˜gi ∼ N (0, I3) and normalizing, and then sampled bvecs from a mixture of the typical directions {gtyp  
+
+> i
+
+}ni=1 (i.e. even spherical grid) and the random directions, again with weights 
+
+(0 .5, 0.5) .(ii) HCP-like : We used the same procedure with n = 295 acquisitions. B.2.4. B3S TASK CONFIGURATION 
+
+The B3S task includes one Ball, up to three Sticks, and a Gaussian noise model (Tab. 8). To remain comparable to Manzano-Patron et al. (2025), we impose additional structure on this family. In particular, we tie the diffusivity across Ball and Stick compartments via a shared parameter d, i.e., dB = dS1 = dS2 = dS3 = d. Moreover only multi-shell models were considered and we thus adapted to this case by replacing the mono-exponential nonlinearity with the appropriate multi-shell extension (Jbabdi et al., 2012). Moreover, to mimic the strong sparsity bias used in FSL BedpostX, which employs an improper prior that penalizes non-zero fractions and thereby encourages automatic model selection (Behrens et al., 2007), we use an informative prior over fractions, p(f ) = Dirichlet( f | α) with α = [3 .5, 1.0, 0.3, 0.1] .Unlike Manzano-Patron et al. (2025), we do not enforce hard angular constraints between Stick orientations. Such constraints are acquisition-specific and can become misaligned when amortizing across heterogeneous protocols; our training targets acquisition-agnostic inference (e.g., improved angular resolution with increased numbers of acquisitions), and we therefore avoid constraint sets that implicitly encode a fixed sampling scheme. B.2.5. BSZT AND BSZT + CONV TASK CONFIGURATION 
+
+For the BSZT space, we include one Ball, three Sticks, three Zeppelins, and three Tensors, together with Gaussian and Rician noise models (Tab. 8). We do not impose parameter sharing across compartments and use a uniform Dirichlet prior over fractions, p(f ) = Dirichlet( f | α) with α = 1.For the BSZT+conv. space, we further extend BSZT by adding all remaining dispersed and convolutional compartments from Table 8, while keeping the same uniform fraction prior, α = 1.33 Scalable Simulation-Based Model Inference with Test-Time Complexity Control  
+
+> Table 7. Extended component and noise catalogue (as implemented in code).
+
+ID Component Token Expression (implementation string) Parameter prior 0 Linear lin c 1*x c1 ∼ U (−2, 2) 
+
+1 Quadratic quad c 1*x*x c1 ∼ U (−0.5, 0.5) 
+
+2 ShiftedSquare shift2 (c 1+x)*(c 1+x) c1 ∼ U (−5, 0) 
+
+3 Cubic cub c 1*x*x*x c1 ∼ U (−0.1, 0.1) 
+
+4 Sinusoidal sin c 1*sin(c 2*x) c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .5, 5) 
+
+5 Cosinusoidal cos c 1*cos(c 2*x) c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .5, 5) 
+
+6 ConstantWide const w c 1 c1 ∼ U (−5, 5) 
+
+7 ConstantPositive const p c 1 c1 ∼ U (0 , 10) 
+
+8 TanhRight tanh r c 1*tanh(x-c 2) c1 ∼ U (1 , 10) 
+
+c2 ∼ U (2 , 8) 
+
+9 TanhLeft tanh l c 1*tanh(-x+c 2) c1 ∼ U (1 , 10) 
+
+c2 ∼ U (2 , 8) 
+
+10 GaussianBump gauss b c 1*exp(-(x-c 2)*(x-c 2)) c1 ∼ U (1 , 10) 
+
+c2 ∼ U (2 , 8) 
+
+11 GaussianWide gauss w c 1*exp(-(x-c 2)*(x-c 2)/8) c1 ∼ U (1 , 10) 
+
+c2 ∼ U (2 , 8) 
+
+12 RampUp ramp u c 1*Piecewise((0.0,x<c 2),(x, x>=c 2)) 
+
+c1 ∼ U (1 , 5) 
+
+c2 ∼ U (2 , 8) 
+
+13 RampDown ramp d c 1*Piecewise((0.0,x>c 2),(-x+c 2, x<=c 2)) 
+
+c1 ∼ U (1 , 5) 
+
+c2 ∼ U (2 , 8) 
+
+14 QuarticScaled quart4 c 1*(x/10)**4 c1 ∼ U (−5, 5) 
+
+15 QuinticScaled quint5 c 1*(x/10)**5 c1 ∼ U (−5, 5) 
+
+16 SinusoidalPhase sin ph c 1*sin(c 2*x + c 3) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .5, 5) 
+
+c3 ∼ U (−π, π )
+
+17 CosinusoidalPhase cos ph c 1*cos(c 2*x + c 3) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .5, 5) 
+
+c3 ∼ U (−π, π )
+
+18 ExponentialDecay exp dec c 1*exp(-c 2*x) c1 ∼ U (0 , 10) 
+
+c2 ∼ U (0 .1, 2) 
+
+19 SaturatingExponential exp sat c 1*(1-exp(-c 2*x)) c1 ∼ U (0 , 10) 
+
+c2 ∼ U (0 .1, 2) 
+
+20 Logarithmic log c 1*log(x+c 2) c1 ∼ U (−5, 5) 
+
+c2 ∼ U (0 .1, 2) 
+
+21 SquareRoot sqrt c 1*sqrt(x+c 2) c1 ∼ U (−5, 5) 
+
+c2 ∼ U (0 , 2) 
+
+22 Reciprocal recip c 1/(x+c 2) c1 ∼ U (−10 , 10) 
+
+c2 ∼ U (0 .5, 3) 
+
+23 AbsoluteValue abs c 1*Abs(x-c 2) c1 ∼ U (−5, 5) 
+
+c2 ∼ U (0 , 10) 
+
+24 InverseQuadratic invquad c 1/(1 + c 2*(x-c 3)*(x-c 3)) 
+
+c1 ∼ U (0 , 10) 
+
+c2 ∼ U (0 .1, 2) 
+
+c3 ∼ U (0 , 10) 
+
+25 Lorentzian lorentz c 1/(1 + ((x-c 2)/c 3)**2) 
+
+c1 ∼ U (0 , 10) 
+
+c2 ∼ U (0 , 10) 
+
+c3 ∼ U (0 .5, 5) 
+
+Continued on next page 
+
+34 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+ID Component Token Expression (implementation string) Parameter prior 26 Sigmoid sig c 1/(1+exp(-c 2*(x-c 3))) 
+
+c1 ∼ U (0 , 10) 
+
+c2 ∼ U (0 .1, 5) 
+
+c3 ∼ U (0 , 10) 
+
+27 DampedSinusoidal d sin c 1*exp(-c 2*x)*sin(c 3*x) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .05 , 1) 
+
+c3 ∼ U (0 .5, 8) 
+
+28 DampedCosinusoidal d cos c 1*exp(-c 2*x)*cos(c 3*x) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .05 , 1) 
+
+c3 ∼ U (0 .5, 8) 
+
+29 TanhCentered tanh c c 1*tanh(c 2*(x-c 3)) 
+
+c1 ∼ U (−10 , 10) 
+
+c2 ∼ U (0 .1, 2) 
+
+c3 ∼ U (2 , 8) 
+
+30 ExponentialGrowth exp grow c 1*exp(c 2*x) c1 ∼ U (0 , 10) 
+
+c2 ∼ U (0 .05 , 0.8) 
+
+31 PowerLawDecay pow dec c 1/(x + c 2)**c 3 
+
+c1 ∼ U (0 , 10) 
+
+c2 ∼ U (0 .5, 5) 
+
+c3 ∼ U (0 .5, 3) 
+
+32 ArctangentStep atan c 1*atan(c 2*(x-c 3)) 
+
+c1 ∼ U (0 , 10) 
+
+c2 ∼ U (0 .1, 2) 
+
+c3 ∼ U (0 , 10) 
+
+33 HyperbolicSecant sech c 1*sech(c 2*(x-c 3)) 
+
+c1 ∼ U (0 , 8) 
+
+c2 ∼ U (0 .1, 2) 
+
+c3 ∼ U (0 , 10) 
+
+34 SincDecay sinc c 1*sin(c 2*x)/(x+c 3) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .5, 5) 
+
+c3 ∼ U (0 .5, 5) 
+
+35 AbsoluteSinusoidal abs sin c 1*Abs(sin(c 2*x + c 3)) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .5, 5) 
+
+c3 ∼ U (−π, π )
+
+36 RectifiedLinear relu c 1*Piecewise((0, x < c 2), (x -c 2, True)) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 , 8) 
+
+37 Softplus softplus c 1*log(1+exp(c 2*(x-c 3)))/c 2 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .1, 5) 
+
+c3 ∼ U (0 , 10) 
+
+38 Gompertz gomp c 1*exp(-c 2*exp(-c 3*x)) 
+
+c1 ∼ U (0 , 10) 
+
+c2 ∼ U (0 .1, 3) 
+
+c3 ∼ U (0 .05 , 1.5) 
+
+39 LinearFractional linfrac c 1*x/(1 + c 2*x) c1 ∼ U (−5, 5) 
+
+c2 ∼ U (0 .1, 2) 
+
+40 SineSquared sin2 c 1*sin(c 2*x)**2 c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .5, 5) 
+
+41 TriangularBump tri c 1*Piecewise((0, Abs((x-c 2)/c 3) >= 1), (1 - Abs((x-c 2)/c 3), True)) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .5, 5) 
+
+c3 ∼ U (0 .5, 5) 
+
+42 NoiseObserver n obs normal(c 1) c1 ∼ U (0 .1, 2) 
+
+43 NoiseIncreasing n inc normal(c 1) * (x+1) c1 ∼ U (0 .5, 2) 
+
+44 NoiseDecreasing n dec normal(c 1) * (11 - x) c1 ∼ U (0 .5, 2) 
+
+45 NoiseQuadratic n quad normal(c 1) *(x**2 + 1) c1 ∼ U (0 .2, 1) 
+
+46 NoiseQuadraticDecreasing n qdec normal(c 1) * (11 - x**2) c1 ∼ U (0 .2, 1) 
+
+Continued on next page 
+
+35 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+ID Component Token Expression (implementation string) Parameter prior 47 NoiseExponential n exp normal(c 1) * exp(c 2 * x) c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .05 , 0.5) 
+
+48 NoiseSigmoid n sig normal(c 1)/(1+exp(-c 2*(x-c 3))) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 .1, 1) 
+
+c3 ∼ U (0 , 10) 
+
+49 NoisePeaked n peak normal(c 1) * exp(-((x-c 2)**2)/(c 3 + 1e-3)) 
+
+c1 ∼ U (0 , 5) 
+
+c2 ∼ U (0 , 10) 
+
+c3 ∼ U (0 .5, 5) 
+
+36 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+Table 8. Diffusion MRI signal models ( DMIPY -style) with per-parameter priors. 
+
+ID Name Symbol Signal model θ Prior 
+
+0 Ball B SB (b) = exp   − b d iso 
+
+ diso diso ∼ U  0, 0.01 
+
+1 Stick S SS (b,⃗ b) = exp 
+
+
+
+−b d ∥(⃗ b · n)2 d∥ d∥ ∼ U  0, 0.01 
+
+n n ∼ U (S2+)
+
+2 Zeppelin Z SZ (b,⃗ b) = exp 
+
+
+
+−b
+
+h
+
+d∥(⃗b · n)2 + d⊥
+
+ 1 − (⃗ b · n)2i d∥ d∥ ∼ U  0, 0.01 
+
+d⊥ d⊥ ∼ U (0 , 0.01) 
+
+n n ∼ U (S2+)
+
+3 Tensor (DTI) T ST (b,⃗ b) = exp 
+
+
+
+−b⃗ b⊤D⃗ b
+
+
+
+, D ≻ 0
+
+D θ ∼ N (0, I6)
+
+L = tril( θ) ∈ R3×3
+
+˜D = LL ⊤
+
+D = Dscale ˜D + λmin I3
+
+Dscale = 10 −3, λ min =10 −4
+
+4 Watson Stick SW SW S (b,⃗ b) = 
+
+Z
+
+> S2
+
+SS (b,⃗ b | n, d ∥) fW (n |
+
+μ, κ ) dn
+
+d∥ d∥ ∼ U  0, 0.01 
+
+μ μ ∼ Unif( S2+)ODI ODI ∼ Unif(0 , 1) 
+
+κ = 1tan  ODI π
+
+> 2
+
+
+
+5 Bingham Stick SB
+
+SBS (b,⃗ b) = 
+
+Z
+
+> S2
+
+SS (b,⃗ b | n) fB (n |
+
+μ, κ, β, ψ ) dn
+
+d∥ d∥ ∼ U  0, 0.01 
+
+μ μ ∼ U (S2+)ODI ODI ∼ U (0 , 1) 
+
+βfrac βfrac ∼ U (0 , 1) 
+
+ψ ψ ∼ U (0 , π )
+
+κ = 1tan  ODI π
+
+> 2
+
+
+
+β = βfrac κ
+
+6 Watson Zeppelin ZW SW Z (b,⃗ b) = 
+
+Z
+
+> S2
+
+SZ (b,⃗ b | n) fW (n | μ, κ ) dn
+
+d∥ d∥ ∼ U  0, 3 × 10 −9
+
+d⊥ d⊥ ∼ U (0 , d ∥)
+
+μ μ ∼ U (S2+)ODI ODI ∼ U  0., 1.
+
+κ = 1tan  ODI π
+
+> 2
+
+
+
+7 Bingham Zeppelin ZB
+
+SBZ (b,⃗ b) = 
+
+Z
+
+> S2
+
+SZ (b,⃗ b | n) fB(n |
+
+μ, κ, β, ψ ) dn
+
+d∥ d∥ ∼ U  0, 0.01 
+
+d⊥ d⊥ ∼ U (0 , 0.01) 
+
+μ μ ∼ U (S2+)ODI ODI ∼ U  0., 1.
+
+βfrac βfrac ∼ U  0, 1
+
+ψ ψ ∼ U  0., π 
+
+κ = 1tan  ODI π
+
+> 2
+
+
+
+β = βfrac κ
+
+9 NODDI (Watson) No W
+
+SNODDI W (b,⃗ b) = f S W S (b,⃗ b; μ, ODI , λ ∥) + (1 − f ) SW Z (b,⃗ b; μ, ODI , λ ⊥, λ ∥)
+
+f f ∼ U  0., 1.
+
+λ⊥ λ⊥ ∼ U  0., 0.01 
+
+λ∥ λ∥ ∼ U  0., 0.01 
+
+μ μ ∼ U (S2+)ODI ODI ∼ U  0., 1.
+
+Continued on next page 
+
+37 Scalable Simulation-Based Model Inference with Test-Time Complexity Control 
+
+ID Name Symbol Signal model θ Prior 
+
+κ = 1tan  ODI π
+
+> 2
+
+
+
+10 NODDI (Bingham) No B
+
+SNODDI B(b,⃗ b) = 
+
+f S BS (b,⃗ b; μ, ODI , β frac , ψ, λ ∥) + (1 −
+
+f ) SBZ (b,⃗ b; μ, ODI , β frac , ψ, λ ⊥, λ ∥)
+
+f f ∼ U  0., 1.
+
+λ⊥ λ⊥ ∼ U  0., 0.01 
+
+λ∥ λ∥ ∼ U  0., 0.01 
+
+μ μ ∼ U (S2+)ODI ODI ∼ U  0., 1.
+
+βfrac βfrac ∼ U  0., 1.
+
+ψ ψ ∼ U  0., π 
+
+κ =1tan  ODI π
+
+> 2
+
+ , β =
+
+βfrac κ
+
+9 SANDI (Watson) Sa W
+
+SSANDI W (b,⃗ b) = (1 − fec )
+
+h
+
+fin SW S 
+
+ b,⃗ b; μ, ODI , λ in 
+
+> ∥
+
+ + (1 −
+
+fin ) · 1
+
+i
+
++ fec SW Z 
+
+ b,⃗ b; μ, ODI , λ ex  
+
+> ⊥
+
+, λ ex 
+
+> ∥
+
+
+
+fin fin ∼ U  0., 1.
+
+fec fec ∼ U  0., 1.
+
+λin  
+
+> ∥
+
+λin  
+
+> ∥
+
+∼ U  0., 0.01 
+
+λex  
+
+> ⊥
+
+λex  
+
+> ⊥
+
+∼ U  0., 0.01 
+
+λex  
+
+> ∥
+
+λex  
+
+> ∥
+
+∼ U  0., 0.01 
+
+μ μ ∼ U (S2+)ODI ODI ∼ U  0., 1.
+
+κ = 1tan  ODI π
+
+> 2
+
+
+
+10 SANDI (Bingham) Sa B
+
+SSANDI B(b,⃗ b) = (1 − fec )
+
+h
+
+fin SBS 
+
+ b,⃗ b; μ, ODI , β frac , ψ, λ in 
+
+> ∥
+
+ +(1 − fin ) · 1
+
+i
+
++
+
+fec SBZ 
+
+ b,⃗ b; μ, ODI , β frac , ψ, λ ex  
+
+> ⊥
+
+, λ ex 
+
+> ∥
+
+
+
+fin fin ∼ U  0., 1.
+
+fec fec ∼ U  0., 1.
+
+λin  
+
+> ∥
+
+λin  
+
+> ∥
+
+∼ U  0., 0.01 
+
+λex  
+
+> ⊥
+
+λex  
+
+> ⊥
+
+∼ U  0., 0.01 
+
+λex  
+
+> ∥
+
+λex  
+
+> ∥
+
+∼ U  0., 0.01 
+
+μ μ ∼ U (S2+)ODI ODI ∼ U  0., 1.
+
+βfrac βfrac ∼ U  0., 1.
+
+ψ ψ ∼ U  0., π 
+
+κ = 1tan  ODI π
+
+> 2
+
+
+
+β = βfrac κ
+
+10 Gaussian noise G y = S0 S(·) + ϵ, ϵ ∼ N (0 , σ 2) σ SNR ∼ U (3 , 80) 
+
+σ = 1SNR 
+
+11 Rician noise R y ∼ Rice( ν = S0S(·), σ ), p (y | ν, σ ) = 
+
+yσ2 exp 
+
+
+
+− y2 + ν2
+
+2σ2
+
+
+
+I0
+
+ yν σ2
+
+ σ SNR ∼ U (3 , 80) 
+
+σ = 1SNR 
+
+38

@@ -1,0 +1,1459 @@
+Title: Curvature-Weighted Capacity Allocation: A Minimum Description Length Framework for Layer-Adaptive Large Language Model Optimization
+
+URL Source: https://arxiv.org/pdf/2603.00910v1
+
+Published Time: Tue, 03 Mar 2026 02:10:14 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# CURVATURE -W EIGHTED CAPACITY ALLOCATION : A M INIMUM 
+
+# DESCRIPTION LENGTH FRAMEWORK FOR LAYER -A DAPTIVE 
+
+# LARGE LANGUAGE MODEL OPTIMIZATION 
+
+Theophilus Amaefuna ∗
+
+, Hitesh Vaidya ∗
+
+, Anshuman Chhabra, Ankur Mali 
+
+Bellini College of Artificial Intelligence, Cybersecurity and Computing University of South Florida Tampa 
+
+{ikennaamaefuna, hvaidya, anshumanc, ankurarjunmali}@usf.edu 
+
+## ABSTRACT 
+
+Layer-wise capacity in large language models is highly non-uniform: some layers contribute dis-proportionately to loss reduction while others are near-redundant. Existing methods for exploiting this non-uniformity, such as influence-function-based layer scoring, produce sensitivity estimates but offer no principled mechanism for translating them into allocation or pruning decisions under hardware constraints. We address this gap with a unified, curvature-aware framework grounded in the Minimum Description Length (MDL) principle. Our central quantity is the curvature-adjusted layer gain ζ2 
+
+> k
+
+= g⊤ 
+
+> k
+
+eH−1 
+
+> kk
+
+gk, which we show equals twice the maximal second-order reduction in empirical risk achievable by updating layer k alone, and which strictly dominates gradient-norm-based scores by incorporating local curvature. Normalizing these gains into layer quality scores 
+
+qk, we formulate two convex MDL programs: a capacity allocation program that distributes expert slots or LoRA rank preferentially to high-curvature layers under diminishing returns, and a pruning program that concentrates sparsity on low-gain layers while protecting high-gain layers from degra-dation. Both programs admit unique closed-form solutions parameterized by a single dual variable, computable in O(K log 1 /ε ) via bisection. We prove an O(δ2) transfer regret bound showing that source-domain allocations remain near-optimal on target tasks when curvature scores drift by δ,with explicit constants tied to the condition number of the target program. Together, these results elevate layer-wise capacity optimization from an empirical heuristic to a theoretically grounded, computationally efficient framework with provable optimality and generalization guarantees. 
+
+Keywords Minimum Description Length · Capacity Allocation · Pruning · Generalization · Information Theory ·
+
+Learning Theory · Large Language Models · Mixture-of-Experts 
+
+## 1 Introduction 
+
+The representational capacity of a neural network is not uniformly distributed across its layers. Empirical studies of large language models (LLMs) consistently reveal that layers differ substantially in their contribution to the training objective: some layers hold the bulk of the model’s expressive power, while others are near-redundant, contribut-ing little to no loss reduction [Zhang et al., 2022, Vitel and Chhabra, 2026]. This non-uniformity has two practical consequences that current practice addresses only in isolation. On one hand, capacity bottlenecks : layers where repre-sentational power is insufficient, limit model performance even when global parameter counts are large. On the other hand, capacity redundancy : layers where parameters contribute negligibly to the objective, inflates model complexity without commensurate benefit. As models scale into the hundreds of billions of parameters, both problems are exacerbated by the underlying physical reality: hardware constraints impose strict limits on memory, compute, and communication bandwidth. The central 
+
+> ∗
+
+Equal contribution 
+
+> arXiv:2603.00910v1 [cs.IT] 1 Mar 2026
+
+challenge, therefore, is not simply to make models larger or smaller, but to allocate capacity where it matters and remove it where it does not , within a global resource budget. 
+
+The missing ingredient: curvature. Existing approaches to layer importance estimation rely primarily on gradient magnitudes, activation statistics, or held-out accuracy drops [Askari et al., 2025, Song et al., 2024, Liu et al., 2021]. These signals share a common limitation: they do not account for the local curvature of the loss landscape. A layer may exhibit a large gradient norm yet reside in a region of high curvature, where the actual achievable loss reduction per unit of capacity is small. Conversely, a layer with a moderate gradient in a flat curvature region may offer substantial reducible risk. Without curvature information, capacity decisions are systematically misallocated. 
+
+This work. We develop a unified, curvature-aware framework for simultaneously allocating and pruning model capacity across layers under a global resource constraint. Our central quantity is the curvature-adjusted layer gain :
+
+ζ2 
+
+> k
+
+= g⊤ 
+
+> k
+
+eH−1 
+
+> kk
+
+gk,
+
+where gk is the layer-k gradient and eHkk is a positive-definite surrogate for the layer-restricted Hessian block. We show that ζ2 
+
+> k
+
+/2 equals the maximal second-order decrease in the training objective achievable by updating layer k
+
+alone, and that the ranking of layers by ζ2 
+
+> k
+
+is consistent with the ranking by locally reducible empirical risk up to a controlled approximation gap. Normalized scores qk = ζ2 
+
+> k
+
+/ P 
+
+> j
+
+ζ2 
+
+> j
+
+then drive two complementary convex programs: • Capacity allocation (Section 2.3): given a global hardware budget B, distribute additional capacity (e.g., LoRA rank or mixture-of-experts slots) preferentially to high-qk layers, with diminishing log-returns penal-izing over-allocation. The program admits a closed-form curvature-weighted water-filling solution, computed in O(K log 1 /ε ) via bisection. • Capacity pruning (Section 3.1): given a global sparsity target S, remove parameters aggressively from the low-qk layers while protecting the high-gain layers from degradation. The program is strongly convex with a unique closed-form minimizer, again computed by bisection. We further analyze transfer stability (Appendix D): when curvature scores drift between a source domain and a target domain by ∥q(A) − q(B)∥2 ≤ δ, the excess cost of using source-derived allocations on the target task is bounded by O(δ2), with explicit constants given by the condition number of the target program. This justifies warm-starting allocation and pruning decisions from source-domain curvature estimates, a practically important property for fine-tuning and domain adaptation. 
+
+Connections to information theory. Our objective functions are motivated by Minimum Description Length (MDL) [Rissanen, 1978, 1989]: model complexity is penalized by description length, while data fit is rewarded by a con-cave utility reflecting diminishing returns in code-length reduction [Lotfi et al., 2023]. This perspective connects our framework to compression-based generalization bounds, where a tighter description length directly implies better generalization guaranties for LLMs [Wilson, 2025, Schmidhuber, 1997]. 
+
+Contributions. We summarize our contributions as follows. 1. Curvature-adjusted layer gain. We derive ζ2 
+
+> k
+
+from first principles as twice the maximal second-order objective decrease attributable to layer k, and characterize the approximation error introduced by Tikhonov regularization of the Hessian block (Lemma 1, Appendix C). 2. Curvature-weighted water-filling. We formulate and solve in closed form a convex allocation program that distributes capacity according to qk under diminishing returns and a global hardware budget (Theorem 2). 3. Curvature-protected pruning. We formulate and solve in closed form a strongly convex pruning program that concentrates sparsity on low-gain layers while meeting a global sparsity target (Theorem 3). 4. Transfer stability. We prove an O(δ2) transfer regret bound under score drift, with explicit constants tied to the condition number and score-gradient Lipschitz constant of the target program (Theorem 4). 5. Efficient algorithms. We provide O(K log 1 /ε ) bisection algorithms for both programs, with explicit bisec-tion brackets and compatibility with standard Hessian approximations (Algorithms 1 and 2). 
+
+## 2 Background 
+
+Minimum Description Length. The Minimum Description Length (MDL) principle [Rissanen, 1978] formalizes the tradeoff between model complexity and data fit: the best model is the one that minimizes the total codelength required to describe both the model and the data under the model, 
+
+Cl( D) = Cl( θ)
+
+| {z } 
+
+> model complexity
+
++ Cl( D | θ)
+
+| {z }
+
+> data fit
+
+, (1) 2where Cl( θ) is the codelength (in bits) required to describe the parameters θ, and Cl( D | θ) is the codelength required to describe the data given the model. Under this principle, a model with lower Cl( D) simultaneously achieves better compression and generalization, as well as lower unnecessary complexity [Lotfi et al., 2023, Prada et al., 2025]. 
+
+MDL for capacity allocation. Adding capacity at layer k (e.g., increasing LoRA rank or adding mixture-of-experts slots by ek ≥ 0) increases model codelength by Cl( θek ) while reducing data-fit codelength by ∆ek Cl( D | θ) [Blum and Langford, 2003]. Since the base terms Cl( θ) and Cl( D | θ) are constant with respect to the allocation decision, minimizing the total codelength Eq (1) over e = ( e1, . . . , e K ) reduces to 
+
+min  
+
+> ek≥0
+> K
+
+X
+
+> k=1
+
+h
+
+Cl( θek ) − ∆ek Cl( D | θ)
+
+i
+
+. (2) The first term penalizes complexity growth; the second rewards data-fit improvement. We instantiate Eq (2) concretely in Section 2.3 by modeling Cl( θek ) ∝ αc kek (linear in resource usage) and ∆ek Cl( D | θ) ∝ γq βk log(1+ ek) (concave, reflecting diminishing returns in code-length reduction). 
+
+MDL for pruning. Pruning layer k by sparsity ratio ρk ∈ [0 , 1] reduces the model codelength by −∆ρk Cl( θ)
+
+but increases data-fit codelength by ∆ρk Cl( D | θ) [Frankle and Carbin, 2019]. Minimizing total codelength over 
+
+ρk = ( ρ1, . . . , ρ K ) subject to a global sparsity target S
+
+min  
+
+> 0≤ρk≤1
+> K
+
+X
+
+> k=1
+
+h
+
+∆ρk Cl( θ) + ∆ ρk Cl( D | θ)
+
+i
+
+(3) We instantiate Eq (3) in Section 3.1 by modeling ∆ρk Cl( θ) = −b n kρk (bits saved by removing nkρk parameters) and ∆ρk Cl( D | θ) = η q κk ρ2 
+
+> k
+
+(convex degradation penalty, weighted by layer quality qk). 
+
+Layer quality via second-order information. Both programs Eq (2) and Eq (3) depend on layer quality scores qk
+
+that measure how much each layer contributes to reducible empirical risk. A natural candidate is the Newton decrement 
+
+restricted to layer k: given gradient gk = Ek∇L(θ) and positive-definite Hessian surrogate eHkk = Ek∇2L(θ)E⊤ 
+
+> k
+
++
+
+τ I , the quantity ζ2 
+
+> k
+
+is twice the maximal second-order decrease in L achievable by updating layer k alone (derived in Section 2.2). We use normalized scores: qk = ζ2
+
+> k
+
+ PKj=1 ζ2 
+
+> j
+
+, throughout, ensuring scale invariance with respect to the global curvature magnitude. Layers with large qk carry more reducible risk and should receive more capacity; layers with small qk are candidates for pruning. 
+
+Layer Influence scores and their limitations. The closest prior measure to ζ2 
+
+> k
+
+is the Layer Influence score (LayerIF) of Askari et al. [2025], which localizes the classical influence function [Koh and Liang, 2017] to individual layers. Given training data Dtrain = {xi}mi=1 and validation data Dvalid = {xνj }nj=1 , the global influence score of training sample xi is 
+
+I(xi) = −
+
+> n
+
+X
+
+> j=1
+
+∇θ ℓ(xνj , θ )⊤H(θ)−1∇θ ℓ(xi, θ ), (4) measuring the sensitivity of validation loss to upweighting xi. The LayerIF score restricts Eq (4) to layer k by replacing full-model quantities with their layer-k counterparts: 
+
+I(k)(xi) = −
+
+> n
+
+X
+
+> j=1
+
+∇θ(k) ℓ(xνj , θ )⊤ H(k)(θ)−1 · ∇ θ(k) ℓ(xi, θ ). (5) A large |I(k)(xi)| indicates that layer k is sensitive to the training sample xi, and Askari et al. [2025] use the aggre-gated magnitude as a proxy for layer quality to guide expert allocation and pruning. This connection has a natural MDL interpretation. A layer with small |I(k)| induces a flat region of the loss landscape: the validation loss is insen-sitive to parameter changes, implying the layer’s distribution is easy to compress and carries low codelength Cl( θ(k)).Conversely, a layer with large |I(k)| exhibits high curvature, requires more bits to describe, and contributes dispro-portionately to Cl( D | θ). Our gain ζ2 
+
+> k
+
+makes this intuition precise: it quantifies exactly how many bits of data-fit codelength can be recovered by optimally updating layer k.3While LayerIF captures data-dependent sensitivity, it has two structural limitations that motivate our approach. First ,
+
+I(k) depends on individual training samples and must be aggregated heuristically into a layer-level score; in contrast, 
+
+ζ2 
+
+> k
+
+is defined directly on the empirical objective and has a closed-form interpretation as reducible risk. Second , and more importantly, LayerIF provides a signal but not an objective : translating {I(k)} into concrete expert counts or pruning ratios requires a separate heuristic (a knapsack assignment with first-come-first-served residual allocation [Askari et al., 2025]), with no budget constraint and no optimality guarantee. Our MDL programs Eq (2) and Eq (3) replace this two-stage heuristic with a single convex program that jointly determines the allocation of all layers under a global resource constraint, with closed-form solutions and provable optimality. We study the problem of allocating limited model capacity across layers to maximize locally reducible empirical risk under a global resource constraint. The method consists of two components: (i) a curvature-aware measure of layer-wise reducible risk derived from a second-order expansion of the training objective, and (ii) a convex allocation program that distributes capacity according to these gains under diminishing returns. See Appendix A for related works. 
+
+2.1 Objective and Notation 
+
+Let: L(θ) = 1
+
+> n
+
+Pni=1 φ(f (xi; θ), y i) , denote the empirical objective, where φ is a per-sample loss and f (· ; θ) is the model. We write the gradient and Hessian at θ ∈ Rp as: g := ∇θ L(θ), H := ∇2 
+
+> θ
+
+L(θ). Partition θ into K
+
+disjoint layer blocks θ = ( θ1, . . . , θ K ), where θk ∈ Rpk and P 
+
+> k
+
+pk = p. For each layer k, let Ek ∈ { 0, 1}pk ×p be the coordinate-selection matrix and define: gk := Ekg ∈ Rpk , Hkk := EkHE ⊤ 
+
+> k
+
+∈ Rpk ×pk .
+
+2.2 Second-Order Expansion and Layer-Restricted Decrease Second-order Taylor expansion. Suppose ∇2L is locally Lipschitz with constant M > 0 in a neighborhood of θ.Taylor’s theorem with integral remainder gives, 
+
+L(θ + ∆) − L(θ) = g⊤∆ + 12 ∆⊤H∆ + R(∆) , , |R(∆) | ≤ M
+
+6 ∥∆∥3. (6) 
+
+Layer-restricted quadratic model. Restrict perturbations to layer k by setting ∆ = E⊤ 
+
+> k
+
+d for d ∈ Rpk . Since 
+
+EkE⊤ 
+
+> k
+
+= Ipk and the blocks are disjoint, substitution into Eq (6) yields the layer-restricted quadratic: 
+
+Qk(d) = g⊤ 
+
+> k
+
+d + 12 d⊤Hkk d. 
+
+Because neural network Hessians are generally indefinite, minimizing Qk directly is ill-posed. We introduce the Tikhonov-regularized surrogate: 
+
+eHkk := Hkk + τ I, τ > 0, (7) and analyze eQk(d) = g⊤ 
+
+> k
+
+d + 12 d⊤ eHkk d. This regularization is standard in second-order deep learning [Martens and Grosse, 2015],Botev et al. [2017] and is equivalent to a trust-region constraint on ∥d∥.
+
+Lemma 1 (Layer-restricted optimum) . If eHkk ≻ 0, the unique minimizer of eQk(d) over d ∈ Rpk is 
+
+d⋆k = − eH−1 
+
+> kk
+
+gk,
+
+and the corresponding decrease equals 
+
+min 
+
+> d
+
+eQk(d) = − 12 g⊤ 
+
+> k
+
+eH−1 
+
+> kk
+
+gk.
+
+The proof for lemma 1 is shown in Appendix B.1. 
+
+Curvature-adjusted layer gain. Define 
+
+ζ2 
+
+> k
+
+:= g⊤ 
+
+> k
+
+eH−1 
+
+> kk
+
+gk ≥ 0. (8) by Lemma 1, ζ2 
+
+> k
+
+/2 is the maximal second-order decrease achievable by updating layer k alone. Unlike the raw gradient norm ∥gk∥2, the quantity ζ2 
+
+> k
+
+accounts for local curvature and therefore measures reducible risk rather than raw gradient magnitude. In Appendix C we address why ζ2 
+
+> k
+
+remains consistent even though eHkk is used in place of Hkk .42.3 Capacity Allocation Under Diminishing Returns Setup. Let ek ≥ 0 denote continuous capacity allocated to layer k (e.g., number of active units or effective precision bits), with per-unit resource cost ck > 0. We impose the global budget constraint 
+
+> K
+
+X
+
+> k=1
+
+ck ek ≤ B. (9) Define the normalized curvature weights 
+
+qk := ζ2
+
+> k
+
+PKj=1 ζ2
+
+> j
+
+, qk ≥ 0, X
+
+> k
+
+qk = 1 . (10) 
+
+Optimization program. We seek an allocation that concentrates capacity where reducible risk is largest, while penalizing over-allocation via diminishing log-returns. Setting αk = αc k (so that linear cost scales with resource usage and no layer-dependent free parameter is introduced), we solve: 
+
+min  
+
+> ek≥0
+> K
+
+X
+
+> k=1
+
+h
+
+αc k ek − γ q βk ϕ(ek)
+
+i
+
+s.t. 
+
+> K
+
+X
+
+> k=1
+
+ck ek ≤ B, (11) where α, γ > 0 are scalar hyperparameters, β ≥ 0 controls gain emphasis (see below) and ϕ(ek) = log(1 + ek). The objective is convex: αc kek is linear, and −γq βk log(1 + ek) is convex on ek ≥ 0 since − log(1 + e) is convex. The feasible set is a convex polytope. Slater’s condition Boyd and Vandenberghe [2004] holds (any strictly feasible ek > 0
+
+with P 
+
+> k
+
+ckek < B is a Slater point), so strong duality applies. 
+
+Closed-form solution. Forming the Lagrangian: 
+
+L(e, λ ) = X
+
+> k
+
+h
+
+αc kek − γq βk log(1 + ek)
+
+i
+
++ λ
+
+X 
+
+> k
+
+ckek − B
+
+
+
+and imposing stationarity: ∂L/∂e k = 0 for ek > 0 gives 
+
+αc k + λc k − γq βk
+
+1 + ek
+
+= 0 .
+
+Solving and incorporating the non-negativity constraint yields the curvature-weighted water-filling allocation 
+
+ek(λ) = max 
+
+(
+
+γ q βk
+
+(α + λ) ck
+
+− 1, 0
+
+)
+
+. (12) If the unconstrained optimum ( λ = 0 ) violates the budget, the constraint is active and the dual variable λ⋆ > 0 satisfies P 
+
+> k
+
+ck ek(λ⋆) = B. Since ek(λ) is strictly decreasing and continuous in λ, the sum P 
+
+> k
+
+ck ek(λ) is strictly decreasing, so λ⋆ is unique and can be computed in O(K log(1 /ε )) time by bisection. 
+
+Role of β. The exponent β interpolates between three regimes: (i) β = 0 : qβk = 1 uniformly, so curvature infor-mation is discarded and the allocation depends only on costs ck; (ii) β = 1 : capacity is allocated proportionally to normalized gains qk, recovering a natural baseline; (iii) β → ∞ : allocation concentrates entirely on the layer(s) with the largest gain ζ2 
+
+> k
+
+. In practice, β = 1 or β = 2 work well across architectures (Section 3.3). 
+
+## 3 Method 
+
+In this section, we present our MDL framework for expert allocation and pruning as displayed in Figure 1. 
+
+3.1 Capacity Allocation and Pruning Under Curvature-Weighted Tradeoffs 
+
+The curvature-adjusted layer gains ζ2 
+
+> k
+
+defined in Eq (8) and derived in Section 2.2, quantify how much empirical risk can be locally reduced by updating layer k alone. We now use these gains to drive two complementary capacity 5shared upstream   
+
+> Layer 1
+> Layer 2
+> Layer 3
+> Layer 4
+> Layer 5
+> Layer 6
+> . . .
+> Layer K
+> ζ2
+> k
+> low high
+
+(a) Non-uniform layer capacity 
+
+> high gain:
+> allocate more
+> low gain:
+> prune more
+> Curvature Estimation
+
+˜Hkk = Hkk + τ I d⋆k = − ˜H−1     
+
+> kk gk
+> Layer Gain (Lem. 1)
+> ζ2
+> k=g⊤
+> k
+
+˜H−1   
+
+> kk gk
+> Quality Scores
+> qk=ζ2
+> k
+
+/ ∑   
+
+> jζ2
+> j
+> Allocation (Thm. 1)
+> e⋆k= max
+
+{ γq βk  
+
+> (α+λ⋆)ck−1,0
+
+}∑ ck ek ≤ B, bisection    
+
+> Pruning (Thm. 2)
+> ρ⋆k=clip
+
+( (b+λ⋆)nk  
+
+> 2ηq κk
+> ,0,1
+
+)∑ nk ρk ≥ S, bisection      
+
+> Transfer Stability (Thm. 3)
+> Regret A→B≤LxL2
+> xq 2σ2
+
+∥∥q(A) − q(B)∥∥22 
+
+> expand compress
+
+(b) MDL Capacity Framework   
+
+> gk,
+
+˜Hkk Figure 1: (a) Layer-wise curvature scores ζ2 
+
+> k
+
+vary substantially across the transformer stack. High-gain layers (dark bars) hold disproportionate reducible risk and should receive additional capacity; low-gain layers (light bars) are candidates for aggressive pruning. (b) Our framework computes ζ2 
+
+> k
+
+from per-layer gradients gk and regularized Hessian blocks eHkk , normalizes them to quality scores qk , and solves two convex programs: a capacity allocation program (Theorem 2) that enriches high-gain layers, and a pruning program (Theorem 3) that concentrates sparsity on low-gain layers. Both programs admit closed-form solutions via 
+
+O(K log 1 /ε ) bisection (Algorithms 1–2). Theorem 4 bounds the cost of transferring source-domain allocations to a target domain. 
+
+decisions: allocating additional capacity to under-resourced layers, and pruning parameters from layers that contribute little to risk reduction (see Figure 1). In both programs we work with the normalized quality scores introduced in Eq (10). Normalization ensures that the allocation parameters (γ, β ) are invariant to the global scale of the curvature signal, and that qk can be interpreted directly as the relative share of reducible risk attributable to layer k. A layer with large qk has high potential to reduce empirical risk; accordingly, it should receive more capacity and be protected from pruning. 
+
+Capacity allocation. Given the setup in Section 2.3 and Eq (9) let ek denote the effective capacity added at layer k
+
+(e.g., LoRA rank or number of mixture-of-experts slots) [Baldi and Vershynin, 2019], setting αk = αc k so that linear penalty scales with hardware usage (and no layer-dependent free parameter is introduced), we model the tradeoff between model complexity and risk reduction via the separable convex program in Eq (11), where γ > 0 scales benefit strength, β ≥ 0 controls curvature emphasis, and ϕ is increasing and strictly concave with ϕ(0) = 0 . The concavity of ϕ models diminishing returns: each additional unit of capacity yields progressively smaller reductions in empirical risk. 
+
+Theorem 2 (Convexity and closed form for allocation) . The objective in Eq (11) is convex. If ϕ is strictly concave and 
+
+qk > 0 for all k, the objective is strictly convex and the minimizer is unique. For ϕ(e) = log(1 + e), there exists a unique λ⋆ ≥ 0 such that the optimal allocation is 
+
+e⋆k = max 
+
+(
+
+γ q βk
+
+(α + λ⋆) ck
+
+− 1, 0
+
+)
+
+. (13) When λ⋆ > 0 the budget constraint is active, P 
+
+> k
+
+cke⋆k = B; when λ⋆ = 0 the unconstrained optimum is feasible. On the active set {k : e⋆k > 0}, e⋆k is strictly increasing in qk. A detailed proof for this theorem is discussed in appendix B.2 
+
+Interpretation. At optimality, the marginal benefit equals the marginal cost at every active layer: 
+
+γq βk ϕ′(e⋆k)
+
+| {z }
+
+> marginal benefit
+
+= ( α + λ⋆) ck
+
+| {z }
+
+> marginal cost
+
+.
+
+Layers with larger curvature signal qk receive more capacity, while the global multiplier λ⋆ enforces the budget. The exponent β interpolates between three regimes: β = 0 produces a uniform allocation that ignores curvature; β = 1 
+
+6allocates proportionally to normalized gains; and as β → ∞ , allocation concentrates on the layer(s) with the largest 
+
+ζ2 
+
+> k
+
+. In practice, β ∈ { 1, 2} works well across architectures (Section 3.3). 
+
+Layer-wise pruning. We now consider the complementary problem of removing parameters from layers that carry little curvature signal. Let ρk ∈ [0 , 1] denote the fraction of parameters pruned at layer k, and let nk denote the total number of parameters in layer k. The number of retained parameters is nk(1 − ρk), contributing b n k(1 − ρk) bits to model size, where b > 0 is bits per parameter. Pruning a fraction ρk of layer k degrades data fit. Since ζ2 
+
+> k
+
+measures the maximal second-order decrease achievable by updating layer k (Section 2.2), layers with larger qk ∝ ζ2 
+
+> k
+
+are more sensitive to parameter removal. We model the resulting degradation as ηq κk ψ(ρk), where ψ is convex with ψ(0) = 0 , κ ≥ 0 controls curvature emphasis, and η > 0
+
+scales the penalty. This is a design choice grounded in the curvature interpretation of qk; layers with larger curvature signal attract a higher degradation penalty, so the optimizer naturally protects them. We enforce a minimum global sparsity target S ≤ P 
+
+> k
+
+nkρk and solve: 
+
+min  
+
+> 0≤ρk≤1
+> K
+
+X
+
+> k=1
+
+h
+
+b n k(1 − ρk) + η q κk ψ(ρk)
+
+i
+
+s.t. 
+
+> K
+
+X
+
+> k=1
+
+nk ρk ≥ S. (14) The objective minimizes total model size subject to bounded degradation, with the constraint enforcing that at least S
+
+parameters are pruned globally. 
+
+Theorem 3 (Strong convexity and closed form for pruning) . The objective in Eq (14) is convex. If ψ is strongly convex, the objective is strongly convex and the minimizer is unique. For ψ(ρ) = ρ2, there exists a unique λ⋆ ≥ 0 such that 
+
+ρ⋆k = clip 
+
+ (b + λ⋆) nk
+
+2 η q κk
+
+, 0, 1
+
+
+
+. (15) When λ⋆ > 0 the sparsity constraint is active, P 
+
+> k
+
+nkρ⋆k = S; when λ⋆ = 0 , the unconstrained solution already meets or exceeds the target. On interior coordinates ( 0 < ρ ⋆k < 1), ρ⋆k is strictly decreasing in qk. A detailed proof for this theorem is discussed in appendix B.2. 
+
+Interpretation. The pruning solution mirrors the allocation solution but in the opposite direction: layers with small 
+
+qk (low curvature signal, little reducible risk) are pruned aggressively, while high-gain layers are protected. The global multiplier λ⋆ calibrates the pruning depth to meet the sparsity target S, playing the same role as the budget multiplier in the allocation program. Together, the two programs provide a unified curvature-aware framework: allocation enriches layers where gradient information is underexploited, and pruning removes redundancy where unnecessary. 
+
+3.2 Algorithms: Closed-Form Solutions via One-Dimensional Dual Search 
+
+The convex programs of Theorems 2 and 3 share a common structure (see Figure 1): strict (or strong) convexity guarantees a unique primal minimizer, and the KKT conditions reduce each constrained program to a monotone scalar equation in the Lagrange multiplier λ. Both programs therefore admit O(K log(1 /ε )) algorithms via bisection, with primal variables recovered in closed form at each function evaluation. Throughout, qk = ζ2 
+
+> k
+
+/ P 
+
+> j
+
+ζ2 
+
+> j
+
+denotes the normalized curvature score from Eq (10), αk = αc k as established in Section 2.3, and we use the canonical utility choices ϕ(e) = log(1 + e) and ψ(ρ) = ρ2. Since capacity is equivalent to an expert in mixture-of-expert, from here on out, we use expert allocation in place of capacity allocation. 
+
+Expert Allocation. From Theorem 2, the unique minimizer of Eq (11) takes the closed form in Eq (12) where λ ≥ 0
+
+is the dual variable for the budget constraint. The sum λ 7 → P 
+
+> k
+
+ck ek(λ) is continuous and strictly decreasing: each active term ek(λ) > 0 decreases strictly in λ, and once ek hits zero it stays there. Therefore λ⋆ is unique when the constraint is active. To bracket the bisection, note that ek(0) = max {γq βk /(αc k) − 1, 0} gives the unconstrained solution, while λmax = γ/ (α min k ck) ensures ek(λmax ) = 0 for all k, giving P 
+
+> k
+
+ckek = 0 ≤ B.
+
+Layer-wise Pruning. From Theorem 3, the unique minimizer of Eq (14) where ψ(ρ) = ρ2 is obtained as follows. The Lagrangian subtracts the dual term for the lower-bound constraint in Eq (17), Stationarity at an interior point gives −b n k + 2 η q κk ρk − λ n k = 0 , yielding the interior solution 
+
+ρint  
+
+> k
+
+(λ) = (b + λ) nk
+
+2 η q κk
+
+.
+
+7Algorithm 1 MDL-Optimal Expert Allocation 
+
+Require: Scores {qk}, costs {ck}, budget B, hyperpa-rameters α, γ, β > 0 
+
+> 1:
+
+Define closed-form primal: Eq (12)  
+
+> 2:
+
+Set λmin ← 0, λmax ← γ / (α min k ck) 
+
+> 3:
+
+if P 
+
+> k
+
+ck ek(0) ≤ B then  
+
+> 4:
+
+λ⋆ ← 0 {budget constraint inactive}  
+
+> 5:
+
+else  
+
+> 6:
+
+Find λ⋆ ∈ (λmin , λ max ) via bisection on P 
+
+> k
+
+ck ek(λ) = B 
+
+> 7:
+
+end if  
+
+> 8:
+
+return e⋆k ← ek(λ⋆) for all k
+
+Algorithm 2 MDL-Optimal Layer-wise Pruning 
+
+Require: Scores {qk}, sizes {nk}, sparsity target S, hy-perparameters b, η, κ > 0 
+
+> 1:
+
+Define projected primal: Eq (15)  
+
+> 2:
+
+Set λmin ← 0,
+
+λmax ← max(2 η min k(qκk /n k) − b, 0)  
+
+> 3:
+
+if P 
+
+> k
+
+nk ρk(0) ≥ S then  
+
+> 4:
+
+λ⋆ ← 0 {sparsity constraint inactive}  
+
+> 5:
+
+else  
+
+> 6:
+
+Find λ⋆ ∈ (λmin , λ max ) via bisection on P 
+
+> k
+
+nk ρk(λ) = S 
+
+> 7:
+
+end if  
+
+> 8:
+
+return ρ⋆k ← ρk(λ⋆) for all k
+
+The positive numerator b + λ > 0 (since b, λ ≥ 0) ensures ρint  
+
+> k
+
+≥ 0, consistent with the lower-bound structure of the sparsity constraint. Projection onto [0 , 1] enforces the box constraints Eq (15).The sum λ 7 → P 
+
+> k
+
+nkρk(λ) is contin-uous and non-decreasing: the interior solution increases linearly in λ, and clipping to [0 , 1] preserves monotonicity since each ρk is non-decreasing before and after projection. Strict increase holds whenever at least one coordinate remains in the interior (0 , 1) , guaranteeing a unique λ⋆ when binding. The unconstrained solution at λ = 0 gives ρk(0) = clip( b n k/(2 ηq κk ), 0, 1) . An upper bound for bisection is any 
+
+λmax such that ρk(λmax ) = 1 for all k, i.e., λmax = 2 η min k(qκk /n k) − b when this is positive; otherwise P 
+
+> k
+
+nk ≥ S
+
+is already guaranteed by full pruning. 
+
+Remark (Budget flexibility) . The budget B in Algorithm 1 need not equal the base-model FLOPs used in our ex-periments. Any computationally feasible value of B yields a valid, theoretically optimal allocation; the bisection in Algorithm 1 adapts automatically to the chosen constraint. 
+
+Complexity and practical notes. Each bisection iteration evaluates the primal sum in O(K) time. Both algorithms therefore run in O(K log(1 /ε )) time to achieve dual gap ε. This is substantially cheaper than general-purpose interior-point methods, which require O(K3) per iteration. The curvature scores {qk} enter only through the closed-form ex-pressions and need not be recomputed during the dual search, so the algorithms are fully compatible with any approxi-mation of eH−1 
+
+> kk
+
+gk (e.g., diagonal Fisher, K-FAC, or randomized Nyström sketches). Together, Algorithms 1 and 2 pro-vide practical implementations of the curvature-weighted water-filling framework developed throughout this section. 
+
+3.3 Experimental Setup Models. All experiments are conducted on two publicly available 7B-parameter large language models: Mistral-7B-v0.1 Jiang et al. [2023] and Gemma-7B Team et al. [2024]. Parameter-efficient fine-tuning is performed using LoRA-MoE Gao et al. [2024], which augments each layer with a mixture of low-rank adapters and serves as the capacity expansion mechanism targeted by Algorithm 1. 
+
+Expert allocation. Datasets. We evaluate on five classification and question-answering benchmarks: CoLA Warstadt et al. [2019], MRPC Dolan and Brockett [2005], CommonsenseQA Talmor et al. [2019], ScienceQA Lu et al. [2022], and OpenBookQA Mihaylov et al. [2018]. 
+
+Curvature scores. Layer-wise influence scores are computed for each (model, dataset) pair following the procedures of Askari et al. [2025] and Kwon et al. [2023]. We consider two variants of the influence score pool: All , in which every computed influence score is used, and +ve , in which only positively influential samples (those with negative influence score values, indicating a beneficial effect on validation loss) are retained. Both variants are evaluated on Mistral-7B; only the +ve variant is used for Gemma-7B. The normalized curvature scores qk entering Algorithm 1 are derived from these influence scores as described in Section 2.2. 
+
+Budget and allocation. Following He et al. [2023], the FLOPs of a multi-expert LoRA model are empirically upper-bounded by the FLOPs of the base network. We therefore set the budget B in Algorithm 1 equal to the FLOPs of a standard single-expert layer in the respective base model, with scaling factors σ = 0 .0276 for Mistral-7B and σ = 0 .02 
+
+for Gemma-7B (i.e., B = σ × base model FLOPs). Per-layer expert counts are computed using Algorithm 1, and fine-tuning follows the protocols of Qing et al. [2024] and Gao et al. [2024] for 5 epochs per (model, dataset) pair. 
+
+Layer-wise Pruning. Datasets. Calibration uses the C4 dataset Raffel et al. [2023]. Zero-shot post-pruning evalu-ation is performed on seven benchmarks: RTE Wang et al. [2019], OpenBookQA Mihaylov et al. [2018], ARC-Easy 8and ARC-Challenge Clark et al. [2018], HellaSwag Zellers et al. [2019], BoolQ Clark et al. [2019], and WinoGrande Sakaguchi et al. [2021]. 
+
+Pruning configurations. Layer-wise pruning ratios ρ⋆k are computed using Algorithm 2 with influence scores carried over from the expert allocation experiments. The computed ratios are applied under three structural pruning config-urations — Magnitude Han et al. [2015], SparseGPT Frantar and Alistarh [2023], and Wanda Sun et al. [2023] — using the framework of Lu et al. [2024]. A global sparsity target of S = 0 .5 × (total parameters ) is enforced for both models, corresponding to 50% sparsity. 
+
+Evaluation. We report the mean zero-shot accuracy for expert allocation after finetuning and across all seven evaluation benchmarks for each pruning configuration and compare against the baseline Askari et al. [2025]. Refer to appendix E for hardware and parameter setting we used for experimentation. 
+
+3.4 Results and Discussion CoLA MRPC CommonQ OpenBook ScienceQ Average    
+
+> Datasets
+> 75
+> 77
+> 79
+> 81
+> 83
+> 85
+> 87
+> 89
+> 91
+> Accuracies
+> 85.6
+> 83.6
+> 81.2
+> 85.2
+> 66.4
+> 80.4
+> 87.4
+> 82.7
+> 80.4
+> 85.0
+> 79.8
+> 83.1
+> 86.1
+> 82.8
+> 81.4
+> 85.8
+> 80.8
+> 83.4
+> 85.9
+> 84.2
+> 80.2
+> 86.4
+> 83.6
+> 84.1
+> layerIF (all) mdl (all, our) layerIF (+ve) mdl (+ve, our)
+
+Figure 2: Expert allocation accuracy (%) on Mistral-7B-v0.1 (5 epochs) 
+
+Expert allocation. Figures 2 and 3 report zero-shot accuracy after five epochs of fine-tuning on Mistral-7B and Gemma-7B respectively, with per-layer expert counts determined by Algorithm 1 (MDL) and the LayerIF heuristic baseline. We note that LayerIF has previously been shown to outperform AlphaLoRA Qing et al. [2024] and MoLA Gao et al. [2024] on these benchmarks; we omit those comparisons here for brevity and focus on the MDL-vs-LayerIF contrast. On Mistral-7B, the MDL allocation outperforms LayerIF on average under both influence score variants: 
+
+83.07% vs. 80.41% (All) and 84.06% vs. 83.39% (+ve), corresponding to absolute improvements of 2.66 and 0.67 percentage points respectively. The gains are most pronounced on ScienceQA, where MDL improves over LayerIF by 13.4 points (All) and 2.8 points (+ve), suggesting that curvature-weighted allocation is particularly beneficial for knowledge-intensive reasoning tasks where representational capacity is unevenly demanded across layers. On Gemma-7B, Algorithm 1 produces identical expert counts to LayerIF under the All variant (hence only +ve results are reported), yet the MDL allocation still yields a marginal improvement ( 87.52% vs. 87.46%), confirming that the two methods agree in structure when curvature scores are relatively uniform, while MDL provides cleaner theoretical justification for the same decision. These results demonstrate that replacing the knapsack heuristic of LayerIF with the convex MDL program of Theorem 2 yields consistent improvements without additional compute: both methods share the same influence-score inputs, and Algorithm 1 adds only an O(K log 1 /ε ) bisection step. See more in Tables 4 and 5 for results on Mistral-7B and Gemma-7B respectively. 
+
+Layer-wise Pruning. Tables 1 and 2 report mean zero-shot accuracy across seven evaluation benchmarks at 50% global sparsity, under Magnitude, Wanda, and SparseGPT pruning configurations. Because Algorithm 2 can assign extreme ratios ( ρk → 1) to low-curvature layers, we clip per-layer sparsity at 0.51 for Mistral-7B and 0.55 for Gemma-7B to ensure the global 50% target is met without fully ablating any single layer. This clipping is consistent with 9CoLA MRPC CommonQ OpenBook ScienceQ Average 
+
+> Datasets
+> 75
+> 77
+> 79
+> 81
+> 83
+> 85
+> 87
+> 89
+> 91
+> 93
+> 95
+> 97
+> 99
+> Accuracies
+> 87.2
+> 84.4
+> 82.6
+> 88.4
+> 94.7
+> 87.5
+> 87.3
+> 85.0
+> 81.6
+> 88.8
+> 94.9
+> 87.5
+> layerIF (+ve)
+> mdl (+ve, our)
+
+Figure 3: Expert allocation accuracy (%) on Gemma-7B, +ve variant only (5 epochs) 
+
+the boundary solution analysis in Remark D. On Mistral-7B (Table 1), MDL pruning ratios match LayerIF closely 
+
+Table 1: Mean zero-shot accuracy (%) across 7 benchmarks for pruning on Mistral-7B-v0.1 at 50% sparsity (layer cap 0.51). Rows show the calibration dataset used to compute influence scores. 
+
+Calibration dataset Magnitude Wanda SparseGPT 
+
+CoLA 56.47 58.59 59.66 MRPC 56.23 58.48 60.12 CommonsenseQA 56.32 58.65 60.77 OpenBookQA 56.22 58.46 60.05 ScienceQA 55.89 58.99 60.30 Average (MDL) 56.23 58.63 60.18 
+
+LayerIF 56.41 58.67 60.18 
+
+across all three configurations: average accuracies are within 0.05 points for Wanda and identical for SparseGPT (60.18%), while Magnitude shows a marginal difference of 0.18 points (56.23% MDL vs. 56.41% LayerIF). On Gemma-7B (Table 2), MDL outperforms LayerIF under Magnitude ( 33.34% vs. 32.91%) while LayerIF leads under Wanda (52.3% vs. 49.47%) and SparseGPT (50.79% vs. 49.22%). The pruning parity between MDL and LayerIF is itself a meaningful result: it shows that the principled convex program of Theorem 3 recovers the empirically tuned LayerIF ratios without manual calibration, while providing the theoretical guarantees — strong convexity, unique minimizer, and budget feasibility, which are lacking in LayerIF. The Wanda and SparseGPT gaps on Gemma-7B suggest that the quadratic degradation model ψ(ρ) = ρ2 may underestimate pruning sensitivity in certain architectural regimes; exploring richer ψ (e.g., ψ(ρ) = − log(1 − ρ)) is a natural direction for future work. 
+
+Summary. Across both tasks and both models, the MDL framework matches or exceeds the LayerIF baseline while replacing an empirical heuristic with a convex program whose solutions are theoretically optimal, efficiently com-putable, and transferable across domains (Theorem 4). The allocation gains are larger and more consistent than the pruning gains, which we attribute to the greater degrees of freedom available in the allocation problem: pruning ratios are tightly constrained by the 50% sparsity target, leaving less room for curvature-aware differentiation across layers. 
+
+## 4 Conclusion 
+
+We presented a curvature-aware framework for layer-wise capacity allocation and pruning in large language models, grounded in the Minimum Description Length principle. The central quantity, ζ2 
+
+> k
+
+= g⊤ 
+
+> k
+
+eH−1 
+
+> kk
+
+gk, measures reducible empirical risk at each layer and drives two convex programs with unique closed-form solutions, each computable in O(K log 1 /ε ) via bisection. Experiments on Mistral-7B and Gemma-7B show consistent improvements over the LayerIF heuristic for expert allocation, and competitive performance for pruning, without additional compute beyond 10 Table 2: Mean zero-shot accuracy (%) across 7 benchmarks for pruning on Gemma-7B at 50% sparsity (layer cap 0.55). Rows show the calibration dataset used to compute influence scores. 
+
+Calibration dataset Magnitude Wanda SparseGPT 
+
+CoLA 33.03 48.36 49.28 MRPC 33.49 52.06 50.77 CommonsenseQA 33.51 50.26 49.28 OpenBookQA 33.52 48.09 48.11 ScienceQA 33.15 48.58 48.66 Average (MDL) 33.34 49.47 49.22 LayerIF 32.91 52.30 50.79 
+
+the influence score calculation shared by both methods. See Appendix F and G for limitations and possible directions for future work respectively. 
+
+References 
+
+Hadi Askari, Shivanshu Gupta, Fei Wang, Anshuman Chhabra, and Muhao Chen. LayerIF: Estimating Layer Quality for Large Language Models using Influence Functions. In Advances in Neural Information Processing Systems ,2025. Pierre Baldi and Roman Vershynin. The capacity of feedforward neural networks. Neural Netw. , 116(C):288–311, Au-gust 2019. ISSN 0893-6080. doi: 10.1016/j.neunet.2019.04.009. URL https://doi.org/10.1016/j.neunet. 2019.04.009 .Avrim Blum and John Langford. Pac-mdl bounds. In Bernhard Schölkopf and Manfred K. Warmuth, editors, Learning Theory and Kernel Machines , pages 344–357, Berlin, Heidelberg, 2003. Springer Berlin Heidelberg. ISBN 978-3-540-45167-9. Aleksandar Botev, Hippolyt Ritter, and David Barber. Practical gauss-newton optimisation for deep learning. In Doina Precup and Yee Whye Teh, editors, Proceedings of the 34th International Conference on Machine Learning ,volume 70 of Proceedings of Machine Learning Research , pages 557–565, Sydney, Australia, 2017. PMLR. URL 
+
+https://proceedings.mlr.press/v70/botev17a.html .Stephen Boyd and Lieven Vandenberghe. Convex Optimization . Cambridge University Press, Cambridge, UK, 2004. Available at https://web.stanford.edu/~boyd/cvxbook/ .Christopher Clark, Kenton Lee, Ming-Wei Chang, Tom Kwiatkowski, Michael Collins, and Kristina Toutanova. BoolQ: Exploring the surprising difficulty of natural yes/no questions. In Jill Burstein, Christy Doran, and Thamar Solorio, editors, Proceedings of the 2019 Conference of the North American Chapter of the Association for Compu-tational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers) , pages 2924–2936, Min-neapolis, Minnesota, June 2019. Association for Computational Linguistics. doi: 10.18653/v1/N19-1300. URL 
+
+https://aclanthology.org/N19-1300/ .Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot, Ashish Sabharwal, Carissa Schoenick, and Oyvind Tafjord. Think you have solved question answering? try arc, the ai2 reasoning challenge, 2018. URL https://arxiv. org/abs/1803.05457 .Bill Dolan and Chris Brockett. Automatically constructing a corpus of sentential paraphrases. In Third International Workshop on Paraphrasing (IWP2005) . Asia Federation of Natural Language Processing, January 2005. William Fedus, Barret Zoph, and Noam Shazeer. Switch transformers: Scaling to trillion parameter models with simple and efficient sparsity. Journal of Machine Learning Research , 23(120):1–39, 2022. Jonathan Frankle and Michael Carbin. The lottery ticket hypothesis: Finding sparse, trainable neural networks. In International Conference on Learning Representations , 2019. URL https://openreview.net/forum?id= rJl-b3RcF7 .Elias Frantar and Dan Alistarh. Sparsegpt: Massive language models can be accurately pruned in one-shot, 2023. URL https://arxiv.org/abs/2301.00774 .Chongyang Gao, Kezhen Chen, Jinmeng Rao, Baochen Sun, Ruibo Liu, Daiyi Peng, Yawen Zhang, Xiaoyuan Guo, Jie Yang, and VS Subrahmanian. Higher layers need more lora experts, 2024. URL https://arxiv.org/abs/ 2402.08562 .11 Song Han, Jeff Pool, John Tran, and William J. Dally. Learning both weights and connections for efficient neural networks. In Proceedings of the 29th International Conference on Neural Information Processing Systems - Volume 1, NIPS’15, page 1135–1143, Cambridge, MA, USA, 2015. MIT Press. B. Hassibi, D.G. Stork, and G.J. Wolff. Optimal brain surgeon and general network pruning. In IEEE International Conference on Neural Networks , pages 293–299 vol.1, 1993. doi: 10.1109/ICNN.1993.298572. Shwai He, Run-Ze Fan, Liang Ding, Li Shen, Tianyi Zhou, and Dacheng Tao. Merging experts into one: Improving computational efficiency of mixture of experts. In Houda Bouamor, Juan Pino, and Kalika Bali, editors, Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pages 14685–14691, Singapore, December 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.emnlp-main.907. URL https: //aclanthology.org/2023.emnlp-main.907/ .Albert Q. Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford, Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna Lengyel, Guillaume Lample, Lucile Saulnier, Lélio Renard Lavaud, Marie-Anne Lachaux, Pierre Stock, Teven Le Scao, Thibaut Lavril, Thomas Wang, Timothée Lacroix, and William El Sayed. Mistral 7b, 2023. URL https://arxiv.org/abs/2310.06825 .Pang Wei Koh and Percy Liang. Understanding black-box predictions via influence functions. In International con-ference on machine learning , pages 1885–1894. PMLR, 2017. Yongchan Kwon, Eric Wu, Kevin Wu, and James Zou. Datainf: Efficiently estimating data influence in lora-tuned llms and diffusion models. arXiv preprint arXiv:2310.00902 , 2023. Yann LeCun, John Denker, and Sara Solla. Optimal brain damage. In D. Touretzky, editor, Advances in Neural Information Processing Systems , volume 2. Morgan-Kaufmann, 1989. URL https://proceedings.neurips. cc/paper_files/paper/1989/file/6c9882bbac1c7093bd25041881277658-Paper.pdf .Hongyang Liu, Sara Elkerdawy, Nilanjan Ray, and Mostafa Elhoushi. Layer importance estimation with imprinting for neural network quantization. In 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW) , pages 2408–2417, 2021. doi: 10.1109/CVPRW53098.2021.00273. Sanae Lotfi, Marc Finzi, Yilun Kuang, Tim G. J. Rudner, Micah Goldblum, and Andrew Gordon Wilson. Non-vacuous generalization bounds for large language models. In International Conference on Machine Learning , 2023. URL 
+
+https://api.semanticscholar.org/CorpusID:266573256 .Haiquan Lu, Yefan Zhou, Shiwei Liu, Zhangyang Wang, Michael W Mahoney, and Yaoqing Yang. Alphapruning: Using heavy-tailed self regularization theory for improved layer-wise pruning of large language models. In Thirty-eighth Conference on Neural Information Processing Systems , 2024. Pan Lu, Swaroop Mishra, Tony Xia, Liang Qiu, Kai-Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter Clark, and Ashwin Kalyan. Learn to explain: Multimodal reasoning via thought chains for science question answering. In The 36th Conference on Neural Information Processing Systems (NeurIPS) , 2022. James Martens and Roger Grosse. Optimizing neural networks with kronecker-factored approximate curvature. In 
+
+International conference on machine learning , pages 2408–2417. PMLR, 2015. Todor Mihaylov, Peter Clark, Tushar Khot, and Ashish Sabharwal. Can a suit of armor conduct electricity? a new dataset for open book question answering. In Ellen Riloff, David Chiang, Julia Hockenmaier, and Jun’ichi Tsujii, editors, Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing , pages 2381– 2391, Brussels, Belgium, October-November 2018. Association for Computational Linguistics. doi: 10.18653/v1/ D18-1260. URL https://aclanthology.org/D18-1260/ .Benjamin Prada, Shion Matsumoto, Abdul Malik Zekri, and Ankur Mali. Bridging predictive coding and mdl: A two-part code framework for deep learning. ArXiv , abs/2505.14635, 2025. URL https://api.semanticscholar. org/CorpusID:278768469 .Peijun Qing, Chongyang Gao, Yefan Zhou, Xingjian Diao, Yaoqing Yang, and Soroush Vosoughi. Alphalora: Assign-ing lora experts based on layer training quality, 2024. URL https://arxiv.org/abs/2410.10054 .Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, and Peter J. Liu. Exploring the limits of transfer learning with a unified text-to-text transformer, 2023. URL 
+
+https://arxiv.org/abs/1910.10683 .Jorma Rissanen. Modeling by shortest data description*. Autom. , 14:465–471, 1978. URL https://api. semanticscholar.org/CorpusID:30140639 .Jorma Rissanen. Stochastic complexity in statistical inquiry. In World Scientific Series in Computer Science , 1989. URL https://api.semanticscholar.org/CorpusID:9365056 .12 Keisuke Sakaguchi, Ronan Le Bras, Chandra Bhagavatula, and Yejin Choi. Winogrande: an adversarial winograd schema challenge at scale. Commun. ACM , 64(9):99–106, August 2021. ISSN 0001-0782. doi: 10.1145/3474381. URL https://doi.org/10.1145/3474381 .Jürgen Schmidhuber. Discovering neural nets with low kolmogorov complexity and high generalization capability. 
+
+Neural Networks , 10(5):857–873, 1997. ISSN 0893-6080. doi: https://doi.org/10.1016/S0893-6080(96)00127-X. URL https://www.sciencedirect.com/science/article/pii/S089360809600127X .Shai Shalev-Shwartz and Shai Ben-David. Understanding machine learning : from theory to algorithms . Cambridge University Press, Cambridge, 2014. ISBN 1-107-29801-6. Noam Shazeer, *Azalia Mirhoseini, *Krzysztof Maziarz, Andy Davis, Quoc Le, Geoffrey Hinton, and Jeff Dean. Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. In International Conference on Learning Representations , 2017. URL https://openreview.net/forum?id=B1ckMDqlg .Zichen Song, Sitan Huang, Yuxin Wu, and Zhongfeng Kang. Layer importance and hallucination analysis in large language models via enhanced activation variance-sparsity, 2024. URL https://arxiv.org/abs/2411.10069 .Mingjie Sun, Zhuang Liu, Anna Bair, and J. Zico Kolter. A simple and effective pruning approach for large language models. arXiv preprint arXiv:2306.11695 , 2023. Alon Talmor, Jonathan Herzig, Nicholas Lourie, and Jonathan Berant. CommonsenseQA: A question answer-ing challenge targeting commonsense knowledge. In Jill Burstein, Christy Doran, and Thamar Solorio, ed-itors, Proceedings of the 2019 Conference of the North American Chapter of the Association for Computa-tional Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers) , pages 4149–4158, Min-neapolis, Minnesota, June 2019. Association for Computational Linguistics. doi: 10.18653/v1/N19-1421. URL 
+
+https://aclanthology.org/N19-1421/ .Gemma Team, Thomas Mesnard, Cassidy Hardin, Robert Dadashi, Surya Bhupatiraju, Shreya Pathak, Laurent Sifre, Morgane Rivière, Mihir Sanjay Kale, Juliette Love, Pouya Tafti, Léonard Hussenot, Pier Giuseppe Sessa, Aakanksha Chowdhery, Adam Roberts, Aditya Barua, Alex Botev, Alex Castro-Ros, Ambrose Slone, Amélie Héliou, Andrea Tacchetti, Anna Bulanova, Antonia Paterson, Beth Tsai, Bobak Shahriari, Charline Le Lan, Christo-pher A. Choquette-Choo, Clément Crepy, Daniel Cer, Daphne Ippolito, David Reid, Elena Buchatskaya, Eric Ni, Eric Noland, Geng Yan, George Tucker, George-Christian Muraru, Grigory Rozhdestvenskiy, Henryk Michalewski, Ian Tenney, Ivan Grishchenko, Jacob Austin, James Keeling, Jane Labanowski, Jean-Baptiste Lespiau, Jeff Stan-way, Jenny Brennan, Jeremy Chen, Johan Ferret, Justin Chiu, Justin Mao-Jones, Katherine Lee, Kathy Yu, Katie Millican, Lars Lowe Sjoesund, Lisa Lee, Lucas Dixon, Machel Reid, Maciej Mikuła, Mateo Wirth, Michael Shar-man, Nikolai Chinaev, Nithum Thain, Olivier Bachem, Oscar Chang, Oscar Wahltinez, Paige Bailey, Paul Michel, Petko Yotov, Rahma Chaabouni, Ramona Comanescu, Reena Jana, Rohan Anil, Ross McIlroy, Ruibo Liu, Ryan Mullins, Samuel L Smith, Sebastian Borgeaud, Sertan Girgin, Sholto Douglas, Shree Pandya, Siamak Shakeri, So-ham De, Ted Klimenko, Tom Hennigan, Vlad Feinberg, Wojciech Stokowiec, Yu hui Chen, Zafarali Ahmed, Zhitao Gong, Tris Warkentin, Ludovic Peran, Minh Giang, Clément Farabet, Oriol Vinyals, Jeff Dean, Koray Kavukcuoglu, Demis Hassabis, Zoubin Ghahramani, Douglas Eck, Joelle Barral, Fernando Pereira, Eli Collins, Armand Joulin, Noah Fiedel, Evan Senter, Alek Andreev, and Kathleen Kenealy. Gemma: Open models based on gemini research and technology, 2024. URL https://arxiv.org/abs/2403.08295 .Leslie G. Valiant. A theory of the learnable. Commun. ACM , 27:1134–1142, 1984. URL https://api. semanticscholar.org/CorpusID:59712 .Dmytro Vitel and Anshuman Chhabra. First is Not Really Better Than Last: Evaluating Layer Choice and Aggregation Strategies in Language Model Data Influence Estimation. In International Conference on Learning Representations ,2026. Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel R. Bowman. Glue: A multi-task benchmark and analysis platform for natural language understanding, 2019. URL https://arxiv.org/abs/ 1804.07461 .Alex Warstadt, Amanpreet Singh, and Samuel R. Bowman. Neural network acceptability judgments. Transactions of the Association for Computational Linguistics , 7:625–641, 09 2019. ISSN 2307-387X. doi: 10.1162/tacl_a_00290. URL https://doi.org/10.1162/tacl_a_00290 .Andrew Gordon Wilson. Position: Deep learning is not so mysterious or different. In Forty-second International Conference on Machine Learning Position Paper Track , 2025. URL https://openreview.net/forum?id= 42Au7FoD8F .Rowan Zellers, Ari Holtzman, Yonatan Bisk, Ali Farhadi, and Yejin Choi. Hellaswag: Can a machine really finish your sentence? In Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics , 2019. 13 Chiyuan Zhang, Samy Bengio, and Yoram Singer. Are all layers created equal? J. Mach. Learn. Res. , 23(1), January 2022. ISSN 1532-4435. 14 Curvature-Weighted Capacity Allocation: A Minimum Description Length Framework for Layer-Adaptive Large Language Model Optimization 
+
+# (Supplementary Material) 
+
+## A Related Work 
+
+Layer quality estimation. Quantifying the per-layer contribution to model performance is central to pruning, ex-pert allocation in mixture-of-experts (MoE) models, and network compression. Askari et al. [2025] propose LayerIF, which uses influence functions to estimate layer quality and applies it to predict expert counts in Mistral-7B and to determine layer-wise pruning ratios. Song et al. [2024] introduce the Activation Variance-Sparsity Score (AVSS), a combined measure of normalized activation variance and sparsity that quantifies each layer’s contribution to model performance. Liu et al. [2021] develop an accuracy-aware criterion for ranking layer importance, used to guide quan-tization decisions. A common limitation shared by these approaches is the absence of curvature information: gradient magnitudes and activation statistics do not account for the local geometry of the loss landscape. Our gain ζ2 
+
+> k
+
+addresses this gap directly by incorporating the inverse Hessian block, yielding a measure of reducible risk rather than raw gradient magnitude. 
+
+Second-order methods for model compression. Second-order information has been used for pruning since the seminal Optimal Brain Damage LeCun et al. [1989] and Optimal Brain Surgeon Hassibi et al. [1993] frameworks, which identify parameters to remove by computing the Hessian of the training loss. More recent work scales these ideas to modern architectures using diagonal Fisher approximations Martens and Grosse [2015], Kronecker-factored curvature Botev et al. [2017], and randomized sketches. Our work extends this tradition from individual weight pruning to layer-level capacity allocation, and introduces a convex program that jointly optimizes the allocation across all layers under a global budget. 
+
+Generalization bounds and Minimum Description Length. Generalization theory asks how well a model trained on finite data performs on unseen examples. Valiant [1984] formalized PAC learning, establishing that generalization depends on hypothesis space complexity and sample size. Shalev-Shwartz and Ben-David [2014] extend this to infinite hypothesis spaces via VC dimension. For LLMs, classical bounds are vacuous due to the enormous number of pa-rameters; Lotfi et al. [2023] address this by introducing compression-based bounds via SubLoRA, a low-dimensional nonlinear parametrization that yields non-vacuous guarantees. Our MDL objective is directly motivated by this line of work: minimizing description length simultaneously controls generalization and penalizes unnecessary model com-plexity, grounding our convex programs in information-theoretic principles. 
+
+Mixture-of-experts and adaptive capacity. Sparse MoE models Shazeer et al. [2017], Fedus et al. [2022] increase model capacity without proportional compute cost by routing tokens to a subset of expert layers. Existing routing mechanisms are learned end-to-end and do not explicitly account for the curvature-adjusted utility of adding capacity at a given layer. Our allocation program provides a principled, optimization-based alternative that is complementary to learned routing: given a fixed routing mechanism, it determines how much capacity to assign to each layer based on reducible risk. 
+
+## B Proofs for Theorems and Lemmas in the main body 
+
+In this section we provide proofs supporting our theorems, lemma and propositions in the main body of this paper. 15 B.1 Proof for lemma 1 in section 2.2 
+
+Here, we provide proof for lemma 1. Recall that Qk(d) is taylor series expansion of loss restricted to layer k. That means Qk(d) is a quadratic approximation of how much the loss will change if you update the weights of layer k by an amount d. 
+
+Proof. The gradient of eQk with respect to d is ∇d eQk = gk + eHkk d. Setting this to zero and invoking eHkk ≻ 0 yields the unique stationary point d⋆k = − eH−1 
+
+> kk
+
+gk. Substituting back, 
+
+eQk(d⋆k) = g⊤ 
+
+> k
+
+(− eH−1 
+
+> kk
+
+gk) + 12 (− eH−1 
+
+> kk
+
+gk)⊤ eHkk (− eH−1 
+
+> kk
+
+gk)= − g⊤ 
+
+> k
+
+eH−1 
+
+> kk
+
+gk + 12 g⊤ 
+
+> k
+
+eH−1 
+
+> kk
+
+gk = − 12 g⊤ 
+
+> k
+
+eH−1 
+
+> kk
+
+gk.
+
+B.2 Capacity Allocation and Pruning Under Curvature-Weighted tradeoff 
+
+In this subsection, we discuss detailed proofs for theorems provided in Section 3.1. 
+
+Convexity and closed form for allocation: In the following, we discuss the proof for Theorem 2 which talks about the allocation of optimal number of experts restricted to layer k represented as e∗
+
+> k
+
+.
+
+Proof. Each term αc kek is linear. Since ϕ is concave, −ϕ is convex, and since γq βk ≥ 0, the term −γq βk ϕ(ek) is convex on ek ≥ 0. The sum of convex functions over a convex feasible set is convex. When ϕ is strictly concave and 
+
+qk > 0, each term −γq βk ϕ(ek) is strictly convex, giving strict convexity of the full objective. Slater’s condition Boyd and Vandenberghe [2004] holds (any strictly feasible point satisfies the constraint with strict inequality), so strong duality applies. The Lagrangian is 
+
+L(e, λ ) = X
+
+> k
+
+h
+
+αc kek − γq βk ϕ(ek)
+
+i
+
++ λ X
+
+> k
+
+ckek − B
+
+!
+
+, λ ≥ 0. (16) Stationarity at an interior point ek > 0 gives 
+
+(α + λ) ck − γq βk ϕ′(e⋆k) = 0 .
+
+For ϕ(e) = log(1 + e), ϕ′(e) = 1 /(1 + e), so 
+
+(α + λ⋆) ck = γq βk
+
+1 + e⋆k
+
+,
+
+which yields Eq (13) after incorporating non-negativity. Since ek(λ) is strictly decreasing and continuous in λ, the sum P 
+
+> k
+
+ckek(λ) is strictly decreasing, so λ⋆ is unique and can be computed in O(K log(1 /ε )) time by bisection. Strict monotonicity of e⋆k in qk follows directly from Eq (13). 
+
+Strong convexity and closed form for pruning Here, we discuss the proof for convexity and closed form solution for pruning proposed in Eq (15) 
+
+Proof. The term −bn kρk is linear. If ψ is strongly convex, ηq κk ψ(ρk) is strongly convex for qk > 0, making the full objective strongly convex. The feasible set [0 , 1] K ∩ { P 
+
+> k
+
+nkρk ≥ S} is convex and compact, so a unique minimizer exists. The constraint P 
+
+> k
+
+nkρk ≥ S is a lower-bound constraint, so the Lagrangian is formed by subtracting the dual term: 
+
+L(ρ, λ ) = X
+
+> k
+
+h
+
+b n k(1 − ρk) + ηq κk ψ(ρk)
+
+i
+
+− λ X
+
+> k
+
+nkρk − S
+
+!
+
+, λ ≥ 0. (17) Stationarity at an interior point ρk ∈ (0 , 1) gives 
+
+−b n k + η q κk ψ′(ρ⋆k) − λ⋆ nk = 0 .
+
+16 For ψ(ρ) = ρ2, ψ′(ρ) = 2 ρ, so 
+
+ρ⋆k = (b + λ⋆) nk
+
+2 η q κk
+
+,
+
+and box constraints [0 , 1] induce clipping, giving Eq (15). Since λ⋆ ≥ 0, the numerator b + λ⋆ > 0, so ρ⋆k > 0 on the interior. The mapping λ 7 → P 
+
+> k
+
+nkρk(λ) is strictly increasing (larger λ increases every ρk through the numerator b + λ), so λ⋆
+
+is unique when binding and can be found by bisection. Strict decrease of ρ⋆k in qk follows directly from Eq (15). 
+
+## C Validity Under Surrogate Regularization 
+
+The step ∆⋆k = E⊤ 
+
+> k
+
+d⋆k is derived from the surrogate eHkk , not from Hkk directly. We now show that the resulting ranking of layers by ζ2 
+
+> k
+
+is consistent with the true objective decrease, and characterize the approximation gap explicitly. Applying Eq (6) to ∆⋆k and using ∆⋆⊤ 
+
+> k
+
+Hkk ∆⋆k = ∆ ⋆⊤ 
+
+> k
+
+eHkk ∆⋆k − τ ∥∆⋆k∥2 gives 
+
+L(θ + ∆ ⋆k) − L(θ) = − 12 ζ2 
+
+> k
+
+− τ
+
+2 ∥∆⋆k∥2 + R(∆ ⋆k). (18) We bound the bias term as follows. Since d⋆k = − eH−1 
+
+> kk
+
+gk and ∥E⊤ 
+
+> k
+
+d∥ = ∥d∥ for any d,
+
+∥∆⋆k∥2 = ∥d⋆k∥2 = g⊤ 
+
+> k
+
+eH−2 
+
+> kk
+
+gk.
+
+The spectral inequality eH−2 
+
+> kk
+
+⪯ λmin ( eHkk )−1 eH−1 
+
+> kk
+
+(which follows because all eigenvalues of eH−1 
+
+> kk
+
+lie in (0 , λ −1min ])then yields τ
+
+2 ∥∆⋆k∥2 ≤ τ
+
+2 λmin ( eHkk ) ζ2 
+
+> k
+
+. (19) Combining Eq (18) and Eq (19), 
+
+L(θ + ∆ ⋆k) − L(θ) ≥ − 12 1 + τλmin ( eHkk )
+
+!
+
+ζ2 
+
+> k
+
++ R(∆ ⋆k).
+
+The multiplicative factor τ /λ min ( eHkk ) measures the relative bias introduced by regularization. Since λmin ( eHkk ) ≥ τ
+
+by construction, this factor lies in (0 , 1] and shrinks as τ → 0. Importantly, the ranking of layers by ζ2 
+
+> k
+
+is preserved whenever τλmin ( eHkk ) ≪ 1 uniformly over k ∈ [K],
+
+i.e., when regularization is small relative to the curvature of each layer. This condition is mild in practice, as eHkk 
+
+inherits significant positive curvature from batch normalization layers and weight-decay preconditioning. 
+
+## D Transfer Stability Under Score Drift 
+
+The allocation and pruning programs derived in Sections 2.3 and 3.1 depend on the normalized curvature scores 
+
+qk = ζ2 
+
+> k
+
+/ P 
+
+> j
+
+ζ2 
+
+> j
+
+. When transferring from a source domain A to a target domain B, the Hessian and gradient of the empirical objective change, inducing a drift in the quality vector from q(A) to q(B). A natural question is: how suboptimal is the allocation or pruning decision derived from source scores when evaluated on the target task? This subsection provides a sharp, self-contained answer. 
+
+Setup. Let JB (x; q) denote the MDL program objective on task B, as a function of the decision variable x and quality inputs q. Here x = e ∈ RK 
+
+> ≥0
+
+for the allocation program (Section 2.3) and x = ρ ∈ [0 , 1] K for the pruning program (Section 3.1), with q ∈ ∆K−1 the normalized score simplex. Let X denote the corresponding feasible set (budget constraint or sparsity constraint). Since Theorems 2 and 3 guarantee a unique minimizer for each admissible 
+
+q, define 
+
+bxB (q) := arg min  
+
+> x∈X
+
+JB (x; q).
+
+The transfer regret of deploying the source-derived decision bxB (q(A)) on the target task is 
+
+Regret A→B := JB
+
+bxB (q(A)); q(B)
+
+− J B
+
+bxB (q(B)); q(B)
+
+. (20) Both terms are evaluated under the target objective and target scores q(B), so Eq (20) is the standard excess cost of a misspecified input. 17 Regularity assumptions. We require the following conditions on JB over X .(i) Strong convexity. JB (·; q) is σ-strongly convex in x for every admissible q.(ii) Smoothness. JB (·; q) is Lx-smooth in x for every admissible q.(iii) Score-gradient Lipschitz continuity. The gradient is Lipschitz in the score vector: there exists Lxq > 0
+
+such that for all x ∈ X and all admissible q, q ′,
+
+∥∇ xJB (x; q) − ∇ xJB (x; q′)∥2 ≤ Lxq ∥q − q′∥2.
+
+These conditions are satisfied by the concrete programs of Theorems 2 and 3 on the interior of X . For the allocation program with ϕ(e) = log(1 + e), the mixed partial ∂2JB /∂e k ∂q k = −γβq β−1 
+
+> k
+
+/(1 + ek) is bounded uniformly on compact subsets, yielding an explicit Lxq = γβ sup k qβ−1 
+
+> k
+
+. For the pruning program with ψ(ρ) = ρ2, an analogous calculation gives Lxq = ηκ sup k qκ−1 
+
+> k
+
+.
+
+Theorem 4 (Transfer regret under score drift) . Under assumptions (i)–(iii), 
+
+Regret A→B ≤ Lx L2
+
+> xq
+
+2σ2 q(A) − q(B) 22
+
+. (21) In particular, if score drift is bounded coordinate-wise as |q(A) 
+
+> k
+
+− q(B) 
+
+> k
+
+| ≤ δk for each k, then 
+
+Regret A→B ≤ Lx L2
+
+> xq
+
+2σ2
+
+> K
+
+X
+
+> k=1
+
+δ2
+
+> k
+
+.
+
+Proof. Write xA := bxB (q(A)) and xB := bxB (q(B)). We proceed in two steps. 
+
+Step 1: sensitivity of minimizers to score drift. We bound ∥xA − xB ∥2 in terms of ∥q(A) − q(B)∥2.On the interior of X , both minimizers satisfy the first-order optimality conditions 
+
+∇xJB (xA; q(A)) = 0 , ∇xJB (xB ; q(B)) = 0 .
+
+Strong convexity of JB (·; q(B)) implies that its gradient is σ-strongly monotone: 
+
+∇xJB (xA; q(B)) − ∇ xJB (xB ; q(B)), x A − xB ≥ σ ∥xA − xB ∥22.
+
+Since ∇xJB (xB ; q(B)) = 0 , the left side equals ⟨∇ xJB (xA; q(B)), x A − xB ⟩. Applying Cauchy–Schwarz and dividing by ∥xA − xB ∥2,
+
+σ ∥xA − xB ∥2 ≤ ∇xJB (xA; q(B)) 2
+
+.
+
+Using ∇xJB (xA; q(A)) = 0 and assumption (iii), 
+
+∇xJB (xA; q(B)) 2
+
+= ∇xJB (xA; q(B)) − ∇ xJB (xA; q(A)) 2
+
+≤ Lxq ∥q(A) − q(B)∥2.
+
+Combining, 
+
+∥xA − xB ∥2 ≤ Lxq 
+
+σ ∥q(A) − q(B)∥2. (22) 
+
+Step 2: regret via smoothness. Since JB (·; q(B)) is Lx-smooth and minimized at xB , the descent lemma gives 
+
+JB (xA; q(B)) − J B (xB ; q(B)) ≤ Lx
+
+2 ∥xA − xB ∥22.
+
+Substituting Eq (22) and recognizing the left side as Regret A→B yields Eq (21). The coordinate-wise corollary follows from ∥q(A) − q(B)∥22 = P
+
+> k
+
+(q(A) 
+
+> k
+
+− q(B) 
+
+> k
+
+)2 ≤ P 
+
+> k
+
+δ2
+
+> k
+
+.
+
+Remark (Boundary solutions) . When minimizers lie on the boundary of X (e.g., e⋆k = 0 for layers not allocated capacity, or ρ⋆k ∈ { 0, 1} for fully retained or fully pruned layers), first-order optimality is expressed through the KKT conditions ∇xJB (x; q) + μ = 0 , where μ is the vector of active constraint multipliers. Provided the multipliers are bounded uniformly in q (which holds for the closed-form solutions of Theorems 2 and 3), the same argument applies with Lxq absorbing the additional multiplier variation, and the bound Eq (21) continues to hold with a modified constant. 18 Interpretation. The bound Eq (21) has a natural reading in terms of the quantities developed throughout this section. The ratio Lx/σ is the condition number of the target program: well-conditioned programs (small Lx/σ ) are robust to score drift. The term L2 
+
+> xq
+
+∥q(A) − q(B)∥22 captures how much the curvature signal changes between domains: if ζ2 
+
+> k
+
+is stable across the transfer (e.g., shared architectural inductive bias), regret is small regardless of distribution shift in the raw inputs. Together with the closed-form solutions of Theorems 2 and 3, this provides an end-to-end justification for using source-derived curvature scores to initialize target allocation and pruning decisions. 
+
+## E Experiments 
+
+Hardware. Mistral-7B experiments are run on 4 × NVIDIA L40S GPUs; Gemma-7B experiments are run on 4 ×
+
+NVIDIA A6000 GPUs. 
+
+Hyperparameters. Table 3 summarizes all hyperparameter settings. For the pruning program (Algorithm 2): b = 16 
+
+bits per retained parameter, η = 2 , κ = 1 . For the allocation program (Algorithm 1): α = 0 .5, γ = 0 .9, β = 1 . Layer sizes nk are set to the number of parameters in layer k, and per-unit costs ck are set to the FLOPs of a single LoRA expert at layer k.
+
+> Table 3: Hyperparameter configurations for allocation and pruning.
+
+Program Parameter Mistral-7B Gemma-7B 
+
+Allocation 
+
+α 0.5 0.5 
+
+γ 0.9 0.9 budget scaling, σ 0.0276 0.02 Pruning 
+
+b (bits) 16 16 
+
+η 2 2
+
+κ 1 1Sparsity target, S 50% 50% More on the result for Expert allocation experiment discussed in Section 3.4  
+
+> Table 4: Expert allocation accuracy (%) on Mistral-7B-v0.1 (5 epochs). Best average per category in bold .
+
+All +ve Dataset LayerIF MDL LayerIF MDL 
+
+CoLA 85.62 87.44 86.10 85.90 MRPC 83.59 82.72 82.84 84.23 CommonsenseQA 81.24 80.43 81.40 80.18 OpenBookQA 85.20 85.00 85.80 86.40 ScienceQA 66.41 79.77 80.80 83.59 Average 80.41 83.07 83.39 84.06  
+
+> Table 5: Expert allocation accuracy (%) on Gemma-7B, +ve variant only (5 epochs). Best average in bold .
+
+Dataset LayerIF MDL (+ve) 
+
+CoLA 87.15 87.34 MRPC 84.41 84.99 CommonsenseQA 82.64 81.57 OpenBookQA 88.40 88.80 ScienceQA 94.69 94.92 Average 87.46 87.52 
+
+19 F Limitations 
+
+The quadratic degradation model ψ(ρ) = ρ2 may underestimate pruning sensitivity in architectures with highly het-erogeneous layer widths, as seen in the Gemma-7B Wanda results. The Hessian surrogate eHkk requires a curvature approximation (e.g., diagonal Fisher or K-FAC) whose quality affects the accuracy of ζ2 
+
+> k
+
+.
+
+## G Future work 
+
+Natural extensions include: (i) richer degradation penalties ψ calibrated to specific pruning methods; (ii) joint op-timization of allocation and pruning in a single program; and (iii) online updating of ζ2 
+
+> k
+
+during fine-tuning to track curvature drift adaptively. 
+
+## H Full LLM disclosure 
+
+We employed Large Language Models (LLMs) to refine the text for grammar and clarity. Additionally, LLMs were used for debugging the published codebases of Askari et al. [2025], Kwon et al. [2023], etc., and creating visualiza-tions. We confirm that LLMs were not used to implement any of the core algorithms or methodologies proposed in this work. 20
