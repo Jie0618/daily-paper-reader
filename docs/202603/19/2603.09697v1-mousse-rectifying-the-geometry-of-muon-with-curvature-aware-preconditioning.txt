@@ -1,0 +1,846 @@
+Title: Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning
+
+URL Source: https://arxiv.org/pdf/2603.09697v1
+
+Published Time: Wed, 11 Mar 2026 01:17:49 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+2026-3-11 
+
+# Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 
+
+Yechen Zhang 1, 2 , Shuhao Xing 2, 3 , Junhao Huang 2, 1 , Kai Lv 3, Yunhua Zhou 2* , Xipeng Qiu 3, Qipeng Guo 2* and Kai Chen 2
+
+> 1
+
+Shanghai Jiao Tong University, 2Shanghai AI Laboratory, 3Fudan University 
+
+Recent advances in spectral optimization, notably Muon, have demonstrated that constraining update steps to the Stiefel manifold can significantly accelerate training and improve generalization. However, Muon implicitly assumes an isotropic optimization landscape, enforcing a uniform spectral update norm across all eigen-directions. We argue that this "egalitarian" constraint is suboptimal for Deep Neural Networks, where the curvature spectrum is known to be highly heavy-tailed and ill-conditioned. In such landscapes, Muon risks amplifying instabilities in high-curvature directions while limiting necessary progress in flat directions. In this work, we propose Mousse (Muon Optimization Utilizing Shampoo’s Structural Estimation), a novel optimizer that reconciles the structural stability of spectral methods with the geometric adaptivity of second-order preconditioning. Instead of applying Newton-Schulz orthogonalization directly to the momentum matrix, Mousse operates in a whitened coordinate system induced by Kronecker-factored statistics (derived from Shampoo). Mathematically, we formulate Mousse as the solution to a spectral steepest descent problem constrained by an anisotropic trust region, where the optimal update is derived via the polar decomposition of the whitened gradient. Empirical results across language models ranging from 160M to 800M parameters demonstrate that Mousse consistently outperforms Muon, achieving around ∼12% reduction in training steps with negligible computational overhead. 2000 4000 6000 8000 10000 
+
+> Training Steps
+> 2.7
+> 2.8
+> 2.9
+> 3.0
+> 3.1
+> 3.2
+> Validation Loss
+> Save ~12% Steps
+
+800M, 2M batch size 
+
+> Mousse (LR 5e-2)
+> Muon (LR 5e-2)
+> SOAP (LR 3e-2)
+> AdamW (LR 4e-3)
+> 2.7365
+> 2.7483
+> 2.7638
+> 2.8345
+
+Figure 1: The optimal result of Muon and Mousse optimizers on 800M models. Mousse achieves a ∼12% reduction in training steps to reach comparable loss levels against Muon .
+
+* Corresponding Authors 
+
+> arXiv:2603.09697v1 [cs.LG] 10 Mar 2026 Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning
+
+## 1. Introduction 
+
+Optimizing large language models requires navigating a high-dimensional and notoriously ill-conditioned loss landscape [ 23 ]. While adaptive optimization has firmly established the bedrock of deep learning — spanning from the ubiquitous coordinate-wise AdamW [19] to advanced structural preconditioners like Shampoo [10] and SOAP [ 29 ] — these methods primarily focus on refining the gradient direction within Euclidean geometry. Recently, a new paradigm of spectral optimization has gained significant traction in both academia and industry. Notably, the Muon optimizer [ 14 ] has emerged as a compelling alternative, constraining updates to the Stiefel manifold by functionally enforcing global spectral regularization via Newton-Schulz iterations. Leading AI Laboratories, including Moonshot-AI [ 28 ], DeepSeek-AI [ 7] and ZhipuAI [ 34 ], have integrated Muon optimizer in their pre-training pipelines to capitalize on its superior scale-invariance and convergence efficiency at scale. Despite its growing popularity, the efficacy of standard Muon is predicated on a stringent geometric assumption: it imposes an isotropic trust region, enforcing a uniform spectral norm across all eigen-directions. This "egalitarian" constraint treats all dimensions as geometrically equivalent, ignoring the vast disparities in curvature inherent to neural networks. Although recent community efforts have attempted to refine Muon in various ways [ 25 ], the critical challenge of aligning Muon’s isotropic constraint with the highly anisotropic curvature of neural network landscapes remains insufficiently explored. To resolve this geometric discord, we introduce Mousse (Muon Optimization Utilizing Shampoo’s Structural 
+
+Estimation), a unified optimizer that synthesizes second-order preconditioning with spectral constraints. Our approach stems from a fundamental insight: the isotropic assumption of spectral updates is mathematically optimal only when applied within a spatially whitened geometry. Mousse achieves this by performing a change of basis: it first preconditions the gradient using Shampoo’s Kronecker-factored curvature statistics [ 10 ], effectively "sphering" the local optimization landscape. Subsequently, the Newton-Schulz orthogonalization is applied in this transformed coordinate system. This procedure aligns the optimizer’s rigid spectral constraint with the actual geometry of the loss surface, thereby retaining the stability of Stiefel manifold updates while accurately respecting the ill-conditioned curvature of deep neural networks. Our empirical results rigorously confirm that Mousse’s performance gains are robust to scheduling choices and reflect a genuine geometric advantage. Specifically, Mousse reduces the training steps required to reach a target loss by approximately 12%, while incurring only a 3% wall-clock time overhead compared to standard Muon (see Figure 1). Our contributions are summarized as follows: 
+
+• A Unified Geometric Framework: We theoretically ground Mousse as the optimal solution to the dual-norm maximization problem under anisotropic geometry. By reformulating spectral optimization within a whitened coordinate system derived from Kronecker-factored curvature statistics, Mousse rectifies the optimization landscape, bridging the gap between spectral methods and second-order preconditioners. 
+
+• Robust Engineering Insights: We provide a comprehensive analysis of the stability challenges in combining spectral constraints with heavy-tailed curvature estimation. We introduce critical techniques such as Trace Normalization and Spectral Tempering , offering practical guidelines for stabilizing second-order spectral optimization in various training settings. 
+
+• Pareto-Optimal Efficiency: Through extensive experiments on language models ranging from 160M to 800M parameters, we demonstrate that Mousse consistently outperforms Muon. By delivering substantial gains in sample efficiency that strictly outweigh the marginal computational cost, Mousse establishes a new state-of-the-art trade-off for large-scale pre-training. 
+
+## 2. Related Works 
+
+Adaptive and Second-Order Optimization. Standard adaptive methods like AdamW rely on element-wise heuristics, scaling updates based on diagonal Hessian approximations. To capture the rich parameter correlations ignored by these coordinate-wise methods, second-order optimizers such as K-FAC [ 20 ] and Shampoo [ 10 ]utilize Kronecker-factored curvature statistics for preconditioning. SOAP further advances this direction by integrating Shampoo’s structural preconditioning with Adam-style momentum and adaptive step sizes to enhance optimization performance, though it retains the computational burden of high-rank matrix operations. Muon [ 14 ] introduces strict spectral constraints to the parameter updates, revealing a highly promising new 
+
+> 2Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning
+
+paradigm for efficient training. It is exactly along this promising trajectory that our proposed method, Mousse, explores the integration of advanced preconditioning with spectral efficiency. 
+
+Advances in Spectral Optimization. Following the rapid rise of spectral methods, a growing body of work has sought to analyze and refine the geometric constraints of optimization. Bernstein [ 4] notes that Shampoo mathematically reduces to Muon in the absence of memory, framing the latter as an instantaneous curvature correction. PolarGrad [ 16 ] argues that standard spectral updates discard gradient magnitude information, proposing instead that updates should be scaled by the nuclear norm to retain intensity. Similarly addressing scale imbalances at the neuron level, NorMuon [ 17 ] combines orthogonalization with row-wise adaptive learning rates to prevent specific neurons from dominating the update process. SUMO [ 22 ] restricts spectral decomposition to a dynamically adapted low-rank subspace, thereby aligning optimization steps with the principal components of the loss landscape. On the efficiency front, LiMuon [ 13 ] incorporates randomized SVD and variance reduction to improve memory usage and convergence guarantees. Mousse focuses fundamentally on the core spectral constraints of Muon. By explicitly introducing historical curvature into this spectral framework, Mousse is expected to achieve more precise and stable parameter updates. 
+
+## 3. Preliminaries 
+
+In this section, we establish the mathematical foundation of our work by framing optimization as a geometric process connecting dual spaces. We denote the parameter space as 𝒲 and the gradient space as 𝒢 ∼= 𝒯 * 
+
+> 𝑊
+
+𝒲 .The gradient 𝐺 = ∇𝑊 ℒ ∈ 𝒢 represents a linear functional on the tangent space 𝒯 𝑊 𝒲 , and the role of an optimizer is to define a mapping 𝑝 : 𝒢 → 𝒯 𝑊 𝒲 that translates this functional into a concrete update step ∆𝑊 .We use vec (·) to denote the vectorization operator, which stacks the columns of a matrix into a single column vector. 
+
+3.1. Muon as Spectral Steepest Descent 
+
+Standard gradient descent algorithms can be unified under the framework of steepest descent , where the update step ∆𝑊 is chosen to minimize the local linear approximation of the loss ℒ subject to a trust region constraint defined by a specific norm ‖ · ‖ . Formally, the update is the solution to: 
+
+∆𝑊 = argmin   
+
+> 𝑈 ∈𝒯 𝑊 𝒲
+
+⟨𝐺, 𝑈 ⟩ s.t. ‖𝑈 ‖ ≤ 1 (1) Here, the choice of the norm ‖ · ‖ dictates the geometry of the optimization path. For SGD, the Frobenius norm ( ‖ · ‖ 𝐹 ) implies an isotropic Euclidean geometry, leading to ∆𝑊 ∝ − 𝐺 . For Adam-style optimizers, the norm approximates a coordinate-wise weighted ℓ∞ metric. Muon, however, adopts the spectral norm (denoted as ‖ · ‖ 𝑜𝑝 ), which measures the magnitude of a matrix by its largest singular value: 
+
+∆𝑊 Muon = argmin   
+
+> 𝑈 ∈𝒯 𝑊 𝒲
+
+⟨𝐺, 𝑈 ⟩, s.t. ‖𝑈 ‖𝑜𝑝 ≤ 1 (2) The exact solution to this problem is given by the polar decomposition of the negative gradient. In practice, Muon approximates this via the Newton-Schulz iteration, denoted as msign (·):
+
+∆𝑊 Muon = −msign (𝐺 ) = −𝑈 𝑉 𝑇 (3) where 𝐺 = 𝑈 Σ𝑉 𝑇 is the singular value decomposition (SVD) of the gradient. This projection is equivalent to restricting the update onto the Stiefel manifold, ensuring ∆𝑊 𝑇 ∆𝑊 = 𝐼 . It is worth noting that the spectral norm provides a looser constraint than the Frobenius norm used in SGD, as ‖ · ‖ 𝑜𝑝 ≤ ‖ · ‖ 𝐹 holds true for any matrix. This implies that Muon permits updates with significantly larger total energy (under Frobenius norm) compared to SGD, while still strictly bounding the maximum step size along any single eigen-direction. This capacity for more aggressive updates without compromising directional stability is a key factor in its superior convergence. 
+
+> 3Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning
+
+Figure 2: Overview of the Mousse framework compared to baselines. 
+
+3.2. Mousse: The Geometric Framework 
+
+Despite these desirable properties of the spectral constraint, applying standard Muon directly to raw parameters is geometrically valid only if the local curvature is spherical. The steepest descent direction should therefore be defined with respect to this intrinsic geometry, rather than the extrinsic Euclidean coordinates. To rectify this, Mousse reformulates the optimization problem by imposing the spectral constraint with regards to the anisotropic curvature: vec (∆ 𝑊 )𝑇 𝐻 vec (∆ 𝑊 ) = 𝐶 (4) It can be regarded as the inner product of ∆𝑊 under the whitened basis, giving vec ( ˜𝑈 ) = 𝐻 12 vec (𝑈 ). So a geometric-aware Muon is equivalent to solving the following minimizing problem: 
+
+∆𝑊 = argmin   
+
+> 𝑈 ∈𝒯 𝑊 𝒲
+
+⟨𝐺, 𝑈 ⟩ s.t. ‖vec −1[𝐻 12 vec (𝑈 )] ‖𝑜𝑝 ≤ 1 (5) Theoretically, different approximations of 𝐻 yield different algorithms. Mousse adopts Shampoo’s layerwise Kronecker-Factored approximation of Hessian as the preconditioner (Approximated as 𝐻 ≈ (𝑅 ⊗ 𝐿 ) 12 ), which has been proved to have a good performance and comparable computation costs. 𝐿 and 𝑅 capture the correlations between gradients along the rows and columns respectively, accumulated via exponential moving averages: 
+
+𝐿 𝑡 = 𝛽 𝑝𝑐 
+
+1 − 𝛽 𝑡 𝑝𝑐 
+
+𝐿 𝑡 −1 + 1 − 𝛽 𝑝𝑐 
+
+1 − 𝛽 𝑡 𝑝𝑐 
+
+𝐺 𝑡 𝐺 𝑇 𝑡 
+
+𝑅 𝑡 = 𝛽 𝑝𝑐 
+
+1 − 𝛽 𝑡 𝑝𝑐 
+
+𝑅 𝑡 −1 + 1 − 𝛽 𝑝𝑐 
+
+1 − 𝛽 𝑡 𝑝𝑐 
+
+𝐺 𝑇 𝑡 𝐺 𝑡 
+
+Under this structure, the whitening operator becomes a sandwich product 
+
+𝜏 𝐻 (𝑈 ) = ( 𝑅 ⊗ 𝐿 ) 14 vec (𝑈 ) = 𝐿 14 𝑈 𝑅 14 (6) Let 𝑃 = 𝐿 14 and 𝑄 = 𝑅 14 be the whitening factors for the rows and columns, respectively. The optimization objective of Mousse is formally: 
+
+min  
+
+> Δ𝑊
+
+Tr (𝐺 𝑇 ∆𝑊 ) s.t. ‖𝑃 ∆𝑊 𝑄 ‖op ≤ 1 (7) Here, the natural pairing between the gradient 𝐺 and the update ∆𝑊 is defined via the trace operator (See Appendix A.2). Let 𝑌 = 𝑃 ∆𝑊 𝑄 represent the update step in the whitened coordinate system. Substituting 
+
+> 4Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning
+
+Algorithm 1 Mousse Optimizer 
+
+Require: Hyperparameters: Learning rate 𝜂 , Momentum coefficient 𝛽 , Preconditioner moving average 𝛽 𝑝𝑐 ,Damping factor 𝜖 , Curvature exponent 𝛼 , Preconditioner update interval 𝑇 .
+
+Require: Initial States: Momentum 𝑀 ← 0, Parameters 𝜃 . 
+
+> 1:
+
+𝑀 ← 𝛽𝑀 + 𝐺 
+
+Update Curvature Statistics  
+
+> 2:
+
+𝐿 ← 𝛽 𝑝𝑐 𝐿 + (1 − 𝛽 𝑝𝑐 )𝐺𝐺 𝑇 , 𝑅 ← 𝛽 𝑝𝑐 𝑅 + (1 − 𝛽 𝑝𝑐 )𝐺 𝑇 𝐺 
+
+Spectral Decomposition  
+
+> 3:
+
+if 𝑡 (mod 𝑇 ) = 0 then ◁ Execute every 𝑇 steps  
+
+> 4:
+
+˜𝐿 ← dim( 𝐿 ) 
+
+> Tr (𝐿 )+ 𝜖
+
+𝐿, ˜𝑅 ← dim( 𝑅 ) 
+
+> Tr (𝑅 )+ 𝜖
+
+𝑅  
+
+> 5:
+
+𝑄 𝐿 , Λ𝐿 ← Eigh ( ˜𝐿 + 𝜖𝐼 ), 𝑄 𝑅 , Λ𝑅 ← Eigh ( ˜𝑅 + 𝜖𝐼 ) ◁ Eigenvalues Λ and eigenvectors 𝑄  
+
+> 6:
+
+𝑆 𝐿 ← Λ−𝛼 𝐿 , 𝑆 𝑅 ← Λ−𝛼 𝑅 
+
+Whitening  
+
+> 7:
+
+𝑀 eig ← 𝑄 𝑇 𝐿 𝑀 𝑄 𝑅  
+
+> 8:
+
+˜𝑀 ← 𝑆 𝐿 𝑀 eig 𝑆 𝑅 
+
+Spectral Constraint  
+
+> 9:
+
+¯𝑀 ← NewtonSchulz ( ˜𝑀 ) 
+
+> 10:
+
+𝛾 ← ‖ ¯𝑀 ‖𝐹 ◁ Save the norm after NS 
+
+Unwhitening  
+
+> 11:
+
+𝑈 eig ← 𝑆 𝐿 ¯𝑀 𝑆 𝑅  
+
+> 12:
+
+𝑈 ← 𝑄 𝐿 𝑈 eig 𝑄 𝑇 𝑅  
+
+> 13:
+
+𝑈 ← 𝛾 · 𝑈  
+
+> ‖𝑈 ‖𝐹
+
+Parameter Update  
+
+> 14:
+
+𝜃 ← 𝜃 − 𝜂𝑈 
+
+∆𝑊 = 𝑃 −1𝑌 𝑄 −1 into the linear objective yields: 
+
+min Tr (𝐺 𝑇 𝑃 −1𝑌 𝑄 −1), s.t. ‖𝑃 ∆𝑊 𝑄 ‖op ≤ 1 (8) Exploiting the cyclic property of the trace operator and the symmetry of the PSD matrices 𝑃 and 𝑄 , we can further rewrite the objective as: Tr (𝐺 𝑇 𝑃 −1𝑌 𝑄 −1) = Tr (𝑄 −1𝐺 𝑇 𝑃 −1𝑌 )= Tr ([ 𝑃 −𝑇 𝐺𝑄 −𝑇 ]𝑇 𝑌 )= Tr ([ 𝑃 −1𝐺𝑄 −1]𝑇 𝑌 )
+
+If we define ˜𝐺 = 𝑃 −1𝐺𝑄 −1 as the preconditioned gradient, then the problem now simplifies to the standard Muon form in terms of 𝑌 :
+
+min  
+
+> 𝑌
+
+Tr ( ˜𝐺 𝑇 𝑌 ), s.t. ‖𝑌 ‖op ≤ 1 (9) We can directly give the solution comparable to the Muon: 
+
+𝑌 = −msign ( ˜𝐺 )
+
+⇒ ∆𝑊 = −𝐿 − 14 msign (𝐿 − 14 𝐺𝑅 − 14 )𝑅 − 14
+
+This result demonstrates that Mousse is equivalent to applying standard spectral optimization within a rectified geometric frame, effectively synthesizing the convergence benefits of Muon with the curvature-awareness of Shampoo. We will discuss this formulation further in Appendix A.1 and other details that make this method work in practice in Section 5. 
+
+> 5
+
+Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 2e-3 5e-3 1e-2 2e-2 5e-2 1e-1                   
+
+> Learning Rate
+> 3.08
+> 3.10
+> 3.12
+> 3.14
+> 3.16
+> 3.18
+> 3.20
+> 3.22
+> Validation Loss
+> Model Size: 160M
+> 2e-3 5e-3 1e-2 2e-2 5e-2 1e-1
+> Learning Rate
+> 2.96
+> 2.98
+> 3.00
+> 3.02
+> 3.04
+> 3.06
+> 3.08
+> 3.10
+> Model Size: 240M
+> 2e-3 5e-3 1e-2 2e-2 5e-2 1e-1
+> Learning Rate
+> 2.850
+> 2.875
+> 2.900
+> 2.925
+> 2.950
+> 2.975
+> 3.000
+> 3.025
+> Model Size: 480M
+> 2e-3 5e-3 1e-2 2e-2 5e-2 1e-1
+> Learning Rate
+> 2.74
+> 2.76
+> 2.78
+> 2.80
+> 2.82
+> 2.84
+> 2.86
+> 2.88
+> Model Size: 800M
+> Mousse Muon SOAP AdamW
+
+Figure 3: Validation Loss comparison on FineWeb (20B tokens). We report the final validation loss of 
+
+Mousse against AdamW, Muon, and SOAP across varying peak learning rates for model sizes ranging from 160M to 800M. Mousse consistently achieves the lowest validation loss across all model scales, demonstrating superior performance and scalability. 
+
+3.3. Comparison with Muon and SOAP 
+
+Figure 2 schematically illustrates the structural differences between Muon, SOAP and Mousse. While Muon applies the Newton-Schulz iteration directly to the raw gradient — implicitly assuming an isotropic landscape — SOAP explicitly rectifies this geometry by constructing a curvature-aligned eigenbasis derived from pre-conditioners 𝐿 and 𝑅 . However, Soap relies on running a complete AdamW optimizer within this rotated frame, necessitating the maintenance of an additional second-momentum states 𝑣 . To rectify Muon’s geometric isotropy without such overhead, Mousse employs the same amortized whitening strategy to correct the ge-ometry but strictly adheres to the parameter-efficient Newton-Schulz iteration. Since the spectral constraint inherently normalizes update magnitude, Mousse eliminates the need for the redundant second-momentum state, effectively synthesizing curvature-awareness with the memory efficiency of Muon. 
+
+## 4. Experiments 
+
+4.1. Settings Implementation and Architecture 
+
+We conducted our experiments within a modified version of Dion [2] library, a solid implementation of distributed muon training. For all experiments, we utilized a standard decoder-only GPT-2 architecture with several modern modifications (Appendix C.1). To ensure stable training dynamics across different scales and to facilitate hyperparameter transfer, we adopted the spectral scaling condition [ 32 ] for model initialization and parameter scaling. We evaluated performance across a wide spectrum of model sizes, including 160M, 240M, 480M and 800M parameters. 
+
+Training Protocol and Datasets 
+
+To rigorously assess convergence speed and scalability, we trained all models on the FineWeb [ 21 ] dataset. Each model was trained for 10,000 steps with a global batch size of 2M tokens, amounting to a total of 20 billion tokens. We employed a learning rate schedule consisting of a 10% linear warmup followed by a cosine decay phase, annealing the learning rate to 0 at the end. 
+
+Baselines and Hyperparameter Tuning 
+
+We compared Mousse against three strong baselines representing the state-of-the-art in adaptive and spectral optimization including AdamW, Muon and Soap. To ensure a fair comparison, we conducted an extensive grid search for the peak learning rate for every optimizer across all model sizes and settings. Matrix-wise optimizers including Muon, Soap and Mousse utilize Lion [6] for embedding and lmhead modules. 
+
+6Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 0.85 0.872 1.0                
+
+> Steps (scaled)
+> 3.08
+> 3.09
+> 3.10
+> 3.11
+> 3.12
+> Validation Loss
+> min Lcosine 160M, 2M batch size
+> 0.85 0.882 1.0
+> Steps (scaled)
+> 2.94
+> 2.95
+> 2.96
+> 2.97
+> 2.98
+> 2.99
+> 3.00
+> min Lcosine 240M, 2M batch size
+> 0.85 0.903 1.0
+> Steps (scaled)
+> 2.84
+> 2.85
+> 2.86
+> 2.87
+> 2.88
+> 2.89
+> min Lcosine 480M, 2M batch size
+> 0.85 0.880 1.0
+> Steps (scaled)
+> 2.73
+> 2.74
+> 2.75
+> 2.76
+> 2.77
+> 2.78
+> min Lcosine 800M, 2M batch size
+> Mousse Muon
+
+Figure 4: Mousse’s performance gains over Muon across 160M, 240M, 480M, and 800M models. 
+
+4.2. Main Results 
+
+Our main results can be categorized into three key advantages: 
+
+Superior Convergence Quality. As visually summarized in Figure 3, Mousse demonstrates a strict performance advantage across all model scales. Quantitatively, on the 800M parameter model, Mousse reduces the final validation loss by approximately 0.012 compared to the best Muon baseline. By integrating Shampoo-style preconditioning, Mousse successfully exploits high-curvature directions effectively, maintaining a distinct lead in the final converged loss. (See more experiment results in Appendix B.1) An interesting observation from the hyperparameter sweep is that Mousse exhibits a learning rate sensitivity profile remarkably similar to standard Muon, a consequence of their shared spectral optimization foundations. However, unlike Muon, Mousse strictly shifts the performance frontier downwards. This performance gap high-lights the limitations of Muon’s curvature-agnostic update rule, while Mousse effectively acts as a "geometrically rectified" enhancement of Muon—retaining the stable, wide optimality basin of spectral methods. 
+
+Pareto-Optimal Sample Efficiency. Another critical advantage of Mousse lies in its sample efficiency. Mousse exhibits a significantly steeper descent trajectory once the curvature statistics stabilize, and quantitatively (see Figure 4), Mousse requires approximately 12% fewer training steps to reach the final converged loss level of 160M 240M 480M 800M 
+
+Model Size       
+
+> 2.8
+> 2.9
+> 3.0
+> 3.1
+> 3.2
+> Validation Loss
+> 50000
+> 100000
+> 150000
+> 200000
+> 250000
+> 300000 Training Time
+> AdamW Muon SOAP Mousse Val Loss Train Time
+
+Figure 5: Scalability analysis of validation loss and training efficiency. Solid lines represent validation loss (left y-axis, lower is better), while dashed lines indicate total training time (right y-axis, lower is better) across model sizes ranging from 160M to 800M. Mousse consistently achieves the lowest validation loss across all scales. Crucially, Mousse maintains a training speed nearly identical to the efficient Muon optimizer. 
+
+7Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 
+
+the Muon baseline. Figure 5 visualizes this scalability trade-off across model sizes. The dashed lines (Total Training Time) reveal that Mousse maintains a training speed nearly identical to the highly efficient Muon optimizer, with negligible overhead. In sharp contrast, SOAP suffers from significant throughput degradation. By achieving strictly lower validation loss without the computational penalty typical of curvature-corrected methods, Mousse effectively establishes a new Pareto frontier for large-scale pre-training efficiency. 
+
+High Throughput with Low Overhead. Despite incorporating second-order information, Mousse incurs less computational and memory overhead than traditional method like SOAP. By relying on the spectral update via Newton-Schulz iterations, Mousse intrinsically regulates step size, eliminating the need for a full-sized FP32 variance buffer required by Adam-style optimizers. Furthermore, when combined with the single-sided preconditioning technique detailed in Section 5.3, Mousse’s memory footprint is further minimized, reducing peak memory usage to approximately 88% of SOAP, achieving memory efficiency comparable to the lightweight Muon optimizer (about 1.05x vs Muon) while delivering superior convergence. Table 1 shows an overall comparison between different optimizers. 
+
+Table 1: Optimizer Comparison. We evaluate AdamW, Muon, SOAP, and our proposed Mousse across training speed, memory efficiency, and final performance. “ ++ ” indicates the best results.                 
+
+> Metric AdamW Muon SOAP Mousse (Ours)
+> Training Speed ++ ++ −++
+> Memory Efficiency ++ ++ −+
+> Final Performance −++++
+
+## 5. Ablation & Analysis 
+
+5.1. Grafting 
+
+Gradient grafting is a technique that decouples the optimization into a robust magnitude derived from a stable method like AdamW and another superior direction from a more sophisticated optimizer like Shampoo, which has been identified as "the key ingredient to making Shampoo work in practice" [ 24 ]. We conduct an ablation study to determine whether explicitly controlling the update norm benefits Mousse. Theoretically, Mousse does not strictly require an auxiliary optimizer for magnitude control, as it can directly utilize the intrinsic unit spectral norm of the orthogonalized update as a stable step size. As shown in Figure 6, without external grafting, we observe a continuous downward drift in the update RMS norm irrespective of the cosine learning rate scheduler. This diminishing updates not only impede convergence speed but also introduce unnecessary complexity to learning rate tuning. However, applying grafting effectively counteracts this trend by maintaining a stable update magnitude. Our empirical results confirm that, the ungrafted baseline exhibits performance degradation in later training stages, attributed to insufficient or unstable updates from the decaying RMS norm. In contrast, incorporating grafting consistently yields superior performance and stability. 
+
+5.2. Condition Control 
+
+The stability of Mousse hinges on the well-conditioned decomposition of the Hessian approximations 𝐿 and 𝑅 .A critical challenge arises from the computation of the negative fractional power ( 𝐿 −𝛼 ). In the eigenspectrum of deep neural networks, "flat" directions correspond to small eigenvalues 𝜆 𝑖 ≈ 0. When raised to a negative power, these directions result in large scaling factors, risking catastrophic gradient amplification along noisy, low-curvature axes. We compared several different solutions for addressing stability issues, shown in Figure 7a. 
+
+Trace Normalization. Empirically, we observe that the absolute magnitudes of 𝐿 and 𝑅 vary significantly across layers, often decaying to small numerical values after the initial gradient norm convergence (Appendix B.3). This scale variance makes it difficult to apply a uniform damping hyperparameter 𝜖 . To adapt to this, we propose Trace Normalization . Before decomposition, we normalize the covariance matrices such that the mean eigenvalue is unity (i.e., Tr (𝐿 ) = dim (𝐿 ) and Tr (𝑅 ) = dim (𝑅 )). This ensures that the damping term 𝜖 
+
+has a consistent relative effect across all modules. 
+
+> 8
+
+Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 0 2000 4000 6000 8000 10000              
+
+> Steps
+> 10 1
+> 2 × 10 2
+> 3 × 10 2
+> 4 × 10 2
+> 6 × 10 2
+> Update RMS Norm
+> Grafting Baseline
+> LR 4e-2
+> LR 3e-2
+> LR 2e-2
+> LR 1e-2 2000 3000 4000 5000 6000 7000 8000 9000 10000
+> Steps
+> 2.80
+> 2.85
+> 2.90
+> 2.95
+> 3.00
+> 3.05
+> 3.10
+> 3.15
+> 3.20
+> Validation Loss
+> LR 4e-2 (No grafting)
+> LR 3e-2 (No grafting)
+> LR 2e-2 (No grafting)
+> LR 1e-2 (No grafting)
+> LR 8e-2 (grafting)
+> LR 7e-2 (grafting)
+> LR 6e-2 (grafting)
+> LR 5e-2 (grafting)
+
+Figure 6: Impact of Gradient Grafting on Update Stability. (Left) RMS Norm: We visualize the RMS norm of parameter updates throughout the training trajectory across varying learning rates. Solid lines represent settings without grafting, exhibiting a continuous downward drift independent of the learning rate schedule. The dashed line represents the constant update norm constrained by spectral normalization when grafting is enabled. (Right)Validation Loss trajectories for both settings around their respective optimal learning rates: By decoupling the magnitude from the optimization direction, grafting ensures superior convergence rates and lower final validation loss. 
+
+Spectral Tempering. Empirically, we investigated the sensitivity of Mousse to the "strength" of the curvature correction, governed by the exponent 𝛼 in the whitening factors 𝐿 −𝛼 and 𝑅 −𝛼 and the damping factor 𝜖 . While standard Shampoo theoretics suggest 𝛼 = 0 .25 , we found that Mousse cannot endure such aggressive curvature correction. Our experiments reveal that a milder exponent of 𝛼 = 0 .125 consistently outperforms the standard 𝛼 = 0 .25 ,which superimposes a sharp full-strength curvature correction distorting the update direction. A larger damping term also helps moderate the curvature strength, preventing excessive step sizes in flat directions. This "Spectral Tempering" strategy strikes an optimal balance between the isotropic stability of spectral optimization and the anisotropic acceleration of second-order methods. 
+
+5.3. Single-Sided Preconditioner 
+
+Inspired by ASGO [ 3, 5], we investigate a variant of Mousse that employs a single-sided preconditioner substituting the full Kronecker product 𝑅 ⊗ 𝐿 with only one factor. Crucially, this approximation halves both the computational cost of the eigen-decomposition and the memory footprint of the preconditioner states. Our experiments (Figure 7b) demonstrate that this method achieves comparable performance to the Mousse baseline, yielding a negligible decline or even slight improvements. This empirical finding underscores the feasibility of the single-sided whitening. Interestingly, we observed that using the left-sided preconditioner ( 𝐿 ) is consistently slightly better than the right-sided preconditioner ( 𝑅 ). We hypothesize that this advantage stems from the presence of the preceding LayerNorm, which typically standardizes the input activations (whose statistics are captured by 𝐿 ). This regularization renders the curvature information in the activation axis more reliable and critical for stable optimization than that of the gradient axis. 
+
+## 6. Future Works 
+
+Here we list several promising directions that could either enhance the performance of Mousse or elevate its capabilities but haven’t been fully discussed in this work yet due to time and computation constraints. 
+
+6.1. Better Shampoo Preconditioner 
+
+A key strength of Mousse is its inherent compatibility with the rapid improvements in preconditioner design. Following our exploration of single-sided preconditioning in Section 5.3, we foresee significant potential 
+
+9Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 5e-02 6e-02 7e-02 8e-02             
+
+> Learning Rate
+> 2.85
+> 2.86
+> 2.87
+> 2.88
+> 2.89
+> 2.90
+> Final Validation Loss
+> no trace normalization, = 1 e5,= 0.125
+> trace normalization, = 1 e5,= 0.125
+> trace normalization, = 1 e5,= 0.25
+> trace normalization, = 1 e2,= 0.25
+
+(a) Condition Control Strategies 5e-02 6e-02 7e-02 8e-02  
+
+> Learning Rate
+> 2.852
+> 2.853
+> 2.854
+> 2.855
+> 2.856
+> 2.857
+> 2.858
+> Final Validation Loss
+> Standard Mousse
+> Mousse with L-only preconditioner
+> Mousse with R-only preconditioner
+
+(b) Single vs. Double-sided Preconditioner 
+
+Figure 7: Ablation studies on 480M model. (a) We compare the validation loss trajectories under different preconditioning settings. The results demonstrate that Trace Normalization is essential for stability. Further-more, Spectral Tempering (𝛼 = 0 .125 ) consistently outperforms the aggressive curvature correction correction (𝛼 = 0 .25 ), yielding the lowest final loss. (b) Comparison of single-sided and double-sided preconditioners. in integrating other recent techniques. For example, Duvvuri et al. [8] proposed to use Kronecker-Sum Preconditioner instead of Shampoo’s original factor for better stability. Eschenhagen et al. [9] also pointed that different modules should have different eigen base update frequency, aiming at saving computation resources and for better performance. These strategies may further enhance Mousse’s ability. 
+
+6.2. Better Engineering Practices 
+
+Our current implementation of Mousse represents a proof-of-concept realization, focusing primarily on algo-rithmic correctness rather than hardware efficiency. Consequently, there remains significant headroom for system-level optimizations, such as adopting power iteration with QR decomposition or Newton-Schulz iteration for spectral decomposition [24] instead of naive torch.linalg.eigh .
+
+6.3. Bridging the Gap in Fine-tuning 
+
+Standard Muon often struggles to fine-tune models pre-trained with AdamW[ 18 ]. We hypothesize that as Mousse explicitly incorporates second-order information, it shares a similar adaptive nature with Adam-style methods, thus offering smoother transition for fine-tuning. 
+
+## 7. Conclusion 
+
+In this work, we introduce Mousse , an optimizer that enhances spectral optimization by explicitly integrating structural curvature information. By performing Newton-Schulz orthogonalization within a whitened coordinate system, Mousse aligns the update step with the anisotropic geometry of the loss landscape. Empirical results on language models up to 800M parameters demonstrate that Mousse consistently yields lower validation loss compared to Muon, with negligible computational overhead. Finally, our analysis of stability techniques, including Trace Normalization and Spectral Tempering, establishes a robust framework for second-order spectral optimization, positioning Mousse as a promising solution for large-scale pre-training. 
+
+## 8. Acknowledgments 
+
+This research project was supported by Shanghai Artificial Intelligence Laboratory. We further extend our gratitude to Tianyang Lin and Runyu Peng for their insightful feedback and discussions with us. 
+
+10 Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 
+
+## References 
+
+[1] P-A Absil, Robert Mahony, and Rodolphe Sepulchre. Optimization algorithms on matrix manifolds .Princeton University Press, 2008. A.2 [2] Kwangjun Ahn, Byron Xu, Natalie Abreu, and John Langford. Dion: Distributed orthonormalized updates. 
+
+arXiv preprint: 2504.05295 , 2025. 4.1, C.1 [3] Kang An, Yuxing Liu, Rui Pan, Yi Ren, Shiqian Ma, Donald Goldfarb, and Tong Zhang. Asgo: Adaptive structured gradient optimization. arXiv preprint arXiv:2503.20762 , 2025. 5.3 [4] Jeremy Bernstein and Laker Newhouse. Old optimizer, new norm: An anthology. arXiv preprint arXiv:2409.20325 , 2024. 2 [5] Franz Louis Cesista. Muon and a selective survey on Steepest Descent in Riemannian and non-Riemannian Manifolds, April 2025. URL https://leloykun.github.io/ponder/ steepest-descent-non-riemannian/ . 5.3 [6] Xiangning Chen, Chen Liang, Da Huang, Esteban Real, Kaiyuan Wang, Hieu Pham, Xuanyi Dong, Thang Luong, Cho-Jui Hsieh, Yifeng Lu, et al. Symbolic discovery of optimization algorithms. Advances in neural information processing systems , 36:49205–49233, 2023. 4.1 [7] Xin Cheng, Wangding Zeng, Damai Dai, Qinyu Chen, Bingxuan Wang, Zhenda Xie, Kezhao Huang, Xingkai Yu, Zhewen Hao, Yukun Li, et al. Conditional memory via scalable lookup: A new axis of sparsity for large language models. arXiv preprint arXiv:2601.07372 , 2026. 1 [8] Sai Surya Duvvuri, Fnu Devvrit, Rohan Anil, Cho-Jui Hsieh, and Inderjit S Dhillon. Combining axes pre-conditioners through kronecker approximation for deep learning. In The Twelfth International Conference on Learning Representations , 2024. 6.1 [9] Runa Eschenhagen, Aaron Defazio, Tsung-Hsien Lee, Richard E Turner, and Hao-Jun Michael Shi. Purifying shampoo: Investigating shampoo’s heuristics by decomposing its preconditioner. arXiv preprint arXiv:2506.03595 , 2025. 6.1 [10] Vineet Gupta, Tomer Koren, and Yoram Singer. Shampoo: Preconditioned stochastic tensor optimization. In International Conference on Machine Learning , pages 1842–1850. PMLR, 2018. 1, 2 [11] D Hendrycks. Gaussian error linear units (gelus). arXiv preprint arXiv:1606.08415 , 2016. C.1 [12] Alex Henry, Prudhvi Raj Dachapally, Shubham Shantaram Pawar, and Yuxuan Chen. Query-key normal-ization for transformers. In Findings of the Association for Computational Linguistics: EMNLP 2020 , pages 4246–4253, 2020. C.1 [13] Feihu Huang, Yuning Luo, and Songcan Chen. Limuon: Light and fast muon optimizer for large models. 
+
+arXiv preprint arXiv:2509.14562 , 2025. 2 [14] Keller Jordan, Yuchen Jin, Vlado Boza, Jiacheng You, Franz Cesista, Laker Newhouse, and Jeremy Bern-stein. Muon: An optimizer for hidden layers in neural networks, 2024. URL https://kellerjordan. github.io/posts/muon/ . 1, 2 [15] Frederik Kunstner, Philipp Hennig, and Lukas Balles. Limitations of the empirical fisher approximation for natural gradient descent. Advances in neural information processing systems , 32, 2019. A.1 [16] Tim Tsz-Kit Lau, Qi Long, and Weijie Su. Polargrad: A class of matrix-gradient optimizers from a unifying preconditioning perspective. arXiv preprint arXiv:2505.21799 , 2025. 2 [17] Zichong Li, Liming Liu, Chen Liang, Weizhu Chen, and Tuo Zhao. Normuon: Making muon more efficient and scalable. arXiv preprint arXiv:2510.05491 , 2025. 2 [18] Jingyuan Liu, Jianlin Su, Xingcheng Yao, Zhejun Jiang, Guokun Lai, Yulun Du, Yidao Qin, Weixin Xu, Enzhe Lu, Junjie Yan, et al. Muon is scalable for llm training. arXiv preprint arXiv:2502.16982 , 2025. 6.3 
+
+> 11 Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning
+
+[19] Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization. arXiv preprint arXiv:1711.05101 ,2017. 1 [20] James Martens and Roger Grosse. Optimizing neural networks with kronecker-factored approximate curvature. In International conference on machine learning , pages 2408–2417. PMLR, 2015. 2 [21] Guilherme Penedo, Hynek Kydlíček, Loubna Ben allal, Anton Lozhkov, Margaret Mitchell, Colin Raffel, Leandro Von Werra, and Thomas Wolf. The fineweb datasets: Decanting the web for the finest text data at scale. In The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track , 2024. URL https://openreview.net/forum?id=n6SCkn2QaG . 4.1 [22] Yehonathan Refael, Guy Smorodinsky, Tom Tirer, and Ofir Lindenbaum. Sumo: Subspace-aware moment-orthogonalization for accelerating memory-efficient llm training. arXiv preprint arXiv:2505.24749 , 2025. 2[23] Levent Sagun, Leon Bottou, and Yann LeCun. Eigenvalues of the hessian in deep learning: Singularity and beyond. arXiv preprint arXiv:1611.07476 , 2016. 1 [24] Hao-Jun Michael Shi, Tsung-Hsien Lee, Shintaro Iwasaki, Jose Gallego-Posada, Zhijing Li, Kaushik Rangadurai, Dheevatsa Mudigere, and Michael Rabbat. A distributed data-parallel pytorch implementation of the distributed shampoo optimizer for training neural networks at-scale. https://github.com/ facebookresearch/optimizers/tree/main/distributed_shampoo , 2023. 5.1, 6.2 [25] Chongjie Si, Debing Zhang, and Wei Shen. Adamuon: Adaptive muon optimizer. arXiv preprint arXiv:2507.11005 , 2025. 1, A.1 [26] David So, Wojciech Mańke, Hanxiao Liu, Zihang Dai, Noam Shazeer, and Quoc V Le. Searching for efficient transformers for language modeling. Advances in neural information processing systems , 34: 6010–6022, 2021. C.1 [27] Jianlin Su, Murtadha Ahmed, Yu Lu, Shengfeng Pan, Wen Bo, and Yunfeng Liu. Roformer: Enhanced transformer with rotary position embedding. Neurocomputing , 568:127063, 2024. C.1 [28] Kimi Team, Yifan Bai, Yiping Bao, Guanduo Chen, Jiahao Chen, Ningxin Chen, Ruijue Chen, Yanru Chen, Yuankun Chen, Yutian Chen, et al. Kimi k2: Open agentic intelligence. arXiv preprint arXiv:2507.20534 ,2025. 1 [29] Nikhil Vyas, Depen Morwani, Rosie Zhao, Mujin Kwun, Itai Shapira, David Brandfonbrener, Lucas Janson, and Sham Kakade. Soap: Improving and stabilizing shampoo using adam. arXiv preprint arXiv:2409.11321 ,2024. 1 [30] Chenrui Xu, Wenjing Yan, and Ying-Jun Angela Zhang. Fismo: Fisher-structured momentum-orthogonalized optimizer. arXiv preprint arXiv:2601.21750 , 2026. A.1 [31] Sho Yaida. Fluctuation-dissipation relations for stochastic gradient descent. arXiv preprint arXiv:1810.00004 , 2018. B.2 [32] Greg Yang, Edward J Hu, Igor Babuschkin, Szymon Sidor, Xiaodong Liu, David Farhi, Nick Ryder, Jakub Pachocki, Weizhu Chen, and Jianfeng Gao. Tensor programs v: Tuning large neural networks via zero-shot hyperparameter transfer. arXiv preprint arXiv:2203.03466 , 2022. 4.1 [33] Greg Yang, James B Simon, and Jeremy Bernstein. A spectral condition for feature learning. arXiv preprint arXiv:2310.17813 , 2023. C.1 [34] Aohan Zeng, Xin Lv, Qinkai Zheng, Zhenyu Hou, Bin Chen, Chengxing Xie, Cunxiang Wang, Da Yin, Hao Zeng, Jiajie Zhang, et al. Glm-4.5: Agentic, reasoning, and coding (arc) foundation models. arXiv preprint arXiv:2508.06471 , 2025. 1 [35] Biao Zhang and Rico Sennrich. Root mean square layer normalization. Advances in neural information processing systems , 32, 2019. C.1 
+
+> 12 Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning
+
+## A. Appendix 
+
+A.1. General Framework of Geometric Spectral Descent 
+
+We have mentioned in 3.1 that different approximations of 𝐻 yield different algorithms under the framework of geometric spectral descent. To be specific, let’s denote the preconditioner as 𝜏 𝐻 (·), and the target problem can be written as: 
+
+∆𝑊 = arg min 
+
+> 𝑈
+
+⟨𝐺, 𝑈 ⟩
+
+s.t. ‖𝜏 𝐻 (𝑈 )‖op ≤ 1
+
+If we assume that 𝐻 is approximated by Adam’s second momentum √𝑣 =√︀ 𝑔 2, then the whitening form becomes: 
+
+∆𝑊 = arg min 
+
+> 𝑈
+
+⟨𝐺, 𝑈 ⟩ s.t. ‖√𝑣 ⊙ 𝑈 ‖op ≤ 1
+
+Similarly, by performing a change of variables 𝑌 = √𝑣 ⊙ 𝑈 , which implies 𝑈 = 𝑌 √𝑣 , the objective becomes: 
+
+⟨𝐺, 𝑌 
+
+√𝑣 ⟩ = ⟨ 𝐺 
+
+√𝑣 , 𝑌 ⟩⇒𝑌 * = −msign ( 𝐺 
+
+√𝑣 )
+
+⇒∆𝑊 = − 1
+
+√𝑣 ⊙ msign ( 𝐺 
+
+√𝑣 )
+
+Interestingly, a recent variant termed AdaMuon[ 25 ] proposes a similar update idea however diverges in how the second momentum is accumulated. Specifically, AdaMuon updates the scaling factor √𝑣 using the orthogonalized update 𝑂 = msign (𝑀 ), rather than the raw gradient or momentum. From our perspective, this does not fit our geometric framework theoretically, and its empirical success might instead stem from an implicit regularization effect or stabilized magnitude control, rather than genuine curvature-aware optimization. Moreover, FISMO[ 30 ] independently develops a similar geometric perspective by adopting a KFAC-based block-diagonal approximation of 𝐻 . However, FISMO’s reliance on the empirical Fisher has been subject to a long-standing criticism[ 15 ] because of its skewed distribution compared with the real Fisher information matrix. Furthermore, FISMO suffers from a fatal flaw that maintaining its iterative K-FAC preconditioner updates requires recomputing the inverse matrices at every single step . This imposes a prohibitive computation cost, rendering it practically infeasible for large-scale training where wall-clock efficiency is paramount. In sharp contrast, Mousse adopts an amortized update strategy (similar to Shampoo and SOAP), recomputing the preconditioner only every 𝑇 steps (e.g. 𝑇 = 10 in our experiments). This drastically reduces the overhead without compromising convergence stability. 
+
+A.2. Natural Pairing 
+
+In Section 3.1, we utilize the notation ⟨𝐺, ∆𝑊 ⟩ to formulate the optimization objective. It is crucial to clarify that strictly speaking, this denotes the natural pairing between a vector space and its dual, rather than a geometric inner product induced by a metric [1]. Mathematically, the update step ∆𝑊 resides in the tangent space 𝒯 𝒲 , while the gradient 𝐺 naturally resides in the cotangent (dual) space 𝒯 *𝒲 as a linear functional. The operation ⟨𝐺, ∆𝑊 ⟩ represents the action of the functional 𝐺 on the vector ∆𝑊 , measuring the directional derivative of the loss. When the parameter space is instantiated as matrices R𝑚 ×𝑛 , this abstract evaluation concretely manifests as the component-wise sum of products. Algebraically, this is computed via the trace operator: 
+
+⟨𝐺, ∆𝑊 ⟩ := ∑︁ 
+
+> 𝑖,𝑗
+
+𝐺 𝑖𝑗 ∆𝑊 𝑖𝑗 = Tr (𝐺 𝑇 ∆𝑊 ) (10) 
+
+> 13
+
+Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 
+
+## B. Supplementary Empirical Results 
+
+B.1. Loss Performance on WSD scheduler 
+
+Besides the standard practice of cosine learning rate scheduler, the Warmup-Stable-Decay (WSD) schedule had emerged as a perferred choice in large-scale pre-training practice due to its flexibility for continuous training. Hence, we assess the robustness of Mousse under this regime against Muon using the WSD scheduler. We inherit the same experimental setup with our main experiment, and configure a 10%/10% warmup/warmdown phase. The results are showed in Figure 8, where Mousse still consistently outperforms Muon in all settings, showcasing its great robustness. 1e-2 2e-2 3e-2        
+
+> Learning Rate
+> 3.105
+> 3.110
+> 3.115
+> 3.120
+> 3.125
+> 3.130
+> 3.135
+> Validation Loss
+> Model Size: 160M
+> 1e-2 2e-2 3e-2
+> Learning Rate
+> 2.980
+> 2.985
+> 2.990
+> 2.995
+> 3.000
+> 3.005
+> 3.010
+> Model Size: 240M
+> 1e-2 2e-2 3e-2
+> Learning Rate
+> 2.8825
+> 2.8850
+> 2.8875
+> 2.8900
+> 2.8925
+> 2.8950
+> 2.8975
+> 2.9000
+> Model Size: 480M
+> 1e-2 2e-2 3e-2
+> Learning Rate
+> 2.7700
+> 2.7725
+> 2.7750
+> 2.7775
+> 2.7800
+> 2.7825
+> 2.7850
+> 2.7875
+> Model Size: 800M
+> Mousse Muon
+
+Figure 8: Validation Loss comparison on FineWeb (20B tokens) under the WSD scheduler. We report the final validation across varying peak learning rates for model sizes ranging from 160M to 800M. 
+
+B.2. Excessive Loss 
+
+We would like to highlight a critical yet often underappreciated factor that biases fair performance comparisons we called excessive loss . Comparing models based on the validation loss during the stable learning rate phase can be misleading, because the loss value before the learning rate decay schedule does not strictly reflect the model’s convergence quality. As illustrated in Figure 9, the excessive loss ( ∆𝐿 = 𝐿 𝑠𝑡𝑎𝑏𝑙𝑒 − 𝐿 𝑑𝑒𝑐𝑎𝑦 ) is positively correlated with both the learning rate and the model scale. 9e-03 1e-02 1.5e-02 2e-02 2.5e-02 3e-02         
+
+> 0.07
+> 0.08
+> 0.09
+> 0.10
+> 0.11
+> 0.12
+> 0.13
+> Validation  L
+> Muon
+> 9e-03 1e-02 1.5e-02 2e-02 2.5e-02 3e-02
+> 0.07
+> 0.08
+> 0.09
+> 0.10
+> 0.11
+> 0.12
+> Mousse
+> 160M 240M 480M 800M
+
+Figure 9: Quantification of Excessive Loss for WSD scheduler. We plot the magnitude of the excessive loss (∆𝐿 = 𝐿 𝑠𝑡𝑎𝑏𝑙𝑒 − 𝐿 𝑑𝑒𝑐𝑎𝑦 ) during the learning rate decay phase against the peak learning rate for AdamW, Muon, SOAP and Mousse across various model scales. A consistent positive correlation is observed: higher learning rates sustain a higher "noise floor" (excessive loss) during the stable phase, which is subsequently released upon decay. Previous work[ 31 ] has theoretically characterized this phenomenon, noting that the stationary distribution of SGD iterates maintains a variance related to the learning rate and the noise covariance. At the same 
+
+14 Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 
+
+time, there is no evidence that excessive loss values are comparable across different methods, given their distinct internal noise structures. Consequently, we argue that 𝐿 decay serves as a more accurate indicator of the effectiveness of optimizer in finding the global minimum. Otherwise we will disadvantage curves of larger learning rates, as their higher noise floor obscures the true depth of the basin found. 
+
+B.3. The Stability of Preconditioner 
+
+We analyze the dynamics of the preconditioner matrices 𝐿 and 𝑅 throughout the training process. As illustrated in Figure 10, the raw spectral magnitudes of these matrices exhibit drastic variations across different layers and architectural modules. Furthermore, their temporal fluctuations are non-uniform: some layers experience rapid covariance growth while others remain relatively static or decay. 10 5                                                                                      
+
+> 10 6
+> Cond (Layer 0)
+> (log scale)
+> attn.c_q
+> 10 5
+> 10 6
+> attn.c_k
+> 10 6
+> 10 7
+> attn.c_v
+> 10 6
+> 10 7
+> mlp.c_fc
+> 10 6
+> 10 7
+> mlp.c_proj
+> 10 9
+> 10 8
+> 10 7
+> RMS (Layer 0)
+> (log scale)
+> 10 9
+> 10 8
+> 10 7
+> 10 8
+> 10 7
+> 10 6
+> 10 5
+> 10 4
+> 10 8
+> 10 7
+> 10 6
+> 10 5
+> 10 6
+> 10 5
+> 10 4
+> 10 3
+> 10 2
+> 10 5
+> 10 6
+> 10 7
+> Cond (Layer 6)
+> (log scale)
+> 10 4
+> 10 5
+> 10 6
+> 10 5
+> 10 6
+> 10 7
+> 10 6
+> 10 7
+> 10 5
+> 10 6
+> 10 7
+> 10 9
+> 10 8
+> 10 7
+> RMS (Layer 6)
+> (log scale)
+> 10 9
+> 10 8
+> 10 7
+> 10 8
+> 10 7
+> 10 6
+> 10 5
+> 10 4
+> 10 8
+> 10 7
+> 10 6
+> 10 5
+> 10 4
+> 10 7
+> 10 6
+> 10 5
+> 10 4
+> 10 3
+> 10 5
+> 10 6
+> 10 7
+> Cond (Layer 11)
+> (log scale)
+> 10 5
+> 10 6
+> 10 5
+> 10 6
+> 10 7
+> 10 5
+> 10 6
+> 10 7
+> 10 6
+> 10 7
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Steps (Normalized)
+> 10 9
+> 10 8
+> 10 7
+> RMS (Layer 11)
+> (log scale)
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Steps (Normalized)
+> 10 9
+> 10 8
+> 10 7
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Steps (Normalized)
+> 10 9
+> 10 8
+> 10 7
+> 10 6
+> 10 5
+> 10 4
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Steps (Normalized)
+> 10 9
+> 10 8
+> 10 7
+> 10 6
+> 10 5
+> 10 4
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Steps (Normalized)
+> 10 4
+> 10 3
+
+Left (L) Right (R) 
+
+Figure 10: Evolution of Preconditioner Stability on 480M model trained by Mousse with cosine LR scheduler. We visualize the condition numbers and RMS norms of 𝐿 and 𝑅 across different network layers during training. Under the trace normalization, most curves showed a relatively stable downward trend, preventing numerical divergence. The preconditioner statistics are accumulated via an Exponential Moving Average (EMA) with 
+
+𝛽 = 0 .95 .This heterogeneity necessitates a unified trace normalization strategy. Without it, a fixed damping factor 𝜖 
+
+would act inconsistently — negligible for layers with large norms yet dominating for those with small norms, 
+
+15 Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning 
+
+leading to unstable whitening. we observe that the condition numbers of 𝐿 and 𝑅 are high during the initial statistic accumulation phase but quickly plateau into a stable range. This indicates that the geometry of the whitened space stabilizes early in training, providing a robust and consistent foundation for the subsequent Newton-Schulz iterations. However, we do observe occasional spikes in the condition numbers within spe-cific modules, suggesting localized instability or sudden shifts in the gradient landscape. This hints that a more adaptive or per-layer damping strategy could further mitigate these transient fluctuations and enhance robustness, which we leave for future exploration. 
+
+## C. Details of Experiments 
+
+C.1. Pretraining GPT2 
+
+While we follow the general blueprint of the decoder-only GPT-2, we incorporate several modern architectural improvements to ensure training stability and efficiency. Our implementation is based on the dion library [ 2]. The specific settings include: 
+
+Normalization. We utilize RMSNorm[ 35 ] before sublayers instead of standard LayerNorm for better stability. To mitigate attention logit instability at scale, we apply QK-Norm[ 12 ], normalizing the query and key vectors prior to the dot-product attention. 
+
+Positional Embeddings. We use Rotary Positional Embeddings (RoPE)[27]. 
+
+Activation Function. We employ the squared ReLU activation ( 𝑓 (𝑥 ) = ReLU (𝑥 )2)[ 26 ], which has been shown to offer superior performance compared to GeLU[11]. 
+
+Bias. We disable bias terms in all linear layers and layer normalizations to improve memory efficiency and training stability. 
+
+Initialization. We adopt a variance-scaling initialization scheme designed to facilitate hyperparameter trans-fer, following the principles of Spectral Condition [ 33 ]. specifically, weights are initialized from a normal distribution 𝒩 (0 , 𝜎 2), where the standard deviation 𝜎 is determined by the fan-in and fan-out dimensions: 
+
+𝜎 = 1√︀ 
+
+fan_in · min (︃ 1,√︃ fan_out fan_in )︃ (11) Embedding weights are initialized with 𝒩 (0 , 1) . This initialization ensures that activation variances remain stable across widths. 
+
+Model Configurations. We trained models across varying scales ranging from 160M to 800M parameters. The specific configurations are detailed in Table 2. All models utilize a context window of 1024 tokens and a vocabulary size of 50,304 (padded from 50,257 for kernel efficiency). 
+
+Table 2: Precise Model Architecture Configurations. All models use the architecture described above. 
+
+Model Embedding 𝑑 model 𝑛 layers 𝑛 heads 
+
+162M 38M 768 12 6247M 38M 768 24 6494M 77M 1536 12 6834M 77M 1536 24 6
+
+Optimizer Settings. 
+
+• AdamW: We use 𝛽 1 = 0 .9, 𝛽 2 = 0 .95 , 𝜖 = 1 𝑒 − 8, and a weight decay of 0.01. 
+
+• Muon: We use 𝛽 1 = 0 .95 , a weight decay of 0.01, and the standard configuration with the NS5 kernel. 
+
+> 16 Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning
+
+• SOAP: We use 𝛽 1 = 0 .95 , 𝛽 2 = 0 .95 , 𝜖 = 1 𝑒 − 8, and a weight decay of 0.01. The preconditioning update frequency is set to 𝑇 = 10 . The whitening statistics ( 𝐿, 𝑅 ) are accumulated using an EMA with 𝛽 𝑝𝑐 = 0 .95 .
+
+• Mousse: We align the optimization hyperparameters ( 𝛽 1 = 0 .95 , weight decay of 0.01) and the Newton-Schulz kernel (NS5) with Muon. Additionally, we adopt the preconditioning update frequency ( 𝑇 = 10 )and the whitening statistics EMA ( 𝛽 𝑝𝑐 = 0 .95 ) from SOAP. We set 𝜖 = 1 𝑒 − 5 for spectral decomposition. 
+
+Training. All models were trained using Distributed Data Parallel (DDP) on a cluster of 8 Nvidia H200 GPUs. Models are trained for 10,000 steps with a global batch size of 2 Million tokens. The learning rate schedule follows a linear warmup for the first 1,000 steps (10%), followed by a cosine annealing to 0 until the final step.

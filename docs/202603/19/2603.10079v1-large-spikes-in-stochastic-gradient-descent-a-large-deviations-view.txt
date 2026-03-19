@@ -1,0 +1,4324 @@
+Title: Large Spikes in Stochastic Gradient Descent: A Large-Deviations View
+
+URL Source: https://arxiv.org/pdf/2603.10079v1
+
+Published Time: Thu, 12 Mar 2026 00:06:32 GMT
+
+Number of Pages: 33
+
+Markdown Content:
+# Large Spikes in Stochastic Gradient Descent: A Large-Deviations View 
+
+Benjamin Gess 
+
+Technische Universität Berlin, Fakultät II 10623 Berlin, Germany Max Planck Institute for Mathematics in the Sciences 04103 Leipzig, Germany 
+
+benjamin.gess@mis.mpg.de 
+
+Daniel Heydecker 
+
+University of Oslo, Blindern 0316 Oslo, Norway 
+
+daniehey@math.uio.no 
+
+## Abstract 
+
+We analyse SGD training of a shallow, fully connected network in the NTK scaling and provide a quantitative theory of the catapult phase. We identify an explicit criterion separating two behaviours: When an explicit function 
+
+G, depending only on the kernel, learning rate η and data, is positive, SGD produces large NTK-flattening spikes with high probability; when 
+
+G < 0, their probability decays like (n/η )−ϑ/ 2, for an explicitly characterised 
+
+ϑ ∈ (0 , ∞). This yields a concrete parameter-dependent explanation for why such spikes may still be observed at practical widths. 
+
+## 1 Introduction 
+
+Modern machine learning processes rely on various optimisation techniques to find solutions of optimisation problems 
+
+Θ⋆ ∈ argmin Θ∈Rn ℓ(Θ) (1.1) where ℓ is a typically non-convex loss, and the number of parameters n is extremely large: At the time of writing, neural networks may contain millions, billions or trillions of parameters. Typically, to learn the parameters of a network, the loss will be of the form 
+
+ℓ(Θ) = 1
+
+m
+
+> m
+
+∑
+
+> i=1
+
+ℓi(Θ); ℓi(Θ) = L(F (Θ , x i), y i) (1.2) for some prediction map F : Rn × Rd → R, and a given set of labelled training data {(xi, y i)}.For such losses, a simple, computationally tractable and widely used approach [ 39 ], profiting from the form of the total loss ℓ, is stochastic gradient descent (SGD) by minibatching : given the parameters Θ( t) at a discrete time step t ∈ N, a subset B(t + 1) ⊂ [m] of fixed size 
+
+b ≪ m is chosen at random, and the parameters are updated by the discrete scheme 
+
+Θ( t + 1) = Θ( t) − ηb
+
+∑
+
+> i∈B(t+1)
+
+∇Θℓi(Θ( t)) (SGD) where η > 0 is a fixed step size. Remarkably, it appears that the stochastic nature of (SGD) produces convergence which is better than that of the deterministic gradient descent: It has been empirically observed [ 23 ] that (SGD) , particularly with small batch size b, tends to select flatter, and better-generalising minima, particularly when the learning rate η is large or the batch size b
+
+is small [ 30 , 25 , 34 ]. Meanwhile, it is well-known to practitioners that the convergence of 1
+
+> arXiv:2603.10079v1 [cs.LG] 10 Mar 2026
+
+Spikes in SGD: an LDP View Gess, Heydecker    
+
+> Linear
+> Convergence Divergence
+> 0λcrit λ
+
+(i)     
+
+> Nonlinear, deterministic (Full-batch gradient descent)
+> Convergence
+> Monotone Catapult
+> Divergence
+> 0λFB crit λFB max λ
+
+(ii)     
+
+> Nonlinear, nondeterministic (Stochastic gradient descent)
+> Convergence
+> Monotone Catapult
+> (Possible) Divergence
+> 0λMB crit λMB max λ
+
+(iii) 
+
+Figure 1: Extension of the phase diagram [ 52 , Figure 1], which corresponds to cases (i-ii). Theorem 1 unveils a rich internal structure of the catapult region for the nonlinear, nondeterministic dynamics (SGD) , illustrated with green (‘inflationary’, case a of Theorem 1) and pale blue (‘deflationary’, case b) stripes in (iii). In general, the critical and maximal curvatures λMB crit ,max for minibatching are strictly smaller than their full-batch counterparts 
+
+λFB crit ,max .SGD is typically punctuated by many large, short-lived spikes in the loss ℓ(Θ( t)) , each of which is followed by a rapid return to its pre-spike value, attributed empirically by [ 53 ]to the catapult mechanism . It has also been argued [ 27 , 52 ] that the catapult mechanism, even in the full-batch case, may drive short-lived, finite-width effects driving the system to better-behaved minima. The task of this work is to develop a mathematically precise understanding how the structure of SGD noise interacts with the catapult mechanism, the structure of the resulting phase transition, and contribution of spikes to finding flatter minima. 
+
+1.1 Contribution 
+
+The contribution of this work is a rigorous understanding of the structure of the catapult phase in SGD and its contribution to finding flatter minima. We use the neural tangent kernel (NTK), which in our examples reduces to a scalar λ or pair of scalars, as a measure of the sharpness. We introduce and rigorously analyse a model example, following [ 52 ], for shallow, fully connected networks in the NTK scaling, in the sharp minimum range ηλ ∼ 1.In this setting, we are able to completely categorise when spikes are guaranteed, and how likely they are when not guaranteed. Even for such a simplified model, the catapult phase shows rich and nontrivial internal structure which is not present in the case of full-batch gradient descent. The structure is illustrated in Figure 1, stated precisely in Theorem 1 and exemplified in Section 1.3. We summarise as follows. Defining a large spike to be an event where the loss 
+
+ℓ(Θ( t)) reaches the threshold n/η where the network escapes the linear regime of lazy training and where the curvature is reduced by O(1) , the results may be informally summarised as follows. We prove that: 1. for a certain phase of initial curvature λ0, a large spike is guaranteed (Theorems 3 and 5); 2. in a further regime, in which they are not guaranteed, they remain polynomially likely , in that their probability decays like (n/η )−ϑ/ 2, for some ϑ = ϑ(λ0) ∈ (0 , ∞)
+
+(Theorem 4 and 6); 3. large spikes are, up to exponentially unlikely events, the only way in which the lazy training regime can be escaped and the curvature reduced (Proposition 4.2); 4. and, in the case where the activation function of the first layer in the rectified linear unit (ReLU) and a certain asymmetric initialisation is imposed, the dynamics decouple into two copies of the linear model, to which each of the previous points applies. 
+
+2Spikes in SGD: an LDP View Gess, Heydecker 
+
+Here, we follow the convention [ 53 ] that a ‘catapult’ refers to a single update step in which the learning rate η exceeds a per-sample critical rate, causing an instantaneous increase in the running loss, and distinguish between this and a spike where the overall loss has become large. Both points 1-2 allow direct computation from the data. The distinction between the two regimes where spikes are typical or atypical is governed by the sign of a function 
+
+G(λ0), which is given explicitly from the data by (1.7) . The function ϑ(λ0) in point 2 is characterised as unique positive zero of a certain convex function (1.8) , and hence may be found in practice from the data by interval bisection. The points 2-3 above arise out of the machinery of large deviations. Often, the theory of large deviations leads to estimates of probabilities decaying exponentially 
+
+∼ e−αn , α > 0, and for the values of 10 6 ≤ n ≤ 10 12 used in practice, such events may be excluded from consideration. In contrast, the polynomial decay of probabilities discussed in (2) means that such events may retain appreciable probability in practice when the exponent 
+
+ϑ is not too large. An example, where the probability remains on the order (n/η )−ϑ/ 2 ≈ 0.25 
+
+for n = 10 12 , is given in Section 1.3.5. In (3), we follow the maxim of large deviations in describing the ‘least unlikely’ way in which random fluctuations via the minibatching noise can reduce the curvature, and we will see that large kernel reductions without a spike are exponentially unlikely. 
+
+1.2 The Model & Main Results 
+
+As is common in the literature [ 49 , 41 ] for developing a theoretical understanding, we consider a univariate network, and specialise further to the case of mini-batch size b = 1 . We consider learning the network F : R2n × R → R, given by 
+
+F (Θ; s) := 1
+
+√n
+
+> n
+
+∑
+
+> r=1
+
+ar φ(wr s); Θ = (( wr , a r ) : 1 ≤ r ≤ n) ∈ R2n (1.3) where φ is either the linear activation φ(w) = w, or the rectified linear unit (ReLU) 
+
+φ(w) = max (w, 0) , and with a quadratic loss function L(F (Θ , s ), y ) = 12 |F (Θ , s ) − y|2. For a training dataset, we consider a set {si, 1 ≤ i ≤ m}, all equipped with label yi = 0 , and sampled with potentially different probabilities pi. For linear activation, the prediction and neural tangent kernel (NTK) are the scalar quantities 
+
+μ(Θ) := 1
+
+√n
+
+> n
+
+∑
+
+> r=1
+
+ar wr = F (Θ , 1); λ(Θ) := 1
+
+n
+
+> n
+
+∑
+
+> r=1
+
+(w2 
+
+> r
+
++ a2 
+
+> r
+
+) (1.4) while for ReLU, there are pairs of such quantities 
+
+μ±(Θ) := 1
+
+√n
+
+> n
+
+∑
+
+> r=1
+
+ar σ(±wr ) = F (Θ , ±1); λ±(Θ) := 1
+
+n
+
+> n
+
+∑
+
+> r=1
+
+(w2 
+
+> r
+
++ a2 
+
+> r
+
+)1I(wr > 0) . (1.5) We consider parameters Θ = Θ( t) updated in discrete time steps t = 0 , 1, . . . according to (SGD) with minibatch size b = 1 , with B(t + 1) = {i(t + 1) } sampled independently across timesteps according to the distribution {pi}, and write μ(t), λ (t) for the prediction and curvature μ(t) = μ(Θ( t)) , λ (t) = λ(Θ( t)) given by the formulæ (1.4) . We make the following standing assumption, which ensures that the random draws i(t) are the only source of randomness: 
+
+Assumption 1.1. 1. For the model with linear activations, let μ0 ∈ R, λ0 > 0, and write Pμ0,λ 0 for a probability measure under which the indexes i(t) are independent and identically distributed draws from the distribution {pi : 1 ≤ i ≤ m}, the parameters Θ( t) = (( wr (t), a r (t)) : 1 ≤ r ≤ n) are updated according to (SGD) and satisfy, almost surely, μ(Θ(0)) = μ0, λ (Θ(0)) = λ0.2. For the case with ReLU activations, we write similarly Pμ± 
+
+> 0,λ ±
+> 0
+
+for a probability measure where {i(t)}, Θ( t) are as above, and μ±(Θ(0)) = μ± 
+
+> 0
+
+, λ ±(Θ(0)) = λ± 
+
+> 0
+
+almost surely. 
+
+3Spikes in SGD: an LDP View Gess, Heydecker 
+
+With these fixed, we summarise the results, stated precisely in Theorems 3, 4, 5, 6 as follows. 
+
+Theorem 1. Let φ be the linear activation φ(w) = w, and consider the range 
+
+λMB crit := 2
+
+ηs 2
+
+> ⋆
+
+< λ 0 < 4
+
+ηs 2
+
+> ⋆
+
+=: λMB max ; s⋆ := max  
+
+> i
+
+|si|. (1.6) 
+
+Define, for any λ in this range, 
+
+G(λ) = G(λ; η, {si, p i}) := 
+
+> m
+
+∑
+
+> i=1
+
+pi log (∣ ∣1 − ηλs 2
+
+> i
+
+∣∣) ∈ [−∞ , ∞) (1.7) 
+
+which we allow to take the value −∞ if ηλs 2 
+
+> i
+
+= 1 for some i, and 
+
+ϑ(λ) = sup 
+
+{
+
+θ ≥ 0 : 
+
+> m
+
+∑
+
+> i=1
+
+pi|1 − ηλs 2 
+
+> i
+
+|θ ≤ 1
+
+}
+
+. (1.8) 
+
+Then a) [Inflationary Case] If G(λ0) > 0, then, with high probability over the dynamics, the loss |μ(t)|2 reaches any threshold 
+
+L ≲ nη log 2(n/η )
+
+in time O( log( L/ |μ0|2) 
+
+> G(λ0)
+
+). The spike then produces a reduction in the kernel λ
+
+reducing it to at most some explicit λ⋆ ∈ (0 , λ 0) in a duration of the order 
+
+log(( λ0 − λ⋆) log( n/η )) + OP(1) .b) [Deflationary Case] If instead λMB crit < λ 0 < λ MB max and G(λ0) < 0, then the probability of the loss reaching any threshold 
+
+|μ0|2 ≤ L ≲ nη log 2/β (n/η )
+
+decays like 
+
+∼
+
+( |μ0|2
+
+L
+
+)ϑ(λ0)/2+ o(1) 
+
+,
+
+where ϑ(λ0) > 0 is given by (1.8) , and β > 0 is fixed. If, for δ > 0, pδ := 
+
+P(|1 − ηλ 0s2 
+
+> i
+
+| > 1 + δ) > 0, then the probability of a large spike decreasing the kernel to λ in the range λ0 − Cλ MB max δ ≤ λ ≤ λ0 decays no faster than 
+
+≳
+
+(
+
+|μ0|
+
+√n/η 
+
+)ϑ(λ0)+ o(1) 
+
+(λ0 − λ)α (1.9) 
+
+where α = α(δ) ∈ (0 , ∞) may be found explicitly from δ, p 3δ .
+
+For the case where φ is the ReLU activation φ(w) = σ(w) = max (0 , w ), we first introduce some further notation. We define the positive and negative parts of each datapoint s± 
+
+> i
+
+=max (±si, 0) , and corresponding critical values λMB ,± 
+
+> crit
+
+, λ MB ,± 
+
+> max
+
+. Define also G±(λ), ϑ ±(λ) as in (1.6-1.8), with si replaced by s± 
+
+> i
+
+respectively. With these fixed, we summarise the result for ReLU activation, presented in Theorem 7, as follows. 
+
+Theorem 2. Let φ be the ReLU activation φ(w) = σ(w) = max (0 , w ), and consider the range 
+
+λs 
+
+> 0
+
+< λ MB ,s 
+
+> max
+
+, s ∈ {±} . (1.10) 
+
+If a certain asymmetric initialisation property Definition 6.1 holds Pμ± 
+
+> 0,λ ±
+> 0
+
+-almost surely, similar to [7, 8, 12], then 
+
+4Spikes in SGD: an LDP View Gess, Heydecker 
+
+a) [Inflationary Case] If at least one of Gs(λs), s ∈ {±} is nonnegative then, with high probability over the dynamics, the total loss reaches any threshold 
+
+L ≲ nη log( n/η )
+
+in time 
+
+O
+
+(
+
+min 
+
+( log( L/ |μs|2)
+
+Gs(λs
+
+> 0
+
+) : s ∈ {±} , G s(λs
+
+> 0
+
+) > 0
+
+)) 
+
+.
+
+b) [Deflationary Case] If, instead, both Gs(λs
+
+> 0
+
+) < 0 and at least one λs 
+
+> 0
+
+> λ MB ,s 
+
+> crit
+
+, then the probability of the total loss reaching any threshold 
+
+L ≲ nη log 2/β (n/η )) 
+
+for some fixed β > 0 decays like 
+
+max 
+
+(( |μs
+
+> 0
+
+|2
+
+L
+
+)ϑs(λs 
+
+> 0)/2+ o(1)
+
+: s ∈ {±} 
+
+)
+
+.
+
+In this case, it is possible for a large spike to cause a decrease of λs(t) of order O(η−1),accompanied by a simultaneous increase of λ−s(t).Remark 1.2 . Assumption 1.1 allows us to isolate the randomness associated with the noise sampling, which is responsible for the structure of the catapult phase. Other sources of randomness may be included as follows. 1. Random initialisation. In the case where the initialisation Θ(0) is itself random, for example with LeCun initialisation [ 26 ], the initial values of μ, λ may also be random. In this case, Pμ0,λ 0 may be taken as regular conditional probability measures, conditional on these values, and the conclusions of Theorems 1 - 2 may be extended to holding with high probability in the initial data by arguing as in [ 52 , Theorems 1-2]. 2. Random Training Data. The examples below illustrate that Theorems 1 - 2 may produce qualitatively different phase diagrams by the division into inflationary and deflationary cases, and one might ask what structure holds for ‘typical’ {si}. A simple model for ‘typical’ data would be to take the data {si} to be independent draws from some given compactly supported measure ν under some auxiliary probability measure P . In this case, for a fixed λ0, the properties of the dynamics given by Theorems 1-2 are qualitatively the same, with high P -probability, as those when every discrete sum over si is replaced by a ν-integral. In particular, neither structure of the phases is ‘typical’ without making assumptions on ν, which do not appear to be canonical. This is also the reason why we allow potentially non-uniform sampling probabilities pi, as it allows a more parsimonious approximation to non-uniform ν.In the remainder of this section, we give some preliminary calculations, following [ 27 , 52 ], which allow an overview of the proof of Theorem 1 and signpost the key difficulties. Taking 
+
+φ(w) = w to be the linear activation, the update rule (SGD) produces, for the individual parameters ar (t), w r (t),
+
+wr (t + 1) = wr (t) − η√n μ(t)ar (t)s2
+
+> i(t+1)
+
+;
+
+ar (t + 1) = ar (t) − η√n μ(t)wr (t)s2
+
+> i(t+1)
+
+.
+
+(1.11) A simple computation shows that the evolution equations for μ(t), λ (t) close and involve no individual weights: 
+
+μ(t + 1) = 
+
+(
+
+1 − ηλ (t)s2 
+
+> i(t+1)
+
++ η2s4
+
+> i(t+1)
+
+μ(t)2
+
+n
+
+)
+
+μ(t); 
+
+λ(t + 1) = λ(t) + μ(t)2ηn (ηλ (t)s4 
+
+> i(t+1)
+
+− 4s2
+
+> i(t+1)
+
+).
+
+(1.12) 
+
+5Spikes in SGD: an LDP View Gess, Heydecker 
+
+Since the total loss is, up to a fixed constant, ℓ(Θ( t)) ∼ μ(t)2, a spike in the loss at threshold 
+
+L is equivalent to a spike in the prediction |μ(t)| reaching ∼ √L and, in the sequel, we will phrase all results in terms of |μ(t)| becoming large. As a result of the standing hypothesis 
+
+λ0 < λ MB max , an easy inductive proof shows that λ(t) is monotonically decreasing, and we estimate the decrease above and below by 
+
+0 ≤ a−
+
+η|μ(t)|2
+
+n ≤ λ(t) − λ(t + 1) ≤ a+
+
+η|μ(t)|2
+
+n ; (1.13) 
+
+a− := min  
+
+> i
+
+(4 s2 
+
+> i
+
+− ηλ 0s4 
+
+> i
+
+); a+ := max  
+
+> i
+
+(4 s2 
+
+> i
+
+). (1.14) In the sequel, we reserve a± for these data-dependent constants. For the prediction μ(t), we neglect the higher-order term and the update to λ(t) to find 
+
+μ(t) ≈ (1 − ηλ 0s2
+
+> i(t)
+
+)(1 − ηλ 0s2
+
+> i(t−1)
+
+) . . . (1 − ηλ 0s2
+
+> i(1)
+
+)μ0 (1.15) again valid until either μ(t) ∼ √n/η or when the approximation λ(t) ≈ λ0 breaks down. Taking the logarithm, we find the partial sums 
+
+log |μ(t)| ≈ log |μ0| + ∑
+
+> u≤t
+
+log |1 − ηλ 0s2
+
+> i(u)
+
+| (1.16) of independent and identically distributed random variables with mean G(λ0) given by (1.7) .As a result, the classical convergence theorems of probability produce a tri chotomy of possible behaviours: a). If G(λ0) > 0, then the law of large numbers applied to (1.16) forces |μ(t)| to eventually become large, so a spike is guaranteed; b). If G(λ) < 0 and ηλs 2 
+
+> ⋆
+
+> 2, then large values of |μ(t)| correspond to large deviations 
+
+of the sum (1.16) . As a result, spikes of size M ≲ √n/η occur with probabilities 
+
+∼ M −ϑ, where the Cramér exponent ϑ > 0 is given by (1.8); c). If ηλs 2 
+
+> ⋆
+
+< 2, then every term in the sum (1.16) is nonpositive and |μ(t)| is monotoni-cally decreasing. No spike is possible. We refer to the cases a) and b), distinguished by the sign of the log-drift G(λ0) as the 
+
+inflationary and deflationary regimes of the catapult phase, and c) as the monotone phase. In case b), the exponent ϑ has the property that, treating the approximation (1.15) as exact, 
+
+|μ(t)|ϑ is a martingale, which produces the asymptotic hitting probability claimed by closely following the upper and lower bounds of Cramér’s theorem, see, for example, [ 14 , Proof of Theorem 2.2.3, pp. 30-33] or [ 20 , Theorem I.3]. When the prediction μ(t) ever reaches the level μ(t) ∼ √n/η , then the updates (1.14) become significant, and the spike allows a reduction in the curvature. 
+
+Key Challenge of a Rigorous Proof. The key difficulty extending the argu-ment sketched above to the full update rule (1.12) is to account for the fact that λ(t) will vary in time according to (1.14) . While the updates to the kernel at each time step are negligible while |μ(t)| ≪ √n/η , it is a priori possible that it could fall significantly without 
+
+|μ(t)| ever becoming large, either by a larger number of smaller spikes at height M ≪ √n/η ,or over very large time scales T ≫ log (n/η ). We highlight two further technical ideas which are needed to address this challenge. Firstly, Proposition 4.2 shows that the probability of the kernel changing by some threshold ϵ while the prediction remains below M decays like 
+
+≲ exp 
+
+(
+
+−ϵγ 
+
+( nηM 2
+
+)β )
+
+; β, γ > 0. (1.17) This makes the claim 3) in the summary rigourous, and motivates us restrict to scales 
+
+M ≲ 1log 1/β (n/η )
+
+√ nη (1.18) 
+
+6Spikes in SGD: an LDP View Gess, Heydecker 
+
+in order to ensure that the error probability decays like (n/η )ϑ/ 2. In this way, neglecting the updates to the kernel in (1.15) requires us to restrict to scales which are smaller (by a polylogarithm) than the scale |μ(t)| ∼ √n/η required to neglect the higher-order term in (1.12) . We therefore distinguish between ‘moderate spikes’, up to such a scale, and ‘large spikes’ on scales which rapidly decrease the curvature. The second idea which is necessary to overcome the challenge is that, in order to maintain the asymptotic (|μ0|/M )ϑ, it is necessary to apply the previous estimate (1.17) repeatedly: If |μ0| is very small, it may happen that (n/η )ϑ/ 2 ≫ (|μ0|/M )ϑ. In order to avoid this, we show how the range [|μ0|, M ] may be divided into a (potentially large) number of scales 
+
+L0 = M ≫ L1 ≫ · · · ≫ Lk = |μ0|
+
+in such a way that the probabilities decreasing the kernel by ϵ 
+
+> 2j
+
+between scales Lj+1 , L j
+
+has the correct asymptotic ≤ cj (|μ0|/M )ϑ, with a summable prefactor ∑ 
+
+> j
+
+cj < ∞. The error probabilities may therefore be recombined without changing the overall behaviour to produce the asymptotic probability claimed. As a result of the first point, we divide the analysis between ‘moderate’ and ‘large’ spikes. The strategy for making statements about large spikes will be to consider first the probability of reaching the largest scale M (1.18) allowed, and then considering the probability of a kernel reduction conditional on having reached a moderate spike. For this reason, the theorem statements in Theorems 5 - 6 express only the conditional probabilities, and the reassembly to the claims of Theorem 1 follows using the strong Markov property and the corresponding results for moderate spikes. 
+
+Organisation of the Paper In the remainder of this section, we provide simple examples which illustrate the rich variety of structures derived in Theorem 1. Section 1.4 is a literature review and discussion of connections of the present work to the literature. The remainder of the paper is devoted to the rigourisation of Theorem 1, starting with preliminaries and definitions in constant use in Section 2. The precise statements and proofs are divided by the four combinations of moderate or large spikes, and inflationary or deflationary drift: Section 3 deals with moderate spikes in the inflationary case, Section 4 with moderate spikes in the deflationary case, Section 5 with both cases for large spikes. Finally, Section 6 establishes a precise connection between the case of linear activation sketched above, and the case of ReLU activation, which shows how the conclusions may be extended to that case. 
+
+1.3 Examples of the Theorem 
+
+In this section, we will present some examples to illustrate the theory derived in the previous section. Even in very simple settings, where the dataset consists of only two or three data-points chosen with non-equal probabilities, the structure of G, α shows nontrivial structure. 
+
+> −3
+> −2
+> −1
+> 1
+
+c b a
+
+λ(i)
+
+> −2
+> −1
+> 1
+
+c b a b a
+
+λ
+
+(ii )
+
+Figure 2: Plots of G(λ) for the examples (1.19 - 1.20) 
+
+1.3.1 The Phases with Two Datapoints 
+
+We begin by discussing the structure of G and the different parameter regimes where the dataset consists only of two points. In Figure 2, the log-drift function 
+
+G(λ) is plotted for the full range 0 ≤ λ ≤ 4/ηs 2 
+
+> ⋆
+
+with 
+
+η = 1 for the two illustrative cases 
+
+i) {(si, p i)} = {(1 , 0.5) , (1 .3, 0.5) } (1.19) 
+
+ii) {(si, p i)} = {(1 , 0.83) , (√2, 0.17) }. (1.20) In each case, the different ranges of λ produced by the discussion under (1.16) are labelled, and colour-coded consistently with Figure 1. We see that the function G
+
+given by (1.7) is never monotone and neither convex nor concave. Moreover, the non-monotonicity can 
+
+7Spikes in SGD: an LDP View Gess, Heydecker 
+
+result in multiple sign changes of G, illustrated in case ii), meaning that the distinction between the phases a and b is not necessarily monotone as a function of λ.
+
+1.3.2 Comparison of Critical Values to Full-Batch Critical Values 
+
+We next compare the parameter ranges in Theorem 1 to the critical values λcrit , λ max for the full-batch dynamics, applied to the loss 
+
+ℓ(Θ) = 
+
+> m
+
+∑
+
+> i=1
+
+L(F (Θ , s i), y i) = |μ(t)|2
+
+> m
+
+∑
+
+> i=1
+
+pis2 
+
+> i
+
+=: |μ(t)|2 ¯s2
+
+where we write ¯s2 := Es2
+
+> i(1)
+
+. Following the analysis of [ 27 , 52 ], the critical value of λ
+
+separating the convergent from catapult phases, is 
+
+λFB crit = 2
+
+η¯s2 . (1.21) By definition, ¯s ≤ s⋆, with an equality only in the degenerate case where |si| = s⋆ for each i.As a result, it follows that the lower bound of the SGD catapult phase is 
+
+λMB crit := 2
+
+ηs 2
+
+> ⋆
+
+≤ λFB crit . (1.22) From Theorem 1, we conclude that, aside from the degenerate case, large spikes remain possible and are, in the worst case, polynomially (un)likely, in a nonempty region 
+
+λ ∈ (λMB crit , λ FB crit ) where they are not possible for full-batch gradient descent. It is not generally possible to make a link between the catapult and monotone phases of full-batch gradient descent, and the inflationary and deflationary phases. To see this, we note that the condition for catapults in the full-batch case may be written more suggestively as 
+
+log |1 − ηλ ¯s2| = log 
+
+∣∣∣1 − ηλ Es2
+
+> i(1)
+
+∣∣∣ > 0 (1.23) which closely resembles the condition for the inflationary regime 
+
+E
+
+[
+
+log |1 − ηλs 2
+
+> i(1)
+
+|
+
+]
+
+> 0. (1.24) However, neither of the two displays above implies the other. While the function u 7 → log u
+
+is concave on its domain, the function log |u| is neither globally convex nor globally concave, and no application of Jensen’s inequality is possible. In the next two examples we give explicit examples to show that both possible implications between the above displays are false. Correspondingly, it is possible for the same parameters to be in the inflationary phase for SGD but the monotone phase for GD, or in the catapult phase for GD and the deflationary phase for SGD. Hence, for a given dataset and learning rate η, the presence of a spike for GD neither implies, nor is implied by, a high-probability spike for SGD. 
+
+1.3.3 The inflationary regime without full-batch catapults 
+
+Consider the two-point example with η = 0 .3, s1 = 1 , p 1 = 0 .6, s 2 = 3 , p 2 = 0 .4, started from initial curvature λ0 = 43 . The critical curvature for the full-batch loss is 
+
+λFB crit = 2
+
+η ∑2 
+
+> i=1
+
+pis2
+
+> i
+
+= 100 63 > λ 0 (1.25) so the full-batch gradient descent (GD) is in the convergent phase. Meanwhile, the log-drift for SGD is 
+
+G(λ0) = 0 .6 × log 0 .6 + 0 .4 × log 2 .6 ≈ 7.6 × 10 −2 (1.26) leading to an eventual large spike of the loss. 
+
+8Spikes in SGD: an LDP View Gess, Heydecker 
+
+1.3.4 The deflationary regime with full-batch catapults 
+
+Consider the dataset 
+
+iii) {(si, p i)} = {(5 .92 , 0.4) , (3 .74 , 0.6) } (1.27) with η = 0 .1, λ 0 = 1 . The critical curvature for the full-batch loss is 
+
+λcrit = 2
+
+η ∑2 
+
+> i=1
+
+pis2
+
+> i
+
+≈ 0.89 ∈
+
+( λ0
+
+2 , λ 0
+
+)
+
+(1.28) which implies that the full-batch dynamics is in the catapult phase. On the other hand, the log-drift for SGD is 
+
+G(λ0) ≈ − 0.18 (1.29) and the SGD is in the deflationary regime. 
+
+1.3.5 Non-monotonicity of Spikes as a function of Curvature 
+
+The structure of the catapult phase shown in Theorem 1 shows that increasing curvature may not lead increase the propensity of the system to spike. An example where G is not monotone over (λMB crit , λ MB max ) was shown in Section 1.3.1 above, and which means that increasing λ0 may 1. Decrease G(λ0), remaining in the inflationary regime, so that the large spike occurs later; or 2. Move from the inflationary regime to the deflationary regime, making a large spike less likely. Within the deflationary regime, the function ϑ(λ) given by (1.8) is the unique nonnegative root to the given equation. The implicit function theorem thus shows that it is differentiable away from singularities λ = ( ηs 2 
+
+> i
+
+)−1, but the resulting closed form need not have a sign. Correspondingly, a third result of increasing λ may be 3. Increase ϑ(λ), remaining in the deflationary regime, and so make large spikes much less likely. Taking the dataset 
+
+iv) {(si, p i)} = {(1 , 0.55) , (0 .5, 0.34) , (0 .9, 0.11) } (1.30) produces 
+
+ϑ(2 .60 /η ) ≈ 0.380; ϑ(3 .14 /η ) ≈ 0.102; ϑ(3 .95 /η ) ≈ 0.315 . (1.31) Consequently, spikes are more likely when λ ≈ 3.14 /η than either of the other two values. A plot of G and ϑ for this dataset is displayed in Figure 3. 
+
+1.4 Literature Review and Discussion  
+
+> λMB crit λMB max
+> 0.25
+> 0.5
+> 0.75
+> 1
+
+Figure 3: max(1 , ϑ (λ)) (blue) and n−ϑ(λ)/2 with 
+
+n = 10 12 (red) for the dataset (1.30). 
+
+Motivation of the Model: High Dimensionality and the Ubiquity of Spikes We first give a motivation of the models described by Theorem 1, as well as an informal argument that it partially explains the ubiquity of spikes in practice. In addition to the large numbers of parameters, the dimension d
+
+of the domain of a learned function may also be in the millions or billions. In various models studied in the literature, the dynamics in the different directions completely or partially decouple and evolve independently of one another over the training process, for example in 
+
+9Spikes in SGD: an LDP View Gess, Heydecker 
+
+SGD-related methods in matrix factori-sation [ 19 ], see also [ 32 , Proposition 5] for a similar observation. The same also applies to Mixture-of-Expert type architectures [10 , 40 , 38 , 42 , 44 , 17 ] if the routing coefficients are kept constant after initialisation, as is done in practice in [18, 46]. The models in Theorem 1 are chosen as a caricature of the per-channel dynamics of such a model. Globally, we imagine that choosing any datapoint xi from the whole training dataset only affects the parameters of one channel 1 ≤ α(i) ≤ d, producing a loss through a subnetwork of one of the forms in Theorem 1 through a scalar si = ⟨eα, xi⟩. Even if the input data xi are normalised, si will (in general) not be, and it is possible for multiple datapoints to contribute to each channel. Theorem 1 now governs the probability of a spike in each channel α, with a decay rate no worse than (n/η )−ϑα/2 as soon as (1.6) is satisfied. We now consider the evolution of the loss of the whole network. If, for some 
+
+θ ≥ 0, a significant fraction of the channels have ϑα ≤ θ, then the total number of spikes is approximately a Poisson random variable, with mean of the order O(d(n/η )−θ/ 2). In particular, since θ > 0 can be small, a large number of spikes can be caused without imposing any polynomial relation on d, n .
+
+Convergence of SGD, Catapult Mechanism The basic analysis of SGD, see for example [ 33 , 24 ], shows that, for sufficiently small η, all but a vanishing fraction of the time is spent near critical points. While the landscape of ℓ may contain many saddle points [ 13 ], it is known that SGD avoids, with high probability, spurious critical regions, see for example [ 36 ] and references therein. The appearance of large spikes in the loss of SGD has been attributed empirically to the catapult mechanism [ 53 ], and as a jumping-off point, we take the models discussed in [ 27 , 52 ] to understand how the catapult mechanism interacts with SGD noise. In this setting, the results presented in Theorem 1 above allow us to rigorously validate many of the results of [ 53 ], while allowing refinements of others, see Example 1.3.5. Both the informal analysis given above and the rigorous proofs can also be extended to cover the quadratic networks studied in [ 52 ] without significantly changing the analysis, replacing (1.12) above by [52, Equations (11-12)]. 
+
+Implicit bias, edge of stability, and sharpness. Beyond convergence, recent literature has sought to understood which implicit bias mechanisms of gradient methods help methods find minima with additional structural properties, see [ 37 , 47 ] and references therein. Blanc et al. [ 6], Li et al. [31 ], Shalova et al. [43 ] and Marion-Chizat [ 35 ] showed that, on a submanifold of minima, SGD will further select points for smaller curvature, typically on a longer time scale than the original convergence to the minima. Recent works have also identified the edge of stability effect [ 2 , 3, 11 , 51 ], where gradient descent algorithms tend to sharpen curvatures below the critical value 2/η , and reduce curvatures above this value. 
+
+Lazy training and the NTK limit. One of the insights driving recent breakthroughs on proving the convergence of gradient descent algorithms [ 15 , 29 ] in problems such as (1.2) is the observation that, when F is a wide neural network, each component θi, 1 ≤ i ≤ n will hardly vary over the evolution in the limit n → ∞ , a phenomenon now called lazy training 
+
+[9]. As a result, the whole network behaves like a purely linear model around its linearisation [ 22 ]. Consistently with this, the models analysed here behave, in epochs between spikes, close to purely linear models. The (im)probability of the spikes is determined by the random dynamics of the linear part, while the spikes themselves allow the system to (briefly) leave the lazy regime and show nonlinear effects. 
+
+Diffusion and large-deviation perspectives. An important step in understanding the typical behaviour of SGD is to view it as the discretisation of a stochastic differential equation, going back to Li [28]. This insight led to a heuristic explanation for SGD finding flatter minima via large deviation theory by [ 21 ], made precise by Azizian et al. [ 4, 5 ]. The 
+
+10 Spikes in SGD: an LDP View Gess, Heydecker 
+
+viewpoint of the current work is complementary to the works [ 4, 5], which show a preference for minimisers of a certain quasipotential in the limit η → 0 with dimension parameter n
+
+held fixed, while we consider the opposite sort of limit n → ∞ with η held fixed. In both cases, the transitions between the basins of attraction of different minima is driven by large deviations and produces short time intervals where the loss is large, although driven in the two cases by different mechanisms. The models of networks we use for tractable, exact analysis are similar to, and slightly more complicated than, diagonal networks, where the benefit of stochasticity was identified by Pesme [37, 16]. 
+
+A New Criterion for Instability & The Edge of Stochastic Stability One of the key steps of the large-deviation analysis is the sharp identification of a criterion distinguishing blow up and convergence for the SGD in the linear, scalar case which appears to be new relative to the literature. We distinguish between the phenomena of almost sure linear blowup , which drives a large spike of the nonlinear dynamics, and blowup in expectation ,where the mean of the process diverges. An analysis of the latter condition [ 1] leads to a condition called the stochastic edge of stability . This distinction is not, of course, specific to SGD, and may be illustrated by whether one considers the process 
+
+Zt := exp 
+
+(
+
+Bt − t
+
+4
+
+)
+
+,
+
+for B a standard Brownian motion, to be large or small at large times t. For the purposes of understanding the ubiquity of spikes, only the almost sure condition is relevant, since measuring largeness in expectation counts potentially large contributions from events only observed on a very small proportion of realisations. Indeed, this naturally poses the question of how unlikely such large values are, in the cases where they are not guaranteed, which is answered by the LDP analysis underlying the deflationary cases of Theorem 1. In fact, the edge of stochastic stability criterion reappears elsewhere in the analysis 1, in determining the scale of polylogarithmic adjustments to the scale √n/η below which ‘slow kernel decrease’ contributes negligible probabilities, see Proposition 4.2 and the proof of Theorem 4. 
+
+How Spikes End A byproduct of the analysis, which is relevant in quantifying the reduction in the curvature before and after a spike, is to identify the ways in which spikes 
+
+end after a large threshold has been reached. We show that three distinct effects are possible: gradual curvature reduction beyond a critical threshold; neuron deactivation in models with ReLU activation; or spike collapse, where nonlinear effects end the spike in a single step. 
+
+Phases of Curvature vs Phases of Learning Rate The distinct phases and their phenomena can be interpreted in two different ways. In [ 27 , 52 ], the different phases are described by the learning rate η > 0, whereas we refer to them as depending on curvature 
+
+λ. In fact, all of the quantities G(λ) = G(λ; η, {data }), ϑ(λ) = ϑ(λ; η, {data }) depend only on λ, η through the product λη , which allows an exact translation of the two viewpoints. We take the viewpoint that G, ϑ are functions of λ, which determine how the curvature λ(t)
+
+will vary over the course of the training. The alternative viewpoint would be to describe Theorems 3 - 4 as describing, for a given initial curvature λ0, which learning rates η make curvature reductions via a spike likely, or at least not too unlikely. 
+
+## 2 Preliminaries 
+
+For the remainder of the paper, we consider a dataset {(si, p i)} fixed forever. We define, for 
+
+1 ≤ i ≤ m,
+
+bi(λ) := |1 − ληs 2 
+
+> i
+
+| (2.1) which are the multiplicative factors appearing in the approximation (1.15) . For upper and lower bounds we define, for thresholds ϵ > 0, κ > 0, and every n,
+
+b+ 
+
+> i
+
+:= b+ 
+
+> i
+
+(ϵ, κ, λ ) = bi + ηs 2
+
+> ⋆
+
+ϵ + ηs 4
+
+> ⋆
+
+κ2; (2.2)          
+
+> 1Precisely: The criterion for the edge of stochastic stability is equivalent to ϑ(λ)≤2, which determines whether we may take β= 2 or β < 2in Proposition 4.2.
+
+11 Spikes in SGD: an LDP View Gess, Heydecker 
+
+b− 
+
+> i
+
+:= b− 
+
+> i
+
+(ϵ, κ, λ ) = max {bi − ηs 2
+
+> ⋆
+
+ϵ − ηs 4
+
+> ⋆
+
+κ2, 0} . (2.3) These are constructed so that, whenever 0 ≤ | μ| ≤ κ√n/η and λ0 − ϵ ≤ λ ≤ λ0, we have the two-sided bound on the multiplicative factor appearing in (1.12): 
+
+b− 
+
+> i
+
+(ϵ, κ, λ 0) ≤
+
+∣∣∣∣1 − ηλs 2 
+
+> i
+
++ ηs 4 
+
+> i
+
+μ2
+
+n
+
+∣∣∣∣ ≤ b+ 
+
+> i
+
+(ϵ, κ, λ 0). (2.4) The probabilistic analysis rests on the use of tools from martingale theory and the construction of (sub-, super-) martingales. We refer to [ 48 ] for an exposition. We equip the probability space (Ω , F, P) on which the SGD is defined with the filtration 
+
+F(t) := σ (ar (0) , w r (0) , i (s) : 1 ≤ r ≤ n, 1 ≤ s ≤ t) . (2.5) In the sequel, all filtration-dependent properties, such as adaptedness or the martingale property, will implicitly be taken with respect to this filtration, and we will not reiterate the filtration. For thresholds M , we define the stopping time τ Pred  
+
+> M
+
+where the prediction first exceeds M in absolute value: 
+
+τ Pred  
+
+> M
+
+:= inf {t ≥ 0 : |μ(t)| ≥ M } (2.6) and, for λ < λ 0, we define the stopping time τ Ker  
+
+> λ
+
+when the kernel falls below λ:
+
+τ Ker  
+
+> λ
+
+:= inf {t ≥ 0 : λ(t) < λ }. (2.7) Whenever Z = ( Z(t), t ≥ 0) is an adapted process and T is a stopping time, we write ZT for the stopped process ZT (t) = Z(t ∧ T ), t ≥ 0.
+
+## 3 Moderate Spikes in the Log-Inflationary Regime 
+
+We now give the precise result on the appearance of moderate spikes in the inflationary regime G(λ0) > 0.
+
+Theorem 3. In the setting of Assumption 1.1, assume further that G(λ0) > 0. Then, for every 0 < δ < 1, there exist constants ϑ, κ, γ > 0, depending on δ, λ 0 and {(si, p i)} such that, for all n, η with n/η ≥ e and for every threshold 
+
+M ∈
+
+[
+
+|μ0|, κ 
+
+√ nη
+
+]
+
+(3.1) 
+
+it holds that 
+
+Pμ0,λ 0
+
+( τ Pred 
+
+> M
+
+log( M/ |μ0|) /∈
+
+[ 1 − δG(λ0) , 1 + δG(λ0)
+
+]) 
+
+≤ 2( M/ |μ0|)−ϑ + 2 exp 
+
+(
+
+−γ nηM 2
+
+)
+
+.
+
+Since the proof uses ideas which are developed in the course of the large deviations theory for the deflationary regime, it is deferred until Appendix A. 
+
+Remark 3.1 . The second term arises from considering the probability that the kernel λ(t)
+
+changes enough to destroy the approximation (1.15) before τ Pred  
+
+> M
+
+. In order for the corre-sponding error term to have a similar rate of decay to the first, we must restrict to 
+
+M ≲
+
+√ nη log( n/η )
+
+consistently with (1.18). 
+
+## 4 Moderate Spikes in the Deflationary Regime 
+
+We now turn to the deflationary regime, where the log-drift in the lazy training regime is negative. We first introduce relevant notation. Assuming (1.6) , we define ϑ(λ) = ϑ(λ, η ) as the maximal root to 
+
+θ 7 →
+
+> m
+
+∑
+
+> i=1
+
+pi
+
+∣∣1 − ηλs 2
+
+> i
+
+∣∣θ = 1 . (4.1) 
+
+12 Spikes in SGD: an LDP View Gess, Heydecker 
+
+The focus of this section is the case G(λ) < 0, in which case the derivative of the function on the left-hand side is negative at θ = 0 ; the function is always convex, and assuming (1.6) ,diverges to infinity as θ → ∞ , which together guarantees a unique positive root ϑ(λ) > 0.This root has the property that it makes the approximate model, ignoring higher-order terms as in (1.15) 
+
+Zt := ( |1 − ηλ 0s2
+
+> i(t)
+
+| . . . |1 − ηλ 0s2
+
+> i(1)
+
+|μ0)ϑ(λ)
+
+into a nonnegative martingale, see Step 1 of Lemma 4.1. This allows a derivation of 
+
+• a large-deviations upper bound on hitting probabilities using optional stopping (Step 2); 
+
+• a matching lower bound via a ‘tilting’ argument, using Zt to define a change of probability measure Q under which the log-drift is positive (Steps 3-5). For an initial prediction μ0 and target M , both upper and lower bounds derived in this way decay like (|μ0|/M )ϑ(λ). Lemma 4.1 presents these arguments, keeping track also of the neglected higher-order terms. The remainder of the section is dedicated to showing that the bounds are not affected by the updates to the kernel, provided that M is chosen according to (1.18) for some suitably chosen β > 0. Motivated by these bounds, the theorem which results from this discussion is as follows. 
+
+Theorem 4. Under Assumption 1.1, assume that G(λ0) < 0 and that (1.6) holds. Then, there exists a constant C ∈ (0 , ∞) depending only on the data (pi, s i), η, and the intervals below, such that the following hold. Let ϑ > 0 be given by (4.1) and let 0 < ϑ − < ϑ < ϑ +.Then, for some c = c({pi, s i}, η, ϑ ±) and some β > 0, and all thresholds 
+
+|μ0| ≤ M ≤ c
+
+log 1/β (n/η )
+
+√ nη
+
+we have the two-sided decay rate 
+
+C−1( M
+
+> |μ0|
+
+)−ϑ+
+
+≤ Pμ0,λ 0
+
+(τ Pred  
+
+> M
+
+< ∞) ≤ C
+
+( M
+
+> |μ0|
+
+)−ϑ−
+
+. (4.2) We begin with a lemma, which deals with the parts of the proof which can be done perturbatively. 
+
+Lemma 4.1 (Hitting Probabilities, Deflationary Case) . Assume, in the notation of Hypothesis 1.1, that G(λ0) < 0, and that λ0ηs 2 
+
+> ⋆
+
+> 2. For ϵ, κ > 0, let ϑ∓(ϵ, κ ) be given by (4.1) for the shifted indexes b± 
+
+> i
+
+given by (2.2 - 2.3): 
+
+> m
+
+∑
+
+> i=1
+
+pi(b+ 
+
+> i
+
+(ϵ, κ, λ )) ϑ− = 1; 
+
+> m
+
+∑
+
+> i=1
+
+pi(b− 
+
+> i
+
+(ϵ, κ, λ )) ϑ+ = 1 (4.3) 
+
+and assume that ϵ, κ are small enough that 
+
+max  
+
+> i
+
+b+ 
+
+> i
+
+(ϵ, κ, λ 0) < 4. (4.4) 
+
+Then, for all |μ0| ≤ M ≤ κ√n/η ,i). (Upper Bound) It holds that 
+
+Pμ0,λ 0 (τ Pred  
+
+> M
+
+< τ Ker 
+
+> λ0−ϵ
+
+, τ Pred  
+
+> M
+
+< ∞) ≤
+
+( |μ0|
+
+M
+
+)ϑ−
+
+. (4.5) 
+
+ii). (Lower Bound, with hitting time) There exists v = v(λ0) > 0 such that, for all 
+
+k ∈ [1 , ∞) such that 
+
+M 2 log(4 M/ |μ0|) < ϵn ηa +vk (4.6) 
+
+it holds that 
+
+Eμ0,λ 0
+
+[( |μ(τ Pred  
+
+> M
+
+)|
+
+M
+
+)ϑ+
+
+1I(τ Pred  
+
+> M
+
+≤ vk log(4 M/ |μ0|)
+
+]
+
+≥
+
+(
+
+1 − 12k
+
+) ( |μ0|
+
+M
+
+)ϑ+
+
+.
+
+(4.7) 
+
+Proof. We deal with the two cases separately. 
+
+13 Spikes in SGD: an LDP View Gess, Heydecker 
+
+Step 1. Identification of Super- and Submartingales We first use the relation (4.3) to show that, with stopping at time 
+
+T := τ Pred 
+
+> κ
+
+√n/η ∧ τ Ker 
+
+> λ0−ϵ
+
+,
+
+the process |μ(t ∧ T )|ϑ− is a (nonnegative) supermartingale. The same argument applies, 
+
+mutatis mutandis , to show that |μ(t ∧ T )|ϑ+ is a submartingale. Fix t ≥ 0. On the event {T ≤ t}, we have μ(( t + 1) ∧ T ) = μ(t ∧ T ), producing 
+
+Eμ0,λ 0 [|μ(( t + 1) ∧ T )|ϑ− |F (t)] 1I(T ≤ t) = |μ(t ∧ T )|ϑ− 1I(T ≤ t). (4.8) Meanwhile, on the event {T > t }, the exact update rule (1.12) shows that 
+
+|μ(( t + 1) ∧ T )|ϑ− = |μ(t ∧ T )|ϑ−
+
+∣∣∣∣∣1 − ηλ (t)s2 
+
+> i(t+1)
+
++ η2s4
+
+> i(t+1)
+
+μ(t)2
+
+n
+
+∣∣∣∣∣
+
+> ϑ−
+
+(4.9) for the index i(t + 1) , which is sampled independently of F(t). By the Definitions (2.1) ,(2.2) , and because t < T by assumption, the absolute value on the right-hand side is at most 
+
+b+
+
+> i(t+1)
+
+, and taking out what is known, 
+
+Eμ0,λ 0 [|μ(( t + 1) ∧ T )|ϑ− |F (t)] 1I(T > t ) ≤ | μ(t ∧ T )|ϑ− 1I(T > t )E
+
+[
+
+(b+
+
+> i(t+1)
+
+)ϑ− |F (t)
+
+]
+
+. (4.10) The final conditional expectation is the same as the (unconditional) expectation ∑ 
+
+> i
+
+pi(b+ 
+
+> i
+
+)ϑ− = 1 , because i(t + 1) is independent of F(t) and using the Definition (4.3) .Gathering the two cases (4.8, 4.10), we conclude that |μ(t ∧ T )|ϑ− is a supermartingale, as claimed. 
+
+Step 2. Upper Bound We next use the supermartingale identified in Step 1 to prove (4.5) .Writing Z−(t) for the supermartingale constructed in Step 1, we observe that Z−(t ∧τ Pred  
+
+> M
+
+) ≤
+
+(M max i b+ 
+
+> i
+
+)ϑ− ≤ (4 M )ϑ− is uniformly bounded thanks to (4.4) . Since we chose M ≤ κ√n/η ,the only way the stopping T can occur before τ Pred  
+
+> M
+
+is if {τ Ker  
+
+> λ0−ϵ
+
+< τ Pred  
+
+> M
+
+}. Consequently, on the event {τ Pred  
+
+> M
+
+< τ Ker 
+
+> λ0−ϵ
+
+}, we have the lower bound 
+
+Z−(τ Pred  
+
+> M
+
+) ≥ M ϑ− .
+
+The optional stopping theorem gives 
+
+|μ0|ϑ− = Eμ0,λ 0 [Z−(0)] ≥ Eμ0,λ 0 [Z−(τ Pred  
+
+> M
+
+)] ≥ M ϑ− Pμ0,λ 0 (τ Pred  
+
+> M
+
+< τ Ker 
+
+> λ0−ϵ
+
+) (4.11) which rearranges to the claim (4.5). 
+
+Step 3. Lower Bound: Change of Measure We divide the proof of (4.7) into further steps. For the first step, we construct a ‘tilting’ (the Cramér-Doob transformation) and define a probability measure Q which is absolutely continuous with respect to Pμ0,λ 0 . In subsequent steps, we will see that the construction makes the event {τ Pred  
+
+> M
+
+< vk log (4 M/ |μ0|)} an event of high Q-probability, provided that v is chosen suitably, which will ultimately lead to the desired estimate (4.7) . We refer to [ 14 , Proof of Theorem 2.2.3, p.32] for an exposition of the general strategy based on the Cramér transform. Writing Z+(t) for the submartingale constructed in Step 1, we define, for t ≥ 0,random variables 
+
+ρ(t) := Eμ0,λ 0
+
+[ Z+(t + 1) 
+
+Z+(t) |F (t)
+
+]
+
+. (4.12) From Step 1, it follows that ρ(t) ≥ 1 almost surely, and the process 
+
+Z(t) := Z+(t)
+
+|μ0|ϑ+ ρ(0) . . . ρ (t − 1) 
+
+is a mean-1, nonnegative martingale. Reasoning as in Step 2 above, the stopped martingale 
+
+Zτ Pred  
+
+> M
+
+is additionally uniformly bounded. We may therefore define a change of measure 
+
+Q ≪ Pμ0,λ 0 by setting 
+
+dQ
+
+dPμ0,λ 0
+
+:= Z(τ Pred  
+
+> M
+
+). (4.13) 
+
+14 Spikes in SGD: an LDP View Gess, Heydecker 
+
+Step 4. Lower Bound: Uniformly Positive Drift under Q In order to show that the events appearing in (4.7) becomes typical under Q, for v to be chosen, we now consider the log -drift, under this new measure, for |μ(t)|. In this step, we identify the sampling probabilities pQ,t i under the change of measure. This will allow us to choose some 
+
+v = v(λ0) < ∞ such that, up to time τ Pred  
+
+> M
+
+∧ T , the log -drift is uniformly bounded below by  
+
+> 12v
+
+. This will allow us, in the final step, to show that the hitting time τ Pred  
+
+> M
+
+occurs with high-probability on time scales ∼ v log(4 M/ |μ0|).For v to be chosen, we assume that k satisfies (4.6) and consider t < vk log (M/ |μ0|) ∧ τ Pred  
+
+> M
+
+.By the assumption on k and using the explicit change (1.12) , the total change in the kernel up to time t is at most a+M 2tη/n < ϵ , so 
+
+{t < vk log( M/ |μ0|) ∧ τ Pred  
+
+> M
+
+} ⊂ { t < T ∧ τ Pred  
+
+> M
+
+}.
+
+Fixing A ∈ F (t) and 1 ≤ i ≤ m,
+
+Q(A, i (t + 1) = i, t < τ Pred  
+
+> M
+
+) = Eμ0,λ 0
+
+[Z(τ Pred  
+
+> M
+
+)1I(A, i (t + 1) = i, t < τ Pred  
+
+> M
+
+)]
+
+= Eμ0,λ 0
+
+[Z(t + 1) 1I(A, i (t + 1) = i, t < τ Pred  
+
+> M
+
+)] (4.14) where, in the second line, we use that Zτ Pred  
+
+> M
+
+is a martingale. Using the definition, we get 
+
+. . . = Eμ0,λ 0
+
+[
+
+Z(t)1I(A, t < τ Pred  
+
+> M
+
+)Eμ0,λ 0
+
+[ Z+(t + 1) 1I(i(t + 1) = i)
+
+Z+(t)ρ(t) |F (t)
+
+]] 
+
+= EQ
+
+[
+
+1I(A, t < τ Pred  
+
+> M
+
+)pQ,t i
+
+] (4.15) where pQ,t i are the tilted probabilities, given while t < τ Pred  
+
+> M
+
+by 
+
+pQ,t i = 1
+
+ρ(t)
+
+∣∣∣∣1 − ηλ (t)s2 
+
+> i
+
++ η2s4 
+
+> i
+
+μ(t)2
+
+n
+
+∣∣∣∣
+
+> ϑ+
+
+pi (4.16) which determines ρ(t) as the normalising factor. Consequently, the conditional mean is bounded below by 
+
+EQ
+
+[
+
+log 
+
+( |μ(t + 1) ||μ(t)|
+
+)
+
+|F (t), t < τ Pred 
+
+> M
+
+]
+
+= 1
+
+ρ(t)
+
+> m
+
+∑
+
+> i=1
+
+pi
+
+∣∣∣∣1 − ηλ (t)s2 
+
+> i
+
++ η2s4 
+
+> i
+
+μ(t)2
+
+n
+
+∣∣∣∣
+
+> ϑ+
+
+log 
+
+∣∣∣∣1 − ηλ (t)s2 
+
+> i
+
++ η2s4 
+
+> i
+
+μ(t)2
+
+n
+
+∣∣∣∣
+
+= ddθ 
+
+∣∣∣∣θ=ϑ+
+
+log 
+
+> m
+
+∑
+
+> i=1
+
+pi
+
+∣∣∣∣1 − ηλ (t)s2 
+
+> i
+
++ η2s4 
+
+> i
+
+μ(t)2
+
+n
+
+∣∣∣∣
+
+> θ
+
+︸ ︷︷ ︸
+
+> =: ψt(θ)
+
+.
+
+(4.17) The cumulant generating function on the right-hand side is a convex function of θ, and so the gradient may be estimated from below by (ψt(ϑ+) − ψt(φ)) /(ϑ+ − φ), for any φ < ϑ +.Choosing φ = ϑ−/2, and noticing that ψt(ϑ+) ≥ 0, we obtain an almost sure and uniform lower bound 
+
+EQ
+
+[
+
+log 
+
+( |μ(t + 1) ||μ(t)|
+
+)
+
+|F (t), t < τ Pred 
+
+> M
+
+]
+
+≥ − 22ϑ+ − ϑ−
+
+log 
+
+> m
+
+∑
+
+> i=1
+
+(b+ 
+
+> i
+
+)ϑ−/2 =: 12v (4.18) where the final equality defines v > 0.
+
+Step 5. Lower Bound: Reassembly We are now able to assemble the previous two steps, together with a further martingale calculation, to prove the claim (4.7) for v
+
+constructed in Step 4. We first use a martingale calculation, based on (4.18) to show that the event appearing in (4.7) has Q-probability at least 1 − 12k , from which we deduce the claim (4.7) by using the definition of Q in Step 3. 
+
+15 Spikes in SGD: an LDP View Gess, Heydecker 
+
+From Step 4, it follows that Sτ Pred    
+
+> M∧vk log(4 M/ |μ0|)
+
+is a Q-submartingale, where we define 
+
+S(t) := log |μ(t)||μ0| − t
+
+2v . (4.19) From (4.4) , it follows that Sτ Pred  
+
+> M
+
+is bounded above by log (4 M/ |μ0|) and we may use the optional stopping theorem to find 
+
+0 = EQS(0) ≤ EQS(τ Pred  
+
+> M
+
+∧ vk log(4 M/ |μ0|)) 
+
+≤ log(4 M/ |μ0|) − 12v EQ[τ Pred  
+
+> M
+
+∧ vk log(4 M/ |μ0|)] . (4.20) It follows from a Chebyshev inequality that 
+
+Q(τ Pred  
+
+> M
+
+≤ vk log(4 M/ |μ0|)) ≥ 1 − 12k . (4.21) To conclude, we rewrite the expectation in (4.7) as 
+
+Eμ0,λ 0
+
+[( |μ(τ Pred  
+
+> M
+
+)|
+
+M
+
+)ϑ+
+
+1I(τ Pred  
+
+> M
+
+≤ vk log(4 M/ |μ0|)) 
+
+]
+
+=
+
+( |μ0|
+
+M
+
+)ϑ+
+
+EQ
+
+[ρ(0) ρ(1) . . . ρ (τ Pred  
+
+> M
+
+− 1) 1I(τ Pred  
+
+> M
+
+≤ vk log(4 M/ |μ0|)) ]
+
+≥
+
+( |μ0|
+
+M
+
+)ϑ+
+
+Q(τ Pred  
+
+> M
+
+≤ vk log(4 M/ |μ0|)) 
+
+(4.22) where the first line uses the definitions of Z and Q, and in the second line we recall that 
+
+ρ(t) ≥ 1 almost surely. The conclusion (4.7) now follows from (4.21). Before turning to the proof of Theorem 4, we discuss and prove an additional proposition. In the upper bound of (4.2) , we seek to understand the probability that the prediction error 
+
+|μ(t)| ever reaches the threshold, even on time scales much larger than log n. As discussed above (1.18) , it is in principle possible for a kernel decrease to occur first via a ‘slow escape’, while (4.5) only allows shows bounds of the desired form if we assume that τ Pred  
+
+> M
+
+< τ Ker 
+
+> λ0−ϵ
+
+. To bridge this gap, we give the following proposition, which justifies the claim in the introduction that large spikes are the most probable way for the dynamics to escape the lazy training regime on any timescale. 
+
+Proposition 4.2 (Slow Escape is Exponentially Improbable) . Under the same hypotheses and with the same notation as Theorem 4, let ϵ, κ > 0 be such that the exponent ϑ′− given by 
+
+(4.1) for the shifted indexes b+ 
+
+> i
+
+(λ0, ϵ, κ ) is positive. Then, for any M ≤ min (1 , κ )√n/η and 
+
+β ∈ (0 , ϑ ′−) ∩ (0 , 2] , there exists γ = γ(β) > 0 such that 
+
+Pμ0,λ 0 (τ Ker  
+
+> λ0−ϵ
+
+≤ τ Pred  
+
+> M
+
+) ≤ 2 exp 
+
+(
+
+−ϵγ 
+
+( nηM 2
+
+)β/ 2)
+
+. (4.23) 
+
+Proof. For M, β as given, let T denote the stopping time T := τ Ker  
+
+> λ0−ϵ
+
+∧ τ Pred  
+
+> M
+
+. We first find a polynomial moment of |μ(t)|, summed up to time T , which is then upgraded to an exponential moment by the Khas’minskii lemma. 
+
+Step 1. Polynomial Moment First, consider the process Zt := |μ(t ∧ T )|β . Arguing as in Step 1 of Lemma 4.1 and using that β < ϑ ′−, for any |μ| ∈ [|μ0|, M ], λ ∈ [λ0 − ϵ, λ 0],
+
+Eμ,λ [Zt+1 |F t] ≤ cβ |μ(t)|β 1I(T > t ) + Zt1I(T ≤ t) (4.24) for cβ := ∑ pi(b+ 
+
+> i
+
+)β < 1. Defining 
+
+Mt := Zt + (1 − cβ ) ∑
+
+> s<t ∧T
+
+|μ(s)|β (4.25) 
+
+16 Spikes in SGD: an LDP View Gess, Heydecker 
+
+we obtain 
+
+Eμ,λ [Mt+1 − Mt|F t] = Eμ,λ [Zt+1 |F t] − | μ(t ∧ T )|β + (1 − cβ )|μ(t)|β 1I(T > t )
+
+≤ 0 (4.26) by considering the events {T ≤ t}, {T > t } separately. Mt is thus a nonnegative supermartin-gale, and optional stopping produces, for the same range of μ, λ ,
+
+Eμ,λ 
+
+∑
+
+> s<T
+
+|μ(s)|β ≤ |μ0|β
+
+1 − cβ
+
+. (4.27) 
+
+Step 2. Exponential Moment by Khas’minskii’s Lemma We next upgrade the estimate (4.27) to exponential moments. The time T is the first time that the Markov chain 
+
+(μt, λ t) leaves the rectangle [−M, M ] × (λ0 − ϵ, λ 0), and, uniformly over all initial conditions in this rectangle, (4.27) produces 
+
+1 − cβ
+
+2M β Eμ,λ 
+
+∑
+
+> s<T
+
+|μ(s)|β ≤ 12 . (4.28) This is the setting of Khas’minskii’s lemma (see, for example, [ 45 ] and references therein) which upgrades the expectation to the exponential moment 
+
+Eμ0,λ 0
+
+[
+
+exp 
+
+(
+
+1 − cβ
+
+2M β
+
+∑
+
+> s<T
+
+|μ(s)|β
+
+)] 
+
+≤ 2. (4.29) 
+
+Step 3. Markov Inequality We now identify events to apply Markov’s inequality. By considering the maximal kernel decrease at each step, we have 
+
+{τ Ker  
+
+> λ0−ϵ
+
+< τ Pred  
+
+> M
+
+} ⊂ 
+
+{
+
+ηn
+
+∑
+
+> s<T
+
+|μ(s)|2 ≥ ϵa+
+
+}
+
+(4.30) where a+ is given by (1.14) and depends only on λ0, {si}. Since η|μ(s)|2/n ≤ 1 for every 
+
+s < T , and β ≤ 2, we get 
+
+{τ Ker  
+
+> λ0−ϵ
+
+< τ Pred 
+
+> M
+
+} ⊂
+
+{∑
+
+> s<T
+
+( ηn
+
+)β/ 2
+
+|μ(s)|β ≥ ϵa+
+
+}
+
+(4.31) which, by Markov’s inequality and (4.29), has probability at most 
+
+Pμ0,λ 0 (τ Ker  
+
+> λ0−ϵ
+
+< τ Pred  
+
+> M
+
+) ≤ 2 exp 
+
+(
+
+− ϵ(1 − cβ )2a+
+
+( nηM 2
+
+)β/ 2)
+
+. (4.32) which is a bound of the desired form, taking γ(β) := 1−cβ 
+
+> 2a+
+
+.We are now able to give the 
+
+Proof of Theorem 4. We divide the proof to deal with the two cases. 
+
+Step 1. Coupling & Parameter Choice For ϑ± as given, we observe that the map 
+
+{bi, p i} 7 → ϑ defined implicitly by (4.1) is continuous and monotone in the bases bi. We may therefore choose ϵ, κ > 0, depending on the data and ϑ±, and satisfying (4.4) such that the bases b± 
+
+> i
+
+given in (2.2 - 2.3) satisfy 
+
+> m
+
+∑
+
+> i=1
+
+pi(b+ 
+
+> i
+
+(ϵ, κ, λ )) ϑ− < 1; 
+
+> m
+
+∑
+
+> i=1
+
+pi(b− 
+
+> i
+
+(ϵ, κ, λ )) ϑ+ > 1 (4.33) from which it follows that ϑ′− := ϑ({b+ 
+
+> i
+
+, p i}), ϑ ′ 
+
+> +
+
+:= ϑ({b− 
+
+> i
+
+, p i}) satisfy 
+
+0 < ϑ − < ϑ ′− < ϑ < ϑ ′ 
+
+> +
+
+< ϑ +. (4.34) 
+
+17 Spikes in SGD: an LDP View Gess, Heydecker 
+
+We recall the definition of a from (1.14) , let v be as in Lemma 4.1ii), let β be any value allowed by Proposition 4.2, and let γ = γ(β) be the corresponding value produced by the proposition. With these fixed, we choose 
+
+c := min 
+
+(
+
+1,
+
+√ ϵa+v , κ, 
+
+( ϵγ ϑ−
+
+)1/β )
+
+(4.35) and restrict, throughout, to n, η satisfying 
+
+nη ≥ e; 12
+
+( nη
+
+)β/ 2
+
+≥ 2. (4.36) 
+
+Step 2. Scale Decomposition & Setup In order to set up the proofs of both the upper and the lower bound, we now set up a scale decomposition. This allows to identify, in both proofs, a dominant term which can be bounded by Lemma 4.1, and error terms which must be estimated. As in Step 1, we have β > 0 and associated constant γ = γβ > 0 given by Proposition 4.2. We now define 
+
+Lj := 
+
+( nη
+
+)−j/ 2
+
+M ; 0 ≤ j < k := 
+
+⌈ 2 log( M/ |μ0|)log( n/η )
+
+⌉
+
+; (4.37) 
+
+Lk := |μ0| (4.38) which produces a strictly decreasing scale decomposition M = L0 > L 1 > · · · > L k = |μ0|,with additionally Lj+1 /L j ≥ (n/η )−1/2. For j = 0 , . . . , k − 1, we define a decreasing sequence of stopping times by 
+
+Tj := τ Pred  
+
+> Lj
+
+∧ τ Ker  
+
+> λ0−ϵ/ 2j
+
+. (4.39) We treat the event {τ Ker  
+
+> λ0−ϵ
+
+< τ Pred  
+
+> M
+
+} as the error event where the approximation via geometric random walk breaks down, and the events {Tj = τ Ker  
+
+> λ0−ϵ/ 2j
+
+< ∞} as a scale-wise decomposition of this event. The main work of the proof rests on showing that they have probabilities much smaller than the events {Tj = τ Pred  
+
+> Lj
+
+< ∞} . For the lower bound, we use the containment 
+
+{τ Pred  
+
+> M
+
+< ∞, τ Pred  
+
+> M
+
+< τ Ker 
+
+> λ0−ϵ
+
+} ⊃ 
+
+> k−1
+
+⋂
+
+> j=0
+
+{Tj = τ Pred  
+
+> Lj
+
+< ∞, T j < τ Ker  
+
+> λ0−ϵ/ 2j
+
+}
+
+︸ ︷︷ ︸
+
+> := A−
+> j
+
+. (4.40) For the upper bound, on the event {τ Ker  
+
+> λ0−ϵ
+
+< τ Pred  
+
+> M
+
+}, there exists a unique maximal index J
+
+with TJ = τ Ker  
+
+> λ0−ϵ/ 2J
+
+, producing the containment 
+
+{τ Ker  
+
+> λ0−ϵ
+
+< τ Pred  
+
+> M
+
+} ⊂ 
+
+> k−1
+
+⋃
+
+> j=0
+
+{Tℓ = τ Pred  
+
+> Lℓ
+
+for all j < ℓ < k, T j = τ Ker  
+
+> λ0−ϵ/ 2j
+
+}
+
+︸ ︷︷ ︸
+
+> := A+
+> j
+
+. (4.41) 
+
+Step 3. Lower Bound For the lower bound, we use the coupling and Lemma 4.1 to estimate the probability of intersections of events A− 
+
+> j
+
+in (4.40) below. We prove, by induction on 0 ≤ j ≤ k,
+
+inf 
+
+( μ′
+
+Lj
+
+)−ϑ′
+
+> +
+
+Pμ′,λ ′
+
+ ⋂
+
+> 0≤ℓ<j
+
+A−
+
+> ℓ
+
+ : μ′ ∈ [Lj , 4Lj ], λ ′ ∈
+
+[
+
+λ0 − ϵ
+
+2j+1 , λ 0
+
+]
+
+≥
+
+( Lj
+
+4M
+
+)ϑ′ 
+
+> +
+
+∏
+
+> 0≤ℓ<j
+
+(
+
+1 − 12
+
+( n
+
+2η
+
+)−ℓ)
+
+.
+
+(4.42) Once this is established, the special case j = k, μ ′ = μ0 = Lk produces the lower bound asserted in the theorem. We now prove the inductive assertion. The base case j = 0 is trivial, since the 
+
+18 Spikes in SGD: an LDP View Gess, Heydecker 
+
+intersection is empty. Given case j < k , fix μ′ ∈ [Lj+1 , 4Lj+1 ], λ ′ ∈ [λ0 − ϵ/ 2j+2 , λ 0], and consider the dynamics started at μ′, λ ′. By the strong Markov property, on the event A− 
+
+> j
+
+, it holds that τ Pred  
+
+> Lj
+
+∈ [Lj , 4Lj ] thanks to (4.4), and λ(Tj ) ≥ λ0 − ϵ/ 2j . We therefore get 
+
+Pμ′,λ ′
+
+ ⋂
+
+> 0≤ℓ≤j
+
+A−
+
+> ℓ
+
+ ≥ Eμ′,λ ′
+
+1I(A− 
+
+> j
+
+)Pμ(Tj ),λ (Tj )
+
+ ⋂
+
+> 0≤ℓ<j
+
+A−
+
+> ℓ
+
+∣∣∣∣ A−
+
+> j
+
+
+
+≥
+
+( Lj
+
+4M
+
+)ϑ′
+
+> +
+
+ ∏
+
+> 0≤ℓ<j
+
+(
+
+1 − 12
+
+( n
+
+2η
+
+)−ℓ) Eμ′,λ ′
+
+[
+
+1I(A− 
+
+> j
+
+)
+
+( μ(Tj )
+
+Lj
+
+)ϑ′
+
+> +
+
+]
+
+(4.43) where the second line follows using the inductive hypothesis. Since λ′ ≥ λ0 − ϵ 
+
+> 2j+1
+
+, for the given starting point we have 
+
+A− 
+
+> j
+
+⊃
+
+{
+
+Tj ≤
+
+( nη
+
+)j
+
+log 
+
+( nη
+
+) ϵ
+
+2j+1 c2a+
+
+}
+
+⊃
+
+{
+
+Tj ≤
+
+( n
+
+2η
+
+)j
+
+v log 
+
+( Lj
+
+μ′
+
+)}
+
+thanks to the choice (4.35), and where we recall v is given by Lemma 4.1. Thanks to (4.7), we thus find 
+
+Eμ′,λ ′
+
+[
+
+1I(A− 
+
+> j
+
+)
+
+( μ(Tj )
+
+Lj
+
+)ϑ′
+
+> +
+
+]
+
+≥ Eμ′,λ ′
+
+1I
+
+{
+
+τ Pred  
+
+> Lj
+
+≤
+
+( n
+
+2η
+
+)j
+
+v log 
+
+( Lj
+
+μ′
+
+)} ( μ(τ Pred  
+
+> Lj
+
+)
+
+Lj
+
+)ϑ′
+
+> +
+
+
+
+≥
+
+(
+
+1 − 12
+
+( n
+
+2η
+
+)−j ) ( μ′
+
+Lj
+
+)ϑ′
+
+> +
+
+.
+
+(4.44) Substituting this bound back into (4.43) rearranges to the inductive claim (4.42) , now proven for case j + 1 .
+
+Step 4. Upper Bound We start from the decomposition 
+
+{τ Pred  
+
+> M
+
+< ∞} ⊂ { τ Pred  
+
+> M
+
+< τ Ker 
+
+> λ0−ϵ
+
+, τ Pred  
+
+> M
+
+< ∞} ∪ { τ Ker  
+
+> λ0−ϵ
+
+< τ Pred  
+
+> M
+
+}. (4.45) The first term can be handled immediately by Lemma 4.1, and is bounded above by 
+
+(|μ0|/M )ϑ− thanks to (4.34) . In order to complete the proof of the upper bound, we now show a bound of the same order (|μ0|/M )ϑ− for the probability of the error event in (4.45) ,which we recall from (4.41) is partitioned by the error events A+ 
+
+> j
+
+, 0 ≤ j ≤ k − 1. We estimate 
+
+Pμ0,λ 0 (Aj ) ≤ Pμ0,λ 0 (τ Pred  
+
+> Lj+1
+
+< τ Ker  
+
+> λ0−ϵ/ 2j+1
+
+)Pμ0,λ 0 (Aj |τ Pred  
+
+> Lj+1
+
+< τ Ker  
+
+> λ0−ϵ/ 2j+1
+
+). (4.46) For j ≤ k − 1, Lemma 4.1 bounds the probability of the conditioning event above by 
+
+(|μ0|/L j+1 )ϑ′− . The remaining conditional probability is estimated using the strong Markov property: The process 
+
+(ˆ μ(t), ˆλ(t)) t≥0 := ( μ(Tj + t), λ (Tj + t)) t≥0
+
+has, on the event {Tj < ∞} , the same dynamics as the original process, and Aj requires that the restarted chain achieve a curvature reduction of ϵ/ 2j+1 while keeping the prediction below Lj . This is the setting of Proposition 4.2, and we obtain 
+
+Pμ0,λ 0 (Aj |τ Pred  
+
+> Lj+1
+
+< τ Ker  
+
+> λ0−ϵ/ 2j+1
+
+) ≤ 2 exp 
+
+− ϵγ 
+
+2j+1 
+
+(
+
+nηL 2
+
+> j
+
+)β/ 2 = 2 exp 
+
+(
+
+− ϵγ 
+
+2j+1 M β
+
+( nη
+
+)β(j+1) /2)
+
+.
+
+(4.47) By the choice of M in (4.35), we may simplify the exponent to 
+
+· · · ≤ 2 exp 
+
+− ϑ−
+
+2 (log( n/η )) 
+
+(
+
+12
+
+( nη
+
+)β/ 2)j  . (4.48) 
+
+19 Spikes in SGD: an LDP View Gess, Heydecker 
+
+As above, we restrict to n, η with (n/η )β/ 2 > 4, for which we can estimate the exponential in brackets as 2j ≥ 2j, to find overall, for j ≥ 1,
+
+Pμ0,λ 0 (Aj |τ Pred  
+
+> Lj+1
+
+< τ Ker  
+
+> λ0−ϵ/ 2j+1
+
+) ≤ 2
+
+( nη
+
+)−ϑ′−j
+
+≤ 2
+
+( Lj+1 
+
+M
+
+)ϑ′− ( nη
+
+)−ϑ′−(j−1) /2
+
+. (4.49) The same holds for j = 0 with the final factor replaced by 1. Recombining using (4.46) and summing over all k, and recalling that we assume n/η ≥ 2, we get 
+
+Pμ0,λ 0 (τ Ker  
+
+> λ0−ϵ
+
+< τ Pred  
+
+> M
+
+) ≤ 2
+
+( |μ0|
+
+M
+
+)ϑ−
+
+1 + ∑
+
+> k≥0
+
+2−ϑ′−j/ 2
+
+ (4.50) and since the final sum is convergent, we may absorb it into the prefactor. Combining with the conclusion of Step 3 and returning to (4.45) , we have the upper bound asserted in (4.2). 
+
+## 5 Large Spikes 
+
+We now turn to the question of how large spikes can become after they have reached the scale 
+
+M ∼ √n/ (η log( n/η )) 
+
+allowed by Theorems 3 - 4. In this case, the kernel λ(t) can no longer be treated as approximately constant, since it decreases by O(1) at each time step. The goal is to bound the typical reduction of the curvature due to the spike below, and to show that it happens on a time scale much shorter than the spikes. We begin with the inflationary regime and consider λ0 such that G(λ0) > 0, and define 
+
+λ⋆ := inf {ζ < λ 0 : G(ζ) = 0 } (5.1) as the left-most endpoint of the inflationary range containing λ0. The theorem is as follows. 
+
+Theorem 5. Under the same hypotheses as Theorem 3, let c be given by Theorem 3 and 
+
+M := c√n/η log( n/η ). Define λcoll < λ 0 by 
+
+λcoll := sup 
+
+{
+
+ζ − (4 − ηζs 2 
+
+> i
+
+)( ηζs 2 
+
+> i
+
+− 1) 
+
+ηs 2
+
+> i
+
+(1 − e−G(ζ)/2) : ζ ∈ [λ⋆, λ 0]; 1 ≤ i ≤ m, ηζs 2 
+
+> i
+
+> 1
+
+}
+
+(5.2) 
+
+For every λ ∈ (λ⋆, λ 0), write λ+ := max (λ, λ coll ). Then, there exists C = C(c, {(si, p i)})
+
+and α = α(λ) > 0 so that 
+
+Pμ0,λ 0 (τ Ker  
+
+> λ+
+
+> τ Pred  
+
+> M
+
++ k|τ Pred  
+
+> M
+
+< ∞) ≤ C(λ0 − λ) log( n/η )e−αk (5.3) 
+
+Moreover, for fixed M−, set 
+
+τ Pred  
+
+> ↓,M −
+
+:= inf {t ≥ τ Pred  
+
+> M
+
+: |μ(t)| ≤ M−}; (5.4) 
+
+and 
+
+q− := min( G(ζ) : ζ ∈ [λ+, λ 0]); δ := η min( |ζ − (ηs 2 
+
+> i
+
+)−1| : 1 ≤ i ≤ m, ζ ∈ [λ+, λ 0]) (5.5) 
+
+which are both strictly positive. Then there exists ϑ = ϑ(q−, δ ) > 0 such that 
+
+Pμ0,λ 0
+
+(
+
+τ Pred  
+
+> ↓,M −
+
+< τ Ker 
+
+> λ+
+
+)
+
+≤ (M−/M )ϑ. (5.6) 
+
+Remark 5.1 . The display (5.3) justifies the claim in Theorem 1 that the kernel reduction occurs in a time log (( λ − λ0) log (n/η )) + OP(1) . In the case either where λ ≈ λ⋆ is close to the endpoint, or where δ ≪ 1 and the interval is close to a singularity, the exponent ϑ(q−, δ )
+
+may be very small due to some indexes with |1 − ηλs 2 
+
+> i
+
+| ≪ 1, sampled with a low probability. 
+
+20 Spikes in SGD: an LDP View Gess, Heydecker 
+
+Before moving to the proof, we first explain the formulation, which corresponds to the key difficulty in the proof. We consider the behaviour of the process after τ Pred  
+
+> M
+
+, for 
+
+M = c√n/ (η log( n/η )) . Once |μ(t)| reaches the scale ∼ √n/η , the dynamics (1.12) show that the kernel λ(t) falls by order O(1) at each time step. On the other hand, if the distance to λ⋆ < λ 0 given by (5.1) is of the same scale O(1 /η ) as λ itself, the prediction μ will continue to increase in absolute value with the kernel still above λ⋆. Once |μ| reaches the slightly larger scale O(√n/η ), two different effects become important. The first is that every step decreases λ(t) by O(1 /η ), comparable to λ0. Secondly, the neglected quadratic term in the prediction updates in (1.12) also becomes important. For indexes where 1 − ληs 2 
+
+> i
+
+< 0,the quadratic increase, which we previously neglected in (1.15) can lead to 
+
+∣∣∣∣1 − ηλs 2 
+
+> i
+
++ η2s4 
+
+> i
+
+μ(t)2
+
+n
+
+∣∣∣∣ ≪ | 1 − ηλs 2 
+
+> i
+
+|. (5.7) Indeed, if this factor is ≪ 1, it is possible for a single sample to terminate the spike, without necessarily reducing λ(t) beyond λ⋆. We term this phenomenon spike collapse ; an explicit configuration is given below. In the case where the spike is ended but remains in the inflationary regime, we can apply Theorem 3 to see that the process begins an additional spike and reduces the kernel further. 
+
+Example: Spike Collapse within the Inflationary Regime Consider a one-point data set s = 100 , p = 1 with hyperparameters n = 10 8, η = 10 −2, initialised at μ0 = 0 .682 , λ 0 =0.039 . In this case, there is no stochasticity, and the dynamics are simply the gradient descent. The inflationary regime is simply the catapult regime in [ 27 , 52 ], producing large spikes before stability when λ ∈ (λMB crit , λ MB max ) = ( 150 , 125 ). Iterating the (now deterministic) relations (1.12) produces a large spike at μ(6) = 159 .39 , λ (6) = 3 .66 × 10 −2 before falling to 
+
+μ(7) = −20 .31 . However, this spike only reduces the kernel to λ(7) = 2 .82 × 10 −2 > λ MB crit ,remaining in the inflationary regime. Another spike begins, reaching μ(10) = 75 .10 , before the curvature falls to λ(10) = 2 .1 × 10 −2 < λ MB crit .We now give the 
+
+Proof of Theorem 5. We first explain the strategy. The key observation is that, at any one time step, not all indexes can cause a spike collapse. We therefore define a time-dependent set of indexes A(t) ⊂ { 1, 2, . . . , m } where an inequality like (5.7) holds. We introduce a stopping time τcoll , which is the first time that such an index is sampled, and see that sampling such an index immediately drives the kernel below λcoll ≤ λ+. These observations motivate us to define an auxiliary process ˜μ by modifying the process only when i(t) ∈ A (t), constructed in such a way that the log-drift remains positive, and that ˜μ provides a control on μ from below until τcoll occur, the kernel falls below λ+, or an upper threshold M + is reached. The positive log-drift forces ˜μ to hit the upper threshold M + with high probability in a short time window, and this is sufficient to prove the probable decrease (5.3) . Finally, optional stopping arguments show that ˜μ is unlikely to ever become small, which allows us to prove the claim (5.6). 
+
+Step 1. Excluded Indexes and Collapse Time τcoll For μ ∈ R, ζ ∈ [λ⋆, λ 0], we define a set A(μ, ζ ) of those datapoints close to collapse by 
+
+A(μ, ζ ) := 
+
+{
+
+i : 1 − ζηs 2 
+
+> i
+
+< 0, μ2η2s4
+
+> i
+
+n ≥ (1 − e−G(ζ)/2)( ηζs 2 
+
+> i
+
+− 1) 
+
+}
+
+(5.8) and write, for shorthand, A(t) := A(μ(t), λ (t)) . Define further a stopping time τcoll for the first time a sample close to collapse is drawn: 
+
+τcoll := inf {t ∈ [τ Pred  
+
+> M
+
+, τ Ker  
+
+> λ⋆
+
+) : i(t) ∈ A (t − 1) } . (5.9) 
+
+21 Spikes in SGD: an LDP View Gess, Heydecker 
+
+On the event {τcoll < ∞} , we have λ(τcoll − 1) ∈ [λ⋆, λ 0], and from (1.12) and the definition of A(t), the next update produces 
+
+λ(τcoll ) = λ(τcoll − 1) − μ(τcoll − 1) 2ηn s2
+
+> i(τcoll )
+
+(4 − ηλ (τcoll − 1) s2
+
+> i(τcoll )
+
+)
+
+≤ λ(τcoll − 1) − (ηλ (τcoll − 1) s2 
+
+> i(τcoll )
+
+− 1)(4 − ηλ (τcoll − 1) s2
+
+> i(τcoll )
+
+)
+
+ηs 2
+
+> i(τcoll )
+
+(1 − e−G(λ(τcoll −1) )
+
+≤ λcoll 
+
+(5.10) where the second line follows from the definition of A(μ, ζ ), and the final line follows because 
+
+λ(τcoll − 1) ∈ [λ⋆, λ 0] and using the definition of λcoll . Consequently, almost surely, 
+
+τ Ker  
+
+> λ+
+
+≤ τ Ker  
+
+> λcoll
+
+≤ τcoll . (5.11) 
+
+Step 2. Coupling with Excluded Indexes. Rather than the direct construction of supermartingales in the same way as in Lemma 4.1, we first introduce a coupled process 
+
+˜μ(t), which is stochastically dominated by μ up to a stopping time T , and from which we can construct supermartingales. First, set an upper threshold 
+
+M + := 
+
+√
+
+n(λ0 − λ⋆)
+
+ηa −
+
+(5.12) for a− as defined in (1.14), and define the stopping time 
+
+T := min (τcoll , τ Ker  
+
+> λ+
+
+, τ Pred   
+
+> M+
+
++ 1 ) . (5.13) For q− as defined in (5.5) we set, for each t ≥ τ Pred  
+
+> M
+
+and each index i, set 
+
+bi(t) := 
+
+{
+
+min 
+
+(∣∣1 − ηλ (t)s2
+
+> i
+
+∣∣ ,
+
+∣∣∣1 − ηλ (t)s2 
+
+> i
+
++ μ(t)2η2s4
+
+> i
+> n
+
+∣∣∣)
+
+, i̸ ∈ A (t); 
+
+∣∣1 − ηλ (t)s2
+
+> i
+
+∣∣ , i ∈ A (t). (5.14) and ˜bi(t) := e−q−/4bi(t ∧ (T − 1)) . (5.15) Recalling the Definition (5.8) of A(t), for every index i it holds that 
+
+e−G(λ(t)) /2|1 − ηλ (t)s2 
+
+> i
+
+| ≤ ˜bi(t) ≤ | 1 − ηλ (t)s2 
+
+> i
+
+| (5.16) which implies a uniform log-drift condition 
+
+> m
+
+∑
+
+> i=1
+
+pi log ˜bi ≥ 12 G(λ(t ∧ (T − 1))) − q−
+
+4 ≥ 12 inf  
+
+> ζ∈[λ,λ 0]
+
+G(ζ) − q−
+
+4 =: q−
+
+4 > 0. (5.17) Further, by the definition of δ in (5.5) and considering separately the cases s2 
+
+> i
+
+≥ (1 + δηλ 0)−1,
+
+s2 
+
+> i
+
+≤ (1 + δηλ 0)−1, we find a bound, uniformly in i, ζ ∈ [λ+, λ 0],
+
+|1 − ηζs 2 
+
+> i
+
+| ≥ δ
+
+1 + δηλ 0
+
+=: c1(δ) (5.18) which, together with the standing hypothesis Assumption 1.1, implies almost sure uniform upper and lower bounds 
+
+c1(δ) ≤ ˜bi(t) ≤ 3; 1 ≤ i ≤ m, t ≥ τ Pred  
+
+> M
+
+. (5.19) We now define a process ˜μ(t), t ≥ τ Pred  
+
+> M
+
+, by setting 
+
+˜μ(t) := |μ(τ Pred  
+
+> M
+
+)| ∏  
+
+> τPred
+> M<s ≤t
+
+˜bi(s)(s). (5.20) The Definition (5.14) and the update rule (1.12) together imply the bound 
+
+|μ(t)| ≥ ˜μ(t)eq−(t−τ Pred   
+
+> M)/4
+
+(5.21) valid for all τ Pred  
+
+> M
+
+≤ t < T with probability 1. 
+
+22 Spikes in SGD: an LDP View Gess, Heydecker 
+
+Step 3. Supermartingales constructed from ˜μ We now show that there exists ϑ, with 
+
+only the dependencies advertised in the theorem, such that ˜μ−ϑ is a supermartingale, in order to later use optional stopping arguments similar to (4.11) . Following the same logic as (4.8 - 4.10), it is sufficient to find ϑ > 0 such that the (random, time-dependent) function 
+
+F (t, θ ) := Eμ0,λ 0 [˜bi(t+1) (t)−θ |F t, τ Pred  
+
+> M
+
+≤ t] (5.22) satisfies F (t, ϑ ) ≤ 1 almost surely for all t ≥ τ Pred  
+
+> M
+
+. The claim then follows from the Definition (5.20) . We note that ˜bi(t) are all Ft-measurable because T is a stopping time, which also ensures the adaptedness of ˜μ(t)−θ for any θ ∈ R. In the remainder of this step, all statements are almost sure, simultaneously in all t ≥ τ Pred  
+
+> M
+
+.By definition, F (t, 0) = 1, and due to the upper and lower bounds (5.19) imply that F (t, ·) is smooth in θ ∈ R. Differentiating under the integral sign, the first derivative at zero is 
+
+ddθ 
+
+∣∣∣∣θ=0 
+
+F (t, θ ) = −
+
+> m
+
+∑
+
+> i=1
+
+pi log ˜bi(t) ≤ − q−
+
+4 (5.23) thanks to (5.17), while the second derivative is bounded above on [0 , 1] by 
+
+d2
+
+dθ 2 F (t, θ ) = 
+
+> m
+
+∑
+
+> i=1
+
+pi(log ˜bi)2˜b−θi ≤ c1(δ)−1 max( | log c1(δ)|, 3) 2 (5.24) for c1(δ) given by (5.18). Consequently, we obtain F (t, ϑ ) ≤ 1 for 
+
+ϑ(q−, δ ) = min 
+
+(
+
+1, q−c1(δ)4 max( | log c1(δ)|, 3) 2
+
+)
+
+.
+
+Step 4. Hitting estimates via Supermartingales We now use the supermartingales constructed in the previous step to prove, for all 0 < h ≤ M ,
+
+Pμ0,λ 0
+
+(
+
+inf  
+
+> t≥τPred
+> M
+
+˜μ(t) ≤ h
+
+∣∣∣∣ τ Pred  
+
+> M
+
+< ∞
+
+)
+
+≤
+
+( hM
+
+)ϑ
+
+(5.25) where the exponent ϑ is given by Step 3. This follows at once by applying optional stopping to the nonnegative supermartingale ˜μ(t)−ϑ and the stopping time Th := inf {t ≥ τ Pred  
+
+> M
+
+:
+
+˜μ(t) ≤ h}, and arguing as in (4.11). 
+
+Step 5. High-Probability Estimate for τ Ker  
+
+> λ+
+
+. We now deduce the estimate (5.3) for the time to achieve the kernel decrease from the coupling in Step 2 and the hitting probability in Step 4. From the constructions (5.11) and (5.12), it follows that 
+
+τ Ker  
+
+> λ+
+
+≤ 1 + min( τ Pred   
+
+> M+
+
+, τ coll ). (5.26) As a result, by considering separately the cases where the coupling (5.21) remains intact and has failed, it follows that 
+
+τ Ker  
+
+> λ+
+
+≤ 1 + inf 
+
+{
+
+t ≥ τ Pred  
+
+> M
+
+: |˜μ(t)|eq−(t−τ Pred   
+
+> M)/4
+
+≥ M +}
+
+. (5.27) Consequently, for any k ≥ 0, (5.25) shows that, for the exponent ϑ = ϑ(q−, δ ) > 0 produced by Step 3, 
+
+P (τ Ker  
+
+> λ+
+
+> τ Pred  
+
+> M
+
++ k + 1 |τ Pred  
+
+> M
+
+< ∞) ≤ P
+
+(˜μ(τ Pred  
+
+> M
+
++ k) ≤ M+e−q−k/ 4|τ Pred  
+
+> M
+
+< ∞
+
+)
+
+≤ e−q−kϑ/ 4
+
+( M+
+
+M
+
+)ϑ
+
+= e−q−kϑ/ 4
+
+( (λ0 − λ⋆) log( n/η )
+
+ca −
+
+)ϑ
+
+.
+
+(5.28) The claim (5.3) follows by absorbing the data-dependent constants, using that ϑ ≤ 1 for the prefactors, and shifting q.
+
+23 Spikes in SGD: an LDP View Gess, Heydecker 
+
+Step 6. No Descent to M− without kernel decrease. We finally prove (5.6) . As a result of (5.13) and (5.26) , it follows that, for all t < τ Ker  
+
+> λ+
+
+, the coupling (5.21) remains intact, which implies the containment of events 
+
+{
+
+τ Pred  
+
+> ↓,M −
+
+< τ Ker 
+
+> λ+
+
+}
+
+⊂
+
+{
+
+inf  
+
+> t≥τPred
+> M
+
+˜μ(t) ≤ M−
+
+}
+
+. (5.29) The claimed bound now follows immediately from (5.25), up to changing ϑ to ϑ/ 4.We finally turn to the deflationary case. 
+
+Theorem 6. Let λMB crit < λ 0 < λ MB max and, for δ > 0, let 
+
+Iδ := {i : |1 − ηλ 0s2 
+
+> i
+
+| > 1 + δ}; pδ := ∑
+
+> i∈Iδ
+
+pi. (5.30) 
+
+Then, for any δ > 0, for all λ in the range 
+
+λ0 − δλ MB max min 
+
+( 14 , a−
+
+a+
+
+)
+
+≤ λ ≤ λ0 (5.31) 
+
+and any M ≥ | μ0|, M− < M , it holds that 
+
+Pμ0,λ 0
+
+(
+
+τ Ker  
+
+> λ
+
+≤ τ Pred  
+
+> ↓,M −
+
+|τ Pred  
+
+> M
+
+< ∞
+
+)
+
+≥ p3δ
+
+( n(λ0 − λ)
+
+ηa −M 2
+
+)−α(δ)
+
+(5.32) 
+
+where τ Pred  
+
+> ↓,M −
+
+is as in (5.4) , and the exponent is given explicitly by 
+
+α(δ) := − log p3δ
+
+2 log(1 + δ) . (5.33) 
+
+Remark 5.2 . Together with Theorem 6 and the strong Markov property, this justifies the claim (1.9) . We have not attempted to optimise the proof strategy or the exponent achieved, preferring to give a final bound only in terms of quantities which can be computed and interpreted directly from λ0, η, {(si, p i)}. Moreover, in combining (5.32) and Theorem 6, we may choose the largest scale (1.18) allowed by Theorem 4: 
+
+M ∼ 1log 1/β (n/η )
+
+√ nη .
+
+With this choice, the sup-optimal exponent α only enters the n, η dependence through a logarithm log α(n/η ).
+
+Proof. Fix δ > 0 and let pδ , I δ , λ be as given. Consider, for k to be chosen later, the event 
+
+Ak, 3δ := {τ Pred  
+
+> M
+
+< ∞; i(τ Pred  
+
+> M
+
++ 1) , . . . , i (τ Pred  
+
+> M
+
++ k) ∈ I3δ
+
+} (5.34) which has probability, conditional on {τ Pred  
+
+> M
+
+< ∞} , equal to pk 
+
+> 3δ
+
+. We now set an upper threshold as in (5.12) 
+
+M + := 
+
+√
+
+n(λ0 − λ)
+
+a−η . (5.35) On the event Ak, 3δ , for τ Pred  
+
+> M
+
++ 1 ≤ t < min( τ Pred  
+
+> M
+
++ k + 1 , τ Ker  
+
+> λ
+
+, τ Pred   
+
+> M+
+
+), we estimate 
+
+η(λ0 − λ)s2 
+
+> i(t)
+
+≤ δλ MB max 
+
+4 (ηs 2
+
+> ⋆
+
+) = δ (5.36) by the definition of λMB max and the first part of (5.31), and similarly 
+
+η2s4
+
+> i(t)
+
+μ(t)2
+
+n ≤ (M +)2η2s4
+
+> ⋆
+
+n = ηs 4
+
+> ⋆
+
+(λ0 − λ)
+
+a−
+
+≤ δ (5.37) 
+
+24 Spikes in SGD: an LDP View Gess, Heydecker 
+
+using the second part of the lower bound in (5.31) , and the definitions of λMB max , a ±. Gathering the previous two displays and using the definition of I3δ , for the same range of t we have 
+
+∣∣∣∣∣1 − ηλ (t)s2 
+
+> i(t)
+
++ η2s4
+
+> i(t)
+
+μ(t)2
+
+n
+
+∣∣∣∣∣
+
+≥
+
+∣∣∣1 − ηλ 0s2
+
+> i(t)
+
+∣∣∣ − | η(λ0 − λ)s2
+
+> i(t)
+
+| − η2s4
+
+> i(t)
+
+μ(t)2
+
+n
+
+≥ (1 + 3 δ) − δ − δ = 1 + δ. 
+
+(5.38) Choosing now k := ⌈log (M +/M )/ log (1 + δ)⌉, we see that on the event Ak, 3δ , either τ Pred  
+
+> M+
+
+or 
+
+τ Ker  
+
+> λ
+
+must occur no later than τ Pred  
+
+> M
+
++ k, and that |μ(t)| is increasing until the first of these occurs. Arguing as in (5.12) , it holds almost surely that τ Ker  
+
+> λ
+
+< τ Pred   
+
+> M+
+
+by definition of M +,and so in either case we achieve τ Ker  
+
+> λ
+
+≤ τ Pred  
+
+> ↓,M −
+
+for any M− < M . With this choice of k, we use 
+
+k ≤ 1 + log( M +/M )log(1 + δ)
+
+to find a bound 
+
+Pμ0,λ 0 (Ak, 3δ |τ Pred  
+
+> M
+
+< ∞) ≥ p3δ exp 
+
+(
+
+log p3δ
+
+log( M +/M )log(1 + δ)
+
+)
+
+= p3δ
+
+( M+
+
+M
+
+)−2α(δ)
+
+(5.39) for α(δ) given by (5.33) . Substituting in the definition of M + produces the claim (5.32) ,and the proof is complete. 
+
+## 6 Extension to ReLU Activation 
+
+Finally, we show how all of the arguments of the rest of the paper may be modified if the activation function φ of the first layer in (1.3) is taken as the rectified linear unit 
+
+φ(w) = σ(w) = max(0 , w ), giving the network 
+
+F (Θ , s ) := 1
+
+√n
+
+> n
+
+∑
+
+> r=1
+
+ar σ(wr s). (6.1) We first note that there are now two sets of relevant predictions and kernels, given by 
+
+μ±(Θ) = F (Θ , ±1); λ±(Θ) = 1
+
+n
+
+> n
+
+∑
+
+> r=1
+
+(σ(±wr )2 + 1I(±wr > 0) a2 
+
+> r
+
+). (6.2) The corresponding NTK is 
+
+K(Θ; x, y ) = λ+(Θ) 1I(x > 0, y > 0) + λ−(Θ) 1I(x < 0, y < 0) . (6.3) Here, and in the sequel, we follow the convention [ 15 ] that the derivative of the ReLU function 
+
+σ′(w) refers to any element of the subdifferential, which allows us to make an arbitrary choice at w = 0 . Repeating the calculations leading to (1.12) , we now find that, on time steps where si(t+1) > 0,
+
+
+
+wr (t + 1) = wr (t) − η√n μ+(t)ar (t)1I(wr (t) > 0) s2
+
+> i(t+1)
+
+;
+
+ar (t + 1) = ar (t) − η√n μ+(t)σ(wr (t)) s2
+
+> i(t+1)
+
+.
+
+(6.4) Correspondingly, still for steps where si(t+1) > 0, the prediction and kernels are updated to 
+
+μ+(t + 1) = 
+
+(
+
+1 − 2ηλ +(t)s2 
+
+> i(t+1)
+
++ δPred (t + 1) + η2(μ+(t)) 2s4
+
+> i(t+1)
+
+n
+
+)
+
+μ+(t); 
+
+λ+(t + 1) = λ+(t) + (μ+(t)) 2ηn (ηλ (t)s4 
+
+> i(t+1)
+
+− 4s2
+
+> i(t+1)
+
+) − δKer (t + 1) .
+
+(6.5) 
+
+25 Spikes in SGD: an LDP View Gess, Heydecker 
+
+Relative to (1.12) , error terms δ{Pred ,Ker } appear in the updates to the prediction and kernel respectively, which result from the contribution of neurons wr where wr (t + 1) < 0 < w r (t):
+
+δPred (t) := μ+(t)−1
+
+√n
+
+> n
+
+∑
+
+> r=1
+
+(σ(wr (t + 1)) − σ(wr (t)) − 1I(wr (t) > 0)( wr (t + 1) − wr (t)) ar (t + 1); 
+
+(6.6) 
+
+δKer (t) = 1
+
+n
+
+> n
+
+∑
+
+> r=1
+
+[( ar (t + 1)) 2 + ( wr (t + 1)) 2]1I(wr (t) > 0 ≥ wr (t + 1)) ≥ 0. (6.7) At the same time, the change in the activation pattern produces a change in μ−, λ − by 
+
+μ−(t + 1) = μ−(t) − δPred (t + 1) μ+(t); 
+
+λ−(t + 1) = λ−(t) + δKer (t + 1) . (6.8) Identical formulæ apply if si(t+1) < 0, reversing every instance of the labelling ±.The key insight, formulated in Proposition 6.2 below, is that, if a certain asym-metric initialisation is imposed on wr (0) , a r (0) , then no activations wr flip sign until at least one of μ± has become large. In particular, the errors δPred ,Ker (t) are identically zero until a spike has occurred in at least one of μ±. Up to this time, μ+(t), λ +(t) follow the dynamics (1.12), with si replaced by 
+
+s+ 
+
+> i
+
+:= max(0 , s i).
+
+The same also holds for (μ−, λ −) with s− 
+
+> i
+
+:= max (−si, 0) , and the two parts are further independent, aside from the condition that only one of them is updated at each step. The assertions of Theorem 2, which we state rigorously in Theorem 7 below, now follow immediately from Theorems 3, 4. In order to make this rigorous, we define 
+
+Definition 6.1 (w-biased initialisation) . We say that an probability measure P is w-biased if, with probability 1, |wr (0) | ≥ | ar (0) | for every 1 ≤ r ≤ n.
+
+We refer also to [12, Assumption 1], [7, 8] for similar assumptions. As discussed above, the result claimed is only valid until (at least) one of |μ±| becomes large. We therefore define 
+
+τ Pred ,± 
+
+> M
+
+in the same way as (2.6) for μ± in place of μ. With this fixed, the proposition is as follows. 
+
+Proposition 6.2. Let P be any w-biased probability measure under which are defined the parameters Θ( t) = ( wr (t), a r (t)) , updated according to (6.4) . Then there exists c > 0 such that 
+
+P
+
+(
+
+sgn( wr (t)) = sgn( wr (0)) for all 1 ≤ r ≤ n, 0 ≤ t ≤ τ Pred ,+ 
+
+> c√n/η
+
+∧ τ Pred ,−
+
+> c√n/η
+
+)
+
+= 1 . (6.9) The key idea, see (6.18) below, is not new, and is essentially due to [ 50 ]. From this and the preceding discussion, we obtain the following result. 
+
+Theorem 7. In the notation of Assumption 1.1 (2), suppose further that Pμ± 
+
+> 0,λ ±
+> 0
+
+is w-biased, and let s± 
+
+> i
+
+, λ MB ,± 
+
+> crit
+
+, λ MB ,± 
+
+> max
+
+, G ±, ϑ ± be as in Theorem 1. Assume, throughout, that λ± 
+
+> 0
+
+< λ MB ,± 
+
+> max
+
+.Then a). [At least one component inflationary:] If G+(λ+0 ) > 0, then there exists β > 0 and, for every 0 < δ < 1, there exists κ such that, for all |μ+0 | ≤ M ≤ κ√n/η which additionally satisfy 
+
+G−(λ− 
+
+> 0
+
+)(1 + δ) log( M/ |μ+0 |)
+
+G+(λ+0 ) ≤ log 
+
+(
+
+κ
+
+|μ− 
+
+> 0
+
+| log 1/β (n/η )
+
+√ nη
+
+)
+
+(6.10) 
+
+26 Spikes in SGD: an LDP View Gess, Heydecker 
+
+and ϑ > 0 such that 
+
+Pμ± 
+
+> 0,λ ±
+> 0
+
+(
+
+τ Pred ,+
+
+> M
+
+̸ ∈
+
+[ (1 − δ) log( M/ |μ+0 |)
+
+G+(λ+0 ) , (1 + δ) log( M/ |μ+0 |)
+
+G+(λ+0 )
+
+]) 
+
+≤
+
+( |μ+0 |
+
+M
+
+)ϑ
+
++
+
+(
+
+κ
+
+|μ− 
+
+> 0
+
+| log 1/β (n/η )
+
+√ nη
+
+)−ϑ
+
++ exp 
+
+(
+
+−β nηM 2
+
+)
+
+.
+
+(6.11) 
+
+The same holds for μ−(t) if G−(λ− 
+
+> 0
+
+) > 0, with every ± reversed. b). [Both Compoents Deflationary:] Suppose instead that Gs(λs
+
+> 0
+
+) < 0 for both s ∈ {±} ,and that at least one of λs 
+
+> 0
+
+> λ MB ,s 
+
+> crit
+
+. Then, for any ϑs 
+
+> −
+
+< ϑ s(λs
+
+> 0
+
+) < ϑ s
+
+> +
+
+, there exist 
+
+c, β > 0, C < ∞ such that, for any 
+
+|μs
+
+> 0
+
+| ≤ M ≤ c
+
+√ nη log β (n/η )
+
+it holds that 
+
+C−1
+
+( |μ− 
+
+> 0
+
+|
+
+M
+
+)ϑ++
+
+≤ Pμ± 
+
+> 0,λ ±
+> 0
+
+(
+
+τ Pred ,+ 
+
+> M
+
+< ∞
+
+)
+
+≤ C
+
+( |μ− 
+
+> 0
+
+|
+
+M
+
+)ϑ+
+
+> −
+
++C
+
+(
+
+c
+
+|μ− 
+
+> 0
+
+| log 1/β (n/η )
+
+√ nη
+
+)ϑ−−
+
+(6.12) 
+
+and the same holds when every instance of the signs ± are reversed. Sketch Proof of Theorem 7. In item a), where μ+ is assumed to be in the inflationary regime, we can distinguish the cases depending on whether G−(λ− 
+
+> 0
+
+) is nonnegative or negative: The additional restriction (6.10) is vacuous in the latter case. Let κ = c be given by Proposition 6.2. In either case, there exists ˜μ+, ˜λ+, governed (for all t ≥ 0) by the dynamics (1.12) ,which agrees with μ+, λ + up to the time 
+
+T := τ Pred ,+ 
+
+> c√n/η
+
+∧ τ Pred ,− 
+
+> c√n/η
+
+. (6.13) Let ]τ Pred  
+
+> M
+
+be the hitting time (2.6) for the coupled process ˜μ+. Writing Iδ for the interval appearing in (6.11), we have the containment 
+
+{
+
+τ Pred ,+
+
+> M
+
+̸ ∈ Iδ
+
+}
+
+⊂ { ]τ Pred 
+
+> M
+
+̸ ∈ Iδ } ∪ 
+
+{
+
+T = τ Pred ,− 
+
+> c√n/η
+
+< (1 + δ) log( M/ |μ+0 |)
+
+G+(λ+0 ) .
+
+}
+
+(6.14) The probability of the first event is estimated by Theorem 3, producing the first and third terms of (6.11) , while on the second event, the coupling of μ− to a copy of (1.12) on the bases s− 
+
+> i
+
+remains exact until T . The probability of the second event may therefore either be estimated by Theorem 3 if G−(λ− 
+
+> 0
+
+) > 0, or Theorem 4 if G−(λ− 
+
+> 0
+
+) < 0, using in either case a threshold, possibly changing β,
+
+M − = κ
+
+log 1/β (n/η )
+
+√ nη ≤ κ
+
+√nη
+
+and using, if additionally G−(λ− 
+
+> 0
+
+) > 0, the extra condition (6.10) to ensure that the hitting time for the process ˜μ− coupled to μ− to reach M − is, with high probability, outside Iδ . In either case, we produce the second term of (6.11), and the claim is proven. In item b), where both components are in the deflationary regime, we use the same coupling argument and Theorem 4 to see that, for s ∈ {±} and any ϑs 
+
+> −
+
+< ϑ s, there exists c ≤ κ, C such that, for 
+
+M ≤ c
+
+log 1/β (n/η )
+
+√ nη , (6.15) it holds that 
+
+Pμ± 
+
+> 0,λ ±
+> 0
+
+(
+
+τ Pred ,s 
+
+> M
+
+< T 
+
+)
+
+≤ C
+
+( |μs
+
+> 0
+
+|
+
+M
+
+)ϑs
+
+> −
+
+. (6.16) 
+
+27 Spikes in SGD: an LDP View Gess, Heydecker 
+
+As in the previous part, let ˜μ+ be governed by (1.12) for λ+0 , s + 
+
+> i
+
+, so that it agrees with μ+
+
+up to time T . For the upper bound of (6.12), we have the containment 
+
+{τ Pred ,+ 
+
+> M
+
+< ∞} ⊂ { ]τ Pred  
+
+> M
+
+< ∞} ∪ { τ Pred ,− 
+
+> κ√n/η
+
+< T }⊂ { ]τ Pred  
+
+> M
+
+< ∞} ∪ { τ Pred ,−  
+
+> M−
+
+< T }.
+
+(6.17) Choosing M − to be the maximum value allowed by (6.15) , the probabilities of both events may be bounded by (6.16) . For the lower bound, we can repeat the arguments leading to the lower bound of Theorem 4 directly, using martingales depending only on μ+ and noting that, under the tilted measure, μ− has the same (deflationary) dynamics and, with high probability, does not become large. We conclude with the 
+
+Proof of Proposition 6.2. From (6.4), on draws where si(t+1) > 0, we compute 
+
+|wr (t + 1) |2 − | ar (t + 1) |2 = |wr (t)|2 − | ar (t)|2
+
++ η2
+
+n (μ+(t)) 2s4
+
+> i(t+1)
+
+(|ar (t)|2 − | wr (t)|2)1I(wr (t)si(t+1) > 0) =
+
+(
+
+1 − η2
+
+n (μ+(t)) 2s4
+
+> i(t+1)
+
+1I(wr (t)si(t+1) > 0) 
+
+)
+
+(|wr (t)|2 − | ar (t)|2)
+
+(6.18) with an equivalent formula for when si(t+1) < 0. By hypothesis, |wr (0) |2 − | ar (0) |2 ≥ 0 for all neurons. The multiplicative factor in the update rule above can only become negative when 
+
+(μ±(t)) 2s4
+
+> ⋆
+
+ηn > 1
+
+which is only possible when one of μ±(t) exceeds √n/ (ηs 2
+
+> ⋆
+
+), implying that 
+
+t ≥ τ Pred ,+ 
+
+> √n/ (ηs 2
+> ⋆)
+
+∧ τ Pred ,−√n/ (ηs 2
+
+> ⋆)
+
+.
+
+At all times up to and including this final time, repeated uses of (6.18) , and its counterpart for draws with si(t+1) < 0, write |wr (s)|2 − | ar (s)|2 as a product of nonnegative factors for all 1 ≤ r ≤ n, which implies that |ar (s)| ≤ | wr (s)| up to this time. Returning to (6.4) , the only way in which wr can change sign is when 
+
+∣∣∣∣
+
+η
+
+√n μ±(t)ar (t)s2
+
+> i(t+1)
+
+∣∣∣∣ ≥ | wr (t)|
+
+which is only possible if either |ar (t)| ≥ | wr (t)| or |μ±(t)| ≥ √n/ (ηs 2
+
+> ⋆
+
+), and the proof is complete. 
+
+## A Proof of Theorem 3 
+
+We now give the proof of Theorem 3, which was deferred in the main text. The key arguments are similar to those used in the proof of Theorem 4, to which we will refer back as needed. 
+
+Proof. For clarity, we divide into steps. 
+
+28 Spikes in SGD: an LDP View Gess, Heydecker 
+
+Step 1. Parameter Choices. First, given λ0 and a window parameter δ > 0, we choose 
+
+ϵ, κ > 0 such that the upper and lower drifts 
+
+G±(λ0; ϵ, κ ) := 
+
+> m
+
+∑
+
+> i=1
+
+pi log b± 
+
+> i
+
+(ϵ, κ, λ 0) (A.1) for the shifted logarithmic bases b± 
+
+> i
+
+given by (2.2 - 2.3) satisfy 
+
+1
+
+√1 + δ G(λ0) < G −(λ0) < G (λ) < G +(λ) < 1
+
+√1 − δ G(λ) (A.2) and such that max i b+ 
+
+> i
+
+≤ 4. We let α > 0 be given by 
+
+α := 
+
+> m
+
+∑
+
+> i=1
+
+pi(b− 
+
+> i
+
+)2 − 1 > 0 (A.3) which is strictly positive as a result of (A.2) and Jensen’s inequality. With this choice of ϵ, κ ,we choose 
+
+c = min 
+
+(
+
+1, κ, 
+
+√
+
+ϵG (λ0)2s2
+
+> ⋆
+
+)
+
+(A.4) Throughout, we write T for the stopping time 
+
+T := τ Pred  
+
+> M
+
+∧ τ Ker 
+
+> λ0−ϵ
+
+. (A.5) 
+
+Step 2. Controlling Decrease of the Kernel In this step, we show how the arguments of Proposition 4.2 may be repeated and, together with the choice (A.4) , lead to an estimate 
+
+Pμ0,λ 0 (τ Ker  
+
+> λ0−ϵ
+
+< τ Pred  
+
+> M
+
+) ≤ 2 exp 
+
+(
+
+−γ nηM 2
+
+)
+
+. (A.6) As in Lemma 4.1, for t < T the prediction satisfies 
+
+Eμ0,λ 0 [|μ(t + 1) |2|F t, t < T ] > (1 + α)|μ(t)|2 (A.7) where α > 0 is given by (A.3). It follows that 
+
+Zt := δ ∑
+
+> s<t
+
+|μ(s)|2 − | μ(t)|2 (A.8) makes ZT into a supermartingale. Since Z0 ≤ 0, it follows that Eλ0,μ 0 ZT ≤ 0 by optional stopping, producing 
+
+α
+
+32 M 2 Eμ0,λ 0
+
+∑
+
+> s<T
+
+|μ(s)|2 ≤ 12 . (A.9) Using the Khas’minskii lemma [45] as in Proposition 4.2, and that |μ(T )| ≤ 4M , we find 
+
+Eμ0,λ 0
+
+[
+
+exp 
+
+(
+
+α
+
+32 M 2
+
+∑
+
+> s<T
+
+|μ(s)|2
+
+)] 
+
+≤ 2 (A.10) whence 
+
+Pλ0,μ 0
+
+(τ Ker  
+
+> λ0−ϵ
+
+< τ Pred 
+
+> M
+
+) ≤ 2 exp 
+
+(
+
+− αϵn 
+
+32 a+ηM 2
+
+)
+
+(A.11) which is of the form desired (A.6), with 
+
+γ := αϵ 
+
+32 a+η .
+
+29 Spikes in SGD: an LDP View Gess, Heydecker 
+
+Step 3. Tail Estimates Finally, we show that ϑ > 0 may be chosen so that 
+
+Pμ0,λ 0
+
+(
+
+τ Pred  
+
+> M
+
+< (1 − δ) log( M/ |μ0)
+
+G(λ0) , τ Ker  
+
+> λ0−ϵ
+
+≥ τ Pred 
+
+> M
+
+)
+
+≤ (|μ0|/M )ϑ; (A.12) 
+
+Pμ0,λ 0
+
+(
+
+τ Pred  
+
+> M
+
+> (1 + δ) log( M/ |μ0)
+
+G(λ0) , τ Ker  
+
+> λ0−ϵ
+
+≥ τ Pred 
+
+> M
+
+)
+
+≤ (|μ0|/M )ϑ (A.13) which, together with (A.6) , produce the claim in the theorem. We prove (A.12) ; the claim (A.13) follows by the same reasoning. Letting t− be the time 
+
+t− := (1 − δ) log( M/ |μ0|)
+
+G(λ0)
+
+appearing in (A.12) , we start by observing that, on the event in (A.12) , we have for any 
+
+ζ ∈ (1 , (1 − δ)−1/2),
+
+sup 
+
+> t≤t−
+
+(
+
+log |μ(t)||μ0| − tζG +(λ0)
+
+)
+
+≥ log( M/ |μ0|)
+
+(
+
+1 − ζ(1 − δ) G+(λ0)
+
+G(λ0)
+
+)
+
+(A.14) and, writing α(ζ) for the final parenthesis, α(ζ) > 0 for ζ < (1 − δ)−1/2 thanks to (A.2) . As soon as ζ > 1, there exists positive θ = θ(ζ) > 0 such that 
+
+> m
+
+∑
+
+> i=1
+
+pi(b+ 
+
+> i
+
+)θ e−θζG +(λ0) = 1 
+
+which implies, as in Lemma 4.1, that 
+
+Zt := 
+
+( |μ(t ∧ T )||μ0|
+
+)θ(ζ)
+
+exp (−ζθ (ζ)( t ∧ T )G+(λ0))
+
+is a nonnegative supermartingale, where we recall the notation T := τ Pred  
+
+> M
+
+∧ τ Ker 
+
+> λ0−ϵ
+
+. Since this is the exponential of the process in (A.14), we have the containment 
+
+{τ Pred  
+
+> M
+
+≤ t−, τ Ker  
+
+> λ0−ϵ
+
+≥ τ Pred  
+
+> M
+
+} ⊂ 
+
+{
+
+ZT ≥
+
+( M
+
+|μ0|
+
+)α(ζ)θ(ζ)}
+
+which has, by optional stopping, probability at most 
+
+Pμ0,λ 0
+
+(
+
+ZT ≥
+
+( M
+
+|μ0|
+
+)α(ζ)θ(ζ))
+
+≤
+
+( |μ0|
+
+M
+
+)α(ζ)θ(ζ)
+
+Eμ0,λ 0 [Z0] = 
+
+( |μ0|
+
+M
+
+)α(ζ)θ(ζ)
+
+. (A.15) The conclusion (A.12) follows by optimising in ζ to find the exponent 
+
+ϑ := sup 
+
+> ζ∈(1 ,(1 −δ)−1/2)
+
+α(ζ)θ(ζ).
+
+The bound (A.13) , possibly with a different exponent, follows by applying the same reasoning to supermartingales of the form 
+
+Zt := 
+
+( |μ(t ∧ T )||μ0|
+
+)−θ
+
+exp (ζθ (t ∧ T )G−(λ0)) .
+
+Acknowledgements The first author acknowledges support by the Max Planck Society through the Research Group “Stochastic Analysis in the Sciences (SAiS)” and the DFG CRC/TRR 388 “Rough Analysis, Stochastic Dynamics and Related Fields”, Project A11. The second author is supported by the Royal Commission for the Exhibition of 1851 and acknowledges the hospitality of the group “Pattern Formation, Energy Landscapes and Scaling Laws” of the Max Planck Institute for Mathematics in the Sciences. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or of the European Research Council. Neither the European Union nor the granting authority can be held responsible for them. 
+
+30 Spikes in SGD: an LDP View Gess, Heydecker 
+
+## References 
+
+[1] Atish Agarwala and Jeffrey Pennington. High dimensional analysis reveals conservative sharpening and a stochastic edge of stability. arXiv preprint arXiv:2404.19261 , 2024. [2] Arseniy Andreyev and Pierfrancesco Beneventano. Edge of stochastic stability: Revisit-ing the edge of stability for sgd. arXiv preprint arXiv:2412.20553 , 2024. [3] Sanjeev Arora, Zhiyuan Li, and Abhishek Panigrahi. Understanding gradient descent on the edge of stability in deep learning. In International Conference on Machine Learning ,pages 948–1024. PMLR, 2022. [4] Waïss Azizian, Franck Iutzeler, Jérôme Malick, and Panayotis Mertikopoulos. What is the long-run distribution of stochastic gradient descent? a large deviations analysis. 
+
+arXiv preprint arXiv:2406.09241 , 2024. [5] Waïss Azizian, Franck Iutzeler, Jérôme Malick, and Panayotis Mertikopoulos. The global convergence time of stochastic gradient descent in non-convex landscapes: Sharp estimates via large deviations. arXiv preprint arXiv:2503.16398 , 2025. [6] Guy Blanc, Neha Gupta, Gregory Valiant, and Paul Valiant. Implicit regularization for deep neural networks driven by an ornstein-uhlenbeck like process. In Conference on learning theory , pages 483–513. PMLR, 2020. [7] Etienne Boursier and Nicolas Flammarion. Simplicity bias and optimization threshold in two-layer relu networks. arXiv preprint arXiv:2410.02348 , 2024. [8] Etienne Boursier and Nicolas Flammarion. Early alignment in two-layer networks training is a two-edged sword. Journal of Machine Learning Research , 26(183):1–75, 2025. [9] Lenaic Chizat, Edouard Oyallon, and Francis Bach. On lazy training in differentiable programming. Advances in neural information processing systems , 32, 2019. [10] Damai Dai, Li Dong, Shuming Ma, Bo Zheng, Zhifang Sui, Baobao Chang, and Furu Wei. Stablemoe: Stable routing strategy for mixture of experts. arXiv preprint arXiv:2204.08396 , 2022. [11] Alex Damian, Eshaan Nichani, and Jason D Lee. Self-stabilization: The implicit bias of gradient descent at the edge of stability. arXiv preprint arXiv:2209.15594 , 2022. [12] Léo Dana, Francis Bach, and Loucas Pillaud-Vivien. Convergence of shallow relu networks on weakly interacting data. arXiv preprint arXiv:2502.16977 , 2025. [13] Yann N Dauphin, Razvan Pascanu, Caglar Gulcehre, Kyunghyun Cho, Surya Ganguli, and Yoshua Bengio. Identifying and attacking the saddle point problem in high-dimensional non-convex optimization. Advances in neural information processing systems ,27, 2014. [14] Amir Dembo and Ofer Zeitouni. Large deviations techniques and applications , volume 38. Springer Science & Business Media, 2009. [15] Simon S Du, Xiyu Zhai, Barnabas Poczos, and Aarti Singh. Gradient descent provably optimizes over-parameterized neural networks. arXiv preprint arXiv:1810.02054 , 2018. [16] Mathieu Even, Scott Pesme, Suriya Gunasekar, and Nicolas Flammarion. (s) gd over diagonal linear networks: Implicit bias, large stepsizes and edge of stability. Advances in Neural Information Processing Systems , 36:29406–29448, 2023. [17] William Fedus, Barret Zoph, and Noam Shazeer. Switch transformers: Scaling to trillion parameter models with simple and efficient sparsity. Journal of Machine Learning Research , 23(120):1–39, 2022. [18] Zhengcong Fei, Mingyuan Fan, Changqian Yu, Debang Li, and Junshi Huang. Scaling diffusion transformers to 16 billion parameters. arXiv preprint arXiv:2407.11633 , 2024. [19] Rainer Gemulla, Erik Nijkamp, Peter J Haas, and Yannis Sismanis. Large-scale matrix factorization with distributed stochastic gradient descent. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining , pages 69–77, 2011. 
+
+31 Spikes in SGD: an LDP View Gess, Heydecker 
+
+[20] Frank Hollander. Large deviations , volume 14. American Mathematical Soc., 2000. [21] Hikaru Ibayashi and Masaaki Imaizumi. Quasi-potential theory for escape problem: Quantitative sharpness effect on sgd’s escape from local minima. 2021. [22] Arthur Jacot, Franck Gabriel, and Clément Hongler. Neural tangent kernel: Convergence and generalization in neural networks. Advances in neural information processing systems ,31, 2018. [23] Nitish Shirish Keskar, Dheevatsa Mudigere, Jorge Nocedal, Mikhail Smelyanskiy, and Ping Tak Peter Tang. On large-batch training for deep learning: Generalization gap and sharp minima. arXiv preprint arXiv:1609.04836 , 2016. [24] Guanghui Lan. First-order and stochastic optimization methods for machine learning ,volume 1. Springer, 2020. [25] Guillaume Leclerc and Aleksander Madry. The two regimes of deep network training. 
+
+arXiv preprint arXiv:2002.10376 , 2020. [26] Yann LeCun, Léon Bottou, Genevieve B Orr, and Klaus-Robert Müller. Efficient backprop. In Neural networks: Tricks of the trade , pages 9–50. Springer, 2002. [27] Aitor Lewkowycz, Yasaman Bahri, Ethan Dyer, Jascha Sohl-Dickstein, and Guy Gur-Ari. The large learning rate phase of deep learning: the catapult mechanism. arXiv preprint arXiv:2003.02218 , 2020. [28] Qianxiao Li, Cheng Tai, et al. Stochastic modified equations and adaptive stochastic gradient algorithms. In International Conference on Machine Learning , pages 2101–2110. PMLR, 2017. [29] Yuanzhi Li and Yingyu Liang. Learning overparameterized neural networks via stochastic gradient descent on structured data. Advances in neural information processing systems ,31, 2018. [30] Yuanzhi Li, Colin Wei, and Tengyu Ma. Towards explaining the regularization effect of initial large learning rate in training neural networks. Advances in neural information processing systems , 32, 2019. [31] Zhiyuan Li, Tianhao Wang, and Sanjeev Arora. What happens after sgd reaches zero loss?–a mathematical framework. arXiv preprint arXiv:2110.06914 , 2021. [32] Shuang Liang and Guido Montúfar. Gradient descent with large step sizes: Chaos and fractal convergence region. arXiv preprint arXiv:2509.25351 , 2025. [33] Lennart Ljung. Analysis of recursive stochastic algorithms. IEEE transactions on automatic control , 22(4):551–575, 2003. [34] Miao Lu, Beining Wu, Xiaodong Yang, and Difan Zou. Benign oscillation of stochastic gradient descent with large learning rates. arXiv preprint arXiv:2310.17074 , 2023. [35] Pierre Marion and Lénaïc Chizat. Deep linear networks for regression are implicitly regularized towards flat minima. Advances in Neural Information Processing Systems ,37:76848–76900, 2024. [36] Panayotis Mertikopoulos, Nadav Hallak, Ali Kavis, and Volkan Cevher. On the almost sure convergence of stochastic gradient descent in non-convex problems. Advances in Neural Information Processing Systems , 33:1117–1128, 2020. [37] Scott Pesme, Loucas Pillaud-Vivien, and Nicolas Flammarion. Implicit bias of sgd for diagonal linear networks: a provable benefit of stochasticity. Advances in Neural Information Processing Systems , 34:29218–29230, 2021. [38] Zihan Qiu, Zeyu Huang, Shuang Cheng, Yizhi Zhou, Zili Wang, Ivan Titov, and Jie Fu. Layerwise recurrent router for mixture-of-experts. arXiv preprint arXiv:2408.06793 ,2024. [39] Herbert Robbins and Sutton Monro. A stochastic approximation method. The annals of mathematical statistics , pages 400–407, 1951. [40] Stephen Roller, Sainbayar Sukhbaatar, Jason Weston, et al. Hash layers for large sparse models. advances in neural information processing systems , 34:17555–17566, 2021. 
+
+32 Spikes in SGD: an LDP View Gess, Heydecker 
+
+[41] Pedro Savarese, Itay Evron, Daniel Soudry, and Nathan Srebro. How do infinite width bounded norm networks look in function space? In Conference on Learning Theory ,pages 2667–2690. PMLR, 2019. [42] Jean Seo, Jaeyoon Kim, and Hyopil Shin. Mofe: Mixture of frozen experts architecture. 
+
+arXiv preprint arXiv:2503.06491 , 2025. [43] Anna Shalova, André Schlichting, and Mark Peletier. Singular-limit analysis of gradient descent with noise injection. arXiv preprint arXiv:2404.12293 , 2024. [44] Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le, Geoffrey Hinton, and Jeff Dean. Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. arXiv preprint arXiv:1701.06538 , 2017. [45] W Stummer and K-Th Sturm. On exponentials of additive functionals of markov processes. Stochastic processes and their applications , 85(1):45–60, 2000. [46] Ling Team, Binwei Zeng, Chao Huang, Chao Zhang, Changxin Tian, Cong Chen, Dingnan Jin, Feng Yu, Feng Zhu, Feng Yuan, et al. Every flop counts: Scaling a 300b mixture-of-experts ling llm without premium gpus. arXiv preprint arXiv:2503.05139 ,2025. [47] Bhavya Vasudeva, Jung Whan Lee, Vatsal Sharan, and Mahdi Soltanolkotabi. The rich and the simple: On the implicit bias of adam and sgd. arXiv preprint arXiv:2505.24022 ,2025. [48] David Williams. Probability with martingales . Cambridge university press, 1991. [49] Francis Williams, Matthew Trager, Daniele Panozzo, Claudio Silva, Denis Zorin, and Joan Bruna. Gradient dynamics of shallow univariate relu networks. Advances in neural information processing systems , 32, 2019. [50] Stephan Wojtowytsch. On the convergence of gradient descent training for two-layer relu-networks in the mean field regime. arXiv preprint arXiv:2005.13530 , 2020. [51] Lei Wu, Mingze Wang, and Weijie Su. The alignment property of sgd noise and how it helps select flat minima: A stability analysis. Advances in Neural Information Processing Systems , 35:4680–4693, 2022. [52] Libin Zhu, Chaoyue Liu, Adityanarayanan Radhakrishnan, and Mikhail Belkin. Quadratic models for understanding catapult dynamics of neural networks. arXiv preprint arXiv:2205.11787 , 2022. [53] Libin Zhu, Chaoyue Liu, Adityanarayanan Radhakrishnan, and Mikhail Belkin. Cat-apults in sgd: spikes in the training loss and their impact on generalization through feature learning. arXiv preprint arXiv:2306.04815 , 2023. 
+
+33

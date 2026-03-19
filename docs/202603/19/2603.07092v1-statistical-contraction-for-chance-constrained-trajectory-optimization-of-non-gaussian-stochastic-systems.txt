@@ -1,0 +1,725 @@
+Title: Statistical Contraction for Chance-Constrained Trajectory Optimization of Non-Gaussian Stochastic Systems
+
+URL Source: https://arxiv.org/pdf/2603.07092v1
+
+Published Time: Tue, 10 Mar 2026 00:35:12 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+> 2026 IEEE INTERNATIONAL CONFERENCE ON ROBOTICS AND AUTOMATION (ICRA) VIENNA, PREPRINT VERSION
+
+# Statistical Contraction for Chance-Constrained Trajectory Optimization of Non-Gaussian Stochastic Systems 
+
+Rihan Aaron D’Silva and Hiroyasu Tsukamoto 
+
+Abstract — We present a distribution-free approach to robust trajectory optimization and control of discrete-time, nonlinear, and non-Gaussian stochastic systems, with closed-loop guaran-tees on chance constraint satisfaction. Our framework employs conformal inference to generate coverage-based confidence sets for the closed-loop dynamics around arbitrary reference trajectories under uncertainty. It thereby constructs a joint nonconformity score to quantify both the validity of contraction (i.e., incremental stability) conditions and the impact of external stochastic disturbance on the closed-loop dynamics, without any distributional assumptions. Via appropriate constraint tight-ening, chance constraints can be reformulated into tractable, statistically valid deterministic constraints on the reference trajectories. This enables a formal pathway to certify the performance of learning-based motion planners and controllers, such as those with neural contraction metrics, in safety-critical real-world applications. Notably, our statistical guarantees are non-diverging and can be computed with finite samples of the underlying uncertainty, without overly conservative structural priors. We demonstrate our approach in motion planning problems for designing safe, dynamically feasible trajectories in both numerical simulations and hardware experiments. 
+
+I. I NTRODUCTION 
+
+Generating interpretable, high-performance motion plans for dynamical systems under unstructured uncertainties is central to their deployment in safety-critical applications. As the scope and scale of the tasks entrusted to these systems have expanded significantly in recent years, such planning problems have become increasingly nonlinear and stochastic, with the underlying uncertainties often non-Gaussian. Con-sequently, data-driven and learning-based approaches have been widely pursued as promising alternatives to classical formulations. As the gap between their empirical perfor-mance and theoretical guarantees continues to widen, we take a step back and establish a statistically rigorous, closed-loop perspective to address this challenge. Among classical model-based approaches, chance-constrained programming [1] provides a natural framework for handling system uncertainties in motion planning. It operates through relaxing hard constraints into probabilistic counterparts that hold with high confidence, yielding less conservative solutions. Since nominal chance constraints are generally nonconvex and often computationally intractable, they may be reformulated into tractable deterministic problems by introducing distributional assumptions or 
+
+> This work benefited from technical discussions within DARPA’s Safe and Assured Foundation Robots for Open eNvironments (SAFRON) Pro-gram, under contract number HR0011-25-3-0331. The authors are with the Department of Aerospace Engineering, The Grainger College of Engi-neering, University of Illinois Urbana-Champaign, Urbana, Illinois 61801,
+
+rihanad2@illinois.edu, hiroyasu@illinois.edu .             
+
+> Fig. 1: Illustration of our proposed approach. Given a finite dataset Dw
+> of non-Gaussian disturbance samples, from predictions of the control contraction metrics ˆM, tracking policy ˆπ(·)for contraction rate λ, we infer high probability chance constraint satisfaction guarantees for safe motion planning. Code : https://github.com/Rihan24/SCC-TrajOpt.
+
+approximations of underlying uncertainty. For example, existing methods consider additive Gaussian noise [2], [3], which allows propagation of the uncertainty through linear dynamics in closed form, leading to deterministic relaxations of chance constraints. Alternatively, distributionally robust approaches seek con-straint satisfaction across a family of probability distributions belonging to an ambiguity set. Such a set is commonly defined via moment specifications [4] or via distributional metrics [5], [6]. However, extending these ideas beyond linear settings becomes challenging, since uncertainty or ambiguity sets cannot, in general, be propagated analytically through nonlinear dynamics. Several ideas have been pro-posed to address this issue, e.g., through linearization [7], [8], polynomial chaos expansions [9], or learning-based methods [10], [11]. These methods propagate statistical in-formation through approximated dynamics, albeit at the cost of strict probabilistic guarantees. Sampling-based approaches address this challenge from a different angle, pursuing formal a priori guarantees achiev-able purely through data. The scenario approach bypasses explicit distributional modeling by enforcing constraints di-rectly on a finite set of sampled realizations or scenar-ios [12], [13]. It enables statistically valid inference of probabilistic certificates on constraint satisfaction. Sample average approximation methods aim to, instead, approximate chance constraints using the empirical distribution over the samples [14]. Another line of work is conformal inference, also known as conformal prediction (CP) [15]–[17], which has recently gained attention in control theory as a pow-erful, yet relatively light-weight tool for distribution-free uncertainty quantification associated with point or time-series 
+
+> © 2026 IEEE. Personal use of this material is permitted. Permission from IEEE must be obtained for all other uses, in any current or future media, including reprinting/republishing this material for advertising or promotional purposes, creating new collective works, for resale or redistribution to servers or lists, or reuse of any copyrighted component of this work in other works.
+> arXiv:2603.07092v1 [eess.SY] 7 Mar 2026
+
+predictions. Given a predictor and a negatively oriented score function to measure the predictor’s performance, it exploits the rank statistics of the score to construct a high-confidence bound on the prediction error. CP and its variants have been employed in chance-constrained optimization [18] and a variety of planning and control settings [19]. This includes, but is not limited to, safe planning in unknown dynamic en-vironments [20], [21], deterministic robustification of model-based controllers [22]–[24], uncertainty-aware planning with diffusion models [25], data-driven state estimation [26], prediction region construction for linear systems with non-Gaussian noise [27], conformally robust Lyapunov and bar-rier function synthesis [28], and deterministic contraction-based planning and control [29]. However, streamlined methods that exploit CP to alleviate distribution mismatches in closed-loop trajectory planning of nonlinear, non-Gaussian stochastic systems remain un-derexplored. While there are a few related efforts in con-traction theory, they often operate under restrictive assump-tions. For example, extreme value theory-informed collision checking [30] provides statistical safety with a contracting controller but only under bounded perturbations. Stochastic contraction-based predictive control [31] provides probabilis-tic reachability but requires an upper bound on the norm of the noise covariance. This work investigates how the distribution-free concepts in CP can be integrated with the strong structural guaran-tees of contraction-based robust motion planning [32]–[37]. We specifically consider discrete-time nonlinear stochastic systems, where the uncertainty may be non-Gaussian. We leverage a CP-based constraint tightening method to define, for each uncertainty sample, a joint nonconformity score that quantifies both the predicted distributional mismatch and the incremental stability violations of a learned contraction metric and its associated controller. We show that this approach offers a statistically rigorous characterization of how far the system’s true trajectory may deviate from the ref-erence trajectory only with finite data samples. This thereby offers a non-diverging, closed-loop guarantee of generating provably safe and dynamically feasible motion plans. Here, chance constraints are reformulated into their deterministic counterparts, agnostic to how the distribution is predicted or how the metric is constructed, with no strong structural priors. Unlike the scenario-based approach, the problem size does not grow with the number of data samples. We validate the performance of our approach through numerical simula-tions with the Dubins Car and hardware experiments with the Crazyflie drone, both under non-Gaussian uncertainty. The results indicate that it indeed achieves the closed-loop satisfaction of constraints at the desired probability level. 
+
+Notation : The set I{a,b } denotes the collection of integers in {a, b } and I≥0 denotes the set of non-negative integers. We will use bold face letters x = {x0, x 1, . . . , x N }, u =
+
+{u0, u 1, . . . , u N −1} and w = {w0, w 1, . . . , w N −1} to denote the state, control and disturbance trajectories over a time horizon N ∈ N. Quantile 1−α(P) denotes the (1 − α)th quantile of the distribution P. For A, B ∈ Rn×n, we use 
+
+A ⪰ B to denote positive semi-definiteness of A − B.For x ∈ Rn, we let ∥x∥ denote the Euclidean norm and 
+
+∥x∥M := √xTM x to denote the weighted norm with respect to a positive definite matrix M . For a matrix A ∈ Rl×n,
+
+Ai denotes the ith row of A and for a vector b ∈ Rn,
+
+bi denotes the ith element of b. For two sets A and B,
+
+A ⊕ B = {a + b | a ∈ A, b ∈ B} denotes the Minkowski set addition over the sets. The smallest eigen value of a symmetric matrix M is denoted by λmin (M ). We use the bar accent (¯ x, ¯u) to denote nominal dynamics and hat notation 
+
+ˆa to denote learned components. II. P ROBLEM SETUP & P RELIMINARIES 
+
+We consider a class of discrete-time nonlinear systems with additive stochastic process noise, given by, 
+
+xk+1 = f (xk, u k) + D(xk)wk (1) where xk ∈ Rnx , uk ∈ Rnu and wk ∈ Rnw are the state, controls and process noise at time k ∈ I≥0, respectively. Here 
+
+f is a known smooth function and D : Rnx → Rnx×nw is a known state-dependent matrix function. 
+
+Assumption 1: The process noise w consists of i.i.d sam-ples from an unknown zero mean probability distribution Q,that is, wk ∼ Q and E[wk] = 0 for all k ∈ I≥0. A disturbance dataset is available, given by Dw = {w(0) , w(1) , . . . , w(K−1) }
+
+for K ∈ N, where each w(j) represents samples of process noise over the time horizon N , with w(j) 
+
+> k
+
+∼ Q for all k ∈
+
+I[0 ,N −1] . The support of distribution Q can be unbounded. Given an initial condition x0 = x(0) , we aim to drive the system (1) to a target region XN ⊂ Rnx over a time horizon 
+
+N ∈ N , while satisfying state constraints X ⊂ Rnx and minimizing given step cost c(·) and final cost cF (·). This problem can be formulated as a chance-constrained optimal control problem, given by, 
+
+Problem 1: 
+
+min  
+
+> x,u
+
+E
+
+"
+
+cF (xN ) +  
+
+> N−1
+
+X
+
+> k=0
+
+c(xk, u k)
+
+#
+
+s.t. xk+1 = f (xk, u k) + D(xk)wk k ∈ I[0 ,N −1] 
+
+Pr( xk ∈ X) ≥ 1 − p k ∈ I[1 ,N −1] (2a) 
+
+Pr( xN ∈ XN ) ≥ 1 − p (2b) 
+
+x0 = x(0) 
+
+where p ∈ (0 , 1) denotes the maximum allowed probability of constraint violation. Problem 1 is generally intractable due to nonconvex distributional constraints on the uncertain states. A tractable deterministic reformulation of the problem becomes challenging since the distribution Q is not explicitly known, on top of the difficulties in propagating this uncer-tainty through the nonlinear dynamics. To tackle this, we will first restrict the controls to time-parametrized state feedback policy uk = πk(xk) and then consider chance constraint satisfaction for the closed-loop dynamics, 
+
+xk+1 = φπ (xk, k ) + D(xk)wk (3) where φπ (x, k ) := f (x, π k(x)) denotes the vector field of the nominal closed-loop dynamics. Our approach makes use of the disturbance dataset Dw and is based on contraction theory and finite sample guarantees associated with statistical inference. It designs a suitable policy πk(·) which is a feasible solution to Problem 1; that is, the closed-loop state xk in (3) satisfies constraints xk ∈ X
+
+and xN ∈ XN with a confidence of at least (1 − p). We now briefly introduce the necessary preliminaries. 
+
+Closed-loop Contraction: Contraction theory offers a set of tools to analyze and control the incremental stability of nonlinear system trajectories with respect to each other [32]. Consider the nominal closed-loop dynamics, xk+1 =
+
+φπ (xk, k ). Let Fk := ∂φ π (x,k ) 
+
+> ∂x
+
+denote the Jacobian matrix of 
+
+φπ , and Γ( ak, b k) denote the set of piecewise-smooth curves 
+
+c : s ∈ [0 , 1] → Rnx connecting ak to bk for some ak, b k ∈
+
+Rnx , with c(0) = ak and c(1) = bk. For a square matrix function Θ( x, k ) ∈ Rn×n and uniformly positive definite matrix function M (x, k ) := Θ( x, k )⊤Θ( x, k ) ∈ Rn×n, the Riemann energy for defining the distance between ak and bk
+
+is given by [33], 
+
+E(ak, b k) := min   
+
+> c∈Γ( ak,b k)
+
+Z 10
+
+∂c (s)
+
+∂s 
+
+> ⊤
+
+M (c(s), k ) ∂c (s)
+
+∂s ds. (4) Lemma 1 establishes conditions for uniform incremental stability for the nominal closed-loop system [32], [38]. 
+
+Lemma 1: Consider a uniformly bounded matrix func-tion Mk := M (x, k ), i.e., mI ⪯ Mk ⪯ mI for some 
+
+m ≥ m > 0. If F ⊤ 
+
+> k
+
+Mk+1 Fk ⪯ λM k with λ ∈ [0 , 1) 
+
+holds for all x ∈ Rnx and k ∈ I≥0, then the energy 
+
+E(x1,k , x 2,k ) decreases exponentially over the flow of the nominal closed-loop system and satisfies the decay condi-tion E(φπ (x1,k , k ), φ π (x2,k , k )) ≤ λE (x1,k , x 2,k ), where 
+
+(x1,k , x 2,k ) denotes any pair of the solution trajectories. The nominal closed-loop system is then said to be globally contracting with rate λ.
+
+Challenges in Metric Synthesis: Control Contraction Metric (CCM) [33] establishes conditions for the existence of a feedback tracking controller such that the closed-loop system is contracting with a given rate. The search for a suitable CCM and corresponding differential feedback gain requires solving infinite-dimensional linear matrix in-equalities, which are often solved using finite-dimensional approximations with restrictive assumptions, e.g., sum-of-squares relaxation [33], [39]. A tracking controller is then constructed by computing the geodesics with respect to the calculated CCM. Existing methods propose neural network parameterizations of a contraction metric and its tracking controller [40], [41]. However, the quality of such learned components depends on their structural priors and training, and thus remains primarily empirical. Verifying the validity, in terms of satisfying conditions for incremental stability, becomes crucial for their trustworthy usage. 
+
+Conformal Prediction (CP): CP is a statistical tool for uncertainty quantification that leverages rank statistics of exchangeable random variables. It uses nonconformity scores to construct prediction intervals that are valid up to the user-defined probability level while being distribu-tion agnostic [19], [42]. CP is also model-agnostic in na-ture and holds out when the nonconformity scores result from a function composition, e.g., a neural network. Let 
+
+S(1) , . . . , S (K), S (K+1) be a collection of (K + 1) nonconfor-mity scores, where S = {S(1) , . . . , S (K)} are scores drawn from the calibration distribution and S(K+1) corresponds to the test sample. In robotic applications, the assumption of exchangeability can be too restrictive for inference on the test sample, due to possible distribution shifts with respect to the calibration dataset. This paper thus employs a CP variant called Weighted Conformal Prediction (W-CP) [17], which relaxes exchangeability by reweighting calibration samples to better match the test distribution. Let { ˜wj }Kj=1 be a set of positive weights with ˜wj ∈ [0 , 1] for all j ∈ I[1 ,K ]. Define the weighted quantile as, 
+
+q1−α(S) := Quantile 1−α
+
+> K
+
+X
+
+> i=1
+
+¯wiδS(i) + ¯ w∞δ∞
+
+!
+
+where ¯wj = ˜ wj /(PKi=1 ˜wi +1) , ¯w∞ = 1 /(PKi=1 ˜wi +1) and 
+
+δa denotes the point mass probability at a ∈ R∪{−∞ , +∞} .
+
+Lemma 2: [17] Let dTV (P1, P2) be the total variation distance between distributions P1 and P2. For any α ∈ (0 , 1) ,
+
+Pr ( S(K+1) ≤ q1−α(S)) ≥ 1 − ¯α
+
+where ¯α = α + PKi=1 ¯widTV (¯S, ¯Si). Here ¯S = S ∪ S(K+1) 
+
+and ¯Si is the set ¯S with scores S(i) and S(K+1) swapped for each i = 1 , · · · , K , and Pr denotes the marginal probability measure over randomness in draws of the scores in S.
+
+Remark 1: The vanilla CP guarantee from [42] is obtained for exchangeable scores by setting ˜w1 = · · · = ˜ wK = 1 . As-suming ¯w1S(1) ≤ · · · ≤ ¯wK S(K), if K ≥ ⌈ (1 − α)( K + 1) ⌉,one can pick q1−α(S) = ¯ wjα S(jα ) where jα = ⌈(1 −α)( K +1) ⌉. The weights are chosen so as to minimize the coverage gap PKi=1 ¯widTV (S, Si) with higher weights assigned to data points that resemble the test distribution more closely [17], [22]. III. U NCERTAINTY QUANTIFICATION & C ONTRACTION 
+
+We aim to construct the following confidence sets for the closed-loop system (3) under a suitable policy π(·), with finite samples of the noise distribution Dw.
+
+Definition 1: Let x ∈ Rnx be a random vector and M
+
+be a positive definite matrix. For μ ∈ Rnx , Bθ (μ, M ) := 
+
+{˜x | ∥ ˜x − μ∥M −1 ≤ 1} is an ellipsoidal confidence set of probability level θ ∈ (0 , 1) for x if Pr  x ∈ Bθ (μ, M ) ≥ θ.We call the state and control trajectory pair (¯x, ¯u) as a target trajectory if they are forward complete solutions of the nominal dynamics ¯xk+1 = f (¯ xk, ¯uk) in (1). Let us consider neural network predictions for a state-independent CCM ˆMk and the tracking policy ˆπ(·, ¯x, ¯u), trained to make the nominal closed-loop system controlled by uk =ˆπ(xk, ¯xk, ¯uk) contracting with rate λ ∈ [0 , 1) under the metric defined through ˆMk. We will consider the target tracking feedback policy uk = πk(xk) = ˆπ(xk, ¯xk, ¯uk),thereby reformulating Problem 1 into a deterministic search over the space of target trajectories (¯x, ¯u). Here, we aim to quantify the epistemic uncertainty associated with these learned components and their contribution to the uncer-tainty of the closed-loop dynamics, along with the effect of stochastic noise during deployment. We will perform a calibration step to evaluate the controller ˆπ over random tracking scenarios in the presence of noise characterized by the disturbance dataset Dw. This will be used to show that for a suitable choice of nonconformity score, we can obtain meaningful predictive inference on the confidence set of the closed-loop state in (1) over the time horizon via Lemma 2. First, we make the following assumption, 
+
+Assumption 2: ˆπ(x, x, u ) = u ∀ x ∈ Rnx and u ∈ Rnu .This assumption ensures that the target trajectory (¯x, ¯u) is a valid solution to the nominal closed loop system. Let ˆMk =Θ⊤ 
+
+> k
+
+Θk and define, 
+
+∆V (xk, ¯xk, ¯uk) := max 
+
+n
+
+0, −λ ˆΘk(xk − ¯xk)
+
++ ˆΘk+1 
+
+ φˆπ (xk) − φˆπ (¯ xk) o
+
+(5) where φˆπ (xk) := f (xk, ˆπ(xk, ¯xk, ¯uk)) . Note that under a state-independent and time indexed metric defined through 
+
+ˆMk, the geodesic is equivalent to a straight line connecting the two points and the Riemann energy E(xk, ¯xk) in (4) reduces to to the weighted norm ∥xk − ¯xk∥ ˆMk . Hence, given 
+
+(¯ xk, ¯uk), equation (5) denotes the residuals of the decay condition in (1) at time k. Let Ω denote the distribution of N
+
+length state and control target trajectories with initial state 
+
+¯x0 = x(0) . By taking a random sample (¯x(j), ¯u(j)) ∼ Ω for every j-th sample w(j) from dataset Dw, one can generate K
+
+distinct closed-loop realizations x(j) of the system (1) under the feedback policy uk = ˆ π(xk, ¯x(j) 
+
+> k
+
+, ¯u(j) 
+
+> k
+
+), i.e., 
+
+x(j) 
+
+> k+1
+
+= f  x(j) 
+
+> k
+
+, ˆπ  x(j) 
+
+> k
+
+, ¯x(j) 
+
+> k
+
+, ¯u(j)
+
+> k
+
+ + D(xjk)w(j)
+
+> k
+
+with initial state x(j) 
+
+> 0
+
+= x(0) for all j ∈ I[1 ,K ]. Now for each 
+
+j ∈ I[1 ,K ] and k ∈ I[1 ,N ], define the nonconformity score as follows, 
+
+S(j) 
+
+> k
+
+:= 
+
+> k−1
+
+X
+
+> i=0
+
+λi 
+
+∆V (x(j) 
+
+> i
+
+, ¯x(j) 
+
+> i
+
+, ¯u(j) 
+
+> i
+
+) + ˆΘi+1 D(x(j) 
+
+> i
+
+)w(j)
+
+> i
+
+
+
+(6) and collect the scores Sk := {S(j) 
+
+> k
+
+}Kj=1 . This will be our cal-ibration dataset at time k. Note that the nonconformity score defined in equation (6) maps a target trajectory (¯x(j), ¯u(j))
+
+and noise realization w(j) to a positive real number. Hence, the calibration distribution can be identified with (Ω , QN ).Let uk = ˆπ(xk, ¯x(K+1)  
+
+> k
+
+, ¯u(K+1)  
+
+> k
+
+) denote the control pol-icy during deployment. The corresponding target trajectory 
+
+(¯x(K+1) , ¯u(K+1) ) ∼ Ξ is obtained by solving Problem 1, as to be described in Section IV, and not known apriori. Here, Ξ
+
+denotes the distribution of target trajectories that are feasible solutions to the proposed optimization problem. We propose the following result for the test score S(K+1)  
+
+> k
+
+obtained from the test distribution (Ξ , QN ).
+
+Theorem 1: Suppose that the Assumptions 1 and 2 hold. Consider a sample target trajectory (¯ x, ¯u) ∼ Ξ. Let ¯wj
+
+denote the normalized weights for j ∈ I[1 ,K ]. Suppose also that the coverage gap PK+1  
+
+> i=1
+
+¯widTV (¯Sk, ¯Sk,i ) is upper bounded by ¯δ, where 0 ≤ ¯δ < δ for some δ ∈ (0 , 1) and for all k ∈ I[1 ,N ]. Then B1−δ (¯ xk, W k) is a confidence set with probability level (1 − δ) for the state xk in (1) at time 
+
+k ∈ I[1 ,N ] under the feedback policy uk = ˆ π(xk, ¯xk, ¯uk),where Wk := C2 
+
+> k
+
+ˆM −1 
+
+> k
+
+and Ck := q1−δ+¯δ (Sk).
+
+Proof: Define Vk := V (xk, ¯xk) = ∥ ˆΘk(xk − ¯xk)∥.Then we have, 
+
+Vk+1 = ˆΘk+1 (xk+1 − ¯xk+1 )
+
+≤ ˆΘk+1 (φπ (xk) − ¯xk+1 ) + ˆΘk+1 D(xk)wk
+
+> (5)
+
+≤ λV k + ∆ V (xk, ¯xk, ¯uk) + ˆΘk+1 D(xk)wk
+
+≤ λk+1 V0 +
+
+> k
+
+X
+
+> i=0
+
+
+
+∆V (xi, ¯xi, ¯ui) + ˆΘi+1 D(xi)wi
+
+
+
+λi
+
+> (6)
+
+= S(K+1)  
+
+> k+1
+
+.
+
+Note that Vk = ∥xk − ¯xk∥ ˆMk and V0 = 0 by construction. Evaluate the quantile Ck = q1−δ+¯δ (Sk) (see Remark 1) for each k ∈ I[1 ,N ] . Applying Lemma 2 and taking the complement, we obtain, 
+
+Pr ( Vk > C k) ≤ δ − ¯δ +
+
+> K
+
+X
+
+> i=1
+
+¯widTV (¯Sk, ¯Sk,i ) ≤ δ. 
+
+Taking a complement again gives the desired claim. 
+
+Remark 2: Note that Wk = C2 
+
+> k
+
+ˆM −1 
+
+> k
+
+dictates the size and shape of the prediction set of xk, analogous to that of covariance in Gaussian-based [43] methods. Our approach, as in existing contraction-based methods (§4.2, [39]) allows us to control the associated conservativeness up to a certain degree by an appropriate design choice of contraction metric bounds m, m and the contraction rate λ in equation (5). 
+
+Remark 3: Lemma 2 provides a way to handle the loss of exchangeability caused by distribution shift between simu-lated rollouts and real-world deployment. To generalize the setup in Lemma 2, Dw may be constructed using samples from an approximate noise distribution ˆQ instead of the actual noise distribution Q (see Section V-B). In such cases, the application of Lemma 2 and subsequently Theorem 1 will assume the gap between the calibration distribution 
+
+(Ω , ˆQN ) and the unknown test distribution (Ξ , QN ) can be sufficiently controlled by the weights. We could also update 
+
+δ of Lemma 2 using adaptive CP [44]. Although we do not consider closed-loop control con-straints in our approach, we can obtain such guarantees by imposing some structure on the learned controller ˆπ, as we show in the following result. 
+
+Corollary 1: Let B1−δ (¯ xk, W k) be a confidence set for xk
+
+at probability level (1 − δ). Suppose uk = ˆ π(xk, ¯xk, ¯uk) = 
+
+k(xk, ¯xk) + ¯ uk and Assumption 2 holds, i.e., k(x, x ) = 0 for all x ∈ Rnx . If k(·) is Lipschitz with Lipschitz constant L,then B1−δ (¯ uk, Z k) is a confidence set for uk at probability level (1 − δ), where Zk = L2   
+
+> λmin (W−1
+> k)
+
+IProof: We have the following, 
+
+∥uk − ¯uk∥ = ∥k(xk, ¯xk)∥ = ∥k(xk, ¯xk) − k(¯ xk, ¯xk)∥≤ L∥xk − ¯xk∥ ≤ L ∥xk − ¯xk∥W −1
+
+> k
+
+q
+
+λmin (W −1 
+
+> k
+
+)
+
+.
+
+From Definition 1, we get ∥xk − ¯xk∥W −1
+
+> k
+
+≤ 1 with prob-ability at least (1 − δ), which implies, Pr( ∥uk − ¯uk∥ ≤ 
+
+> L
+
+√λmin (W −1  
+
+> k)
+
+) ≥ 1 − δ. Then the result follows also from Definition 1. IV. D ETERMINISTIC REFORMULATION 
+
+We will use confidence sets constructed using Theorem 1 to reformulate chance-constraints in (2a), (2b) into determin-istic constraints on the target trajectory (¯ x, ¯u) via suitable constraint tightening. Essentially, we aim to find a tightened state constraint set Xck such that Xck ⊕B1−δ (¯ xk, W k) ⊆ X for all k ∈ I[0 ,N ], whereby restricting ¯xk ∈ Xck ensures xk ∈ X
+
+with probability at least (1 − δ) . We will use the approach from [7] to construct suitable convex over approximations of the set Xck for particular classes of sets X.Let X be defined by polytopic and non-convex obstacle avoidance constraints on the state, X = Xpoly ∩ Xfree , where 
+
+Xpoly = {x ∈ Rnx | Ax ≤ b}, A ∈ Rl×nx , b ∈ Rl, and 
+
+Xfree = Rnx \ ∪ Ji=1 Oi. Here Oi ⊂ Rnx , i ∈ I[1 ,J ] are closed convex sets representing J obstacles. First, we split the joint chance constraints Pr( xk ∈ Xpoly ∩ Xfree ) ≥ 1 − p into single chance-constraints using the Bonferroni inequality [9] with equal risk allocation accordingly, 
+
+Pr( xk ∈ Xpoly ) ≥ 1 − ¯p (7) 
+
+Pr( xk ∈ Xfree ) ≥ 1 − ¯p (8) where ¯p = p/ 2. The above result is obtained by apply-ing Boole’s inequality over the complement of the event 
+
+xk ∈ Xpoly ∩ Xfree . Let B1− ¯p(¯ xk, W k) be a confidence set for xk with probability level (1 − ¯p). Then the polytopic chance constraint may be conservatively reformulated as l
+
+deterministic constraints [7], (7) ⇐ Ai ¯xk +
+
+q
+
+AiWkA⊤ 
+
+> i
+
+≤ bi i ∈ I[1 ,l ]. (9) Here the inequality condition in (9) is the robust counter part to the condition Aixk ≤ bi over the confidence set 
+
+B1− ¯p(ˆ xk, W k) [45]. For the obstacle avoidance constraints, we will use the signed distance function di : X → R that returns the shortest distance from point xk to the boundary 
+
+∂Oi of the set Oi [7]. It is defined as, 
+
+di(xk) := inf 
+
+> y∈Oi
+
+∥xk − y∥ − inf 
+
+> z / ∈Oi
+
+∥xk − z∥
+
+where di(xk) ≥ 0 = ⇒ xk /∈ Oi. Define, 
+
+ni(x) = x − ˘xi
+
+di(x) , ˘xi = arg min 
+
+> y∈∂Oi
+
+∥x − y∥.
+
+Then, we can conservatively reformulate obstacle avoidance chance constraint (8) into J deterministic constraints as, (8) ⇐ di(¯ xk) −
+
+q
+
+n⊤ 
+
+> i
+
+Wkni ≥ 0, i ∈ I[1 ,J ]. (10) For more details, refer [7]. Let XN = {x | Hx ≤
+
+h, H ∈ Rr×nx , h ∈ Rr }. The deterministic reformulation of (2b) then follows the same approach as in (9) with a confidence set of probability level (1 − p), which here gives 
+
+r deterministic constraints. Now consider the following relaxed deterministic refor-mulation of Problem 1 for some δ ∈ (0 , 1) .
+
+Problem 2: 
+
+min  
+
+> ¯x,¯u
+
+cF (¯ xN ) +  
+
+> N−1
+
+X
+
+> k=0
+
+c(¯ xk, ¯uk)
+
+s.t. ¯xk+1 = f (¯ xk, ¯uk), k ∈ I[0 ,N −1] 
+
+Ai ¯xk + ¯ ηk(δ)∥Ai∥M −1
+
+> k
+
+≤ bi, i ∈ I[1 ,l ], k ∈ I[1 ,N −1] 
+
+di(¯ xk) − ¯ηk(δ)∥ni∥M −1
+
+> k
+
+≥ 0, i ∈ I[1 ,J ], k ∈ I[1 ,N −1] 
+
+Hi ¯xN + η(δ)∥Hi∥M −1
+
+> N
+
+≤ hi, i ∈ I[1 ,r ]
+
+¯x0 = x(0) 
+
+where, ¯ηk(δ) = q1− δ
+
+> 2
+
+(Sk) and η(δ) = q1−δ (SN ). We then have the following result, 
+
+Theorem 2: Let (x∗, u∗) be the solution to Problem 2 for 
+
+δ ∈ (0 , 1) , if it exists. Suppose that Assumptions 1 and 2 hold and let the coverage gap be upper bounded by ¯δ for all 
+
+k ∈ I[0 ,N ]. Then the control policy uk = ˆ π(xk, x ∗
+
+> k
+
+, u ∗
+
+> k
+
+) is a feasible solution to Problem 1 if δ = p − 2¯δ.
+
+Proof: For each k ∈ I[1 ,N −1] , set Wk = ¯ ηk(δ)2M −1
+
+> k
+
+and WN = η(δ)2M −1 
+
+> N
+
+. From Theorem 1, B1− δ  
+
+> 2−¯δ
+
+(x∗
+
+> k
+
+, W k)
+
+and B1−δ−¯δ (x∗ 
+
+> N
+
+, W N ) are confidence sets for xk, k ∈
+
+I[0 ,N −1] , and xN in system (1), respectively, under the policy 
+
+uk = ˆπ(xk, x ∗
+
+> k
+
+, u ∗
+
+> k
+
+). Since x∗, u∗ satisfies the tightened constraints in Problem 2, from (9) and (10), we get Pr( xk ∈
+
+X) ≥ 1 − δ − 2¯δ = 1 − p thus satisfying constraint (2a). Similarly, we obtain Pr( xN ∈ XN ) ≥ 1−δ − ¯δ = 1 −p+ ¯δ ≥
+
+1 − p, which satisfies (2b). We note that Theorem 2 quantifies the effect of stochastic noise, the quality of predicted contraction metrics and con-troller, and the conservativeness demanded by the coverage gap between the calibration and test distributions, in one unified way. Under the assumption of the coverage gap bound 
+
+¯δ, it provides a suitable method to ensure chance-constraint satisfaction up to the desired probability level when using the learned controller ˆπ. In Section V, we validate the same through both numerical and hardware experiments. We note that, practically, it is not possible to know the coverage gap bound ¯δ a priori, making our guarantees of the a posteriori 
+
+type [18]. To address this, one may update the upper bound by means of verification or re-estimate the quantile online using adaptive CP [24]. V. C ASE STUDIES 
+
+We present our approach with the Dubins car model in numerical simulation and with the Crazyflie quadcopter in the real world. The code for all experiments is made available at https://github.com/Rihan24/SCC-TrajOpt. In both experi-ments, we show that the confidence sets constructed using our approach from finite noise samples are valid up to the prescribed probability level, and the proposed chance constraints are satisfied. We remark that the main goal of this section is the empirical validation of the formal guarantees established by our theorems, rather than demon-strating the superiority of our approach over all existing data-driven/learning-based motion planning and control methods. For example, even in the case of a poorly learned control policy with a suboptimally designed contraction metric, our theorems still provide a means to formally quantify their performance without relying on structural or distributional priors. For this reason, we compare against only a limited set of existing approaches in the following. These serve solely to illustrate our claims within the constraints of the page limit. We leverage a neural network parameterized CCM 
+
+M (x; θm) and its controller π(x, x ∗, u ∗; θu) from the imple-mentation in [41], which satisfies Assumption 2 by design. We consider ˆMk = M = ˆM (x(0); θm) as the predicted ma-trices for approximately constructing contraction metrics for all k ∈ I[1 ,N ]. The discrete-time contraction rate λ ∈ [0 , 1) 
+
+is obtained from the chosen continuous time counterpart 
+
+γ > 0 in [41] using λ = p(1 − 2γ∆t)( m/m ) [37], where 
+
+∆t denotes the sampling rate for the discrete-time system. We note that the quantiles ¯ηk(δ) quickly converge to η(δ)
+
+in a few time steps in both experiments for our choices of λ. Hence, we conservatively set ¯ηk(δ) = η(δ) for all 
+
+k ∈ I[1 ,N −1] , which, along with the choice of constant contraction metric, results in confidence sets of the same size over the time horizon. We consider step cost and final cost as c(xk, u k) = u⊤ 
+
+> k
+
+Ru k and cF = 0 , respectively, where 
+
+R is some positive definite weight matrix. The optimization in Problem 2 is posed and solved using the CasADi inter-face [46] with the NLP solver IPOPT [47]. 
+
+Choice of Ω: For both experiments, we follow the approach from [41] to sample suitable target trajectories. We first parametrize the target control trajectory ¯u as a linear combination of fixed sinusoidal basis functions with a predefined set of frequencies. We then sample i.i.d. reference control trajectories by randomly sampling the weight for each frequency component from a normal distribution. The initial state ¯x0 is set to x(0) . We then generate the corresponding target state trajectory ¯x by propagating ¯x0 through the nominal dynamics ¯xk+1 = f (¯ xk, ¯uk).In both simulation and hardware experiments, the distri-bution shift between the calibrated and test distributions was minimal and well-accommodated by the slight conservative-ness associated with our method. Therefore, using vanilla CP with δ = p gave us satisfactory results. For online motion planning, one may consider receding horizon alternatives of our approach and experiments. 
+
+A. Numerical Simulations 
+
+We consider the Dubin’s car model from [41] with 4 state variables x := [ px, p y , θ, v ] where px, p y are the positions, θ
+
+is the heading angle and v is the velocity. The control inputs are u := [ ω, a ], where ω and a are angular velocity and linear acceleration respectively. The dynamics is given by ˙x =
+
+f (x, u ) = [ v cos( θ), v sin( θ), ω, a ]⊤. We discretize this via a zero-order hold on the controls and add noise w to obtain the discrete-time dynamics xk+1 = xk + ∆ tf (xk, u k) + Dw k.We will consider the following two cases, (i) Uniform noise wk ∼ U [wmin , w max ] over the hyper-box defined by wmin = [ −σ/ 5, −σ/ 5, −σ, −σ]⊤ and 
+
+wmax = [ σ/ 5, σ/ 5, σ, σ ]⊤. We set σ = 0 .15 and D =
+
+diag ([1 , 1, 1, 1]) .(ii) Zero mean 3-component Gaussian mixture noise with density P3 
+
+> i=1
+
+ψiN(μi, Σi) with μ1 = −0.5 · 14, μ 2 =0 · 14, μ 3 = 0 .5 · 14, Σi = (0 .05) 2 · I for i = 1 , 2, 3,
+
+ψ1, ψ 3 = 0 .1, ψ 2 = 0 .8 and D = diag ([0 , 0, 1, 1]) ,where 14 = [1 , 1, 1, 1] ⊤. Here N is the multivariate Gaussian density. The noise parameters are chosen so as to cater to the prob-lem dimensions. We consider the motion planning problem from [9], with x(0) = [0 , 0.4, 0, 0] ⊤, goal region loosely centered at x(N ) = [10 , 0.4, 0, 0] ⊤ and collision avoidance with a wall and obstacle given by Xpoly = {py | py ≤ 2}
+
+and obstacle O = {px,y | ∥ px,y − pobs ∥ ≤ 1.2} respectively, where px,y = [ px, p y ]⊤, p obs = [0 , 5] ⊤. We set R = 0 .1 · I,failure probability δ = p = 0 .1, sampling rate ∆t = 0 .05 and time horizon to N = 200 steps. We set m = 0 .5, m = 10 and 
+
+γ = 1 , which corresponds to a discrete-time contraction rate of λ = 0 .21 . The disturbance dataset Dw is constructed with 
+
+K = 20 by sampling from the respective noise distributions. The quantile η(δ) comes to 0.301 and 0.574 for cases (i) and (ii), respectively. We solve Problem 2 to get (x∗, u ∗),which takes on average 1.67 seconds, and run 200 closed-loop realizations under policy uk = ˆ π(xk, x ∗
+
+> k
+
+, u ∗
+
+> k
+
+), as shown in Figure 2, to verify satisfaction of chance constraints. We note that all chance constraints are satisfied at the failure probability level p = 0 .1. In particular, the empirical failure probabilities obtained are max k{Pr( xk /∈ X)} = 0% for case (i) and max k{Pr( xk /∈ X)} = 1 .5% for case (ii).             
+
+> Fig. 2: Closed-loop realizations for the Dubin’s car system with our approach (shown on the left) and linearization approach with Gaussian approximation of noise and LQR feedback (shown on the right). Case (i) Uniform noise and Case (ii) Gaussian mixture noise are shown in green and blue, respectively. The corresponding target trajectory x∗is shown in dashed white lines, and the respective confidence sets are shown in orange.
+
+We compare our approach to the linearization baseline from [7], [8], shown in Figure 2, with Gaussian approx-imation of the noise and a linear quadratic regulator (LQR) feedback policy. The Gaussian distribution is characterized by MLE estimates of the mean and covariance from samples of the respective non-Gaussian noise distributions, and the LQR feedback gain is computed using linearized closed-loop dynamics at each state. The uncertainty of the corresponding closed-loop state at time k is characterized as a Gaussian 
+
+xk ∼ N(μk, Σk), where μk, Σk are obtained by mean and covariance propagation through the linearized dynamics. We use constraint tightening based on ellipsoidal confidence sets 
+
+B1− p
+
+> 2
+
+ μk, X2 
+
+> nx
+
+(1 − p 
+
+> 2
+
+)Σ k
+
+ for xk [7], where X2 
+
+> nx
+
+(1 − α)
+
+denotes the (1 − α)-th quantile of the X2 distribution with 
+
+nx degrees of freedom. Solving this tightened problem takes on average 103.8 seconds. From Figure 2, we see that Gaussian-based methods perform poorly in accurately capturing the uncertainty associated with the state over the time horizon. The empirical failure probabilities obtained are 
+
+max k{Pr( xk /∈ X)} = 10% for case (i) and max k{Pr( xk /∈
+
+X)} = 20 .5% for case (ii). This can be attributed to heavier tail characteristics in the noise and nonlinearity in the dynamics. 
+
+B. Hardware Experiments 
+
+We implement our approach on the Crazyflie 2.1 drone for safe motion planning through a static cluttered en-vironment. We consider the quadcopter model and con-troller implementation from [39], [41]. Consider state 
+
+x := [px, p y , p z , ˙px, ˙py , ˙pz , f, ϕ, θ, ψ ]⊤, where the posi-tions px, p y , p z are expressed in the inertial world frame of the drone, ϕ, θ, ψ represent Euler angles as per the XYZ rotation sequence, both defined according to the North-East-Down frame convention. Here, f is the net mass-normalized force by the motors. Control inputs are chosen as u = [ ˙f, ˙ϕ, ˙θ, ˙ψ]⊤. The system dynamics are given by ˙x = [ ˙ px, ˙py , ˙pz , −f sin( θ), f cos( θ) sin( ϕ), g −
+
+f cos( θ) cos( ϕ), ˙f, ˙ϕ, ˙θ, ˙ψ]⊤, where g = 9.81 . The con-traction metric defined through ˆM and the corresponding tracking controller ˆπ are obtained for m = 0 .5, m = 25 
+
+and γ = 0.8. We deploy the controller offboard on the Crazyflie at 100Hz, with Qualisys motion capture feeding pose estimates onto Crazyflie’s internal EKF. We remark that the controller ˆπ requires only a single forward pass to compute control input, and hence can even be deployed onboard the Crazyflie firmware. At each sampling instant, throttle and angle setpoints computed from ˆπ are passed onto the low-level built-in PID controller onboard the Crazyflie firmware. First, thrust and angle setpoints [fc, ϕ c, θ c] are obtained by integrating over the control input. The respective throttle command τc is computed using fc via an itera-tive proportional feedback update on the previous throttle value [39], which allows us to bypass the complex thrust to throttle mapping. The gain of this thrust controller is set to 
+
+Kp = 400 . The low-level controller, which is assumed to run at a higher rate, takes in throttle and angle setpoints and computes the downstream motor PWM commands. We consider the problem of collision-free motion planning for the Crazyflie drone over a time period of 7.5 seconds      
+
+> Fig. 3: Left: Closed-loop realizations of the Crazyflie drone using our approach. The 3D confidence set B1−δ(ˆ xk, η (δ)2M−1)for the positions is shown in green. Right: One iteration of Crazyflie trajectory in the cluttered environment.
+
+in a test arena cluttered with obstacles. We set the failure probability level to δ = p = 0 .1 and R = 0 .01 · I. The obstacles are posed as cylindrical bodies for formulating the optimization problem, as shown in Figure 3. The yaw remains uncontrolled in our experiments. To construct the disturbance dataset Dw, sampling from the unknown test distribution, that is, by collecting the flight data over the time horizon for K ≥ ⌈ (1 − p)( K + 1) ⌉ runs, is not practical and generalizable. Instead, we consider a Gaussian MLE estimate of the non-gaussian process noise, calculated using the formula wk = xk+1 − fDT (xk, u k) from arbitrary trial runs of the Crazyflie drone, and sample from it to generate the calibration dataset Dw with K = 20 . Here fDT denotes the discretized dynamics similar to that in Section V-A with 
+
+D = I. We confirm that the MLE estimate is approximately zero mean. Setting ∆t = 0 .01 seconds, λ = 0 .14 and using approach from Sections III and IV, we get η(δ) = 0 .08 . We solve Problem 2 by warm starting solver with a sample state trajectory in the obstacle free region, and deploy the control policy uk = ˆ π(xk, x ∗
+
+> k
+
+, u ∗
+
+> k
+
+) over the time horizon. We run the tracking policy for 15 iterations, as shown in Figure 3. We observe that the drone stays within the defined confidence sets throughout the time horizon in all iterations, which implies that it achieves the prescribed chance constraint. VI. C ONCLUSION 
+
+In this work, we proposed a novel method for chance-constrained trajectory optimization and control for nonlinear systems subject to non-Gaussian stochastic uncertainty. It quantifies distribution mismatch and system contraction via finite samples of the uncertainty with minimal distributional and structural assumptions. Using conformal prediction and contraction theory, we established formal guarantees for chance-constraint tightening, enabling deterministic planning with rigorous performance assurances. For example, our approach can ensure safety under non-Gaussian uncertainty even when learned representations of contraction metrics are employed, thereby bridging the gap in providing strict guar-antees for learning-based motion planning. We validated our approach with both simulation and hardware experiments, showing that it achieves the posed chance constraints up to the desired probability level, without being too conservative. REFERENCES [1] A. Pr´ ekopa, Stochastic Programming , 1st ed., ser. Mathematics and Its Applications. Springer Dordrecht, 1995, vol. 324. [2] K. Okamoto, M. Goldshtein, and P. Tsiotras, “Optimal covariance control for stochastic systems under chance constraints,” IEEE Control Systems Letters , vol. 2, no. 2, pp. 266–271, 2018. [3] L. Blackmore, M. Ono, and B. C. Williams, “Chance-constrained optimal path planning with obstacles,” IEEE Transactions on Robotics ,vol. 27, no. 6, pp. 1080–1094, 2011. [4] G. C. Calafiore and L. E. Ghaoui, “On Distributionally Robust Chance-Constrained Linear Programs,” Journal of Optimization Theory and Applications , vol. 130, pp. 1––22, 2006. [5] A. Dixit, M. Ahmadi, and J. W. Burdick, “Distributionally robust model predictive control with total variation distance,” IEEE Control Systems Letters , vol. 6, pp. 3325–3330, 2022. [6] J. Coulson, J. Lygeros, and F. D¨ orfler, “Distributionally robust chance constrained data-enabled predictive control,” IEEE Transactions on Automatic Control , vol. 67, no. 7, pp. 3289–3304, 2021. [7] T. Lew, R. Bonalli, and M. Pavone, “Chance-Constrained Sequential Convex Programming for Robust Trajectory Optimization,” in IEEE European Control Conference (ECC) , 2020. [8] L. Hewing, J. Kabzan, and M. N. Zeilinger, “Cautious model predictive control using gaussian process regression,” IEEE Transactions on Control Systems Technology , vol. 28, no. 6, p. 2736–2743, 2019. [9] Y. K. Nakka and S.-J. Chung, “Trajectory optimization of chance-constrained nonlinear stochastic systems for motion planning under uncertainty,” IEEE Transactions on Robotics , vol. 39, no. 1, pp. 203– 222, 2022. [10] C. E. Rasmussen and C. K. I. Williams, Gaussian Processes for Machine Learning . The MIT Press, 11 2005. [11] D. Sun, M. J. Khojasteh, S. Shekhar, and C. Fan, “Uncertainty-aware safe exploratory planning using Gaussian process and neural control contraction metric,” arXiv:2105.06567, 2021. [12] G. Calafiore and M. C. Campi, “Uncertain convex programs: Random-ized solutions and confidence levels,” Mathematical Programming ,vol. 102, p. 25–46, 2005. [13] G. Schildbach, L. Fagiano, C. Frei, and M. Morari, “The scenario approach for stochastic model predictive control with bounds on closed-loop constraint violations,” Automatica , vol. 50, no. 12, p. 3009–3018, 2014. [14] A. Hakobyan, G. C. Kim, and I. Yang, “Risk-aware motion planning and control using CVaR-constrained optimization,” IEEE Robotics and Automation Letters , vol. 4, no. 4, pp. 3924–3931, 2019. [15] V. Vovk, A. Gammerman, and C. Saunders, “Machine-learning appli-cations of algorithmic randomness,” in 16th Int. Conf. Mach. Learn. ,1999, p. 444–453. [16] V. Vovk, A. Gammerman, and G. Shafer, Algorithmic Learning in a Random World . Springer, 2022. [17] R. F. Barber, E. J. Cand´ es, A. Ramdas, and R. J. Tibshirani, “Confor-mal prediction beyond exchangeability,” arXiv:2202.13415, 2023. [18] Y. Zhao, X. Yu, M. Sesia, J. V. Deshmukh, and L. Lindemann, “Conformal Predictive Programming for Chance Constrained Opti-mization,” arXiv:2402.07407, 2025. [19] L. Lindemann, Y. Zhao, X. Yu, G. J. Pappas, and J. V. Desh-mukh, “Formal Verification and Control with Conformal Prediction,” arXiv:2409.00536, 2024. [20] L. Lindemann, M. Cleaveland, G. Shim, and G. J. Pappas, “Safe planning in dynamic environments using conformal prediction,” IEEE Robot. Automat. Lett. , vol. 8, no. 8, pp. 5116–5123, 2023. [21] A. Dixit, L. Lindemann, S. X. Wei, M. Cleaveland, G. J. Pappas, and J. W. Burdick, “Adaptive conformal prediction for motion planning among dynamic agents,” in Proc. PMLR L4DC , 2023, pp. 300–314. [22] K. Y. Chee, T. C. Silva, M. A. Hsieh, and G. J. Pappas, “Uncertainty quantification and robustification of model-based controllers using conformal prediction,” in Proc. PMLR L4DC , 2024, pp. 528–540. [23] K. Y. Chee, M. A. Hsieh, and G. J. Pappas, “Uncertainty quantification for learning-based mpc using weighted conformal prediction,” in IEEE Conference on Decision and Control (CDC) , 2023, pp. 342–349. [24] H. Zhou, Y. Zhang, and W. Luo, “Safety-critical control with uncer-tainty quantification using adaptive conformal prediction,” in American Control Conference (ACC) , 2024, pp. 574–580. [25] J. Sun, Y. Jiang, J. Qiu, P. Nobel, M. J. Kochenderfer, and M. Schwa-ger, “Conformal prediction for uncertainty-aware planning with diffu-sion dynamics model,” in NeurIPS , vol. 36, 2023, pp. 80 324–80 337. [26] S. Yang, G. J. Pappas, R. Mangharam, and L. Lindemann, “Safe perception-based control under stochastic sensor uncertainty using conformal prediction,” in IEEE Conference on Decision and Control (CDC) , 2023, pp. 6072–6078. [27] E. E. Vlahakis, L. Lindemann, P. Sopasakis, and D. V. Dimarogo-nas, “Conformal prediction for distribution-free optimal control of linear stochastic systems,” IEEE Control Systems Letters , vol. 8, p. 2835–2840, 2024. [28] T.-W. Hsu and H. Tsukamoto, “Statistical guarantees in data-driven nonlinear control: Conformal robustness for stability and safety,” IEEE Control Systems Letters , vol. 9, p. 997–1002, 2025. [29] S. Wei, M. Ornik, and H. Tsukamoto, “Conformal contraction for robust nonlinear control with distribution-free uncertainty quantification,” IEEE Conference on Decision and Control preprint arXiv:2507.13613 , Dec. 2025. [Online]. Available: https://arxiv.org/ pdf/2507.13613 [30] C. Knuth, G. Chou, J. Reese, and J. Moore, “Statistical Safety and Robustness Guarantees for Feedback Motion Planning of Unknown Underactuated Stochastic Systems,” IEEE International Conference on Robotics and Automation (ICRA) , 2023. [31] J. K¨ ohler and M. N. Zeilinger, “Predictive control for nonlinear stochastic systems: Closed-loop guarantees with unbounded noise,” 
+
+IEEE Transactions on Automatic Control , pp. 1–16, 2025. [32] J.-J. E. Slotine and W. Lohmiller, “On contraction analysis for non-linear systems,” Automatica , vol. 34, no. 6, p. 683–696, 1998. [33] I. R. Manchester and J.-J. E. Slotine, “Control contraction metrics: Convex and intrinsic criteria for nonlinear feedback design,” IEEE Trans. Autom. Control , vol. 62, no. 6, pp. 3046–3053, Jun. 2017. [34] S. Singh, A. Majumdar, J.-J. E. Slotine, and M. Pavone, “Robust online motion planning via contraction theory and convex optimization,” in 
+
+IEEE International Conference on Robotics and Automation (ICRA) ,2017, pp. 5883–5890. [35] B. T. Lopez, J.-J. E. Slotine, and J. P. How, “Dynamic tube MPC for nonlinear systems,” in Proc. Amer. Control Conf. , 2019, pp. 1655– 1662. [36] A. Lakshmanan, A. Gahlawat, and N. Hovakimyan, “Safe feedback motion planning: A contraction theory and L1-adaptive control based approach,” in IEEE CDC , 2020, pp. 1578–1583. [37] H. Tsukamoto, S.-J. Chung, and J.-J. E. Slotine, “Contraction theory for nonlinear stability analysis and learning-based control: A tutorial overview,” Annual Reviews in Control , vol. 52, p. 1–14, 2021. [Online]. Available: https://arxiv.org/abs/2110.00675 [38] R. M. Lai Wei and J. Bao, “Discrete-time contraction-based control of nonlinear systems with parametric uncertainties using neural net-works,” arXiv:2105.05432, May 2021. [39] S. Singh, B. Landry, A. Majumdar, J.-J. Slotine, and M. Pavone, “Ro-bust feedback motion planning via contraction theory,” International Journal of Robotics Research , vol. 42, no. 9, 2019. [40] H. Tsukamoto and S.-J. Chung, “Neural contraction metrics for robust estimation and control: A convex optimization approach,” IEEE Control Systems Letters , vol. 5, no. 1, p. 211–216, 2020. [41] D. Sun, S. Jha, and C. Fan, “Learning certified control using con-traction metric,” in Conference on Robot Learning , ser. Proceedings of Machine Learning Research, vol. 155. PMLR, Nov. 2021, pp. 1519–1539. [42] G. Shafer and V. Vovk, “A tutorial on conformal prediction,” Journal of Machine Learning Research , vol. 9, p. 371–421, 2008. [43] L. Hewing, K. P. Wabersich, and M. N. Zeilinger, “Recursively feasible stochastic model predictive control using indirect feedback,” 
+
+Automatica , vol. 119, 2020. [44] R. J. Tibshirani, R. Foygel Barber, E. Candes, and A. Ramdas, “Conformal prediction under covariate shift,” NeurIPS , vol. 32, 2019. [45] T. Koller, F. Berkenkamp, M. Turchetta, and A. Krause, “Learning-based model predictive control for safe exploration,” in Proceedings of the IEEE Conference on Decision and Control (CDC) , 2018. [46] J. A. E. Andersson, J. Gillis, G. Horn, J. B. Rawlings, and M. Diehl, “CasADi: A software framework for nonlinear optimization and op-timal control,” Mathematical Programming Computation , vol. 11, p. 1–36, 2019. [47] A. W¨ achter and L. T. Biegler, “On the implementation of an interior-point filter line-search algorithm for large-scale nonlinear program-ming,” Mathematical Programming , vol. 106, no. 1, p. 25–57, 2006.

@@ -6,81 +6,73 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-18
-- 运行时间：2026-03-18 19:39:16 UTC
+- 最新运行日期：2026-03-19
+- 运行时间：2026-03-19 20:33:54 UTC
 - 运行状态：成功
-- 本次总论文数：20
-- 精读区：9
+- 本次总论文数：17
+- 精读区：6
 - 速读区：11
 
 ### 今日简报（AI）
-今日精选 20 篇前沿论文，重点聚焦 GPU 加速符号回归与物理定律的自动化发现。
-满
-- 详情：[/202603/18/README](/202603/18/README)
+今日聚焦物理规律识别与符号化学习，深度解析 17 篇涵盖联邦优化与随机系统的最新成果。
+满分论文通过“最小作用量学习”实现噪声环境下的物理定律精准建模，符号化方法亦在无监督异常检测中取得突破。
+推荐关注符号 AI 与物理约束的跨界融合，以及联邦学习在 LoRA 微调中的稳定性优化方案。
+- 详情：[/202603/19/README](/202603/19/README)
 
 ### 精读区论文标签
-1. [GPU-Accelerated Genetic Programming for Symbolic Regression with Beagle Framework](/202603/18/2603.12292v1-gpu-accelerated-genetic-programming-for-symbolic-regression-with-beagle-framework)  
+1. [Minimum-Action Learning: Energy-Constrained Symbolic Model Selection for Physical Law Identification from Noisy Data](/202603/19/2603.16951v1-minimum-action-learning-energy-constrained-symbolic-model-selection-for-physical-law-identification-from-noisy-data)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：用于符号回归的GPU加速遗传编程及在Feynman数据集上的基准测试
-2. [Data-driven Progressive Discovery of Physical Laws](/202603/18/2603.13727v1-data-driven-progressive-discovery-of-physical-laws)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：提出了一个利用符号回归逐步发现物理定律的框架
-3. [Bayesian Inference for Missing Physics](/202603/18/2603.14918v1-bayesian-inference-for-missing-physics)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：应用贝叶斯符号回归从神经网络中提取可解释的物理定律
-4. [EvoIQA - Explaining Image Distortions with Evolved White-Box Logic](/202603/18/2603.15887v1-evoiqa---explaining-image-distortions-with-evolved-white-box-logic)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：基于遗传规划的符号回归框架用于显式公式
-5. [Scientific Machine Learning-assisted Model Discovery from Telemetry Data](/202603/18/2603.15943v1-scientific-machine-learning-assisted-model-discovery-from-telemetry-data)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：利用从数据中发现的符号表达式增强物理方程
-6. [Calabi-Yau Metrics with Kähler Moduli Dependence](/202603/18/2603.12384v1-calabi-yau-metrics-with-khler-moduli-dependence)  
+   evidence：从噪声数据中识别物理定律的符号模型选择
+2. [Unsupervised Symbolic Anomaly Detection](/202603/19/2603.17575v1-unsupervised-symbolic-anomaly-detection)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：使用符号回归确定物理度量的系数解析形式
-7. [Calibrating Galaxy Infall Times in Groups and Clusters with IllustrisTNG Simulations](/202603/18/2603.13010v1-calibrating-galaxy-infall-times-in-groups-and-clusters-with-illustristng-simulations)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：通过符号回归推导星系落入时间的解析表达式
-8. [LawMind: A Law-Driven Paradigm for Discovering Analytical Solutions to Partial Differential Equations](/202603/18/2603.14353v1-lawmind-a-law-driven-paradigm-for-discovering-analytical-solutions-to-partial-differential-equations)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：通过结构化符号探索自主构建偏微分方程的闭式解
-9. [In-Context Symbolic Regression for Robustness-Improved Kolmogorov-Arnold Networks](/202603/18/2603.15250v1-in-context-symbolic-regression-for-robustness-improved-kolmogorov-arnold-networks)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：研究用于Kolmogorov-Arnold网络的上下文符号回归
+   evidence：基于符号回归的无监督异常检测，学习人类可读的方程
+3. [Adaptive Methods Are Preferable in High Privacy Settings: An SDE Perspective](/202603/19/2603.03226v1-adaptive-methods-are-preferable-in-high-privacy-settings-an-sde-perspective)  
+   标签：评分：8.0/10、query:opt-lm
+   evidence：基于随机微分方程的私有自适应优化器（如DP-SignSGD）分析
+4. [Swimming Under Constraints: A Safe Reinforcement Learning Framework for Quadrupedal Bio-Inspired Propulsion](/202603/19/2603.04073v1-swimming-under-constraints-a-safe-reinforcement-learning-framework-for-quadrupedal-bio-inspired-propulsion)  
+   标签：评分：8.0/10、query:opt-lm
+   evidence：强化学习中通过拉格朗日乘子解决约束优化问题
+5. [Constraint-Aware Generative Re-ranking for Multi-Objective Optimization in Advertising Feeds](/202603/19/2603.04227v1-constraint-aware-generative-re-ranking-for-multi-objective-optimization-in-advertising-feeds)  
+   标签：评分：8.0/10、query:opt-lm
+   evidence：将约束优化转化为有界神经解码
+6. [Transformers Can Learn Rules They've Never Seen: Proof of Computation Beyond Interpolation](/202603/19/2603.17019v1-transformers-can-learn-rules-theyve-never-seen-proof-of-computation-beyond-interpolation)  
+   标签：评分：8.0/10、query:sr-alg
+   evidence：Transformer 输出中间符号推导以进行规则推理
 
 ### 速读区论文标签
-1. [Spectral Condition for $μ$P under Width-Depth Scaling](/202603/18/2603.00541v1-spectral-condition-for-p-under-width-depth-scaling)  
+1. [Federated Heterogeneous Language Model Optimization for Hybrid Automatic Speech Recognition](/202603/19/2603.04945v1-federated-heterogeneous-language-model-optimization-for-hybrid-automatic-speech-recognition)  
    标签：评分：8.0/10、query:opt-lm
-   evidence：基础模型参数化与缩放的谱框架
-2. [Curvature-Weighted Capacity Allocation: A Minimum Description Length Framework for Layer-Adaptive Large Language Model Optimization](/202603/18/2603.00910v1-curvature-weighted-capacity-allocation-a-minimum-description-length-framework-for-layer-adaptive-large-language-model-optimization)  
+   evidence：联邦学习环境下的语言模型优化
+2. [Statistical Contraction for Chance-Constrained Trajectory Optimization of Non-Gaussian Stochastic Systems](/202603/19/2603.07092v1-statistical-contraction-for-chance-constrained-trajectory-optimization-of-non-gaussian-stochastic-systems)  
    标签：评分：8.0/10、query:opt-lm
-   evidence：硬件约束下大语言模型层自适应优化的原则性机制
-3. [Harmonizing Dense and Sparse Signals in Multi-turn RL: Dual-Horizon Credit Assignment for Industrial Sales Agents](/202603/18/2603.01481v1-harmonizing-dense-and-sparse-signals-in-multi-turn-rl-dual-horizon-credit-assignment-for-industrial-sales-agents)  
+   evidence：机会约束轨迹优化
+3. [Stabilized Fine-Tuning with LoRA in Federated Learning: Mitigating the Side Effect of Client Size and Rank via the Scaling Factor](/202603/19/2603.08058v1-stabilized-fine-tuning-with-lora-in-federated-learning-mitigating-the-side-effect-of-client-size-and-rank-via-the-scaling-factor)  
    标签：评分：8.0/10、query:opt-lm
-   evidence：利用强化学习优化大语言模型
-4. [ShipTraj-R1: Reinforcing Ship Trajectory Prediction in Large Language Models via Group Relative Policy Optimization](/202603/18/2603.02939v1-shiptraj-r1-reinforcing-ship-trajectory-prediction-in-large-language-models-via-group-relative-policy-optimization)  
+   evidence：联邦学习中稳定LoRA微调的缩放因子
+4. [Deterministic Differentiable Structured Pruning for Large Language Models](/202603/19/2603.08065v1-deterministic-differentiable-structured-pruning-for-large-language-models)  
    标签：评分：8.0/10、query:opt-lm
-   evidence：用于LLM训练的分组相对策略优化
-5. [Disentangling Dynamical Systems: Causal Representation Learning Meets Local Sparse Attention](/202603/18/2603.14483v1-disentangling-dynamical-systems-causal-representation-learning-meets-local-sparse-attention)  
+   evidence：离散l0稀疏约束的确定性软代理
+5. [Constructing a Portfolio Optimization Benchmark Framework for Evaluating Large Language Models](/202603/19/2603.09301v1-constructing-a-portfolio-optimization-benchmark-framework-for-evaluating-large-language-models)  
+   标签：评分：8.0/10、query:opt-lm
+   evidence：评估大语言模型优化问题的基准
+6. [Faster Stochastic ADMM for Nonsmooth Composite Convex Optimization in Hilbert Space](/202603/19/2603.09447v1-faster-stochastic-admm-for-nonsmooth-composite-convex-optimization-in-hilbert-space)  
+   标签：评分：8.0/10、query:opt-lm
+   evidence：复合凸优化中随机ADMM的收敛速度研究
+7. [Mousse: Rectifying the Geometry of Muon with Curvature-Aware Preconditioning](/202603/19/2603.09697v1-mousse-rectifying-the-geometry-of-muon-with-curvature-aware-preconditioning)  
+   标签：评分：8.0/10、query:opt-lm
+   evidence：深度神经网络训练中的谱优化与预处理
+8. [Large Spikes in Stochastic Gradient Descent: A Large-Deviations View](/202603/19/2603.10079v1-large-spikes-in-stochastic-gradient-descent-a-large-deviations-view)  
+   标签：评分：8.0/10、query:opt-lm
+   evidence：利用大偏差理论对 SGD 训练中弹射阶段进行定量分析
+9. [Genetic Algorithms in Regression](/202603/19/2603.14801v2-genetic-algorithms-in-regression)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：在没有预定义函数库的情况下从数据中识别物理系统
-6. [Beyond Monolithic Models: Symbolic Seams for Composable Neuro-Symbolic Architectures](/202603/18/2603.15087v1-beyond-monolithic-models-symbolic-seams-for-composable-neuro-symbolic-architectures)  
+   evidence：用于回归和变量选择中离散优化的遗传算法
+10. [Dicovering the emergent nonlinear dynamics of acoustically levitated cube clusters](/202603/19/2603.15894v1-dicovering-the-emergent-nonlinear-dynamics-of-acoustically-levitated-cube-clusters)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：神经符号架构的符号接缝与可检查的边界对象
-7. [Scalable Simulation-Based Model Inference with Test-Time Complexity Control](/202603/18/2603.15292v1-scalable-simulation-based-model-inference-with-test-time-complexity-control)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：测试时复杂度控制与离散模型结构推断
-8. [pADAM: A Plug-and-Play All-in-One Diffusion Architecture for Multi-Physics Learning](/202603/18/2603.16757v1-padam-a-plug-and-play-all-in-one-diffusion-architecture-for-multi-physics-learning)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：跨偏微分方程族的统一生成框架，用于多物理场学习和逆向推理
-9. [Delta1 with LLM: symbolic and neural integration for credible and explainable reasoning](/202603/18/2603.12953v1-delta1-with-llm-symbolic-and-neural-integration-for-credible-and-explainable-reasoning)  
+   evidence：数据驱动的物理动力学和运动方程发现
+11. [Adaptive Active Learning for Regression via Reinforcement Learning](/202603/19/2603.10435v1-adaptive-active-learning-for-regression-via-reinforcement-learning)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：用于可解释推理和定理生成的符号与神经集成
-10. [From Specification to Architecture: A Theory Compiler for Knowledge-Guided Machine Learning](/202603/18/2603.14369v1-from-specification-to-architecture-a-theory-compiler-for-knowledge-guided-machine-learning)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：自动生成受领域理论约束的架构，确保一致性
-11. [Genetic Algorithms in Regression](/202603/18/2603.14801v1-genetic-algorithms-in-regression)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于回归问题中离散优化的遗传算法包
+   evidence：强化学习用于回归任务中的自适应平衡
 
 
 <div class="dpr-home-promo-card">
