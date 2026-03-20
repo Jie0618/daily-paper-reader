@@ -1,0 +1,589 @@
+Title: Koopman Lifted Finite Memory Identification via Truncated Grunwald Letnikov Kernels
+
+URL Source: https://arxiv.org/pdf/2603.16851v1
+
+Published Time: Wed, 18 Mar 2026 01:42:56 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Koopman-Lifted Finite-Memory Identification via Truncated Gr ¨ unwald–Letnikov Kernels 
+
+Navid Mojahed 1∗, Mahdis Rabbani 1∗, and Shima Nazari 1
+
+Abstract — We propose a data-driven linear modeling frame-work for controlled nonlinear hereditary systems that combines Koopman lifting with a truncated Gr ¨ unwald–Letnikov memory term. The key idea is to model nonlinear state dependence through a lifted observable representation while imposing his-tory dependence directly in the lifted coordinates through fixed fractional-difference weights. This preserves linearity in the lifted state-transition and input matrices, yielding a memory-compensated regression that can be identified from input–state data by least squares and extending standard Koopman-based identification beyond the Markovian setting. We further derive an equivalent augmented Markovian realization by stacking a finite window of lifted states, thereby rewriting the finite-memory recursion as a standard discrete–time linear state– space model. Numerical experiments on a nonlinear heredi-tary benchmark with a non-Gr ¨ unwald–Letnikov Prony-series ground-truth kernel demonstrate improved multi-step open-loop prediction accuracy relative to memoryless Koopman and non-lifted state-space baselines. 
+
+I. I NTRODUCTION 
+
+Many engineering systems exhibit hereditary dynamics, in which the present state depends not only on the current state and control input, but also on past values. Such behavior appears in a broad range of applications, including dielectric phenomena, viscoelastic and compliant mechanical systems, and interaction-rich robotic settings with friction, hysteresis, or relaxation effects [1]–[5]. Fractional-order models have gained significant attention as a powerful framework for describing these processes, since they capture long-memory temporal correlations that are difficult to represent accurately using low-order integer-order models [1], [2]. Although fractional-order modeling applies to both linear and nonlinear systems [6], [7], this work focuses on the non-linear setting, where hereditary effects and state-dependent nonlinearities must be addressed simultaneously. In such sys-tems, memoryless integer-order models can be inadequate, especially in long-horizon prediction and optimization-based control, where small one-step model errors can accumulate and degrade closed-loop performance [1], [2], [6], [8]. Classical simplifications for nonlinear systems, such as operating-point linearization and Taylor-series approxima-tions, are often local in nature and tend to lose accu-racy as the system moves away from the operating regime [9]. Koopman-based methods offer an alternative by lift-ing the state to a higher-dimensional space of observables and seeking an approximately linear predictor there [10],        
+
+> ∗These authors contributed equally to this work.
+> 1The authors are with the Department of Mechanical and Aerospace Engineering, University of California, Davis, CA 95616, USA.
+
+nmojahed@ucdavis.edu, 
+
+[11]. Through data-driven identification procedures such as DMD/EDMD [12]–[14], these methods have attracted in-creasing attention for nonlinear prediction and control. However, standard Koopman identification pipelines are typically formulated as one-step Markovian predictors in the lifted space [8], which can lead to substantial plant– model mismatch when applied to hereditary or fractional-order systems. Some recent works combine Koopman-based plant representations with fractional-order controllers [15]– [17]. While such approaches can be effective in practice, they do not directly address the identification of a lifted predictor for a plant whose dynamics are themselves in-trinsically hereditary. This motivates the study of Koopman identification for genuinely fractional-order dynamics. Several recent directions have begun to relax the purely Markovian viewpoint in Koopman modeling. One line of work uses delay or history augmentation to obtain approxi-mately Markovian representations in expanded coordinates [18]–[20]. Another incorporates memory directly into the evolution model, as in dynamic mode decomposition with memory and related fractional variants [21]. More recent de-velopments include explicit non-Markovian closures inspired by Mori–Zwanzig theory and latent memory corrections [22], [23], as well as operator-theoretic settings defined on trajectories or signals rather than instantaneous states [24]. Despite these advances, the problem of learning a structured, control-friendly lifted predictor for intrinsically hereditary dynamics remains largely open. Although these directions are notable, they do not fully resolve the identification problem considered here: learning a structured, control-friendly lifted predictor for a plant whose dynamics are intrinsically non-Markovian. This paper adopts that hereditary viewpoint explicitly. Rather than starting from a memoryless plant and enriching the observable space with delays, we assume from the outset that the plant is history-dependent. Koopman lifting is used to capture nonlinear state dependence, while memory is modeled directly in the lifted coordinates through a trun-cated Gr¨ unwald–Letnikov (GL) representation. Because GL discretizations express fractional differintegrals as weighted sums of past samples, they induce a structured convolu-tional memory form that is compatible with finite-memory approximation, lifted regression, and history stacking [6], [25]. This yields a finite-memory lifted predictor that can be rewritten, by stacking a finite window of lifted states, as a standard one-step model on an augmented state. In this way, the proposed framework connects Koopman-based learning with finite-memory hereditary approximation while 
+
+> arXiv:2603.16851v1 [eess.SY] 17 Mar 2026
+
+remaining compatible with data-driven prediction and control [6], [26]. The main contributions of this paper are as follows: 1) We propose a Koopman-compatible finite-memory modeling framework for nonlinear hereditary systems, in which memory is modeled explicitly in lifted coor-dinates through a truncated Gr¨ unwald–Letnikov term rather than being ignored under a Markovian lifted predictor. 2) We derive a memory-compensated identification re-formulation that remains linear in the lifted state-transition and input matrices, enabling least-squares learning of the finite-memory lifted model directly from input–state data. 3) We derive an exact augmented Markovian realization by stacking a finite lifted history, thereby convert-ing the non-Markovian finite-memory recursion into a standard one-step state-space model. 4) We quantify the effect of finite-memory approximation through bounds on kernel mismatch and neglected memory tail, and validate the overall framework on a nonlinear hereditary benchmark with a non-GL ground-truth kernel. II. P ROBLEM STATEMENT & B ACKGROUND 
+
+We consider a discrete-time nonlinear hereditary system of the form 
+
+xk+1 = f (xk, u k) + 
+
+> Jref
+
+X
+
+> j=1
+
+hj g(xk+1 −j ) + ηk, k ∈ N, (1) where xk ∈ Rn and uk ∈ Rm denote the state and control input, respectively, f : Rn × Rm → Rn represents the instantaneous state-update map, g : Rn → Rn describes the contribution of past states to the current evolution, 
+
+{hj }Jref  
+
+> j=1
+
+⊂ R defines the memory kernel given a memory length Jref ∈ N, and ηk ∈ Rn collects exogenous distur-bances and model mismatch. Unlike a Markovian system, the evolution in (1) depends not only on the current state and input, but also on the history of past states through the convolution term. To obtain a linear predictor in lifted coordinates of the nonlinear dynamics in (1), we adopt a finite-dimensional Koopman lifting in the spirit of EDMD/EDMDc [13]. Specif-ically, we define the lifted state as 
+
+zk := ψ(xk) ∈ Rp, (2) where the vector-valued observable map ψ(·) is chosen as 
+
+ψ(x) = 
+
+
+
+1
+
+xϕ(x)
+
+ , ϕ : Rn → Rpϕ , p = 1 + n + pϕ. (3) Here, ϕ(x) denotes a user-chosen collection of nonlinear observable functions of the state, used to enrich the lifted representation beyond constant and linear terms. With this construction, the original state remains an exact linear read-out of the lifted coordinates: 
+
+xk = Cz k, C := 0 In 0pϕ
+
+ ∈ Rn×p. (4) In standard EDMDc, one seeks lifted state-transition ma-trix ¯A ∈ Rp×p and lifted input matrix ¯B ∈ Rp×m such that the lifted dynamics are approximated by the Markovian predictor 
+
+zk+1 = ¯Az k + ¯Bu k + rk, (5) where rk ∈ Rp captures finite-dimensional closure error and other unmodeled effects. The matrices ( ¯A, ¯B) are typically identified from snapshot data through a least-squares regres-sion on lifted state-input pairs. Model (5), however, remains Markovian in the lifted coordinates and therefore does not explicitly account for the hereditary effects in (1). This motivates the memory-augmented lifted model developed next. III. K OOPMAN –GL F INITE -M EMORY IDENTIFICATION 
+
+To address this limitation while preserving a regression form in the lifted state-transition and input matrices, we in-troduce a finite-memory Gr¨ unwald–Letnikov (GL) correction in the lifted coordinates. For a fractional order α ∈ (0 , 1) , the discrete-time GL fractional difference of a lifted sequence {zk} is defined as [6], [27] 
+
+(∆ αz)k+1 := 
+
+> k+1
+
+X
+
+> j=0
+
+wj (α) zk+1 −j , (6) where the GL coefficients are given by 
+
+wj (α) = ( −1) j
+
+αj
+
+
+
+, j ≥ 0, (7) with w0(α) = 1 , and satisfy the recursion 
+
+wj (α) = − wj−1(α) α − (j − 1) 
+
+j , j ≥ 1. (8) Any known constant scaling, such as ∆t−α in a fractional-derivative discretization, can be absorbed into the coefficients 
+
+wj (α).Given a truncated memory length N ∈ N , N ≤ Jref ,a fractional order α ∈ (0 , 1) , and an initial lifted history 
+
+{z0, z 1, . . . , z N −1}, we propose the finite-memory lifted model 
+
+zk+1 = ¯Az k + ¯Bu k −
+
+> N
+
+X
+
+> j=1
+
+wj (α) zk+1 −j + dk, k ≥ N − 1,
+
+(9) where dk ∈ Rp collects the residual effects not captured by the imposed finite-memory GL structure, including finite-dimensional Koopman closure error, finite-memory trunca-tion error, and possible mismatch between the true hereditary kernel and the adopted GL kernel. Model (9) may therefore be viewed as a structured hered-itary correction of the Markovian lifted predictor (5): the matrices ( ¯A, ¯B) capture the instantaneous lifted dynamics, while the GL convolution term accounts for memory effects through a finite history of lifted states. A. Memory-Compensated Regression 
+
+Suppose a sequence of lifted snapshots and inputs is available over a data horizon T , together with the initial lifted history {z0, . . . , z N −1}, and let the memory length satisfy N < T . For each k = N − 1, . . . , T − 1, define the memory-compensated target 
+
+yk := zk+1 +
+
+> N
+
+X
+
+> j=1
+
+wj (α) zk+1 −j ∈ Rp. (10) Substituting (9) into (10) yields 
+
+yk = ¯Az k + ¯Bu k + dk. (11) Thus, after moving the known GL memory term to the left-hand side, the hereditary lifted dynamics reduce to a linear regression in the current lifted state and input. For identification, stack the data as 
+
+Y = yN −1 · · · yT −1
+
+ , Z = zN −1 · · · zT −1
+
+ ,
+
+U = uN −1 · · · uT −1
+
+ , D = dN −1 · · · dT −1
+
+ .
+
+Then (11) can be written compactly as 
+
+Y = Θ ⋆Ω+ D, Ω := 
+
+ZU
+
+
+
+, Θ⋆ :=  ¯A ¯B . (12) Given (12), identification of the lifted state-transition and input matrices reduces to the least-squares problem 
+
+ˆΘ ∈ arg min  
+
+> Θ
+
+∥Y − ΘΩ ∥2 
+
+> F
+
+. (13) Under a standard excitation condition, namely that Ω has full row rank, problem (13) admits a unique least-squares minimizer with the usual closed-form expression 
+
+ˆΘ = YΩ† = YΩ⊤(ΩΩ ⊤)−1.
+
+The following result characterizes the resulting identification error in terms of the aggregate disturbance matrix D.
+
+Theorem 1 (Identification error bound): Suppose Ω has full row rank and satisfies ΩΩ ⊤ ⪰ μI p+m for some μ > 0.If the stacked regression satisfies (12), then the least-squares estimator ˆΘ = YΩ† obeys 
+
+ˆΘ − Θ⋆ = DΩ†, (14) and therefore 
+
+∥ ˆΘ − Θ⋆∥F ≤ ∥ D∥F ∥Ω†∥2 ≤ ∥D∥F
+
+√μ . (15) 
+
+Proof: Since Ω has full row rank, the least-squares minimizer is uniquely given by ˆΘ = YΩ†. Substituting (12) yields 
+
+ˆΘ = (Θ ⋆Ω + D)Ω † = Θ ⋆(ΩΩ †) + DΩ†.
+
+Because Ω has full row rank, ΩΩ † = I, which proves (14). Taking Frobenius norms and using submultiplicativity gives 
+
+∥ ˆΘ − Θ⋆∥F ≤ ∥ D∥F ∥Ω†∥2.
+
+Finally, ΩΩ ⊤ ⪰ μI implies σmin (Ω) ≥ √μ and hence 
+
+∥Ω†∥2 = 1
+
+σmin (Ω) ≤ 1
+
+√μ ,
+
+which proves (15). It is noteworthy that in practice, the stacked quantities are formed from measured lifted snapshots ˜zk = ψ(˜ xk);accordingly, the targets are computed as 
+
+˜yk := ˜ zk+1 +
+
+> N
+
+X
+
+> j=1
+
+wj (α)˜ zk+1 −j ,
+
+and the resulting lifting and measurement effects are ab-sorbed into the disturbance term D.IV. F INITE -M EMORY APPROXIMATION ERROR 
+
+Theorem 1 shows that the identification error is controlled by the aggregate disturbance matrix D. We now make one important component of this disturbance explicit, namely the approximation error induced by replacing an infinite-memory kernel with the truncated GL kernel used in (9). The main contribution of this section is an explicit decomposition of this error into a retained-lag kernel-mismatch term and a neglected-tail term, followed by bounds that reveal how the approximation depends on the memory length N and the fractional order α.To expose this approximation error, consider the reference lifted model 
+
+zk+1 = ¯Az k + ¯Bu k −
+
+> k+1
+
+X
+
+> j=1
+
+c⋆j zk+1 −j + ξk, k ≥ 0, (16) where {c⋆j }j≥1 is a scalar reference memory kernel shared across the lifted coordinates, and ξk ∈ Rp collects exoge-nous disturbances and residual lifted-model mismatch. The proposed predictor (9) approximates the reference kernel 
+
+{c⋆j }j≥1 by a truncated GL kernel, i.e., by taking wj (α) for 
+
+j = 1 , . . . , N and neglecting all lags beyond N . Comparing (16) with (9) gives, for all k ≥ N − 1,
+
+dk =
+
+> N
+
+X
+
+> j=1
+
+ wj (α)−c⋆j
+
+ zk+1 −j −
+
+> k+1
+
+X 
+
+> j=N+1
+
+c⋆j zk+1 −j +ξk. (17) Thus, the additive disturbance consists of three contributions: (i) a kernel-mismatch term over the retained lags j =1, . . . , N , (ii) a tail term due to neglecting lags beyond N ,and (iii) the residual term ξk.This decomposition is particularly relevant for the numer-ical experiments in Section VI, where the reference kernel is chosen from a non-GL family (Prony series). In that case, the retained-lag mismatch term in (17) generally does not vanish, even if the GL surrogate yields good predictive performance. Define 
+
+εN (α; c⋆) := 
+
+> N
+
+X
+
+> j=1
+
+c⋆j − wj (α) +
+
+> ∞
+
+X 
+
+> j=N+1
+
+|c⋆j |. (18) 
+
+Theorem 2 (Finite-memory modeling error bound): 
+
+Assume ∥zk∥2 ≤ Mz for all k = 0 , . . . , T . Then, for every 
+
+k = N − 1, . . . , T − 1, the disturbance in (17) satisfies 
+
+∥dk∥2 ≤ Mz εN (α; c⋆) + ∥ξk∥2. (19) In particular, if ∥ξk∥2 ≤ ¯ξ, then 
+
+∥dk∥2 ≤ Mz εN (α; c⋆) + ¯ξ. (20) 
+
+Proof: From (17), the triangle inequality and the uniform bound ∥zℓ∥2 ≤ Mz give 
+
+∥dk∥2 ≤ MzNX
+
+> j=1
+
+wj (α) − c⋆j
+
+| {z }
+
+> retained-lag mismatch
+
++Mzk+1 X 
+
+> j=N+1
+
+|c⋆j |
+
+| {z }
+
+> neglected tail
+
++∥ξk∥2.
+
+Since Pk+1   
+
+> j=N+1
+
+|c⋆j | ≤ P∞  
+
+> j=N+1
+
+|c⋆j |, the claim immediately follows from (18). We next specialize to the GL coefficients and quantify the decay of their tail. This yields an explicit truncation rate when the reference kernel is itself GL, or when the GL tail is used as a structured surrogate for long-memory effects. 
+
+Lemma 1 (Decay and tail mass of GL coefficients): For any fixed α ∈ (0 , 1) , there exists a constant Cα > 0 such that 
+
+|wj (α)| ≤ Cα j−(1+ α), ∀j ≥ 1. (21) Consequently, the GL tail mass δN (α) satisfies 
+
+δN (α) := 
+
+> ∞
+
+X 
+
+> j=N+1
+
+|wj (α)| ≤ Cα
+
+α N −α.
+
+Proof: The result follows from standard asymptotic properties of the generalized binomial coefficients defin-ing the GL weights. In particular, the coefficients admit a Gamma-function representation, from which one obtains the polynomial decay 
+
+|wj (α)| = O
+
+
+
+j−(1+ α)
+
+.
+
+The bound on the tail mass then follows by summing this decay estimate over j ≥ N + 1 and applying a comparison with the corresponding improper integral. The full derivation is omitted due to space constraints. 
+
+Corollary 1 (Pure truncation bound for exact GL kernel): 
+
+Suppose the reference kernel in (16) is exactly GL, i.e., 
+
+c⋆j = wj (α), ∀j ≥ 1.
+
+Then the retained-lag mismatch term in (17) vanishes, and for all k = N − 1, . . . , T − 1,
+
+∥dk∥2 ≤ Mz δN (α) + ∥ξk∥2. (22) In particular, Lemma 1 implies 
+
+∥dk∥2 ≤ Mz
+
+Cα
+
+α N −α + ∥ξk∥2. (23) 
+
+Proof: If c⋆j = wj (α) for all j ≥ 1, then (18) reduces to 
+
+εN (α; c⋆) = 
+
+> ∞
+
+X 
+
+> j=N+1
+
+|wj (α)| = δN (α).
+
+The result follows immediately from Theorem 2 and Lemma 1. V. E QUIVALENT AUGMENTED MARKOVIAN 
+
+REALIZATION 
+
+The identified Koopman–GL model (9) is finite-memory and therefore non-Markovian, i.e., the update of the next lifted state depends on the current lifted state, the current input, and a finite history of past lifted states. To enable the use of standard one-step state-space tools for analysis and control design, we now derive an equivalent Markovian realization by augmenting the lifted state with an N -sample history stack. This exact augmentation constitutes the second main contribution of the paper. Starting from the finite-memory lifted model (9), define the augmented lifted state and disturbance as 
+
+zaug  
+
+> k
+
+:= 
+
+
+
+zk
+
+zk−1
+
+...
+
+zk−N +1 
+
+ ∈ RpN , daug  
+
+> k
+
+:= 
+
+
+
+dk
+
+0
+
+...
+
+0
+
+ ∈ RpN . (24) The augmented state stores the most recent N lifted states, while all lifting, truncation, and exogenous disturbance ef-fects enter only through the first block. With this construction, the N -step recursion (9) is equiv-alently represented by the one-step Markovian system 
+
+zaug  
+
+> k+1
+
+= Aaug zaug  
+
+> k
+
++ Baug uk + daug  
+
+> k
+
+, k ≥ N − 1, (25) where the augmented matrices Aaug ∈ RpN ×pN and Baug ∈
+
+RpN ×m have the block companion form 
+
+Aaug =
+
+
+
+¯A − w1(α)Ip −w2(α)Ip · · · −wN (α)Ip
+
+Ip 0 · · · 00 Ip
+
+. . . ...... . . . . . . 00 · · · Ip 0
+
+
+
+,Baug =
+
+
+
+¯B
+
+0
+
+...
+
+0
+
+ .
+
+(26) The GL structure enters only through the scalar coefficients 
+
+{wj (α)}Nj=1 in the first block row of Aaug . Consequently, the augmentation preserves the structured low-parameter form of the identified finite-memory model, rather than introducing a fully free matrix-valued lag representation. 
+
+Theorem 3 (Exact augmented Markovian realization): 
+
+Consider the finite-memory recursion (9) and the augmented system (25)–(26), driven by the same input sequence {uk}.If 
+
+zaug   
+
+> N−1
+
+= z⊤ 
+
+> N−1
+
+, z ⊤ 
+
+> N−2
+
+, . . . , z ⊤
+
+> 0
+
+⊤, (27) then, for all k ≥ N − 1,
+
+zaug  
+
+> k
+
+= z⊤ 
+
+> k
+
+, z ⊤
+
+> k−1
+
+, . . . , z ⊤ 
+
+> k−N+1
+
+⊤. (28) Hence, the first block of zaug  
+
+> k
+
+equals zk, and (9) is exactly equivalent to the one-step Markovian realization (25). Proof: The result follows by induction on k ≥ N − 1.The initialization (27) establishes (28) at k = N − 1.Assume that (28) holds at time k. Then the first block row of (25) gives 
+
+z(1)  
+
+> k+1
+
+=   ¯A − w1(α)Ip
+
+zk −
+
+> N
+
+X
+
+> j=2
+
+wj (α) zk+1 −j + ¯Bu k + dk,
+
+which is exactly (9). Hence, the first block of zaug  
+
+> k+1
+
+equals 
+
+zk+1 .For the remaining blocks, the lower block rows of Aaug 
+
+implement the deterministic shift 
+
+z(i) 
+
+> k+1
+
+= z(i−1)  
+
+> k
+
+, i = 2 , . . . , N. 
+
+Using the induction hypothesis, these blocks become 
+
+zk, z k−1, . . . , z k−N +2 , respectively. Hence, 
+
+zaug  
+
+> k+1
+
+= z⊤
+
+> k+1
+
+, z ⊤ 
+
+> k
+
+, . . . , z ⊤ 
+
+> k−N+2
+
+⊤,
+
+which is exactly (28) at time k + 1 . This completes the induction. VI. N UMERICAL EXPERIMENTS 
+
+We evaluate the proposed Koopman–GL framework on a controlled nonlinear hereditary benchmark. The ground-truth system is a two-dimensional nonlinear map with state 
+
+x = [ x1, x 2]⊤ and scalar input u, generated according to (1) with Jref = 400 . The instantaneous dynamics are 
+
+f1(x, u ) = 0 .90 x1 + 0 .10 sin( x2) + 0 .10 u, f2(x, u ) = 0 .85 x2 + 0 .08 cos( x1) + 0 .05 x21 + 0 .05 u, 
+
+and the hereditary contribution is defined by g(x) =[tanh( x1); 0] , so that memory acts only on the first state component. The memory kernel is chosen as the Prony series 
+
+hj = a1ρj 
+
+> 1
+
++ a2ρj
+
+> 2
+
+, j = 1 , . . . , J ref ,
+
+with (a1, a 2) = (25 , 7.5) × 10 −5 and (ρ1, ρ 2) =(0 .995 , 0.97) . We generate Ntraj trajectories of length T
+
+using randomized initial conditions and persistently exciting pseudo-random binary sequence (PRBS) inputs, then split the data into disjoint training, validation, and test sets. State measurements are corrupted by additive noise during data generation. We compare the proposed Koopman–GL model against three baselines to isolate the roles of lifting and structured memory: (i) Koopman-Markov , the standard memoryless lifted predictor (5); (ii) State-GL , a linearized finite-memory predictor in the original state space with the same GL-memory structure without lifting; and (iii) State-Markov , a linearized Markovian predictor in the original state space without lifting or memory. The state-space baselines are fit directly from data by least squares, not by local Taylor linearization. For GL-based methods, N and α are selected by grid search on the validation set, evaluated by NRMSE. 
+
+NRMSE := 
+
+q 1
+
+> H
+
+PHk=1 ∥xk − ˆxk∥22
+
+q 1
+
+> H
+
+PHk=1 ∥xk∥22
+
+,
+
+reported for both one-step prediction and multi-step open-loop rollouts on the unseen test set. The results support the proposed framework both quantita-tively and qualitatively. Fig. 1(a) reports the rollout NRMSE over a grid of memory lengths N and GL orders α. The performance improves consistently as the memory length increases, indicating that a longer retained history is ben-eficial for this benchmark. The best result is attained at 
+
+(N, α ) = (100 , 0.2) , which suggests that, although the true kernel is non-GL, a sufficiently long GL-structured memory can still provide an effective surrogate for the underlying hereditary effects. Using this best configuration, Fig. 1(b) compares the distribution of rollout errors across the unseen test set. Koopman–GL achieves the lowest median rollout NRMSE and the tightest dispersion among all compared models. Rel-ative to Koopman-Markov, this shows that adding structured memory in lifted coordinates improves predictive accuracy beyond what can be achieved by Koopman lifting alone. The substantially larger errors of State-GL and State-Markov further indicate that memory by itself is not sufficient; the best performance is obtained when structured memory is combined with lifted nonlinear representation. Fig. 1(c) provides a temporal view of this improvement by showing the mean relative error over a 100-step rollout horizon for the same best configuration (N, α ) = (100 , 0.2) .The Koopman-Markov baseline exhibits a pronounced early error growth and maintains a higher error level throughout the rollout, whereas Koopman–GL yields a smaller initial peak and a consistently lower error profile over time. This in-dicates that the GL memory term helps mitigate long-horizon drift and improves temporal robustness by compensating for hereditary effects that are not captured by a purely Markovian lifted predictor. These conclusions are consistent with the quantitative summary in Table I. Koopman–GL achieves the lowest rollout NRMSE ( 0.1070 ), improving over Koopman-Markov (0.1482 ) while remaining substantially more accurate than the non-lifted baselines, State-GL ( 0.3887 ) and State-Markov (0.9309 ). The one-step errors are also smallest for Koopman– GL, but the larger gap in rollout accuracy is especially important, since it shows that the benefit of the proposed framework is not limited to local prediction. Overall, the results show that structured GL memory in lifted coordinates improves long-horizon prediction even for non-GL hereditary dynamics. TABLE I: Open-loop prediction accuracy on the test set.           
+
+> Method NRMSE (1-step) NRMSE (rollout) Koopman–GL 0.0057 0.1070 Koopman-Markov 0.0065 0.1482 State-GL 0.0126 0.3887 State-Markov 0.0143 0.9309
+
+VII. C ONCLUSION 
+
+This paper proposed a Koopman–GL finite-memory identification framework for nonlinear hereditary systems. Fig. 1: Performance of the proposed Koopman–GL framework. (a) Rollout NRMSE as a function of N and α, with the best performance attained at (N, α ) = (100 , 0.2) . (b) Distribution of NRMSE across the unseen test set for the selected best configuration, compared with the baselines. (c) Mean relative error over the rollout horizon, with the bound from Theorem 2. The model combines Koopman lifting with a truncated Gr¨ unwald–Letnikov memory term, yielding a finite-memory predictor that remains linear in the lifted system matrices and is learnable from data via memory-compensated least squares. An exact augmented Markovian realization was also derived, converting the finite-memory recursion into a standard one-step state-space model. Theoretical analysis quantified the effect of finite-memory approximation, while numerical experiments on a nonlinear hereditary benchmark with a non-GL ground-truth kernel showed improved multi-step prediction over memoryless Koopman and state-space baselines. These results support truncated GL structure as an effective low-parameter surro-gate for hereditary effects in Koopman-based modeling. REFERENCES [1] R. L. Bagley and P. J. Torvik, “A theoretical basis for the application of fractional calculus to viscoelasticity,” Journal of Rheology , vol. 27, no. 3, pp. 201–210, 1983. [2] Y. A. Rossikhin and M. V. Shitikova, “Application of fractional calculus for dynamic problems of solid mechanics: Novel trends and recent results,” Applied Mechanics Reviews , vol. 63, no. 1, p. 010801, 2010. [3] M. Caputo, “Distributed order differential equations modelling di-electric induction and diffusion,” Fractional Calculus and Applied Analysis , vol. 4, no. 4, pp. 421–442, 2001. [4] T. Xun, P. Chen, S. Wang, Y. Pi, and Y. Luo, “A fractional order friction model,” ISA Transactions , vol. 142, pp. 550–561, Nov. 2023. [5] D. Rus and M. T. Tolley, “Design, fabrication and control of soft robots,” Nature , vol. 521, no. 7553, pp. 467–475, 2015. [6] I. Podlubny, Fractional Differential Equations: An Introduction to Fractional Derivatives, Fractional Differential Equations, to Methods of Their Solution and Some of Their Applications , ser. Mathematics in Science and Engineering. San Diego, CA: Academic Press, 1999, vol. 198. [7] D. Das, I. Taralova, J. J. Loiseau, T. Slavov, and M. Pandey, “Fre-quency domain identification of a 1-dof and 3-dof fractional-order duffing system using gr¨ unwald–letnikov characterization,” Fractal and Fractional , vol. 9, no. 9, p. 581, 2025. [8] M. Korda and I. Mezi´ c, “Linear predictors for nonlinear dynamical systems: Koopman operator meets model predictive control,” Auto-matica , vol. 93, pp. 149–160, Jul. 2018. [9] K. J. ˚ Astr¨ om and R. Murray, Feedback systems: an introduction for scientists and engineers . Princeton university press, 2021. [10] I. Mezi´ c, “Spectral properties of dynamical systems, model reduction and decompositions,” Nonlinear Dynamics , vol. 41, no. 1–3, pp. 309– 325, 2005. [11] C. W. Rowley, I. Mezi´ c, S. Bagheri, P. Schlatter, and D. S. Henningson, “Spectral analysis of nonlinear flows,” Journal of Fluid Mechanics ,vol. 641, pp. 115–127, 2009. [12] J. L. Proctor, S. L. Brunton, and J. N. Kutz, “Dynamic mode decomposition with control,” SIAM Journal on Applied Dynamical Systems , vol. 15, no. 1, pp. 142–161, 2016. [13] M. O. Williams, I. G. Kevrekidis, and C. W. Rowley, “A data–driven approximation of the Koopman operator: Extending dynamic mode decomposition,” Journal of Nonlinear Science , vol. 25, no. 6, pp. 1307–1346, 2015. [14] M. Abtahi, F. Motallebi Araghi, N. Mojahed, and S. Nazari, “Deep bilinear koopman: A data-driven model for real-time vehicle control,” 2025. [15] M. Rahmani and S. Redkar, “Deep neural data-driven koopman fractional control of a worm robot,” Expert Systems with Applications ,vol. 256, p. 124916, 2024, published online 5 December 2024. [16] X. Zhang, Y. Zhang, Q. Hu, Z. Han, Y. Yang, and X. Yu, “Koopman-based fractional predefined-time control for wearable exoskeleton system,” IEEE Transactions on Automation Science and Engineering ,2025, published online 2025. [17] N. Mojahed, H. Fatoorehchi, and S. Nazari, “Fractional calculus in optimal control and game theory: Theory, numerics, and applications – a survey,” 2025. [18] F. Takens, “Detecting strange attractors in turbulence,” in Dynamical Systems and Turbulence, Warwick 1980 , ser. Lecture Notes in Mathe-matics, D. Rand and L.-S. Young, Eds. Berlin, Heidelberg: Springer, 1981, vol. 898, pp. 366–381. [19] H. Arbabi and I. Mezi´ c, “Ergodic theory, dynamic mode decomposi-tion, and computation of spectral properties of the koopman operator,” 
+
+SIAM Journal on Applied Dynamical Systems , vol. 16, no. 4, pp. 2096– 2126, 2017. [20] S. L. Brunton, B. W. Brunton, J. L. Proctor, E. Kaiser, and J. N. Kutz, “Chaos as an intermittently forced linear system,” Nature Communications , vol. 8, no. 1, p. 19, 2017. [21] R. Anzaki, K. Sano, and T. Tsutsui, “Dynamic mode decomposition with memory,” Physical Review E , vol. 108, no. 3, p. 034216, 2023. [22] L. Catalasan and T. He, “Memory-dependent dynamic modeling of cable-driven soft robots using the mori-zwanzig koopman operator,” 
+
+Nonlinear Dynamics , vol. 114, p. 77, 2026. [23] P. Gupta, P. J. Schmid, D. Sipp, T. Sayadi, and G. Rigas, “Mori-zwanzig latent space koopman closure for nonlinear autoencoder,” arXiv preprint arXiv:2310.10745, 2025, version 3, 7 May 2025. [24] J. A. Rosenfeld, B. Russo, and X. Li, “Occupation kernel hilbert spaces for fractional order liouville operators and dynamic mode decomposition,” arXiv preprint , 2021. [25] Y. Chen, I. Petr´ aˇ s, and D. Xue, “Fractional order control—a tutorial,” in Proceedings of the American Control Conference (ACC) , St. Louis, MO, USA, Jun. 2009, pp. 1397–1411. [26] C. L. MacDonald, N. Bhattacharya, B. P. Sprouse, and G. A. Silva, “Efficient computation of the gr¨ unwald–letnikov fractional diffusion derivative using adaptive time step memory,” Journal of Computational Physics , vol. 297, pp. 221–236, 2015. [27] K. Diethelm, The Analysis of Fractional Differential Equations .Springer, 2010.

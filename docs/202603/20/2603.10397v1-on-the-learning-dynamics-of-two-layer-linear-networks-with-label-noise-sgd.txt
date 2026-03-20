@@ -1,0 +1,3134 @@
+Title: On the Learning Dynamics of Two-layer Linear Networks with Label Noise SGD
+
+URL Source: https://arxiv.org/pdf/2603.10397v1
+
+Published Time: Thu, 12 Mar 2026 00:35:34 GMT
+
+Number of Pages: 32
+
+Markdown Content:
+# On the Learning Dynamics of Two-layer Linear Networks with Label Noise SGD 
+
+Tongcheng Zhang 1∗, Zhanpeng Zhou 1∗
+
+, Mingze Wang 2, Andi Han 3,4,Wei Huang 4,5†, Taiji Suzuki 4,6, Junchi Yan 1†
+
+> 1
+
+Sch. of Computer Science and Zhiyuan College, Shanghai Jiao Tong University 
+
+> 2
+
+Peking University 3University of Sydney 
+
+> 4
+
+RIKEN Center for Advanced Intelligence Project 
+
+> 5
+
+The Institute of Statistical Mathematics 
+
+> 6
+
+The University of Tokyo {a-usually, zzp1012, yanjunchi}@sjtu.edu.cn, wei.huang.vr@riken.jp 
+
+## Abstract 
+
+One crucial factor behind the success of deep learning lies in the implicit bias induced by noise inherent in gradient-based training algorithms. Motivated by em-pirical observations that training with noisy labels improves model generalization, we delve into the underlying mechanisms behind stochastic gradient descent (SGD) with label noise. Focusing on a two-layer over-parameterized linear network, we analyze the learning dynamics of label noise SGD, unveiling a two-phase learning behavior. In Phase I , the magnitudes of model weights progressively diminish, and the model escapes the lazy regime; enters the rich regime. In Phase II , the align-ment between model weights and the ground-truth interpolator increases, and the model eventually converges. Our analysis highlights the critical role of label noise in driving the transition from the lazy to the rich regime and minimally explains its empirical success. Furthermore, we extend these insights to Sharpness-Aware Minimization (SAM), showing that the principles governing label noise SGD also apply to broader optimization algorithms. Extensive experiments, conducted under both synthetic and real-world setups, strongly support our theory. Our code is released at https://github.com/a-usually/Label-Noise-SGD. 
+
+## 1 Introduction 
+
+One central factor behind the success of modern deep learning stems from the implicit bias induced by inherent stochastic noise in gradient-based training algorithms. While clean training data is ideal, recent studies [ 1, 2 , 3 ] revealed that injecting label noise, or label smoothing during training can paradoxically improve the generalization of neural networks. Figure 1 demonstrates the observation where stochastic gradient descent (SGD) with label noise enhances model generalization capability and inherently favors sparser solutions. Wang and Jacot [4] also demonstrated that training with SGD alone jumps from the local minimum solution with only a small possibility. These phenomena challenge conventional wisdom and raise a fundamental question: 
+
+How does label noise, often undesirable in statistical learning, confer benefits in over-parameterized models? 
+
+Existing theoretical works have tried to understand the mechanisms behind SGD with noisy labels. Blanc et al. [5] , Damian et al. [3] , Li et al. [6] focused on the local geometry around the global 
+
+> ∗
+
+Equal contribution. 
+
+> †
+
+Corresponding authors. Junchi Yan is also with School of AI, Shanghai Jiao Tong University. The authors of Shanghai Jiao Tong University were partly supported by NSFC 92370201.       
+
+> arXiv:2603.10397v1 [cs.LG] 11 Mar 2026 ℒ𝒟 test  𝜽  𝑡
+> Epoch 𝑡
+> Ac c𝒟 𝑡𝑒𝑠𝑡  𝜽  𝑡
+> Epoch 𝑡
+> Test Loss Test Accuracy
+> Ac c𝒟 𝑡𝑒𝑠𝑡  𝜽  𝑇 ; 𝛼
+> Remaining params 𝛼 %
+> Pruning at Different Level
+> (a) (b) (c)
+
+Figure 1: (Left).Label noise SGD (Algorithm 1) leads to better generalization. Test loss L(θ(t)) 
+
+and accuracy Acc( θ(t)) vs. training epochs t. (Right). Label noise SGD leads to sparser solutions. 
+
+Testing accuracy of pruned model Acc( θ(T ; α)) vs. the percentage of remaining parameters α. Here, 
+
+θ(T ; α) represents the pruned model derived from the pretrained model θ(T ), with α% of parameters remaining. We use both vanilla SGD and label noise SGD to train the models, with no weight decay or momentum. The learning rate is set to 0.1, and the total number of epochs is 160 . Exponential moving average is employed to smooth the test accuracy curves. Results are presented for ResNet-18 [15 ] trained on CIFAR-10 [ 16 ], across different label noise probabilities, (τ ∈ { 0.05 , 0.1, 0.2}). As shown in figure (a) and figure (b), label noise SGD consistently outperforms vanilla SGD in both test loss and accuracy across different values of the label flipping probability τ , providing an around 
+
+1.5% improvement in test accuracy. As shown in Figure 1 (c) , models trained with label noise SGD maintain higher performance at the same sparsity level compared to those trained with vanilla SGD. minimizers selected by label noise SGD. HaoChen et al. [2] , Vivien et al. [7] analyzed the behavior of diagonal linear networks under label noise SGD. However, few attempts to study the learning dynamics of label noise SGD in a more realistic setting. 
+
+Our Contributions. In this work, we provide a theoretical analysis of the learning dynamics in a two-layer linear network trained with label noise SGD. • Theoretical analysis. In this work, we rigorously characterize the learning dynamics of a two-layer linear network where both layers are trainable by label noise SGD on a regression task. In particular, we identify two phases: • Phase I. The magnitudes of neuron weights progressively diminish, and the model escapes from the lazy regime [8]; enters the rich regime Geiger et al. [9]. • Phase II. The neurons increasingly align ground-truth interpolator, and the model becomes sparser. Refer to Table 1 for a summary. In the lazy regime, the dynamics are linear and the model achieves zero training loss with parameters hardly varying [ 10 , 11 , 12 , 13 ]. The lazy regime is often considered undesirable in practice and fails to explain the surprising generalization of neural networks [ 8]. In contrast, the rich regime, or feature learning, which draws significant attention recently, captures complex non-linear dynamics and is considered beneficial for generalization. Our analysis highlights the effect of label noise SGD in shifting dynamics from lazy to rich regime, serving as a minimalist example to explain its intriguing properties. Notably, the combination of over-parameterization and the intricate coupling between the first and second layers makes the theoretical analysis of label noise SGD far more challenging than for simpler linear models. To the best of our knowledge, our work presents the first detailed theoretical investigation of label noise SGD in networks with two or more trainable layers. • Extension. Furthermore, we explore whether the principles underlying label noise SGD apply to broader optimization algorithms. We extend our findings on label noise SGD to Sharpness-Aware Minimization (SAM) [ 14 ]. We show that SAM also fosters the transition from the lazy to rich regime and promotes sparsity in neural networks. 
+
+In summary , our work unveils a richer set of implicit bias of label noise SGD. We theoretically analyze the dynamics of SGD with label noise and carefully characterize how it transitions from lazy to rich regime. Our results offer valuable insights into the mechanisms behind the noise inherent in stochastic learning algorithms. 2Algorithm 1: Label Noise SGD [2, 3] 
+
+Input : Initial parameters θ(0) , step size η, label flipping probability τ , batch size B, steps 
+
+T . 
+
+> 1:
+
+for t = 0 to T − 1 do  
+
+> 2:
+
+Sample a batch Bt ∈ [n]B uniformly.  
+
+> 3:
+
+for each i ∈ B t do  
+
+> 4:
+
+Sample u ∼ Uniform(0 , 1) . 
+
+> 5:
+
+if u < τ then  
+
+> 6:
+
+˜yi = sample from [c]\{ yi}. 
+
+> 7:
+
+else  
+
+> 8:
+
+˜yi = yi. 
+
+> 9:
+
+end if  
+
+> 10:
+
+ˆℓi(θ(t)) = ℓ(f (θ(t); xi), ˜yi). 
+
+> 11:
+
+end for  
+
+> 12:
+
+ˆL(θ(t)) = 1
+
+> B
+
+P
+
+> i∈B t
+
+ˆℓi(θ(t)) . 
+
+> 13:
+
+θ(t + 1) = θ(t) − η∇ ˆL(θ(t)) . 
+
+> 14:
+
+end for 
+
+## 2 Related Work 
+
+Lazy Regime. Numerous theoretical studies investigated the learning dynamics of highly over-parameterized neural networks in the lazy (or kernel) regime [ 17 , 10 , 12 , 13 , 18 ]. In this regime, the model behaves as its linearized model around initialization throughout training, making it equivalent to a deterministic kernel, specifically the neural tangent kernel (NTK) [ 17 ]. The lazy regime typically occurs in over-parameterized models with relatively large initialization [ 8]. While global exponential convergence can be established in this setting, the lazy dynamics fail to explain the generalization advantage over kernel methods—a fundamental question in understanding the success of deep learning. 
+
+Rich Regime. In contrast to the lazy regime, where learning dynamics remain linear, the rich regime 3,also known as feature learning regime, exhibits complex nonlinear dynamics [ 19 , 20 ], including the initial alignment phenomenon [ 21 , 22 ] and saddle-to-saddle dynamics [ 23 , 24 , 25 ]. Some studies have demonstrated that the initialization scale governs the emergence of the rich regime in (S)GD, which typically occurs at small initialization scales [9, 26 ]. In this regime, it is shown that small initialization induces simplicity biases, leading to sparse or low-rank features [ 21 , 27 , 28 , 29 , 30 , 31 ]. Subsequent work further revealed that the relative scale of initializations [ 32 , 33 ] and their effective rank [ 34 ] can similarly induce feature learning. Beyond initializations, factors like weight decay [ 35 , 36 , 37 ] and large learning rates [38, 39] have also been shown to drive the rich regimes. 
+
+Label Noise SGD Theories. Many existing theoretical works have analyzed label noise SGD from the perspective of implicit regularization. Blanc et al. [5] , Damian et al. [3] , Li et al. [6] showed that label noise implicitly regularizes the sharpness of the minimizers. HaoChen et al. [2] , Vivien et al. [7] proved that training with label noise helps recover the sparse ground-truth interpolator in a diagonal linear network setup. Takakura and Suzuki [40] analyzed the implicit regularization of label noise from a kernel perspective. In addition to implicit regularization, Huh and Rebeschini [41] derived a generalization bound for label noise SGD. Han et al. [42] theoretically analyzed the training dynamics with static label noise. Huang et al. [43] analyzed the generalization capability in low SNR regimes. Varre et al. [44] showed that label noise SGD tends to gradually reduce the rank of the parameter matrix. 
+
+In comparison , we theoretically analyze the learning dynamics of label noise SGD in an over-parameterized two-layer linear network, highlighting the transition from lazy to rich regime. Ana-lyzing the two-layer linear network with label noise SGD requires careful treatment of the update rule of both layers, which introduces complex coupling effect between the first and the second layer parameters, thus posing significant challenges to theoretical analysis. 
+
+## 3 Preliminaries 
+
+> 3This term broadly refers to learning behaviors that deviate from the lazy regime.
+
+3Basic Notation and Setup. Denote [k] = {1, 2, . . . , k }. Let D = {(xi, y i)}ni=1 be the training set, where xi ∈ Rd is the input and yi ∈ R is the label/target of the i-th data point. Let f : D × Rd → R
+
+be the model function and let f (xi; θ) be the model output on the i-th data point, where θ ∈ Rp are the model parameters. The loss of the model at the i-th sample (xi, y i) is denoted as ℓ(f (xi; θ), y i),simplified to ℓi(θ). The loss over the training set is then given by LD (θ) = 1
+
+> n
+
+Pni=1 ℓi(θ). Note that we consider classification tasks in our empirical observations, where yi ∈ [c] and c are the number of classes. We also use Acc D (θ) to denote the classification accuracy of f (θ) on the dataset D.Throughout the paper, bold lowercase letters denote vectors, and bold uppercase letters represent matrices. The unbolded lowercase letters with subscripts indicate the entries of vectors or matrices, such as xi for the i-th entry of x and ai,j for the (i, j )-th entry of A. For simplicity, we use ∥x∥ as 
+
+∥x∥2 for a vector x and ∥X∥ as ∥X∥F for a matrix X.
+
+Label Noise SGD. We recall the algorithm of label noise SGD in Algorithm 1. We focus on a classification setting, where the label flipping probability τ governs the noise level; for simplicity, our theoretical analysis considers a regression task. Specifically, label noise SGD can be adapted to regression by replacing τ with the noise variance σ2. In this context, the noisy label ˜yi is generated by 
+
+˜yi = yi + ϵ, where ϵ ∼ {− σ, σ }. Assuming the squared loss without loss of generality, the training loss at the i-th data is given by: 
+
+ˆℓi(θ(t)) = 12 |f (θ(t); xi) − yi − ϵ|2 . (1) This setup is widely adopted in recent theoretical advances on label noise SGD [3, 2, 6, 7, 45]. 
+
+## 4 Theoretical Analysis: The Learning Dynamics of Label Noise SGD 
+
+This section presents a theoretical analysis of learning dynamics in a two-layer linear network, characterizing the phase transition from lazy to rich regimes under label noise SGD. 
+
+Roadmap. In Section 4.1, we formulate the problem setup and provide an overview of our theoretical results. In Section 4.2, we present formal theorems. In Section 4.3, we demonstrate the role of oscillation using a simple scenario. In Section 4.4, we validate our theory by extensive experiments under both synthetic and real-world setups. 
+
+4.1 Setup and Overview: A Two-Layer Linear Network Problem Setup. We consider a regression task where each data pair (xi, y i) ∈ D maps input xi ∈ Rd
+
+to its corresponding target yi ∈ R. We solve this task using a two-layer linear network of the form: 
+
+ˆyi = a⊤W x i, (2) where W ∈ Rm×d and a ∈ Rm. Here, m represents the number of neurons and wi denotes the i-th neuron of W .• Label noise SGD. The network’s parameters θ = a⊤W are optimized using label noise SGD with a squared loss function (see Equation (1)). The update rule is written as: 
+
+θ(t + 1) = θ(t) − η∇θ ˆℓξt (θ(t)) , (3) 
+
+ˆℓξt (θ(t)) = 12 |f (θ(t); xξt ) − yξt − ϵt|2 , (4) where ξt ∈ [n] represents the index of a randomly sampled training sample at iteration t, and the noise ϵt ∼ {− σ, σ } is controlled by the variance σ2.• Initialization. We consider label noise SGD starting from the following initializations: for i ∈ [m]
+
+and j ∈ [d],
+
+wi,j (0) i.i.d.
+
+∼ 1
+
+√d N (0 , I ) and ai(0) i.i.d.
+
+∼ 1
+
+√m N (0 , I ). (5) This initialization scheme is commonly referred to as the NTK initialization Jacot et al. [17] . Allen-Zhu et al. [13] showed that training over-parameterized models initialized as Equation (5) with SGD stays in the lazy regime. 4I The magnitudes of model weights progressively diminish; Lemma 4.3 
+
+The model escapes the lazy regime; enters the rich regime. Theorem 4.2 II The alignment between model weights and the ground-truth Lemma 4.5 
+
+interpolator increases; the model eventually converges. Lemma 4.6 
+
+Table 1: Overview of the two-phase picture and corresponding theoretical results. • Data generation. Without loss of generality, we assume each input xi is drawn from N (0 , Id×d),and that there exists at least one interpolating parameter θ⋆ that perfectly fits the training set, i.e., 
+
+LD (θ⋆) = 0 4.
+
+Overview. We first state our main conditions. 
+
+Condition 1. Suppose there exists a sufficiently large constant 5 C such that the following holds: 1. (A1) Model width. The width of the network m satisfies m = Ω 
+
+ 1√η
+
+
+
+.2. (A2) Learning rate. The learning rate satisfies η ≤ 1 
+
+> C96
+
+.3. (A3) Dataset size. The training set size satisfies n ≥ 1 
+
+> η2
+
+.4. (A4) Scale of the optimal parameter. The ground-truth interpolator satisfies ∥θ⋆∥ ≤ m−1/4.5. (A5) Input magnitude. The maximum norm of the input samples satisfies max i ∥xi∥ ≤ Cdata .6. (A6) Dimension of sample. The dimension of a single sample d satisfies d ≥ 9(ln 2) ·K4 
+
+> 2c
+
+.
+
+Remarks on Condition 1. Specifically, A1 ensures over-parameterization, where m ≫ d, which is important for enabling the progressively diminishing of weight norm in Phase I. A2 ensures the step size is small enough to allow Phase I to persist over a long range of iterations. A3 addresses the dataset size: when using gradient descent, a substantial volume of training data is typically required. A4 assumes the sparse ground-truth interpolator. For the sake of clarity in our theoretical analysis, we additionally introduce the A5 to give an upper bound of input norm and A6 to give a lower bound of input dimension. In A5, Cdata is a constant and by definition of C in A1, we have Cdata ≤ C ≪ m.In A6, both K and c are constant and defined in Appendix (Lemma A.5). Under these conditions, we can state our main results: we identify a two-phase picture in the training dynamics of label noise SGD, as outlined in Table 1. In the following, we will formally present our formal theorems, with each claim supported by corresponding analysis. 
+
+4.2 Phase I: Progressively Diminishing; From the Lazy to the Rich Regime 
+
+In this section, we present theoretical support for Phase I. Inspired by Du et al. [10 , 12] , Allen-Zhu et al. [13], we first introduce the definition of the lazy regime. 
+
+Definition 4.1 (The lazy regime) . ∀i ∈ [m], it holds that ∥wi(t) − wi(0) ∥ ≤ 1√m .Definition 4.1 depicts a minimal variation of model weights from its initialization at time t. Based on Definition 4.1, we establish the following theorem. 
+
+Theorem 4.2 (Escaping the lazy regime) . Suppose Condition 1 (A1-2, 4-6) hold and consider the update rule in Equation (3) . With probability at least 1 − O( 1 
+
+> m
+
+), all the neurons wi (i ∈ [m]) escape from the lazy regime at time T1 = 384 √log mσ2η2√m .
+
+Insights from Theorem 4.2. Theorem 4.2 indicates that in Phase I, label noise SGD facilitates the transition from the lazy to the rich regime. Indeed, such transition is induced by the progressively diminishing of the first-layer weights W . Specifically, for each neuron wi(i ∈ [m]) at time T ,               
+
+> 4LD(θ⋆) = 1
+> n
+> Pni=1 ℓi(θ⋆) = 1
+> n
+> Pni=1 12|f(θ⋆;xi), y i|2
+> 5C≥max( e−(σC data )23,((1 −3/(4 √π)) ·2√d
+> 1/2−3/(4 √π)
+> √π)8, eC 2
+> data ), where Cdata is a constant defined in Condi-tion 1 A(5)
+
+5ℒ𝒟  𝜽  𝑡                                    
+
+> Iteration 𝑡
+> Avg 𝑖 ∈[𝑚 ]( 𝒘 𝑖  𝑡  2)
+> Iteration 𝑡
+> Loss Curves Dynamics on Average
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Weight Norm 𝒘 𝑖 (𝑡 )2
+> Dynamics of 𝑖 -th neuron
+> (a) (b) (c)
+> Avg 𝑖 ∈ 𝑚  (|⟨𝒘 𝑖 (𝑡 ), 𝜽 ⋆⟩|)
+> Iter 𝑡 =0Iter 𝑡 =5000 Iter 𝑡 =50000 Iter 𝑡 =100000
+> Weight Norm 𝒘 𝑖 (𝑡 )2Weight Norm 𝒘 𝑖 (𝑡 )2Weight Norm 𝒘 𝑖 (𝑡 )2Weight Norm 𝒘 𝑖 (𝑡 )2
+> Phase I Phase II Iteration  𝑡
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Phase I
+> Phase II
+
+Figure 2: Two-phase dynamics of label noise SGD under synthetic setup. We replicate the synthetic problem setup from Section 4.5. (a) Loss curves. Training LDtrain (θ(t)) and test loss LDtest (θ(t)) vs. training iteration t. (b) Learning dynamics on average. The mean neuron norm Avg i∈[m](∥wi(t)∥2)
+
+and the mean neuron alignment Avg i∈[m](⟨wi(t), θ⋆⟩) vs. training iteration t. (c) Learning dynamics of i-th neuron. The alignment of the i-th neuron ⟨wi(t), θ⋆⟩ vs. its weight norm ∥wi(t)∥2, with darker points indicating larger t. (Bottom) Complete view of dynamics of each neuron. This plot is similar to (c); yet instead of focusing on a single neuron, we plot the status over iterations. we can easily derive that ∥wi(T )∥2 = ∥wi(0) ∥2 + η2 PT −1 
+
+> j=0
+
+∆Wi(j) − ai(0) 2 + ai(T )2 and 
+
+∆Wi(j) = −∇ ˆℓξj (θ(j)) 2(( x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2). Since a(0) is initialized small, the term 
+
+∇ˆℓξj (θ(j)) 2(x⊤ 
+
+> ξj
+
+· wi(j)) 2 dominates the evolution of the weight norm. Notably, by Equation (3), we have 
+
+∇ˆℓξj (θ(j)) 2(x⊤ 
+
+> ξj
+
+· wi(j)) 2 = ( ai(j + 1) − ai(j)) 2.
+
+Consequently, the evolution of the first-layer weight norm is primarily determined by the oscillations of the neurons in the second layer. Intuitively, label noise accelerates the oscillations in the second layer, thereby contributing to the progressive diminishing of the first-layer weights. 
+
+Proof Sketch of Theorem 4.2. The proof relies on Lemma 4.3. 
+
+Lemma 4.3 (Progressively diminishing at each step) . Suppose Condition 1 (A1-2, 4-6) hold and consider the update rule in Equation (3) . Assume the model is still under the lazy regime at step T ,then with probability at least 1 − O( 1 
+
+> m
+
+), for all the iterative steps j ≤ T1 and for every i ∈ [m]:1. ∆Wi(j) ≤ 0 with probability at least 1 − ρm1/8 . Furthermore, ∆Wi(j) ≤ − ( σ 
+
+> 4
+
+)2 with probability at least 14 .2. ∆Wi(j) > 0 with probability at most ρm1/8 . Furthermore, we have ∆Wi(j) ≤ O(1) .where ρ = 2√d√π is a constant. 
+
+Lemma 4.3 states that with high probability, ∆Wi(j) is negative at each step. Furthermore, with probability at least 14 , ∆Wi(j) significantly deviates from zero. In our setup, we can prove that with high probability, |ai(t)| remains small throughout training. Thus, ∆Wi(j) primarily governs the change in ∥wi∥2 at each step. With Lemma 4.3, we can demonstrate the progressive diminishing of the first-layer weights W , thereby driving the transition from lazy to rich regime. 6ℒ𝒟 train  𝜽  𝑡       
+
+> Iteration 𝑡
+> ℒ𝒟 test  𝜽  𝑡
+> Iteration 𝑡
+> Training Loss Test Loss
+> ‖ ‖𝑾  𝑡  𝐹
+> Iteration 𝑡
+> Norm of the First Layer Weights
+> (a) (b) (c)
+
+Figure 3: Label noise SGD induces the rich regime. (a, b). Training LDtrain (θ(t)) and test loss 
+
+LDtest (θ(t)) vs. training epochs t. Label noise SGD induces the progressively diminishing phe-nomenon. (c). The first-layer weight norm ∥W (t)∥F vs. training epochs t. We use GD to train the models with NTK parameterization [ 17 ], both with and without label noise. We also train a linearized model with GD as baseline. Results are presented for WideResNets trained on a random subset of 64 images from CIFAR-10 due to the O(n2) computational complexity of NTK. 
+
+4.3 Simulation Setup: Oscillation Induces Progressive Diminishing 
+
+In the previous analysis, we have shown that the oscillation of the second layer plays a central role in the progressive diminishing of the first-layer weights W , and label noise SGD facilitates the oscillations, leading to the phase transition. 
+
+Simulation Setup. Inspired by the discovery, we propose to simulate the oscillation of the second layer via a simple three-state Markov process. To eliminate the interference of SGD noise, the first-layer weights wi follow GD update rule: 
+
+wi(t + 1) = wi(t) − η · ai(t)∇L D (θ(t)) xi, (6) 
+
+ai(t + 1) = ai(t) + δi(t), (7) where 
+
+δi(t) = 
+
+
+
+− η0.25 if ai(t) = η0.25 
+
+η0.25 if ai(t) = −η0.25 
+
+∼ {− η0.25 , η 0.25 } if ai(t) = 0 
+
+The initialization of ai is set to η0.25 or −η0.25 , each with probability 1/4 and set to 0 with probability 
+
+1/2. The initialization of wi remains consistent with Equation (5). With this design, the neurons in the second layer exhibit strong oscillations within a small range. The following lemma demonstrates the progressive diminishing under this algorithm. 
+
+Lemma 4.4 (Progressively diminishing under simulation setup) . Suppose Condition 1 (A1-3, 5-6) holds (let m = 1√η ) and consider the update rule in Equations (6) and (7) , there exists a step t0 ≤ 1
+
+> η2
+
+such that 6
+
+E[ 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(t0)∥2] ≤ √η. (8) 
+
+Insights into Lemma 4.4. Lemma 4.4 further confirms our key message that label noise SGD primar-ily contributes to the oscillation of the second layer, which induces the progressively diminishing phenomenon, ultimately leading to the transition from the lazy to the rich regime. 
+
+4.4 Phase II: Alignment and Convergence 
+
+In this section, we present theoretical support for Phase II. When all the neurons satisfy ∥wi∥, |ai| ≤ √η, we say that Phase II begins. This situation is analogous to small initialization [ 9 , 26 ]. During this phase, the neurons in the first layer rapidly align with the ground-truth interpolator θ⋆.
+
+> 6
+
+We simply denote E{x(t−1) }t−1   
+
+> i=0 ∈D, {ϵi}t−1
+> i=0 ∼{− σ, +σ}
+
+as E
+
+7Notice that we consider gradient descent in Phase II for simplicity. This simplification maintains math-ematical tractability without affecting our conclusion in Phase II. The following lemmas formalize our results in Phase II. 
+
+Lemma 4.5 (Alignment) . Suppose Condition 1 (A1-3,5-6) holds and consider gradient descent for updates. Assume that phase II begins at time t1, then at time t2 = t1 + T2, T2 = 1 
+
+> ∥θ⋆∥
+
+· ln( 1 
+
+> η
+
+), for any neuron wi it holds 
+
+|⟨ θ⋆, wi(t2)⟩| ∥θ⋆∥ · ∥ wi(t2)∥ ≥ 1 − O(ln 1
+
+η · √η) . (9) 
+
+Lemma 4.6 (Convergence) . Suppose Condition 1 (A1-3, 5-6) holds and consider gradient descent for updates. Assume all the neurons are perfectly aligned at step t2. Let t3 = t2 + 1 
+
+> ∥θ⋆∥2
+
+· ln(1 /η ) 
+
+> η
+
+. Using gradient descent, we have ∥θ(t3)−θ⋆∥ ≤ | O(η·ln 1 
+
+> η
+
+)|. Furthermore, for any neuron ∥wi(t3)∥ ≥ √η
+
+(i ∈ [m]), we have 
+
+|⟨ θ⋆, wi(t3)⟩| ∥θ⋆∥ · ∥ wi(t3)∥ ≥ 1 − O(η · ln 1
+
+η ) . (10) 
+
+Insights from Lemmas 4.5 and 4.6. Lemma 4.5 indicates that the directions of each neuron rapidly align to a common direction, that of the ground-truth interpolator θ⋆. This alignment process is critical in Phase II, where the optimization shifts from the progressive diminishing phase to a more stable and efficient convergence towards the global minimum. Once perfect alignment is achieved, Lemma 4.6 guarantees that after T3 = O( − ln ηη ) steps, θ(t) converges to the solution θ⋆.
+
+4.5 Experiments: Synthetic and Real-World Setups 
+
+In this section, we provide extensive empirical evidence support for our theory. 
+
+The Two-phase picture under synthetic setups. The synthetic experiments precisely replicate the problem setup in Section 4.1. In Figure 2 (b) , the averaged neuron norm 1
+
+> m
+
+Pmi=1 ∥wi(t)∥ initially drops as t increases, suggesting the progressive diminishing phenomenon in Phase I. Afterwards, the averaged neuron alignment 1
+
+> m
+
+Pmi=1 ⟨wi(t), θ⋆⟩ rapidly increases, implying the convergence to the global solution in Phase II. Additionally, in Figure 2 (c) and (bottom) , we visualize the dynamics of each neuron in the training process, where a clear two-phase pattern is observed. 
+
+The transition from the lazy to rich regime under real-world setups. The real-world experiments are presented for WideResNets [ 46 ] trained on a small subset of CIFAR-10. Specifically, we compare the loss curves of models trained with and without label noise. We also train a linearized model without label noise as a baseline. In Figure 3 (a) and (b) , the model trained without label noise behaves similarly to its linearized counterparts, indicating the lazy regime; whereas the model trained with label noise follows a distinctly different training trajectory, suggesting the rich regime. Additionally, we also plot the evolution process of the first-layer weight norm ∥W (t)∥. In Figure 3 (c) , when training with label noise, the first-layer weight norm notably decreases, especially compared to the case without label noise This result further validates our progressively diminishing phenomenon in real-world setups. 
+
+## 5 Extension: From Label Noise SGD to SAM 
+
+We conjecture that the principles governing label noise SGD also apply to broader optimization algorithms. In this section, we extend our findings from label noise SGD to SAM. 
+
+Sharpness-Aware Minimization (SAM). SAM, introduced by Foret et al. [14] , has substantially improved the generalization of neural networks. The core idea of SAM is to perform an inner adversarial gradient perturbation, followed by an outer gradient update. Its update rule is written as 
+
+θ(t + 1) = θ(t) − η∇ℓξt
+
+
+
+θ(t) + ρ ∇ℓξt (θ(t))  
+
+> ∥∇ ℓξt(θ(t)) ∥2
+
+
+
+, where ξt ∈ [n] is the index sampled at iteration 
+
+t and ρ is the perturbation radius. Recent works [ 47 , 48 ] have shown that the effectiveness of SAM stems from its ability to amplify the stochastic noise inherent in SGD. As label noise SGD also benefits from additional noise, a natural question arises: 
+
+Can our findings on label noise SGD extend to SAM? 
+
+8ℒ𝒟  𝜽  𝑡                                    
+
+> Iteration 𝑡
+> Avg 𝑖 ∈[𝑚 ]( 𝒘 𝑖  𝑡  2)
+> Iteration 𝑡
+> Loss Curves Dynamics on Average
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Weight Norm 𝒘 𝑖 (𝑡 )2
+> Dynamics of 𝑖 -th neuron
+> (a) (b) (c)
+> Avg 𝑖 ∈ 𝑚  (|⟨𝒘 𝑖 (𝑡 ), 𝜽 ⋆⟩|)
+> Iter 𝑡 =0Iter 𝑡 =10 000 Iter 𝑡 =10 0000 Iter 𝑡 =300000
+> Weight Norm 𝒘 𝑖 (𝑡 )2Weight Norm 𝒘 𝑖 (𝑡 )2Weight Norm 𝒘 𝑖 (𝑡 )2Weight Norm 𝒘 𝑖 (𝑡 )2
+> Phase I Phase II Iteration  𝑡
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Alignment  ⟨𝒘 𝑖  (𝑡 ), 𝜽 ⋆⟩
+> Phase I
+> Phase II
+
+Figure 4: Two-phase dynamics of SAM under synthetic setup. We replicate the synthetic problem setup from Section 4.5, replacing label noise SGD with SAM. (a) Loss curves. Training LDtrain (θ(t)) 
+
+and test loss LDtest (θ(t)) vs. training iteration t. (b) Learning dynamics on average. The averaged neuron norm Avg i∈[m](∥wi(t)∥2) and the averaged neuron alignment Avg i∈[m](⟨wi(t), θ⋆⟩) vs. training iteration t. (c) Learning dynamics of i-th neuron. The alignment of i-th neuron ⟨wi(t), θ⋆⟩
+
+vs. its weight norm ∥wi(t)∥2, with darker points indicating larger iteration t.
+
+Figure 5: SAM induces the rich regime. Training LDtrain (θ(t)) and test loss LDtest (θ(t)) vs. training epochs t. We use both GD and full-batch SAM to train the models with NTK parameterization [ 17 ]. We also train a linearized model with GD as baseline. Results are presented for WideResNets trained on a random subset of 64 images from CIFAR-10 due to the O(n2) computational complexity of NTK. 
+
+SAM exhibits the two-phase learning dynamics under synthetic setups. First, we focus on the exact dynamics of SAM on synthetic data. We conduct the synthetic experiments similar to previous sections except for replacing label noise SGD with SAM. In Figure 4 (b) , the norm of the first-layer weights W initially decreases, demonstrating the progressive diminishing phenomenon; subsequently, the alignment between W and ground-truth interpolator θ⋆ increases, indicating an active feature learning process. Furthermore, in Figure 4, we visualize the learning dynamics of a single neuron, evidently confirming that the two-phase picture holds for SAM. 
+
+SAM promotes feature learning in practice. Second, we explore the properties of SAM in ap-plications. As in phase I, we compare the loss curves of models trained with different strategies. In Figure 5, the model trained with GD shows loss curves that closely align with its linearized approximations, a hallmark of the lazy regime. In contrast, training with SAM results in loss curves that deviate significantly from GD trajectories, signaling entry into the rich regime. In summary, SAM shows similar behaviors to label noise SGD across various setups, suggesting that the underlying ideology of label noise SGD is generalizable. 
+
+## 6 Conclusion and Outlook 
+
+We present an in-depth study on the implicit regularization effect of label noise SGD from empirical observations to theoretical analysis. Notably, our theory demonstrates the surprising effect of label noise on the oscillation of the second layer, which induces the progressively diminishing phenomenon, leading to the transition from lazy to rich regime. Our theories are derived from a two-layer linear network. A future direction is to consider non-linear activation functions and study whether non-linearity influences the training dynamics. Besides, extending our theory to classification tasks remains an open challenge, which we will explore in future work. 9References 
+
+[1] Christopher J. Shallue, Jaehoon Lee, Joseph Antognini, Jascha Sohl-Dickstein, Roy Frostig, and George E. Dahl. Measuring the effects of data parallelism on neural network training. Journal of Machine Learning Research , 20(112):1–49, 2019. [2] Jeff Z. HaoChen, Colin Wei, Jason Lee, and Tengyu Ma. Shape matters: Understanding the implicit bias of the noise covariance. In Proceedings of Thirty Fourth Conference on Learning Theory , volume 134, pages 2315–2357, 2021. [3] Alex Damian, Tengyu Ma, and Jason D Lee. Label noise sgd provably prefers flat global minimizers. In 
+
+Advances in Neural Information Processing Systems , volume 34, pages 27449–27461, 2021. [4] Zihan Wang and Arthur Jacot. Implicit bias of sgd in l2-regularized linear dnns: One-way jumps from high to low rank. arXiv preprint arXiv:2305.16038 , 2023. [5] Guy Blanc, Neha Gupta, Gregory Valiant, and Paul Valiant. Implicit regularization for deep neural networks driven by an ornstein-uhlenbeck like process. In Conference on learning theory , pages 483–513, 2020. [6] Zhiyuan Li, Tianhao Wang, and Sanjeev Arora. What happens after SGD reaches zero loss? –a mathematical framework. In International Conference on Learning Representations , 2022. [7] Loucas Pillaud Vivien, Julien Reygner, and Nicolas Flammarion. Label noise (stochastic) gradient descent implicitly solves the lasso for quadratic parametrisation. In Proceedings of Thirty Fifth Conference on Learning Theory , volume 178, pages 2127–2159, 2022. [8] Lenaic Chizat, Edouard Oyallon, and Francis Bach. On lazy training in differentiable programming. In 
+
+Advances in Neural Information Processing Systems , volume 32, 2019. [9] Mario Geiger, Stefano Spigler, Arthur Jacot, and Matthieu Wyart. Disentangling feature and lazy training in deep neural networks. Journal of Statistical Mechanics: Theory and Experiment , 2020(11):113301, 2020. [10] Simon S. Du, Xiyu Zhai, Barnabas Poczos, and Aarti Singh. Gradient descent provably optimizes over-parameterized neural networks. In International Conference on Learning Representations , 2019. [11] Yuanzhi Li and Yingyu Liang. Learning overparameterized neural networks via stochastic gradient descent on structured data. In Advances in Neural Information Processing Systems , volume 31, 2018. [12] Simon Du, Jason Lee, Haochuan Li, Liwei Wang, and Xiyu Zhai. Gradient descent finds global minima of deep neural networks. In Proceedings of the 36th International Conference on Machine Learning ,volume 97, pages 1675–1685, 2019. [13] Zeyuan Allen-Zhu, Yuanzhi Li, and Zhao Song. A convergence theory for deep learning via over-parameterization. In Proceedings of the 36th International Conference on Machine Learning , volume 97, pages 242–252, 2019. [14] Pierre Foret, Ariel Kleiner, Hossein Mobahi, and Behnam Neyshabur. Sharpness-aware minimization for efficiently improving generalization. In International Conference on Learning Representations , 2021. [15] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In 2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , pages 770–778, 2016. [16] Alex Krizhevsky, Geoffrey Hinton, et al. Learning multiple layers of features from tiny images. https: //www.cs.toronto.edu/~kriz/learning-features-2009-TR.pdf, 2009. Accessed: 2025-1-19. [17] Arthur Jacot, Franck Gabriel, and Clement Hongler. Neural tangent kernel: Convergence and generalization in neural networks. In Advances in Neural Information Processing Systems , volume 31, 2018. [18] Difan Zou, Yuan Cao, Dongruo Zhou, and Quanquan Gu. Gradient descent optimizes over-parameterized deep relu networks. Machine learning , 109:467–492, 2020. [19] Lenaic Chizat and Francis Bach. On the global convergence of gradient descent for over-parameterized models using optimal transport. In Advances in neural information processing systems , volume 31, 2018. [20] Song Mei, Theodor Misiakiewicz, and Andrea Montanari. Mean-field theory of two-layers neural networks: dimension-free bounds and kernel limit. In Conference on Learning Theory , pages 2388–2464, 2019. [21] Hartmut Maennel, Olivier Bousquet, and Sylvain Gelly. Gradient descent quantizes relu network features. 
+
+arXiv preprint arXiv:1803.08367 , 2018. 
+
+10 [22] Tao Luo, Zhi-Qin John Xu, Zheng Ma, and Yaoyu Zhang. Phase diagram for two-layer relu neural networks at infinite-width limit. The Journal of Machine Learning Research , 22(1):3327–3373, 2021. [23] Arthur Jacot, Francois Ged, Berfin Simsek, Clement Hongler, and Franck Gabriel. Saddle-to-saddle dynamics in deep linear networks: Small initialization training, symmetry, and sparsity. arXiv preprint arXiv:2106.15933 , 2021. [24] Emmanuel Abbe, Enric Boix-Adsera, and Theodor Misiakiewicz. Sgd learning on neural networks: leap complexity and saddle-to-saddle dynamics. arXiv preprint arXiv:2302.11055 , 2023. [25] Scott Pesme and Nicolas Flammarion. Saddle-to-saddle dynamics in diagonal linear networks. arXiv preprint arXiv:2304.00488 , 2023. [26] Blake Woodworth, Suriya Gunasekar, Jason D. Lee, Edward Moroshko, Pedro Savarese, Itay Golan, Daniel Soudry, and Nathan Srebro. Kernel and rich regimes in overparametrized models. In Proceedings of Thirty Third Conference on Learning Theory , volume 125, pages 3635–3673, 2020. [27] Zhiyuan Li, Yuping Luo, and Kaifeng Lyu. Towards resolving the implicit bias of gradient descent for matrix factorization: Greedy low-rank learning. arXiv preprint arXiv:2012.09839 , 2020. [28] Kaifeng Lyu, Zhiyuan Li, Runzhe Wang, and Sanjeev Arora. Gradient descent on two-layer nets: Margin maximization and simplicity bias. In Advances in Neural Information Processing Systems , volume 34, 2021. [29] Etienne Boursier, Loucas Pillaud-Vivien, and Nicolas Flammarion. Gradient flow dynamics of shallow relu networks for square loss and orthogonal inputs. In Advances in Neural Information Processing Systems ,volume 35, 2022. [30] Mingze Wang and Chao Ma. Understanding multi-phase optimization dynamics and rich nonlinear behaviors of relu networks. In Advances in Neural Information Processing Systems , volume 36, 2023. [31] Hancheng Min, Enrique Mallada, and Rene Vidal. Early neuron alignment in two-layer relu networks with small initialization. arXiv preprint arXiv:2307.12851 , 2023. [32] Shahar Azulay, Edward Moroshko, Mor Shpigel Nacson, Blake E Woodworth, Nathan Srebro, Amir Globerson, and Daniel Soudry. On the implicit bias of initialization shape: Beyond infinitesimal mirror descent. In Proceedings of the 38th International Conference on Machine Learning , volume 139, pages 468–477, 2021. [33] Daniel Kunin, Allan Raventos, Clementine Carla Juliette Domine, Feng Chen, David Klindt, Andrew M Saxe, and Surya Ganguli. Get rich quick: exact solutions reveal how unbalanced initializations promote rapid feature learning. In The Thirty-eighth Annual Conference on Neural Information Processing Systems ,2024. [34] Yuhan Helena Liu, Aristide Baratin, Jonathan Cornford, Stefan Mihalas, Eric Todd SheaBrown, and Guillaume Lajoie. How connectivity structure shapes rich and lazy learning in neural circuits. In The Twelfth International Conference on Learning Representations , 2024. [35] Aitor Lewkowycz and Guy Gur-Ari. On the training dynamics of deep networks with l2 regularization. In 
+
+Advances in Neural Information Processing Systems , volume 33, pages 4790–4799, 2020. [36] Arthur Jacot, Eugene Golikov, Clement Hongler, and Franck Gabriel. Feature learning in l2-regularized DNNs: Attraction/repulsion and sparsity. In Advances in Neural Information Processing Systems , vol-ume 35, 2022. [37] Kaifeng Lyu, Jikai Jin, Zhiyuan Li, Simon S Du, Jason D Lee, and Wei Hu. Dichotomy of early and late phase implicit biases can provably induce grokking. arXiv preprint arXiv:2311.18817 , 2023. [38] Aitor Lewkowycz, Yasaman Bahri, Ethan Dyer, Jascha Sohl-Dickstein, and Guy Gur-Ari. The large learning rate phase of deep learning: the catapult mechanism. arXiv preprint arXiv:2003.02218 , 2020. [39] Jimmy Ba, Murat A Erdogdu, Taiji Suzuki, Zhichao Wang, Denny Wu, and Greg Yang. High-dimensional asymptotics of feature learning: How one gradient step improves the representation. In Advances in Neural Information Processing Systems , volume 35, 2022. [40] Shokichi Takakura and Taiji Suzuki. Mean-field analysis on two-layer neural networks from a kernel perspective. In Forty-first International Conference on Machine Learning , 2024. 
+
+11 [41] Jung Eun Huh and Patrick Rebeschini. Generalization bounds for label noise stochastic gradient descent. In International Conference on Artificial Intelligence and Statistics , pages 1360–1368, 2024. [42] Andi Han, Wei Huang, Zhanpeng Zhou, Gang Niu, Wuyang Chen, Junchi Yan, Akiko Takeda, and Taiji Suzuki. On the role of label noise in the feature learning process. arXiv preprint arXiv:2505.18909 , 2025. [43] Wei Huang, Andi Han, Yujin Song, Yilan Chen, Denny Wu, Difan Zou, and Taiji Suzuki. How does label noise gradient descent improve generalization in the low snr regime? arXiv preprint arXiv:2510.17526 ,2025. [44] Aditya Varre, Margarita Sagitova, and Nicolas Flammarion. Sgd vs gd: Rank deficiency in linear networks. In Advances in Neural Information Processing Systems , volume 37, pages 60133–60161, 2024. [45] Jung Eun Huh and Patrick Rebeschini. Generalization bounds for label noise stochastic gradient descent. In Proceedings of The 27th International Conference on Artificial Intelligence and Statistics , volume 238, pages 1360–1368, 2024. [46] Sergey Zagoruyko and Nikos Komodakis. Wide residual networks. arXiv preprint arXiv:1605.07146 ,2016. [47] Enea Monzio Compagnoni, Luca Biggio, Antonio Orvieto, Frank Norbert Proske, Hans Kersting, and Aurelien Lucchi. An SDE for modeling SAM: Theory and insights. In Proceedings of the 40th International Conference on Machine Learning , volume 202, pages 25209–25253, 2023. [48] Zhanpeng Zhou, Mingze Wang, Yuchen Mao, Bingrui Li, and Junchi Yan. Sharpness-aware minimization efficiently selects flatter minima late in training. In The Thirteenth International Conference on Learning Representations , 2025. [49] Enmao Diao, Ganghua Wang, Jiawei Zhang, Yuhong Yang, Jie Ding, and Vahid Tarokh. Pruning deep neural networks from a sparsity perspective. In The Eleventh International Conference on Learning Representations , 2023. [50] M. Hagiwara. Removal of hidden units and weights for back propagation networks. In Proceedings of 1993 International Conference on Neural Networks (IJCNN-93-Nagoya, Japan) , volume 1, pages 351–354 vol.1, 1993. [51] Song Han, Huizi Mao, and William J Dally. Deep compression: Compressing deep neural networks with pruning, trained quantization and huffman coding. In International Conference on Learning Representa-tions , 2016. [52] Jonathan Frankle and Michael Carbin. The lottery ticket hypothesis: Finding sparse, trainable neural networks. In International Conference on Learning Representations , 2019. [53] Yiting Chen, Zhanpeng Zhou, and Junchi Yan. Going beyond neural network feature similarity: The network feature complexity and its interpretation using category theory. In The Twelfth International Conference on Learning Representations , 2024. 
+
+12 A Preliminaries 
+
+A.1 Additional notations Complementary Event. Let A be an event. We use A to denote the complementary event of A. We have Pr[ A] + Pr[ A] = 1 .
+
+Definition A.1. (sub-exponential) A random variable X with mean μ = E[X] is sub-exponential if there are non-negative parameters (ν, b ) such that 
+
+E[eλ(X−μ)] ≤ e ν2λ22 for all |λ| < 1
+
+b .
+
+We denote X ∈ SE (ν, b ).
+
+A.2 Preliminary lemmas Lemma A.2. Let X = Pni=1 X2 
+
+> i
+
+where Xi ∼ N (0 , 1) and i.i.d. Then X ∈ SE (2 √n, 4) .
+
+Corollary A.3. Let Z = Pni=1 Xi · Yi where Xi, Y i ∼ N (0 , 1) and i.i.d. Then X ∈ SE (2 √n, 4) .
+
+Proof of Corollary A.3 . For every i ∈ [n]. we have 
+
+E[eλX 2 
+
+> i−1
+
+] = 1
+
+√2π ·
+
+Z +∞−∞ 
+
+e−λ(x2−1) ·e−x2/2
+
+dx 
+
+= e−λ
+
+√1 − 2λ
+
+And we have 
+
+E[eλX iYi ] = 
+
+Z +∞−∞ 
+
+Z +∞−∞ 
+
+eλxy · 12π e− x22 e− y22 dx dy 
+
+=
+
+Z +∞−∞ 
+
+Z +∞−∞ 
+
+12π e− (x−λy )22 e− (1 −λ2)y22 dx dy 
+
+= 1
+
+√1 − λ2
+
+Z +∞−∞ 
+
+Z +∞−∞ 
+
+12π e− x22 e− y22 dx dy 
+
+= 1
+
+√1 − λ2 ≤ E[eλX 2−1]
+
+So we have 
+
+E[eλZ ] = E[eλ Pni=1 Xi·Yi ] = E[
+
+> n
+
+Y
+
+> i=1
+
+eλX i·Yi ]
+
+Since Xi · Yi are independent, we have 
+
+E[
+
+> n
+
+Y
+
+> i=1
+
+eλX i·Yi ] = 
+
+> n
+
+Y
+
+> i=1
+
+E[eλX i·Yi ]
+
+≤
+
+> n
+
+Y
+
+> i=1
+
+E[eλX 2 
+
+> i−1
+
+] = E[eλX ]
+
+By lemma A.2, we have X = Pni=1 X2 
+
+> i
+
+∈ SE (2 √n, 4) . Therefore, we retain 
+
+Z = Pni=1 Xi · Yi ∈ SE (2 √n, 4) . □.
+
+Lemma A.4. (Sub-exponential tail bound) Suppose that X is sub-exponential with parameters 
+
+(ν, b ). Then 
+
+Pr[ X ≥ μ + t] ≤ exp( − t2
+
+2ν2 ) if 0 ≤ t ≤ ν2
+
+b (11) 13 Lemma A.5. (Concentration of the norm) Let X = ( X1, . . . , X n) ∈ Rn be a random vector with independent, sub-gaussian coordinates Xi that satisfy EX2 
+
+> i
+
+= 1 . Then 
+
+Pr  ∥X∥ − √n ≥ t ≤ 2 exp 
+
+
+
+− ct 2
+
+K4
+
+
+
+for all t ≥ 0 (12) 
+
+where K = max i ∥Xi∥ψ2 and c is an absolute constant. 
+
+Lemma A.6. (Chernoff’s inequality) Let Xi be independent Bernoulli random variables with parameters pi. Consider their sum SN = PNi=1 Xi and denote its mean by μ = E[SN ]. Then, for any t > μ , we have 
+
+P{SN ≤ t} ≤ e−μ  eμ t
+
+t
+
+. (13) 
+
+## B Phase I: Progressively Diminishing and Escaping the Lazy Regime 
+
+B.1 Step 1: Bounding ai
+
+Let ∇ˆℓξt (θ(t)) = f (θ(t); xξt ) − yξt − ϵt.Using label noise SGD, for any i ∈ [m], the gradient at time step t is 
+
+∂ ˆℓξt (θ(t)) 
+
+∂w⊤ 
+
+> i
+
+(t) = ai(t)( f (θ(t); xξt ) − yξt − ϵt) · x⊤ 
+
+> ξt
+
+(14) 
+
+∂ ˆℓξt (θ(t)) 
+
+∂a i(t) = ( f (θ(t); xξt ) − yξt − ϵt) · x⊤ 
+
+> ξt
+
+· wi(t) (15) Then we retain 
+
+W (t + 1) = W (t) − η · a(t) · (f (θ(t); xξt ) − yξt − ϵt) · x⊤ 
+
+> ξt
+
+(16) 
+
+a(t + 1) = a(t) − η · (f (θ(t); xξt ) − yξt − ϵt) · W (t) · xξt (17) The following Lemma B.1 provides a bound of the initialization of ∥wi∥ at step 0. 
+
+Lemma B.1. Let event B0 = {∥ wi(0) ∥ ≤ 1/4 · m1/12 for all i ∈ [m]}. Suppose Condition 1 (A1) holds. Under NTK initialization as in Equation (5) , we have Pr[ B0] ≥ 1 − O( 1 
+
+> m
+
+).
+
+Proof . Notice that wi(0) ∼ 1
+
+√d N (0 , I ), Let Z = √d · wi(0) and Z ∼ N (0 , I ). By Lemma A.5, we have 
+
+Pr[ ∥Z∥ − √d ≥ 18 · m1/12 ] ≤ 2 exp( − c · m1/6
+
+64 K4
+
+> w
+
+) (18) where Kw and c both are positive constant. Thus 
+
+Pr[ |∥ wi(0) ∥ − 1| ≥ m1/12 
+
+8√d ] ≤ 2 exp( − c · m1/6
+
+64 K4
+
+> w
+
+) (19) Since 1 ≪ m and d ≥ 1, we have 
+
+Pr[ ∥wi(0) ∥ ≥ 14 · m1/12 ] ≤ 2 exp( − c · m1/6
+
+64 K4
+
+> w
+
+) (20) Using union bound, we have 
+
+Pr[ B0] ≤ m · 2 exp( − c · m1/6
+
+64 K4
+
+> w
+
+) (21) 14 Thus 
+
+Pr[ B0] ≥ 1 − m · 2 exp( − c · m1/6
+
+64 K4
+
+> w
+
+) ≥ 1 − 1
+
+m (22) The last inequality holds under Condition 1(A1). □
+
+Lemma B.2. Suppose Condition 1 (A1-2, 4-6) holds and consider the update rule in Equation (3) .Given the model is still in the lazy regime within T0 = O( log mη2·m1/2 ), with probability at least 1−O( 1 
+
+> m
+
+),we have the following two propositions hold: (i). ( Bound of Loss ) For every t ≤ T0, ∇ˆℓξ0 (θ(t)) = O(m1/4).(ii). ( Bound of ai) For every t ≤ T0, ai(t) ≤ m−1/4.
+
+Proof. We prove by induction. When step t = 0 , we first prove the (i) holds. When t = 0 , for any i ∈ [m], let wi(0) =  
+
+> 1√d
+
+(Xi1, X i2, · · · , X id ) , Xij ∼ N(0 , 1) and a(0) = 1√m (Y1, Y 2, · · · , Y m), Yi ∼ N(0 , 1) . Let 
+
+Zj = Pmi=1 Xij · Yi where j ∈ [d].For all i ∈ [m], j ∈ [d], Xij , Y i are independent, so we have 
+
+E[Zj ] = E[
+
+> m
+
+X
+
+> i=1
+
+Xij Yi] = 
+
+> m
+
+X
+
+> i=1
+
+E[Xij Yi] = 
+
+> m
+
+X
+
+> i=1
+
+E[Xij ]E[Yi] = 0 (23) and 
+
+Var[ Zj ] = Var[ 
+
+> m
+
+X
+
+> i=1
+
+Xij Yi] = 
+
+> m
+
+X
+
+> i=1
+
+Var[ Xij Yi] = 
+
+> m
+
+X
+
+> i=1
+
+Var[ Xij ] Var[ Yi] = m (24) By Corollary A.3, we have for any j ∈ [d], Zj = Pmi=1 Xij · Yi ∈ SE [2 √m, 4] . By Lemma A.4, let 
+
+t = p(8 log m)/m and we retain 
+
+Pr Zj =
+
+> m
+
+X
+
+> i=1
+
+Xij · Yi ≥ p8 log m · √m
+
+!
+
+≤ 2 exp 
+
+
+
+− (√8 log m · √m)2
+
+2 · (2 √m)2
+
+
+
+= 2
+
+m
+
+Using union bound, with probability at most 2dm , there exists j ∈ [d] such that |Pmi=1 Xij · Yi| ≥ √8 log m · √m
+
+So with probability 1 − 2dm ,
+
+> m
+
+X
+
+> i=1
+
+Xij · Yi ≤ p8 log m · √m for all j ∈ [d] (25) Then we have 
+
+∥θ(0) − θ∗∥ ≤ ∥ θ(0) ∥ + ∥θ∗∥
+
+= ∥
+
+> m
+
+X
+
+> i=1
+
+ai(0) wi(0) ⊤∥ + ∥θ∗∥
+
+= 1
+
+√d · 1
+
+√m
+
+vuut dX
+
+> j=1
+
+(
+
+> m
+
+X
+
+> i=1
+
+Xij Yi)2 + ∥θ∗∥≤ 1
+
+√d · 1
+
+√m
+
+p8 · d · m · log m + m−1/4 (by Inequality (25) and Condition 1(A4) )
+
+≤ 3plog m
+
+15 So we have 
+
+∇ˆℓξ0 (θ(0)) = |a(0) W (0) xξ0 − yξ0 − ϵ0|≤ | a(0) W (0) xξ0 − yξ0 | + |ϵ0|≤ ∥ (θ(0) − θ∗)∥ · ∥ xξ0 ∥ + σ
+
+≤ 3plog m · Cdata + σ
+
+Therefore, with probability at least 1 − 2 
+
+> m
+
+, we have ∇ˆℓξ0 (θ(0)) = O(m1/4), so (i) holds when 
+
+t = 0 .Then we prove (ii) holds at step 0. Let event Ct = {| ai(t1)| ≤ m−1/4 for all t1 ≤ t and for all i ∈ [m]}. Since ai(0) ∼ 1√m N (0 , 1) ,we have 
+
+Pr[ |ai(0) | ≥ m−1/8] ≤ 2 exp( − c · m3/4
+
+4K4
+
+> a
+
+) (26) by Lemma A.5, where Ka and c are both positive constant. Using union bound, we have 
+
+Pr[ C0] ≤ m · 2 exp( − c · m3/4
+
+4K4
+
+> a
+
+) · (1 − 3dm ) (27) Thus 
+
+Pr[ C0] = 1 − Pr[ C0] ≥ 1 − m · 2 exp( − c · m3/4
+
+4K4
+
+> a
+
+) · (1 − 3dm )
+
+≥ (1 − 1
+
+m ) · (1 − 3dm )
+
+≥ (1 − 4dm )
+
+Since d is a constant, we have Pr[ C0] ≥ 1 − O( 1 
+
+> m
+
+) , which implies (ii) holds when t = 0 .Assuming the lemma holds at step t, we proceed to step t + 1 where we first establish property (ii) by constructing a super-martingale, and subsequently demonstrate that property (i) also holds. By definition of online label noise SGD algorithm, xξt , ϵ t are independent with θ(t) , wi(t)
+
+and has memorylessness property. Let F0 = σ(wi(0) , a i(0) for i ∈ [m]) . For t ≥ 1, let 
+
+Ft = σ(F0, ϵ (t), x(t)). Here ϵ(t) denotes the set {ϵ0, ϵ 1, . . . , ϵ t−1} and x(t) denotes the set 
+
+{xξ0 , xξ1 , . . . , xξt−1 }.Obviously, we have F0 ⊂ F 1 ⊂ · · · ⊂ F t. Notice that E[xξt · x⊤ 
+
+> ξt
+
+|F t] = I and E[ϵt|F t] = 0 .Additionally, in the lazy regime, for any i ∈ [d] at step t, every neuron holds ∥wi(t) − wi(0) ∥ ≤ 1√m .So we have 16 E[|ai(t + 1) | |F t] = |ai(t) − η · E[( θ(t) − θ⋆) · wi(t)|F t]|
+
+= ai(t) − η · E[( a(t)⊤W (t) − θ⋆) · wi(t)|F t]
+
+= ai(t) − η · E[( 
+
+> m
+
+X
+
+> j=1
+
+aj (t)wj (t)⊤ − θ⋆) · wi(t)|F t]
+
+= ai(t) − η · (
+
+> m
+
+X
+
+> j=1
+
+aj (t)E[wj (0) ⊤ · wi(0)]) + η · θ⋆wi(0) + o(η/ √m)
+
+= (1 − η) · ai(t) + η · θ⋆wi(0) + o(η/ √m)
+
+Let Yi(t) = ai(t) − θ∗wi(0) − o( 1√m ) . Since 
+
+E[ ai(t + 1) − θ∗wi(0) − o( 1
+
+√m ) |F t] = (1 − η) · (ai(t) − θ⋆wi(0) − o( 1
+
+√m )) (28) We have 
+
+E[Yi(t + 1) |F t] = (1 − η) · Yi(t) ≤ Yi(t) (29) Therefore, Yi(0) , Y i(1) , . . . , Y i(t) are super-martingale. By Lemma B.1, with probability at least 1 − O( 1 
+
+> m
+
+), ∥wi(0) ∥ ≤ m1/12 for all i ∈ [m]. Conditioned on ∥wi(0) ∥ ≤ m1/12 and we have 
+
+|Yi(t + 1) − Yi(t)| = |ai(t + 1) − θ∗ · wi(0) − o( 1
+
+√m )| − | ai(t) − θ∗ · wi(0) − o( 1
+
+√m )|
+
+≤ | ai(t + 1) − ai(t)| + o( 1
+
+√m ) (triangle inequality )= |η · (∇ˆℓξt (θ(t))) · x⊤ 
+
+> ξt
+
+· wi(t)| + o( 1
+
+√m )
+
+≤ η · |∇ ˆℓξt (θ(t)) | · ∥ xξt ∥ · ∥ wi(t)∥ + o( 1
+
+√m )
+
+≤ η · |∇ ˆℓξt (θ(t)) | · ∥ xξt ∥ · (∥wi(0) ∥ + 1
+
+√m ) + o( 1
+
+√m ) (in the lazy regime )
+
+≤ 2η · |∇ ˆℓξt (θ(t)) | · Cdata · m1/12 
+
+With one-side Azuma’s inequality, for any λ > 0, we have 
+
+Pr[ Yi(t + 1) − Yi(0) > λ ] ≤ exp( − λ2
+
+(t + 1) · 4η2 · (Cdata · |∇ ˆℓξt (θ(t)) | · m1/12 )2 ) (30) Thus 
+
+Pr[ |ai(t+1) | ≥ 2·| θ∗·wi(0) |+|ai(0) |+λ] ≤ exp( − λ2
+
+(t + 1) · 4η2 · |∇ ˆℓξt (θ(t)) | · (Cdata · m1/12 )2 )
+
+(31) By Condition 1(A4), ∥θ∗∥ ≤ 1 
+
+> m1/3
+
+. Then we have |θ∗ · wi(0) | ≤ 14m1/4 . Notice that Pr[ |ai(0) | ≥ 
+
+m−1/4] ≤ 2 exp( − c·m1/4
+
+> 4K4
+> a
+
+). Let λ = 12m1/4 , so with probability at least (1 − 2 exp( − c·m1/4
+
+> 4K4
+> a
+
+)) · (1 − 
+
+> 3dm
+
+), we have 
+
+2 · | θ∗ · wi(0) | + |wi(0) | + λ] ≤ 12m1/4 + 14m1/4 + 14m1/4 ≤ 1
+
+m1/4
+
+17 by Condition 1(A1). So we retain 
+
+Pr[ |ai(t + 1) | ≥ m−1/4] ≤ exp( − m1/6
+
+(t + 1) · 8η2 · (Cdata · |∇ ˆℓξt (θ(t)) |)2 ) · (1 − 3dm ) (32) By induction hypothesis, we have |∇ ˆℓξt (θ(t)) | = O(m1/4). Using union bound and by Condi-tion 1(A2), we have 
+
+Pr[ Ct] ≤
+
+> t−1
+
+X
+
+> j=0
+
+exp( − m1/12 
+
+j · 8η2 · (Cdata · O(m1/4)) 2 ) · (1 − 3dm )
+
+≤ t · exp( − m1/12 
+
+t · 8η2 · (Cdata · O(m1/4)) 2 ) · (1 − 3dm )
+
+≤ T0 · exp( −√η−1/12 
+
+T0 · 8η2 · (Cdata · O(m1/4)) 2 ) · (1 − 3dm )
+
+≤ T0 · exp( −√η−1/12 
+
+T0 · 8η2 · (Cdata · O(m1/4)) 2 ) · (1 − 3dm )= O( − ln ηη2 ) · exp( −√η−1/12 
+
+O(ln 1 
+
+> η
+
+) · C2
+
+> data
+
+· O(1)) · (1 − 3dm )
+
+≤ O(η) · (1 − 3dm ) = O( 1
+
+m )
+
+The last inequality is due to Condition 1(A2). Therefore, we have Pr[ Ct] ≥ 1 − O( 1 
+
+> m
+
+), which implies (ii) holds. Then we prove (i) holds. By Definition 4.1, we have ∥wi(t + 1) − wi(t)∥ ≤ m−1/2. Therefore, with the bound of ai(t) holds, we retain 
+
+∥θ(t + 1) ∥ ≤ ∥ a(t)⊤ · W (t)∥ ≤ ∥ a(0) ⊤ · W (0) ∥ + m−1/2 · m−1/4 · m = ∥θ(0) ∥ + m1/4 (33) Therefore, 
+
+∇ˆℓξt (θ(t + 1)) = a(t + 1) W (t + 1) xξt+1 − yξt+1 − ϵt+1 
+
+≤ a(t + 1) W (t + 1) xξt+1 − yξt+1 + |ϵt+1 |≤ ∥ (θ(t + 1) − θ∗)∥ · ∥ xξt+1 ∥ + σ
+
+≤ 2( ∥θ(0) ∥ + m1/4) · Cdata + σ
+
+= O(m1/4)
+
+which implies (i) also holds at step t + 1 . So it follows by induction that the lemma holds. □
+
+B.2 Step 2: Estimating ∆Wi
+
+Let ∇ˆℓξt (θ(t)) = f (θ(t); xξt ) − yξt − ϵt, by equ (14) and equ (15), we have 
+
+wi(t + 1) = wi(t) − η · ai(t) · ∇ ˆℓξt (θ(t)) · xξt (34) 
+
+ai(t + 1) = ai(t) − η · ∇ ˆℓξt (θ(t)) · x⊤ 
+
+> ξt
+
+· wi(t) (35) According to equ (34), after taking the norm on both sides and then square them, we have: 
+
+∥wi(t + 1) ∥2 = ∥wi(t)∥2 − 2η · ai(t)∇ˆℓξt (θ(t)) x⊤ 
+
+> ξt
+
+wi(t) + ∥η · ai(t)∇ˆℓξt (θ(t)) xξt ∥2 (36) 18 According to equ (35), we have 
+
+η · ∇ ˆℓξt (θ(t)) · x⊤ 
+
+> ξt
+
+· wi(t) = ai(t) − ai(t + 1) (37) Substitute equ (37) into the equ (36) and we retain: 
+
+∥wi(t + 1) ∥2 = ∥wi(t)∥2 − 2 · (ai(t) − ai(t + 1)) · ai(t) + ∥η · ai(t)∇ˆℓξt (θ(t)) xξt ∥2 (38) For any time T ∈ N+, summing up from 0 to T and we have: 
+
+∥wi(T )∥2 = ∥wi(0) ∥2 −2· 
+
+> T−1
+
+X
+
+> j=0
+
+(ai(j)−ai(j +1)) ·ai(j)+  
+
+> T−1
+
+X
+
+> j=0
+
+∥η ·ai(j)·∇ ˆℓξj (θ(j)) ·xξj ∥2 (39) Notice that 
+
+2 · 
+
+> T−1
+
+X
+
+> j=0
+
+(ai(j) − ai(j + 1)) · ai(j) =  
+
+> T−1
+
+X
+
+> j=0
+
+(ai(j)2 − 2 · ai(j)ai(j + 1) + ai(j + 1) 2) + ai(0) 2 − ai(T )2
+
+(40) 
+
+= 
+
+> T−1
+
+X
+
+> j=0
+
+(ai(j) − ai(j)) 2 + ai(0) 2 − ai(T )2 (41) Thus we have 
+
+∥wi(T )∥2 = ∥wi(0) ∥2 − 
+
+> T−1
+
+X
+
+> j=0
+
+(ai(j) − ai(j + 1)) 2 − ai(0) 2 + ai(T )2 + 
+
+> T−1
+
+X
+
+> j=0
+
+∥η · wi(j) · ∇ ˆℓξj (θ(j)) · xξj ∥2
+
+= ∥wi(0) ∥2 − 
+
+> T−1
+
+X
+
+> j=0
+
+(∥ai(j) − ai(j + 1) ∥2 − ∥ wi(j) − wi(j + 1) ∥2) − ai(0) 2 + ai(T )2
+
+= ∥wi(0) ∥2 − 
+
+> T−1
+
+X
+
+> j=0
+
+η2 · ∇ ˆℓξj (θ(j)) 2{(x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2} − ai(0) 2 + ai(T )2
+
+Let ∆Wi(j) = −∇ ˆℓξj (θ(j)) 2 · { (x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2}. Since ai(j) is small with high probability, ∆Wi(j) almost dominates the change of ∥wi∥2 at every step. We have 
+
+∥wi(T )∥2 = ∥wi(0) ∥2 + η2 · 
+
+> T−1
+
+X
+
+> j=0
+
+∆Wi(j) − ai(0) 2 + ai(T )2 (42) 
+
+Lemma B.3 (Progressively diminishing at each step) . Suppose Condition 1 (A1-2, 4-6) holds and consider the update rule in Equation (3) . Given the model is still under the lazy regime at step T ,then with probability at least 1 − O( 1 
+
+> m
+
+), for all the iterative steps j ≤ T1 and for every i ∈ [m]:1. ∆Wi(j) ≤ 0 with probability at least 1 − ρm1/8 .2. ∆Wi(j) ≤ − ( σ
+
+4 )2 with probability at least 14 .3. ∆Wi(j) > 0 with probability at most ρm1/8 .4. ∆Wi(j) ≤ O(1) .where ρ = 2√d
+
+√π is a constant. 
+
+Proof. 
+
+19 By Lemma B.2 (ii), with probability at least 1 − O( 1 
+
+> m
+
+), for all i ∈ [m] and all step t ≤ T1,
+
+|ai(t)| ≤ 1 
+
+> m1/4
+
+, i.e. the event Cj happens. All the "Pr" in this lemma conditioned on Cj .For each j < T , we have 
+
+∆Wi(j) > 0 ⇐⇒ (x⊤ 
+
+> ξj
+
+· wi(j)) 2 < a i(j)2 · ∥ xξj ∥2 ⇐⇒ ( x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j)) 2 < a i(j)2
+
+i.e. 
+
+x⊤ · wi(j)| < |ai(j) (43) where x = xξj  
+
+> ∥xξj∥
+
+follows a uniform distribution on the n-dimensional unit sphere. Let x1 denotes the element in the first dimension of x. By symmetry, we have 
+
+Pr[ x⊤ · wi(j)| < |ai(j) ] = Pr[ − ∥ai(j)∥∥wi(j)∥ < x 1 < ∥ai(j)∥∥wi(j)∥ ] (44) The density of x1 is f (x1) = Γ( d 
+
+> 2
+
+) 
+
+> √πΓ
+
+( d−12 )
+
+ 1 − x21
+
+ d−32 , where Γ denotes the gamma function. Then we have 
+
+Pr[ − ∥ai(j)∥∥wi(j)∥ < x 1 < ∥ai(j)∥∥wi(j)∥ ] = 
+
+Z ∥ai(j)∥∥wi(j)∥ 
+
+> x1=−∥ai(j)∥∥wi(j)∥
+
+f (x1)dx 1
+
+=
+
+Z ∥ai(j)∥∥wi(j)∥ 
+
+> x1=−∥ai(j)∥∥wi(j)∥
+
+Γ   d
+
+> 2
+
+
+
+√π Γ   d−12
+
+  1 − x21
+
+ d−32 dx 1
+
+≤
+
+Z ∥ai(j)∥∥wi(j)∥ 
+
+> x1=−∥ai(j)∥∥wi(j)∥
+
+Γ   d
+
+> 2
+
+
+
+√π Γ   d−12
+
+ dx 1
+
+= 2 · ∥ai(j)∥∥wi(j)∥ · Γ   d
+
+> 2
+
+
+
+√π Γ   d−12
+
+
+
+≤ 2√d
+
+√π · ∥aj (j)∥∥wi(j)∥≤ ρm1/8
+
+The second-to-last inequality is because Γ( d 
+
+> 2
+
+)
+
+> Γ
+
+( d−12 ) ≤ √d. So we retain ∆Wi(j) ≤ 0 with probability at least 1 − ρm1/8 and ∆Wi(j) > 0 with probability at most ρm1/8 .By Lemma B.2 (i) , ∇ˆℓξj (θ(j)) ≤ O(m1/4). So with Condition 1A(5), ∥xξj ∥ ≤ Cdata we have 
+
+∆Wi(j) = −∇ ˆℓξj (θ(j)) 2 · (x⊤ 
+
+> ξj
+
+· wi(j)) 2 + ∇ˆℓξj (θ(j)) 2 · (ai(j)2 · ∥ xξj ∥2)
+
+≤ ∇ ˆℓξj (θ(j)) 2 · (ai(j)2 · ∥ xξj ∥2)
+
+≤ O(m1/4)2 · C2
+
+> data
+
+m1/2 = O(1) 
+
+20 Finally, we prove Pr[∆ Wi(j) ≤ − ( σ
+
+4 )2] ≥ 14 . We have 
+
+Pr[∆ Wi(j) ≤ − ( σ
+
+4 )2] = Pr[ ∇ˆℓξj (θ(j)) 2{(x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2} ≥ ( σ
+
+4 )2]= Pr[ ∇ˆℓξj (θ(j)) 2{(x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2} ≥ ( σ
+
+4 )2| xξj : | x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j)| < |ai(j)|] · Pr[ |x⊤ 
+
+> ξj
+
+· wi(j)| < |ai(j)|]+ Pr[ ∇ˆℓξj (θ(j)) 2{(x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2 ≥ ( σ
+
+4 )2| xξj : | x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j)| ≥ | ai(j)|] · Pr[ |x⊤ 
+
+> ξj
+
+· wi(j)| ≥ | ai(j)|]
+
+≥ Pr[ ∇ˆℓξj (θ(j)) 2{(x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2} ≥ ( σ
+
+4 )2| xξj : | x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j)| ≥ | ai(j)|] · Pr[ |x⊤ 
+
+> ξj
+
+· wi(j)| ≥ | ai(j)|]
+
+≥ (1 − ρm1/8 ) · Pr[ ∇ˆℓξj (θ(j)) 2{(x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2} ≥ ( σ
+
+4 )2| xξj : | x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j)| ≥ | ai(j)|]
+
+Since ∇ˆℓξj (θ(j)) 2 = (( θ(j) − θ∗)xξj − ϵj )2 and ϵj is chosen uniformly,the probability that 
+
+(θ(j) − θ∗)xξj and ϵj have the same sign is at least 12 . If the two elements have the same sign, then 
+
+∇ˆℓξj (θ(j)) 2 ≥ σ2. So we have 
+
+Pr[ ∇ˆℓξj (θ(j)) 2{(x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2} ≥ ( σ
+
+4 )2| xξj s.t. | x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j)| ≥ | ai(j)|]
+
+≥ 12 · Pr[ {(x⊤ 
+
+> ξj
+
+· wi(j)) 2 − ai(j)2 · ∥ xξj ∥2} ≥ ( 14 )2| xξj s.t. | x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j)| ≥ | ai(j)|]
+
+≥ 12 · Pr[ {(x⊤ 
+
+> ξj
+
+· wi(j)) 2 − 1
+
+m1/4 · ∥ xξj ∥2} ≥ ( 14 )2| xξj s.t. | x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j)| ≥ | ai(j)|] (ai(j)2 ≤ m1/4)
+
+= 12 · Pr[ x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j) ≥
+
+s
+
+( 14 · ∥ xξj ∥ )2 + 1
+
+m1/4 | xξj s.t. | x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j)| ≥ | ai(j)|]= 12 · Pr[ x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j) ≥
+
+s
+
+( 14 · ∥ xξj ∥ )2 + 1
+
+m1/4 ] (|ai(j)| ≤ 1
+
+m1/8 ≤
+
+s
+
+1
+
+∥xξj ∥2 + 1
+
+m1/4 )
+
+≥ 12 · Pr[ x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j) ≥
+
+s
+
+( 14 · ∥ xξj ∥ )2 · 32 ]
+
+By Condition 1A(6), we have 
+
+Pr[ ∥xi∥ − √d ≥√d
+
+3 ] ≤ 2 exp( − 4 · c · d
+
+9K4 ) ≤ 12 (45) which implies Pr[ ∥xξj ∥ ≥ 23√d ] ≥ 23 . So we have 
+
+Pr[ x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j) ≥
+
+s
+
+( 14 · ∥ xξj ∥ )2 · 32 ] ≥ Pr[ x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j) ≥ 32√d · 14 · ∥ xξj ∥ ]= 1 − Pr[ x⊤
+
+> ξj
+
+∥xξj ∥ · wi(j) ≤ 38√d ]
+
+≥ 1 − ρ · 38√d
+
+= 1 − 2√d
+
+√π · 38√d = 1 − 34√π
+
+21 By Condition 1(A1), m ≥ ((1 − 34√π ) · ρ/ ( 12 − 34√π )) 8. Therefore, we have 
+
+Pr[∆ Wi(j) ≤ − ( σ
+
+4 )2] ≥ (1 − ρm1/8 ) · 12 · (1 − 34√π )= 14 + 12 · (( 12 − 34√π ) − (1 − 34√π ) · ρm1/8 )
+
+≥ 14
+
+which completes the proof. □
+
+Theorem B.4 (Escaping the lazy regime) . Suppose Condition 1 (A1-2, 4-6) holds and consider the update rule in Equation (3) . With probability at least 1 − O( 1 
+
+> m
+
+), all the neurons wi (i ∈ [m]) escape from the lazy regime at time T1 = 384 √log mσ2η2√m .
+
+Proof. Let event Ct = {| ai(t1)| ≤ m−1/4 for all t1 ≤ t and for all i ∈ [m]}. By Lemma B.2 (ii), with probability at least 1 − O( 1 
+
+> m
+
+), the event CT1 happens. We assume CT1 happens and all the "Pr" in this theorem conditioned on Cj .In the following, we will provide a proof by contradiction. Assume with probability at least O( 1 
+
+> m
+
+),there exists some neurons wi (i ∈ [m]) s.t. ∥wi(t) − wi(0) ∥ ≤ 1√m holds for all T1 steps. By Lemma A.5, we have 
+
+Pr 
+
+n
+
+∥wi(0) ∥ − p2 log m ≥ t
+
+o
+
+≤ 2 exp 
+
+
+
+− c · log mk4
+
+
+
+= O( 1
+
+m ) (46) where k and c is an absolute constant. Using union bound, with probability at least 1 − O( 1 
+
+> m
+
+), for these neurons stuck in the lazy regime, 
+
+∥wi(0) ∥ ≤ √2 log m.We view ∆Wi(j) as a random variable. We use Ω to denote the whole sample space. Let event 
+
+Ωi = {ω ∈ Ω |∆Wi(j)( ω) ≤ − ( σ
+
+4 )2}
+
+For any ω ∈ Ω, by Lemma B.3, we have Pr[Ω i] ≥ 14 . Since the event CT1 happens and wi stays in the lazy regime, the estimation of the lower bound of ∆Wi(j) only depends on the randomness of 
+
+xξj . Thus, there exists a subset of Ωi we denote Θi such that 
+
+Θi = {ω ∈ Ωi|∆Wi(ω) ≤ − (σ/ 4) 2, ∥wi(j) − wi(0) ∥ ≤ 1
+
+√m , |ai(j)| ≤ 1/m 1/8}
+
+and Pr[Θ i] = 14 . For Θi (i ∈ [T1 − 1] ), the random randomness only depends on xξt . Therefore, 
+
+Θ0, Θ1, · · · , ΘT1−1 are mutual independent events. Then we define indicator random variable X0, X 1, · · · , X T1−1 as follow: for every ω ∈ Ω, for any 
+
+j ∈ [T1 − 1] ,
+
+Xj (ω) = 
+
+ 1 if ω ∈ Θi.
+
+0 otherwise. So we have X0, X 1, · · · , X T1−1 are independent and Pr[ Xj (ω) = 1] = 14 . And we have 
+
+E[
+
+> T1−1
+
+X
+
+> j=0
+
+Xj ] = 
+
+> T1−1
+
+X
+
+> j=0
+
+E[Xj ] = T1
+
+4 (47) 22 Then we have 
+
+Pr[ η2 ·
+
+> T1−1
+
+X
+
+> j=0
+
+∆Wi(j) ≤ −2√2 log m
+
+√m ]= Pr[ η2 · (
+
+> T1−1
+
+X
+
+> j=0
+
+∆Wi(j) · I[∆ Wi(j) > 0] + 
+
+> T1−1
+
+X
+
+> j=0
+
+∆Wi(j) · I[∆ Wi(j) ≤ 0]) ≤ −2√2 log m
+
+√m ]
+
+≥ Pr[ η2 · (
+
+> T1−1
+
+X
+
+> j=0
+
+∆Wi(j) · O( 1
+
+m1/8 ) + 
+
+> T1−1
+
+X
+
+> j=0
+
+∆Wi(j) · I[∆ Wi(j) ≤ − ( σ
+
+4 )2]) ≤ −2√2 log m
+
+√m ]
+
+≥ Pr[ η2 · T1 · O(1) · O( 1
+
+m1/8 ) − η2 · ( σ
+
+4 )2 
+
+> T−1
+
+X
+
+> j=0
+
+Xj ≤ −2√2 log m
+
+√m ]= Pr[ −η2 · ( σ
+
+4 )2 ·
+
+> T1−1
+
+X
+
+> j=0
+
+Xj ≤ −2√2 log m
+
+√m − o( 1
+
+√m )] (T1 · η2 = O( 1
+
+√m )) 
+
+≥ Pr[ −η2 · ( σ
+
+4 )2 ·
+
+> T1−1
+
+X
+
+> j=0
+
+Xj ≤ − 3√log m
+
+√m ]= Pr[ 
+
+> T1−1
+
+X
+
+> j=0
+
+Xi ≥ 48 √log mσ2η2√m ] = Pr[ 
+
+> T1−1
+
+X
+
+> j=0
+
+Xi ≥ T1
+
+8 ]
+
+≥ 1 − exp( − T1
+
+4 ) · ( e · T1/4
+
+T1/8 )T1/8 = 1 − ( 2
+
+e )T1/8
+
+The last inequality is by Lemma A.6. Since T1 = 1 
+
+> η2·√m
+
+≫ m and ai(T )2 ≤ 1√m , with probability at least (1 − O( 1 
+
+> m
+
+)) · (1 − ( 2 
+
+> e
+
+)T1/8) = 1 − O( 1 
+
+> m
+
+), we have 
+
+∥wi(T )∥2 − ∥ wi(0) ∥2 = η2 · 
+
+> T−1
+
+X
+
+> j=0
+
+∆Wi(j) − ai(0) 2 + ai(T )2
+
+≤ η2 · 
+
+> T−1
+
+X
+
+> j=0
+
+∆Wi(j) + 1
+
+√m
+
+≤ − 2
+
+√2 log m
+
+√m + 1
+
+√m ≤ − 2√log m
+
+√m
+
+Thus 
+
+∥wi(T )∥ − ∥ wi(0) ∥ ≤ − 2√log m
+
+√m · 1
+
+∥wi(T )∥ + ∥wi(0) ∥≤ − 2√log m
+
+√m · 1 
+
+> 1√m
+
++ √2 log m< − 2√log m
+
+√m · 12√log m = − 1
+
+√m
+
+Which is a contradiction to the definition of lazy regime! Therefore, we complete the proof. □
+
+B.3 Algorithm 2: oscillation of the second layer within low range 
+
+We design a new update rule as follow: for every neuron wi and ai at step t, we have 
+
+wi(t + 1) = wi(t) − η · ai(t) · 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+(a(t)⊤W (t)xi − yi) · xi (48) 
+
+ai(t + 1) = ai(t) + δi(t) (49) 23 where 
+
+δi(t) = 
+
+
+
+− η0.25 if ai(t) = η0.25 
+
+η0.25 if ai(t) = −η0.25 
+
+∼ {− η0.25 , η 0.25 } if ai(t) = 0 
+
+(50) Besides, we design a new initialization for a: for every i ∈ [m], we have 
+
+ai(0) = 
+
+
+
+− η0.25 with probability 1/4 
+
+η0.25 with probability 1/4 
+
+0 with probability 1/2 (51) Notice that ai(0) follows the stationary distribution. Since the transition matrix of ai is 
+
+Q =
+
+0 1 0 
+
+> 12
+
+0 12
+
+0 1 0
+
+
+
+it is easy to verify that [1 /4, 1/2, 1/4] = [1 /4, 1/2, 1/4] · Q.Thus by large number law, we can approximate ∥a(t)∥2 by 
+
+∥a(t)∥2 =
+
+> m
+
+X
+
+> i=1
+
+|ai(t)|2 = m · E[|ai(t)|2] = m · η0.5
+
+2 (52) 
+
+Lemma B.5. Using algorithm 2, we have 
+
+E[θ(t)] = E[θ(0)] (53) 
+
+Proof. Notice that 
+
+W (t + 1) = W (t + 1) − η · a(t) · 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+(a(t)⊤W (t)xi − yi) · x⊤ 
+
+> i
+
+(54) 
+
+a(t + 1) = a(t) + δ(t)⊤ (55) Where δ(t) = [ δ1(t), δ 2(t), · · · , δ m(t)] ⊤.Notice that a(t + 1) ⊤ · a(t) = 0 , then we have 
+
+θ(t + 1) = a(t + 1) ⊤ · W (t + 1) (56) 
+
+= ( a(t)⊤ + δ(t)) · (W (t) − η · a(t) · 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+(a(t)⊤W (t)xi − yi) · x⊤ 
+
+> i
+
+) (57) 
+
+= θ(t) + δ(t) · W (t) − (a(t + 1) ⊤ · a(t)) · η · 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+(a(t)⊤W (t)xi − yi) · x⊤ 
+
+> i
+
+(58) 
+
+= θ(t) + δ(t) · W (t) (59) Since E[δ(t)] = 0, we have 
+
+E[θ(t)] = E[θ(0)] 
+
+B.4 Progressive diminishing of norm using Algorithm 2 
+
+Since xi ∼ N (0 , I ) i.i.d, by law of large numbers, 1
+
+> n
+
+Pni=1 xi ·x⊤ 
+
+> i
+
+is approximately to E[xi ·x⊤ 
+
+> i
+
+] = I.So we have 
+
+wi(t + 1) = wi(t) − η · ai(t) · (θ(t) − θ∗)⊤ (60) 
+
+ai(t + 1) = ai(t) + δi(t) (61) 24 Square both sides of the equation and we have 
+
+∥wi(t + 1) ∥2 = ∥wi(t)∥2 − 2η · ai(t) · (θ(t) − θ∗)⊤ · wi(t + 1) + η2 · ai(t)2 · ∥ θ(t) − θ∗∥2
+
+(62) Since |ai(t)| ≤ η0.25 , we have 
+
+1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(t + 1) ∥2 = 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(t)∥2 − 2η · (θ(t) − θ∗)⊤ · 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+ai(t)wi(t) + η2 · 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+ai(t)2∥θ(t) − θ∗∥2
+
+(63) 
+
+= 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(t)∥2 − 2η · 1
+
+m · (θ(t) − θ∗)⊤ · θ(t) + η2 · 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+ai(t)2∥θ(t) − θ∗∥2
+
+(64) 
+
+≤ 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(t)∥2 − 2η · 1
+
+m · (θ(t) − θ∗)⊤ · θ(t) + η2 · (η0.25 )2∥θ(t) − θ∗∥2
+
+(65) 
+
+= 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(t)∥2 − ( 2ηm − η2.5)∥(θ(t) − θ∗)∥2 − 2ηm · (θ(t) − θ∗)⊤ · θ∗
+
+(66) (67) 
+
+Lemma B.6. If we set ai(0) to stationary distribution, then for any t, k ∈ N+, we have 
+
+E[δi(t) · δi(t + k)] = 
+
+
+
+− η0.5
+
+2 if k = 1 0 if k > 1
+
+(68) 
+
+Proof. Without loss of generality, assume we know that δi(t) = η0.25 , then the distribution changes to (0 , 12 , 12 ). So we have 
+
+E[δi(t) · δi(t + 1)] = 12 · η0.25 · (−η0.25 ) + 12 · 0 = − η0.5
+
+2
+
+Then just after that, the distribution changes from (0 , 12 , 12 ) to stationary distribution ( 14 , 12 , 14 ) again. Thus for any k > 1 we have 
+
+E[δi(t) · δi(t + k)] = 0 
+
+Lemma B.7 (Progressively diminishing under simulation setup) . Suppose Condition 1 (A1-3, 5-6) holds (let m = 1√η ) and consider the update rule in Equations (48) and (49) , there exists a step 
+
+t0 ≤ 1 
+
+> η2
+
+such that 
+
+E[ 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(t0)∥2] ≤ √η (69) 
+
+Proof. Firstly, we give a lower bound of E[∥θ(t) − θ∗∥2], which shows the decrease of each step. According to equ (59), we retain 
+
+θ(t) − θ∗ = θ(0) − θ∗ +
+
+> t−1
+
+X
+
+> i=0
+
+δ(i) · W (i) (70) And Since E[δ(i)] = 0 , we have 
+
+E[( θ(0) − θ∗) ·
+
+> t−1
+
+X
+
+> i=0
+
+δ(i) · W (i)] = E[δ(i)] · E[( θ(0) − θ∗) ·
+
+> t−1
+
+X
+
+> i=0
+
+W (i)] = 0 (71) 25 So we have 
+
+E[∥(θ(t)−θ∗)∥2] = E[∥(θ(0) −θ∗)∥2]+( η0.25 )2·
+
+> t−1
+
+X
+
+> i=0
+
+E[∥W (i)∥2]+2 
+
+> t−1
+
+X
+
+> i=0
+
+X
+
+> j<i
+
+E[( δ(i)W (i)) ·(δ(j)W (j)) ⊤]
+
+(72) Notice that 
+
+E[( δ(i)W (i)) · (δ(i + 1) W (i + 1) ⊤] = E[δ(i)( W (i)W (i + 1) ⊤)δ(i + 1) ⊤]= X
+
+> 1≤l,r ≤m
+
+E[δl(i)δr (i + 1) · (W (i)W (i + 1) ⊤)[ l, r ]] = X
+
+> 1≤l,r ≤m
+
+E[δl(i)δr (i + 1) · wl(i)⊤wr (i + 1)] 
+
+Case 1: r̸ = l. In this case, δl are independent with δr . So we have 
+
+E[δl(i)δr (i + 1) · wl(i)⊤wr (i + 1)] = E[δl(i)δr (i + 1) · wl(i)⊤(wr (i) − η · ar (i) · (θ(i) − θ∗)⊤]= E[δl(i)δr (i + 1) · wl(i)⊤wr (i)] − E[δl(i)δr (i + 1) · wl(i)⊤η · ar (i) · (θ(i) − θ∗)⊤]= E[δl(i)] · E[δr (i + 1) · wl(i)⊤wr (i)] − E[δl(i)] · E[δr (i + 1) · wl(i)⊤η · ar (i) · (θ(i) − θ∗)⊤]= 0 
+
+Case 2: r = l, by Lemma B.6, we have 
+
+E[δl(i)δl(i + 1) · wl(i)⊤wl(i + 1)] = E[δl(i)δl(i + 1) · wl(i)⊤(wl(i) − η · al(i) · (θ(i) − θ∗)⊤)] = E[δl(i)δl(i + 1) · wl(i)⊤wl(i)] − E[δl(i)δl(i + 1) · wl(i)⊤η · al(i) · (θ(i) − θ∗)⊤]= E[δl(i)δl(i + 1)] · E[∥wl(i)∥2] − E[δl(i)δl(i + 1) · wl(i)⊤η · al(i) · (θ(i) − θ∗)⊤]= − η0.5
+
+2 E[∥wl(i)∥2] − ηE[δl(i)δl(i + 1) · al(i) · (θ(i) − θ∗)⊤ · wl(i)] = − η0.5
+
+2 E[∥wl(i)∥2] − O(η1.75 )
+
+Thus we have 
+
+E[( δ(i)W (i)) · (δ(i + 1) W (i + 1)) ⊤] = X
+
+> 1≤l,r ≤m
+
+E[δl(i)δr (i + 1) · wl(i)⊤wr (i + 1)] =
+
+> m
+
+X
+
+> l=1
+
+E[δl(i)δl(i + 1)] · wl(i)⊤wl(i + 1)) = − η0.5
+
+2
+
+> m
+
+X
+
+> l=1
+
+E[∥wl(i)∥2] − O(m · η1.75 )= − η0.5
+
+2 E[∥W (i)∥2] − O(m · η1.75 )
+
+Then we retain 26 t−1X
+
+> i=0
+
+X
+
+> j<i
+
+E[( δ(i)W (i)) · (δ(j)W (j)) ⊤] = 
+
+> t−2
+
+X
+
+> i=0
+
+E[( δ(i)W (i)) · (δ(i + 1) Wi+1 )⊤] (73) 
+
+= − η0.5
+
+2 ·
+
+> t−2
+
+X
+
+> i=0
+
+E[∥W (i)∥2] − O(m · η1.75 ) (74) Combining equ (72) and equ (74), we have 
+
+E[∥(θ(t) − θ∗)∥2] = E[∥(θ(0) − θ∗)∥2]+ η0.5 ·
+
+> t−1
+
+X
+
+> i=0
+
+E[∥W (i)∥2] + 2 
+
+> t−1
+
+X
+
+> i=0
+
+X
+
+> j<i
+
+E[( δ(i)W (i)) · (δ(j)W (j)) ⊤] + O(m · η1.75 )= E[∥(θ(0) − θ∗)∥2] + η0.5 ·
+
+> t−1
+
+X
+
+> i=0
+
+E[∥W (i)∥2] − η0.5 ·
+
+> t−2
+
+X
+
+> i=0
+
+E[∥W (i)∥2] + O(m · η1.75 )= E[∥(θ(0) − θ∗)∥2] + η0.5E[∥W (t − 1) ∥2] − O(m · η1.75 )
+
+≥ E[∥θ⋆∥2] + η0.5E[∥W (t − 1) ∥2]
+
+Then we give a proof of this theorem by contradiction. Assume for every step t ≤ 1 
+
+> η2
+
+, we have 
+
+E[ 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(T )∥2] ≥ √η (75) i.e. 
+
+E[∥W (t)∥2] ≥ m · √η (76) When T = 1
+
+η2 , according to equ (66), sum up from 0 to T − 1 and we have 
+
+E[ 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(T )∥2] = E[ 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(0) ∥2] − ( 2ηm − η2.5) · 
+
+> T−1
+
+X
+
+> t=0
+
+E[∥(θ(t) − θ∗)∥2] − 2ηm · 
+
+> T−1
+
+X
+
+> t=0
+
+E[( θ(t) − θ∗)⊤ · θ∗]
+
+≤ E[ 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(0) ∥2] − ( 2ηm − η2.5) · (T · E[∥θ∗∥2] + η0.5 
+
+> T−1
+
+X
+
+> t=0
+
+E[∥Wt∥2]) + T · 2ηm · E[∥θ∗∥2]
+
+≤ E[ 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥wi(0) ∥2] − 2η1.5 · T · √η + O(T · η2.5)= 1 − 2η1.5 · 1
+
+η2 · √η + O(T · η2.5) = −1 + O(T · η2.5) < 0
+
+Which is absolutely a contradiction! Therefore, we complete the proof. □
+
+## C Phase II: Feature Learning and Convergence 
+
+C.1 Rotation to alignment 
+
+We use gradient descent in phase II. For every neuron wi and ai (i ∈ [m]) at step t:
+
+∂L(θ(t)) 
+
+∂wi(t)⊤ = ai(t) · 1
+
+n
+
+> m
+
+X
+
+> j=1
+
+(a(t)⊤W (t)xj − yj ) · x⊤ 
+
+> j
+
+(77) 
+
+∂L(θ(t)) 
+
+∂a i(t) = 1
+
+n
+
+> m
+
+X
+
+> j=1
+
+(a(t)⊤W (t)xj − yj ) · x⊤ 
+
+> j
+
+· wi(t)⊤ (78) 27 The update rule of gradient descent is 
+
+wi(t + 1) = wi(t) − η · ai(t) · 1
+
+n
+
+> m
+
+X
+
+> j=1
+
+(a(t)⊤W (t)xj − yj )xj (79) 
+
+ai(t + 1) = ai(t) − η · 1
+
+n
+
+> m
+
+X
+
+> j=1
+
+(a(t)⊤W (t)xj − yj )x⊤ 
+
+> j
+
+· wi(t) (80) By law of large numbers, we have 
+
+1
+
+n
+
+> n
+
+X
+
+> j=1
+
+xj · x⊤ 
+
+> j
+
+= E[xj · x⊤ 
+
+> j
+
+] + O( 1
+
+√n ) = I + O( 1
+
+√n ) (81) Then we have 
+
+wi(t + 1) = wi(t) − η · ai(t) · 1
+
+n
+
+> m
+
+X
+
+> j=1
+
+xj · x⊤ 
+
+> j
+
+· (θ(t) − θ∗) (82) 
+
+= wi(t) − η · ai(t) · (θ(t) − θ∗) + O( η
+
+√n ) (83) And 
+
+ai(t + 1) = ai(t) − η · (θ(t) − θ∗) 1
+
+n
+
+> m
+
+X
+
+> j=1
+
+xj · x⊤ 
+
+> j
+
+· wi(t)= ai(t) − η · (θ(t) − θ∗) · wi(t) + O( η
+
+√n )
+
+Since ai(t), ∥wi(t)∥ ≤ n0.5 when phase II begins, we have 
+
+wi(t + 1) = wi(t) − η · ai(t) · (θ(t) − θ∗) + O( η
+
+√n )= wi(t) + η · (ai(t) · θ∗) + O(η1.5)
+
+Similarly, we have: 
+
+ai(t + 1) = ai(t) + η · θ∗ · wi(t) + O(η1.5)
+
+Combine both we have: 
+
+"wi(t + 1) 
+
+ai(t + 1) 
+
+#
+
+= ( I + ηM ) ·
+
+"wi(t)
+
+ai(t)
+
+#
+
++ O(η1.5) (84) where M =
+
+" 0 θ∗⊤ 
+
+θ∗ 0
+
+#
+
+. The top eigenvalue of M is λ1 = ∥θ∗∥ and the lowest eigenvalue of M
+
+is λn+1 = −∥ θ∗∥. All the other eigenvalues of M are equal to 0. Since M is symmetry matrix, there exists orthogonal matrix QM such that 
+
+M = Q⊤ 
+
+> M
+
+· diag (∥θ∗∥, 0, . . . , −∥ θ∗∥) · QM (85) 
+
+Lemma C.1 (Alignment) . Suppose Condition 1 (A1-3, 5-6) holds and consider gradient descent for updates. Assume that phase II begins at time t1, then at time t2 = t1 + T2, T2 = 1 
+
+> ∥θ⋆∥
+
+· ln( 1 
+
+> η
+
+), for any neuron wi it holds 
+
+|⟨ θ⋆, wi(t2)⟩| ∥θ⋆∥ · ∥ wi(t2)∥ ≥ 1 − O(ln 1
+
+η · √η) . (86) 28 Proof . By equ (84), we have 
+
+"wi(t1 + T2)
+
+ai(t1 + T2)
+
+#
+
+= ( I + η · M )T2 ·
+
+"wi(t1)
+
+ai(t1)
+
+#
+
++ O(T2 · η1.5)=
+
+> T2
+
+X
+
+> k=0
+
+T2
+
+k
+
+
+
+(ηM )k ·
+
+"wi(t1)
+
+ai(t1)
+
+#
+
++ O(T2 · η1.5)= ( I + T2ηM + T2(T2 − 1) 2 (ηM )2 + · · · + ( ηM )T ) ·
+
+"wi(t1)
+
+ai(t1)
+
+#
+
++ O(T2 · η1.5)= ( 
+
+> T2
+
+X
+
+> i=0
+
+(T2ηM )i
+
+i! + O(T2 · η2)) ·
+
+"wi(t1)
+
+ai(t1)
+
+#
+
++ O(T2 · η1.5)= (exp( T2η · M ) + O( (T2η · M )T +1 
+
+(T + 1)! )) ·
+
+"wi(t1)
+
+ai(t1)
+
+#
+
++ O(T2 · η1.5) (taylor expansion )= e · M
+
+∥θ∗∥
+
+"wi(t1)
+
+ai(t1)
+
+#
+
++ O(T2 · η1.5) (η− ln η ≪ (− ln η)− ln η )
+
+So we have 
+
+wi(t1 + T2) = e · ai(t1)
+
+∥θ∗∥2
+
+· θ∗⊤ + O(ln 1
+
+η · η1.5) (87) Then we have, 
+
+|⟨ θ∗, wi(t2)⟩| = ⟨θ∗, e · ai(t1)
+
+∥θ∗∥2
+
+· θ∗⊤ + O(ln 1
+
+η · η1.5)⟩
+
+=
+
+∥θ∗∥ · e · ai(t1) + θ∗ · O(ln 1
+
+η · η1.5)
+
+∥θ∗∥ · ∥ wi(t2)∥
+
+=
+
+e · ai(t1) + θ∗
+
+∥θ∗∥ · O(ln 1
+
+η · η1.5)
+
+e · ai(t1)
+
+∥θ∗∥ · θ∗⊤ + O(ln 1
+
+η · η1.5)
+
+≥
+
+e · ai(t1) − O(ln 1
+
+η · η1.5)
+
+e · ai(t1) + O(ln 1
+
+η · η1.5)) 
+
+(triangle inequality )= 1 −
+
+O(ln 1 
+
+> η
+
+· η1.5)
+
+e · ai(t1) + O(ln 1 
+
+> η
+
+· η1.5)
+
+≥ 1 − O(ln 1
+
+η · √η)
+
+Therefore, we complete the proof. □
+
+C.2 Convergence to sparse solution 
+
+We assume that all the neurons are perfect aligned, i.e. for every neuron wi (i ∈ [m]) at step t, there exists coefficient γi(t) such that wi(t) = γi(t) · θ∗.29 Lemma C.2 (Convergence) . Suppose Condition 1 (A1-3, 5-6) holds and consider gradient descent for updates. Assume all the neurons are perfectly aligned at step t2. Let t3 = t2 + 1 
+
+> ∥θ⋆∥2
+
+· ln(1 /η ) 
+
+> η
+
+. Using gradient descent, we have ∥θ(t3)−θ⋆∥ ≤ | O(η·ln 1 
+
+> η
+
+)|. Furthermore, for any neuron ∥wi(t3)∥ ≥ √η
+
+(i ∈ [m]), we have 
+
+|⟨ θ⋆, wi(t3)⟩| ∥θ⋆∥ · ∥ wi(t3)∥ ≥ 1 − O(η · ln 1
+
+η ) . (88) By equ (79), when t = t2, we have 
+
+wi(t + 1) = wi(t) − η · ai(t) · 1
+
+n
+
+> m
+
+X
+
+> j=1
+
+(a(t)⊤W (t)xj − yj )xj (89) 
+
+= γi(t) · θ∗ − η · ai(t) · ( 1
+
+n
+
+> m
+
+X
+
+> j=1
+
+xj · x⊤ 
+
+> j
+
+) · (
+
+> m
+
+X
+
+> k=1
+
+ak(t) · γk(t) · θ∗ − θ∗) (90) 
+
+=
+
+(
+
+γi(t) − η · ai(t) · (
+
+> m
+
+X
+
+> k=1
+
+ak(t) · γk(t) − 1) 
+
+)
+
+· θ∗ + O( η
+
+√n ) (91) The last equation is due to 1
+
+n
+
+Pmj=1 xj · x⊤ 
+
+> j
+
+= I + O( 1√n ) = I + O(η2) by large number law and Condition 1(A3). Notice that 
+
+θ(t) = a(t)⊤ · W (t) = 
+
+> m
+
+X
+
+> i=1
+
+ai(t) · wi(t) = ( 
+
+> m
+
+X
+
+> i=1
+
+ai(t) · γi(t)) · θ∗ (92) Then we have 
+
+θ(t + 1) = θ(t) − η · a(t)⊤a(t) · 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+(a(t)⊤W (t)xi − yi) · x⊤
+
+> i
+
+− η · 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+(a⊤(t)W (t)xi − yi) · x⊤ 
+
+> i
+
+W (t)⊤W (t) + O(η2)= θ(t) − η ·
+
+> m
+
+X
+
+> i=1
+
+ai(t)2 · (
+
+> m
+
+X
+
+> j=1
+
+ai(t) · γi(t) − 1) · θ∗ − η · (
+
+> m
+
+X
+
+> j=1
+
+ai(t) · γi(t) − 1) · ∥ θ∗∥2 · θ∗ + O(η2)= θ(t) − η · (
+
+> m
+
+X
+
+> j=1
+
+ai(t) · γi(t) − 1) · (
+
+> m
+
+X
+
+> i=1
+
+ai(t)2 + ∥θ∗∥2) · θ∗ + O(η2)
+
+We consider the change of θ(t) − θ∗. Subtracting θ∗ on both side and we retain 
+
+θ(t + 1) − θ∗ = θ(t) − θ∗ − η · (
+
+> m
+
+X
+
+> j=1
+
+ai(t) · γi(t) − 1) · (
+
+> m
+
+X
+
+> i=1
+
+ai(t)2 + ∥θ∗∥2) · θ∗ + O(η2)
+
+(93) 
+
+= ( 
+
+> m
+
+X
+
+> k=1
+
+ak(t) · γk(t) − 1) · (1 − η · (
+
+> m
+
+X
+
+> i=1
+
+ai(t)2 + ∥θ∗∥2)) · θ∗ + O(η2) (94) 
+
+= ( θ(t) − θ∗) · (1 − η · (
+
+> m
+
+X
+
+> i=1
+
+ai(t)2 + ∥θ∗∥2)) + O(η2) (95) In the beginning, |ak(t2)|, ∥wk(t2)∥ ≤ √η, so γi(t2) ≤ √η 
+
+> ∥θ∗∥
+
+and we have 
+
+> m
+
+X
+
+> k=1
+
+ak(t2) · γk(t2) ≤ m · η
+
+∥θ∗∥ (96) 30 by equ (95), for any t2 ≤ t ≤ t3 it holds 
+
+∥θ(t + 1) − θ∗∥ = ∥θ(t) − θ∗∥ · (1 − η · (
+
+> m
+
+X
+
+> i=1
+
+ai(t)2 + ∥θ∗∥2)) + O(η2) (97) 
+
+≤ ∥ θ(t) − θ∗∥ · (1 − η · ∥ θ∗∥2) + O(η2) (98) Let T = − ln η 
+
+> ∥θ∗∥2·η
+
+, we retain 
+
+∥θ(t3) − θ∗∥ ≤ ∥ θ(t2) − θ∗∥ · (1 − η · ∥ θ∗∥2)T + O(T · η2) (99) Since (1 − x)T ≤ exp( −x · T ), we have 
+
+∥θ(t3) − θ∗∥ ≤ ∥ θ(t2) − θ∗∥ · (1 − η · ∥ θ∗∥2)T + O(T · η2)
+
+≤ ∥ θ(t2) − θ∗∥ · exp( −η · ∥ θ∗∥2 · T ) + O(η · ln 1
+
+η )= ∥θ(t2) − θ∗∥ · η + O(η · ln 1
+
+η )= O(η · ln 1
+
+η )
+
+So we reatin 
+
+1 −
+
+> m
+
+X
+
+> k=1
+
+ak(t3) · γk(t3) ≤ O(η · ln 1
+
+η ) (100) Since the summation of wi(i) approach to θ∗, which shows that there exists some neurons with "big" norm. For any neuron ∥wi(t3)∥ ≥ √η, we have γi(t3) ≥ √η 
+
+> ∥θ∗∥
+
+. For these neuron, we retain 
+
+|⟨ wi(t3), θ∗⟩| = ⟨(
+
+> m
+
+X
+
+> k=1
+
+ak(t3) · γk(t3)) · θ∗ + O(T · η2), θ∗⟩
+
+=
+
+(Pmk=1 ak(t3) · γk(t3)) · ∥ θ∗∥2 + O(η · ln 1
+
+η )
+
+γi(t3) · ∥ θ∗∥2 + O(η · ln 1 
+
+> η
+
+)
+
+≥
+
+γi(t3) · ∥ θ∗∥2 − O(η · ln 1
+
+η )
+
+|γi(t3) · ∥ θ∗∥2| + O(η · ln 1 
+
+> η
+
+)
+
+(by triangle inequality and equ (100) ) 
+
+= 1 − O(η · ln 1
+
+η )
+
+Therefore, we complete the proof. □
+
+## D Experiments details 
+
+Main Experimental Setup. We perform our empirical observations on commonly used image classification datasets CIFAR-10 Krizhevsky et al. [16] , with the standard architectures ResNet-18 He et al. [15] . Optimization is done with vanilla and label noise SGD, with no weight decay or momentum. The learning rate is set to 0.1, and the total number of epochs is 160 .
+
+Model Pruning and Sparsity. Model pruning is a compression technique that reduces network size by selectively removing redundant components, such as weights and neurons, while maintain-ing comparable performance. The pruning limit of a trained neural network is often linked to its 31 Figure 6: Neuron dynamics in alternating noisy/noiseless SGD training. We replicate the synthetic problem setup from Subsection "Setup and Overview: A Two-Layer Linear Network", changing the standard SGD label noise to training with alternating noisy and noiseless SGD every 5000 steps. (a) Learning dynamics on average. The averaged neuron norm Avg i∈[m](∥wi(t)∥2) and the averaged neuron alignment Avg i∈[m](⟨wi(t), θ⋆⟩) vs. training iteration t. (b) Learning dynamics of i-th neuron. The i-th neuron norm ∥wi(t)∥2 and the corresponding absolute value |ai(t)| in the second layer vs. training iteration t.sparsity [ 49 ], as weights and neurons with small magnitudes are typically considered redundant or non-influential [ 50 , 51 , 52 ]. Therefore, a sparser model tends to retain higher performance after pruning to the same level. In this work, we use model pruning to investigate the sparsity of solutions obtained through different training algorithms. Specifically, we focus on the Iterative Feature Merging (IFM) algorithm [ 53 ]. To the best of our knowledge, IFM is the first pruning technique that does not require fine-tuning or modifications to the training procedure and thus can be directly applied to a pre-trained model. 
+
+## E Additional experiment 
+
+In this section, we present the supplementary experiment to help understand the mechanistic principles of label noise SGD. 
+
+Alternating label noise SGD: We trained the model using SGD but alternate label noise every 5,000 steps (adding label noise for 5000 steps and then remove label noise for 5000 steps). As shown in Figure 6, this experiment reveals two key phenomena: (i) the norms of first-layer neurons gradually decrease when adding label noise and the norm reduction stops when removing label noise. (ii) the second-layer neuron weights oscillate near zero under noise but stabilize. These observations collectively demonstrate that the crucial role of label noise in facilitating the transition from lazy to rich regimes. Our theoretical analysis further in paper establishes that label noise SGD induces the second-layer oscillations, driving the progressive reduction of first-layer norms, thereby enabling the model to escape the lazy regime. 32
