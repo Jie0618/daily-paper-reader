@@ -1,0 +1,3340 @@
+Title: Solving Sparsity Constrained PCA, Regression, and QCQP via the Spartrahedron
+
+URL Source: https://arxiv.org/pdf/2603.18215v1
+
+Published Time: Fri, 20 Mar 2026 00:13:28 GMT
+
+Number of Pages: 41
+
+Markdown Content:
+SOLVING SPARSITY CONSTRAINED PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 
+
+DIEGO CIFUENTES AND ZHUORUI LI 
+
+Abstract. Sparsity is a fundamental modeling principle in statistics, signal processing, and data science. However, optimization with sparsity constraints is notoriously difficult. We introduce a new convex relax-ation framework for sparse quadratically constrained quadratic programs (QCQPs), a class that subsumes sparse regression, sparse principal com-ponent analysis (PCA), and related problems. Our approach is based on a novel convex cone, the spartrahedron, which exactly characterizes sparsity at the matrix level. This leads to a semidefinite programming (SDP) relaxation that is tight whenever its solution is rank-one, providing a simple certificate of global optimality. We establish theoretical guaran-tees, including approximation bounds and exactness regions for sparse PCA and sparse ridge regression, as well as a general stability result under perturbations. Numerical experiments on sparse PCA, sparse regression, RIP constant estimation, and sparse canonical correlation analysis (CCA) demonstrate the practical success of our methods. 
+
+1. Introduction 
+
+Sparsity plays a central role in modern statistics, signal processing, and data science. By concentrating modeling capacity on a small set of salient variables, sparse models improve interpretability and generalization in high dimensions. In inverse problems, compressed sensing theory demonstrates that sparse signals can be reconstructed exactly or stably from highly under-sampled measurements, enabling accelerated imaging and other acquisition-limited applications. In regression analysis, sparsity is widely promoted by techniques such as the lasso. Sparse principal component analysis (PCA) produces components with few nonzero loadings, retaining much of the explanatory power of classical PCA while dramatically improving inter-pretability. Across domains, sparsity acts as a powerful inductive bias that enables statistical guarantees and efficient computation. Despite extensive research, enforcing sparsity remains a challenging task. Practical methods often rely on heuristic surrogates such as ℓ1 penalization, which offer limited guarantees and are highly sensitive to regularization choices. This paper introduces a new framework for handling sparsity in a broad class of optimization problems—including sparse regression and sparse PCA—using convex optimization tools that provide rigorous guarantees on solution quality.  
+
+> 1
+> arXiv:2603.18215v1 [math.OC] 18 Mar 2026 2DIEGO CIFUENTES AND ZHUORUI LI
+
+Our starting point is the general family of sparsity-constrained quadrati-cally constrained quadratic programs (QCQPs): (P) min  
+
+> x∈Rn
+
+xT Cx s.t. ∥x∥0 ≤ k, xT Aix = bi, i ∈ [m],
+
+where C, A i ∈ Sn are symmetric matrices, bi ∈ R are scalars, k ∈ N is an integer, and ∥ · ∥ 0 denotes the number of nonzero entries. When the sparsity constraint is removed, the problem reduces to a standard QCQP, a classical yet challenging optimization class with numerous applications [1, 4, 6, 19, 20, 33, 37]. While QCQPs are already NP-hard in general, the addition of a sparsity constraint makes the problem significantly more difficult: sparse QCQPs are NP-hard even when m = 0 [12, 36, 38], whereas QCQPs remain tractable for m ≤ 1 [6, 39, 40]. Two important instances of (P) illustrate its broad relevance. The first is sparse PCA, which seeks a sparse unit vector x ∈ Rn that maximizes correlation with a covariance matrix Σ ∈ Sn:(P-spca) max  
+
+> x∈Rn
+
+xT Σx s.t. ∥x∥0 ≤ k, ∥x∥22 = 1 More generally, the ℓ-sparse PCA problem seeks ℓ orthonormal sparse vectors, and can be formulated as a sparse QCQP as follows: max  
+
+> X∈Rn×ℓ
+
+Σ • XX T s.t. ∥X∥0 ≤ k, XT X = Iℓ
+
+where A • B = Tr( BT A) denotes the trace inner product. The second is sparse regression. Given A ∈ Rm×n and y ∈ Rm, the goal is to estimate x ∈ Rn minimizing ∥Ax − y∥22 subject to sparsity. We focus on a sparse variant of ridge regression, which adds an ℓ2 penalty: (P-sridge) min  
+
+> x∈Rn
+> 1
+> m
+
+∥Ax − y∥22 + α∥x∥22 s.t. ∥x∥0 ≤ k, 
+
+for a fixed regularization parameter α ≥ 0. Sparse regression is a cornerstone in statistics and data analysis, often approached through lasso. 
+
+Our approach. We propose a new semidefinite relaxation for sparse QCQPs. Convex relaxations based on semidefinite programming (SDP) have been extensively studied for QCQPs, but far less so for their sparse counterparts. Although ℓ1 regularization offers a proxy for sparsity, such methods typically lack theoretical guarantees. By contrast, our relaxation provides provable approximation bounds—for both sparse PCA and sparse regression—and is grounded in a new convex cone, the spartrahedron .The k-spartrahedron in Sn is defined as (1) Sn,k := {X ∈ Sn : k diag X ⪰ X ⪰ 0}
+
+where diag X retains only the diagonal entries of X, and A ⪰ B denotes positive semidefiniteness of A − B. This set captures sparsity exactly: (2) xx T ∈ S n,k ⇐⇒ ∥x∥0 ≤ k. SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 3
+
+This leads to the following SDP relaxation for ( P): (Q) min  
+
+> X∈Sn
+
+C • X s.t. Ai • X = bi, i ∈ [m], X ∈ S n,k 
+
+The relaxation is exact or tight when any optimal solution of (Q) is a rank one matrix X = xx T , in which case x is optimal for (P). The SDP (Q)can be viewed as a sparsity-aware analogue of the classical Shor relaxation for QCQPs. The induced SDP relaxation (Q) exhibits robustness to small perturbations when the relaxation is tight; see Theorem 3.1 for details. We also explore other conic relaxations that might be tighter than Sn,k . In particular, we introduce the SDP (Q+) , which yields stronger guarantees than ( Q) at the expense of increased computational cost. 
+
+Contributions and Organization. The main contribution of this paper is the introduction of the spartrahedron and its use in convex relaxations for sparse QCQPs. Our framework applies broadly, encompassing problems such as sparse PCA, sparse regression, estimation of restricted isometry property (RIP) constants, and sparse canonical correlation analysis (CCA). Our specific contributions are as follows: 
+
+• Geometric foundations (Section 2). We study the geometry of the spartrahedron, compare it to other convex relaxations, and prove its fundamental sparsity property (2) . We also show that the relax-ation ( Q) is always exact when n = 3 and k = 2. 
+
+• Stability under perturbations (Section 3). We prove that our relax-ation is robust: if it is exact for a given instance, it remains exact under small data perturbations. This extends the local exactness results of [20] to the sparse setting. 
+
+• Sparse PCA (Section 4). We establish that the approximation ratio of our relaxation is bounded by min {k, n/k, r }, where r is the rank of the objective matrix. We further identify an exactness region for the SDP and apply these results to spiked Wigner and Wishart models. 
+
+• Sparse ridge regression (Section 5). We prove an O(k) bound on the approximation ratio and identify an exactness region in the overdetermined regime. 
+
+• Numerical experiments (Section 6). We provide experiments on sparse PCA, sparse regression, RIP estimation, and sparse CCA. Across all tasks, our SDP consistently outperforms both heuristic methods and existing SDP-based approaches. 
+
+Related Works. Given their broad practical reach, sparse QCQPs have motivated a wide range of algorithms. There are three main classes: (i) approximation and heuristic methods that scale well but may lack guar-antees; (ii) mixed-integer formulations (MIP/MINLP) which may provide global optimality certificates at higher computational cost, and (iii) convex 4 DIEGO CIFUENTES AND ZHUORUI LI 
+
+relaxations that offer tractable bounds and, under suitable conditions, exact recovery. 
+
+Approximation (heuristic) methods. A variety of first-order methods have been developed for special cases of sparse QCQP. Inspired by compressed sensing and sparse regression, thresholding-based approaches [28,29,34,46,47] have been proposed; beyond simple truncation rules, greedy schemes [3, 41, 42, 44] iteratively expand and prune the support. These methods are computationally efficient, and many enjoy guarantees of convergence to a first-order stationary point; however, most existing algorithms only consider simple constraint structures such as a single sparsity constraint coupled with an ℓ2-norm bound, so extending to general sparse QCQPs with multiple quadratic constraints is substantially more challenging. Moreover, they typically do not attain the global optimum and do not furnish optimality certificates. The following approaches are developed to find and certify exact solutions. 
+
+Mixed-integer programming. With advances in mixed-integer program-ming (MIP), numerous methods have been proposed for special cases of (P), notably portfolio selection, sparse regression and sparse PCA. MIP and mixed-integer SDP (MISDP) formulations [8, 23, 25, 32] and Branch-and-bound algorithms [7, 35] have been employed to solve sparse PCA. In the absence of quadratic constraints, mixed-integer formulations [48] and branch-and-bound algorithms [10] have been developed for sparse quadratic programs which have applications in portfolio and subset selection. Sparse regression is another important special case of (P) where MIP techniques can be applied [2, 9, 11]. For the general formulation (P), to the best of our knowledge there is no broadly applicable mixed-integer programming frame-work; existing MIP techniques are tailored to special cases with additional structure (e.g., a single quadratic constraint, convexity, or application-specific modeling). Developing a unified, scalable MIP approach for (P) therefore remains an open challenge. While some of these approaches can certify global optimality for specific applications, their worst-case computational complexity is exponential, which limits scalability in practice. To obtain more tractable algorithms, the aforementioned mixed-integer formulations are often relaxed to convex optimization problems; we discuss these convex relaxations in the next section. 
+
+Convex Relaxation. Numerous convex relaxations have been proposed for special cases of (P). We first consider semidefinite relaxations: for sparse PCA, d’Aspremont et al. [22] introduced an SDP using an ℓ1-based surrogate for cardinality, with subsequent work establishing optimality conditions and approximation guarantees [21, 24]. Although devised for sparse PCA, this framework extends to broader instances of (P), such as SVM formulations [17]. In this paper, we investigate a different SDP relaxation tailored to (P). A second line of convexification arises by relaxing mixed-integer models which yield tractable formulations that have been applied to sparse PCA [8, 23, 32], sparse quadratic programs [48], and sparse regression [2, 9, 11]. However, SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 5
+
+even for special structures, prior works neither systematically characterize when these relaxations are exact, nor have concise way to certify the global optimality. In this paper, our SDP relaxation gives the global optimal solution of (P) if and only if the solution is of rank-one, which is easy to check. Furthermore, we establish sufficient conditions ensuring exactness for two concrete applications—sparse PCA and sparse regression—and further derive a general stability result for (P) that quantifies robustness under perturbations. 
+
+Notation. Let Rn be the space of real vectors of length n, Sk the space of k × k real symmetric matrices, and Sk 
+
+> +
+
+the set of k × k PSD matrices. Given a vector x ∈ Rn, ∥x∥0 denotes the the number of nonzero entries; 
+
+∥x∥1 denotes the ℓ1-norm, and ∥x∥ denotes the ℓ2-norm; Let S ⊆ [n]. Define the restricted norm ∥x∥S :=   P  
+
+> i∈S
+
+x2
+
+> i
+
+1/2. For a matrix X, let XS denote the principal minor of X indexed by S, and for a vector x, let xS denote the subvector consisting of the entries of x indexed by S. Given X ∈ Sk,the notation X ⪰ 0 means that X is PSD. Given a matrix X ∈ Sk, we let diag (X) ∈ Sk be a matrix whose diagonal is the same as X and other entries are all zeros; let ∥X∥1 = P 
+
+> 1≤i,j ≤k
+
+|Xij |; let ∥X∥∞ = max 1≤i,j ≤k |Xij |; and 
+
+∥X∥ denotes the spectral norm. 2. The spartrahedron and other convex relaxations 
+
+For the study of sparse QCQPs, we need to work with quadratic functions restricted to sparse vectors x. This motivates the following nonconvex set: 
+
+Qn,k = {xx T ∈ Sn : ∥x∥0 ≤ k}
+
+We are interested in obtaining tractable convex relaxations of Qn,k . In this section we study three different such relaxations. The first convex relaxation is the spartrahedron Sn,k . The second relaxation relies on the ℓ1-norm: 
+
+Sℓ1 
+
+> n,k
+
+= {X ∈ Sn : ∥X∥1 ≤ k Tr X, X ⪰ 0}
+
+The third one is a variant of the method from [32]: 
+
+SZ 
+
+> n,k
+
+= {X ∈ Sn : ∃z ∈ Rn, s.t. ∥Xi, :∥2 ≤ Xii zi, ∥Xi, :∥21 ≤ kX ii zi,
+
+0 ≤ zi ≤ Tr( X), i ∈ [n],
+
+> n
+
+X
+
+> i=1
+
+zi = k Tr( X), X ⪰ 0}
+
+The above relaxation motivates the following SDP formulation, (Q+) min  
+
+> X∈Sn
+
+C • X s.t. Ai • X = bi, i ∈ [m], X ∈ S n,k ∩ S Z
+
+> n,k
+
+,
+
+and we show later that ( Q+) yields a strictly tighter relaxation than ( Q). This section explains geometric properties of these relaxations. We also discuss how such cones can be used for sparse QCQPs. 6 DIEGO CIFUENTES AND ZHUORUI LI 
+
+2.1. Comparison of the cones. We start by showing property (2) , which implies that Sn,k is a convex relaxation of Qn,k .
+
+Lemma 2.1. For a vector x ∈ Rn, then xx T ∈ S n,k if and only if ∥x∥0 ≤ k.In particular, conv( Qn,k ) ⊆ S n,k 
+
+Proof. Let X := xx T . Let us show that k diag X ⪰ X if and only if ∥x∥0 ≤ k.Assume first that ∥x∥0 > k . Let y ∈ Rn with entries yi = 1 
+
+> xi
+
+for i ∈ supp (x)and yi = 0 for i / ∈ supp( x). Then 
+
+yT (k diag X)y = k
+
+> n
+
+X
+
+> i=1
+
+(xiyi)2 = k∥x∥0 < ∥x∥20 = ( yT x)2 = yT Xy 
+
+and hence k diag X̸ ⪰ X.Assume next that ∥x∥0 ≤ k. Let y ∈ Rn be arbitrary. Let z = x ◦ y be their Hadamard product. Let 1x be the indicator vector of supp( x). Then 
+
+yT (k diag X)y = k∥z∥22 ≥ ∥ 1x∥22 · ∥ z∥22 ≥ (1Tx z)2 = ( yT x)2 = yT Xy 
+
+and hence k diag X ⪰ X.It follows that Qn,k ⊆ S n,k , so by convexity conv( Qn,k ) ⊆ S n,k . □
+
+The next theorem characterizes the relationship between Sn,k is and conv Qn,k when k = 2. 
+
+Theorem 2.1. We have conv (Q3,2) = S3,2 and conv (Qn, 2) ⊊ Sn, 2 for n ≥ 4.Proof. See Section A.1 □
+
+The following theorem indicates that conv( Qn,k ) ⊆ S Z
+
+> n,k
+
+Lemma 2.2. For a vector x ∈ Rn, then xx T ∈ S Z 
+
+> n,k
+
+if and only if ∥x∥0 ≤ k.Proof. See Section A.8. □
+
+We next show that SZ 
+
+> n,k
+
+⊆ S ℓ1
+
+> n,k
+
+. Consequently, Sℓ1 
+
+> n,k
+
+is also a relaxation of Qn,k .
+
+Lemma 2.3. We have that SZ 
+
+> n,k
+
+⊆ S ℓ1
+
+> n,k
+
+Proof. Suppose X ∈ S Z
+
+> n,k
+
+, it is enough to show that ∥X∥1 ≤ k Tr (X). Ob-serve that 
+
+∥X∥1 ≤
+
+> n
+
+X
+
+> i=1
+
+pkX ii zi ≤ √k
+
+qPni=1 Xii 
+
+qPni=1 zi ≤ k Tr( X)Hence, it is true that SZ 
+
+> n,k
+
+⊆ S ℓ1
+
+> n,k
+
+. □
+
+We proceed to compare Sn,k with Sℓ1 
+
+> n,k
+
+and SZ
+
+> n,k
+
+. The next example and theorem indicate that Sℓ1 
+
+> n,k
+
+and SZ 
+
+> n,k
+
+are not better than Sn,k .SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 7   
+
+> (a) S3,2∩H
+
+# ⊆   
+
+> (b) SZ
+> 3,2∩H
+
+# ⊆   
+
+> (c) Sℓ1
+> 3,2∩H
+
+Figure 1. Comparison of S3,2, Sℓ1 
+
+> 3,2
+
+and SZ
+
+> n,k
+
+Example 2.2 (n = 3 , k = 2) . In order to visualize S3,2, we will restrict ourself to the 3-dimensional hyperplane 
+
+H =
+
+n 1 a b a 1 cb c 1
+
+
+
+: a, b, c 
+
+o
+
+∈ Sn
+
+Figure 1 shows that S3,2 ∩ H ⊆ S Z 
+
+> 3,2
+
+∩ H ⊆ S ℓ1 
+
+> 3,2
+
+∩ H.
+
+Theorem 2.3. For 2 ≤ k < n , there exists rank-one matrices xx T ∈ S ℓ1
+
+> n,k
+
+with ∥x∥0 > k . In particular, Sℓ1
+
+> n,k
+
+̸ ⊂ S n,k and conv( Qn,k ) ⊊ Sℓ1
+
+> n,k
+
+.Proof. Let x = ( ϵ, 1, 2, . . . , k, 0 . . . , 0) T ∈ Rn, with ϵ = 1 /k 2. By Lemma 2.1, 
+
+xx T does not lie in xx T /∈ S n,k nor in conv Qn,k . Let us show that xx T ∈ S ℓ1
+
+> n,k
+
+.Notice that 
+
+∥xx T ∥1 = (k+1) 2k2 
+
+> 4
+
++ ϵk (k + 1) + ϵ2
+
+and 
+
+k Tr( xx T ) = k2(k+1)(2 k+1) 6 + kϵ 2.
+
+Since ϵ = 1 /k 2 and k ≥ 2, we have 
+
+k Tr( xx T ) − ∥ xx T ∥1 = k2(k2−1) 12 − 1
+
+> k
+
+
+
+1 + 1
+
+> k3
+
+
+
+≥ 0and hence xx T ∈ S ℓ1
+
+> n,k
+
+. □
+
+Lemma 2.1 and Lemma 2.2 show that Sn,k and SZ 
+
+> n,k
+
+perfectly agree with 
+
+Qn,k when restricted to rank-one matrices. However, as shown next, SZ 
+
+> n,k
+
+is not robust against noise: it does not differentiate the rank one matrix x1xT 
+
+> 1
+
+,where ∥x1∥0 = k, from the rank-two matrix x1xT 
+
+> 1
+
++ ϵx 2xT 
+
+> 2
+
+. In contrast, Sn,k 
+
+is robust against small perturbations. 
+
+Theorem 2.4. Let 2k < n , and let x ∈ Rn with ∥x∥ = 1 , ∥x∥0 = k and not all its non-zero coordinates identical. Then (1) xx T + ϵ ww T /∈ S n,k for any w ∈ Rn, ∥w∥ = 1 , ∥w∥0 = n and any 
+
+ϵ > 0.8 DIEGO CIFUENTES AND ZHUORUI LI 
+
+(2) Suppose that w with ∥w∥ = 1 , ∥w∥0 = n, satisfies P
+
+> i∈supp( x)
+
+(1 −| wi 
+
+> xi
+
+|)2 > n − k, then we have xx T + ϵ ww T ∈ S Z 
+
+> n,k
+
+∥w∥0 = n for small enough ϵ > 0.Proof. See Section A.9. □
+
+The next example and theorem indicate that Sn,k is not better than Sℓ1
+
+> n,k
+
+and SZ 
+
+> n,k
+
+either. 
+
+Example 2.5 (S4,2̸ ⊂ S ℓ1
+
+> 4,2
+
+). The following matrix lies in S4,2 but not in Sℓ1
+
+> 4,2
+
+and SZ
+
+> n,k
+
+:       
+
+> 30 2 −203 2 222 3 0
+> −2 2 0 3
+
+!
+
+Theorem 2.6. When n = q + 1 where q is a prime power such that q ≡
+
+1(mod4) and 2 ≤ k < √n − 1 + 1 , we have Sn,k ̸ ⊂ S ℓ1
+
+> n,k
+
+.Proof. See Section A.2. □
+
+2.2. Extreme rays and dual cones. We proceed to investigate the extreme rays of different convex relaxations of Qn,k .
+
+Theorem 2.7. Denoting extr K the set of extreme rays of K, then 
+
+extr(conv Qn,k ) = Qn,k \ 0,
+
+{X ∈ extr Sn,k : rank X = 1 } = Qn,k \ 0,
+
+{X ∈ extr SZ 
+
+> n,k
+
+: rank X = 1 } = Qn,k \ 0,
+
+{X ∈ extr Sℓ1 
+
+> n,k
+
+: rank X = 1 } ⊋ Qn,k \ 0, for 2 ≤ k < n. 
+
+Proof. For any convex relaxation K ⊇ Qn,k we have that extr K ⊇ Qn,k \ 0, since Qn,k \ 0 ⊆ extr Sn 
+
+> +
+
+= {xx T : x̸ = 0 } . It is clear that conv Qn,k does not have more extreme rays. Sn,k and SZ 
+
+> n,k
+
+may have more extreme rays, but only of higher rank due to Lemma 2.1 and Lemma 2.2. Sℓ1 
+
+> n,k
+
+does have other rank-one extreme rays due to Theorem 2.3. □
+
+The following theorem shows that Sn,k may have extreme rays outside of 
+
+Qn, 2, of rank two. 
+
+Theorem 2.8. Let n ≥ 4 and 2 ≤ k < n . Let X = u1uT 
+
+> 1
+
++ u2uT 
+
+> 2
+
+where 
+
+∥u1∥ = ∥u2∥ = 1 , ⟨u1, u 2⟩ = 0 , and u1, u 2 satisfy 
+
+(3) 
+
+> n
+
+X
+
+> i=1
+
+(u1)i(u2)i
+
+ (u1)2 
+
+> i
+
++ ( u2)2
+
+> i
+
+ = 0 ,
+
+> n
+
+X
+
+> i=1
+
+(u1)4 
+
+> i
+
+=
+
+> n
+
+X
+
+> i=1
+
+(u2)4 
+
+> i
+
+< 1
+
+k ,
+
+> n
+
+X
+
+> i=1
+
+ (u1)2 
+
+> i
+
++ ( u2)2
+
+> i
+
+2 = 2
+
+k , (u1)2 
+
+> i
+
++ ( u2)2 
+
+> i
+
+= ( u1)2 
+
+> j
+
++ ( u2)2 
+
+> j
+
+, ∀i, j ∈ [n]
+
+If X / ∈ conv( Qn,k ), then X is an extreme ray of Sn,k .SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 9
+
+Proof. See Section A.3. □
+
+Then we show an example of rank-two extreme rays with n > k = 2. 
+
+Example 2.9. The following matrix is an extreme ray in S4,2,
+
+X := 
+
+            
+
+> √51201√50220√5−102−1√5
+
+ = 2 √5( u1uT 
+
+> 1
+
++ u2uT 
+
+> 2
+
+)where 
+
+(4) u1 = 12
+
+√5−√5 (2 , 2, √5 − 1, √5 − 1) T , u 2 = 12
+
+√5+ √5 (2 , −2, √5 + 1 , −(√5 + 1)) T
+
+In Lemma A.1 we check that X / ∈ conv (Q4,2). It can be checked that (3) holds, so 
+
+X is an extreme ray of S4,2.
+
+We proceed to investigate the dual cones. The following is shown in Section A.7: (Sn,k )∗ = {Y + k diag( Z) − Z : Y ⪰ 0, Z ⪰ 0}(5) (Sℓ1
+
+> n,k
+
+)∗ = {Y + αkI n − Z : α ≥ 0, Y ⪰ 0, Z ∈ Sn, ∥Z∥∞ ≤ α}(6) conv( Qn,k )∗ = {Y : YS ⪰ 0, |S| ≤ k, Y ∈ Sn}(7) Some properties on the distance between conv (Qn,k )∗ and PSD cone are analyzed in [13, 14]. We next find some of the extreme rays of these dual cones. 
+
+Theorem 2.10. Let X = xx T where ∥x∥0 ≤ k. Then X is an extreme ray in conv( Qn,k )∗, (Sn,k )∗ and (Sℓ1
+
+> n,k
+
+)∗
+
+Proof. See Section A.4 for the case of conv (Qn,k )∗. The statement for the other cones follow from the containment (Sn,k )∗ ∪ (Sℓ1
+
+> n,k
+
+)∗ ⊆ conv( Qn,k )∗. □
+
+2.3. Relaxations of sparse QCQPs. Problem (P) can be equivalently written as (8) min  
+
+> X∈Sn
+
+C • X s.t. Ai • X = bi, i ∈ [m], X ∈ Qn,k 
+
+Hence, for any convex cone K ⊇ Qn,k , the following is a convex relaxation of problem ( P): (QK ) min  
+
+> X∈Sn
+
+C • X s.t. Ai • X = bi, i ∈ [m], X ∈ K
+
+The SDP in ( Q) corresponds to K = Sn,k . The dual problem is (DK ) max  
+
+> λ∈Rm
+
+λ · b s.t. C −
+
+> m
+
+X
+
+> i=1
+
+λiAi ∈ K∗10 DIEGO CIFUENTES AND ZHUORUI LI 
+
+where K∗ is the dual cone. In particular, the dual problem of ( Q) is (D) 
+
+max  
+
+> λ∈Rm,Z ∈Sn
+
+λ · b
+
+s.t. Q := C −
+
+> m
+
+X
+
+> i=1
+
+λiAi − (k diag Z − Z) ⪰ 0
+
+Z ⪰ 0The optimal values of ( DK ), ( QK ), and ( P) always satisfy val( DK ) ≤ val( QK ) ≤ val( P ).
+
+The relaxation ( QK ) is exact if its optimal solution lies in Qn,k .The following lemma gives a simple optimality certificate for both Sn,k 
+
+and SZ
+
+> n,k
+
+: if the minimizer of the relaxation is rank one, then the relaxation is exact. 
+
+Lemma 2.4. Let K be a convex cone such that Qn,k ⊆ K ⊆ S n,k . If xx T is optimal for (QK ) then the relaxation is exact and x is optimal for (P).Proof. Since xx T ∈ S n,k , then ∥x∥0 ≤ k by Lemma 2.1. Hence, x is feasible for (P), so it leads to an upper bound on the optimal value. But it is also a lower bound, since xx T is a solution of the relaxation. It follows that x is optimal for ( P). □
+
+3. Local stability analysis 
+
+In this section we study how the SDP relaxation (Q) behaves when the data defining the problem is perturbed. We focus our attention to perturbations in the objective. This is motivated by applications such as sparse PCA and sparse ridge regression, where the problem data only appears in the the objective. The stability of general QCQPs was first studied in [20]; we consider here the extension to the sparse setting. Our stability results will be applied to sparse PCA and sparse ridge regression in later sections. The general setup we study is as follows. Let ¯C, {Ai, b i}i∈[m] be fixed, such that the SDP relaxation (Q) is exact with those specific parameters. Consider perturbing the objective matrix C = ¯C + ∆ C, where the perturbation (or noise) ∆ C is small. The constraint parameters Ai, b i remain fixed. Our goal is to establish conditions under which the relaxation (Q) remains exact for the perturbed objective C, and to understand how much noise the relaxation tolerates while still being exact. We say that (Q) is locally stable near ¯C if there exists a neighborhood of ¯C, denoted as δ( ¯C), such that (Q) is exact (and hence val (Q) = val (P )) for any objective C ∈ δ( ¯C). Let ¯x be an optimal solution of (P), and ¯λ, ¯Z be an optimal solution of (D), using ¯C for the objective. These solutions will certainly change when we consider other objectives C. Nonetheless, our local stability conditions only depend on properties of ¯ x, ¯λ, ¯Z.SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 11 
+
+3.1. Conditions guaranteeing local stability. Our stability analysis relies on a well-known constraint qualification, which we proceed to introduce. Given a feasible solution ¯ x of ( P), let 
+
+Xsupp(¯ x) = {x ∈ Rn : g(x) = 0 , xi = 0 ∀i / ∈ supp(¯ x)}
+
+where g(x) := ( xT Aix − bi : i ∈ [m]) ∈ Rm
+
+The Abadie constraint qualification (ACQ) holds at ¯x for Xsupp(¯ x) if the set 
+
+Xsupp(¯ x) is a smooth manifold near ¯x and rank  ∇g( ¯x) = codim ¯x(Xsupp(¯ x)). Given a feasible solution ¯x ∈ Rn, λ ∈ Rm is a Lagrange multiplier at ¯x with respect to Xsupp(¯ x) if (C ¯x)j −
+
+> m
+
+X
+
+> i=1
+
+λi(Ai ¯x)j = 0 , ∀j ∈ supp(¯ x)We are ready to state our main theorem of this section. 
+
+Theorem 3.1. Let ¯C and {Ai, b i}i∈[m] be such that val (D) = val (Q) = val (P ). Let ¯x be optimal for (P) and ¯λ, ¯Z be optimal for (D). Suppose that: (a) ¯x has exactly k nonzero entries. (b) ACQ holds at ¯x for Xsupp(¯ x).(c) ¯Z = 0.(d) ¯Q := ¯C − A (¯λ) has corank one, where A(λ) := Pmi=1 λiAi.Then (Q) is locally stable near ¯C.
+
+When noise appears, denote ( x, λ ) as the optimal primal and dual solution of ( P) on Xsupp(¯ x), which is defined as (P-supp) min  
+
+> x∈Rn
+
+xT Cx s.t. x ∈ Xsupp(¯ x)
+
+with respect to C near ¯C. Before proceeding to the proof of Theorem 3.1, we first show that x → ¯x as C → ¯C.
+
+Lemma 3.1. For each C, let x be the optimal solution of (P-supp) . Then 
+
+x converges to ¯x, up to sign. Proof. See Section A.5. □
+
+Then we show that there exists λ such that λ → ¯λ as C → ¯C.
+
+Lemma 3.2. Given a feasible solution ¯x ∈ Rn of (P), suppose that ACQ holds at ¯x for Xsupp(¯ x). Let S := supp ( ¯x), and gs := g|S : RS → Rm be the restriction of g to the variables on S. Let ¯J := ∇gs( ¯xS ) ∈ Rm×k be the Jacobian. Given a Lagrange multiplier ¯λ ∈ Rm at ¯x with respect to Xsupp(¯ x),then there exists λ ∈ Rm such that CS ¯xS − ¯JT λ = 0 and 
+
+(9) ∥¯λ − λ∥ ≤ 1
+
+σs
+
+∥CS ¯xS − ¯JT ¯λ∥ ≤ 1
+
+σs
+
+∥∆CS ∥∥ ¯xS ∥.12 DIEGO CIFUENTES AND ZHUORUI LI 
+
+Proof. Since ¯λ is a Lagrange multiplier at ¯ x with respect to Xsupp(¯ x), then ¯JT (λ − ¯λ) = CS ¯xS − ¯JT ¯λ(10) which implies that 
+
+∥λ − ¯λ∥ = ∥ ¯J†(CS ¯xS − ¯JT ¯λ)¯∥ ≤ 1
+
+σs
+
+∥CS ¯xS − ¯JT ¯λ∥
+
+= 1
+
+σs
+
+∥CS ¯xS − ¯CS ¯xS + ¯CS ¯xS − ¯JT ¯λ∥≤ 1
+
+σs
+
+∥∆CS ∥∥ ¯xS ∥
+
+(11) where ¯J† is the pseudo-inverse of ¯J, which satisfies ∥ ¯J†∥op = 1 
+
+> σs
+
+. □
+
+We are ready to prove Theorem 3.1. 
+
+Proof of Theorem 3.1. Let x be the optimal primal solution of (P-supp) .From Lemma 3.1, it is true that x is close to ¯x. It follows that supp (x) = supp ( ¯x), as ¯x has exactly k non-zeros. Since ACQ holds at ¯x for Xsupp(¯ x),then from Lemma 3.2, there exists dual multiplier λ of (P-supp) which is close to ¯λ. Let P = C − Pmi=1 λiAi and p = P x . Then we have (12) pj = ( Cx )j −
+
+> m
+
+X
+
+> i=1
+
+λi(Aix)j = 0 , ∀j ∈ supp(¯ x).
+
+Without loss of generality, we assume that supp ( ¯x) := {1, 2, . . . , k }. Let 
+
+x−1 := ( x−11 , x −12 , . . . , x −1 
+
+> k
+
+, 0). Consider the matrix (13) Z := ζζ T ∈ Sn, where ζ := αx −1 − (kα )−1p. 
+
+Let D(Z) = k diag (Z) − Z and the dual slack matrix in (D) is Q = P − D (Z). We will show that 
+
+Q • xx T = 0 , Q ⪰ 0, and corank( Q) = 1 .(14) By plugging the expression of ζ, it is true that the complementary slackness holds. We proceed to prove that Q ⪰ 0, or equivalently, that wT Qw ≥ 0for arbitrary w. Consider a projection φ : Rn 7 → ⟨ x⟩ where ⟨x⟩ denotes the linear span of x, and φ⊥ : Rn 7 → ⟨ x⟩⊥. Decomposing w = φ(w) + φ⊥(w), then we observe that 
+
+φ(w)T Qφ ⊥(w) = φ(w)T (P − D (Z)) φ⊥(w)= ∥x∥∥φ(w)∥
+
+
+
+pT φ⊥(w) −  kα 2x ◦ x−2 − (xT ζ)ζT φ⊥(w)
+
+
+
+= ∥x∥∥φ(w)∥
+
+
+
+pT φ⊥(w) − kα  αx −1 − ζT φ⊥(w)
+
+
+
+= 0 (15) From Lemma 3.2, it is true that P → ¯Q as C → ¯C which implies that 
+
+φ⊥(w)T P φ ⊥(w) → φ⊥(w)T ¯Qφ ⊥(w) ≥ ∥ φ⊥(w)∥2ν2( ¯Q) > 0, as ∥C − ¯C∥ → 0(16) SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 13 
+
+Then we have ∥p∥ = ∥P x ∥ ≤ ∥ P ¯x∥ + ∥P (x − ¯x)∥ → ∥ ¯Q¯x∥ = 0, as C → ¯C.By letting α = p∥p∥, it follows that 
+
+φ⊥(w)T D(Z)φ⊥(w)=kα 2
+
+> k
+
+X
+
+> i=1
+
+  φ⊥ 
+
+> i(w)
+> xi
+
+2 + 1
+
+kα 2
+
+> n
+
+X
+
+> i=k+1
+
+ φ⊥ 
+
+> i
+
+(w)pi
+
+2 − 1(kα )2 ⟨φ⊥(w), p ⟩2
+
+≤O(∥φ⊥(w)∥2∥p∥) → 0 as ∥C − ¯C∥ → 0(17) Then it follows that 
+
+wT Qw = φ(w)T Qφ (w) + 2 φ(w)T Qφ ⊥(w) + φ⊥(w)T Qφ ⊥(w)= φ⊥(w)T Qφ ⊥(w)= φ⊥(w)T (P − D (Z)) φ⊥(w)
+
+≥ 0, as ∥C − ¯C∥ → 0(18) We have shown that (14) holds. Thus, ( Q) is stable near ¯C. □
+
+3.2. Sufficient conditions for exactness. The following theorem provides some sufficient conditions for (Q) to remain exact for a specific objective matrix C.
+
+Theorem 3.2. Let C = ¯C + ∆ C and let x be the optimal solution of (P) for such C. Let s = codim ¯x(Xsupp(¯ x)), and σs > 0 be the s-th smallest singular value of ∇gs( ¯xS ). The relaxation (Q) is exact if the following condition holds: 
+
+(19) 
+
+ν2( ¯Q) > η 
+
+ 1 + 1
+
+σs
+
+∥A∥∥ ¯x∥  1 + 1
+
+cx
+
+∥x∥∥∆C∥ + 1
+
+cx
+
+∥ ¯Q∥∥ x − ¯x∥
+
+
+
+,η := 
+
+
+
+1 + ∥¯x∥2⟨x, z 2⟩2
+
+⟨x, ¯x⟩2
+
+
+
+where ν2( ¯Q) is the second smallest eigenvalue of ¯Q, z2 is the corresponding eigenvector of ν2( ¯Q), A is the linear map λ 7 → Pmi=1 λiAi, and cx := min {| xi| :
+
+i ∈ supp( x)} is a constant. Proof of Theorem 3.2. Following the same notation as in Theorem 3.1, de-note ( x, λ ) as the optimal primal and dual solution of (P) on Xsupp(¯ x) with respect to C near ¯C. Let P = C − Pmi=1 λiAi and let p = P x . Consider a projection φ : Rn 7 → ⟨ x⟩ where ⟨x⟩ denotes the linear span of x, and 
+
+φ⊥ : Rn 7 → ⟨ x⟩⊥. Define 
+
+v(Y ) := min  
+
+> y∈Rn
+
+φ⊥(y)T Y φ ⊥(y) s.t. ∥φ⊥(y)∥ = 1 .14 DIEGO CIFUENTES AND ZHUORUI LI 
+
+Since we have that P = ¯Q + ( C − ¯C) + ( λ − ¯λ)T A, then it is true that 
+
+v(P ) ≥ v( ¯Q) + v (C − ¯C) + A(λ − ¯λ)
+
+≥ v( ¯Q) − ∥ ∆C∥ − 1
+
+σs
+
+∥A∥∥ λ − ¯λ∥≥ v( ¯Q) − ∥ ∆C∥ − 1
+
+σs
+
+∥A∥∥ CS ¯xS − ¯λT ¯J∥≥ v( ¯Q) − ∥ ∆C∥ − 1
+
+σs
+
+∥A∥∥ ∆C∥∥ ¯x∥ =: g
+
+(20) where we used that ∥CS ¯xS −¯λT ¯J∥ ≤ ∥ ∆C∥∥ ¯x∥ in the last inequality. Consider the same matrix as we constructed in Theorem 3.1, (21) Z := ζζ T ∈ Sn, where ζ := αx −1 − (kα )−1p. 
+
+Let D(Z) = k diag( Z) − Z, and let α =
+
+q cx∥p∥∞ 
+
+> k
+
+. Then we have (22) v(D(Z)) ≤ max {k diag( Z)} = max { kα 2
+
+> c2
+> x
+
+, 1 
+
+> kα 2
+
+∥p∥2
+
+> ∞
+
+} = ∥p∥∞
+
+> cx
+
+Furthermore, we have 
+
+∥p∥∞ = ∥P x ∥∞ ≤   ¯Q + ( C − ¯C) + ( λ − ¯λ)T Ax
+
+≤ 1 + 1
+
+σs
+
+∥A∥∥ ¯x∥∥x∥∥ ∆C∥ + ∥ ¯Q∥∥ x − ¯x∥ =: w
+
+(23) Let νi( ¯Q) be the second i-th smallest eigenvalue of ¯Q, and zi be the associated eigenvector. We claim that (24) v( ¯Q) ≥ ⟨x, ¯x⟩2
+
+∥¯x∥2∥x′∥2 ν2( ¯Q).
+
+Consider y = Pni=1 ⟨y, z i⟩zi which satisfies yT x = 0, and ∥y∥ = 1. Let 
+
+x = Pni=1 ⟨x, z i⟩zi. It is true that 
+
+yT ¯Qy =
+
+> n
+
+X
+
+> i=2
+
+νi( ¯Q)⟨y, z i⟩2 ≥ ν2( ¯Q)(1 − ⟨ y, ¯x 
+
+> ∥¯x∥
+
+⟩2)Since we have yT x = 0 which is equivalent to 
+
+⟨y, ¯x 
+
+> ∥¯x∥
+
+⟩⟨ x, ¯x 
+
+> ∥¯x∥
+
+⟩ +
+
+> n
+
+X
+
+> i=2
+
+⟨x, z i⟩⟨ y, z i⟩ = 0 it follows that 
+
+⟨y, ¯x 
+
+> ∥¯x∥
+
+⟩⟨ x, ¯x 
+
+> ∥¯x∥
+
+⟩ ≤ 
+
+qPni=2 ⟨x, z i⟩2q
+
+1 − ⟨ y, ¯x 
+
+> ∥¯x∥
+
+⟩2
+
+which implies that 
+
+⟨y, ¯x 
+
+> ∥¯x∥
+
+⟩2 ≤ 1 − ⟨x, ¯x⟩2
+
+∥x∥2∥¯x∥2SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 15 
+
+Hence, the claim in (24) is true. So if (19) holds, then 1 
+
+> cx
+
+w < g . It follows that 
+
+v(P − D (Z)) ≥ v(P ) + v(−D (Z)) ≥ g − 1
+
+cx
+
+w > 0and consequently ( Q) is exact. □
+
+4. Sparse PCA 
+
+For the specific case of ( P-spca ), our primal SDP becomes (Q-spca) max  
+
+> X∈Sn
+
+Σ • X s.t. Tr( X) = 1 , X ∈ S n,k 
+
+and its dual SDP is (D-spca) min ρ s.t. ρI n ⪰ k diag( Z) − Z + Σ , Z ⪰ 0In this section, we investigate the theoretical guarantees of these SDPs. First, we establishes an upper bound on the optimality ratio, that is, the ratio of the optimal value of (Q-spca ) and that of (P-spca ). Second, we provide explicit conditions under which (Q-spca ) is exact. Next, we prove high-probability exactness guarantees for random Wigner and spiked Wishart models. Finally, we apply our SDP to give theoretical bound of restricted isometry constant. 4.1. Relaxation gap. The following theorem provides a worst-case approx-imation ratio for the case of PSD objectives. 
+
+Theorem 4.1. Suppose Σ ⪰ 0. Let v∗ be the optimal value of (P-spca ), and 
+
+¯v∗ be the optimal value of (Q-spca ). Then 
+
+¯v∗
+
+v∗ ≤ min {k, n/k, r }
+
+where r = rank(Σ) .
+
+In order to prove the theorem, we first consider the special case Σ = σσ T .
+
+Lemma 4.1. If Σ = σσ T for some σ ∈ Rn, then (Q-spca ) is exact . Proof. See Section A.6. □
+
+We proceed to prove our optimality ratio. 
+
+Proof of Theorem 4.1. The pair Z0 := Σ, ρ0 := k max  
+
+> 1≤i≤n
+
+Σii is feasible for the dual problem (D-spca), so ¯v∗ ≤ ρ0 ≤ kv ∗.
+
+Similarly, Z1 := 0, ρ1 := λmax (Σ) is also dual feasible, so ¯v∗ ≤ ρ1 ≤ (n/k )v∗.
+
+Hence, the optimality ratio is bounded by min {k, n/k }. It remains to bound it with the rank of Σ. Consider the spectral decomposition of Σ, that is, Σ = Pri=1 σ(i)(σ(i))T
+
+where r = rank (Σ). Let Σ (i) := σ(i)(σ(i))T , and denote v∗ 
+
+> i
+
+as the optimal 16 DIEGO CIFUENTES AND ZHUORUI LI 
+
+value of (P-spca ) with respect to objective matrix Σ (i). From Lemma 4.1, for each Σ (i) there exists dual variables Z(i) = u(i)(u(i))T and ρ(i) such that 
+
+ρ(i) = v∗ 
+
+> i
+
+. Consider the pair ˜Z = Pri=1 Z(i), ˜ρ = k diag ( ˜Z) − ˜Z + Σ . Then ¯v∗ ≤ ˜ρ = k diag( ˜Z) − ˜Z + Σ ≤
+
+> r
+
+X
+
+> i=1
+
+k diag( Z(i)) − Z(i) + Σ (i)
+
+=
+
+> r
+
+X
+
+> i=1
+
+ρ(i) =
+
+> r
+
+X
+
+> i=1
+
+v∗ 
+
+> i
+
+≤ rv ∗
+
+(25) Hence, the optimality ratio is bounded by rank Σ, completing the proof. □
+
+The next result applies to arbitrary Σ, even if Σ ̸ ⪰ 0. 
+
+Corollary 4.1. Let v∗ and ¯v∗ be the optimal values of (P-spca ) and (Q-spca ),respectively. Then 
+
+¯v∗ ≤ qv ∗ − (q − 1) λmin (Σ) 
+
+where q = min {k, n/k, r } and r = n − mult (λmin (Σ)) is the co-multiplicity of the smallest eigenvalue of Σ.Proof. Let τ = λmin (Σ) and ˜Σ := Σ − τ I n. Note that ˜Σ ⪰ 0, rank ˜Σ = r.Applying Theorem 4.1 to ˜Σ, we have that ¯v∗ − τ ≤ q(v∗ − τ ) which is equivalent to ¯ v∗ ≤ qv ∗ − (q − 1) τ . □
+
+4.2. Exact recovery. We explore conditions under which (Q-spca ) is exact. Consider a projection πL⊥ : Sn 7 → L⊥ , where L⊥ is the complement of 
+
+L := {tI : t ∈ R}. We begin with the following theorem. 
+
+Theorem 4.2. Given Σ ∈ Sn, if there exists Σ0 ∈ Sn such that (Q-spca ) is exact with respect to Σ0 and πL⊥ (Σ) = πL⊥ (Σ 0), then (Q-spca ) is exact with respect to Σ.Proof. Since we have πL⊥ (Σ) = πL⊥ (Σ 0), there exists t ∈ Rn such that Σ = Σ 0 + tI n. For any S ⊆ [n] with |S| = k, let Σ SS and (Σ 0)SS be k × k
+
+principal minors of Σ and Σ 0. Note that the eigenvectors of Σ SS are the same as (Σ 0)SS . Since (Q-spca ) is exact for Σ 0, the optimal solution of (Q-spca )for Σ remains the same, which implies that (Q-spca ) is exact with respect to Σ. □
+
+Based on Theorem 3.2, the following theorem establishes an explicit bound which implies the exact region of our SDP. 
+
+Theorem 4.3. Let ¯Σ = β ¯x¯xT +tI n, β ≥ 0, where ∥¯x∥0 = k ≥ 2, and ∥¯x∥ = 1 .Suppose that Σ lies in a small neighborhood of ¯Σ. Let c = min {| ¯x|i : i ∈
+
+supp ( ˜x)}. If the following assumption on the objective matrix Σ is satisfied 
+
+(26) ∥πL⊥ (Σ − ¯Σ) ∥ < νβ 
+
+where ν < min  12 ( 32 + 3+4 √2 
+
+> c
+
+)−1, c2 
+
+> 4
+
+, then (Q-spca ) is exact. SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 17 
+
+Proof. We start with certifying the assumption in our stability result. For (P-spca ), the only constraint is g(x) = ∥x∥2 − 1 = 0. ACQ holds at x = ¯x,because of rank (∇g( ¯x)) = codim ¯x(Xsupp(¯ x)) = 1.Let ∆Σ = Σ − ¯Σ . Decom-pose ∆Σ = πL(∆Σ) + πL⊥ (∆Σ), and suppose that πL(∆Σ) = t′In. For (D-spca) , let the dual multiplier ¯ρ = β + t + t′ and ¯Z = 0. Then for ob-jective matrix ¯Σ + πL(∆Σ), the primal solution ¯X = ¯x¯xT and dual matrix ¯Q := ¯ ρI n − ( ¯Σ + πL(∆Σ)) satisfy ¯X • ¯Q = 0 and corank( ¯Q) = 1 Let x∗ be the optimal solution of (P-spca ) with Σ. We claim that if 
+
+∥πL⊥ (∆Σ) ∥ ≤ c2 
+
+> 2
+
+β, then we have that supp (x∗) remains the same as supp ( ¯x). Let S := supp ( ¯x), and let v∗ 
+
+> S
+
+be the objective value of (P-spca ) on the support 
+
+S. Notice that 
+
+v∗ + t + t′ ≥ β − ∥ πL⊥ (∆Σ) ∥
+
+Also let S′ be another support, that is, S′̸ = S, and let v∗ 
+
+> S′
+
+be the objective value of ( P-spca ) on the support S′. We have 
+
+v∗ 
+
+> S′
+
++ t + t′ ≤ β(1 − c2) + ∥πL⊥ (∆Σ) ∥
+
+Thus, ∥πL⊥ (∆Σ) ∥ ≤ c2 
+
+> 2
+
+β implies that supp( x∗) = supp(¯ x). From Davis–Kahan theorem ( [45]), we derive 
+
+∥x∗ − ¯x∥ ≤ √2 sin( ∠(x∗, ¯x)) ≤ 2√2 
+
+> β
+
+∥πL⊥ (Σ − ¯Σ) ∥ ≤ 2√2ν. 
+
+Notice that if ν ≤ c2 
+
+> 4
+
+, then we have that max  
+
+> i∈[n]
+
+|x∗ 
+
+> i
+
+− ¯xi| ≤ ∥ x∗ − ¯x∥ ≤ √2c2
+
+2 ≤ c
+
+2Then let c∗ := min {| x∗ 
+
+> i
+
+|, i ∈ supp (x∗)}, we have c∗ ≥ c 
+
+> 2
+
+. Furthermore, if we have ν ≤ c2 
+
+> 4
+
+which implies that ∥x∗ − ¯x∥2 ≤ 18 , that is, ⟨¯x, x ∗⟩ ≥ 15 16 . Since we have that 
+
+⟨z2, x ∗⟩2 + ⟨¯x, x ∗⟩2 ≤ 1where z2 is the eigenvector corresponding to the second smallest eigenvalue of ¯Q, it follows that |⟨ z2, x ∗⟩| ≤ |⟨ ¯x, x ∗⟩| , and as defined in (19) η =  1 + 
+
+> ∥¯x∥2⟨x,z 2⟩2
+> ⟨x, ¯x⟩2
+
+ ≤ 2. Since ∇g( ¯x) = 2 ¯x, we have σs = 2. Note that ∥A∥ = 1 where A(λ) = λI n,and ∥ ¯Q∥ = λ. Then from all of the above discussion, (19) is equivalent to  
+
+> 12
+
+β > 32 ∥πL⊥ (∆Σ) ∥(1 + 1 
+
+> c∗
+
+) + βc∗ ∥x∗ − ¯x∥(27) Notice that if 12 >
+
+ 32 + 3 + 4 √2
+
+c
+
+
+
+ν18 DIEGO CIFUENTES AND ZHUORUI LI 
+
+then we have 32 (1 + 1
+
+c∗ )∥πL⊥ (∆Σ) ∥ + λc∗ ∥x∗ − ¯x∥≤ 32 (1 + 2
+
+c )∥πL⊥ (∆Σ) ∥ + 2βc ∥x∗ − ¯x∥≤ 32 (1 + 2
+
+c )νβ + 4√2
+
+c νβ 
+
+=
+
+ 32 + 3 + 4 √2
+
+c
+
+
+
+νβ 
+
+(28) which implies that (27) is satisfied. Thus, if ν < min  12 ( 32 + 3+4 √2 
+
+> c
+
+)−1, c2 
+
+> 4
+
+,then ( Q-spca ) is exact. □
+
+4.3. Wigner and Wishart spiked models. We now consider the sparse PCA problem under two statistical models. In both cases, the goal is to recover an unknown sparse signal x ∈ Rn, ∥x∥0 ≤ k, called the spike, given a random estimator Σ of xx T . The random matrix Σ is as follows: 
+
+• Spiked Wigner: Σ = βxx T + 1
+
+√n W , where W is a random symmetric matrix from the Gaussian orthogonal ensemble (GOE), i.e., it has i.i.d. N (0 , 2) diagonal entries, and i.i.d. N (0 , 1) off-diagonal entries. 
+
+• Spiked Wishart: Σ = 1 
+
+> N
+
+XX T , where X is an n × N matrix whose columns are i.i.d. N (0 , I n + βxx T ). We apply our results to the spiked Wigner model. 
+
+Lemma 4.2 ( [43]) . If W is drawn from GOE( n), then 
+
+E∥W ∥ ≤ 2√n
+
+Furthermore, 
+
+P 1√n ∥W ∥ ≥ 2 + t ≤ 2 exp( −cnt 2).
+
+where c is a constant. 
+
+Theorem 4.4. For the spiked Wigner model, if β ≥ ν−1(2 + t) our SDP 
+
+(Q-spca ) is exact with probability at least 1 − 2e−cnt 2
+
+with a constant c.Proof. Applying Lemma 4.2, it follows that the assumption in Theorem 4.3 is satisfied with probability at least 1 − 2e−cnt 2
+
+with a constant c. □
+
+We next apply our results to the spiked Wishart model. 
+
+Lemma 4.3 ( [30]) . Let ¯Σ = In + βxx T , let xi ∼ N (0 , ¯Σ ), i = 1 , . . . , N and 
+
+Σ = 1
+
+> N
+
+PNi=1 xixTi , then there exists a constant c such that 
+
+(29) ∥Σ − ¯Σ∥ ≤ c∥ ¯Σ∥ max 
+
+nq n+βN (1+ β) , n+βN (1+ β) ,
+
+q tN , tN
+
+o
+
+with probability at least 1 − e−t.SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 19 
+
+Theorem 4.5. For the spiked Wishart model, suppose that 
+
+N ≥ c(β + 1) max { n+β 
+
+> 1+ β
+
+, t } max { 1 
+
+> νβ
+
+, 1 
+
+> ν2β2
+
+}
+
+where c is a constant, then our SDP (Q-spca ) is exact with probability at least 1 − e−t.Proof. Applying Lemma 4.3, it follows that the assumption in Theorem 4.3 is satisfied with probability at least 1 − e−t. □
+
+4.4. Application to Restricted Isometry Property. A matrix A ∈
+
+Rm×n satisfies the restricted isometry property (RIP) of order k with constants 
+
+δ−, δ + ≥ 0 if (30) (1 − δ−)∥x∥22 ≤ ∥ Ax ∥22 ≤ (1 + δ+)∥x∥22
+
+for all x ∈ Rn with ∥x∥0 ≤ k; see, e.g., [16]. The best RIP constants δ− 
+
+> +
+
+, δ ++
+
+satisfy: 1 − δ−∗ = min {∥ Ax ∥22 : ∥x∥2 = 1 , ∥x∥0 ≤ k},
+
+1 + δ+ 
+
+> ∗
+
+= max {∥ Ax ∥22 : ∥x∥2 = 1 , ∥x∥0 ≤ k}
+
+We can use (Q-spca ) to estimate δ−∗ , δ + 
+
+> ∗
+
+. The following corollary provides guarantees on the quality of the SDP estimates. 
+
+Corollary 4.2. Let 1 + ¯δ+ be the optimal value of (Q-spca ) with Σ = AT A,and let −(1 − ¯δ−) be the optimal value of (Q-spca ) with Σ = −AT A. Let 
+
+δ+ 
+
+> ∗
+
+, δ −∗ be the best valid RIP constants. Then 
+
+1 + δ+ 
+
+> ∗
+
+≤ 1 + ¯δ+ ≤ min {q, r }(1 + δ+ 
+
+> ∗
+
+)1 − δ−∗ ≥ 1 − ¯δ− ≥ q 1 − δ−∗
+
+ − (q − 1) ∥A∥2
+
+> op
+
+where q = min {k, n }, and r = rank( A).Proof. The bound on δ+ 
+
+> ∗
+
+follows from Theorem 4.1 and the bound on δ−∗
+
+follows from corollary 4.1. □
+
+5. Sparse Ridge Regression 
+
+For the specific case of ( P-sridge ), our primal SDP becomes (Q-sridge) min  
+
+> X∈Sn+1
+
+Cα • X s.t. X ∈ S n,k , X := 
+
+1 xT
+
+x X
+
+
+
+⪰ 0where Cα = 1
+
+> m
+
+ y −AT  y −A + α
+
+0 00 In
+
+
+
+. Its dual SDP problem is (D-sridge) 
+
+max  
+
+> ρ∈R,Z ∈Sn
+
+ρ s.t. Q := Cα −
+
+ρ 00 k diag Z −Z
+
+
+
+⪰ 0, Z ⪰ 0In this section, we investigate the theoretical guarantees of these SDPs. First, we provide an upper bound on the relaxation gap between the optimal values of our SDP and (P-sridge ). Second, for overdetermined sparse linear 20 DIEGO CIFUENTES AND ZHUORUI LI 
+
+regression, we provide sufficient conditions ensuring that our method is exact. Lastly, we apply our result to Gaussian noise model, and show our SDP remains exact with high probability. 5.1. Relaxation gap. We first define the coherence of the design matrix A,a quantity that will appear in our upper bound on the relaxation gap. 
+
+Definition 5.1. Let A = ( a1 a2 . . . an) ∈ Rm×n be a matrix with ℓ2-normalized columns, i.e., ∥ai∥ = 1 , ∀i = 1 , . . . , n . The coherence of A is defined as 
+
+μ(A) := max  
+
+> i̸=j
+
+|⟨ ai, a j ⟩| 
+
+Write ¯A for the column-normalized version of A, and let L := max j ∥A:j ∥2
+
+be the largest column ℓ2-norm of A. Let x∗ 
+
+> α
+
+be the optimal sparse solution of (P-sridge ), and let r∗ 
+
+> α
+
+:= 1 
+
+> m
+
+∥y − Ax ∗
+
+> α
+
+∥2 be the corresponding mean square error (MSE). For sparse linear regression, i.e., α = 0, denote x∗ 
+
+> 0
+
+by the optimal sparse solution and r∗ 
+
+> 0
+
+by the associated MSE. Then we obtain the following result. 
+
+Theorem 5.2. Let ρ∗ 
+
+> α
+
+be the optimal objective value of (P-sridge ), and ¯ρ∗
+
+> α
+
+be the optimal value of (Q-sridge ), then we have 
+
+(31) (1 − τ η α) ∥y∥2
+
+m + τ η αr∗ 
+
+> 0
+
+≤ ¯ρ∗ 
+
+> α
+
+≤ ρ∗
+
+> α
+
+where τ = 1 + ( k − 1) μ( ¯A) and ηα = L2  
+
+> λmin (ATA)+ mα
+
+. Furthermore, if α is chosen as follows, 
+
+¯α = τm L2 − 1
+
+m λmin (AT A)
+
+which implies τ η ¯α = 1 , then we have 
+
+(32) 0 ≤ ρ∗ 
+
+> ¯α
+
+− ¯ρ∗ 
+
+> ¯α
+
+≤ τ · L2
+
+m ∥x∗
+
+> 0
+
+∥2 ≤ k · L2
+
+m ∥x∗
+
+> 0
+
+∥2
+
+Proof. Suppose that ρ ≤ ∥ y∥2, then from Schur complement we have that for the dual problem Q ⪰ 0 is equivalent to (33) ( 1
+
+m ∥y∥2 − ρ)( 1
+
+m AT A + αI n) ⪰ k diag( Z) − Z + 1
+
+m2 AT yy T A
+
+From Lemma 4.1, there exists Z ⪰ 0 such that (34) 1
+
+m2 ∥AT y∥2(2 ,k )In ⪰ k diag( Z) − Z + 1
+
+m2 AT yy T A
+
+where ∥ · ∥ (2 ,k ) is the k-support norm, i.e., largest ℓ2 norm with respect to all possible supports of cardinality k.Define P (k) 
+
+> A
+
+(y) := max T ⊆[n]{∥ AT (ATT AT )†ATT y∥ : |T | = k}, where AT
+
+denotes the submatrix of A consisting of the columns with indices in T , and SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 21 
+
+(ATT AT )† denotes the pseudo-inverse of ATT AT . Let S be the support such that ∥AT y∥2(2 ,k ) = ∥ATS y∥2. Denote vS := ¯ATS y, then we have that  
+
+> 1
+> L2
+
+∥ATS y∥2 ≤ ∥ vS ∥2 ≤λmax ( ¯ATS ¯AS )( vTS ( ¯ATS ¯AS )†vS )
+
+≤(1 + ( k − 1) μ( ¯A)) ∥P (k)¯A (y)∥2
+
+=τ ∥P (k) 
+
+> A
+
+(y)∥2
+
+(35) Combining (33) (34) and (35), ρ is a feasible solution if it satisfies (36) ( 1
+
+m ∥y∥2 − ρ)  1
+
+m λmin (AT A) + α ≥ τ L 2
+
+m2 ∥P (k) 
+
+> A
+
+(y)∥2
+
+which is equivalent to 
+
+ρ ≤ 1 
+
+> m
+
+∥y∥2 − τ η α 
+
+> m
+
+∥P (k) 
+
+> A
+
+(y)∥2 = 1 
+
+> m
+
+∥y∥2 − τ η α
+
+ ∥y∥2 
+
+> m
+
+− r∗
+
+> 0
+
+
+
+= (1 − τ η α) ∥y∥2 
+
+> m
+
++ τ η αr∗
+
+> 0
+
+(37) It implies that ¯ ρ∗ ≥ (1 − τ η α) ∥y∥2 
+
+> m
+
++ τ η αr∗
+
+> 0
+
+. Suppose τ η ¯α = 1, that is, ¯α = τm L2 − 1
+
+m λmin (AT A)then we have (38) ¯ρ∗ 
+
+> α
+
+≥
+
+
+
+r∗ 
+
+> 0
+
++ ¯ α∥x∗
+
+> 0
+
+∥2
+
+− ¯α∥x∗
+
+> 0
+
+∥2 ≥ ρ∗ 
+
+> α
+
+− ¯α∥x∗
+
+> 0
+
+∥2
+
+which implies that 
+
+□(39) 0 ≤ ρ∗ 
+
+> α
+
+− ¯ρ∗ 
+
+> α
+
+≤
+
+ τ L 2
+
+m − λmin (AT A)
+
+m
+
+
+
+∥x∗
+
+> 0
+
+∥2 ≤ k · L2
+
+m ∥x∗
+
+> 0
+
+∥2
+
+When the regularization parameter is set to zero ( α = 0) and the sample size exceeds the number of features ( m > n ), that is, in the overdetermined sparse regression regime, we establish the following upper bound on the relaxation gap. 
+
+Corollary 5.1. Let ¯r∗ 
+
+> 0
+
+be the optimal value of (Q-sridge ) when α = 0 , then we have that 
+
+(40) (1 − τ η 0) ∥y∥2
+
+m + τ η 0r∗ 
+
+> 0
+
+≤ ¯r∗ 
+
+> 0
+
+≤ r∗
+
+> 0
+
+Suppose η0 = τ = 1 , that is, L2  
+
+> λmin (ATA)
+
+= 1 and μ( ¯A) = 0 , then ρ∗ 
+
+> 0
+
+= ¯ ρ∗
+
+> 0
+
+.
+
+5.2. Exact recovery. We next present a setting in which our stability result applies. Before proceeding to the result, we start with the following homogenized problem for sparse linear regression. (P-slr) min  
+
+> x=( x0,x 1...,x n)∈Rn+1
+
+xT Hx − 2hT x + c s.t. x20 = 1 , ∥x∥0 ≤ k, 22 DIEGO CIFUENTES AND ZHUORUI LI 
+
+where H = ( 0; A)T (0; A), h = (0; AT y), and c = ∥y∥2. The above problem can be formulated as the following SDP. (Q-slr) min  
+
+> X∈Sn+1
+
+C • X s.t. X11 = 1 , X ∈ S n+1 ,k +1 ,
+
+where C =
+
+ c −hT 
+
+> −h A TA
+
+
+
+. And the dual problem of (Q-slr) is (D-slr) max  
+
+> ρ∈R,Z ∈Sn+1
+
+ρ s.t. C − ρE 11 −  (k + 1) diag( Z) − Z ⪰ 0where E11 = ( 1 0 0 0 ). 
+
+Theorem 5.3. Suppose that in noiseless case the underlying parameter of the sparse linear regression model (P-slr) is ¯x with ∥¯x∥0 = k, i.e., ¯y = A¯x,and σmin (A) > 0 in (Q-slr) . Let S := supp ( ¯x) and c := min {| ¯xi| : i ∈ S}.Denote κ as the condition number of A, let q := (1 + 12 ∥¯x∥)(1 + 4(2 −√2)  
+
+> c
+
+∥¯x∥),and p := κ(q + 2κc ). In noisy setting, random noise ε ∈ Rn appears in the model, 
+
+(41) ˜y = A¯x + ε
+
+we have (Q-slr) is exact if ∥ε∥ < ησ min (A) where η = min  √p2+4 q−p 
+
+> 2q
+
+, c 
+
+> 2
+
+, (3 −
+
+2√2) ∥¯x∥ .Proof. In noiseless case, there exists dual multipliers ¯ρ = 0 , ¯Z = 0 such that ¯Q := ¯C − ¯ρE 11 −  (k + 1) diag( ¯Z) − ¯Z satisfies ¯Q •
+
+ 1 ¯βT   
+
+> ¯β( ¯β¯βT)
+
+
+
+= 0 , ¯Q ⪰ 0 and corank( ¯Q) = 1 Then it is enough to show that ACQ holds at ¯x = (1; ¯β). For (P-slr) ,the only constraint is g(x) = ( x0)2 − 1 = 0. ACQ holds at x = ¯x, for rank (∇g( ¯x)) = codim ¯x(Xsupp(¯ x)) = 1. Furthermore, we have σmin (∇g( ¯x)) = 2 and ∥A∥ = 1, where A(ρ) = ρE 11 . Let x∗ be the optimal solution of (Q-slr) with ˜C =
+
+ ∥˜y∥2 −˜yT A   
+
+> −AT˜yATA
+
+
+
+. Let c∗ := min {| x∗ 
+
+> i
+
+| : i ∈ supp( x∗)}. Notice that (42) ∥A(x∗ − ¯x)∥ = ∥Ax ∗ − ¯y∥ ≤ ∥ ˜y − ¯y∥ = ∥ε∥
+
+which implies that ∥x∗ − ¯x∥ ≤ 1  
+
+> σmin (AS)
+
+∥ε∥.Furthermore, we have 
+
+∥ ˜C − ¯C∥ =
+
+ ∥˜y∥2−∥ ¯y∥2 −(˜ y−¯y)T A  
+
+> −AT(˜ y−¯y)0
+
+
+
+≤ |∥ ˜y∥2 − ∥ ¯y∥2| + 2 ∥AT (˜ y − ¯y)∥≤ ∥ ε∥2 + 2 ∥A∥op ∥ε∥
+
+(43) Thus, if ∥ε∥ ≤ min { c 
+
+> 2
+
+, (3 − 2√2)∥¯x∥} σmin (AS ), we have ∥x − x∗∥ ≤ c
+
+> 2
+
+which implies that c∗ ≥ c 
+
+> 2
+
+and consequently supp (x∗) = supp ( ¯x). It also implies 2( √2 − 1) ∥¯x∥ ≤ ∥ x∗∥ ≤ 2(2 − √2) ∥¯x∥SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 23 
+
+Then it is straightforward to show that 
+
+∥x∗ − ¯x∥2 ≤ (3 − 2√2) 2∥¯x∥2
+
+≤ ∥ x∗∥2 + ∥¯x∥2 − √2∥x∗∥∥ ¯x∥
+
+(44) which implies that ⟨ x∗∥x∗∥ , ¯x 
+
+> ∥¯x∥
+
+⟩ ≥  
+
+> √22
+
+. In order to show (19) , it is enough to show that 
+
+ν2( ¯C) = σ2min (A) >2q∥ε∥2 + ( q + 2κc )∥A∥op ∥ε∥(45) which holds if ∥ε∥ <
+
+√p2+4 q−p 
+
+> 2q
+
+σmin (A). Thus, combining all results, we have that if η = min  √p2+4 q−p 
+
+> 2q
+
+, c 
+
+> 2
+
+, (3 − 2√2) ∥¯x∥ , then (Q-slr) is exact. □
+
+5.3. Gaussian noise model. We now consider the linear regression model with Gaussian random noise, 
+
+y = A¯x + ϵ, where ϵ ∼ N (0 , δ 2Im)
+
+Theorem 5.4. For linear regression model with Gaussian random noise, if ησ min (A) ≥ δ√m + t, then (Q-slr) is exact with probability at least 1 −
+
+e−t2/(2 δ2)
+
+Proof. It is true that 
+
+P{∥ ε∥ ≥ δ√m + t} ≤ e−t2/(2 δ2)
+
+which implies that 
+
+P{∥ ε∥ ≥ ησ min( A) + t} ≤ e−t2/(2 δ2)
+
+Applying the above inequality to Theorem 5.3, we have (Q-slr) is exact with probability at least 1 − e−t2/(2 δ2). □
+
+6. Experiments 
+
+In this section we test the computational performance of our spartrahedron relaxation (Q), and its variant (Q+). We consider four applications: (i) sparse PCA, (ii) sparse ridge regression, (iii) bounding the restricted isometry constant, and (iv) sparse canonical correlation analysis. We compare our methods against heuristic methods and alternative SDP relaxations. Our experiments were ran in Julia using a MacBook Pro. The SDPs are solved with the commercial solver COPT .6.1. Sparse PCA. We consider two types of datasets: (1) Synthetic: Σ is generated from the spiked Wigner and spiked Wishart models. (2) Real: Σ is the empirical covariance matrix from four datasets: Pit-props (n = 13), Eisen-1 (n = 79), Eisen-2 (n = 118), and Colon 
+
+(n = 500). 24 DIEGO CIFUENTES AND ZHUORUI LI 
+
+We compare our methods (Q-spca ) and its variant under (Q+) against the following benchmarks: 
+
+• SDP-ℓ1: Special case of ( QK ) with K = Sℓ1
+
+> n,k
+
+; see [22]. 
+
+• SDP-LX: Special case of ( QK ) with K = SZ
+
+> n,k
+
+; see [32]. 
+
+• SDP-BCP: Let SBCP  
+
+> n,k
+
+be defined as follows, 
+
+SBCP  
+
+> n,k
+
+= {X : ∃z ∈ Rn s.t. ∥Xi, :∥2 ≤ Xii zi, 0 ≤ zi ≤ Tr( X), i ∈ [n]
+
+Xij ≤ Mij zi, ∀i, j ∈ [n],
+
+> n
+
+X
+
+> i=1
+
+zi = k Tr( X), X ∈ S ℓ1
+
+> n,k
+
+}
+
+(46) where Mij = 1 if i = j, Mij = 12 if i̸ = j. Then their SDP is a special case of ( QK ) with K = SBCP  
+
+> n,k
+
+; see [8]. 
+
+• TPow: truncated power method (TPower [47]) 
+
+• TPCA: naive truncated PCA, namely, truncating the PCA solution to the k largest entries. For the SDPs, we take the optimal objective value of the relaxation as an upper bound, and we obtain a corresponding lower bound by truncating its optimal solution via TPCA and evaluating the resulting objective. For the heuristic methods TPower and TPCA, we report only the objective value attained by their solutions as a lower bound; upper bounds are not available. 6.1.1. Spiked Models with synthetic data. Consider the spiked Wigner and Wishart models, as discussed in Section 4.3. We generate the spike vector ¯x ∈ Rn with ∥¯x∥0 = 20, where its nonzero entries are i.i.d. standard Gaussian. Then we normalize ¯x such that ∥¯x∥ = 1. We evaluate 100 independent random instances of dimension n = 50. For each instance, we compute the true optimal solution and, for every method, form the ratio of the true optimal objective value to that method’s lower bound. We then plot the empirical CDF of this ratio across all instances. By construction, the ratio is at least one; a value of 1 indicates exact recovery, and lower ratios (closer to 1) reflect better performance. For the two spiked models, we consider sparsity 
+
+k ∈ { 3, 4, 5, 6}. As shown in Figure 2 and Figure 3, SDP-S1 is one of the top-performing method. 6.1.2. Real datasets. For each dataset, we report the upper and lower bounds achieved by each method as the sparsity level k varies; note that TPower and TPCA only provide lower bounds. For Pitprops (n = 13), SDP-S obtains the true solution when k = 5, and its variant SDP-S1 attains exact solutions throughout k ∈ { 4, 5, 6, 7}. On the remaining datasets, Eisen-1 (n = 79), 
+
+Eisen-2 (n = 118), and Colon (n = 500) 1, SDP-S attains the global optimum 2
+
+across all tested values of k. Results are presented in Figure 4, Figure 5, Figure 6, and Figure 7.            
+
+> 1Owing to solver limitations, we report only the instances solved successfully.
+> 2Upper and lower bound coincide. SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 25
+> (a) k= 3 (b) k= 4
+> (c) k= 5 (d) k= 6
+
+Figure 2. Wigner spiked model: n = 50 , λ = 12           
+
+> (a) k= 3 (b) k= 4
+> (c) k= 5 (d) k= 6
+
+Figure 3. Wishart spiked model: n = 50 , N = 2000 , β = 1 .56.2. Sparse Ridge Regression. We consider a synthetic dataset for the linear model y = A¯x + ε. The matrix A ∈ Rm×n, ground-truth vector ¯x ∈ Rn, and noise vector ε have i.i.d. standard Gaussian entries. We set 26 DIEGO CIFUENTES AND ZHUORUI LI 
+
+Figure 4. Comparison of upper and lower bound with Pit-props dataset ( n = 13). the size ( m, n ) = (30 , 50), sparsity k = 10 and the noise level σ = 3 (i.e., 
+
+ε ∼ N (0 , σ 2Im)). We compare our methods (Q-sridge ) and its variant under (Q+) against the following benchmarks: 
+
+• SDP relaxations based on Sℓ1
+
+> n,k
+
+;
+
+• Greedy algorithm [44]; 
+
+• Iterative hard thresholding (IHT), and hard thresholding pursuit (HTP) [46] For each regularization constant λ ∈ { 0.1, 0.3, 0.5}, we generate 100 inde-pendent random instances and compare the empirical CDF of the attained objective values from each method. For SDP-based methods, when the relaxation is not exact, we truncate the first row of the solution to obtain a 
+
+k-sparse solution and report the corresponding objective value. In the plots, smaller objective value indicates better performance. (Q-sridge )and its variant under (Q+) are the best two methods. The results are shown in Figure 8. 6.3. Restricted Isometry Property. As discussed in Section 4.4, we consider the problem of determining the optimal RIP constants δ−, δ +. We estimate the RIP constants using ( Q-spca ) with C = ±AT A.SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 27 
+
+Figure 5. Comparison of upper and lower bound with Eisen-1 dataset ( n = 79). We consider the synthetic dataset from [5]. The sensing matrix A ∈ Rm×n
+
+has i.i.d. entries, drawn from one of three distributions: (i) Gaussian: (47) aij ∼ N (0 , 1/m ),
+
+(ii) Symmetric Bernoulli (scaled): 
+
+(48) aij =
+
+(+1 /√m with probability 12 ,
+
+−1/√m with probability 12 ,
+
+(iii) Sparsified symmetric Bernoulli (three-point): (49) aij =
+
+
+
++1 /√m with probability 16 ,
+
+0 with probability 23 ,
+
+−1/√m with probability 16 .
+
+We compare the performance of Q-spca, Q+-spca, and SDP-ℓ1. We fix ( n, m ) = (80 , 30) and k = 10, and, for each of the three entry distributions, generate 100 independent random instances. For every instance and each method, we compute an upper bound on the restricted isometry constant (RIC) and plot the empirical CDF across the trials. As shown in Figure 9, Q+-spca yields tighter bounds than those based on Q-spca or SDP-ℓ1.6.4. Sparse Canonical Correlation Analysis. In order to extract the inter-pretable correlation of two groups of data, sparse canonical correlation analysis 28 DIEGO CIFUENTES AND ZHUORUI LI 
+
+Figure 6. Comparison of upper and lower bound with Eisen-2 dataset ( n = 118). 
+
+Figure 7. Comparison of upper and lower bound with Colon dataset ( n = 500).         
+
+> (a) λ= 0 .1(b) λ= 0 .3(c) λ= 0 .5
+
+Figure 8. Sparse ridge regression: empirical CDF of objec-tive value. SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 29 
+
+(a) Normal: (47) (b) Bernoulli: (48) (c) Bernoulli: (49) 
+
+Figure 9. Empirical CDF of restricted isometry constant 
+
+m = 80 , n = 30 , k = 10 
+
+problem [18, 27, 31] is considered as follow, (s-cca) max  
+
+> u,v
+
+uT Σxy v s.t. uT Σxx u ≤ 1, v T Σyy v ≤ 1, ∥u∥0 ≤ k1, ∥v∥0 ≤ k2
+
+For the above problem, (Q) can be formulated as (Q-scca) max  
+
+> X∈Sn
+
+C • X
+
+s.t. X11 • Σxx ≤ 1, k1 diag( X11 ) − X11 ⪰ 0
+
+X22 • Σyy ≤ 1, k2 diag( X22 ) − X22 ⪰ 0
+
+X := 
+
+X11 X12 
+
+X21 X22 
+
+
+
+⪰ 0where C =
+
+ 0 12 Σxy  
+
+> 12
+
+ΣTxy 0
+
+
+
+.
+
+We randomly generate covariance matrix Σ = 
+
+Σxx Σxy 
+
+ΣTxy Σyy 
+
+
+
+with the following two structure, (i) Spiked covariance models: Σxx = In1 + XX T , Σyy = In2 + Y Y T , Σxy = ρΣxx uv T Σyy 
+
+where entries of X ∈ Rn1×n1 , Y ∈ Rn2×n2 are i.i.d. standard Gaussian random variables. (ii) Toeplitz matrices: Σxx = ( σij ), where σij = r|i−j| 
+
+> 1
+
+, ∀i, j ∈ [n1]Σyy = ( σ′ 
+
+> ij
+
+), where σ′ 
+
+> ij
+
+= r|i−j| 
+
+> 2
+
+, ∀i, j ∈ [n2]Σxy = ρΣxx uv T Σyy 
+
+where r1, r 2 are constants. In both of those two models, ρ is a random variable with uniform distribution from 0 to 1. We randomly generate two vector ¯u ∈ Rn1 , ¯v ∈ Rn2 whose entries are i.i.d. standard Gaussian. Then we truncate and normalize ¯u, ¯v to generate u, v such that ∥u∥0 = k1, ∥v∥0 = k2, uT Σxx u = 1 and vT Σyy v = 1. We randomly sample 
+
+m = 3000 vectors from N (0 , Σ) to generate empirical covariance matrix. We set ( n1, k 1; n2, k 2) = (25 , 5; 20 , 5), and r1 = r2 = 0 .7. We generate 100 independent random instances and compare Q-scca, Q+-scca, and SDP-ℓ1. For each instance and method, we take the relaxation’s optimal objective value as an upper bound and the objective value of the rounded sparse solution as a lower bound, and plot the empirical CDF of (i) the ratio of upper to lower bound; (ii) objective value 30 DIEGO CIFUENTES AND ZHUORUI LI 
+
+of the rounded sparse solution across trials. As shown in Figure 10, both of Q-scca, Q+-scca outperform SDP-ℓ1.
+
+(a) Spiked covariance model: empir-ical CDF of ratio of upper to lower bound. 
+
+(b) Spiked covariance model: empiri-cal CDF of objective value of sparse solution. 
+
+(c) Toeplitz covariance model: empir-ical CDF of ratio of upper to lower bound. 
+
+(d) Toeplitz covariance model: empir-ical CDF of objective value of sparse solution. 
+
+Figure 10. SCCA: empirical CDF. 
+
+Declarations 
+
+Funding. This work was partially supported by the Office of Naval Research, N00014-23-1-2631. 
+
+Competing interests. The authors have no competing interests to declare that are relevant to the content of this article. 
+
+References 
+
+[1] C. Aholt, S. Agarwal, and R. Thomas. A qcqp approach to triangulation. In European Conference on Computer Vision , pages 654–667. Springer, 2012. [2] A. Atamturk and A. Gomez. Rank-one convexification for sparse regression. Journal of Machine Learning Research , 26(35):1–50, 2025. [3] S. Bahmani, B. Raj, and P. T. Boufounos. Greedy sparsity-constrained optimization. 
+
+The Journal of Machine Learning Research , 14(1):807–841, 2013. [4] X. Bao, N. V. Sahinidis, and M. Tawarmalani. Semidefinite relaxations for quadrati-cally constrained quadratic programming: A review and comparisons. Mathematical programming , 129(1):129–157, 2011. [5] R. Baraniuk, M. Davenport, R. DeVore, and M. Wakin. A simple proof of the restricted isometry property for random matrices. Constructive approximation , 28:253–263, 2008. [6] A. Ben-Tal and A. Nemirovski. Lectures on modern convex optimization: analysis, algorithms, and engineering applications . SIAM, 2001. SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 31 
+
+[7] L. Berk and D. Bertsimas. Certifiably optimal sparse principal component analysis. 
+
+Mathematical Programming Computation , 11:381–420, 2019. [8] D. Bertsimas, R. Cory-Wright, and J. Pauphilet. Solving large-scale sparse pca to certifiable (near) optimality. Journal of Machine Learning Research , 23(13):1–35, 2022. [9] D. Bertsimas and N. Mundru. Sparse convex regression. INFORMS Journal on Computing , 33(1):262–279, 2021. [10] D. Bertsimas and R. Shioda. Algorithm for cardinality-constrained quadratic opti-mization. Computational Optimization and Applications , 43(1):1–22, 2009. [11] D. Bertsimas and B. Van Parys. Sparse high-dimensional regression. The Annals of Statistics , 48(1):300–323, 2020. [12] D. Bienstock. Computational study of a family of mixed-integer quadratic programming problems. Mathematical programming , 74(2):121–140, 1996. [13] G. Blekherman, S. S. Dey, M. Molinaro, and S. Sun. Sparse psd approximation of the psd cone. Mathematical Programming , 191(2):981–1004, 2022. [14] G. Blekherman, S. S. Dey, K. Shu, and S. Sun. Hyperbolic relaxation of k-locally positive semidefinite matrices. SIAM Journal on Optimization , 32(2):470–490, 2022. [15] J. F. Bonnans and A. Shapiro. Perturbation analysis of optimization problems . Springer Science & Business Media, 2013. [16] E. J. Candes. The restricted isometry property and its implications for compressed sensing. Comptes rendus. Mathematique , 346(9-10):589–592, 2008. [17] A. B. Chan, N. Vasconcelos, and G. R. Lanckriet. Direct convex relaxations of sparse svm. In Proceedings of the 24th international conference on Machine learning , pages 145–153, 2007. [18] D. Chu, L.-Z. Liao, M. K. Ng, and X. Zhang. Sparse canonical correlation analysis: New formulation and algorithm. IEEE transactions on pattern analysis and machine intelligence , 35(12):3050–3065, 2013. [19] D. Cifuentes. A convex relaxation to compute the nearest structured rank deficient matrix. SIAM Journal on Matrix Analysis and Applications , 42(2):708–729, 2021. [20] D. Cifuentes, S. Agarwal, P. A. Parrilo, and R. R. Thomas. On the local stability of semidefinite relaxations. Mathematical Programming , pages 1–35. [21] A. d’Aspremont, F. Bach, and L. El Ghaoui. Optimal solutions for sparse principal component analysis. Journal of Machine Learning Research , 9(7), 2008. [22] A. d’Aspremont, L. Ghaoui, M. Jordan, and G. Lanckriet. A direct formulation for sparse pca using semidefinite programming. Advances in neural information processing systems , 17, 2004. [23] S. S. Dey, R. Mazumder, and G. Wang. Using ℓ1-relaxation and integer programming to obtain dual bounds for sparse pca. Operations Research , 70(3), 2022. [24] A. d’Aspremont, F. Bach, and L. E. Ghaoui. Approximation bounds for sparse principal component analysis. Mathematical Programming , 148:89–110, 2014. [25] T. Gally, M. E. Pfetsch, and S. Ulbrich. A framework for solving mixed-integer semidefinite programs. Optimization Methods and Software , 33(3):594–632, 2018. [26] W. H. Haemers and L. Parsaei Majd. Spectral symmetry in conference matrices. 
+
+Designs, Codes and Cryptography , 90(9):1983–1990, 2022. [27] D. R. Hardoon and J. Shawe-Taylor. Sparse canonical correlation analysis. Machine Learning , 83:331–353, 2011. [28] M. Hein and T. B¨ uhler. An inverse power method for nonlinear eigenproblems with applications in 1-spectral clustering and sparse pca. Advances in neural information processing systems , 23, 2010. [29] M. Journ´ ee, Y. Nesterov, P. Richt´ arik, and R. Sepulchre. Generalized power method for sparse principal component analysis. Journal of Machine Learning Research , 11(2), 2010. 32 DIEGO CIFUENTES AND ZHUORUI LI 
+
+[30] V. KOLTCHINSKII and K. LOUNICI. Normal approximation and concentration of spectral projectors of sample covariance. The Annals of Statistics , 45(1):121–157, 2017. [31] Y. Li, S. S. Dey, and W. Xie. On sparse canonical correlation analysis. Advances in Neural Information Processing Systems , 37:10707–10734, 2024. [32] Y. Li and W. Xie. Exact and approximation algorithms for sparse principal component analysis. INFORMS Journal on Computing , 37(3):582–602, 2025. [33] Z.-Q. Luo, W.-K. Ma, A. M.-C. So, Y. Ye, and S. Zhang. Semidefinite relaxation of quadratic optimization problems. IEEE Signal Processing Magazine , 27(3):20–34, 2010. [34] R. Luss and M. Teboulle. Conditional gradient algorithms for rank-one matrix ap-proximations with a sparsity constraint. SIAM Review , 55(1):65, 2013. [35] B. Moghaddam, Y. Weiss, and S. Avidan. Spectral bounds for sparse pca: Exact and greedy algorithms. Advances in neural information processing systems , 18, 2005. [36] B. K. Natarajan. Sparse approximate solutions to linear systems. SIAM journal on computing , 24(2):227–234, 1995. [37] A. Nemirovski, C. Roos, and T. Terlaky. On maximization of quadratic form over intersection of ellipsoids with common center. Mathematical programming , 86(3):463– 473, 1999. [38] P. M. Pardalos and S. A. Vavasis. Quadratic programming with one negative eigenvalue is np-hard. Journal of Global optimization , 1(1):15–22, 1991. [39] T. K. Pong and H. Wolkowicz. The generalized trust region subproblem. Computational optimization and applications , 58(2):273–322, 2014. [40] J. F. Sturm and S. Zhang. On cones of nonnegative quadratic functions. Mathematics of Operations research , 28(2):246–267, 2003. [41] J. A. Tropp. Greed is good: Algorithmic results for sparse approximation. IEEE Transactions on Information theory , 50(10):2231–2242, 2004. [42] J. A. Tropp and A. C. Gilbert. Signal recovery from random measurements via orthogonal matching pursuit. IEEE Transactions on information theory , 53(12):4655– 4666, 2007. [43] R. Vershynin. High-dimensional probability: An introduction with applications in data science , volume 47. Cambridge university press, 2018. [44] W. Xie and X. Deng. Scalable algorithms for the sparse ridge regression. SIAM Journal on Optimization , 30(4):3359–3386, 2020. [45] Y. Yu, T. Wang, and R. J. Samworth. A useful variant of the davis–kahan theorem for statisticians. Biometrika , 102(2):315–323, 2015. [46] X.-T. Yuan, P. Li, and T. Zhang. Gradient hard thresholding pursuit. Journal of Machine Learning Research , 18(166):1–43, 2018. [47] X.-T. Yuan and T. Zhang. Truncated power method for sparse eigenvalue problems. 
+
+Journal of Machine Learning Research , 14(4), 2013. [48] X. Zheng, X. Sun, and D. Li. Improving the performance of miqp solvers for quadratic programs with cardinality and minimum threshold constraints: A semidefinite program approach. INFORMS Journal on Computing , 26(4):690–703, 2014. 
+
+A. Additional proofs 
+
+A.1. Proof of Theorem 2.1. We start with the special case n = 3 , k = 2. SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 33 
+
+Proof. (n = 3 , k = 2). Suppose V ∈ conv( S3,2)
+
+V =
+
+
+
+a b cb d hc h f
+
+
+
+=
+
+
+
+x b 0
+
+b y 00 0 0
+
+ +
+
+
+
+a − x 0 c
+
+0 0 0
+
+c 0 z
+
+ +
+
+
+
+0 0 00 d − y h
+
+0 h f − z
+
+
+
+(50) with boundary (51) b2 = xy, c2 = ( a − x)z, h2 = ( d − y)( f − z)where 0 ≤ x ≤ a, 0 ≤ y ≤ d, 0 ≤ z ≤ f . Then we change variables, 
+
+x = a sin 2 α, y = d sin 2 β, z = f sin 2 γ
+
+which implies that (51) is equivalent to (52) b2 = ad sin 2 α sin 2 β, c2 = af cos 2 α sin 2 γ, h2 = df cos 2 β cos 2 γ
+
+where α, β, γ ∈ R. In order to derive the analytical expression for (52) , we consider the critical points where the determinant of Jacobian matrix is 0. The expression for (52) is as follows, (53) sin 2 α cos 2 β cos 2 γ = cos 2 α sin 2 β sin 2 γ
+
+The boundary for V ∈ Sdn,k is det(2 diag( V ) − V ) = adf − ah 2 − dc 2 − f b 2 − 2bch = 0 , when bch > 0det( V ) = adf − ah 2 − dc 2 − f b 2 + 2 bch = 0 , when bch < 0(54) Then we are going to show the boundary of conv (Q3,2) (53) and S3,2(54) are equivalent. Let A = sin 2 α cos 2 β cos 2 γ and B = cos 2 α sin 2 β sin 2 γ. Then from (52) , we have 
+
+ah 2 + dc 2 + f b 2 = adf   sin 2 α sin 2 β + cos 2 β sin 2 γ + cos 2 α cos 2 γ
+
+= adf (1 − 2 cos 2 α sin 2 β sin 2 γ)= adf (1 − 2B)(55) And (56) (bch )2 = ( adf )2AB = ( adf B )2
+
+which means (57) bch =
+
+(
+
+adf B, if bch > 0
+
+−adf B, if bch < 0Thus, from (55) and (57), it is straightforward that (54) is equivalent to (53). □
+
+Then we move the case when n > k = 2. We introduce the following definition and lemma which characterizes conv( Qn, 2). 34 DIEGO CIFUENTES AND ZHUORUI LI 
+
+Definition A.1. A symmetric matrix X ∈ Sn is diagonally dominant if 
+
+xii ≥ X 
+
+> j̸=i
+
+|xij |, ∀i ∈ [n].
+
+A symmetric matrix X ∈ Sn is scaled diagonal dominant if there exists a positive diagonal matrix D ∈ Rn×n such that DXD is diagonally dominant, i.e., there exists a positive vector d ∈ Rn 
+
+> +
+
+such that 
+
+xii di ≥ X 
+
+> j̸=i
+
+dj |xij |, ∀i ∈ [n].
+
+Lemma A.1. A symmetric matrix X ∈ Sn is scaled diagonal dominant if and only if it has a factorization, X = V V T where each column of V has at most 2 nonzero entries. Proof. (n > k = 2) (i): Consider X ∈ D n ∩ S n, 2 which can be decomposed as 
+
+X = μI n + M where M consists of off-diagonal entries of X. Notice that X ∈ S n, 2
+
+implies that μI n ± M ⪰ 0, i.e., ρ(M ) ≤ μ.From Lemma A.1, X ∈ D n ∩ conv (Qn, 2) is equivalent to that X is scaled diagonal dominant, that is, there exists a positive vector d ∈ Rn 
+
+> +
+
+such that the following inequality holds entrywise, 
+
+|M |d ≤ μd. 
+
+From Perron-Frobenius Theorem, the above inequality is equivalent to 
+
+ρ(|M |) ≤ μ. 
+
+We claim that when n ≥ 4, there exists M ∈ Sn such that ρ(M ) < ρ (|M |). Let 
+
+μ := ρ(M ), then we have X := μI n + M ∈ S n,k but X / ∈ conv (Qn, 2), which implies that conv( Qn, 2) ⊂ S n, 2.In order to finish the proof of (i), it remains to prove the above claim. When 
+
+n = 4, we construct 
+
+M4 =
+
+
+
+0 1 1 −11 0 −1 11 −1 0 −1
+
+−1 1 −1 0
+
+
+
+and we have √5 = ρ(M4) < ρ (|M4|) = 3. For n > 4, let Mn be constructed as follows, 
+
+Mn =
+
+M4 00 0
+
+
+
+which satisfies ρ(Mn) < ρ (|Mn|). □
+
+A.2. Proof of Theorem 2.6. Definition A.2. A matrix C ∈ Rn×n is a conference matrix if it has 0 on the diagonal and ±1 off the diagonal, and 
+
+CT C = ( n − 1) In.
+
+Lemma A.2 ( [26]) . When n = q+1 where q is prime power such that q ≡ 1( mod 4) ,there exists a symmetric conference matrix C ∈ Rn×n, and its spectral radius is √n − 1.SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 35 
+
+Proof of Theorem 2.6. When n = q + 1 where q is prime power such that q ≡
+
+1( mod 4), from Lemma A.2, let X = μI n + C, where C is a symmetric conference matrix. By letting μ := √n − 1 , we get X ∈ S n,k . Since k < √n − 1 + 1, it follows that 
+
+n√n − 1 + n(n − 1) = ∥X∥1 > k Tr( X) = kn √n − 1,
+
+Thus, it is true that X / ∈ S ℓ1
+
+> n,k
+
+. □
+
+A.3. Proof of Theorem 2.8. 
+
+Proof of Theorem 2.8. Assume first that X ∈ S n,k , and let us show that it is an extreme ray. Suppose there exists X1, X 2 ∈ S n,k s.t. X = X1 + X2. Let 
+
+M := X1 − u1uT 
+
+> 1
+
+= u2uT 
+
+> 2
+
+− X2. Then we have 
+
+X1 = u1uT 
+
+> 1
+
++ M, X2 = u2uT 
+
+> 2
+
+− M
+
+Since X1, X 2 ∈ S n,k , we have X1, X 2 ⪰ 0 which implies that M = −q1u1uT 
+
+> 1
+
++q2u2uT
+
+> 2
+
+where 0 ≤ q1, q 2 ≤ 1. Then we have 
+
+X1 = (1 − q1)u1uT 
+
+> 1
+
++ q2u2uT 
+
+> 2
+
+, X2 = q1u1uT 
+
+> 1
+
++ (1 − q2)u2uT
+
+> 2
+
+If 1 > q 1 + q2, let v := u1, then we have vT (k diag (X1) − X1)v < 0, that is, 
+
+X1 /∈ S n,k ; If 1 < q 1 + q2, let v := u2, then we have vT (k diag (X2) − X2)v < 0, that is, X2 /∈ S n,k ; If 1 = q1 + q2, then X1, X 2 are multiples of X. Thus, X is an extreme ray in Sn,k .It remains to prove that X ∈ S n,k , which is equivalent to (58) min  
+
+> v∈Rn,∥v∥=1
+
+vT (k diag( X) − X)v ≥ 0The solution of (58) can be expressed as v = λ1x + λ2y with ∥x∥ = ∥y∥ = 1, where 
+
+x ∈ ⟨ u1, u 2⟩ and y ∈ ⟨ u1, u 2⟩⊥. We begin with proving xT (k diag (X) − X)x = 0. Suppose x = μ1u1 + μ2u2 where μ21 + μ22 = 1 and ⟨u1, u 2⟩ = 0, then we have 
+
+xT (k diag( u1uT 
+
+> 1
+
+) − u1uT 
+
+> 1
+
+)x
+
+=μ21
+
+
+
+k
+
+> n
+
+X
+
+> i=1
+
+(u1)4 
+
+> i
+
+− 1
+
+
+
++ μ22
+
+
+
+k
+
+> n
+
+X
+
+> i=1
+
+(u1)2 
+
+> i
+
+(u2)2 
+
+> i
+
+− ⟨ u1, u 2⟩2
+
++ 2 μ1μ2
+
+
+
+k
+
+> n
+
+X
+
+> i=1
+
+(u1)2 
+
+> i
+
+(u2)i − ⟨ u1, u 2⟩
+
+
+
+(59) and it is also true that 
+
+xT (k diag( u2uT 
+
+> 2
+
+) − u2uT 
+
+> 2
+
+)x
+
+=μ22
+
+
+
+k
+
+> n
+
+X
+
+> i=1
+
+(u2)4 
+
+> i
+
+− 1
+
+
+
++ μ21
+
+
+
+k
+
+> n
+
+X
+
+> i=1
+
+(u1)2 
+
+> i
+
+(u2)2 
+
+> i
+
+− ⟨ u1, u 2⟩2
+
++ 2 μ1μ2
+
+
+
+k
+
+> n
+
+X
+
+> i=1
+
+(u1)i(u2)3 
+
+> i
+
+− ⟨ u1, u 2⟩
+
+
+
+(60) 36 DIEGO CIFUENTES AND ZHUORUI LI 
+
+From (3), it is true that Pni=1 (u1)i(u2)i
+
+ (u1)2 
+
+> i
+
++ ( u2)2
+
+> i
+
+ = 0, which implies that 
+
+xT (k diag( X) − X)x = k
+
+> n
+
+X
+
+> i=1
+
+ μ21(u1)4 
+
+> i
+
++ ( u1)2 
+
+> i
+
+(u2)2 
+
+> i
+
++ μ22(u2)4
+
+> i
+
+ − 1= k
+
+> n
+
+X
+
+> i=1
+
+  12 (u1)4 
+
+> i
+
++ ( u1)2 
+
+> i
+
+(u2)2 
+
+> i
+
++ 12 (u2)4
+
+> i
+
+ − 1= k
+
+2
+
+> n
+
+X
+
+> i=1
+
+ (u1)2 
+
+> i
+
++ ( u2)2
+
+> i
+
+2 − 1 = 0 (61) where the second equality follows from Pni=1 (u1)4 
+
+> i
+
+= Pni=1 (u2)4 
+
+> i
+
+in (3) . Then we will show that xT (k diag( X) − X)y = 0. Observe that 
+
+xT (k diag( X) − X)y = k
+
+> n
+
+X
+
+> i=1
+
+ (u1)2 
+
+> i
+
++ ( u2)2
+
+> i
+
+xiyi
+
+= k (u1)2 
+
+> i
+
++ ( u2)2
+
+> i
+
+ nX
+
+> i=1
+
+xiyi = 0 (62) where the first equality follows from ⟨u1, y ⟩ = ⟨u2, y ⟩ = 0, and the second equality holds because ( u1)2 
+
+> i
+
++ ( u2)2 
+
+> i
+
+= ( u1)2 
+
+> j
+
++ ( u2)2 
+
+> j
+
+, ∀i, j ∈ [n]. It follows that 
+
+vT (k diag( X) − X)v = kλ 22
+
+ yT diag( X)y ≥ 0(63) Thus, the minimum of (58) is obtained when λ2 = 0, that is, v ∈ ⟨ u1, u 2⟩, which implies that X ∈ S n,k . □
+
+A.4. Proof of Theorem 2.10. 
+
+Proof. Let X = xx T where ∥x∥0 ≤ k. Without loss of generality, let S := [ k] be the support of x and let Sj := [ k − 1] ∪ { j}, ∀j ∈ [n] \ [k]. We will show that X is an extreme ray of (conv( Qn,k )) ∗.If there exists X1, X 2 ∈ (conv (Qn,k )) ∗ and λ1, λ 2 > 0 such that X = λ1X1 +λ2X2,then we have 
+
+XS = λ1(X1)S + λ2(X2)S(64) 
+
+XSj = λ1(X1)Sj + λ2(X2)Sj , ∀j ∈ [n] \ [k](65) Since for i = 1 , 2, ( Xi)Sj ⪰ 0, ∀j ∈ [n] \ [k], we have (66) 0 = Xjj = ( X1)jj = ( X2)jj , ∀j ∈ [n] \ [k].
+
+Then (66) implies that ( X1)ij = ( X2)ij = 0 , ∀(i, j ) /∈ [k] × [k]. Notice that rank (XS ) = 1 and ( X1)S , (X2)S are positive semidefinite. Thus, we have X1, X 2
+
+are multiples of X, and X is an extreme ray of (conv( Qn,k )) ∗. □
+
+A.5. Proof of Lemma 3.1. We begin with the following lemma, see [15, Prop.4.4]. 
+
+Lemma A.3. Let F : S × Θ → R be a continuous function, where S ∈ RN is a compact set. Then the function f : Θ → R such that θ 7 → min x∈S F (x, θ ) is continous. SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 37 
+
+Proof of Lemma 3.1. Without loss of generality, we assume that ¯Q = ¯C, that is, ¯λ = 0. For {Ai, b i}i∈[m] at least one bi̸ = 0, we assume that b1 = 1. Let S := supp ( ¯x). Decompose xS = x′ + y where x′ ∈ ⟨ ¯xS ⟩ and y ∈ ⟨ ¯xS ⟩⊥. Let u := ( A1)S y, then we have 
+
+xTS (A1)S xS = ( x′)T (A1)S x′ + yT (A1)S y + 2 yT (A1)S x′
+
+= ∥x′∥2 + uT y + 2 uT x′ = 1 (67) which implies that ∥x′ + u∥2 = 1 + ∥u∥2 − uT y. It follows that 
+
+∥x′∥ ≤ ∥ u∥ +
+
+q
+
+1 + ∥u∥2 − uT y ≤ 1 + α∥y∥(68) where α := ∥(A1)S ∥ + ∥(A1)S
+
+ (A1)S − Ik
+
+∥ 12 .As C is sufficiently close to ¯C, we claim that the xS belongs a compact set 
+
+V := {xS = x′ + y ∈ Rk : x′ ∈ ⟨ ¯xS ⟩, y ∈ ⟨ ¯xS ⟩⊥, ∥y∥ ≤ 1, ∥x′∥ ≤ 1 + α∥y∥} . Suppose 
+
+c is the second smallest eigenvalue of ¯CS and ∥CS − ¯CS ∥ ≤ min { 1(1+ α)2 , 1 
+
+> ∥¯x∥2
+
+} c 
+
+> 4
+
+. If 
+
+y / ∈ V , it follows that 
+
+xTS CS x ≥ xTS ¯CS xS − | xTS ¯CS xS − xTS CS xS |≥c∥y∥2 − ∥ CS − ¯CS ∥∥ xS ∥2
+
+≥ c − ∥ CS − ¯CS ∥∥y∥2 − ∥ CS − ¯CS ∥(1 + α∥y∥)2
+
+≥c/ 2(69) Such a point x cannot be optimal, because we have ¯xTS CS ¯xS ≤ ∥ CS − ¯CS ∥∥ ¯xS ∥2 ≤ c/ 4.(70) We prove that x ∈ V which is a compact set. From Lemma A.3, it is true that 
+
+xS CS xS → ¯xS ¯CS ¯xS = 0, as CS → ¯CS . Then we obtain 
+
+c∥y∥2 = xTS ¯CS xS ≤ xTS CS xS + ∥CS − ¯CS ∥∥ xS ∥2 → 0, as CS → ¯CS
+
+Thus, we have x → ¯x as C → ¯C, since xi = ¯ xi = 0 , ∀i ∈ [n] \ S. □
+
+A.6. Proof of Lemma 4.1. 
+
+Proof. Suppose |σ1| ≥ | σ2| > · · · ≥ | σn|. Let σ(k) = ( σ1, . . . , σ k), and σ(n−k) =(σk+1 , . . . , σ n). Let ¯u(τ ) = ( u(τ ); ˜u(τ )) = 
+
+q w(k) 
+
+> k
+
+( τσ1 , · · · , τσk ; σk+1  
+
+> τ
+
+, · · · , σn 
+
+> τ
+
+) where 
+
+w(k) = Pki=1 σ2 
+
+> i
+
+,. Then we are going to show that there exits τ ∗ ∈ (|σk+1 |, |σk|)such that 
+
+λmax 
+
+
+
+k diag(¯ u(τ ∗)¯ u(τ ∗)T ) − ¯u(τ ∗)¯ u(τ ∗)T + Σ 
+
+
+
+= w(k).
+
+Let V = k diag ( ¯u(τ ∗) ¯u(τ ∗)T )−¯u(τ ∗) ¯u(τ ∗)T +Σ. It follows that s = ( σ1, · · · , σ k, 0, · · · , 0) T
+
+satisfies 
+
+V s = w(k)s, and ( V − ss T )s = 0 .
+
+Thus, it remains to show that 
+
+λmax (V − ss T ) ≤ w(k)
+
+Consider 
+
+V − ss T =
+
+W11 W12 
+
+W21 W22 
+
+38 DIEGO CIFUENTES AND ZHUORUI LI 
+
+and 
+
+w(k)In − (V − ss T ) = 
+
+w(k)Ik − W11 −W12 
+
+−W21 w(k)In−k − W22 
+
+
+
+From the structure of ¯ u(τ ), we have 
+
+w(k)In−k − W22 ≻ 0In order to show that 
+
+w(k)In − (V − ss T ) ⪰ 0it is equivalent to show (71) (w(k)In−k − W22 ) − W21 
+
+
+
+w(k)Ik − W11 
+
+−1
+
+W T 
+
+> 12
+
+⪰ 0Since w(k)Ik − W11 is a diagonal matrix plus a rank-1 matrix, we can get its inverse analytically, that is, (w(k)Ik − W11 )−1 =
+
+
+
+D + u(τ )u(τ )T −1
+
+= D−1 − D−1u(τ )u(τ )T D−1
+
+1 + u(τ )T D−1u(τ )(72) where D = w(k)Ik − k diag( u(τ )u(τ )T ). Then we have 
+
+W21 
+
+
+
+w(k)Ik − W11 
+
+−1
+
+W T
+
+> 12
+
+=
+
+
+
+ˆσT D−1 ˆσ − γ2
+
+1 + u(τ )T D−1u(τ )
+
+
+
+σ(n−k)σT
+
+> (n−k)
+
+(73) where ˆ σi = σi − w(k) 
+
+> k
+> 1
+> σi
+
+, i = 1 , . . . , k , and 
+
+γ = ˆ σT D−1u(τ ) = 
+
+r 1
+
+w(k)k
+
+> k
+
+X
+
+> i=1
+
+ τ − w(k)
+
+> kτσ2
+> i
+
+
+
+1 − τ 2
+
+> σ2
+> i
+
+.
+
+We claim that as τ → | σk|,(w(k)In−k − W22 ) − W21 
+
+
+
+w(k)Ik − W11 
+
+−1
+
+W T
+
+> 12
+
+= ˜D + ησ (n−k)σT 
+
+> (n−k)
+
+⪰ 0(74) where η = w(k) 
+
+> kτ
+
+− 1 −  ˆσT D−1 ˆσ − γ2   
+
+> 1+ u(τ)TD−1u(τ)
+
+, and ˜D = w(k)
+
+
+
+1 − σ2 
+
+> k+1
+> τ2
+
+1 − σ2 
+
+> k+2
+> τ2
+
+. . .1 − σ2 
+
+> n
+> τ2
+
+
+
+≻ 0In order to prove the claim, it is enough to show that η ≥ 0 as τ → | σk|. Observe that ˆσD −1 ˆσ = 1
+
+w(k)
+
+> k
+
+X
+
+> i=1
+
+(σi − w(k) 
+
+> k
+> 1
+> σi
+
+)2
+
+1 − τ 2
+
+> σ2
+> i
+
+(75) SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 39 
+
+Without loss of generality, we assume |σk| = 1 and then it follows that lim  
+
+> τ→1
+
+
+
+ˆσD −1 ˆσ − γ2
+
+1 + u(τ )T D−1u(τ )
+
+
+
+= 1
+
+w(k)
+
+> k−1
+
+X
+
+> i=1
+
+σ2 
+
+> i
+
++ 1
+
+> σ2
+> i
+
+− 21 − 1
+
+> σ2
+> i
+
++ kw(k)
+
+ 1 − w(k)
+
+k
+
+2
+
+= w(k) − k + kw(k)
+
+ 1 − w(k)
+
+k
+
+2
+
+= w(k)
+
+k − 1(76) Thus, we have η ≥ 0 as τ → 1 which implies that (74) holds. □
+
+A.7. Dual cones. In this section, we will derive the dual cones of Sn,k , Sℓ1
+
+> n,k
+
+, and conv( Qn,k ). Let L : Sn 7 → Sn, L(Z) = k diag( Z) − Z. Notice that L = L∗, we have (Sn,k )∗ = ( Sn 
+
+> +
+
+∩ L −1(Sn
+
+> +
+
+)) ∗ = Sn 
+
+> +
+
++ L∗(Sn
+
+> +
+
+) = Sn 
+
+> +
+
++ L(Sn
+
+> +
+
+)which is equivalent to (Sn,k )∗ = {Y + k diag( Z) − Z : Y ⪰ 0, Z ⪰ 0}.
+
+There is an equivalent formulation for Sℓ1
+
+> n,k
+
+:
+
+Sℓ1 
+
+> n,k
+
+= Sn 
+
+> +
+
+∩ C 1
+
+where C1 := {X ∈ Sn : ( kI n − Z) • X ≥ 0, ∥Z∥∞ ≤ 1, Z ∈ Sn}. Notice that (C1)∗ = {kI n − Z : ∥Z∥∞ ≤ 1, Z ∈ Sn}
+
+Then we have (Sℓ1
+
+> n,k
+
+)∗ = Sn 
+
+> +
+
++ ( C1)∗
+
+which is equivalent to (Sℓ1
+
+> n,k
+
+)∗ = {Y + αkI n − Z : α ≥ 0, Y ⪰ 0, Z ∈ Sn, ∥Z∥∞ ≤ α}.
+
+Then we discuss conv( Qn,k )∗. From the definition of dual cone, we have conv( Qn,k )∗ = {Y ∈ Sn : Y • X ≥ 0, ∀X ∈ conv( Qn,k )}
+
+= {Y ∈ Sn : YS ⪰ 0, |S| ≤ k}
+
+(77) A.8. Proof of Lemma 2.2. 
+
+Proof. Suppose that ∥x∥0 = p, and supp (x) = [ p]. From the definition of SZ
+
+> n,k
+
+, we have (78) ∥Xi, :∥2 = x2
+
+> i
+
+  pX
+
+> j=1
+
+x2
+
+> i
+
+ = Xii Tr( X) ≤ Xii zi, ∀i ∈ [n]Since Xii ≥ 0, z i ≥ 0, ∀i ∈ [n], (78) forces that zi = Tr (X), ∀i ∈ [p], and 
+
+zi = 0 , ∀i ∈ [n] \ [p], which implies that 
+
+> n
+
+X
+
+> i=1
+
+zi = p Tr( X)If p > k , it would violate the constraint on the summation of z in Sz
+
+> n,k
+
+. Thus, if 
+
+X = xx T ∈ S z
+
+> n,k
+
+, then we have ∥x∥0 ≤ k. □40 DIEGO CIFUENTES AND ZHUORUI LI 
+
+A.9. Proof of Theorem 2.4. We start with the following cone, 
+
+Sz 
+
+> n,k
+
+= {X : ∃z ∈ Rn s.t. ∥Xi, :∥2 ≤ Xii zi, 0 ≤ zi ≤ Tr( X), i ∈ [n]
+
+> n
+
+X
+
+> i=1
+
+zi ≤ k Tr( X), X ⪰ 0}
+
+(79) 
+
+Lemma A.4. Let 2k < n , and let x ∈ Rn with ∥x∥ = 1 , ∥x∥0 = k and not all its non-zero coordinates identical. Then (1) xx T + ϵ ww T /∈ S n,k for any w ∈ Rn, ∥w∥ = 1 ,∥w∥0 = n and any ϵ > 0.(2) Suppose that w with ∥w∥ = 1 , ∥w∥0 = n, satisfies P
+
+> i∈supp( x)
+
+(1 − | wi 
+
+> xi
+
+|)2 >n − k, then we have xx T + ϵ ww T ∈ S z 
+
+> n,k
+
+∥w∥0 = n for small enough ϵ > 0.Proof. Throughout the proof, we assume supp (x) = [ k]. We begin with the first part, i.e., U := xx T + ϵ ww T /∈ S n, 2. Let X = xx T and W = ww T . Define D(U ) : 
+
+Sn 7 → Sn, U 7 → k diag (U ) − U . It is enough to show that D(U ) = D(X) + ϵD(W )has at least one negative eigenvalue. Let y = ( 0, w −1
+
+> k+1
+
+, . . . , w −1 
+
+> n
+
+), then we have (80) yT D(U )y = ϵy T D(W )y = ϵ(2 k − n)( n − k) < 0which implies that D(W ) has at least one negative eigenvalue, that is, U / ∈ S n,k .For the second part, for any i ∈ [k] we observe that 
+
+> n
+
+X
+
+> j=1
+
+(xixj + ϵw iwj )2 =x2 
+
+> i
+
++ ϵ2w2 
+
+> i
+
++ 2 ϵx iwi⟨x, w ⟩
+
+<x 2 
+
+> i
+
++ ϵ2w2 
+
+> i
+
++ 2 ϵx iwi
+
+=
+
+
+
+xi + ϵw i
+
+2
+
+≤ (Tr( X) − δi)Xii 
+
+(81) where δi ∈ [0 , ϵ (xi−wi)2 
+
+> x2
+> i+ϵw 2
+> i
+
+]. We also have that 
+
+> n
+
+X
+
+> j=1
+
+(ϵw iwj )2 =ϵ2 · w2 
+
+> i
+
+≤ δ′ 
+
+> i
+
+· ϵw 2
+
+> i
+
+(82) where δ′ 
+
+> i
+
+≥ ϵ. Since we have 
+
+X
+
+> i∈supp( x)
+
+ 1 − | wi 
+
+> xi
+
+|2 > n − k, 
+
+there exists {δi}i∈[k] and {δ′
+
+> i
+
+}i∈[n]\[k] such that (83) X
+
+> i∈[k]
+
+δi = X
+
+> i∈[n]\[k]
+
+δ′
+
+> i
+
+for any ϵ satisfies 
+
+X
+
+> i∈supp( x)
+
+(|xi| − | wi|)2
+
+x2 
+
+> i
+
++ ϵw 2
+
+> i
+
+≥ n − k
+
+Thus, it is true that X ∈ S z 
+
+> n,k
+
+□
+
+Then we proceed to the proof of Theorem 2.4. SPARSE PCA, REGRESSION, AND QCQP VIA THE SPARTRAHEDRON 41 
+
+Proof of Theorem 2.4. Throughout the proof, we assume supp (x1) = [ k]. From Lemma A.4, (1) is true. We start with the proof of (2) . For any i ∈ [k] we observe that 
+
+ nX
+
+> j=1
+
+|Xij |
+
+2
+
+=
+
+ nX
+
+> j=1
+
+|xixj + ϵw iwj |
+
+2
+
+≤
+
+ nX
+
+> j=1
+
+|xixj | + |ϵw iwj |
+
+2
+
+=
+
+
+
+|xi|∥ x∥1 + ϵ|wi|∥ w∥1
+
+2
+
+≤  ∥x∥21 + ϵ∥w∥21
+
+  x2 
+
+> i
+
++ ϵw 2
+
+> i
+
+
+
+(84) Since we have ∥x∥1 ≤ √k∥x∥, then (84) implies 
+
+ nX
+
+> j=1
+
+|Xij |
+
+2
+
+≤ k 1 + ϵ − δi
+
+  x2 
+
+> i
+
++ ϵw 2
+
+> i
+
+
+
+= k(Tr( X) − δi)Xii 
+
+(85) where δi ∈ [0 , ϵ (|xi|−| wi|)2 
+
+> x2
+> i+ϵw 2
+> i
+
+]. Then for any i ∈ [n] \ [k], there exists δ′ 
+
+> i
+
+> 0 such that 
+
+ nX
+
+> j=1
+
+|Xij |
+
+2
+
+= ϵ2∥w∥21 · (x2)2 
+
+> i
+
+≤ δ′
+
+> i
+
+ϵ · k(w)2 
+
+> i
+
+= δ′
+
+> i
+
+ϵ · kX ii (86) where δ′ 
+
+> i
+
+≥ ϵ. Since we have X
+
+> i∈supp( x)
+
+ 1 − | wi 
+
+> xi
+
+|2 > n − k, 
+
+there exists {δi}i∈[k] and {δ′
+
+> i
+
+}i∈[n]\[k] such that (87) X
+
+> i∈[k]
+
+δi = X
+
+> i∈[n]\[k]
+
+δ′
+
+> i
+
+for any ϵ satisfies X
+
+> i∈supp( x)
+
+(|xi| − | wi|)2
+
+x2 
+
+> i
+
++ ϵw 2
+
+> i
+
+≥ n − k
+
+Thus, it is true that X ∈ S Z 
+
+> n,k
+
+□
+
+Email address : diegcif@gmail.com 
+
+Georgia Institute of Technology Atlanta, GA, USA 
+
+Email address : zli966@gatech.edu
