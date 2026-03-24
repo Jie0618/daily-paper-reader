@@ -1,0 +1,642 @@
+Title: Gaussian mixture models for model improvement
+
+URL Source: https://arxiv.org/pdf/2603.15101v2
+
+Published Time: Wed, 18 Mar 2026 01:12:33 GMT
+
+Number of Pages: 19
+
+Markdown Content:
+# Gaussian mixture models for model improvement 
+
+# Paolo Villani 1,2 Daniel Andres Arcones 3 J¨ org F. Unger 3
+
+# Martin Weiser 2
+
+# March 2026 
+
+Abstract 
+
+Modeling complex physical systems such as they arise in civil engineering applications re-quires finding a trade-off between physical fidelity and practicality. Consequently, deviations of simulation from measurements are ubiquitous even after model calibration due to the model discrepancy, which may result from deliberate modeling decisions, ignorance, or lack of knowl-edge. If the mismatch between simulation and measurements are deemed unacceptable, the model has to be improved. Targeted model improvement is challenging due to a non-local impact of model discrepancies on measurements and the dependence on sensor configurations. Many approaches to model improvement, such as Bayesian calibration with additive mismatch terms, gray-box models, symbolic regression, or stochastic model updating, often lack interpretability, generalizability, physical consistency, or practical applicability. This paper introduces a non-intrusive approach to model discrepancy analysis using mixture models. Instead of directly modifying the model structure, the method maps sensor readings to clusters of physically meaningful parameters, automatically assigning sensor readings to pa-rameter vector clusters. This mapping can reveal systematic discrepancies and model biases, guiding targeted, physics-based refinements by the modeler. The approach is formulated within a Bayesian framework, enabling the identification of parameter clusters and their assignments via the Expectation-Maximization (EM) algorithm. The methodology is demonstrated through numerical experiments, including an illustrative example and a real-world case study of heat transfer in a concrete bridge. 
+
+Keywords: model deficiency, model improvement, mixture models 
+
+MSC 2020: 62F15, 62H30, 62P30, 93B30 
+
+# 1 Introduction and state of the art 
+
+Modeling complex physical systems is inherently challenging because the appropriate level of detail, both on the level of the geometry and on the level of the physical phenomena to be considered, depends on the specific problem setup and the quantity of interest. Most models are parameterized, and these parameters are closely tied to the simplifications in the model. For example, representing a reinforced concrete bridge as an isotropic material effectively homogenizes the properties of concrete and reinforcement to an average value that depends on the actual geometry and is therefore unknown. Consequently, identifying suitable model parameters based on experimental data is a critical step in developing a reliable model [16, 30]. Once the parameters have been identified, the next step is to compare simulation results with experimental measurements to validate the model. If the model is found to be deficient, i.e. not to reproduce the observed measurements within their expected measurement error range, one can either focus on uncertainty quantification or on model improvement. Uncertainty quantification accepts the deficient model but aims at providing a good estimate of the achieved accuracy. If the model is to be used for making predictions, it is of vital importance to also quantify the prediction errors. This is, e.g., the goal of embedding methods [2, 3, 27] and stochastic model updating [5, 23]. Here, a stochastic model is built with an output distribution that matches the distribution of observations 
+
+> 1Freie Universit¨ at Berlin, Arnimallee 6, 14195 Berlin
+> 2Zuse Institute Berlin, Takustr. 7, 14195 Berlin
+> 3Bundesanstalt f¨ ur Materialforschung und -pr¨ ufung, Unter den Eichen 87, 12205 Berlin
+
+1
+
+> arXiv:2603.15101v2 [cs.CE] 17 Mar 2026
+
+sufficiently well. This is achieved by replacing deterministic model parameters by random variables and identifying their distributions. Such methods are most appropriate for situations where multiple, nominally identical but randomly varying systems are to be described by a single model, but are also used for uncertainty quantification in the case of model form uncertainty. These methods are non-intrusive, but limited to situations where the measurements lie close to the output manifold of the deterministic forward model. In contrast, model improvement approaches aim at refining the model such that it can repro-duce the measurements better. This is, however, far from straightforward. Discrepancies between simulated predictions and measurements are often not directly linked to errors at the same local position in the model; they may originate elsewhere, depending on the governing equations and sensor configuration. Determining why a discrepancy occurs and which part of the model requires refinement is usually an iterative process based on trial and error and expert judgment. Approaches to treat model form uncertainty and to improve simulation models based on some observations or measurements are manifold. Common to all is that they rely on an enrichment of the simulation model in one way or the other. In a seminal paper, Kennedy and O’Hagan [18] propose to include an additive model response mismatch term with a Gaussian process prior, and to identify it in a Bayesian setting along with the original model parameters. Plumlee [24] proposes a variant where the mismatch term is orthogonal to the model response surface, arguing that as much as possible of the observations should be explained by the original model and not by the mismatch term. Essentially, this amounts to a sequential identification of the model parameters and the mismatch term. This is a straightforward and non-intrusive method, which, however, neither provides an improved physical model understanding nor allows predicting model states or responses not directly related to the available observations. Amore fine-grained control over the mismatch term, at the expense of a more intrusive approach, is obtained by gray box models, where mismatch terms are added to individual constitutive equations in a PDE model [6]. Still, the interpretability of the results and their generalization capabilities strongly depend on the level of detail of the model mismatch terms. Methods aiming directly at extending the model by interpretable and physically consistent terms include symbolic regression [19, 28] and the more recent sparsity-constrained dictionary search [7, 8, 10, 29]. These approaches rely on finding the simplest (by number of additional terms in the model equations) extension by selecting the most suitable terms from a potentially huge dictionary. While providing excellent interpretability and true discovery potential, they suffer from the need to define the dictionary in the first place, from its combinatorically growing size, and from the need to have a solver at hand that is able to cope with all these extensions, or arbitrary subsets, at once. Consequently, this kind of approach is highly intrusive. Less intrusive are attempts to learn from data just particular aspects of the model, such as constitutive laws [4, 13, 22], with the risk of missing the real cause of model deficiency. Mixture models haven been used widely, in particular in social sciences and economics, to iden-tify models where the unobserved association to a certain subgroup of the sample determines the statistical properties of the observation [21, 31], including outlier detection [1] and image smooth-ing [25]. The focus is generally on the identification of the latent subgroups as cofounding factors, and selecting an appropriate number of subgroups through model comparison [14]. Related, but less firmly grounded in stochastic models, are mixture of experts approaches [15] which aim to combine multiple models to construct a better overall model. Many of the previously discussed approaches for model improvement or error detection attempt to enlarge the model by introducing additional terms, sometimes automatically. Although these methods increase flexibility and improve data fitting, they often lack generalizability, are cumbersome to apply, and rarely provide interpretable insights that guide physics-based model refinement. In this work, we propose a different approach. Rather than directly modifying the model struc-ture, we aim to understand model discrepancies by mapping complex, often hard-to-interpret sensor readings onto clusters of physically meaningful model parameters using a mixture model approach. This mapping, including the automatic assignment of sensor readings to parameter clusters, is learned within our procedure, eliminating the need for manual intervention in the analysis. The resulting structure, which determines which sensors correspond to which parameter cluster and pro-vides the associated parameter values, offers interpretable insights into systematic discrepancies and model bias. These insights indicate where and why the model could be improved, enabling users to make targeted, physics-based refinements. 2Notation. By 1 we denote the vector with all entries equal to 1. The Kronecker-δ is written as 
+
+δi,j . The k-dimensional probability simplex {ω ∈ Rk+1 | ∥ ω∥1 = 1 } is denoted by ∆ k.
+
+# 2 Problem definition 
+
+Let us first define the parameter identification problem formally and introduce the related terminol-ogy. 
+
+Definition 1. The physical reality is (for our purposes) a function 
+
+f : Ξ → R (1) 
+
+mapping an input ξ ∈ Ξ to a real quantity f (ξ) that can be measured. The input space Ξ is usually a product space of sensor readings associated to loads, time or experiment number, environmental and operational conditions, as well as sensor index or position. A computational model of f is a parametrized mapping 
+
+˜f : Ξ × Θ → R (2) 
+
+intended to reproduce measurements if the parameter θ ∈ Θ ⊂ Rm is chosen optimally, i.e. ˜f (·, θ∗) ≈
+
+f (·).
+
+We call a computational model deficient if it cannot explain all sensor readings in the range of their error statistics with a single parameter θ ∈ Θ. We define the notion of ”explaining all sensor readings” in terms of the two-sided Kolmogorov-Smirnov (KS) tests [20, 26], with the null hypothesis that the calibrated model ˜f agrees completely with the real system f . For simplicity of exposition, we restrict the consideration to independent normally distributed measurement errors, but point out that any error statistics can be treated in the same way. Let ξ ∈ Ξn be a sequence of inputs and y ∈ Rn a family of corresponding sensor readings 
+
+yi = f (ξi) + ϵi subject to normally distributed measurement errors ϵi ∼ N (0 , σ 2 
+
+> i
+
+) with mean zero and known standard deviation σi. For a given parameter vector θ and the normalized residuals 
+
+σ−1 
+
+> i
+
+(yi − ˜f (ξi, θ)), we consider the empirical discrete cumulative distribution function (CDF) of their squares: ˆFθ (η, σ ) := 1
+
+n
+
+i ∈ [1 , n ] ∩ N | (yi − ˜f (ξi, θ)) 2 < ησ 2 
+
+> i
+
+. (3) This is just the fraction of sensor readings for which the normalized magnitude of the residual is less than √η. If the model ˜f (·, θ) agrees with the reality f , the CDF ˆFθ should coincide with the CDF Fχ21 of the normalized measurement errors, which in the chosen setting of normally distributed errors ϵi is the χ2 distribution for one degree of freedom. The KS test is based on the statistic 
+
+D(θ) := sup 
+
+> η∈R+
+
+|Fχ21 (η) − ˆFθ (η, σ )|, (4) which is asymptotically distributed as the Kolmogorov distribution K, i.e. √nD ∼ K for n → ∞ .The test rejects the null hypothesis of a model statistically indistinguishable from reality with a significance level of α ∈ ]0 , 1[, i.e. an upper bound on the probability of false negatives, if 
+
+FK (√nD (θ)) > 1 − α, where FK (λ) := 
+
+(
+
+0, λ ≤ 01 − 2 P∞
+
+> k=1
+
+(−1) k−1e−2k2λ2
+
+, λ > 0 (5) is the CDF of the Kolmogorov distribution K.
+
+Remark 1. In cases where only an upper bounds ¯σi ≥ σi on the noise’s variances is known, instead of the symmetric KS statistic (4) one can consider the one-sided KS-distance 
+
+¯D−(θ, ¯σ) = sup 
+
+> η∈R+
+
+Fχ21 (η) − ¯Fθ (η, ¯σ), (6) 
+
+which only counts too large residuals. The one-sided KS test then rejects the null hypothesis of a correct model at significance level α ∈ ]0 , 1[ , if 
+
+inf  
+
+> θ∈Θ
+
+F −
+
+> K
+
+ √n ¯D−(θ, ¯σ) > 1 − α (7) 3holds, where F − 
+
+> K
+
+(λ) = 1 − e−2λ2
+
+is the one-sided KS limit. The one-sided test only detects deficiency due to underfitting, and does not report overfitting as an issue – in agreement with the fact that the actual noise variance σ2 
+
+> i
+
+might be much smaller than its known upper bound ¯σ2 
+
+> i
+
+.
+
+In practice, it makes little sense to expect the model ˜f to be statistically indistinguishable from the reality, even if calibrated. We therefore accept a certain deviation of the CDFs of size d, defining first an extension of the KS which allows for a deviation level d.
+
+Definition 2 (model deficiency) . A model ˜f is called (δ, α )-deficient with deviation level δ ∈ ]0 , 1[ and significance level α ∈ ]0 , 1[ , if 
+
+inf  
+
+> θ∈Θ
+
+FK
+
+ √n(D(θ) − δ) > 1 − α (8) 
+
+holds. 
+
+One drawback of model deficiency as of Def. 2 is that it is a test with binary result and does not immediately allow to tell which of two deficient models is better. Moreover, the deviation level δ in the test might be challenging to fix a priori. Thus, we introduce the model deviation d of the model as a quantitative measure for discrepancy, utilizing the extended KS test given by (8). 
+
+Definition 3. With the notation of Def. 2, the model deviation is the quantity 
+
+d = inf 
+
+
+
+δ ∈ ]0 , 1[ inf  
+
+> θ∈Θ
+
+FK
+
+ √n(D(θ) − δ) ≤ 0.95 
+
+
+
+, (9) 
+
+i.e. the minimum deviation level so that the model is deemed non-discrepant with significance level 
+
+α = 0 .05 .
+
+Remark 2. The model deficiency condition (8) and the model deviation quantity (9) are equivalent to exact global optimization over Θ. In practice, one will resort to local gradient-based optimization for finding a maximum likelihood estimate or maximum posterior estimate θ∗, and call the model deficient if (8) holds, computing the corresponding deviation level. Multistart can help in avoiding bad local minimizers. Alternatively, Markov Chain Monte Carlo sampling can be used to cover Θ
+
+thoroughly. 
+
+For models with a great discrepancy from the data, the model deviation d itself is also not a particularly intuitive quantity to compare models: if the residuals due to model deficiency are large compared to the measurement error standard deviations σi, then d ≈ 1. As an idealized example, we consider a model with residuals distributed according to ϵi ∼ N (0 , a 2σ2 
+
+> i
+
+), i.e. the model deficiency is that the residuals are by a factor a > 1 larger than expected. In that case, for significant amounts of data d behaves as 
+
+d ≈ 1 − 21 + √a , (10) with a relative error of less than 4%. Therefore, we define the inverse function of (10), i.e. a(d), as a quantitative measure of large model deficiency. 
+
+Definition 4. With the notation of Def. 3, let 
+
+D =
+
+ 1 + d
+
+1 − d
+
+2
+
+− 1 (11) 
+
+be the model discrepancy .
+
+Note that if the model is deemed non-discrepant at significance level 0 .05, i.e. ˜f satisfies inf  
+
+> θ∈Θ
+
+FK
+
+ √nD (θ) ≤ 0.95 and passes the KS test, then both the model deviation d and the model discrepancy D are zero. 
+
+D ≈ 0 is a good agreement, while D ≫ 0 signals a mismatch larger than expected, i.e. a deficient model. 4A deficient model cannot reproduce the measured data with a single parameter vector θ. Making the model more flexible by using more than one parameter vectors for different subsets of experiments may allow to fit the data better. Then, the assignment of sensor readings to parameter vectors, the dependence of the parameter vectors on inputs, and the reduction in data mismatch can provide hints to possible causes for model deficiency. In the following, we formulate the model extension in terms of mixture models and apply it to both artificial and real model improvement problems. 
+
+# 3 Mixture models for discrepancy analysis 
+
+For analyzing model deficiency, we consider mixture models as a non-intrusive extension of the original model ˜f , and as a way to generate some insight into possible causes for model deficiency. 
+
+# 3.1 Bayesian inversion for mixture models 
+
+Definition 5. A k-cluster mixture model extension of a computational model ˜f for a set Ξn of inputs is a parameterized mapping 
+
+ˆf : Ξ n × { 1, . . . , k }n × Θk → Rn, (ξ, z, θ) 7 →
+
+ ˜f (ξi, θzi )
+
+
+
+> i=1 ,...,n
+
+(12) 
+
+that for each sensor reading i selects one of the k parameter vectors contained in θ = ( θ1, . . . , θk).The set of sensor readings assigned to parameter vector θj , i.e. {i | zi = j}, is called the cluster j.
+
+Given inputs ξ ∈ Ξn and corresponding noisy sensor readings y ∈ Rn, we formulate a Bayesian inverse problem for the parameter vectors θ ∈ Θk and the assignment z of inputs to parameter vectors. We assume as in Def. 2 independent Gaussian noise, such that yi = f (ξi) + ϵi with ϵi ∼N (0 , σ 2 
+
+> i
+
+). The likelihood is therefore 
+
+Ly (z, θ) := 
+
+> n
+
+Y
+
+> i=1
+
+exp 
+
+
+
+− 12σ2
+
+> i
+
+(yi − ˜f (ξi, θzi )) 2
+
+
+
+∝ π(y | z, θ). (13) The prior is constructed from a given prior π(θ) for the parameter vectors θj ∈ Θ and a categorical product distribution P (z, ω ) for the assignments z:
+
+π(z, θ | ω) := 
+
+> n
+
+Y
+
+> i=1
+
+ωzi
+
+> k
+
+Y
+
+> j=1
+
+π(θj ). (14) Here, ω ∈ ∆k−1 provides the prior probabilities ωj of sensor readings being assigned to one of the parameter vectors θj , and is therefore closely related to the cluster size. As this is a priori unknown, we treat the probabilities ωj as hyper-parameters to be identified along with z and θ, and impose a Dirichlet hyper-prior 
+
+π(ω) = Dir( a, ω ) ∝
+
+> k
+
+Y
+
+> j=1
+
+ωaj −1 
+
+> j
+
+(15) with a ∈ Rk
+
+> +
+
+. Since the parameter vectors θi are a priori completely interchangeable, we choose a symmetric hyperprior with a = γ1 for some γ > 0. Note that γ expresses our belief in how equal the clusters are in size. A large value of γ leads to similar cluster sizes, whereas small values allow clusters to have rather different sizes. Choosing 
+
+γ = 1 yields a uniform prior on ω.The posterior probability density is, by Bayes’ theorem, proportional to the product of likelihood, prior, and hyperprior: 
+
+π(z, θ, ω | y) ∝ π(y | z, θ) π(z, θ | ω) π(ω)
+
+∝
+
+> n
+
+Y
+
+> i=1
+
+ωzi exp 
+
+
+
+− 12σ2
+
+> i
+
+(yi − ˜f (ξi, θzi )) 2
+
+ kY
+
+> j=1
+
+π(θj )ωα−1 
+
+> j
+
+. (16) 5We will also be interested in marginalizing the posterior (16) over z,
+
+π(θ, ω | y) ∝ X
+
+> z∈{ 1,...,k }n
+> n
+
+Y
+
+> i=1
+
+ωzi exp 
+
+
+
+− 12σ2
+
+> i
+
+(yi − ˜f (ξi, θzi )) 2
+
+ kY
+
+> j=1
+
+π(θj )ωα−1
+
+> j
+
+=
+
+> n
+
+Y
+
+> i=1
+> k
+
+X
+
+> j=1
+
+ωj exp 
+
+
+
+− 12σ2
+
+> i
+
+(yi − ˜f (ξi, θj )) 2
+
+ kY
+
+> j=1
+
+π(θj )ωα−1 
+
+> j
+
+, (17) and in the conditional posterior distribution for z,
+
+π(z | θ, ω, y ) ∝
+
+> n
+
+Y
+
+> i=1
+
+ωzi exp 
+
+
+
+− 12σ2
+
+> i
+
+(yi − ˜f (ξi, θzi )) 2
+
+
+
+. (18) 
+
+# 3.2 Fitting mixture models 
+
+In order to obtain both the parameter values θ and the assignment z of sensor readings to parameters in an easily interpretable way, we aim at computing point estimates. We may either compute the maximum posterior estimate (MAP) of the full posterior (16), or the MAP of the marginal posterior (17) for θ and ω along with a conditional posterior of the assignments z.A maximizer of the marginal posterior (17) can be computed by the expectation maximization (EM) algorithm [11]. This classic iterative algorithm fits a simpler lower bound model, the evidence lower bound (ELBO) to the marginal posterior such that they agree in the current iterate ( θl, ω l), and maximizes that lower bound for obtaining ( θl+1 , ω l+1 ), consequently converging to a (local) maximizer of the marginal posterior. The MAP of the full posterior (16) can similarly be computed by the classification EM algorithm [9], alternating between z and ( θ, ω ). The MAP computation in z
+
+leads to a hard clustering of experiments. Different clusters are associated with different parameters 
+
+θj . In contrast, the EM algorithm provides the conditional posterior distribution π(z | θ, ω, y ) in form of a product categorical distribution, which can be interpreted as a soft clustering with the probability 
+
+P (zi = j) = 
+
+ωj exp 
+
+
+
+− 12σ2
+
+> i
+
+(yi − ˜f (ξi, θj )) 2
+
+Pkl=1 ωl exp 
+
+
+
+− 12σ2
+
+> i
+
+(yi − ˜f (ξi, θl)) 2
+
+ (19) giving the degree to which sensor reading i belongs to cluster j.The MAP estimates are not unique, as at least permutations of the clusters provide a multitude of – equivalent – global maximizers. In addition, further local maximizers are often encountered, in which both the standard EM algorithm and the clustering EM algorithm can get stuck. Multi-start techniques may be necessary to find a global or at least a sufficiently good local maximizer. 
+
+# 3.3 Interpreting mixture model fits 
+
+The insights for causes of model deficiency and corresponding options for model improvement pro-vided by the mixture model fitting depend, of course, highly on the particular model and type of problem. Here, we focus on parameter identification problems for partial differential equation mod-els and discuss possible causes of model deficiency and expected corresponding outcomes of fitting a mixture model to the actual measurement data. 
+
+Changing environmental conditions. Environmental conditions may change over time or with the batch of test specimens. This should ideally be modeled as input ξi varying between different sensor readings, where the reading number i encodes, among other aspects, also time or the test specimen used. This will lead to a clustering of sensor readings according to time or batch, with modified parameters θi making up for the different conditions. Alternating patterns hint at periodic changes such as a day-night rhythm or seasonal changes. Block patterns with rather monotone changes in the parameter may be caused by slowly varying environmental conditions or by degradation processes such as fracture damage in brittle material, wear in contact problems, or plasticity. We will encounter an example of this type in Sec. 4.2. In contrast, random patterns without apparent structure are likely caused by fluctuations in environmental conditions that are either random or are small-scale effects that have so far not been measured or taken into account. 6Parameter dependencies and nonlinearities. Unanticipated state-dependent model behav-ior will cause parameter changes corresponding to changes in loads as provided in the inputs or to changes in the system state itself. From the assignment of sensor readings to clusters one may infer whether this is a biphasic behavior as encountered in tensile tests with elasto-plastic material, a hys-teresis loop, a smooth nonlinear response as in hyperelastic materials, or temperature dependence of material parameters. We will investigate an example of this type in Sec. 4.1. 
+
+Sensor reading failure or bias. Often, several measurements are taken at the same time, with different sensors encoded in the readings number i. Failure of a single sensor, miscalibration, wrongly specified sensor position, or highly local effects such as material heterogeneity, will likely lead to all readings from this sensor to end up in a separate cluster, with a large difference in the estimated parameter value. We will encounter such local effects in Sec. 4.2. 
+
+Sources. Unanticipated sources may drive the system to regions in the state space that simply cannot be reached by changing model parameters. An example would be a violation of the maximum principle for diffusion problems where only the diffusivity is to be estimated. In contrast to the above reasons for model deficiency, the introduction of more parameters by a mixture model will barely reduce the residual. At the same time, the optimizer can drive the identified parameters of the mixture model to unrealistic values in a futile attempt to reduce the data mismatch. Such results therefore hint at an unmodeled effect that can shift the system state off its parameterizeable range. The possible reasons for model deficiency and their impact on the outcome of fitting a mixture model are, of course, not unambiguously related. Nevertheless, they are correlated to each other, and therefore the mixture model fitting results can provide helpful hints for the modeler as to how and where to improve the model. 
+
+# 3.4 Number of clusters 
+
+The number k of clusters in the mixture model (12) usually has a considerable impact on the computational effort, on the resulting accuracy or deviation level of the resulting model, and on the interpretability of the results. We consider two strategies for selecting an appropriate value for k.First, if the mixture model approach is employed only for generating insight into possible sources of model deficiency as discussed in Sec. 3.3, a small to moderate number of clusters will usually be sufficient. We suggest starting with k = 2 and, if no plausible source of deficiency, such as parameter dependence on environmental conditions or model nonlinearities, are apparent, increasing k slowly until a structure in the clusters’ assignment and associated parameter values can be detected. If, in contrast, the mixture model shall serve as an improved model itself, k must be chosen differently, balancing goodness of fit and model complexity. Besides standard model selection criteria like the Akaike criterion or Bayesian information criterion, the model deficiency itself can be used for selecting k. With known measurement error distribution we may rely on the deficiency notion in Def. 2 also detecting overfitting as model deficiency, and find k by minimizing the deviation level 
+
+δ for a given significance level α. Otherwise, one might prescribe an acceptable deviation level δ∗
+
+and find the smallest k such that the mixture model is not deficient under the one-sided KS test mentioned in Remark 1. Note that using a mixture model directly as improved model has certain limitations: First, it does not provide physical insight into non-modeled processes and effects, and will likely be restricted in its extrapolation power, and second, it is restricted to the used set of measurements or sensors, preventing the use of more data or predicting future outcomes. We therefore focus on the use of mixture models for hinting at causes for model deficiency. 
+
+# 4 Numerical experiments 
+
+In this section, we will investigate the use of mixture model fitting for obtaining clues about possible reasons for model deficiency. We consider both a simple illustrative model as well as a 2D finite ele-ment model, and situations where the model deficiency is known by construction and real situations where it is unknown. The EM algorithm has been implemented in Python, performing a fixed number of iterations and using the implementation of the Nelder-Mead method from scipy.minimize to minimize the negative log marginal posterior (17) in every M-step; the parameter space is rescaled to the unit square and the Nelder-Mead algorithm is set to perform a maximum of 50 iterations, stopping if 7Model Deviation D KS statistic D
+
+Linear regressor 1.36 0.43 2-clusters mixture model 0 0.01 4-clusters mixture model 0 0.01 Table 1: Model discrepancy for the illustrative example. For known variance, we adopt the definition of model discrepancy based on the two-sided Kolmogorov-Smirnov test introduced in Def. 2. The parameter θ∗ where the discrepancy is evaluated is the MAP estimate. 
+
+Figure 1: Results after the EM algorithm terminated for the illustrative example with 2 clusters. On the left, ground truth, noisy measurements, and the two affine models making up the fitted mixture model are plotted. On the right, the probability P (zi = j) of each sensor reading (sorted by measurement location) to belong to the corresponding cluster j ∈ { 1, 2} is depicted. the difference between parameter values at consecutive steps has a norm less than atolx = 3 · 10 −3.The code as well as data for the examples is available on Zenodo. 1
+
+# 4.1 Illustrative example 
+
+The first example is a simple analytical model for illustrative purposes. The ground-truth reality is assumed to be 
+
+f : [0 , 1] → R, ξ 7 → ξ + 13 sin πξ, (20) which could be the strain for given stress in a nonlinear uniaxial tension test with hyperelastic material locking, or the stress for given strain in an elasto-plastic uniaxial tension test. We consider the affine computational model ˜f : [0 , 1] × Θ → R, (ξ, a, b ) 7 → aξ + b (21) with parameter space Θ = R2+. A number n = 40 of measurement locations ξi is selected randomly from a uniform distribution over [0 , 1], and the corresponding sensor readings yi are generated by adding independent noise N (0 , σ 2) with σ = 0 .05 to the physical reality f (ξi). A prior for a and b
+
+is assumed on R2+, consisting of two independent truncated standard Gaussians N (0 , 1) .
+
+As shown in Tab. 1, the computational model ˜f is unable to represent the data. We consider a 2-clusters mixture model extension with a hyper-prior for the assignment probability as discussed in Sec. 3.1 with γ = 1, i.e., a Dirichlet distribution Dir( 1, ω ). We initialize the EM algorithm with randomly generated values drawn from the prior and perform 50 iterations. Within each iteration, the optimization in the M-step is treated as described above. Fig. 1 shows on the left the physical reality f and the artificial measurement data as well as the fitted mixture model, and on the right the conditional probabilities P (zi = j) from (19) of each sensor reading i to belong to cluster j given data and parameters after the final iteration of the EM algorithm. From that clustering we can infer that the affine model’s parameters clearly depend on the sensor location ξ, with decreasing slope and increasing intercept of the locally fitted affine 
+
+> 1https://doi.org/10.5281/zenodo.18432463
+
+8cluster j weight ωj slope aj intercept bj
+
+1 0.41 0.40 0.67 2 0.59 1.66 0.03 1 0.00 0.00 0.00 2 0.59 1.66 0.03 3 0.41 0.40 0.67 4 0.00 0.00 0.00 Table 2: Parameters identified by the EM algorithm for two and four clusters for the illustrative example. 
+
+Figure 2: Results after the EM algorithm terminated for the illustrative example with 4 clusters. The pictures depict as in Figure 1 the different models on the left, and the cluster assignment probabilities on the right. model. The high confidence in cluster assignment in the regions ξ ∈ [0 , 0.3] ∪ [0 .7, 1.0] could suggest a biphasic system behavior such as an ideal elasto-plastic stress-strain curve. However, the relatively large intermediate region ξ ∈ [0 .4, 0.7] with almost constant non-confidence in assignment suggests a smoother transition. Unless at this point the modeler recognizes a so far neglected physical effect that would match this behavior, such as plasticity, one might formulate an improved phenomenological model with position-dependent slope simply by a quadratic dependency instead of an affine one: ˜f (ξ, a, b, c ) = aξ + b + cξ 2. This is not the true model, but no longer deficient. A more flexible mixture model with four clusters yields the same results. Tab. 2 and Fig. 2 show that two clusters are essentially eliminated from the model, having a negligible weight ωj ≈ 0. The remaining two clusters with larger weight are the same as in the mixture model with only k = 2 clusters. In this illustrative example, a larger number of clusters just increases model complexity and computing time. Of course, the marginal posterior (17) is highly nonconvex and usually has many local maximizers to which the EM algorithm can converge. It is conceivable that different starting parameters could have provided more balanced weights ωj and a smoother transition of slopes aj and intercepts bj , which then would have suggested a continuous dependence on ξ even stronger than the two-cluster mixture model. Such a result is more likely if the hyper-prior (15) favors equi-sized clusters, i.e., for γ ≫ 1. On the other hand, overfitting to noisy data is more likely to occur, and not necessarily prevented by the hyper-prior. Thus, the example supports the above recommendation of startint the investigation with a small number k of clusters, most often k = 2. 
+
+# 4.2 Heat transfer within a concrete bridge 
+
+As a second example, we consider a more realistic physical system: the evolution of the temperature distribution within a concrete bridge. We present both detection of an artificial model deficiency caused by a deliberate model simplification, and detection of a real-world model deficiency from actual measurements. 9Sensor south Sensor north Sensor bottom Sensor top 3470 3700 14640 400 1200 1000 2000 2000 200 4000 2000 1961 Figure 3: Cross-section of the 2D model used for the thermal bridge. Dimensions in mm. Measured perpendiculary from the inner hole surfaces Γ int  
+
+> c
+
+towards the concrete, sensor top is 5 mm deep, sensor north and sensor south are 50 mm deep and sensor bottom is 200 mm deep. 
+
+4.2.1 Thermal model 
+
+Here, we still assume a known physical reality in the form of a 2D transient heat equation on a cross section of the bridge, numerically evaluated by a finite element simulation on a fixed grid until time tf . Let Ω ⊂ R2 be a bounded domain with boundary ∂Ω = Γ int  
+
+> c
+
+∪ Γext  
+
+> c
+
+∪ Γs, where Γ int  
+
+> c
+
+is the boundary exposed to internal heat convection, Γ ext  
+
+> c
+
+is the boundary exposed to external heat convection and wind advection, and Γ s is the part exposed to convection, advection, and shortwave (solar) radiation, see Fig. 3. We seek the temperature field T : Ω × (0 , t f ] → R such that 
+
+ρc p
+
+∂T ∂t = div( κ∇T ) in Ω × (0 , t f ], (22) where ρ is the mass density [kg m −3], cp is the specific heat capacity [J kg −1 K−1], κ is the thermal conductivity [W m −1 K−1] and T is the temperature [K]. In a homogeneous material, it is convenient to define the thermal diffusivity α := κρc p [m 2 s−1]. Then, (22) simplifies to 
+
+∂T ∂t = div( α∇T ) in Ω × (0 , t f ], (23) subject to the initial condition T (x, 0) = T0 in Ω and the boundary conditions 
+
+−αρc p∇T · n = cchint 
+
+ T − T int  
+
+> ∞
+
+(t) on Γ int  
+
+> c
+
+× (0 , t f ], (24) 
+
+−αρc p∇T · n = cchext 
+
+ T − T ext  
+
+> ∞
+
+(t) on Γ ext  
+
+> c
+
+× (0 , t f ], (25) 
+
+−αρc p∇T · n = cchext (T − T ext  
+
+> ∞
+
+(t)) − cr aI in (t) on Γ s × (0 , t f ], (26) where n is the outward unit normal to ∂Ω, hext is the convective heat transfer coefficient [W m −2 K−1]at the exterior of the bridge, hint is the convective heat transfer coefficient [W m −2 K−1] at the interior of the bridge, T∞(t) is the time-dependent ambient temperature [K], a is the surface ab-sorptivity (dimensionless), Iin (t) is the time-dependent incident shortwave irradiance [W m −2], T0
+
+is the homogeneous initial temperature distribution, cc is a dimensionless joint correction factor for all convection boundaries, and cr is a dimensionless correction factor for shortwave radiation. The model parameters considered for identification are the diffusivity α and the multiplicative convection coefficient correction cc for the natural convection boundary term in the experiment described in Sec. 4.2.3, while in the experiment from Sec. 4.2.4 we also infer the shortwave irradiation 10 Parameter Domain Prior 
+
+α [0 .5, 5] mm 2 s−1 N (1 , 0.2)mm 2 s−1
+
+cc [0 .1, 10 2] Uniform([0 .1, 10 2]) 
+
+cr [0 .01 , 10] Uniform([0 .01 , 10]) Table 3: Domains and priors for the inference parameters in the thermal bridge model. Parameter Value 
+
+hint 10.00 W m −2 K−1
+
+hext 14.10 W m −2 K−1
+
+ρ 2400 kg m −3
+
+cp 870 J kg −1 K−1
+
+a 0.275 Table 4: Values of the parameters with assigned value in the thermal bridge model. coefficient cr . The considered domains and priors can be found in Tab. 3; a priori, the parameters are assumed to be independent from one another. The values of the parameters not considered for inference are given in Tab. 4. To calculate the external heat transfer coefficient hext , we start by computing the Reynolds number using the wind speed, characteristic length, and air viscosity as Re = U ·Lν where U is the wind speed, L = 4 .0 m is the approximate characteristic length, and ν = 1 .81 × 10 −5 Pa s is the dynamic viscosity of air. The characteristic length for complex shapes can only be obtained experimentaly, therefore in this case the approximation is chosen arbitrarily between the value of 2 .51 m obtained from the hydraulic diameter and 7 .43 m of the chord lenght until half the cross-section of the bridge supposing an airfoil-like structure. The Nusselt number is then obtained from the empirical correlation Nu = 0.037 Re 4/5 Pr 1/3 where the Prandtl number of air is Pr = 0 .71. Finally, the convective heat transfer coefficient is calculated as hext = Nu ·kL ≈ 14 .10 W m −2 K−1 with k = 0 .025 W m −1 K−1 representing the thermal conductivity of air. For the numerical simulation of the temperature evolution, we employ continuous second order finite elements on an unstructured but approximately uniform mesh consisting of 2611 vertices and 4462 triangles for space discretization, and an implicit Euler scheme with a step size of 4 h for time discretization, consistent with the input sampling rate. 
+
+4.2.2 Monitoring data 
+
+The model of Sec. 4.2.1 represents the Nibelungenbr¨ ucke in Worms (Germany). The bridge is equipped with a monitoring system [12, 17] providing measurements of the environmental conditions. It comprises, among other components, sensors measuring the external air temperature at the bridge site, denoted by T ext  
+
+> ∞
+
+, the internal air temperature within the bridge structure, T int  
+
+> ∞
+
+, the shortwave solar irradiation incident on the bridge deck, Iin , and the relative humidity at the bridge location, RH. These variables are recorded at a sampling frequency of 10 Hz. For the purpose of this study, the data are subsampled to one measurement every four hours via averaginga, and subsequently employed in the computation of thermal loads. Measurements of the structural temperature are available from sensors positioned as shown in Fig. 3. These are utilized in Sec. 4.2.4. As illustrated, the sensors are distributed around the inner wall of one of the box girders in proximity to the pilot. They are designated as bottom (b), top (t), south (s), and north (n) sensor, respectively. The distances of the sensors from Γ int  
+
+> c
+
+have been corrected by model calibration from their original position specification. We use distances of 20 cm for the bottom sensor, 1.5 cm for the top sensor, 5 cm for the south sensor, and 15cm for the north sensor. 
+
+4.2.3 Missing irradiation as artificial model deficiency 
+
+In this example, we test the ability of mixture models to point at model deficiency causes by delib-erately simplifying the thermal bridge model from Sec. 4.2.1. We generate simulated measurement 11 model sensors weight diffusivity α convection cc deviation D KS statistic D
+
+truth all 1.00 mm 2 s−1 5.00 0 0.00 base model all 0.65 mm 2 s−1 18 .37 1026 .43 0.99 cluster 1 t 0.24 1.71 mm 2 s−1 100 .00 203 .98 0.97 cluster 2 b,n,s 0.76 1.12 mm 2 s−1 5.19 1.00 0.23 mixture model all 2.42 0.35 Table 5: Results of maximum posterior parameter estimates for the thermal bridge model ignoring irradiation. For the individual clusters of the mixture model, the discrepancy is computed on the readings assigned to the respective cluster. 
+
+Figure 4: Average over each day of the probability ¯ p for a sensor reading to belong to a cluster for the thermal bridge with generated data example. data from the full model with a solar irradiation source term ( cr = 1 .0 · 10 −1) and fit a model which does not account for shortwave irradiation ( cr = 0). Temperature sensor measurement data are simulated using air temperatures T int  
+
+> ∞
+
+= T ext  
+
+> ∞
+
+from June 2024, diffusivity α = 1 .0 mm 2 s−1, a convection correction factor cc = 5 .0, and an initial homogeneous temperature T0 = 20 ◦C for the structure. The previous 180 steps, i.e., one month, are evaluated and discarded, allowing the structure to develop a heterogeneous temperature profile. The measurements consist of the bridge’s simulated temperature in the four sensor locations measured every four hours, for a total of n = 30 · 4 · 6 = 720 sensor readings, perturbed with independent normally distributed additive noise with mean zero and standard deviation σ = 0 .05 K. The base model using the maximum posterior point estimate of a single parameter vector is obviously deficient, with a KS statistic D = 0 .99 and deviating parameter values, as given in Tab. 5. For a mixed model, we consider k = 2 clusters and, as the computational costs of running the simulations is not negligible and empirically the clusters’ parameters stabilize after around 8 iterations, the EM algorithm performs 10 iterations only. For the M-step, we use the setup described at the beginning of Sec. 4. Fig. 4 depicts the assignment of sensor readings to clusters: the mixture model separates the top sensor from the three others, very clearly for almost all time points. This is consistent with the known model deficiency, as the solar irradiation acts on the top boundary Γ s
+
+only. The parameter values identified for each cluster are given in Tab. 5. For cluster 2, they are reasonably close to the ground truth, and the model deviation, when considering only those readings assigned to cluster 2, is quite small. In contrast, in cluster 1 the convection coefficient assumes the extreme value cc = 1 × 10 2 within the admissible range and the model deviation is large. This suggests that even with extreme parameter values, the simplified model is unable to reproduce the top sensor readings. This can also be seen in the temperature time series plotted in Fig. 5, where in the top sensor the model output is considerably off the measurement data for both clusters, while cluster 2 matches the sensor readings adequately in the other sensors. The whole mixture model performs quite well, achieving a deviation in between the two clusters and much smaller than the base model. The mixture model could therefore serve as an improved model, but since it does not provide any spatial distribution of diffusivity and convection, it also does not allow to predict temperature 12 Figure 5: Temperature time series for the two clusters and measurement in each of the 4 sensors for the thermal bridge with generated data example. cluster j weight ω diffusivity α convection cc irradiation cr
+
+1 0.36 1.65 mm 2 s−1 26 .16 0.36 2 0.64 0.92 mm 2 s−1 6.20 0.11 Table 6: Identified parameters for two clusters of fitting the full thermal bridge model to real-world data. values at a new sensor location. We thus turn to physically interpretable model improvement. Based on the discussion of possible model deficiency causes and their impact on identified mixture model parameters in Sec. 3.3, we might assume that some neglected effect drives the system into a region of the state space that is not reachable by the model. Given that the temperatures produced by the parameter vector of cluster 1 are generally above the ones predicted by the parameter vector of cluster 2, but still do not reach the level of top sensor readings, we may conclude that there is some heat source acting close to the top sensor. Solar irradiation is then an obvious candidate. In fact, the neglected irradiation introduces thermal energy into the structure, increasing its temperature in the top part above the temperatures that can be reached by heat conduction. The latter is restricted to the range of the exterior temperatures, and leads to time-averaged sensor readings. No modification of diffusivity α or heat exchange cc with the environment can raise the temperature level over a longer period of time. The parameter optimization for cluster 1 nevertheless tries to achieve this by increasing the convection factor cc and diffusivity α, allowing the slowly increasing exterior temperature to diffuse faster into the bridge body, and in particular to the top sensor location close to the boundary. 
+
+4.2.4 Full model discrepancy from monitoring data 
+
+In the third example, we aim at identifying diffusivity α, convective heat transfer correction cc, and the shortwave irradiation coefficient cr for the full model of Sec. 4.2.1 from actual sensor readings provided by the monitoring system of the Nibelungen bridge. The measurements on the structure are taken with the measurement setup described in Sec. 4.2.2, consisting of four sensors measuring the bridge’s temperature every four hours for the 30 days of June 2024, assuming additive normal noise N (0 , σ 2) with σ = 0 .05 K. The priors and domains for the parameters to be identified are given in Table 3. We start again with k = 2 clusters in the mixture model. The Finite Element simulation is computationally expensive as in the preceding example: the number of iterations for the EM algorithm is again limited to 10, and the M-step is performed as introduced at the beginning of Sec. 4. The identified cluster mean parameters are provided in Tab. 6. In contrast to the previous example of omitted irradiation, both clusters show reasonable parameter values within the admissible range. Fig. 6 plots the temperature time series for the two clusters and the measurements for this example. We can notice that in the top sensor, the temperature oscillates significantly more than in other sensors and the two clusters match different parts of the sensor b time series. This can also be 13 Model Deviation D KS statistic D
+
+Base model 175.29 0.91 Mixture model 18.60 0.68 Humidity model 30.45 0.75 Table 7: Model discrepancy for the thermal bridge with real world data example. The parameter 
+
+θ∗ where the discrepancy is evaluated is the Maximum a Posteriori estimate. 
+
+Figure 6: Temperature time series for the two clusters and measurement in each of the 4 sensors for the thermal bridge with real-world data example. noticed in the average daily cluster assignment probability in Fig. 7, where the top sensor displays the clearest temporal structure in assignment to one cluster or the other. In this example, the deficiencies of the model are unknown. The pronounced time dependence of the cluster assignment in particular for the top sensor, but, to some extent, also for the other sensors, suggests a time-dependent variation of parameters. As the structure itself is unlikely to change repeatedly on a time scale of days, variable environmental conditions are a strong candidate. The exterior temperature T ext  
+
+> ∞
+
+and irradiation Iin time courses have already been taken into account. We therefore consider further available weather data over three months: humidity, precipitation, interior temperature T int  
+
+> ∞
+
+, wind speed and direction, and cloud covering. The correlation matrix of available weather variables is plotted in Fig. 8. We compute the correlation of these weather data with the cluster assignment of the four sensors for different time shifts between weather and cluster assignment. For that, we use daily averaged data to avoid strong circadian correlations dominating the results. The strongest correlations are shown in Fig. 9. We observe that humidity correlates most with the cluster assignment, in particular for the top sensor, which also shows the most pronounced switching between clusters. The time series of humidity and cluster 2 assignment probabilities over the month of June 2024 are depicted in Fig. 10. The correlation is strongest for a zero time delay, but still large for ±1 d. Results of a finer time 
+
+Figure 7: Average over each day of the probability ¯ p for a sensor reading to belong to a cluster for the thermal bridge with real-world data. 14 Figure 8: Correlation between the considered environmental factors, average every 4 hours of the data over the three months of May, June and July 3 
+
+Figure 9: Cross correlations between the time series of the assignment probabilities of the different clusters and the time series of different environmental factors, daily average of the data over the three months of May, June and July 2024. 15 Figure 10: Average daily cluster probability ¯ p·,2 of belonging to cluster 2 for the readings from the top sensor in the real-world data example, along with average daily humidity level for the month of June 2024. Sensor Lag w.r.t. humidity -8h -4h 0h 4h 8h Top 0.65 0.65 0.37 0.10 0.05 Bottom -0.20 -0.16 -0.05 0.02 0.00 North -0.01 -0.14 -0.12 0.06 0.21 South 0.40 0.65 0.41 -0.04 -0.29 Table 8: Cross correlations between the time series of humidity and the time series of assignment probabilities for cluster 2, average every 4 hours of the data over the three months of May, June and July 2024. Small deviations from Fig. 9 are due to the finer resolution of lag times considered here. delay analysis for humidity, reported in Tab. 8, reveal a delay of 4 h to yield the largest correlation between humidity and sensors top and south. As high humidity corresponds to lower temperatures, we conjecture that evaporation leads to a loss of heat or that surface wetting decreases the emissivity and therefore the irradiation factor cr .We therefore extend the model’s boundary condition (26) with an additional term that depends on the relative humidity RH: 
+
+−αρc p∇T · n = cchext (T − T ext  
+
+> ∞
+
+(t)) − cr aI in (t) − cRH RH( t) on Γ s × (0 , t f ]. (27) Here, cRH is a dimensionless correction factor set to 10 −4 and not further calibrated in the present work. This results in an improvement of the model, as shown in Tab. 7: while the model with the humidity factor does not perform as well as the mixture model with two sets of parameters, it reduces the model deviation D by a factor of six when compared to the base model. The model defi-ciency remains high, however, suggesting that further improvement is needed, but a first, apparently dominant, and physically interpretable factor of model discrepancy has been identified. 
+
+# 5 Conclusion and outlook 
+
+In this work, we develop a strategy for detecting model deficiency and its possible causes that is based on mixture models. It clusters available sensor readings to different parameter vectors, with the aim of recovering a meaningful structure within the clustering and identified parameter values. This can help the modeler in identifying causes of model deficiencies and structural biases, and ultimately in improving the model by inclusion of so far neglected physical processes that appear to be related to the observed mixture model structure. The approach is validated on examples of increasing complexity: in the final one, we identify an unknown effect on a real-world model using real-world data. While some reasons for model deficiency might not be easily detected by the proposed strategy, such as spatial inhomogeneities of parameters that affect many sensor locations in a similar way, the numerical experiments suggest that the approach can be effective in detecting localized deficiencies, time-related phenomena, and nonlinearity. 16 The method is flexible in the choice of number of clusters as well as in the related choice of the hyper-prior parameter γ. While adjusting those parameters can provide additional information on the structure of a model deficiency, there is no natural way for selecting them. The proposed heuristic of starting simple, with few clusters, is plausible and works well in the presented examples, but requires more investigation. One limitation is the need for interpreting the clustering structure and identified parameter vectors’ values. While we provide heuristic arguments for expected relations between mixture model structure and possible causes of model deficiency that can guide model improvement, the actual formulation of an improved model is still left to the modeler, is application-specific, and requires a substantial amount of modeling expertise. The reason is, that the mixture model approach provides a very coarse approximation of, e.g., parameter dependencies or nonlinearities. One promising direction for future research is therefore a more explicit representation and identification of such parameter dependencies. 
+
+# Acknowledgement 
+
+This work has been funded by the German Research Foundation (DFG) under grant 501811638 within the project C07 of the priority program SPP 2388 ”Hundert plus – Verl¨ angerung der Lebens-dauer komplexer Baustrukturen durch intelligente Digitalisierung” in Phase I and under grant 562812195 within the project A04 of the same program in Phase II. We thank the collaboration of Marx Krontal Partner (MKP GmbH.) and Landesbetrieb Mobilit¨ at Worms (LBM Worms) for supplying the data of the Nibelungenbr¨ ucke. 
+
+# References 
+
+[1] M. Aitkin and G. T. Wilson. Mixture Models, Outliers, and the EM Algorithm. Technometrics ,22(3):325–331, 1980. [2] D. Andr´ es Arcones, M. Weiser, P.-S. Koutsourelakis, and J. F. Unger. Bias Identification Approaches for Model Updating of Simulation-based Digital Twins of Bridges. Res. Rev. J. Nondestructive Testing , 2(2), 2024. [3] D. Andr´ es Arcones, M. Weiser, P.-S. Koutsourelakis, and J. F. Unger. Model Bias Identification for Bayesian Calibration of Stochastic Digital Twins of Bridges. Appl. Stoch. Models Busin. Ind. , page asmb.2897, 2024. [4] A. Beck and M. Kurz. A perspective on machine learning methods in turbulence modeling. 
+
+GAMM-Mitteilungen , 44(1):e202100002, 2021. [5] S. Bi, M. Broggi, and M. Beer. The role of the Bhattacharyya distance in stochastic model updating. Mech. Syst. Signal Proc. , 117:437–452, 2019. [6] L. Bruder and P.-S. Koutsourelakis. Beyond black-boxes in Bayesian inverse problems and model validation: Applications in solid mechanics of elastography. Int. J. Uncertainty Quantification ,8(5):447–482, 2018. [7] S. L. Brunton, J. L. Proctor, and J. N. Kutz. Discovering governing equations from data by sparse identification of nonlinear dynamical systems. Proc. Nati. Acad. Sci. , 113(15):3932–3937, 2016. [8] A. Carderera, S. Pokutta, C. Sch¨ utte, and M. Weiser. An efficient first-order conditional gradient algorithm in data-driven sparse identification of nonlinear dynamics to solve sparse recovery problems under noise. Journal of Computational and Applied Mathematics , page 116675, 2025. [9] G. Celeux and G. Govaert. A classification EM algorithm for clustering and two stochastic versions. 14(3):315–332, 1992. [10] S. Chen, D. Donoho, and M. Saunders. Atomic decomposition by basis pursuit. SIAM J. Sci. Comput. , 20(1):33–61, 1998. 17 [11] A. P. Dempster, N. M. Laird, and D. B. Rubin. Maximum likelihood from incomplete data via the EM algorithm. J. Royal Stat. Soc. B , 39(1):1–22, 1977. [12] C. Eisermann, C. Voigt, S. Marx, and C. Kang. The initial structural health monitoring system of the Nibelungen Bridge Worms. e-Journal of Nondestructive Testing , 29(7), 2024. [13] J. N. Fuhg, G. Anantha Padmanabha, N. Bouklas, B. Bahmani, W. Sun, N. N. Vlassis, M. Flaschel, P. Carrara, and L. De Lorenzis. A Review on Data-Driven Constitutive Laws for Solids. Arch. Comput. Meth. Eng. , 32(3):1841–1883, 2025. [14] K. J. Grimm, R. Houpt, and D. Rodgers. Model Fit and Comparison in Finite Mixture Models: A Review and a Novel Approach. Frontiers in Education , 6:613645, 2021. [15] R. A. Jacobs, M. I. Jordan, S. J. Nowlan, and G. E. Hinton. Adaptive Mixtures of Local Experts. Neural Computation , 3(1):79–87, 1991. [16] J. Kaipio and E. Somersalo. Statistical and Computational Inverse Problems . Springer, 2005. [17] C. Kang, C. Voigt, C. Eisermann, N. Kerkeni, J. Hegger, W. Hermann, A. Jackmuth, G. Marzahn, and S. Marx. Die Nibelungenbr¨ ucke als Pilotprojekt der digital unterst¨ utzten Bauwerkserhaltung. Bautechnik , 2024. [18] M. C. Kennedy and A. O’Hagan. Bayesian Calibration of Computer Models. J. Royal Stat. Soc. B: Statistical Methodology , 63(3):425–464, 2001. [19] P. W. Langley. BACON: a production system that discovers empirical laws. In Proceedings of the 5th International Joint Conference on Artificial Intelligence - Volume 1 , page 344. Morgan Kaufmann Publishers Inc., 1977. [20] E. L. Lehmann and J. P. Romano. Testing Statistical Hypotheses . Springer Texts in Statistics. Springer, New York, 3rd edition, 2008. [21] G. H. Lubke and B. Muth´ en. Investigating population heterogeneity with factor mixture models. 
+
+Psychological Methods , 10(1):21–39, 2005. [22] P. Ma, P. Y. Chen, B. Deng, J. B. Tenenbaum, T. Du, C. Gan, and W. Matusik. Learning Neural Constitutive Laws From Motion Observations for Generalizable PDE Dynamics. In 
+
+Proceedings of the 40th International Conference on Machine Learning , page 969, Honolulu, Hawaii, USA, 2023. [23] C. Mares, J. Mottershead, and M. Friswell. Stochastic model updating: Part 1—theory and simulated example. Mech. Syst. Signal Proc. , 20(7):1674–1695, 2006. [24] M. Plumlee. Bayesian Calibration of Inexact Computer Models. J. Amer. Statist. Asso. ,112(519):1274–1285, 2017. [25] J. Polzehl and V. G. Spokoiny. Adaptive Weights Smoothing with Applications to Im-age Restoration. Journal of the Royal Statistical Society Series B: Statistical Methodology ,62(2):335–354, 2000. [26] C. R. Rao. Linear Statistical Inference and Its Applications . Wiley, New Delhi, 2nd edition, 1973. [27] K. Sargsyan, X. Huan, and H. N. Najm. Embedded Model Error Representation for Bayesian Model Calibration. Int. J. Uncertainty Quantification , 9(4):365–394, 2019. [28] M. Schmidt and H. Lipson. Distilling free-form natural laws from experimental data. Science ,324(5923):81–85, 2009. [29] R. Stephany and C. Earls. PDE-LEARN: Using deep learning to discover partial differential equations from noisy, limited data. Neural Networks , 174:106242, 2024. [30] A. Tarantola. Inverse problem theory : methods for data fitting and model parameter estimation .Elsevier, 1987. 18 [31] J. Xiao, A. H. Lee, and S. R. Vemuri. Mixture distribution analysis of length of hospital stay for efficient funding. Socio-Economic Planning Sciences , 33(1):39–59, 1999. 19
