@@ -6,64 +6,40 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-24
-- 运行时间：2026-03-24 20:36:25 UTC
+- 最新运行日期：2026-03-25
+- 运行时间：2026-03-25 19:55:28 UTC
 - 运行状态：成功
-- 本次总论文数：14
-- 精读区：6
-- 速读区：8
+- 本次总论文数：6
+- 精读区：4
+- 速读区：2
 
 ### 今日简报（AI）
-今日聚焦 AI 驱动的科学发现，深度探索从原始数据中自动提取物理守恒律与动力系统方程的前沿技术。
-重点推荐实现“零误报”守恒律发现的神经方法，以及利用大语言模型（LLM-ODE）进行动力系统建模的突破性尝试。
-建议关注 AI 与符号物理的深度融合，探索如何利用大模型能力简化复杂科学规律的推导过程。
-- 详情：[/202603/24/README](/202603/24/README)
+今日聚焦神经符号计算前沿，重点攻克了噪声环境下偏微分方程发现与符号回归的结构搜索难题。
+满分论文展示了通过符号图网络与连续结构嵌入，在稀疏数据中实现高精度物理规律建模的卓越性能。
+建议深入了解神经符号结合如何提升复杂系统验证与公式发现的稳健性，把握 AI for Science 的核心趋势。
+- 详情：[/202603/25/README](/202603/25/README)
 
 ### 精读区论文标签
-1. [From Data to Laws: Neural Discovery of Conservation Laws Without False Positives](/202603/24/2603.20474v1-from-data-to-laws-neural-discovery-of-conservation-laws-without-false-positives)  
+1. [Symbolic Graph Networks for Robust PDE Discovery from Noisy Sparse Data](/202603/25/2603.22380v1-symbolic-graph-networks-for-robust-pde-discovery-from-noisy-sparse-data)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：用于从动力系统数据中发现闭式守恒律的神经符号流水线
-2. [LLM-ODE: Data-driven Discovery of Dynamical Systems with Large Language Models](/202603/24/2603.20910v1-llm-ode-data-driven-discovery-of-dynamical-systems-with-large-language-models)  
+   evidence：用于从噪声数据中稳健发现偏微分方程的符号图网络
+2. [Neural Structure Embedding for Symbolic Regression via Continuous Structure Search and Coefficient Optimization](/202603/25/2603.22429v1-neural-structure-embedding-for-symbolic-regression-via-continuous-structure-search-and-coefficient-optimization)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：大语言模型辅助的符号演化模型发现框架
-3. [Closed-form approximations of fundamental quantities of Lemaitre-Tolman-Bondi cosmologies from Symbolic Regression: I. Results on the Garcia-Bellido-Haugbølle parameterization](/202603/24/2603.21277v1-closed-form-approximations-of-fundamental-quantities-of-lemaitre-tolman-bondi-cosmologies-from-symbolic-regression-i-results-on-the-garcia-bellido-haugblle-parameterization)  
+   evidence：基于 Transformer 的符号回归连续结构搜索框架
+3. [Weak-PDE-Net: Discovering Open-Form PDEs via Differentiable Symbolic Networks and Weak Formulation](/202603/25/2603.22951v1-weak-pde-net-discovering-open-form-pdes-via-differentiable-symbolic-networks-and-weak-formulation)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：应用符号回归重建宇宙学函数的闭式表达式
-4. [Instruction Set and Language for Symbolic Regression](/202603/24/2603.21836v1-instruction-set-and-language-for-symbolic-regression)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：符号回归的基础表示框架，旨在减少结构冗余
-5. [Sparse Weak-Form Discovery of Stochastic Generators](/202603/24/2603.20904v1-sparse-weak-form-discovery-of-stochastic-generators)  
+   evidence：用于发现开放形式偏微分方程的可微符号网络
+4. [Sparse Weak-Form Discovery of Stochastic Generators](/202603/25/2603.20904v2-sparse-weak-form-discovery-of-stochastic-generators)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：数据驱动的随机微分方程发现
-6. [Discovering parametrizations of implied volatility with symbolic regression](/202603/24/2603.21892v1-discovering-parametrizations-of-implied-volatility-with-symbolic-regression)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：应用符号回归从市场数据中发现解析公式
+   evidence：用于随机微分方程噪声鲁棒发现的弱形式化方法
 
 ### 速读区论文标签
-1. [SymCircuit: Bayesian Structure Inference for Tractable Probabilistic Circuits via Entropy-Regularized Reinforcement Learning](/202603/24/2603.20392v1-symcircuit-bayesian-structure-inference-for-tractable-probabilistic-circuits-via-entropy-regularized-reinforcement-learning)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：通过熵正则化强化学习进行结构推理
-2. [Generalization Limits of In-Context Operator Networks for Higher-Order Partial Differential Equations](/202603/24/2603.21534v1-generalization-limits-of-in-context-operator-networks-for-higher-order-partial-differential-equations)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：用于求解高阶偏微分方程的上下文算子网络
-3. [Stabilizing Iterative Self-Training with Verified Reasoning via Symbolic Recursive Self-Alignment](/202603/24/2603.21558v1-stabilizing-iterative-self-training-with-verified-reasoning-via-symbolic-recursive-self-alignment)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：使用 sympy 进行算术和逻辑一致性检查的符号验证子系统
-4. [Gaussian mixture models for model improvement](/202603/24/2603.15101v2-gaussian-mixture-models-for-model-improvement)  
+1. [Stepwise: Neuro-Symbolic Proof Search for Automated Systems Verification](/202603/25/2603.19715v1-stepwise-neuro-symbolic-proof-search-for-automated-systems-verification)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：提到利用符号回归改进物理系统模型
-5. [Transformers Learn Robust In-Context Regression under Distributional Uncertainty](/202603/24/2603.18564v1-transformers-learn-robust-in-context-regression-under-distributional-uncertainty)  
+   evidence：用于自动验证的神经符号证明搜索
+2. [FormalEvolve: Neuro-Symbolic Evolutionary Search for Diverse and Prover-Effective Autoformalization](/202603/25/2603.19828v1-formalevolve-neuro-symbolic-evolutionary-search-for-diverse-and-prover-effective-autoformalization)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：用于上下文线性回归的 Transformer
-6. [FormalEvolve: Neuro-Symbolic Evolutionary Search for Diverse and Prover-Effective Autoformalization](/202603/24/2603.19828v2-formalevolve-neuro-symbolic-evolutionary-search-for-diverse-and-prover-effective-autoformalization)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：神经符号进化搜索和符号抽象语法树重写操作
-7. [Thinking Deeper, Not Longer: Depth-Recurrent Transformers for Compositional Generalization](/202603/24/2603.21676v1-thinking-deeper-not-longer-depth-recurrent-transformers-for-compositional-generalization)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于可变深度推理和组合泛化的深度循环 Transformer
-8. [All elementary functions from a single binary operator](/202603/24/2603.21852v1-all-elementary-functions-from-a-single-binary-operator)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：生成连续数学函数的基础算子
+   evidence：神经符号进化搜索与符号抽象语法树重写操作
 
 
 <div class="dpr-home-promo-card">
