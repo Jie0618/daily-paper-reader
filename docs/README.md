@@ -6,40 +6,31 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-25
-- 运行时间：2026-03-25 19:55:28 UTC
+- 最新运行日期：2026-03-26
+- 运行时间：2026-03-26 19:53:20 UTC
 - 运行状态：成功
-- 本次总论文数：6
-- 精读区：4
+- 本次总论文数：3
+- 精读区：1
 - 速读区：2
 
 ### 今日简报（AI）
-今日聚焦神经符号计算前沿，重点攻克了噪声环境下偏微分方程发现与符号回归的结构搜索难题。
-满分论文展示了通过符号图网络与连续结构嵌入，在稀疏数据中实现高精度物理规律建模的卓越性能。
-建议深入了解神经符号结合如何提升复杂系统验证与公式发现的稳健性，把握 AI for Science 的核心趋势。
-- 详情：[/202603/25/README](/202603/25/README)
+今日聚焦可解释学习的重大突破，深度解析满分论文 Symbolic-KAN 及其在分子优化与物理建模中的前沿应用。
+重点关注 Symbolic-KAN 如何通过离散符号结构实现透明化学习，以及大模型驱动的进化搜索在分子设计中的创新潜力。
+建议深入研究符号化网络与物理先验的结合，这是实现 AI 模型从“黑盒”转向“白盒”的关键路径。
+- 详情：[/202603/26/README](/202603/26/README)
 
 ### 精读区论文标签
-1. [Symbolic Graph Networks for Robust PDE Discovery from Noisy Sparse Data](/202603/25/2603.22380v1-symbolic-graph-networks-for-robust-pde-discovery-from-noisy-sparse-data)  
+1. [Symbolic--KAN: Kolmogorov-Arnold Networks with Discrete Symbolic Structure for Interpretable Learning](/202603/26/2603.23854v1-symbolic--kan-kolmogorov-arnold-networks-with-discrete-symbolic-structure-for-interpretable-learning)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：用于从噪声数据中稳健发现偏微分方程的符号图网络
-2. [Neural Structure Embedding for Symbolic Regression via Continuous Structure Search and Coefficient Optimization](/202603/25/2603.22429v1-neural-structure-embedding-for-symbolic-regression-via-continuous-structure-search-and-coefficient-optimization)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：基于 Transformer 的符号回归连续结构搜索框架
-3. [Weak-PDE-Net: Discovering Open-Form PDEs via Differentiable Symbolic Networks and Weak Formulation](/202603/25/2603.22951v1-weak-pde-net-discovering-open-form-pdes-via-differentiable-symbolic-networks-and-weak-formulation)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：用于发现开放形式偏微分方程的可微符号网络
-4. [Sparse Weak-Form Discovery of Stochastic Generators](/202603/25/2603.20904v2-sparse-weak-form-discovery-of-stochastic-generators)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：用于随机微分方程噪声鲁棒发现的弱形式化方法
+   evidence：在神经网络中使用离散符号结构进行控制方程的符号发现
 
 ### 速读区论文标签
-1. [Stepwise: Neuro-Symbolic Proof Search for Automated Systems Verification](/202603/25/2603.19715v1-stepwise-neuro-symbolic-proof-search-for-automated-systems-verification)  
+1. [MolEvolve: LLM-Guided Evolutionary Search for Interpretable Molecular Optimization](/202603/26/2603.24382v1-molevolve-llm-guided-evolutionary-search-for-interpretable-molecular-optimization)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：LLM引导的可执行化学符号操作进化搜索
+2. [Sparsely-Supervised Data Assimilation via Physics-Informed Schrödinger Bridge](/202603/26/2603.22319v1-sparsely-supervised-data-assimilation-via-physics-informed-schrdinger-bridge)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：用于自动验证的神经符号证明搜索
-2. [FormalEvolve: Neuro-Symbolic Evolutionary Search for Diverse and Prover-Effective Autoformalization](/202603/25/2603.19828v1-formalevolve-neuro-symbolic-evolutionary-search-for-diverse-and-prover-effective-autoformalization)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：神经符号进化搜索与符号抽象语法树重写操作
+   evidence：针对偏微分方程系统的稀疏观测进行物理信息场重建
 
 
 <div class="dpr-home-promo-card">
