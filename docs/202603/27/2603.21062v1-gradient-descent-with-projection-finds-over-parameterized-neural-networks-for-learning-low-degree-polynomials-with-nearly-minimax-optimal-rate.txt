@@ -1,0 +1,6270 @@
+Title: Gradient Descent with Projection Finds Over-Parameterized Neural Networks for Learning Low-Degree Polynomials with Nearly Minimax Optimal Rate
+
+URL Source: https://arxiv.org/pdf/2603.21062v1
+
+Published Time: Tue, 24 Mar 2026 01:05:40 GMT
+
+Number of Pages: 48
+
+Markdown Content:
+# Gradient Descent with Projection Finds Over-Parameterized Neural Networks for Learning Low-Degree Polynomials with Nearly Minimax Optimal Rate 
+
+Yingzhen Yang yingzhen.yang@asu.edu 
+
+School of Computing and Augmented Intelligence Arizona State University Tempe, AZ 85281, USA 
+
+Ping Li pingli98@gmail.com 
+
+VecML Inc. Bellevue, WA 98004, USA 
+
+Abstract 
+
+We study the problem of learning a low-degree spherical polynomial of degree k0 = Θ(1) ≥ 1defined on the unit sphere in Rd by training an over-parameterized two-layer neural network with augmented feature in this paper. Our main result is the significantly improved sample complexity for learning such low-degree polynomials. We show that, for any regression risk 
+
+ε ∈ (0 , Θ( d−k0 )], an over-parameterized two-layer neural network trained by a novel Gradi-ent Descent with Projection (GDP) requires a sample complexity of n ≍ Θ(log(4 /δ )·dk0 /ε )with probability 1 − δ for δ ∈ (0 , 1), in contrast with the representative sample complexity Θ( dk0 max ε−2, log d ). Moreover, such sample complexity is nearly unimprovable since the trained network renders a nearly optimal rate of the nonparametric regression risk of the order log(4 /δ ) · Θ( dk0 /n ) with probability at least 1 − δ. On the other hand, the minimax optimal rate for the regression risk with a kernel of rank Θ( dk0 ) is Θ( dk0 /n ), so that the rate of the nonparametric regression risk of the network trained by GDP is nearly minimax optimal. In the case that the ground truth degree k0 is unknown, we present a novel and provable adaptive degree selection algorithm which identifies the true degree and achieves the same nearly optimal regression rate. To the best of our knowledge, this is the first time that a nearly optimal risk bound is obtained by training an over-parameterized neural network with a popular activation function (ReLU) and algorithmic guarantee for learning low-degree spherical polynomials. Due to the feature learning capability of GDP, our results are beyond the regular Neural Tangent Kernel (NTK) limit. 
+
+Keywords: Nonparametric Regression, Low-Degree Spherical Polynomial, Neural Net-work, Gradient Descent, Feature Learning, Minimax Optimal Rate  
+
+> ©2026 Yingzhen Yang and Ping Li. License: CC-BY 4.0, see https://creativecommons.org/licenses/by/4.0/ .
+> arXiv:2603.21062v1 [stat.ML] 22 Mar 2026 Yang and Li
+
+1 Introduction 
+
+With the success of deep learning across machine learning (LeCun et al., 2015), under-standing neural network generalization has become a central topic. Prior work shows that gradient-based methods such as GD and SGD can achieve vanishing training loss in deep networks (Du et al., 2019b; Allen-Zhu et al., 2019; Du et al., 2019a; Arora et al., 2019; Zou and Gu, 2019; Su and Yang, 2019). Beyond optimization, extensive studies provide generalization guarantees for DNNs trained with gradient methods. A key insight is that, under sufficient over-parameterization, training dynamics are well approximated by kernel methods, notably the Neural Tangent Kernel (NTK) (Jacot et al., 2018), although infinite-width networks can still exhibit feature learning (Yang and Hu, 2021). In this regime, network weights remain close to initialization, allowing the network to be approximated by a first-order Taylor expansion and enabling tractable generalization analysis (Cao and Gu, 2019; Arora et al., 2019; Ghorbani et al., 2021). The generalization of neural networks can be analyzed through their ability to learn low-degree polynomials, motivated by the spectral bias phenomenon (Rahaman et al., 2019; Cao et al., 2021; Choraria et al., 2022), which states that neural networks preferentially learn functions aligned with the top eigenspaces of the NTK integral operator. For data uniformly distributed on the unit sphere Sd−1 ⊂ Rd or its scaled variant, any degree-ℓ polynomial admits a linear representation via spherical harmonics up to degree ℓ, corresponding to the largest NTK eigenvalues (see Section B and Theorem B.2 of the appendix). Recent works have focused on feature learning beyond the linear NTK regime. While infinite-width networks can learn features (Yang and Hu, 2021), several approaches aim to escape NTK linearization to learn low-degree polynomials. The QuadNTK framework (Bai and Lee, 2020), based on second-order Taylor expansion, achieves improved generalization and efficiently learns sparse and “one-directional” polynomials. Extending this idea, Nichani et al. (2022) shows that combining NTK and QuadNTK enables learning dense polynomials with an additional sparse high-degree component. Other approaches include two-stage optimization for polynomial learning (Damian et al., 2022) and mean-field analyses of two-layer networks (Takakura and Suzuki, 2024). However, the analysis about the sharpness of the regression risk in the current results about training over-parameterized neural networks to learn low-degree polynomials, such as Ghorbani et al. (2021); Bai and Lee (2020); Nichani et al. (2022); Damian et al. (2022); Takakura and Suzuki (2024), is largely missing. For example, Nichani et al. (2022) show that a regression risk ε is achieved when the training data size n satisfies n ≳ dk0 max ε−2, log d .Without training a neural network, Ghorbani et al. (2021) show that when ˜Θ( dk0 ) ≤ n ≤
+
+Θ( dk0+1 −δ) where ˜Θ( dk0 )/d k0 → ∞ as d → ∞ , the regression risk achieved by NTK alone under certain restrictive conditions converges to 0 as d → ∞ without concrete convergence rates or the sharpness of such a risk. Furthermore, under the popular setting where d is fixed used by recent works about sharp rates for nonparametric regression (Hu et al., 2021; Suh et al., 2022; Yang and Li, 2024; Li et al., 2024), Ghorbani et al. (2021) cannot even show a vanishing regression risk. Understanding the sharpness of regression risk when learning low-degree polynomials remains an important problem in statistical learning and theoretical deep learning. In this work, we assume the target function f ∗ lies in the Reproducing Kernel Hilbert Space 
+
+> 2PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression
+
+(RKHS) induced by an over-parameterized two-layer neural network with a bounded RKHS norm, where f ∗ is a degree-k0 polynomial on the unit sphere Sd−1 ⊂ Rd with k0 ≥ 1. Our main result (Theorem 3.1) shows that when the network is trained using a novel Gradient Descent with Projection (GDP) and the sample size satisfies n ≥ Θ(log(4 /δ )·d2k0 ), the resulting estimator achieves a nearly optimal nonparametric regression risk of order log(4 /δ ) · Θ( dk0 /n ) with probability at least 1 − δ. Since the minimax optimal risk for kernel regression with a PSD kernel of rank r = Θ( dk0 ) is Θ( r/n ) = Θ( dk0 /n ) (Raskutti et al., 2012, Theorem 2(a)), our bound is nearly minimax optimal. To the best of our knowledge, this is the first nearly optimal risk bound with algorithmic guarantees for learning low-degree spherical polynomials via training an over-parameterized neural network with a popular activation function (ReLU). While related forms of projected gradient methods have been studied for exploiting low-dimensional structure in over-parameterized models (Xu et al., 2023; Zhang et al., 2023), this work is among the first to design a GDP specifically tailored to over-parameterized neural networks that achieves a nearly optimal rate. 
+
+Feature Learning Capability of GDP. We remark that our results go beyond the regu-lar NTK limit due to the feature learning capability of GDP from two aspects. First, while conventional NTK-based analysis must consider all eigenspaces of the NTK, our GDP intro-duces a novel projection operator which ensures that the learned neural network function lies in a low-dimensional subspace of the RKHS associated with the NTK for a nearly op-timal regression risk bound, when the ground truth degree of the target function, k0, is known. This constitutes the first main result detailed in Section 3.1. When k0 is unknown, based on the first main result, we present a novel and provable adaptive degree selection al-gorithm which identifies the true degree k0 and trains a neural network with the same nearly optimal regression risk, which is our second main result detailed in Section 3.2. Thanks to the feature learning capability of our method, our result is stronger than the literature (Wei et al., 2019; Glasgow, 2024; Lee et al., 2024; Abbe et al., 2022) in terms of learning general low-degree spherical polynomials, including existing works based on the feature learning ca-pability of neural networks. For example, existing works (Wei et al., 2019; Glasgow, 2024; Lee et al., 2024; Abbe et al., 2022) do not address the regression setting in which the target function is a degree-k0 spherical polynomial and the regression risk attains the sharp and minimax-optimal rate Θ( dk0 /n ). In particular, Wei et al. (2019) does not study regression with polynomial target functions at all, while the results of Glasgow (2024) are restricted to a highly specific setting where the target function is a quadratic XOR function. In Lee et al. (2024), the target function takes the single-index form f ∗(x) = σ∗(⟨x, θ⟩), where σ∗
+
+has information exponent p, thereby limiting f ∗ to be a polynomial along a single direc-tion parameterized by θ, rather than a general non-single-index spherical polynomial as considered in this paper. Finally, Abbe et al. (2022) investigates the case where the target function f ∗ is a low-dimensional latent function of dimension P embedded in an ambient space of dimension d with P ≤ d, and establishes necessary and nearly sufficient conditions under which f ∗ is strongly SGD-learnable in the mean-field regime. Beyond feature learning methods that escape the linear NTK regime (Table 1), sharp minimax convergence rates for nonparametric kernel regression are well established in the statistical learning literature (Stone, 1985; Yang and Barron, 1999; Raskutti et al., 2014; Yuan and Zhou, 2016). By training over-parameterized shallow (Hu et al., 2021, Theorem 
+
+> 3Yang and Li
+
+5.2) or deep (Suh et al., 2022, Theorem 3.11) neural networks with training features following spherical uniform distribution on the unit sphere, these results (Hu et al., 2021; Suh et al., 2022) show that minimax optimal rate O(n−d/ (2 d−1) ) is achieved for the regression risks when the target function is in H ˜K (γ0) where ˜K is the NTK of a specific neural network studied in each work. We organize this paper as follows. With the necessary notation introduced below, we first introduce in Section 2 the problem setup. Our main results are summarized in Section 3. The roadmap of proofs, the summary of the approaches and the key technical results in the proofs, and the novel proof strategy of this work are presented in Section 4. 
+
+Notations. We use bold letters for matrices and vectors, and regular lower letters for scalars throughout this paper. A[i] is the i-th column of a matrix A. A bold letter with subscripts indicates the corresponding rows or elements of a matrix or a vector. We put an arrow on top of a letter with subscript if it denotes a vector, e.g., ⇀
+
+xi denotes the i-th training feature. ∥·∥ F and ∥·∥ p denote the Frobenius norm and the vector ℓp-norm or the matrix p-norm. [ m : n] denotes all the integers between m and n inclusively, and [1 : n] is also written as [ n]. Var [ ·] denotes the variance of a random variable. In is an n × n identity matrix. 1I{E} is an indicator function which takes the value of 1 if event E happens, or 0 otherwise. The complement of a set A is denoted by Ac, and |A| is the cardinality of the set A. vec ( ·) denotes the vectorization of a matrix or a set of vectors, and tr ( ·) is the trace of a matrix. We denote the unit sphere in d-dimensional Euclidean space by 
+
+Sd−1 := {x : x ∈ Rd, ∥x∥2 = 1 }. Let X denote the input space, and Lp(X , μ ) with p ≥ 1denote the space of p-th power integrable functions on X with probability measure μ, and the inner product ⟨· , ·⟩ Lp(μ) and ∥·∥ 2 
+
+> Lp(μ)
+
+are defined as ⟨f, g ⟩Lp(μ) := R 
+
+> X
+
+f (x)g(x)d μ(x) and 
+
+∥f ∥pLp(μ) := R 
+
+> X
+
+|f |p (x)d μ(x) < ∞. B (x; r) is the Euclidean closed ball centered at x with radius r. Given a function g : X → R, its L∞-norm is denoted by ∥g∥∞ := sup x∈X |g(x)|,and L∞ is the function class whose elements have bounded L∞-norm. ⟨· , ·⟩ H and ∥·∥ H denote the inner product and the norm in the Hilbert space H. a = O(b) or a ≲ b indicates that there exists a constant c > 0 such that a ≤ cb . ˜O indicates there are specific requirements in the constants of the O notation. a = o(b) and a = w(b) indicate that lim |a/b | = 0 and lim |a/b | = ∞, respectively. a ≍ b or a = Θ( b) denotes that there exists constants 
+
+c1, c 2 > 0 such that c1b ≤ a ≤ c2b. Unif  Sd−1 denotes the uniform distribution on Sd−1.The constants defined throughout this paper may change from line to line. We use EP [·]to denote the expectation with respect to the distribution P . PS denotes the orthogonal projection onto the space S, and Span( A) denotes the linear space spanned by the columns of the matrix A. A denotes the closure of a set A. Throughout this paper we let the input space be X = Sd−1.
+
+2 Problem Setup 
+
+We introduce the problem setup for nonparametric regression with the target function as a low-degree spherical polynomial in this section. 
+
+> 4PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression
+
+2.1 Two-Layer Neural Network 
+
+We are given the training data 
+
+n
+
+(⇀
+
+xi, y i)
+
+oni=1 where each data point is a tuple of feature vector ⇀
+
+xi ∈ X and its response yi ∈ R. Throughout this paper we assume that no two training features coincide, that is, ⇀
+
+xi̸ = ⇀
+
+xj for all i, j ∈ [n] and i̸ = j. We denote the training feature vectors by S =
+
+n⇀
+
+xi
+
+oni=1 , and denote by Pn the empirical distribution over 
+
+S. All the responses are stacked as a vector y = [ y1, . . . , y n]⊤ ∈ Rn. The response yi is given by yi = f ∗(⇀
+
+xi) + wi for i ∈ [n], where {wi}ni=1 are i.i.d. sub-Gaussian random noise with mean 0 and variance proxy σ20 , that is, E [exp( λw i)] ≤ exp( λ2σ20 /2) for any λ ∈ R. f ∗
+
+is the target function to be detailed later. We define y := [ y1, . . . , y n], w := [ w1, . . . , w n]⊤,and use f ∗(S) := 
+
+h
+
+f ∗(⇀
+
+x1), . . . , f ∗(⇀
+
+xn)
+
+i⊤
+
+to denote the clean target labels. The feature vectors in S are drawn i.i.d. according to the data distribution P = Unif  Sd−1 with μ
+
+being the probability measure for P . We consider a two-layer neural network (NN) with an augmented feature in this paper whose mapping function is 
+
+f (W, x) = 1
+
+√m
+
+> m
+
+X
+
+> r=1
+
+arσ
+
+⇀
+
+wr
+
+> ⊤
+
+x
+
+
+
++ 1
+
+√m
+
+> ⇀
+
+w⊤
+
+> m+1
+
+F(W(0) , x), (1) where x ∈ X is the input, σ(·) = max {· , 0} is the ReLU activation function. W =n
+
+W, ⇀
+
+wm+1 
+
+o
+
+denotes the weights of the network, W =
+
+n⇀
+
+wr
+
+omr=1 and ⇀
+
+wm+1 are the weight vectors of the first layer, and m is the number of neurons which is also termed the network width, where ⇀
+
+wr ∈ Rd for r ∈ [m] and ⇀
+
+wm+1 ∈ Rm. F(W(0) , x) ∈ Rm is a feature vector computed at the initialization with [ F(W(0) , x)] r = 1 I⇀  
+
+> wr(0) ⊤
+> x≥0
+> 
+
+for r ∈ [m], which is termed the augmented feature. a = [ a1, . . . , a m] ∈ Rm denotes the weights of the second layer. Throughout this paper we also write W, wr as WS, wS,r from time to time so as to indicate that the weights are trained on the training features S.
+
+Novel Augmented Feature Compared to the Regular ReLU Network. It can be observed from (1) that compared to the regular two-layer ReLU network f (vanilla) (W, x) = 
+
+> 1√m
+
+Pmr=1 arσ
+
+⇀
+
+wr
+
+> ⊤
+
+x
+
+
+
+, our network has the additional augmented feature map by 1 /√m ·
+
+> ⇀
+
+w⊤
+
+> m+1
+
+F(W(0) , x). Such additional feature map ensures that the NTK associated with the network (1) is a PSD kernel K, to be defined in (2), and all of its eigenvalues are strictly positive as shown in Theorem C.18 deferred to Section C.4 of the appendix. In contrast, as shown in Bietti and Mairal (2019, Proposition 5), the eigenvalues 
+
+n˜λj
+
+o 
+
+> j≥0
+
+of the integral operator associated with the NTK of the regular network f (vanilla) have the property that ˜λ2t+1 = 0 for t ≥ 1. As a result, the eigenspaces of the NTK of the network f (vanilla) 
+
+corresponding to nonzero eigenvalues do not cover all the spherical harmonics of order 2t + 1 for all t ≥ 1, limiting its capability of learning spherical polynomials with spherical harmonics of odd degrees ( ≥ 3) as their components. 
+
+> 5
+
+Yang and Li 
+
+2.2 Kernel and Kernel Regression for Nonparametric Regression 
+
+We define the following kernel functions. For all u, v ∈ X ,
+
+K(0) (u, v) := π − arccos( u⊤v)2π , K(1) (u, v) := u⊤vK(0) (u, v), K = K(0) + K(1) , (2) which is in fact the NTK associated with the two-layer NN (1) with constant second layer weights a, and K is a PSD kernel. Let the Gram matrix of K over the training features 
+
+S be K ∈ Rn×n, Kij = K(⇀
+
+xi, ⇀
+
+xj ) for i, j ∈ [n], and Kn := K/n is the empirical NTK matrix. K(α), K(α) 
+
+> n
+
+for α = 0 , 1 are defined similarly. Let the eigendecomposition of Kn be 
+
+Kn = UΣU ⊤ where U is a n × n orthogonal matrix, and Σ is a diagonal matrix with its diagonal elements 
+
+nbλi
+
+oni=1 being eigenvalues of Kn and sorted in a non-increasing order. It is proved in existing works, such as Du et al. (2019b), that Kn is non-singular. Since sup x∈X K(x, x) = 1, it can be verified that bλ1 ∈ (0 , 1). Let HK be the Reproducing Ker-nel Hilbert Space (RKHS) associated with K. Because K is continuous on the compact set 
+
+X ×X , the integral operator TK : L2(X , μ ) → L2(X , μ ), (TK f ) ( x) := R 
+
+> X
+
+K(x, x′)f (x′)d μ(x′)is a positive, self-adjoint, and compact operator on L2(X , μ ). By the spectral theorem, there is a countable orthonormal basis {ej }j≥0 ⊆ L2(X , μ ) and {λj }j≥0 with 1 ≥ λ0 ≥
+
+λ1 ≥ . . . > 0 such that ej is the eigenfunction of TK with λj being the corresponding eigenvalue. That is, TK ej = λj ej , j ≥ 0. Let {μℓ}ℓ≥0 be the distinct eigenvalues associ-ated with TK , and let mℓ be the sum of multiplicities of the eigenvalue {μℓ′ }ℓℓ′=0 . That is, 
+
+mℓ′ −mℓ′−1 is the multiplicity of μℓ′ . It is well known that vj = pλj ej j ≥0 is an orthonor-mal basis of HK . For a positive constant γ0, we define HK (γ0) := {f ∈ H K : ∥f ∥H ≤ γ0}
+
+as the closed ball in HK centered at 0 with radius γ0. We note that HK (γ0) is also specified by HK (γ0) = 
+
+n
+
+f ∈ L2(X , μ ) : f = P∞ 
+
+> j=0
+
+βj ej , P∞ 
+
+> j=0
+
+β2 
+
+> j
+
+/λ j ≤ γ20
+
+o
+
+. To be shown in Theorem C.18, the eigenfunctions {ej }j≥0 are the spherical harmonics on X . Let 
+
+HS := 
+
+ nP
+
+> i=1
+
+K(·, ⇀
+
+xi)αi : {αi}ni=1 ⊆ R
+
+
+
+be the usual RKHS spanned by 
+
+n
+
+K(·, ⇀
+
+xi)
+
+oni=1 on the data S =
+
+n⇀
+
+xi
+
+oni=1 . For r ∈ [n − 1], we let U = U(r) U(−r) where U(r) ∈ Rn×r is the submatrix of U whose columns are the first r eigenvectors of K, and the columns of 
+
+U(−r) ∈ Rn×(n−r) are the remaining n − r eigenvectors of K. We define 
+
+HS,r := 
+
+( nX
+
+> i=1
+
+K(·, ⇀
+
+xi)αi : α = [ α1, . . . , α n]⊤ ∈ Span( U(r))
+
+)
+
+, (3) which is a subspace of the Hilbert space HS of dimension r.
+
+The task of nonparametric regression. We consider the target function 
+
+f ∗(x) = 
+
+> k0
+
+X 
+
+> ℓ=0
+> N(d,ℓ )
+
+X
+
+> j=1
+
+aℓj Yℓj (x), ∀x ∈ X , (4) where {Yℓj }j∈[N (d,ℓ )] are the spherical harmonics of degree ℓ which form an orthogonal basis of Hℓ of dimension N (d, ℓ ), and Hℓ denotes the space of degree-ℓ homogeneous harmonic 
+
+6PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+polynomials on X . The background about harmonic analysis on Sd−1 is deferred to Section B of the appendix. It also follows from the discussion in Section B that the eigenfunctions 
+
+{ej }j≥0 associated with the kernel K are in fact spherical harmonics of all degrees: {ej }j≥0 =
+
+{Yℓj }ℓ≥0,j ∈[N (d,k )] . Throughout this paper we assume f ∗ ∈ F ∗ where F∗ is a function class defined on X specified by 
+
+F∗ =
+
+
+
+> k0
+
+X 
+
+> ℓ=0
+> N(d,ℓ )
+
+X
+
+> j=1
+
+aℓj Yℓj :
+
+> k0
+
+X 
+
+> ℓ=0
+> N(d,ℓ )
+
+X
+
+> j=1
+
+a2 
+
+> ℓj
+
+/μ ℓ ≤ γ20
+
+ . (5) It follows from Theorem B.2 in Section B of the appendix that F∗ comprises all polynomials of degree up to k0 defined on X with a finite HK -norm of γ0. The task of the analysis for nonparametric regression is to find an estimator bf from the training data 
+
+n
+
+(⇀
+
+xi, y i)
+
+oni=1 so that the risk EP
+
+ bf − f ∗
+
+2
+
+vanishes at a fast rate. In this work, we aim to establish a sharp rate of the risk where the over-parameterized neural network (1) trained by GDP serves as the estimator bf .
+
+Minimax Lower Risk Bound for Learning a Low-Degree Spherical Polynomial. It follows from the definition of F∗ in (5) and Theorem C.18 that F∗ belongs to the subspace formed by the union of the spaces of homogeneous harmonic polynomials up to degree 
+
+k0 = Θ(1), that is, F∗ ⊆ ∪ k0
+
+> ℓ=0
+
+Hℓ. As a result, if we define a low-rank kernel of finite rank 
+
+r0 := mk0 = Pk0 
+
+> ℓ′=0
+
+N (d, ℓ ′) by 
+
+K(r0)(x, x′) := 
+
+> k0
+
+X 
+
+> ℓ=0
+> N(d,ℓ )
+
+X
+
+> j=1
+
+μℓYℓj (x)Yℓj (x′) (6) for any x, x′ ∈ X , then it can be verified that F∗ ⊆ H K(r0) (γ0). It is shown in Lemma B.3 in Section B of the appendix that r0 = Θ( dk0 ) with k0 = Θ(1) and d > Θ(1). The established result in Raskutti et al. (2012, Theorem 2(a)) shows that the minimax lower bound for the regression risk with K(r0) is then Θ( r0/n ) = Θ( dk0 /n ). 
+
+2.3 Training by Gradient Descent with Projection 
+
+In the training process of our two-layer NN (1), only W is optimized, while the elements of 
+
+a are randomly initialized to ±1 with equal probabilities and then fixed during the training. The following quadratic loss function is minimized during the training process: 
+
+L(W) := 12n
+
+> n
+
+X
+
+> i=1
+
+
+
+f (W, ⇀
+
+xi) − yi
+
+2
+
+. (7) In the ( t + 1)-th step of GDP with t ≥ 0, the weights of the neural network, WS, are updated by one-step of GDP through vec ( WS(t + 1)) − vec ( WS(t)) = − ηn ZS(t)P(r0)(by(t) − y),
+
+> ⇀
+
+wm+1 (t + 1) − ⇀
+
+wm+1 (t) = − ηn√m F(W(0) , S)⊤P(r)(by(t) − y), (8) 
+
+7Yang and Li 
+
+where yi = yi, F(W(0) , S) ∈ Rn×m denotes the feature computed at the initialization with [ F(W(0) , S)] i = F(W(0) , ⇀
+
+xi)⊤, by(t) ∈ Rn with [ by(t)] i = f (W(t), ⇀
+
+xi). The notation with the subscript S indicates the dependence on the training features S. We also denote the neural network function f (W(t), ·) as ft(·) with weights W(t) = 
+
+n
+
+WS(t), ⇀
+
+wm+1 (t)
+
+o
+
+obtained right after the t-th step of GDP. We define ZS(t) ∈ Rmd ×n which is computed by [ZS(t)] [( r−1) d+1: rd ]i = 1
+
+√m 1In⇀  
+
+> wr(t)⊤⇀
+> xi≥0
+> o⇀
+
+xiar (9) for all i ∈ [n], r ∈ [m], where [ ZS(t)] [( r−1) d+1: rd ]i ∈ Rd is a vector with elements in the i-th column of ZS(t) with indices in [( r − 1) d + 1 : rd ]. P(r) ∈ Rn×n is the projection matrix with P(r) = UΣ (r)U⊤ for r ∈ [n], where Σ(r) ∈ Rn×n is a diagonal matrix with Σ(r) 
+
+> ii
+
+= 1 for 
+
+i ∈ [r] and Σ(r) 
+
+> ii
+
+= 0 otherwise. With a known degree k0, we set r = r0 so that P(r) = P(r0).We note that P(r) would not appear in regular GD updates if vanilla GD is used, and 
+
+P(r) is introduced as a projection matrix so that the learned neural network function lies on a r0-dimensional subspace of the RKHS HS to be detailed in Section 4 for a sharp regression risk. We employ the following symmetric random initialization also employed in Chizat et al. (2019); Damian et al. (2022) so that by(0) = 0. In our two-layer NN, m is even, 
+
+n⇀
+
+w2r′ (0) 
+
+om/ 2 
+
+> r′=1
+
+and {a2r′ }m/ 2 
+
+> r′=1
+
+are initialized randomly and independently according to 
+
+> ⇀
+
+w2r′ (0) ∼ N (0, κ 2Id), a 2r′ ∼ unif ( {− 1, 1}) , ∀r′ ∈ [m/ 2], where N (μ, Σ) denotes a Gaussian distribution with mean μ and covariance Σ, unif ( {− 1, 1}) denotes a uniform distribution over {1, −1}, 0 < κ ≤ 1 controls the magnitude of initialization. We set ⇀
+
+w2r′−1(0) = ⇀
+
+w2r′ (0) and a2r′−1 = −a2r for all r′ ∈ [m/ 2]. It can then be verified that by(0) = 0, that is, the initial output of the two-layer NN (1) is zero. We use W(0) to denote the set of all the random weight vectors at initialization, that is, W(0) = 
+
+n⇀
+
+wr(0) 
+
+omr=1 , and ⇀
+
+wm+1 (0) = 0.We run Algorithm 1 to train the two-layer NN by GDP, where T is the total number of steps for GDP and the projection dimension r = r0.
+
+3 Summary of Main Result 
+
+We present the main results of this paper in this section, with the nearly optimal regression risk bound in Section 3.1 when the ground truth degree k0 is known, and the adaptive degree selection algorithm with theoretical guarantee in Section 3.2 for unknown k0.
+
+Algorithm 1 Training the Two-Layer NN by GDP  
+
+> 1:
+
+W(T ) ← Training-by-GDP ( r, T, W(0))  
+
+> 2:
+
+input: r, T, W(0) , ⇀
+
+wm+1 = 0, η  
+
+> 3:
+
+for t = 1 , . . . , T do  
+
+> 4:
+
+Perform the t-th step of GDP by (8)  
+
+> 5:
+
+end for  
+
+> 6:
+
+return W (T ), ⇀
+
+wm+1 (T )
+
+8PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+3.1 Nearly Optimal Risk Bound for Regression Risk with Known k0
+
+We first suppose that the ground truth degree of the target function f ∗, k0, is known. As widely studied in the literature such as Damian et al. (2022); Ghorbani et al. (2021), because the dimension of the subspace in which the target function f ∗ lies, the subspace spanned by all spherical harmonics of degree up to k0, is Θ( dk0 ), so that at least Θ( dk0 )/ε 
+
+training samples are required for any regression risk of ε > 0. As a result, we let n ≥
+
+Θ( dk0 ) throughout this paper. We present our main result about the sharp risk bound in Theorem 3.1, with its proof deferred to Section 4.3. 
+
+Theorem 3.1. Suppose that n ≥ Θ(log(4 /δ )·d2k0 ), δ ∈ (0 , 1), and ct ∈ (0 , 1] is an arbitrary positive constant. Suppose the network width m satisfies 
+
+m ≳
+
+ ndk0
+
+ 25 2
+
+d 52 , (10) and the neural network f (W(t), ·) is trained by GDP using Algorithm 1 with r = r0, the constant learning rate η = Θ(1) ∈ (0 , 1), and T ≍ n/d k0 . Then for every t ∈ [ctT : T ], with probability at least 1 −δ −exp ( −Θ( n)) −2 exp ( −Θ( r0)) −2/n over the random noise w, the random training features S and the random initialization W(0), f (W(t), ·) = ft satisfies 
+
+EP
+
+(ft − f ∗)2 ≲ log 4
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
+. (11) Here r0 = mk0 = Θ( dk0 ). Theorem 3.1 establishes that the two-layer neural network (1) trained by GDP described in Algorithm 1 achieves a regression risk bound of order Θ(log(4 /δ ) · dk0 /n ) when learning a degree-k0 spherical polynomial, which is nearly minimax optimal up to a logarithmic factor compared to the lower bound Θ( r0/n ) shown in Zhang et al. (2015) and reviewed in Section 2.2. Moreover, from (11) it follows that this rate implies a sample complexity of 
+
+n ≍ Θ(log(4 /δ ) · dk0 /ε ) for achieving regression risk ε ∈ (0 , Θ( d−k0 )], which is substantially smaller than the Θ( dk0 max {ε−2, log d}) sample complexity required by prior representative work such as Nichani et al. (2022). A detailed comparison with existing results on learning low-degree spherical polynomials, emphasizing algorithmic guarantees and the sharpness of the risk bounds, is provided in Table 1. It is proved in Nichani et al. (2022, Theorem 1) that the regression risk ε > 0 can be achieved with the sample complexity n ≳ dk0 max ε−2, log d , suggesting a convergence rate of the order Θ( pdk0 /n ) when the regression risk is less than 1 /√log d, which is much less sharp than our risk bound. The two-stage feature learning method (Damian et al., 2022) requires a restrictive assumption that the target function only depends on r ≪ d directions of the input, as a result, the vanilla GD can naturally ensure that the learned neural network function is mostly in a subspace of rank r in the RKHS. Without such assumption, we have 
+
+r = d, and the L1-norm risk bound of Damian et al. (2022, Theorem 1) is then at least ˜Θ( pdk0+1 /n ). On the other hand, as the Lp-norm is always non-decreasing in terms of p,using our L2-norm risk bound in Theorem 3.1, we have a sharper L1-norm risk bound of Θ( pdk0 /n ). 
+
+> 9
+
+Yang and Li 
+
+Table 1: Comparison between our result and the existing works on learning low-degree polynomials on the spheres of Rd by training over-parameterized neural networks with or without algorithmic guarantees. Almost all the results here are under a common and popular setup that f ∗ ∈ H ˜K where ˜K is the NTK of a specific neural network studied in each work, and the responses {yi}ni=1 are corrupted by i.i.d. Gaussian or sub-Gaussian noise with zero mean, with Nichani et al. (2022) being the only exception where the responses are noise-free. It is remarked that the sample complexity can be straightforwardly obtained from the regression risk. The regression risk of Damian et al. (2022, Theorem 1) is for the risk less than 1 /√log d, with the meaning of r explained in Section 3.1, and ˜Θ hides a logarithmic factor of log( mnd ).                     
+
+> Existing Works and Our Result Finite-Width NN is Trained Sharpness of the Regression Risk
+> (Ghorbani et al., 2021, Theorem 4) No Only matching the lower bound for pointwise kernel learning, not minimax optimal (Bai and Lee, 2020, Theorem 7) Yes Not minimax optimal (Nichani et al., 2022, Theorem 1) Yes Θ( pdk0/n ), not minimax optimal (Damian et al., 2022, Theorem 1) Yes L1-norm regression risk ˜Θ( pdr k0/n +prp/m ), not minimax optimal Our Result (Theorem 3.1) Yes Nearly minimax optimal, log 6
+> δ·Θ
+> dk0
+> n
+> 
+
+As discussed in Section 2.2, because the target function f ∗ as a degree-k0 spherical polynomial lies in the union of the eigenspaces up to degree k0, we need to learn the subspace ∪k0
+
+> ℓ=0
+
+Hℓ of dimension r0 = mk0 instead of the entire RKHS HK (γ0) for a sharp regression risk. However, it is difficult for the vanilla GD algorithm to learn such a subspace in HK (γ0). Such observation motivates the design of the novel GDP algorithm, which fits the target function with a neural network function in a subspace of dimension r0 of the Hilbert space HS,r 0 defined in (3) with r = r0. The next section details the roadmap for the proof of our main result. 
+
+3.2 Adaptive Degree Selection with Unknown Degree k0
+
+In this section, we consider the case that k0 is unknown. We propose an adaptive degree selection algorithm, described in Algorithm 2, which both identifies the ground truth degree 
+
+k0 and trains the two-layer NN (1) which achieves the nearly optimal rate as that in (11) with high probability. With a constant k0 ∈ Θ(1), it is always feasible to set L ≥ k0 as a suitably large constant L such that mL ≤ n. Starting with the initial degree L, the ℓ-th iteration of Algorithm 2 runs Algorithm 1 to train the two-layer NN (1) with the projection dimension 
+
+r = mℓ and T = Tℓ = n/d ℓ steps. Suppose Eℓ is the training loss of the trained network at the ℓ-th iteration of Algorithm 2. If ℓ is the first integer such that Eℓ−1/μ ℓ ≥ β20 /4 and 
+
+Eℓ/μ ℓ+1 ≤ β20 /8 which is returned by Algorithm 2, then according to Theorem 3.2, with high probability, ℓ = k0. We note that Theorem 3.2 needs the minimum absolute value condition on the target function that min ℓ∈[0: k0],j ∈[N (d,ℓ )]] |aℓj |/√μℓ ≥ β0 for some positive constant β0. Due to the presence of noise in the response vector y, similar minimum absolute value conditions on the target signal are in fact necessary and broadly used in standard compressive sensing literature such as Aeron et al. (2010) for signal recovery. 
+
+10 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+Algorithm 2 Degree Selection  
+
+> 1:
+
+ℓ + 1 , W(ℓ+1) ← Degree-Selection ( L, ε 0, W(0))  
+
+> 2:
+
+input: L, ε 0, W(0)  
+
+> 3:
+
+for ℓ = L, . . . , 0 do  
+
+> 4:
+
+Set r = mℓ, T = Tℓ = n/d ℓ 
+
+> 5:
+
+Run Algorithm 1 with Training-by-GDP ( r, T, W(0)) to train the two-layer NN (1) with GDP  
+
+> 6:
+
+Store the training loss Eℓ = EPn
+
+(fTℓ − f ∗)2 and the trained network weights W(ℓ) 
+
+> 7:
+
+if Eℓ/μ ℓ+1 ≥ β20 /4 and Eℓ+1 /μ ℓ+2 ≤ β20 /8 then  
+
+> 8:
+
+return ℓ + 1 , W(ℓ+1)  
+
+> 9:
+
+end if  
+
+> 10:
+
+end for Theorem 3.2. Assume that the minimum absolute value condition on the target function holds, that is, min ℓ∈[0: k0],j ∈[N (d,ℓ )]] |aℓj |/√μℓ ≥ β0 holds for some positive constant β0. ε0 is a positive threshold such that ε0 ∈ (0 , β 20 ]. Suppose that δ ∈ (0 , 1), ℓ ∈ [L], the network width m satisfies m ≳   ndℓ
+
+ 25 2 d 52 , n ≥ Θ  log(8 /δ )dℓ/(γ20 ε20μ2
+
+> ℓ+1
+
+), and the neural network 
+
+f (W(t), ·) is trained by GDP using Algorithm 1 with the projection dimension r = mℓ and 
+
+T = Tℓ = n/d ℓ steps. Then with probability at least 1 −δ −exp ( −Θ( n)) −2 exp ( −Θ( mℓ)) −
+
+2/n over the random noise w, the random training features S and the random initialization 
+
+W(0), the training loss of the network f (W(Tℓ), ·) = fTℓ , EPn
+
+(fTℓ − f ∗)2, satisfies 
+
+(
+
+EPn
+
+(fTℓ − f ∗)2 /μ ℓ+1 ≤ β20 /8, k0 ≤ ℓ ≤ L, 
+
+EPn
+
+(fTℓ − f ∗)2 /μ ℓ+1 ≥ β20 /4, 0 ≤ ℓ < k 0. (12) As a direct consequence of Theorem 3.2, with a high probability, Algorithm 2 terminates at the k0 − 1-th iteration. In particular, if n ≥ Θ  log(8( L − k0 + 2) /δ )dℓ/(γ20 ε20μ2
+
+> L
+
+), then Algorithm 2 always returns the ground truth degree k0 with probability at least 1 − δ −
+
+(L − k0 + 2) exp ( −Θ( n)) − 2 PLℓ=k0−1 exp ( −Θ( mℓ)) − 2L/n . We note that mL ≍ dL with 
+
+d > Θ(1) and L = Θ(1) by Lemma B.3 in the appendix, so Algorithm 2 returns the ground truth degree ℓ = k0 with large probability. We also note that the two-layer NN with the network weights W(ℓ+1) returned by Algorithm 2 achieves the nearly optimal rate in (11) with high probability according to Theorem 3.1. 
+
+4 Roadmap of Proofs 
+
+We first introduce the basic definitions in Section 4.1, then present the results about uniform convergence for the NTK (2) in Section 4.2. The proofs of the main results, Theorem 3.1 and Theorem 3.2, are presented in Section 4.3. We then present the roadmap of our theoretical results which lead to the first main result, Theorem 3.1, in this section. The proof of the second main result, Theorem 3.2, directly follows from Theorem 3.1. We first detail the roadmap and key technical results in Section 4.4, then present our novel proof strategy in Section 4.5. The proofs of Theorem 3.1 and Theorem 3.2 are presented in Section 4.3. The proofs of the key results in Section 4.4 are also deferred to the appendix. 
+
+11 Yang and Li 
+
+4.1 Basic Definitions 
+
+We introduce the following definitions for our analysis. We define 
+
+u(t) := by(t) − y (13) as the difference between the network output by(t) and the training response vector y right after the t-th step of GDP. Let τ ≤ 1 be a positive number. For t ≥ 0 and T ≥ 1 we define the following quantities: cu := Θ( γ0) + σ0 + τ + 1, 
+
+R := ηc uT
+
+√m , (14) 
+
+Vt := 
+
+
+
+v ∈ Rn : v = −
+
+
+
+In − ηKnP(r0)t
+
+f ∗(S)
+
+
+
+, (15) 
+
+Et,τ := 
+
+
+
+e : e = ⇀
+
+e 1 + ⇀
+
+e 2 ∈ Rn, ⇀
+
+e 1 = −
+
+
+
+In − ηKnP(r0)t
+
+w, ⇀
+
+e 2 2 ≤ √nτ 
+
+
+
+. (16) In particular, Lemma C.4 in the appendix shows that with high probability over the random noise w, the distance of every weighting vector wr(t) to its initialization wr(0) is bounded by R. In addition, u(t) can be composed into two vectors, u(t) = v(t) + e(t) such that 
+
+v(t) ∈ V t and e(t) ∈ E t,τ . We then define the set of the neural network weights during the training by GDP using Algorithm 1 as follows: 
+
+W(S, W(0) , T ) := 
+
+(
+
+W : ∃t ∈ [T ] s.t. vec ( W) = vec ( W(0)) −
+
+> t−1
+
+X
+
+> t′=0
+
+ηn ZS(t′)P(r0)u(t′),
+
+u(t′) ∈ Rn, u(t′) = v(t′) + e(t′), v(t′) ∈ V t′ , e(t′) ∈ E t′,τ , for all t′ ∈ [0 , t − 1] 
+
+
+
+. (17) We will also show by Lemma C.4 that with high probability over w, W(S, W(0) , T ) is the set of the weights of the two-layer NN (1) trained by GDP on the training features S
+
+with the random initialization W(0) and the number of steps of GDP not greater than T .The set of the functions represented by the neural network with weights in W(S, W(0) , T )is then defined as 
+
+FNN (S, W(0) , T ) := {ft = f (W(t), ·) : ∃ t ∈ [T ], W(t) ∈ W (S, W(0) , T )} . (18) We also define the function class F(B, w ) for any B, w > 0 as 
+
+F(B, w, S, r 0) := {f : f = h + e, h ∈ H K (B) ∩ H S,r 0 , ∥e∥∞ ≤ w} . (19) We will show by Theorem 4.2 in the next subsection that with high probability over w,
+
+FNN (S, W(0) , T ) is a subset of F(B, w, S, r 0), where a smaller w requires a larger network width m, and Bh > γ 0 is an absolute positive constant defined by 
+
+Bh := γ0 + Θ(1) . (20) 
+
+> 12
+
+PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+4.2 Uniform Convergence to the NTK (2) and More 
+
+We define the following functions with W = {wr}mr=1 :
+
+h(w, u, v) := 1 I{w⊤u≥0}1I{w⊤v≥0}, bh(W, u, v) := 1
+
+m
+
+> m
+
+X
+
+> r=1
+
+h(⇀
+
+wr, u, v), (21) 
+
+vR(w, u) := 1 I{| w⊤u|≤R}, bvR(W, u) := 1
+
+m
+
+> m
+
+X
+
+> r=1
+
+vR(⇀
+
+wr, u), (22) where u, v ∈ Rd. Then we have the following theorem stating the uniform convergence of bh(W(0) , ·, ·) to K(·, ·) and uniform convergence of bvR(W(0) , ·) to 2R√2πκ for a positive number R ≲ ηT / √m, and R is formally defined in (14). It is remarked that while existing works such as Li et al. (2024) also have uniform convergence results for over-parameterized neural network, our result does not depend on the H¨ older continuity of the NTK. 
+
+Theorem 4.1. The following results hold with η ≲ 1, m ≳ max 
+
+n
+
+n2/d , Θ( T 53 )
+
+o
+
+, and 
+
+m/ log m ≥ d.(1) With probability at least 1 − 1/n over the random initialization W(0) = 
+
+n⇀
+
+wr(0) 
+
+omr=1 ,sup  
+
+> u∈X ,v∈X
+
+K(α)(u, v) − bh(W(0) , u, v) ≤ C1(m/ 2, d, 1/n ) ≲
+
+r d log mm , α ∈ { 0, 1} . (23) (2) With probability at least 1 − 1/n over the random initialization W(0) = 
+
+n⇀
+
+wr(0) 
+
+omr=1 ,sup 
+
+> u∈X
+
+bvR(W(0) , u) ≤ 2R
+
+√2πκ + C2(m/ 2, d, 1/n ) ≲ √dm − 15 T 12 , (24) where C1(m/ 2, d, 1/n ), C 2(m/ 2, d, 1/n ) are two positive numbers depending on ( m, d, n ), with their formal definitions deferred to (46) and (48) in Section C.1. 
+
+Proof This theorem follows from Theorem C.2 and Theorem C.3 in Section C.1. We note that 
+
+bh(W, u, v) = 1
+
+m
+
+> m
+
+X
+
+> r=1
+
+h(⇀
+
+wr, u, v) = 1
+
+m/ 2
+
+> m/ 2
+
+X
+
+> r′=1
+
+h(⇀
+
+w2r′ (0) , u, v),
+
+then the first bound in part (1) for K(0) directly follows from Theorem C.2. Moreover, since 
+
+K(1) (u, v) = u⊤vK(0) (u, v), we have 
+
+K(1) (u, v) − u⊤v · bh(W(0) , u, v) ≤ sup  
+
+> u∈X ,v∈X
+
+K(0) (u, v) − bh(W(0) , u, v) ,
+
+which leads to the second bound in part (1) for K(1) . Part (2) directly follows from Theo-rem C.3. 
+
+13 Yang and Li 
+
+We define 
+
+W0 := {W(0) : (23) , (24) hold } (25) as the set of all the good random initializations which satisfy (23) and (24) in Theorem 4.1. Theorem 4.1 shows that we have good random initialization with high probability, that is, Pr [ W(0) ∈ W 0] ≥ 1 − 2/n . When W(0) ∈ W 0, the uniform convergence results, (23) and (24), hold with high probability, which are important for the analysis of the training dynamics of the two-layer NN (1) by GD. 
+
+4.3 Proofs of the Main Results, Theorem 3.1 and Theorem 3.2 Proof of Theorem 3.1 . We use Theorem 4.3 and Theorem 4.4 to prove this theorem. First of all, it follows by Theorem 4.4 that with probability at least 1 −2δ −exp ( −Θ( r0)) over S and w,
+
+EPn
+
+(ft − f ∗)2 ≤ Θ
+
+ γ20
+
+ηt 
+
+
+
++ γ20 log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
+.
+
+Plugging such bound for EPn
+
+(ft − f ∗)2 in (36) of Theorem 4.3 leads to 
+
+EP
+
+(ft − f ∗)2 ≲ Θ
+
+ γ20
+
+ηt 
+
+
+
++ log 2
+
+δ · dk0
+
+n + w. (26) Due to the definition of T ≍ n/d k0 , we have 1
+
+ηt ≍ 1
+
+ηT ≍ dk0
+
+n . (27) We also have Pr [ W0] ≥ 1 − 2/n . Let w = dk0 /n , then w ∈ (0 , 1) with n > d k0 . (11) then follows from (26) with w = dk0 /n , (27) and the union bound. We note that cu is bounded by a positive constant, so that the condition on m in (35) in Theorem 4.2, together with 
+
+w = dk0 /n and (27) leads to the condition on m in (10). 
+
+Proof of Theorem 3.2 . We first decompose the target function f ∗ by 
+
+f ∗ = f ∗ 
+
+> ℓ
+
++ f ∗ 
+
+> ℓ
+
+, f ∗ 
+
+> ℓ
+
+=
+
+> min {k0,ℓ }
+
+X 
+
+> ℓ=0
+> N(d,ℓ )
+
+X
+
+> j=1
+
+aℓj Yℓj (x), f ∗ 
+
+> ℓ
+
+= f ∗ − f ∗ 
+
+> ℓ
+
+. (28) That is, f ∗ 
+
+> ℓ
+
+is the projection of f ∗ onto the subspace spanned by all spherical harmonics of degree up to ℓ ≥ 0, and f ∗ 
+
+> ℓ
+
+is the residue. If ℓ ≥ k0, then f ∗ 
+
+> ℓ
+
+= 0 and f ∗ 
+
+> ℓ
+
+= f ∗. In this case, it follows from Theorem 3.1 and by repeating its proof that 
+
+EPn
+
+(fTℓ − f ∗)2 ≤ log 4
+
+δ · Θ
+
+ dℓ
+
+n
+
+
+
+(29) 
+
+14 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+holds with probability at least 1 − δ − exp ( −Θ( n)) − 2 exp ( −Θ( mℓ)) − 2/n with δ ∈ (0 , 1). It follows from (29) that when n ≥ Θ  log(4 /δ ) max dℓ/(ε0μℓ+1 ), d 2ℓ ,
+
+EPn
+
+(fTℓ − f ∗)2 ≤ β20 μℓ+1 /8. (30) We now consider the case that 1 ≤ ℓ < k 0. In this case, it follows from Theorem 3.1 again that we have EP
+
+h
+
+(fTℓ − f ∗ 
+
+> ℓ
+
+)2i
+
+≤ log 4 
+
+> δ
+
+· Θ
+
+ dℓ
+
+> n
+
+
+
+with probability at least 1 − δ −
+
+exp ( −Θ( n)) − 2 exp ( −Θ( mℓ)) − 2/n . As a result, we have 
+
+EP
+
+(fTℓ − f ∗)2 = EP
+
+
+
+fTℓ − f ∗ 
+
+> ℓ
+
+− f ∗
+
+> ℓ
+
+2
+
+= EP
+
+
+
+f ∗
+
+> ℓ
+
+2
+
+− 2EP
+
+h
+
+(fTℓ − f ∗ 
+
+> ℓ
+
+) f ∗
+
+> ℓ
+
+i
+
++ EP
+
+h
+
+(fTℓ − f ∗ 
+
+> ℓ
+
+)2i
+
+≥ EP
+
+
+
+f ∗
+
+> ℓ
+
+2
+
+− 2
+
+r
+
+EP
+
+h fTℓ − f ∗
+
+> ℓ
+
+2is
+
+EP
+
+
+
+f ∗
+
+> ℓ
+
+2
+
++ EP
+
+h
+
+(fTℓ − f ∗ 
+
+> ℓ
+
+)2i
+
+1○
+
+≥ a2 
+
+> ℓ+1 ,1
+
+− 2
+
+s
+
+log 4
+
+δ · Θ
+
+ dℓ
+
+n
+
+
+
+· γ0
+
+2○
+
+≥ β20 μℓ+1 − 2
+
+s
+
+log 4
+
+δ · Θ
+
+ dℓ
+
+n
+
+
+
+· γ0. (31) Here 1○ follows from EP
+
+h f ∗
+
+> ℓ
+
+2i
+
+≤ Pk0
+
+> ℓ=0
+
+PN (d,ℓ ) 
+
+> j=1
+
+a2 
+
+> ℓ,j
+
+/μ ℓ = γ20 , and 2○ follows from the fact that EP
+
+
+
+f ∗
+
+> ℓ
+
+2
+
+≥ a2 
+
+> ℓ+1 ,1
+
+≥ β20 μℓ+1 . It follows from (31) that with 
+
+n ≥ Θ
+
+
+
+log(4 /δ ) max 
+
+n
+
+dℓ/(γ20 ε20μ2
+
+> ℓ+1
+
+), d 2ℓo 
+
+,
+
+we have 
+
+EP
+
+(fTℓ − f ∗)2 ≥ β20 μℓ+1 /2. (32) Furthermore, it follows from the standard Hoeffding’s inequality that with probability at least 1 − δ,
+
+EPn
+
+(fTℓ − f ∗)2 − EP
+
+(fTℓ − f ∗)2 ≤ (γ0 + Θ(1)) 
+
+r log(2 /δ )
+
+n . (33) It then follows from (32) and (33) that with probability at least 1 −δ, when n ≥ Θ log(4 /δ )max dℓ/(γ20 ε20μ2
+
+> ℓ+1
+
+), d 2ℓ },
+
+EPn
+
+(fTℓ − f ∗)2 ≥ β20 μℓ+1 /4. (34) (12) then follows from (30) and (34) and the fact that μℓ ≍ d−ℓ according to Theorem C.18. 
+
+15 Yang and Li 
+
+4.4 Detailed Roadmap and Key Results 
+
+The summary of the approaches and key technical results in the proofs are presented as follows. Our main result, Theorem 3.1, is built upon the following three significant technical results of independent interest. First, using the novel GDP algorithm and the uniform convergence to the NTK (2) during the training process by GDP, we can have a nice decomposition of the neural net-work function at any step of GDP into a function in a r0-dimensional subspace of the RKHS associated with the NTK (2), which is HK (Bh) ∩ H S,r 0 , and an error function with a small L∞-norm. Formally, Theorem 4.2 states that with high probability over w,
+
+FNN (S, W(0) , T ) ⊆ F (Bh, w, S, r 0). 
+
+Theorem 4.2. Suppose n ≥ Θ(log(2 /δ ) · d2k0 ), δ ∈ (0 , 1/2), w ∈ (0 , 1), the network width 
+
+m satisfies 
+
+m ≳ max 
+
+n
+
+T 15 2 d 52 /w 5, T 25 2 d 52
+
+o
+
+, (35) and the neural network ft = f (W(t), ·) is trained by GDP using Algorithm 1 with the constant learning rate η = Θ(1) ∈ (0 , 1) and the random initialization W(0) ∈ W 0. Then for every t ∈ [T ] and every δ ∈ (0 , 1/2), with probability at least 1 − 2δ − exp ( −Θ( n)) −
+
+exp ( −Θ( r0)) over the random training features S the random noise w, ft ∈ F NN (S, W(0) , T ), and ft has the following decomposition on X : ft = ht + et, where ht ∈ H K (Bh) ∩ H S,r 0 with 
+
+Bh defined in (20), et ∈ L∞ with ∥et∥∞ ≤ w.In particular, with the uniform convergence by Theorem 4.1 and the optimization re-sults in Lemma C.4 and Lemma C.8 in the appendix, Theorem 4.2 shows that with high probability, the neural network function f (W(t), ·) right after the t-th step of GDP can be decomposed into two functions by f (W(t), ·) = ft = h + e, where h ∈ H K (Bh) ∩ H S,r 0
+
+is a function in a subspace of finite dimension r0 of the RKHS associated with K with a bounded HK -norm. The error function e has a small L∞-norm, that is, ∥e∥∞ ≤ w with w
+
+being a small number controlled by the network width m, and larger m leads to smaller w.Second, local Rademacher complexity is employed to tightly bound the risk of nonpara-metric regression in Theorem 4.3 below, which is based on the Rademacher complexity of a localized subset of the function class F(Bh, w, S, r 0) in Lemma C.14 deferred the appendix. We use Theorem 4.2, Lemma C.14, and Lemma C.15 deferred to the appendix to prove Theorem 4.3. 
+
+Theorem 4.3. Suppose n ≥ Θ(log(2 /δ )·d2k0 ), δ ∈ (0 , 1/2), w ∈ (0 , 1), m satisfies (35), and the neural network ft = f (W(t), ·) is trained by GDP using Algorithm 1 with the constant learning rate η = Θ(1) ∈ (0 , 1) on the random initialization W(0) ∈ W 0. Then for every 
+
+t ∈ [T ] and every δ ∈ (0 , 1/2), with probability at least 1 −2δ−exp ( −Θ( n)) −2 exp ( −Θ( r0)) over the random noise w, the random training features S and the random initialization 
+
+W(0), 
+
+EP
+
+(ft − f ∗)2 − 2EPn
+
+(ft − f ∗)2
+
+≲
+
+r
+
+log 2
+
+δ · dk0
+
+n + w. (36) 
+
+> 16 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression
+
+Third, we have the following sharp upper bound for the training loss EPn
+
+(ft − f ∗)2.
+
+Theorem 4.4. Suppose the neural network trained after the t-th step of GDP, ft =
+
+f (W(t), ·), satisfies u(t) = ft(S) − y = v(t) + e(t) with v(t) ∈ V t, e(t) ∈ E t,τ . Let 
+
+n ≥ Θ(log(2 /δ ) · d2k0 ) and δ ∈ (0 , 1/2). If η ∈ (0 , 1) , τ ≤
+
+q dk0 
+
+> n
+
+, then for every t ∈ [T ], with probability at least 1 − 2δ − exp ( −Θ( r0)) over the random training features S and the random noise w, we have EPn
+
+(ft − f ∗)2 ≤ Θ
+
+ γ20
+
+> ηt
+
+
+
++ γ20 log 2 
+
+> δ
+
+· Θ
+
+ dk0
+
+> n
+
+
+
+.We then obtain Theorem 3.1 using the upper bound for the regression risk in (36) of Theorem 4.3 where w is set to dk0 /n , with the empirical loss EPn
+
+(ft − f ∗)2 bounded by Θ(log(2 /δ ) · dk0 /n ) with high probability by Theorem 4.4. 
+
+4.5 Novel Proof Strategy 
+
+We remark that the proof strategy of our main result, Theorem 3.1, summarized above is significantly different from the existing works in training over-parameterized neural networks for nonparametric regression with minimax optimal rates (Hu et al., 2021; Suh et al., 2022; Li et al., 2024) and existing works about learning low-degree polynomials (Ghorbani et al., 2021; Bai and Lee, 2020; Nichani et al., 2022; Damian et al., 2022). First, GDP is carefully incorporated into the analysis of the uniform convergence results for NTK, leading to the crucial decomposition of the neural network function ft in Theo-rem 4.2. It is remarked that while existing works such as Li et al. (2024) also has uniform convergence results for over-parameterized neural network, our results about the uniform convergence (in Section 4.2 of the appendix) do not depend on the H¨ older continuity of the NTK. Second, to the best of our knowledge, Theorem 4.3 is the first result about the sharp upper bound of the order Θ(log(2 /δ ) · dk0 /n ) (with w = dk0 /n ) for the regression risk of the neural network function which has the decomposition in Theorem 4.2. We note that the RHS of this upper bound (36) is nearly Θ( dk0 /n ), which has the expected and the desired order since the target function is in a r0-dimensional subspace of the RKHS HK (γ0) with 
+
+r0 = Θ( dk0 ). Third, a novel method based on the operator theory in RKHS has been developed to derive the sharp upper bound for the training loss in Theorem 4.4. As shown in Theorem 4.2, the network function ft at every step t of GDP is approximately a function in the r0-dimensional subspace, HK (Bh) ∩ H S,r 0 . We emphasize that while it is intuitive to only learn the r0-dimensional subspace by projection, HK (Bh) ∩ H S,r 0 , since the target function lies in that subspace, it has been an open problem in the research community how to handle the incurred training loss by such projection. In particular, as pointed out by the existing work (Nichani et al., 2022), learning in such a subspace leads to better alignment with the target function f ∗, however, such alignment incurs additional training loss because the network function ft only learns the information in such a subspace of dimension r0 < n ,and the information in the ground truth signal f ∗(S) not in the r0-dimensional subspace is not learned by ft. We manage to show that the information of f ∗(S) not in the r0-dimensional subspace, which is PU(−r0) (f ∗(S)) where PU(−r0) = PSpan( U(r0))⊥ , is sharply bounded in Lemma C.11 of the appendix: PU(−r0) (f ∗(S)) 22 ≤ nγ 20 log 2 
+
+> δ
+
+· Θ
+
+ dk0
+
+> n
+
+
+
+. The 
+
+> 17
+
+Yang and Li 
+
+proof of Lemma C.11 relies on a novel result in operator theory developed in this work which is of independent interest in functional analysis. Let Φ(k) 
+
+> k≥0
+
+be an orthonormal basis of the RKHS HK as an extension of the orthonormal basis of the RKHS HS ⊆ H K ,Φ(k)
+
+> k∈[0: n−1]
+
+. Using the bounded Hilbert-Schmidt norm of P TK 
+
+> mk0
+
+− P Tn 
+
+> mk0
+
+, where the two operators are defined as P TK 
+
+> mk0
+
+h = Pmk0 −1 
+
+> j=0
+
+⟨h, v j ⟩H vj , P Tn 
+
+> mk0
+
+h = Pmk0 −1 
+
+> j=0
+
+h, Φ(j) 
+
+> H
+
+Φ(j) for all h ∈ H K , we can prove the following theorem showing the bounded projection of f ∗ onto the eigenfunctions Φ(q) 
+
+> q≥r0
+
+:
+
+Theorem 4.5. With probability at least 1 −δ, ∞P
+
+> q=r0
+
+f ∗, Φ(q) 2 
+
+> HK
+
+≤ ζn,γ 0,r 0,δ := 32 γ20 log 2
+
+> δ
+
+(μk0 −μk0+1 )2n .Theorem 4.5 proves Lemma C.11, which in turn proves Theorem 4.4. 
+
+4.6 Beyond the Regular NTK Limit 
+
+We remark that while an over-parameterized neural network is trained, our result goes beyond the regular NTK limit due to our new GDP algorithm. As shown in Theorem 4.2, the novel projection operator P(r0) in GDP ensures that the neural network function almost lies in a r0-dimensional subspace of the RKHS HK (γ0) with r0 = Θ( dk0 ). Although such projection loses all the information of the ground truth signal f ∗(S) not lying in such a subspace, Theorem 4.4 shows that such information loss due to the projection is small enough to ensure a sharp regression risk bound. In contrast, the regular NTK-based analysis with vanilla GD must account for all eigenspaces associated with the NTK, and therefore cannot achieve such a sharp rate. 
+
+5 Conclusion 
+
+We study nonparametric regression by training an over-parameterized two-layer neural net-work where the target function is in the RKHS associated with the NTK of the neural network and also a degree-k0 spherical polynomial on the unit sphere in Rd. We show that, if the neural network is trained by a novel Gradient Descent with Projection (GDP), a nearly minimax optimal rate of the order log(4 /δ ) · Θ( dk0 /n ) can be obtained. We further present a novel and provable adaptive degree selection algorithm which obtains the same nearly optimal rate when the ground truth degree k0 is unknown. 
+
+18 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+The appendix of this paper is organized as follows. We present the basic mathematical results employed in our proofs in Section A, and then introduce the detailed technical background about harmonic analysis on spheres in Section B. Detailed proofs are presented in Section C. In particular, more results about the eigenvalue decay rates are presented in Section C.4. 
+
+Appendix A. Mathematical Tools 
+
+A.1 Concentration Inequalities for Supremum of Empirical Processes 
+
+The Rademacher complexity of a function class and its empirical version are defined below. 
+
+Definition A.1 . Let σ = {σi}ni=1 be n i.i.d. random variables such that Pr[ σi = 1] = Pr[ σi =
+
+−1] = 12 . The Rademacher complexity of a function class F is defined as 
+
+R(F) = En⇀ 
+
+> xi
+> oni=1 ,{σi}ni=1
+
+"
+
+sup  
+
+> f∈F
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+σif (⇀
+
+xi)
+
+#
+
+. (37) The empirical Rademacher complexity is defined as 
+
+bR(F) = E{σi}ni=1 
+
+"
+
+sup  
+
+> f∈F
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+σif (⇀
+
+xi)
+
+#
+
+, (38) For simplicity of notation, Rademacher complexity and empirical Rademacher complexity are also denoted by E
+
+
+
+sup f ∈F 1
+
+> nn
+
+P
+
+> i=1
+
+σif (⇀
+
+xi)
+
+
+
+and Eσ
+
+
+
+sup f ∈F 1
+
+> nn
+
+P
+
+> i=1
+
+σif (⇀
+
+xi)
+
+
+
+, respectively. For data 
+
+n⇀
+
+x
+
+oni=1 and a function class F, we define the notation RnF by RnF := sup f ∈F 1
+
+> nn
+
+P
+
+> i=1
+
+σif (⇀
+
+xi). We have the contraction property for Rademacher complexity, which is due to Ledoux and Talagrand (Ledoux, 1991). 
+
+Theorem A.1. Let ϕ be a contraction,that is, |ϕ(x) − ϕ(y)| ≤ μ |x − y| for μ > 0. Then, for every function class F,
+
+E{σi}ni=1 [Rnϕ ◦ F ] ≤ μE{σi}ni=1 [RnF] , (39) where ϕ ◦ F is the function class defined by ϕ ◦ F = {ϕ ◦ f : f ∈ F} .
+
+Definition A.2 (Sub-root function,(Bartlett et al., 2005, Definition 3.1)) . A function ψ : [0 , ∞) →
+
+[0 , ∞) is sub-root if it is nonnegative, nondecreasing and if ψ(r) 
+
+> √r
+
+is nonincreasing for r > 0. 
+
+Theorem A.2 (Bartlett et al. (2005, Theorem 3.3)) . Let F be a class of functions with ranges in [ a, b ] and assume that there are some functional T : F → R+ and some constant ¯B such that for every f ∈ F , Var [ f ] ≤ T (f ) ≤ ¯BP (f ). Let ψ be a sub-root function and let r∗ be the fixed point of ψ. Assume that ψ satisfies that, for any r ≥ r∗, ψ(r) ≥
+
+¯BR({f ∈ F : T (f ) ≤ r}). Fix x > 0, then for any K0 > 1, with probability at least 1 − e−x,
+
+∀f ∈ F , EP [f ] ≤ K0
+
+K0 − 1 EPn [f ] + 704 K0
+
+¯B r∗ + x  11( b − a) + 26 ¯BK 0
+
+
+
+n .
+
+19 Yang and Li 
+
+Also, with probability at least 1 − e−x,
+
+∀f ∈ F , EPn [f ] ≤ K0 + 1 
+
+K0
+
+EP [f ] + 704 K0
+
+¯B r∗ + x  11( b − a) + 26 ¯BK 0
+
+
+
+n .
+
+Appendix B. Detailed Technical Background about Harmonic Analysis on Spheres 
+
+In this section, we provide background materials on spherical harmonic analysis needed for our study of the RKHS. We refer the reader to Chihara (2011); Efthimiou and Frye (2014); Szeg˝ o (1975) for further information on these topics. As mentioned above, expansions in spherical harmonics were used in the past in the statistics literature, such as Bach (2017); Bietti and Mairal (2019). With ℓ ≥ 0, let P(hom)  
+
+> ℓ
+
+denote the space of all the degree-ℓ homogeneous polynomials on X = Sd−1, and let Hℓ denote the space of degree-ℓ homogeneous harmonic polynomials on X , or the degree-ℓ spherical harmonics. That is, 
+
+Hℓ =
+
+P : X → R : P (x) = X
+
+> |α|=ℓ
+
+cαxα, ∆P = 0 
+
+ , (40) where α = [ α1, . . . , α d], xα = Qdi=1 xαi 
+
+> i
+
+, |α| = Pdi=1 αi, and ∆ is the Laplacian operator. For ℓ̸ = ℓ′, the elements of Hℓ and Hℓ′ are orthogonal to each other. All the functions in the following text of this section are assumed to be elements of L2(X , v d−1), where 
+
+vd−1 stands for the uniform distribution on the sphere X = Sd−1. We have ⟨f, g ⟩L2 := R 
+
+> X
+
+f (x)g(x)d vd−1(x). We denote by {Ykj }j∈[N (d,k )] the spherical harmonics of degree k
+
+which form an orthogonal basis of Hk, where N (d, k ) = 2k+d−2
+
+> k
+
+ k+d−3
+
+> d−2
+
+ is the dimension of Hk. They form a orthonormal basis of L2(X , v d−1). We have PN (d,k ) 
+
+> j=1
+
+Ykj (x)Ykj (x′) = 
+
+N (d, k )Pk(⟨x, x′⟩) for all x, x′ ∈ X , where Pk is the k-th Legendre polynomial in dimension 
+
+d, which are also known as Gegenbauer polynomials, given by the Rodrigues formula: 
+
+Pk(t) = ( − 12 )k Γ   d−12
+
+
+
+Γ  k + d−12
+
+  1 − t2(3 −d)/2
+
+ ddt
+
+k  1 − t2k+( d−3) /2 .
+
+The polynomials {Pk} are orthogonal in L2(X , dvd−1) where the measure d vd−1 is given by dvd−1(t) = (1 − t2)(d−3) /2dt, and we have 
+
+Z 1
+
+> −1
+
+P 2 
+
+> k
+
+(t)(1 − t2)(d−3) /2dt = wd−1
+
+wd−2
+
+1
+
+N (d, k ) ,
+
+where wd−1 := 2πd/ 2 
+
+> Γ( d/ 2)
+
+denotes the surface of the unit sphere Sd−1. It follows from the orthogonality of spherical harmonics that 
+
+Z
+
+> X
+
+Pj (⟨x, w⟩)Pj ( x′, w )d vd−1(w) = δjk 
+
+N (d, k ) Pk( x, x′ ),
+
+20 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+where δjk = 1 I{j=k}. We have the following recurrence relation (Efthimiou and Frye, 2014, Equation 4.36), 
+
+tP k(t) = k
+
+2k + d − 2 Pk−1(t) + k + d − 22k + d − 2 Pk+1 (t)for all k ≥ 1, and tP 0(t) = P1(t). The Funk-Hecke formula is helpful for computing Fourier coefficients in the basis of spherical harmonics in terms of Legendre polynomials. For any j ∈ [N (d, k )], we have 
+
+Z
+
+> X
+
+f ( x, x′ )Ykj (x′)d vd−1(x′) = wd−2
+
+wd−1
+
+Ykj (x)
+
+Z 1
+
+> −1
+
+f (t)Pk(t)(1 − t2)(d−3) /2dt. 
+
+For a positive-definite kernel ˜K(x, x′) = κ(⟨x, x′⟩) defined on X , we have its Mercer decom-position as follows. ˜K(x, x′) = X
+
+> ℓ≥0
+
+μℓN (d,ℓ )
+
+X
+
+> j=1
+
+Yℓj (x)Yℓj (x′) = X
+
+> ℓ≥0
+
+μℓN (d, ℓ )Pℓ( x, x′ ),
+
+where μℓ is the eigenvalue of the integral operator T ˜K associated with ˜K corresponding to 
+
+Hℓ. It follows that 
+
+μℓ = wd−2
+
+wd−1
+
+Z 1
+
+> −1
+
+κ(t)Pℓ(t)(1 − t2)(d−3) /2dt. 
+
+The above equation will be used to compute the eigenvalues of the PSD kernels defined in (2) in Section C.4 of this appendix. 
+
+Proposition B.1 (Krylov, Theorem 4.2) . Let p ∈ P (hom)  
+
+> ℓ
+
+. Then there exists unique hn−2i ∈Hn−2i for i ∈ { 0, 1, . . . , ⌊n/ 2⌋} such that 
+
+p(x) = hn + hn−2 + . . . + hn−2k.
+
+Theorem B.2. Every polynomial p defined on Sd−1 of degree k for k ≥ 0 can be represented as a linear combination of homogeneous harmonic polynomials up to degree k, that is, 
+
+p =
+
+> k
+
+X
+
+> i=0
+
+cipi,
+
+where pi ∈ H i for i ∈ { 0, 1, . . . , k }.
+
+Proof Every polynomial p defined on Sd−1 of degree k can be represented as the sum of homogeneous polynomials on Sd−1 by grouping the terms of p of the same degree together. It follows from Proposition B.1 that every homogeneous polynomial is a linear combination of homogeneous harmonic polynomials up to degree k. As a result, the conclusion holds. 
+
+Lemma B.3 (Estimation for r0 = mk0 ). For k0 = Θ(1) and d > Θ(1), we have 
+
+r0 = Θ( dk0 ). (41) 
+
+Proof It follows from the direct calculation that N (d, ℓ ) ≍ dℓ under the given conditions, so that r0 = Pk0 
+
+> ℓ=0
+
+N (d, ℓ ) ≍ dk0 .
+
+21 Yang and Li 
+
+Appendix C. Detailed Proofs 
+
+Proofs for results in Section 4.4 are presented in Section C.1, and the proofs of the lemmas required for the proofs in Section C.1 are presented in Section C.2. 
+
+C.1 Proofs for Results in Section 4.4 
+
+We present our key technical results regarding optimization and generalization of the two-layer NN (1) trained by GDP in this section. The following theorem, 
+
+Theorem C.1. Suppose K is a continuous and positive definite kernel on X × X , and the target function f ∗ ∈ H K (γ0) is spanned by the orthogonal set {vj }r0−1 
+
+> j=0
+
+in the first k0
+
+eigenspaces of TK with k0 ≥ 1 and r0 = mk0 . That is, 
+
+f ∗ =
+
+> r0−1
+
+X
+
+> j=0
+
+βj vj ,
+
+> r0−1
+
+X
+
+> j=0
+
+β2 
+
+> j
+
+≤ γ20 . (42) Then with probability at least 1 − δ over the random training features S,
+
+> ∞
+
+X
+
+> q=r0
+
+D
+
+f ∗, Φ(q)E2
+
+> HK
+
+≤ 32 γ20 log 2
+
+> δ
+
+(μk0 − μk0+1 )2 n := ζn,γ 0,r 0,δ . (43) Similarly, for every f ∈ F (Bh, w, S, r 0), with probability at least 1 − δ over the random training features S,
+
+> ∞
+
+X
+
+> q=r0
+
+⟨f, v q⟩2 
+
+> HK
+
+≤ ζn,B h,r 0,δ . (44) 
+
+C.1.1 Results about Uniform Convergence 
+
+We have the following two theorems, Theorem C.2 and Theorem C.3, regarding the uniform convergence to the PSD kernel K(0) defined in (2) and the uniform convergence of bvR to  
+
+> 2R√2πκ
+
+on the unit sphere X .
+
+Theorem C.2 (Adapted from Yang (2025, Theorem 6.1),Yang and Li (2024, Theorem VI.7)) . Let W(0) = 
+
+n⇀
+
+wr(0) 
+
+omr=1 , where each ⇀
+
+wr(0) ∼ N (0, κ 2Id) for r ∈ [m]. Then for any δ ∈ (0 , 1), with probability at least 1 − δ over W(0), sup  
+
+> u∈X ,v∈X
+
+K(0) (u, v) − bh(W(0) , u, v) ≤ C1(m, d, δ ), (45) where 
+
+C1(m, d, δ ) := 1
+
+√m 6(1 + 2 B√d) + 
+
+r
+
+2 log (1 + 2 m)2d
+
+δ
+
+!
+
++ 7log (1+2 m)2d
+
+> δ
+
+3m , (46) and B is an absolute positive constant. In addition, when m ≳ n1/(2 d), m/ log m ≥ d, and 
+
+δ ≍ 1/n , C1(m, d, δ ) ≲
+
+q d log mm + d log mm ≲
+
+q d log mm .
+
+22 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+Theorem C.3 ((Yang, 2025, Theorem 6.1),(Yang and Li, 2024, Theorem VI.8)) . Let 
+
+W(0) = 
+
+n⇀
+
+wr(0) 
+
+omr=1 , where each ⇀
+
+wr(0) ∼ N (0, κ 2Id) for r ∈ [m]. Suppose η ≲ 1, m ≳ 1. Then for any δ ∈ (0 , 1), with probability at least 1 − δ over W(0), sup 
+
+> x∈X
+
+bvR(W(0) , x) − 2R
+
+√2πκ ≤ C2(m, d, δ ), (47) where 
+
+C2(m, d, δ ) := 3 
+
+r dκ m− 15 T 12 +
+
+s
+
+2log (1+2 √m)d
+
+> δ
+
+m + 7log (1+2 √m)d
+
+> δ
+
+3m . (48) In addition, when m ≳ n2/d , m/ log m ≥ d, and δ ≍ 1/n , C2(m, d, δ ) ≲ √dm − 15 T 12 .
+
+C.1.2 Proof of Theorem 4.2 
+
+We prove Theorem 4.2 in this subsection. The proof requires the following theorem, Lemma C.4, about our main result about the optimization of the network (1). Lemma C.4 states that with high probability over the random noise w, the weights of the network 
+
+W(t) obtained right after the t-th step of GD using Algorithm 1 belongs to W(S, W(0) , T ). Furthermore, every weighing vector wr has bounded distance to the initialization wr(0). The proof of Lemma C.4 is based on Lemma C.5, Lemma C.6, and Lemma C.7 deferred to Section C.2 of the appendix. 
+
+Lemma C.4. Suppose δ ∈ (0 , 1/2), 
+
+m ≳ T 15 2 d 52 /τ 5, (49) the neural network f (W(t), ·) trained by GDP using Algorithm 1 with the constant learning rate η = Θ(1) ∈ (0 , 1), the random initialization W(0) ∈ W 0. Then for every δ ∈ (0 , 1/2) with probability at least 1 − 2δ − exp ( −Θ( n)) over the random training features S and the random noise w, W(t) ∈ W (S, W(0) , T ) for every t ∈ [T ]. Moreover, for every t ∈ [0 , T ], 
+
+u(t) = v(t) + e(t) where u(t) = by(t) − y, v(t) ∈ V t, e(t) ∈ E t,τ , ∥u(t)∥2 ≤ cu
+
+√n, and 
+
+> ⇀
+
+wr(t) − ⇀
+
+wr(0) 2 ≤ R.
+
+Proof of Theorem 4.2 . In this proof we abbreviate ft as f and W(t) as W. It follows from Lemma C.4 and its proof that conditioned on an event Ω with probability at least 1 − 2δ − exp ( −Θ( n)), f ∈ F NN (S, W(0) , T ) with W(0) ∈ W 0. Moreover, f = f (W, ·) with 
+
+W =
+
+n⇀
+
+wr
+
+omr=1 ∈ W (S, W(0) , T ), and vec ( W) = vec ( WS) = vec ( W(0)) − Pt−1 
+
+> t′=0
+
+η/n ·
+
+ZS(t′)u(t′) for some t ∈ [T ], where u(t′) ∈ Rn, u(t′) = v(t′) + e(t′) with v(t′) ∈ V t′ and 
+
+e(t′) ∈ E t′,τ for all t′ ∈ [0 , t − 1]. It also follows from Lemma C.4 that conditioned on Ω, 
+
+> ⇀
+
+wr(t) − ⇀
+
+wr(0) 2 ≤ R for all t ∈ [T ]. 
+
+> ⇀
+
+wr is expressed as 
+
+> ⇀
+
+wr = ⇀
+
+wS,r (t) = ⇀
+
+wr(0) −
+
+> t−1
+
+X
+
+> t′=0
+
+ηn
+
+ZS(t′) 
+
+> [( r−1) d+1: rd ]
+
+P(r0)u(t′), (50) 
+
+23 Yang and Li 
+
+where the notation ⇀
+
+wS,r emphasizes that ⇀
+
+wr depends on the training features S. We define the event 
+
+Er(R) := 
+
+n ⇀
+
+wr(0) ⊤x ≤ R
+
+o
+
+, ¯Er(R) := 
+
+n ⇀
+
+wr(0) ⊤x > R 
+
+o
+
+, r ∈ [m].
+
+We now approximate f (W, x) by g(x) := 1√m
+
+Pmr=1 ar1In⇀  
+
+> wr(0) ⊤x≥0
+> o⇀
+
+w⊤ 
+
+> r
+
+x. We have 
+
+|f (W, x) − g(x)| = 1
+
+√m
+
+> m
+
+X
+
+> r=1
+
+arσ
+
+⇀
+
+w⊤ 
+
+> r
+
+x
+
+
+
+−
+
+> m
+
+X
+
+> r=1
+
+ar1In⇀  
+
+> wr(0) ⊤x≥0
+> o⇀
+
+w⊤ 
+
+> r
+
+x
+
+≤ 1
+
+√m
+
+> m
+
+X
+
+> r=1
+
+ar
+
+
+
+1I{Er (R)} + 1 I{ ¯Er (R)}
+
+ 
+
+σ
+
+⇀
+
+w⊤ 
+
+> r
+
+x
+
+
+
+− 1In⇀  
+
+> wr(0) ⊤x≥0
+> o⇀
+
+w⊤ 
+
+> r
+
+x
+
+
+
+= 1
+
+√m
+
+> m
+
+X
+
+> r=1
+
+1I{Er (R)} σ
+
+⇀
+
+w⊤ 
+
+> r
+
+x
+
+
+
+− 1In⇀  
+
+> wr(0) ⊤x≥0
+> o⇀
+
+w⊤ 
+
+> r
+
+x
+
+= 1
+
+√m
+
+> m
+
+X
+
+> r=1
+
+1I{Er (R)} σ
+
+⇀
+
+w⊤ 
+
+> r
+
+x
+
+
+
+− σ
+
+⇀
+
+wr(0) ⊤x
+
+
+
+− 1In⇀ 
+
+> wr(0) ⊤x≥0
+> o
+
+(⇀
+
+wr − ⇀
+
+wr(0)) ⊤x
+
+≤ 2R
+
+√m
+
+> m
+
+X
+
+> r=1
+
+1I{Er (R)}, (51) where first inequality follows from 1 I{ ¯Er (R)}
+
+
+
+σ
+
+⇀
+
+w⊤ 
+
+> r
+
+x
+
+
+
+− 1In⇀  
+
+> wr(0) ⊤x≥0
+> o⇀
+
+w⊤ 
+
+> r
+
+x
+
+
+
+= 0. Plug-ging R = ηc uT√m in (51), since W(0) ∈ W 0, we have sup 
+
+> x∈X
+
+|f (W, x) − g(x)| ≤ 2ηc uT · 1
+
+m
+
+> m
+
+X
+
+> r=1
+
+1I{Er (R)} ≤ 2ηc uT
+
+ 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
+.
+
+(52) Using (50), g(x) is expressed as 
+
+g(x)= 1
+
+√m
+
+> m
+
+X
+
+> r=1
+
+arσ(⇀
+
+wr(0) ⊤x)−
+
+> t−1
+
+X
+
+> t′=0
+
+1
+
+√m
+
+> m
+
+X
+
+> r=1
+
+1In⇀ 
+
+> wr(0) ⊤x≥0
+> o
+
+ ηn
+
+ZS(t′) 
+
+> [( r−1) d+1: rd ]
+
+P(r0)u(t′)
+
+⊤
+
+x
+
+1○
+
+= −
+
+> t−1
+
+X
+
+> t′=0
+
+ηnm 
+
+> m
+
+X
+
+> r=1
+
+1In⇀ 
+
+> wr(0) ⊤x≥0
+> o
+> n
+
+X
+
+> j=1
+
+1In⇀   
+
+> wr(t′)⊤⇀
+> xj≥0
+> o
+
+h
+
+P(r0)u(t′)
+
+i
+
+> j⇀
+
+x⊤ 
+
+> j
+
+x
+
+| {z } 
+
+> := Gt′(x)
+
+, (53) where 1○ follows from the fact that 1√m
+
+Pmr=1 arσ(⇀
+
+wr(0) ⊤x) = f (W(0) , x) = 0 due to the particular initialization of the two-layer NN (1). For each Gt′ in the RHS of (53), we have 
+
+Gt′ (x) 2○
+
+= ηnm 
+
+> m
+
+X
+
+> r=1
+
+1In⇀ 
+
+> wr(0) ⊤x≥0
+> o
+> n
+
+X
+
+> j=1
+
+
+
+dt′,r,j + 1 In⇀   
+
+> wr(0) ⊤⇀
+> xj≥0
+> o
+
+ h
+
+P(r0)u(t′)
+
+i
+
+> j⇀
+
+x⊤ 
+
+> j
+
+x
+
+24 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+3○
+
+= ηn
+
+> n
+
+X
+
+> j=1
+
+K(x, ⇀
+
+xj )
+
+h
+
+P(r0)u(t′)
+
+i 
+
+> j
+
++ ηn
+
+> n
+
+X
+
+> j=1
+
+qj
+
+h
+
+P(r0)u(t′)
+
+i
+
+> j
+
+| {z }
+
+> := E1(x)
+
++ ηnm 
+
+> m
+
+X
+
+> r=1
+
+1In⇀ 
+
+> wr(0) ⊤x≥0
+> o
+> n
+
+X
+
+> j=1
+
+dt′,r,j 
+
+h
+
+P(r0)u(t′)
+
+i
+
+> j⇀
+
+x⊤ 
+
+> j
+
+x
+
+| {z }
+
+> := E2(x)
+
+. (54) where dt′,r,j := 1 In⇀    
+
+> wr(t′)⊤⇀
+> xj≥0
+> o
+
+− 1In⇀    
+
+> wr(0) ⊤⇀
+> xj≥0
+> o
+
+in 2○, and qj := bh(W(0) , ⇀
+
+xj , x) − K(⇀
+
+xj , x)for all j ∈ [n] in 3○. We now analyze each term on the RHS of (54). Let h(·, t ′) : X → R be defined by h(x, t ′) := ηnnP
+
+> j=1
+
+K(x, ⇀
+
+xj ) P(r0)u(t′) 
+
+> j
+
+, then h(·, t ′) ∈ H S,r 0 for each t′ ∈ [0 , t −1]. We further define 
+
+ht(·) := 
+
+> t−1
+
+X
+
+> t′=0
+
+h(·, t ′) ∈ H K , (55) Since W(0) ∈ W 0, qj ≤ C1(m/ 2, d, 1/n ) for all j ∈ [n] with C1(m/ 2, d, 1/n ) defined in (46). Moreover, u(t′) ≤ cu
+
+√n with high probability, so that we have 
+
+∥E1∥∞ = ηn
+
+> n
+
+X
+
+> j=1
+
+qj uj (t′)
+
+> ∞
+
+≤ ηn u(t′) 2
+
+√nC 1(m/ 2, d, 1/n ) ≤ ηc uC1(m/ 2, d, 1/n ). (56) We now bound the last term on the RHS of (54). Define X′ ∈ Rd×n with its j-column being 
+
+X′[j] = 1
+
+> m
+
+Pmr=1 1In⇀ 
+
+> wr(0) ⊤x≥0
+> o
+
+dt′,r,j ⇀
+
+xj for all j ∈ [n], then E2(x) = ηn
+
+ X′P(r0)u(t′)⊤ x.We need to derive the upper bound for ∥X′∥2. Because ⇀
+
+wr(t′) − ⇀
+
+wr(0) 2 ≤ R, it follows that 1 In⇀    
+
+> wr(t′)⊤⇀
+> xj≥0
+> o
+
+= 1 In⇀    
+
+> wr(0) ⊤⇀
+> xj≥0
+> o
+
+when ⇀
+
+wr(0) ⊤⇀
+
+xj > R for all j ∈ [n]. Therefore, 
+
+dt′,r,j ′ = 1In⇀    
+
+> wr(t′)⊤⇀
+> xj≥0
+> o
+
+− 1In⇀    
+
+> wr(0) ⊤⇀
+> xj≥0
+> o
+
+≤ 1In ⇀   
+
+> wr(0) ⊤⇀
+> xj≤R
+> o
+
+,
+
+and it follows that 
+
+> m
+
+P
+
+> r=1
+
+1In⇀  
+
+> wr(0) ⊤⇀
+> xi≥0
+> o
+
+dt′,r,j 
+
+m ≤
+
+> m
+
+P
+
+> r=1
+
+dt′,r,j 
+
+m ≤
+
+> m
+
+P
+
+> r=1
+
+1In ⇀   
+
+> wr(0) ⊤⇀
+> xj≤R
+> o
+
+m = bvR(W(0) , ⇀
+
+xj )
+
+≤ 2R
+
+√2πκ + C2(m/ 2, d, 1/n ), (57) where bvR is defined by (22), and the last inequality follows from Theorem C.3. It follows from (57) that ∥X′∥2 ≤ √n
+
+ 2R√2πκ + C2(m/ 2, d, 1/n )
+
+
+
+, and we have 
+
+∥E2(x)∥∞ ≤ ηn X′ 
+
+> 2
+
+P(r0) 
+
+> 2
+
+u(t′) 2∥x∥2 ≤ ηc u
+
+ 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
+. (58) 
+
+25 Yang and Li 
+
+Combining (54), (56), and (58), for any t′ ∈ [0 , t − 1], sup 
+
+> x∈X
+
+Gt′ (x) − h(x, t ′) ≤ ∥ E1∥∞ + ∥E2∥∞
+
+≤ ηc u
+
+
+
+C1(m/ 2, d, 1/n ) + 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
+. (59) Define et(x) = f (W, x) − ht(x) for x ∈ X . It then follows from (52), (53), and (59) that 
+
+∥et∥∞ ≤ sup 
+
+> x∈X
+
+|f (W, x) − g(x)| + sup 
+
+> x∈X
+
+|g(x) − ht(x)|≤ sup 
+
+> x∈X
+
+|f (W, x) − g(x)| +
+
+> t−1
+
+X
+
+> t′=0
+
+sup 
+
+> x∈X
+
+Gt′ (x) − h(x, t ′)
+
+4○
+
+≤ 2ηc uT
+
+ 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
++ ηc uT
+
+
+
+C1(m/ 2, d, 1/n ) + 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
+≤ ηc uT
+
+
+
+C1(m/ 2, d, 1/n ) + 3 
+
+ 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+ 
+
+:= ∆ m,n,η,T , (60) where 4○ follows from (52) and (59). We now give an estimate for ∆ m,n,η,T . Since W(0) ∈W0, it follows from Theorem 4.1 that ∆m,n,η,T ≲ √dm − 15 T 32 .
+
+It follows that, for any w ∈ (0 , 1), when m ≳ T 15 2 d 52 /w 5, we have ∆ m,n,η,T ≤ w.It follows from Lemma C.8 that with probability at least 1 − δ − exp ( −Θ( r0)) over S, w
+
+∥ht∥HK ≤ Bh, where Bh is defined in (20), and τ is required to satisfy τ ≤ 1/(ηT ). Since 
+
+h(x, t ′) ∈ H S,r 0 for all t′ ∈ [0 , t − 1], ht ∈ H S,r 0 , so that ht ∈ H K (Bh) ∩ H S,r 0 . Lemma C.4 requires that m ≳ T 15 2 d 52 /τ 5. As a result, we also have m ≳ T 25 2 d 52 .
+
+C.1.3 Proof of Theorem 4.3 
+
+We prove Theorem 4.3 using Theorem 4.2, Lemma C.14, and Lemma C.15. 
+
+Proof of Theorem 4.3 . It follows from Lemma C.4 and Theorem 4.2 that for every 
+
+t ∈ [T ], conditioned on an event Ω with probability at least 1 − 3δ − exp ( −Θ( n)) −
+
+exp ( −Θ( r0)) over S and w, we have W(t) ∈ W (S, W(0) , T ), and f (W(t), ·) = ft ∈FNN (S, W(0) , T ). Moreover, conditioned on the event Ω, ft ∈ F (Bh, w, S, r 0), ft = ht + et
+
+where ht ∈ H K (Bh) ∩ H S,r 0 and et ∈ L∞ with ∥et∥∞ ≤ w. We then derive the sharp upper bound for EP
+
+(ft − f ∗)2 by applying Theorem A.2 to the function class F =n
+
+F = ( f − f ∗)2 : f ∈ F (Bh, w, S, r 0)
+
+o
+
+.Since B0 := ( Bh + γ0) + 1 ≥ (Bh + γ0) + w, we have ∥F ∥∞ ≤ B20 with F ∈ F , so that 
+
+EP
+
+F 2 ≤ B20 EP [F ]. Let T (F ) = B20 EP [F ] for F ∈ F . Then Var [ F ] ≤ EP
+
+F 2 ≤ T (F ) = 
+
+B20 EP [F ]. We have 
+
+B20 R ({F ∈ F : T (F ) ≤ r}) = B20 R
+
+ 
+
+(f − f ∗)2 : f ∈ F (Bh, w, S, r 0), EP
+
+(f − f ∗)2 ≤ rB20
+
+ 
+
+26 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+1○
+
+≤ 2B30 R
+
+ 
+
+f − f ∗ : f ∈ F (Bh, w, S, r 0), EP
+
+(f − f ∗)2 ≤ rB20
+
+ 
+
+2○
+
+≤ 2B30
+
+r
+
+log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
++ 2 B20
+
+r rr 0
+
+n + 4 B30 w. := ψ(r). (61) Here 1○ is due to the contraction property of Rademacher complexity in Theorem A.1. 2○
+
+holds with probability at least 1 − δ over S, following from Lemma C.14. ψ is a sub-root function since it is nonnegative, nondecreasing and ψ(r)/√r is nonincreasing. Let r∗ be the fixed point of ψ, and r be any nonnegative number such that 0 ≤ r ≤ r∗. It follows from Bartlett et al. (2005, Lemma 3.2) that 0 ≤ r ≤ ψ(r). Therefore, by the definition of ψ in (61), we have 
+
+r ≲ r0
+
+n +
+
+r
+
+log 2
+
+δ · dk0
+
+n + w ≲
+
+r
+
+log 2
+
+δ · dk0
+
+n + w (62) since r0 = Θ( dk0 ) and B0 = Θ(1). It then follows from Theorem A.2 that with probability at least 1 − exp( −x) over the random training features S,
+
+EP
+
+(ft − f ∗)2 − K0
+
+K0 − 1 EPn
+
+(ft − f ∗)2 − x  11 B20 + 26 B20 K0
+
+
+
+n ≤ 704 K0
+
+B20
+
+· B40 r∗, (63) or 
+
+EP
+
+(ft − f ∗)2 − 2EPn
+
+(ft − f ∗)2 ≲ r∗ + xn , (64) with K0 = 2 in (63). It follows from (62) and (64) that 
+
+EP
+
+(ft − f ∗)2 − 2EPn
+
+(ft − f ∗)2 ≲
+
+r
+
+log 2
+
+δ · dk0
+
+n + w + xn ,
+
+which proves (36) with x = dk0 .
+
+Proof of Theorem 4.4 . We have 
+
+ft(S) = f ∗(S) + w + v(t) + e(t), (65) where v(t) ∈ V t, e(t) ∈ E t,τ , e(t) = ⇀
+
+e 1(t) + ⇀
+
+e 2(t) with v(t) = −  In − ηKnP(r0)t f ∗(S), 
+
+> ⇀
+
+e 1(t) = −  In − ηKnP(r0)t w and ⇀
+
+e 2(t) 2 ≤ √nτ . Since bλ1 ∈ (0 , 1), we have ηbλ1 ∈
+
+(0 , 1) if η ∈ (0 , 1). We use the simplified notation PU(r0) = PSpan( U(r0)) and PU(−r0) =
+
+PSpan( U(r0))⊥ , we then have 
+
+ft(S) − y = ft(S) − PU(r0) (f ∗(S) + w) − PU(−r0) (f ∗(S) + w)= PU(r0) (v(t) + e(t)) + PU(−r0) (v(t) + e(t)) = PU(r0) (v(t) + e(t)) − PU(−r0) (f ∗(S)) + w) + PU(−r0) (⇀
+
+e 2(t)) . (66) 
+
+27 Yang and Li 
+
+It follows from (66) that ft(S) − PU(r0) (f ∗(S) + w) = PU(r0) (v(t) + e(t)) + PU(−r0) (⇀
+
+e 2(t)), or equivalently, 
+
+ft(S) = PU(r0) (ft(S)) + PSpan( U(r0))⊥ (ft(S)) (67) with 
+
+PU(r0) (ft(S)) = PU(r0) (f ∗(S) + v(t) + w + e(t)) ,
+
+PSpan( U(r0))⊥ (ft(S)) = PU(−r0) (⇀
+
+e 2(t)) .
+
+It follows from (67) that 
+
+EPn
+
+(ft − f ∗)2 = 1
+
+n ∥ft(S) − f ∗(S)∥22 = 1
+
+n ∥ft(S) − PU(r0) (f ∗(S)) − PU(−r0) (f ∗(S)) ∥22
+
+= 1
+
+n ∥PU(r0) (v(t) + w + e(t)) ∥22 + 1
+
+n PU(−r0) (⇀
+
+e 2(t) − f ∗(S)) 22
+
+1○
+
+≤ 3
+
+n
+
+> r0
+
+X
+
+> i=1
+
+
+
+1 − ηbλi
+
+2t h
+
+U(r0)⊤f ∗(S)
+
+i2 
+
+> i
+
++ 3
+
+n
+
+> r0
+
+X
+
+> i=1
+
+
+
+1 −
+
+
+
+1 − ηbλi
+
+t2 h
+
+U(r0)⊤w
+
+i2
+
+> i
+
++ 2
+
+n ∥PU(−r0) (f ∗(S)) ∥22 + 5 τ 2
+
+2○
+
+≤ 3γ20
+
+2eηt + 3
+
+n U(r0)⊤w 22
+
++ γ20 log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
++ 5 τ 2
+
+3○
+
+≤ Θ
+
+ γ20
+
+ηt 
+
+
+
++ 3r0(σ20 + 1) 
+
+n + γ20 log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
+,
+
+which completes the proof. Here 1○ follows by Cauchy-Schwarz inequality and ⇀
+
+e 2(t) 2 ≤√nτ , and 2○ follows from Lemma C.9 since f ∗ ∈ F ∗ ⊆ H K(r0) (γ0) ⊆ H K (γ0), Lemma C.10, and (110) in Lemma C.11 which holds with probability at least 1 − 2δ. It follows from the concentration inequality about quadratic forms of sub-Gaussian random variables in Wright (1973) that Pr 
+
+
+
+U(r0)⊤w 22 − E
+
+
+
+U(r0)⊤w 22
+
+
+
+> r 0
+
+
+
+≤ exp ( −Θ( r0)) ,
+
+so that with probability at least 1 − exp ( −Θ( r0)), 
+
+U(r0)⊤w 22 ≤ E
+
+
+
+U(r0)⊤w 22
+
+
+
++ r0 ≤ σ20 tr 
+
+
+
+U(r0)U(r0)⊤
+
++ r0 = r0(σ20 + 1) , (68) which leads to 3○ with τ = pdk0 /n .
+
+C.2 Proofs of the Lemmas Required for the Proofs in Section C.1 Proof of Lemma C.4 . First, when m ≳ T 15 2 d 52 /τ 5 with a proper constant, it can be verified that Em,n,η,R ≤ τ √n/T where Em,n,η,R is defined by (77) of Lemma C.6. Also, 
+
+28 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+Theorem C.2 and Theorem C.3 hold when (49) holds. We then use mathematical induction to prove this lemma. We will first prove that u(t) = v(t) + e(t) where v(t) ∈ V t, e(t) ∈ E t,τ ,and ∥u(t)∥2 ≤ cu
+
+√n for all t ∈ [0 , T ]. When t = 0, we have 
+
+u(0) = −y = v(0) + e(0) , (69) where v(0) := −f ∗(S) = −  I − ηKnP(r0)0 f ∗(S), e(0) = −w = ⇀
+
+e 1(0) + ⇀
+
+e 2(0) with 
+
+> ⇀
+
+e 1(0) = −  I − ηKnP(r0)0 w and ⇀
+
+e 2(0) = 0. Therefore, v(0) ∈ V 0 and e(0) ∈ E 0,τ . Also, it follows from the proof of Lemma C.5 that ∥u(0) ∥2 ≤ cu
+
+√n with probability at least 1 − exp ( −Θ( n)) over the random noise w.Suppose that for all t1 ∈ [0 , t ] with t ∈ [0 , T − 1], u(t1) = v(t1) + e(t1) where v(t1) ∈ V t1 ,and e(t1) = ⇀
+
+e 1(t1) + ⇀
+
+e 2(t1) with v(t1) ∈ V t1 and e(t1) ∈ E t1,τ for all t1 ∈ [0 , t ]. Then it follows from Lemma C.6 that the recursion u(t′ + 1) =  I − ηKnP(r0) u(t′) + E(t′ + 1) holds for all t′ ∈ [0 , t ]. As a result, we have 
+
+u(t + 1) = 
+
+
+
+I − ηKnP(r0)
+
+u(t) + E(t + 1) = −
+
+
+
+I − ηKnP(r0)t+1 
+
+f ∗(S) − (I − ηKn)t+1 w +
+
+> t+1
+
+X
+
+> t′=1
+
+
+
+I − ηKnP(r0)t+1 −t′
+
+E(t′)= v(t + 1) + e(t + 1) , (70) where v(t + 1) and e(t + 1) are defined as 
+
+v(t + 1) := −
+
+
+
+I − ηKnP(r0)t+1 
+
+f ∗(S) ∈ V t+1 , (71) 
+
+e(t + 1) := −
+
+
+
+I − ηKnP(r0)t+1 
+
+w
+
+| {z } 
+
+> ⇀
+> e1(t+1)
+
++
+
+> t+1
+
+X
+
+> t′=1
+
+
+
+I − ηKnP(r0)t+1 −t′
+
+E(t′)
+
+| {z } 
+
+> ⇀
+> e2(t+1)
+
+. (72) We now prove the upper bound for ⇀
+
+e 2(t + 1). With η ∈ (0 , 2), we have I − ηKnP(r0) 
+
+> 2
+
+∈
+
+(0 , 1). It follows that 
+
+> ⇀
+
+e 2(t + 1) 2 ≤
+
+> t+1
+
+X
+
+> t′=1
+
+I − ηKnP(r0) t+1 −t′ 
+
+> 2
+
+E(t′) 2 ≤ τ √n, (73) where the last inequality follows from the fact that ∥E(t)∥2 ≤ Em,n,η,R ≤ τ √n/T for all 
+
+t ∈ [T ]. It follows that e(t + 1) ∈ E t+1 ,τ . Also, it follows from Lemma C.5 that with probability at least 1 − 2δ − exp ( −Θ( n)) over S and w,
+
+∥u(t + 1) ∥2 ≤ ∥ v(t + 1) ∥2 + ⇀
+
+e 1(t + 1) 2 + ⇀
+
+e 2(t + 1) 2
+
+≤
+
+ γ0
+
+√2eη + σ0 + τ + 1 
+
+ √n ≤ cu
+
+√n. 
+
+29 Yang and Li 
+
+The above inequality completes the induction step, which also completes the proof. It is noted that ⇀
+
+wr(t) − ⇀
+
+wr(0) 2 ≤ R holds for all t ∈ [T ] by Lemma C.7. 
+
+Lemma C.5. Let 0 ≤ t ≤ T , v = −  I − ηKnP(r0)t f ∗(S), e = −  I − ηKnP(r0)t w, and 
+
+η ∈ (0 , 1). Suppose δ ∈ (0 , 1/2), then with probability at least 1 − 2δ − exp ( −Θ( n)) over the random training features S and the random noise w,
+
+∥v∥2 + ∥e∥2 ≤ (Θ( γ0) + σ0 + 1) · √n. (74) 
+
+Proof When t ∈ [T ], we have 
+
+∥v∥22 =
+
+> n
+
+X
+
+> i=1
+
+
+
+1 − ηbλi
+
+2t h
+
+U⊤f ∗(S)
+
+i2
+
+> i
+
+=
+
+> r0
+
+X
+
+> i=1
+
+
+
+1 − ηbλi
+
+2t h
+
+U⊤f ∗(S)
+
+i2 
+
+> i
+
++
+
+> n
+
+X
+
+> i=r0+1
+
+
+
+1 − ηbλi
+
+2t h
+
+U⊤f ∗(S)
+
+i2
+
+> i
+
+≤
+
+> n
+
+X
+
+> i=1
+
+
+
+1 − ηbλi
+
+2t h
+
+U⊤f ∗(S)
+
+i2 
+
+> i
+
++ PU(−r0) (f ∗(S)) 22
+
+1○
+
+≤
+
+> n
+
+X
+
+> i=1
+
+12eη bλit
+
+h
+
+U⊤f ∗(S)
+
+i2 
+
+> i
+
++ nγ 20 log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
+2○
+
+≤ nγ 20
+
+2eηt + nγ 20 log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
+≤ γ20
+
+2eη · n. (75) Here 1○ follows from Lemma C.10 and (110) in Lemma C.11 which holds with probability at least 1 − 2δ, 2○ follows by Lemma C.9 since f ∗ ∈ F ∗ ⊆ H K(r0) (γ0) ⊆ H K (γ0). Moreover, it follows from the concentration inequality about quadratic forms of sub-Gaussian random variables in Wright (1973) that Pr {∥ w∥22 − E
+
+h
+
+∥w∥22
+
+i
+
+> n } ≤ exp ( −Θ( n)), so that ∥e∥2 ≤∥w∥2 ≤
+
+r
+
+E
+
+h
+
+∥w∥22
+
+i
+
++ √n = √n(σ0 + 1) with probability at least 1 − exp ( −Θ( n)). As a result, (74) follows from this inequality and (75) for t ≥ 1. When t = 0, ∥v∥2 ≤ γ0
+
+√n, so that (74) still holds. 
+
+Lemma C.6. Let 0 < η < 1, 0 ≤ t ≤ T − 1 for T ≥ 1, and suppose that ∥by(t′) − y∥2 ≤
+
+cu
+
+√n holds for all 0 ≤ t′ ≤ t and the random initialization W(0) ∈ W 0. Then 
+
+by(t + 1) − y = ( I − ηKn) ( by(t) − y) + E(t + 1) , (76) where ∥E(t + 1) ∥2 ≤ Em,n,η,R , and Em,n,η,R is defined by 
+
+Em,n,η,R := ηc u
+
+√n
+
+
+
+4
+
+ 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
++ 2 C1(m/ 2, d, 1/n )
+
+
+
+≲ √dnm − 15 T 12 .
+
+(77) 
+
+30 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+Proof 
+
+Because ∥by(t′) − y∥2 ≤ √nc u holds for all t′ ∈ [0 , t ], by Lemma C.7, we have 
+
+> ⇀
+
+wr(t′) − ⇀
+
+wr(0) 2 ≤ R, ∀ 0 ≤ t′ ≤ t + 1 . (78) We define H(0) := F(W(0) , S)F(W(0) , S)⊤/m ∈ Rn×n. We also define two sets of indices 
+
+Ei,R := 
+
+n
+
+r ∈ [m] : wr(0) ⊤⇀
+
+xi > R 
+
+o
+
+, ¯Ei,R := [ m] \ Ei,R ,
+
+then we have 
+
+byi(t + 1) − byi(t) = 1
+
+√m
+
+> m
+
+X
+
+> r=1
+
+ar
+
+
+
+σ
+
+⇀
+
+w⊤
+
+> S,r
+
+(t + 1) ⇀
+
+xi
+
+
+
+− σ
+
+⇀
+
+w⊤
+
+> S,r
+
+(t)⇀
+
+xi
+
+ 
+
++ 1
+
+√m
+
+⇀
+
+wm+1 (t + 1) − ⇀
+
+wm+1 (t)
+
+⊤
+
+σ(W(0) , ⇀
+
+xi)= 1
+
+√m
+
+X
+
+> r∈Ei,R
+
+ar
+
+
+
+σ
+
+⇀
+
+w⊤
+
+> S,r
+
+(t + 1) ⇀
+
+xi
+
+
+
+− σ
+
+⇀
+
+w⊤
+
+> S,r
+
+(t)⇀
+
+xi
+
+ | {z }
+
+> := D(1)
+> i
+
++ 1
+
+√m
+
+X 
+
+> r∈¯Ei,R
+
+ar
+
+
+
+σ
+
+⇀
+
+w⊤
+
+> S,r
+
+(t + 1) ⇀
+
+xi
+
+
+
+− σ
+
+⇀
+
+w⊤
+
+> S,r
+
+(t)⇀
+
+xi
+
+ | {z }
+
+> := E(1)
+> i
+
+− ηnm F(W(0) , ⇀
+
+xi)⊤F(W(0) , S)⊤P(r0)(by(t) − y)= D(1)  
+
+> i
+
++ E(1)  
+
+> i
+
+− ηn
+
+h
+
+H(0) i 
+
+> i
+
+P(r0) (by(t) − y) , (79) and D(1) , E(1) ∈ Rn are vectors with their i-th element being D(1)  
+
+> i
+
+and E(1)  
+
+> i
+
+defined on the RHS of (79). Now we derive the upper bound for E(1)  
+
+> i
+
+. For all i ∈ [n] we have 
+
+E(1)  
+
+> i
+
+= 1
+
+√m
+
+X 
+
+> r∈¯Ei,R
+
+ar
+
+
+
+σ
+
+⇀
+
+wS,r (t + 1) ⊤⇀
+
+xi
+
+
+
+− σ
+
+⇀
+
+wS,r (t)⊤⇀
+
+xi
+
+ 
+
+≤ 1
+
+√m
+
+X 
+
+> r∈¯Ei,R
+> ⇀
+
+wS,r (t + 1) ⊤⇀
+
+xi − ⇀
+
+wS,r (t)⊤⇀
+
+xi ≤ 1
+
+√m
+
+X 
+
+> r∈¯Ei,R
+> ⇀
+
+wS,r (t + 1) − ⇀
+
+wS,r (t) 2
+
+1○
+
+= 1
+
+√m
+
+X 
+
+> r∈¯Ei,R
+
+ηn [ZS(t)] [( r−1) d+1: rd ] P(r0) (by(t) − y) 2
+
+2○
+
+≤ cu
+
+√m
+
+X 
+
+> r∈¯Ei,R
+
+η
+
+√m = ηc u · ¯Ei,R 
+
+m .
+
+(80) Here 1○, 2○ follow from (98) and (99) in the proof of Lemma C.7. Let m be sufficiently large such that R ≤ R0 for the absolute positive constant R0 < κ 
+
+specified in Theorem 4.1. Since W(0) ∈ W 0, we have sup 
+
+> x∈X
+
+|bvR(W(0) , x)| ≤ 2R
+
+√2πκ + C2(m/ 2, d, 1/n ), (81) 
+
+31 Yang and Li 
+
+where bvR(W(0) , x) = 1
+
+mmP
+
+r=1 
+
+1In ⇀
+
+wr (0) ⊤x ≤R
+
+o, so that bvR(W(0) , ⇀
+
+xi) = ¯Ei,R /m . It follows from (80) and (81) that E(1) 
+
+i ≤ ηc u
+
+ 2R√2πκ + C2(m/ 2, d, 1/n )
+
+
+
+, so that E(1) 
+
+2 can be bounded by 
+
+E(1) 
+
+2 ≤ ηc u
+
+√n
+
+ 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
+. (82) 
+
+D(1) 
+
+i on the RHS of (79) is expressed by 
+
+D(1) 
+
+i = 1
+
+√m
+
+X
+
+r∈Ei,R 
+
+ar
+
+
+
+σ
+
+⇀
+
+w⊤
+
+S,r (t + 1) ⇀
+
+xi
+
+
+
+− σ
+
+⇀
+
+w⊤
+
+S,r (t)⇀
+
+xi
+
+ 
+
+= 1
+
+√m
+
+X
+
+r∈Ei,R 
+
+ar1In⇀
+
+wS,r (t)⊤⇀
+
+x i≥0
+
+o
+
+⇀
+
+wS,r (t + 1) − ⇀
+
+wS,r (t)
+
+⊤ ⇀
+
+xi
+
+= 1
+
+√m
+
+mX
+
+r=1 
+
+ar1In⇀
+
+wS,r (t)⊤⇀
+
+x i≥0
+
+o
+
+
+
+− ηn [ZS(t)] [( r−1) d+1: rd ] P(r0) (by(t) − y)
+
+⊤ ⇀
+
+xi
+
++ 1
+
+√m
+
+X
+
+r∈ ¯Ei,R 
+
+ar1In⇀
+
+wS,r (t)⊤⇀
+
+x i≥0
+
+o
+
+ ηn [ZS(t)] [( r−1) d+1: rd ] P(r0) (by(t) − y)
+
+⊤ ⇀
+
+xi
+
+= − ηn
+
+h
+
+H(1) (t)
+
+i
+
+i P(r0) (by(t) − y)
+
+| {z }
+
+:= D(2) 
+
+> i
+
++ 1
+
+√m
+
+X
+
+r∈ ¯Ei,R 
+
+ar1In⇀
+
+wS,r (t)⊤⇀
+
+x i≥0
+
+o
+
+ ηn [ZS(t)] [( r−1) d+1: rd ] P(r0) (by(t) − y)
+
+⊤ ⇀
+
+xi
+
+| {z }
+
+:= E(2) 
+
+> i
+
+= D(2) 
+
+i + E(2) 
+
+i , (83) where H(1) (t) ∈ Rn×n is a matrix specified by 
+
+H(1) 
+
+pq (t) = 
+
+⇀
+
+x⊤
+
+p⇀
+
+xq
+
+m
+
+mX
+
+r=1 
+
+1In⇀
+
+wS,r (t)⊤⇀
+
+x p≥0
+
+o1In⇀
+
+wS,r (t)⊤⇀
+
+x q ≥0
+
+o, ∀ p ∈ [n], q ∈ [n].
+
+Let D(2) , E(2) ∈ Rn be a vector with their i-the element being D(2) 
+
+i and E(2) 
+
+i defined on the RHS of (83). E(2) can be expressed by E(2) = ηn ˜E(2) P(r0) (by(t) − y) with ˜E(2) ∈ Rn×n and ˜E(2) 
+
+pq = 1
+
+m
+
+X
+
+r∈ ¯Ei,R 
+
+1In⇀
+
+wS,r (t)⊤⇀
+
+x p≥0
+
+o1In⇀
+
+wS,r (t)⊤⇀
+
+x q ≥0
+
+o⇀
+
+x⊤
+
+q⇀
+
+xp ≤ 1
+
+m
+
+X
+
+r∈ ¯Ei,R 
+
+1 = · ¯Ei,R 
+
+m
+
+for all p ∈ [n], q ∈ [n]. The spectral norm of ˜E(2) is bounded by 
+
+˜E(2) 
+
+2 ≤ ˜E(2) 
+
+F ≤ n ¯Ei,R 
+
+m
+
+1○
+
+≤ n
+
+ 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
+, (84) 
+
+32 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+where 1○ follows from (81). It follows from (84) that E(2) 
+
+2 can be bounded by 
+
+E(2) 
+
+2 ≤ ηn ˜E(2) 
+
+2 P(r0)
+
+2∥y(t) − y∥2 ≤ ηc u
+
+√n
+
+ 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
+. (85) 
+
+D(2) 
+
+i on the RHS of (83) is expressed by 
+
+D(2) = − ηn H(1) (t)P(r0) (by(t) − y)= − ηn K(1) P(r0) (by(t) − y)
+
+| {z }
+
+:= D(3) 
+
++ ηn
+
+
+
+K(1) − H(1) (0) 
+
+
+
+P(r0) (by(t) − y)
+
+| {z }
+
+:= E(3) 
+
++ ηn
+
+
+
+H(1) (0) − H(1) (t)
+
+
+
+P(r0) (by(t) − y)
+
+| {z }
+
+:= E(4) 
+
+= D(3) + E(3) + E(4) . (86) On the RHS of (86), D(3) , E(3) , E(4) ∈ Rn are vectors which are analyzed as follows. We have 
+
+K(1) − H(1) (0) 2 ≤ K(1) − H(1) (0) F ≤ nC 1(m/ 2, d, 1/n ), (87) where the last inequality is due to W(0) ∈ W 0.In order to bound E(4) , we first estimate the upper bound for H(1) 
+
+ij (t) − H(1) 
+
+ij (0) for all 
+
+i, j ∈ [n]. We note that 1I
+
+1I{⇀  
+
+> w S,r (t)⊤⇀
+> xi≥0
+
+}̸ =1 I{wr (0) ⊤⇀ 
+
+> xi≥0
+
+}
+
+ ≤ 1In
+
+wr (0) ⊤⇀
+
+x i ≤R
+
+o + 1 In
+
+wS,r (t)−⇀
+
+wr (0) 2>R 
+
+o. (88) It follows from (88) that 
+
+H(1) 
+
+ij (t) − H(1) 
+
+ij (0) 
+
+=
+
+⇀
+
+x⊤
+
+i⇀
+
+xj
+
+m
+
+mX
+
+r=1 
+
+
+
+1In⇀
+
+wS,r (t)⊤⇀
+
+x i≥0
+
+o1In⇀
+
+wS,r (t)⊤⇀
+
+x j ≥0
+
+o − 1In
+
+wr (0) ⊤⇀
+
+x i≥0
+
+o1In
+
+wr (0) ⊤⇀
+
+x j ≥0
+
+o
+
+
+
+≤ 1
+
+m
+
+mX
+
+r=1 
+
+1I
+
+1I{⇀  
+
+> w S,r (t)⊤⇀
+> xi≥0
+
+}̸ =1 I{⇀   
+
+> wr(0) ⊤⇀
+> xi≥0
+
+}
+
+ + 1 I
+
+1I{⇀   
+
+> w S,r (t)⊤⇀
+> xj≥0
+
+}̸ =1 I{⇀    
+
+> wr(0) ⊤⇀
+> xj≥0
+
+}
+
+
+
+
+
+≤ 1
+
+m
+
+mX
+
+r=1 
+
+
+
+1In ⇀
+
+wr (0) ⊤⇀
+
+x i ≤R
+
+o + 1 In ⇀
+
+wr (0) ⊤⇀
+
+x j ≤R
+
+o + 21 In
+
+wS,r (t)−⇀
+
+wr (0) 2>R 
+
+o
+
+
+
+≤ 2vR(W(0) , ⇀
+
+xi) 1○
+
+≤
+
+ 4R
+
+√2πκ + 2 C2(m/ 2, d, 1/n )
+
+
+
+, (89) where 1○ follows from (81). 
+
+33 Yang and Li 
+
+It follows from (87) and (89) that E(3) 
+
+> 2
+
+, E(4)  
+
+> 2
+
+are bounded by 
+
+E(3)  
+
+> 2
+
+≤ ηn K(1) − H(1) (0) 2 P(r0)
+
+> 2
+
+∥by(t) − y∥2 ≤ ηc u
+
+√nC 1(m/ 2, d, 1/n ), (90) 
+
+E(4)  
+
+> 2
+
+≤ ηn H(1) (0) − H(1) (t) 2 P(r0)
+
+> 2
+
+∥by(t) − y∥2
+
+≤ ηc u
+
+√n
+
+ 4R
+
+√2πκ + 2 C2(m/ 2, d, 1/n )
+
+
+
+. (91) It follows from (83) and (86) that 
+
+D(1)  
+
+> i
+
+= D(3)  
+
+> i
+
++ E(2)  
+
+> i
+
++ E(3)  
+
+> i
+
++ E(4)  
+
+> i
+
+. (92) We also have 
+
+− ηn H(0) P(r0) (by(t) − y) = − ηn
+
+
+
+H(0) − K(0) 
+
+P(r0) (by(t) − y)
+
+| {z }
+
+> := E(5)
+
+− ηn K(0) P(r0) (by(t) − y) .
+
+(93) Similar to (90), E(5) is bounded by 
+
+E(5)  
+
+> 2
+
+≤ ηn H(0) − K(0)  
+
+> 2
+
+P(r0)
+
+> 2
+
+∥by(t) − y∥2 ≤ ηc u
+
+√nC 1(m/ 2, d, 1/n ). (94) It then follows from (79) and (95) that 
+
+byi(t + 1) − byi(t) = D(1)  
+
+> i
+
++ E(1)  
+
+> i
+
+− ηn
+
+h
+
+H(0) i 
+
+> i
+
+(by(t) − y)= D(3)  
+
+> i
+
+− ηn
+
+h
+
+K(0) i 
+
+> i
+
+P(r0) (by(t) − y) + E(1)  
+
+> i
+
++ E(2)  
+
+> i
+
++ E(3)  
+
+> i
+
++ E(4)  
+
+> i
+
++ E(5) 
+
+> i
+
+| {z }
+
+> := Ei
+
+= − ηn K (by(t) − y) + Ei, (95) where E ∈ Rn with its i-th element being Ei, and E = E(1) + E(2) + E(3) + E(4) + E(5) . It then follows from (82), (85), (90), (91), and (94) that 
+
+∥E∥2 ≤ ηc u
+
+√n
+
+
+
+4
+
+ 2R
+
+√2πκ + C2(m/ 2, d, 1/n )
+
+
+
++ 2 C1(m/ 2, d, 1/n )
+
+
+
+. (96) Finally, (95) can be rewritten as 
+
+by(t + 1) − y =
+
+
+
+I − ηn K
+
+
+
+P(r0) (by(t) − y) + E(t + 1) ,
+
+which proves (76) with the upper bound for ∥E∥2 in (96). 
+
+Lemma C.7. Suppose that t ∈ [0 , T − 1] for T ≥ 1, and ∥by(t′) − y∥2 ≤ √nc u holds for all 0 ≤ t′ ≤ t. Then 
+
+> ⇀
+
+wS,r (t′) − ⇀
+
+wr(0) 2 ≤ R, ∀ 0 ≤ t′ ≤ t + 1 . (97) 
+
+34 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+Proof Let [ ZS(t)] [( r−1) d+1: rd ] denote the submatrix of ZS(t) formed by the rows of ZQ(t)with row indices in [( r − 1) d + 1 : rd ]. By the GD update rule we have for t ∈ [0 , T − 1] that 
+
+> ⇀
+
+wS,r (t + 1) − ⇀
+
+wS,r (t) = − ηn [ZS(t)] [( r−1) d+1: rd ] P(r0) (by(t) − y) , (98) We have [ZS(t)] [( r−1) d+1: rd ] 2 ≤ pn/m . It then follows from (98) that 
+
+> ⇀
+
+wS,r (t + 1) − ⇀
+
+wS,r (t) 2 ≤ ηn [ZS(t)] [( r−1) d+1: rd ] 2 P(r0)
+
+> 2
+
+∥by(t) − y∥2 ≤ ηc u
+
+√m . (99) Note that (97) trivially holds for t′ = 0. For t′ ∈ [1 , t + 1], it follows from (99) that 
+
+> ⇀
+
+wS,r (t′) − ⇀
+
+wr(0) 2 ≤
+
+> t′−1
+
+X
+
+> t′′ =0
+> ⇀
+
+wS,r (t′′ + 1) − ⇀
+
+wS,r (t′′ ) 2 ≤ η
+
+√m
+
+> t′−1
+
+X
+
+> t′′ =0
+
+cu ≤ ηc uT
+
+√m = R, (100) which completes the proof. 
+
+Lemma C.8. Suppose n ≥ Θ(log(2 /δ ) · d2k0 ) and δ ∈ (0 , 1/2). Let ht(·) = Pt−1 
+
+> t′=0
+
+h(·, t ′)for t ∈ [T ], T ≤ bT where 
+
+h(·, t ′) = v(·, t ′) + be(·, t ′),v(·, t ′) − ηn
+
+> n
+
+X
+
+> j=1
+
+K(·, ⇀
+
+xj )
+
+h
+
+P(r0)v(t′)
+
+i 
+
+> j
+
+,
+
+be(·, t ′) = ηn
+
+> n
+
+X
+
+> j=1
+
+K(·, ⇀
+
+xj )
+
+h
+
+P(r0)e(t′)
+
+i 
+
+> j
+
+,
+
+where v(t′) ∈ V t′ , e(t′) ∈ E t′,τ for all 0 ≤ t′ ≤ t − 1. Suppose that τ ≤ 1/(ηT ), then with probability at least 1 − δ − exp ( −Θ( r0)) over the random training features S and the random noise w,
+
+∥ht∥HK ≤ Bh = γ0 + Θ(1) , (101) where r0 = mk0 .
+
+Proof We have v(t) = −  I − ηKnP(r0)t f ∗(S), e(t) = ⇀
+
+e 1(t) + ⇀
+
+e 2(t) with ⇀
+
+e 1(t) = 
+
+−  I − ηKnP(r0)t w, ⇀
+
+e 2(t) 2 ≤ √nτ . We define 
+
+be1(·, t ′) := − ηn
+
+> n
+
+X
+
+> j=1
+
+K(⇀
+
+xj , x)
+
+h
+
+P(r0)⇀
+
+e 1(t′)
+
+i 
+
+> j
+
+, be2(·, t ′) := − ηn
+
+> n
+
+X
+
+> j=1
+
+K(⇀
+
+xj , x)
+
+h
+
+P(r0)⇀
+
+e 2(t′)
+
+i 
+
+> j
+
+,
+
+(102) Let Σ be the diagonal matrix containing eigenvalues of Kn, we then have 
+
+> t−1
+
+X
+
+> t′=0
+
+v(x, t ′) = ηn
+
+> n
+
+X
+
+> j=1
+> t−1
+
+X
+
+> t′=0
+
+
+
+P(r0) 
+
+I − ηKnP(r0)t′
+
+f ∗(S)
+
+
+
+> j
+
+K(⇀
+
+xj , x)
+
+35 Yang and Li 
+
+= ηn
+
+> n
+
+X
+
+> j=1
+> t−1
+
+X
+
+> t′=0
+
+
+
+P(r0)U
+
+
+
+I − ηΣ(r0)t′
+
+U⊤f ∗(S)
+
+
+
+> j
+
+K(⇀
+
+xj , x). (103) We then have 
+
+> t−1
+
+X
+
+> t′=0
+
+v(·, t ′)
+
+> 2
+> HK
+
+= η2
+
+n2 f ∗(S)⊤U
+
+> t−1
+
+X
+
+> t′=0
+
+
+
+I − ηΣ(r0)t′
+
+U⊤P(r0)KP (r0)U
+
+> t−1
+
+X
+
+> t′=0
+
+
+
+I − ηΣ(r0)t′
+
+U⊤f ∗(S)= 1
+
+n η (Kn)1/2 P(r0)U
+
+> t−1
+
+X
+
+> t′=0
+
+
+
+I − ηΣ(r0)t′
+
+U⊤f ∗(S)
+
+> 22
+
+≤ 1
+
+n
+
+> r0
+
+X
+
+> i=1
+
+
+
+1 −
+
+
+
+1 − ηbλi
+
+t2
+
+bλi
+
+h
+
+U⊤f ∗(S)
+
+i2 
+
+> i
+
+≤ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+
+
+1 −
+
+
+
+1 − ηbλi
+
+t2
+
+bλi
+
+h
+
+U⊤f ∗(S)
+
+i2 
+
+> i
+
+≤ γ20 ,
+
+(104) where the last inequality follows from Lemma C.9 since f ∗ ∈ F ∗ ⊆ H K(r0) (γ0) ⊆ H K (γ0). We define E1 := Pt−1 
+
+> t′=0
+
+be1(·, t ′) 2
+
+> HK
+
+and E2 := Pt−1 
+
+> t′=0
+
+be2(·, t ′) HK
+
+. It follows from (68) in the proof of Theorem 4.4 that with probability at least 1 − exp ( −Θ( r0)), U(r0)⊤w 22 ≲
+
+r0 = Θ( dk0 ). With n ≥ Θ(log(2 /δ ) · d2k0 ) and r ∈ [r0], it follows from Lemma C.12 that with proba-bility 1 − δ over S, we have 
+
+bλr ≥ bλr0 ≥ λr−1 − 2
+
+s
+
+2 log 2
+
+> δ
+
+n ≥ μk0 − 2
+
+s
+
+2 log 2
+
+> δ
+
+n ≥ Θ( d−k0 ). (105) It then follows from (105) that 
+
+E1 ≤ 1
+
+n
+
+> r0
+
+X
+
+> i=1
+
+
+
+1 −
+
+
+
+1 − ηbλi
+
+t2
+
+bλi
+
+h
+
+U⊤w
+
+i2 
+
+> i
+
+≤ Θ( dk0 )
+
+n · Θ( dk0 ) ≤ Θ(1) . (106) We now find the upper bound for E2. We have 
+
+be2(·, t ′) 2 
+
+> HK
+
+≤ η2
+
+n2
+
+> ⇀
+
+e ⊤ 
+
+> 2
+
+(t′)K⇀
+
+e 2(t′) ≤ η2bλ1τ 2,
+
+so that 
+
+E2 ≤
+
+> t−1
+
+X
+
+> t′=0
+
+be2(·, t ′) HK ≤ T η 
+
+qbλ1τ ≤ 1, (107) 
+
+36 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+if τ ≤ 1/(ηT ) since bλ1 ∈ (0 , 1). Finally, it follows from (103), (106), and (107) that 
+
+∥ht∥HK ≤
+
+> t−1
+
+X
+
+> t′=0
+
+bv(·, t ′)
+
+> HK
+
++
+
+> t−1
+
+X
+
+> t′=0
+
+be1(·, t ′)
+
+> HK
+
++
+
+> t−1
+
+X
+
+> t′=0
+
+be2(·, t ′)
+
+> HK
+
+≤ γ0 + Θ(1) .
+
+Lemma C.9 (In the proof of (Raskutti et al., 2014, Lemma 8)) . For any f ∈ H K (γ0), we have 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+U⊤f (S′)2
+
+> i
+
+bλi
+
+≤ γ20 . (108) 
+
+Lemma C.10. For any positive real number a ∈ (0 , 1) and natural number t, we have (1 − a)t ≤ e−ta ≤ 1
+
+eta . (109) 
+
+Proof The result follows from the facts that log(1 −a) ≤ a for a ∈ (0 , 1) and sup u∈R ue −u ≤
+
+1/e .
+
+Background about the Integral Operator on HS. Suppose K is a PSD kernel defined over X × X and let the empirical Gram matrix computed by K on the training features S
+
+be Kn with the eigenvalues bλ1 ≥ . . . ≥ bλn ≥ 0. We need the following background in the RKHS spanned by 
+
+n
+
+K(·, ⇀
+
+xi)
+
+oni=1 for the proof of Lemma C.11. Herein we introduce the operator Tn : HS → H S which is defined by Tng := 1
+
+> n
+
+Pni=1 K(·, ⇀
+
+xi)g(⇀
+
+xi) for every g ∈ H S.It can be verified that the eigenvalues of Tn coincide with the eigenvalues of Kn, that is, the eigenvalues of Tn are 
+
+nbλi
+
+oni=1 . By the spectral theorem, all the normalized eigenfunctions of 
+
+Tn, denoted by Φ(k) n−1 
+
+> k=0
+
+with Φ (k) = 1 /
+
+q
+
+nbλk+1 ·Pnj=1 K(·, ⇀
+
+xj ) U[k+1]  
+
+> j
+
+for k ∈ [0 : n−1], is an orthonormal basis of HS. The eigenvalue of Tn corresponding to the eigenfunction Φ (k)
+
+is bλk+1 for 0 ≤ k ≤ n − 1. Since HS ⊆ H K , we can complete Φ(k) n−1 
+
+> k=0
+
+so that Φ(k)
+
+> k≥0
+
+is an orthonormal basis of the RKHS HK .
+
+Lemma C.11. Suppose δ ∈ (0 , 1/2) and n ≥ Θ(log(2 /δ )·d2k0 ). Let PU(−r0) = PSpan( U(r0))⊥ .Then with probability at least 1 − 2δ over the random training features S,
+
+PU(−r0) (f ∗(S)) 22 ≤ nγ 20 log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
+. (110) 
+
+Proof We have PHS (f ∗) = n−1P
+
+> k=0
+
+f ∗, Φ(k) Φ(k), PHS,r 0 (f ∗) = r0−1P
+
+> k=0
+
+f ∗, Φ(k) Φ(k), and define ¯f ∗,r 0 := PHS (f ∗) − PHS,r 0 (f ∗) = 
+
+> n
+
+X
+
+> q=r0
+
+D
+
+f ∗, Φ(q)E
+
+Φ(q).
+
+37 Yang and Li 
+
+Let U(−r0) ∈ Rn×(n−r0) be the submatrix formed by all the columns of U except for the top r0 columns in U(r0). It follows by the introduction to the space HS before Lemma C.11 that Φ(k) n−1 
+
+> k=0
+
+is an orthonormal basis of HS, and Φ (k) is the eigenfunction of the operator 
+
+Tn with the corresponding eigenvalue bλk+1 . Therefore, U(−r0)U(−r0)⊤Φ(k)(S) = 0 for all 
+
+k ∈ [r0 − 1]. As a result, with probability at least 1 − δ,1
+
+n U(−r0)U(−r0)⊤f ∗(S) 22 = 1
+
+n U(−r0)U(−r0)⊤ (PHS (f ∗)) ( S) 22 = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+ ¯f ∗,r 0 (⇀
+
+xi)
+
+2
+
+.
+
+(111) We have 
+
+Tn ¯f ∗,r 0 , ¯f ∗,r 0 =
+
+*
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+K(·, ⇀
+
+xi) ¯f ∗,r 0 (⇀
+
+xi), ¯f ∗,r 0
+
++
+
+> HK
+
+= 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+ ¯f ∗,r 0 (⇀
+
+xi)
+
+2
+
+. (112) On the other hand, with probability 1 − δ,
+
+Tn ¯f ∗,r 0 , ¯f ∗,r 0 =
+
+*
+
+TnnX
+
+> q=r0
+
+D ¯f ∗,r 0 , Φ(q)E
+
+Φ(q),
+
+> n
+
+X
+
+> q=r0
+
+D ¯f ∗,r 0 , Φ(q)E
+
+Φ(q)
+
++
+
+> HK
+
+=
+
+> n
+
+X
+
+> q=r0
+
+bλq+1 
+
+D ¯f ∗,r 0 , Φ(q)E2
+
+≤ bλr0+1 
+
+> n
+
+X
+
+> q=r0
+
+D
+
+f ∗, Φ(q)E2 1○
+
+≤ bλr0+1 ζn,γ 0,r 0,δ , (113) where 1○ is due to Theorem C.1. It follows from (111)-(113) that 1
+
+n U(−r0)U(−r0)⊤f ∗(S) 22 ≤ bλr0+1 ζn,γ 0,r 0,δ . (114) We now find the upper bound for bλr0+1 . It follows from Lemma C.12 that λj − bλj ≤
+
+2
+
+q 2 log 2 
+
+> δ
+> n
+
+for all j ∈ [n] with probability at least 1 − δ. Furthermore, it follows from Theorem C.18 that λr0 = μk0+1 = Θ( d−k0−1) with r0 = mk0 . As a result, we have 
+
+bλr0+1 ≤ λr0 + 2 
+
+s
+
+2 log 2
+
+> δ
+
+n ≤ Θ( d−k0 ), (115) where the last inequality holds with probability 1 − δ over S due to Lemma C.12 and 
+
+n ≥ Θ(log(2 /δ ) · d2k0 ). It then follows from (114) and (115) that 1
+
+n U(−r0)U(−r0)⊤f ∗(S) 22 ≤ Θ( d−k0 ) · ζn,γ 0,r 0,δ = Θ( d−k0 ) · 32 γ20 log 2
+
+> δ
+
+(μk0 − μk0+1 )2 n
+
+= Θ( d−k0 ) · 32 γ20 log 2
+
+> δ
+
+(Θ( d−k0 ) − Θ( d−k0−1)) 2 n
+
+= γ20 log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
+,
+
+which proves (110). 
+
+38 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+Lemma C.12 ((Rosasco et al., 2010, Proposition 10)) . Let δ ∈ (0 , 1), then with probability 1 − δ over the training features S, for all j ∈ [n], 
+
+λj−1 − bλj ≤ 2
+
+s
+
+2 log 2
+
+> δ
+
+n . (116) 
+
+Remark C.13. We remark that the sequence {λj }j≥0 starts with index 0, so that λj−1 is in fact the j-th element in the extended enumeration of the distinct eigenvalues of TK . The extended enumeration (Rosasco et al., 2010) of the distinct eigenvalues of TK is a sequence where each nonzero eigenvalue of TK appears as many times as its multiplicity and the other values (if any) are zero. 
+
+Lemma C.14. Suppose n ≥ r0. Then with probability at least 1 − δ over the random training features S, for every r > 0, we have 
+
+R   f − f ∗ : f ∈ F (Bh, w, S, r 0), EP
+
+(f − f ∗)2 ≤ r  ≤
+
+r
+
+log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
++
+
+r rr 0
+
+n + 2 w. 
+
+(117) 
+
+Proof Let HK,r 0 = Span {vq}r0−1 
+
+> q=0
+
+be the subspace in HK spanned by {vq}r0−1 
+
+> q=0
+
+, and we define bFr := f ∈ F (Bh, w, S, r 0), EP
+
+(f − f ∗)2 ≤ r . For every f ∈ bFr, we have f = h+e
+
+such that ∥e∥∞ ≤ w and h ∈ H K (Bh)∩H S,r 0 , and EP
+
+(h − f ∗)2 ≤ 2( r+w2). Furthermore, we have PHr0 (h) = Pr0−1 
+
+> j=0
+
+αj vj with αj = ⟨h, v j ⟩HK for all j ≥ 0. We define ¯h = h−PHr0 (h), then ¯h ∈ H K (Bh). We have 
+
+EP
+
+¯h2 = EP
+
+ X
+
+> j≥r0
+
+αj vj
+
+
+
+> 2
+
+ = X
+
+> j≥r0
+
+α2 
+
+> j
+
+λj ≤ λr0 · X
+
+> j≥r0
+
+α2
+
+> j
+
+1○
+
+≤ λr0 ζn,B h,r 0,δ 
+
+2○
+
+≤ log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
+:= rn,k 0,δ , (118) where 1○ holds with probability at least 1 − δ over S by (44) of Theorem C.1, and 2○ follows from the similar argument in the last part of the proof of Lemma C.11 with λr0 = μk0+1 =Θ( d−k0−1). It then follows from (118) and the Cauchy-Schwarz inequality that for every 
+
+f ∈ bFr,
+
+EP
+
+(PHr0 (h) − f ∗)2 ≤ 2EP
+
+(h − f ∗)2 + 2 EP
+
+¯h2 ≤ 4( r + w2) + 2 rn,k 0,δ . (119) We then have 
+
+R
+
+n 
+
+PHr0 (h) − f ∗ : f ∈ bFr
+
+o 
+
+3○
+
+≤ R   PHr0 (h) − f ∗ : EP
+
+(PHr0 (h) − f ∗)2 ≤ 4( r + w2) + 2 r(n, k 0, δ ) 
+
+4○
+
+≤ 2R
+
+n 
+
+f ∈ H K(r0) (Bh) : EP
+
+f 2 ≤ r + w2 + rn,k 0,δ 
+
+2
+
+o 5○
+
+≤
+
+r
+
+r + w2 + rn,k 0,δ 
+
+2 ·
+
+r r0
+
+n .
+
+(120) 
+
+39 Yang and Li 
+
+Here 3○ follows from (119). Since PHr0 (f ), f ∗ ∈ H r0 ∩ H K (Bh) ⊆ H K(r0) (Bh), we have (PHr0 (f )−f ∗)/2 ∈ H K(r0) (Bh) due to the fact that HK(r0) (Bh) is symmetric and convex, and it follows that 4○ holds. 5○ follows from Lemma C.15 with Q = r0 in (125) of Lemma C.15. We then derive the upper bound for R
+
+n ¯h : f ∈ bFr
+
+o 
+
+. First, it follows from Theo-rem C.1 and the argument similar to (118) that 
+
+¯h 2 
+
+> HK
+
+= X
+
+> j≥r0
+
+α2 
+
+> j
+
+≤ ζn,B h,r 0,δ ≤ B2 
+
+> h
+
+log 2
+
+δ · Θ
+
+ d2k0
+
+n
+
+
+
+:= B2¯h. (121) We then have 
+
+R
+
+n ¯h : f ∈ bFr
+
+o 
+
+= En⇀ 
+
+> xi
+> oni=1 ,{σi}ni=1
+
+"
+
+sup  
+
+> ¯h∈H K(B¯h)
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+σi¯h(⇀
+
+xi)
+
+#
+
+≤ B¯h
+
+n En⇀ 
+
+> xi
+> oni=1 ,{σi}ni=1
+
+sup  
+
+> f∈F
+> n
+
+X
+
+> i=1
+
+σiK(·, ⇀
+
+xi)
+
+> HK
+
+ ≤ B¯h
+
+√n ≤
+
+r
+
+log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
+. (122) Finally, it follows from (120) and (122) that 
+
+R
+
+n 
+
+f − f ∗ : f ∈ bFr
+
+o 
+
+≤ R
+
+n 
+
+PHr0 (h) − f ∗ : f ∈ bFr
+
+o 
+
++ R
+
+n ¯h : f ∈ bFr
+
+o 
+
++ w
+
+≤
+
+r
+
+log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
++ w
+
+r r0
+
+n +
+
+r rr 0
+
+n + w ≤
+
+r
+
+log 2
+
+δ · Θ
+
+ dk0
+
+n
+
+
+
++
+
+r rr 0
+
+n + 2 w, (123) which proves (117). 
+
+Lemma C.15 (Yang (2025, Lemma C.9),Yang and Li (2024, Lemma VI.4)) . For every 
+
+B, w > 0, the function class F(B, w ) is defined as F(B, w ) := {f : f = h + e, h ∈ H K (B), ∥e∥∞ ≤ w}.Then for every r > 0, 
+
+R   f ∈ F (B, w ) : EP
+
+f 2 ≤ r  ≤ φB,w (r), (124) where 
+
+φB,w (r) := min   
+
+> Q:Q≥0
+
+(√r + w)
+
+r Qn + B
+
+
+
+> ∞
+
+P
+
+> q=Q+1
+
+λq
+
+n
+
+
+
+> 1/2
+
+ + w. (125) 
+
+Lemma C.16 (Yang and Li (2024, Lemma B.9)) . Suppose ψ : [0 , ∞) → [0 , ∞) is a sub-root function with the unique fixed point r∗. Then the following properties hold. (1) Let a ≥ 0, then ψ(r) + a as a function of r is also a sub-root function with fixed point r∗
+
+> a
+
+,and r∗ ≤ r∗ 
+
+> a
+
+≤ r∗ + 2 a.(2) Let b ≥ 1, c ≥ 0 then ψ(br + c) as a function of r is also a sub-root function with fixed point r∗ 
+
+> b
+
+, and r∗ 
+
+> b
+
+≤ br ∗ + 2 c/b .(3) Let b ≥ 1, then ψb(r) = bψ (r) is also a sub-root function with fixed point r∗ 
+
+> b
+
+, and r∗ 
+
+> b
+
+≤ b2r∗.
+
+40 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+C.3 Proofs of Theorem C.1 Proof of Theorem C.1 . With probability at least 1 − δ, we have 
+
+> ∞
+
+X
+
+> q=r0
+
+D
+
+f ∗, Φ(q)E2
+
+> HK
+
+=
+
+> ∞
+
+X
+
+> q=r0
+
+*r0−1X
+
+> j=0
+
+βj vj , Φ(q)
+
++2
+
+> HK
+
+≤
+
+> ∞
+
+X
+
+> q=r0
+> r0−1
+
+X
+
+> j=0
+
+β2 
+
+> j
+
+·
+
+> r0−1
+
+X
+
+> j=0
+
+D
+
+vj , Φ(q)E2
+
+≤ γ20
+
+> ∞
+
+X
+
+> q=r0
+> r0−1
+
+X
+
+> j=0
+
+D
+
+vj , Φ(q)E2
+
+≤ 32 γ20 log 2
+
+> δ
+
+(μk0 − μk0+1 )2 n .
+
+Here the last inequality follows by Lemma C.17 with τ 20 = 1 and mk0 = r0, which proves (43). Since f ∈ F (Bh, w, S, r 0), we have f = Pr0−1 
+
+> j=0
+
+αj Φ(j) with αj = f, Φ(j) 
+
+> HK
+
+for 
+
+j ∈ [0 , r 0 − 1]. Following a similar argument, we have 
+
+> ∞
+
+X
+
+> q=r0
+
+⟨f, v q⟩2 
+
+> HK
+
+=
+
+> ∞
+
+X
+
+> q=r0
+
+*r0−1X
+
+> j=0
+
+αj Φ(j), v q
+
++2
+
+> HK
+
+≤
+
+> ∞
+
+X
+
+> q=r0
+> r0−1
+
+X
+
+> j=0
+
+α2 
+
+> j
+
+·
+
+> r0−1
+
+X
+
+> j=0
+
+D
+
+Φ(j), v q
+
+E2
+
+≤ B2
+
+> h
+> ∞
+
+X
+
+> q=r0
+> r0−1
+
+X
+
+> j=0
+
+D
+
+Φ(j), v q
+
+E2
+
+≤ 32 B2 
+
+> h
+
+log 2
+
+> δ
+
+(μk0 − μk0+1 )2 n ,
+
+which proves (44). 
+
+Lemma C.17. Let sup x∈X K(x, x) = τ 20 . For any δ ∈ (0 , 1), with probability at least 1 − δ
+
+over the random training features S, 
+
+> mk0−1
+
+X
+
+> i=0
+
+X
+
+> j≥mk0
+
+D
+
+Φ(i), v j
+
+E2 
+
+> H
+
++ X 
+
+> i≥mk0
+> mk0−1
+
+X
+
+> j=0
+
+D
+
+Φ(i), v j
+
+E2 
+
+> H
+
+≤ 32 τ 40 log 2
+
+> δ
+
+(μk0 − μk0+1 )2 n . (126) 
+
+Proof Define operator Tn : HK → H K by Tng = 1
+
+> n
+
+Pni=1 K(·, ⇀
+
+xi)g(⇀
+
+xi) as introduced before Lemma C.11, and let Φ(k) 
+
+> k≥0
+
+be an orthonormal basis of the RKHS HK .Let P TN be an orthogonal projection operator which projects any input onto the subspace spanned by eigenfunctions corresponding to the top N eigenvalues of the operator T , and 
+
+T is defined on the RKHS H.We now work on the following two orthogonal projection operators, P TK 
+
+> mk0
+
+and P Tn 
+
+> mk0
+
+.Each of the two operators projects its input onto the space spanned by all the eigenfunctions of the corresponding operator, that is. 
+
+P TK 
+
+> mk0
+
+h = 
+
+> mk0−1
+
+X
+
+> j=0
+
+⟨h, v j ⟩H vj , P Tn 
+
+> mk0
+
+h = 
+
+> mk0−1
+
+X
+
+> j=0
+
+D
+
+h, Φ(j)E 
+
+> H
+
+Φ(j). (127) The Hilbert-Schmidt norm of P TK 
+
+> mk0
+
+− P Tn 
+
+> mk0
+
+is 
+
+P TK 
+
+> mk0
+
+− P Tn 
+
+> mk0
+> 2HS
+
+= X
+
+> i≥0,j ≥0
+
+D 
+
+P TK 
+
+> mk0
+
+− P Tn
+
+> mk0
+
+
+
+Φ(i), v j
+
+E2 
+
+> H
+
+, (128) 
+
+41 Yang and Li 
+
+which is due to the fact that both Φ(j) 
+
+> j≥0
+
+and {vj }j≥0 are orthonormal bases of H. It can be verified that 
+
+D 
+
+P TK 
+
+> mk0
+
+− P Tn
+
+> mk0
+
+
+
+Φ(i), v j
+
+E 
+
+> H
+
+=
+
+
+
+0 if i < m k0 , j < m k0 ,
+
+− Φ(i), v j H if i < m k0 , j ≥ mk0 ,
+
+Φ(i), v j H if i ≥ mk0 , j < m k0 ,
+
+0 if i ≥ mk0 , j ≥ mk0 ,(129) and similar results are obtained in the proof of Rosasco et al. (2010, Theorem 12). Because TK and Tn are Hilbert-Schmidt operators, by Rosasco et al. (2010, Theorem 7), for all δ ∈ (0 , 1), with probability at least 1 − δ,
+
+∥TK − Tn∥HS ≤ 2√2τ 20
+
+q
+
+log 2
+
+> δ
+
+√n . (130) When n ≥ 128 τ 40 log 2
+
+> δ
+
+(μk0 −μk0+1 )2 , ∥TK − Tn∥HS ≤ μk0 −μk0+1  
+
+> 4
+
+. It follows from Rosasco et al. (2010, Proposition 6) and noting that the operator norm in Rosasco et al. (2010, Proposition 6) can be replaced by the Hilbert-Schmidt norm, 
+
+P TK 
+
+> mk0
+
+− P Tn 
+
+> mk0
+> 2HS
+
+≤ 4(μk0 − μk0+1 )2 ∥TK − Tn∥2HS ≤ 32 τ 40 log 2
+
+> δ
+
+(μk0 − μk0+1 )2 n . (131) Then (126) follows from (128), (129), and (131). 
+
+C.4 Results about Eigenvalues of the Integral Operators 
+
+The following theorem is a refined version of the Mercer’s theorem on the PSD kernel K
+
+defined in (2), with the exact estimation about the decaying rate of the distinct eigenvalues 
+
+{μℓ}ℓ≥0.
+
+Theorem C.18 (Eigenvalue of the Integral Operator Associated with the NTK (2)) . Let the distinct eigenvalues of the integral operator TK associated with the PSD kernel K
+
+defined in (2) be {μℓ : ℓ ≥ 0} with μ0 > μ 1 > . . . , where μℓ is the eigenvalue corresponding to Hℓ. Suppose that ¯k0 = Θ(1) and d ≥ Θ(1). Then μk = Θ( d−k) for 0 ≤ k ≤ ¯k0. Moreover, for all x, x′ ∈ X = Sd−1,
+
+K(x, x′) = X
+
+> ℓ≥0
+
+μℓN (d,ℓ )
+
+X
+
+> j=1
+
+Yℓj (x)Yℓj (x′) = X
+
+> ℓ≥0
+
+μℓN (d, ℓ )Pℓ( x, x′ ), (132) where μℓ is the eigenvalue of the integral operator TK associated with K corresponding to Hℓ, and {Yℓj }N (d,ℓ ) 
+
+> j=1
+
+are the eigenfunctions corresponding to the eigenvalue μℓ. That is, 
+
+TK Yℓj = μℓYℓj for all ℓ ≥ 0 and j ∈ [N (d, ℓ )]. The series on the RHS of (132) converges absolutely and uniformly on X × X .
+
+42 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression 
+
+Proof (132) follows from the background about Harmonic Analysis on spheres in Section B and the Mercer’s theorem. Since K is a continuous PSD kernel defined on the compact set 
+
+X × X , it follows from the Mercer’s theorem again that the series on the RHS of (132) converges absolutely and uniformly on X × X to K.We now set to compute the eigenvalues λk : 0 ≤ k ≤ ¯k0 . Let the distinct eigenvalues of the PSD kernel K(0) , which is defined in (2) and repeated below 
+
+K(0) (x, x′) = Ew∼N (0,Id)
+
+h
+
+1I{x⊤w≥0}1I{x′⊤ w≥0}
+
+i
+
+= π − arccos( x⊤x′)2π , ∀x, x′ ∈ X = X ,
+
+be {λ0,k : k ≥ 0}, where λ0,k is the eigenvalue corresponding to Hk, the space of degree-ℓ
+
+homogeneous harmonic polynomials on X = Sd−1.Define 
+
+sk := ωd−2
+
+ωd−1
+
+Z 1
+
+> −1
+
+1I{t≥0}Pk(t)(1 − t2)(d−3) /2dt, 
+
+It then follows by the computation in Bach (2017, Section D.2) that s0 = Θ(1). Also, for all t ∈ N, s2t = 0, and 
+
+s2t−1 = ωd−2
+
+ωd−1
+
+ 12
+
+2t−1
+
+(−1) t−1 Γ(( d − 1) /2)Γ(2 t − 1) Γ( t)Γ( t + ( d − 1) /2) 
+
+1○
+
+≍ (−1) t−1√d (d − 1) d 
+
+> 2−1
+
+(2 t − 1) 2t−1.5
+
+(2 t)t−0.5(2 t + d − 1) t+ d 
+
+> 2−1
+
+2○
+
+≍ 1
+
+dt−0.5 ,
+
+where we used the approximation to the Gamma function (Gosper, 1978) Γ( x) ≍ xx−0.5 exp( −x)√2π
+
+and the fact that ωd−2 
+
+> ωd−1
+
+≍ √d in 1○. 2○ is due to t = Θ(1). It follows from Bietti and Mairal (2019) that λ0,k = s2 
+
+> k
+
+for all k ≥ 0. When k = 2 t − 1for t ∈ N, we have λ0,k = s2 
+
+> k
+
+= Θ( d−(2 t−1) ) = Θ( d−k). Moreover, λ0,k = 0 for all k = 2 t
+
+with t ∈ N, and λ0,0 = s20 = Θ(1). As a result, we have λ0,0 = Θ(1), and 
+
+λ0,k =
+
+(
+
+0 k = 2 t, t ∈ N, k ≤ ¯k0,
+
+Θ( d−k) k = 2 t − 1, t ∈ N, k ≤ ¯k0. (133) Let the distinct eigenvalues of the PSD kernel K(1) which is also defined in (2) be {λ1,k : k ≥ 0},where λ0,k is the eigenvalue corresponding to Hk. Define κ(t) = tκ (0) (t) with κ(0) (t) :=   
+
+> π−arccos t
+> 2π
+
+for t ∈ [−1, 1]. Then for k ≥ 1 we have 
+
+λ1,k = ωd−2
+
+ωd−1
+
+Z 1
+
+> −1
+
+κ(t)Pk(t)(1 − t2)(d−3) /2dt = ωd−1
+
+ωd−2
+
+Z 1
+
+> −1
+
+κ(0) (t)t(1 − t2)(d−3) /2Pk(t)d t
+
+= ωd−2
+
+ωd−1
+
+Z 1
+
+> −1
+
+κ(0) (t)
+
+ k
+
+2k + d − 2 Pk−1(t) + k + d − 22k + d − 2 Pk+1 (t)
+
+
+
+(1 − t2)(d−3) /2dt
+
+= k
+
+2k + d − 2 λ0,k −1 + k + d − 22k + d − 2 λ0,k +1 . (134) 
+
+43 Yang and Li 
+
+Moreover, 
+
+λ1,0 = ωd−2
+
+ωd−1
+
+Z 1
+
+> −1
+
+κ(t)P0(t)(1 − t2)(d−3) /2dt = ωd−2
+
+ωd−1
+
+Z 1
+
+> −1
+
+κ(0) (t)P1(t)(1 − t2)(d−3) /2dt = λ0,1.
+
+(135) It follows from (133)-(135) that λ1,0 = Θ(1 /d ), λ1,1 = Θ(1 /d ). Moreover, 
+
+λ1,k =
+
+(
+
+Θ( d−k) k = 2 t, t ∈ N, k ≤ ¯k0,
+
+0 k = 2 t − 1, t ∈ N, t ≥ 2, k ≤ ¯k0. (136) It then follows from (133) and (136) that μk = λ0,k + λ1,k = Θ( d−k) for 0 ≤ k ≤ ¯k0
+
+References 
+
+E. Abbe, E. B. Adser` a, and T. Misiakiewicz. The merged-staircase property: a necessary and nearly sufficient condition for SGD learning of sparse functions on two-layer neural networks. In P. Loh and M. Raginsky, editors, Conference on Learning Theory, 2-5 July 2022, London, UK , volume 178 of Proceedings of Machine Learning Research , pages 4782–4887. PMLR, 2022. S. Aeron, V. Saligrama, and M. Zhao. Information theoretic bounds for compressed sensing. 
+
+IEEE Transactions on Information Theory , 56(10):5111–5130, 2010. doi: 10.1109/TIT. 2010.2059891. Z. Allen-Zhu, Y. Li, and Z. Song. A convergence theory for deep learning via over-parameterization. In International Conference on Machine Learning , volume 97 of Pro-ceedings of Machine Learning Research , pages 242–252. PMLR, 2019. S. Arora, S. S. Du, W. Hu, Z. Li, and R. Wang. Fine-grained analysis of optimization and generalization for overparameterized two-layer neural networks. In International Con-ference on Machine Learning , volume 97 of Proceedings of Machine Learning Research ,pages 322–332. PMLR, 2019. F. R. Bach. Breaking the curse of dimensionality with convex neural networks. J. Mach. Learn. Res. , 18:19:1–19:53, 2017. Y. Bai and J. D. Lee. Beyond linearization: On quadratic and higher-order approxima-tion of wide neural networks. In International Conference on Learning Representations .OpenReview.net, 2020. P. L. Bartlett, O. Bousquet, and S. Mendelson. Local rademacher complexities. Ann. Statist. , 33(4):1497–1537, 08 2005. A. Bietti and J. Mairal. On the inductive bias of neural tangent kernels. In H. M. Wal-lach, H. Larochelle, A. Beygelzimer, F. d’Alch´ e-Buc, E. B. Fox, and R. Garnett, editors, 
+
+Advances in Neural Information Processing Systems , pages 12873–12884, 2019. 
+
+> 44 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression
+
+Y. Cao and Q. Gu. Generalization bounds of stochastic gradient descent for wide and deep neural networks. In H. M. Wallach, H. Larochelle, A. Beygelzimer, F. d’Alch´ e-Buc, E. B. Fox, and R. Garnett, editors, Advances in Neural Information Processing Systems , pages 10835–10845, 2019. Y. Cao, Z. Fang, Y. Wu, D. Zhou, and Q. Gu. Towards understanding the spectral bias of deep learning. In Z. Zhou, editor, International Joint Conference on Artificial Intelligence ,pages 2205–2211. ijcai.org, 2021. T. Chihara. An Introduction to Orthogonal Polynomials . Dover Books on Mathematics. Dover Publications, 2011. ISBN 9780486479293. L. Chizat, E. Oyallon, and F. Bach. On lazy training in differentiable programming . Curran Associates Inc., Red Hook, NY, USA, 2019. M. Choraria, L. T. Dadi, G. Chrysos, J. Mairal, and V. Cevher. The spectral bias of polynomial neural networks. In International Conference on Learning Representations .OpenReview.net, 2022. A. Damian, J. D. Lee, and M. Soltanolkotabi. Neural networks can learn representations with gradient descent. In P. Loh and M. Raginsky, editors, Conference on Learning Theory, 2-5 July 2022, London, UK , volume 178 of Proceedings of Machine Learning Research , pages 5413–5452. PMLR, 2022. S. S. Du, J. D. Lee, H. Li, L. Wang, and X. Zhai. Gradient descent finds global minima of deep neural networks. In K. Chaudhuri and R. Salakhutdinov, editors, International Con-ference on Machine Learning , volume 97 of Proceedings of Machine Learning Research ,pages 1675–1685. PMLR, 2019a. S. S. Du, X. Zhai, B. Poczos, and A. Singh. Gradient descent provably optimizes over-parameterized neural networks. In International Conference on Learning Representations ,2019b. C. Efthimiou and C. Frye. Spherical Harmonics in p Dimensions . World Scientific Co., 2014. doi: 10.1142/9134. B. Ghorbani, S. Mei, T. Misiakiewicz, and A. Montanari. Linearized two-layers neural networks in high dimension. Ann. Statist. , 49(2):1029 – 1054, 2021. M. Glasgow. SGD finds then tunes features in two-layer neural networks with near-optimal sample complexity: A case study in the XOR problem. In The Twelfth International Conference on Learning Representations, ICLR 2024, Vienna, Austria, May 7-11, 2024 .OpenReview.net, 2024. R. W. Gosper. Decision procedure for indefinite hypergeometric summation. Proc. Natl. Acad. Sci. U. S. A. , 75(1):40–42, Jan. 1978. T. Hu, W. Wang, C. Lin, and G. Cheng. Regularization matters: A nonparametric per-spective on overparametrized neural network. In A. Banerjee and K. Fukumizu, editors, 
+
+> 45 Yang and Li
+
+International Conference on Artificial Intelligence and Statistics , volume 130 of Proceed-ings of Machine Learning Research , pages 829–837. PMLR, 2021. A. Jacot, C. Hongler, and F. Gabriel. Neural tangent kernel: Convergence and generalization in neural networks. In S. Bengio, H. M. Wallach, H. Larochelle, K. Grauman, N. Cesa-Bianchi, and R. Garnett, editors, Advances in Neural Information Processing Systems ,pages 8580–8589, 2018. N. V. Krylov. Basics of harmonic polynomials and spherical functions. Technical report. URL https://www-users.cse.umn.edu/~nkrylov/Moscow_2019_Sphrcal.pdf .Y. LeCun, Y. Bengio, and G. Hinton. Deep learning. Nature , 521:436–444, 2015. M. Ledoux. Probability in Banach Spaces [electronic resource] : Isoperimetry and Pro-cesses / by Michel Ledoux, Michel Talagrand. Classics in Mathematics. Springer Berlin Heidelberg, Berlin, Heidelberg, 1st ed. 1991. edition, 1991. J. D. Lee, K. Oko, T. Suzuki, and D. Wu. Neural network learns low-dimensional poly-nomials with SGD near the information-theoretic limit. In A. Globersons, L. Mackey, D. Belgrave, A. Fan, U. Paquet, J. M. Tomczak, and C. Zhang, editors, Advances in Neural Information Processing Systems 38: Annual Conference on Neural Information Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada, December 10 - 15, 2024 , 2024. Y. Li, Z. Yu, G. Chen, and Q. Lin. On the eigenvalue decay rates of a class of neural-network related kernel functions defined on general domains. Journal of Machine Learning Research , 25(82):1–47, 2024. E. Nichani, Y. Bai, and J. D. Lee. Identifying good directions to escape the NTK regime and efficiently learn low-degree plus sparse polynomials. In S. Koyejo, S. Mohamed, A. Agarwal, D. Belgrave, K. Cho, and A. Oh, editors, Advances in Neural Information Processing Systems 35: Annual Conference on Neural Information Processing Systems 2022, NeurIPS 2022, New Orleans, LA, USA, November 28 - December 9, 2022 , 2022. N. Rahaman, A. Baratin, D. Arpit, F. Draxler, M. Lin, F. Hamprecht, Y. Bengio, and A. Courville. On the spectral bias of neural networks. In K. Chaudhuri and R. Salakhut-dinov, editors, International Conference on Machine Learning , volume 97 of Proceedings of Machine Learning Research , pages 5301–5310. PMLR, 09–15 Jun 2019. G. Raskutti, M. J. Wainwright, and B. Yu. Minimax-optimal rates for sparse additive models over kernel classes via convex programming. J. Mach. Learn. Res. , 13:389–427, 2012. G. Raskutti, M. J. Wainwright, and B. Yu. Early stopping and non-parametric regression: an optimal data-dependent stopping rule. J. Mach. Learn. Res. , 15(1):335–366, 2014. L. Rosasco, M. Belkin, and E. D. Vito. On learning with integral operators. J. Mach. Learn. Res. , 11:905–934, 2010. 
+
+> 46 PGD Finds Neural Networks with Optimal Rate for Nonparametric Regression
+
+C. J. Stone. Additive Regression and Other Nonparametric Models. Ann. Statist. , 13(2): 689 – 705, 1985. L. Su and P. Yang. On learning over-parameterized neural networks: A functional ap-proximation perspective. In Advances in Neural Information Processing Systems , pages 2637–2646, 2019. N. Suh, H. Ko, and X. Huo. A non-parametric regression viewpoint : Generalization of overparametrized deep RELU network under noisy observations. In The Tenth Interna-tional Conference on Learning Representations, ICLR 2022, Virtual Event, April 25-29, 2022 . OpenReview.net, 2022. G. Szeg˝ o. Orthogonal Polynomials . American Math. Soc: Colloquium publ. Amer. Math. Soc., 1975. ISBN 9780821810231. S. Takakura and T. Suzuki. Mean-field analysis on two-layer neural networks from a kernel perspective. In Forty-first International Conference on Machine Learning, ICML 2024, Vienna, Austria, July 21-27, 2024 . OpenReview.net, 2024. C. Wei, J. D. Lee, Q. Liu, and T. Ma. Regularization matters: Generalization and op-timization of neural nets v.s. their induced kernel. In H. M. Wallach, H. Larochelle, A. Beygelzimer, F. d’Alch´ e-Buc, E. B. Fox, and R. Garnett, editors, Advances in Neural Information Processing Systems , pages 9709–9721, 2019. F. T. Wright. A Bound on Tail Probabilities for Quadratic Forms in Independent Random Variables Whose Distributions are not Necessarily Symmetric. Ann. Probab. , 1(6):1068 – 1070, 1973. X. Xu, Y. Shen, Y. Chi, and C. Ma. The power of preconditioning in overparameterized low-rank matrix sensing. In A. Krause, E. Brunskill, K. Cho, B. Engelhardt, S. Sabato, and J. Scarlett, editors, Proceedings of the 40th International Conference on Machine Learning , volume 202 of Proceedings of Machine Learning Research , pages 38611–38654. PMLR, 23–29 Jul 2023. G. Yang and E. J. Hu. Tensor programs IV: feature learning in infinite-width neural net-works. In M. Meila and T. Zhang, editors, Proceedings of the 38th International Confer-ence on Machine Learning, ICML 2021, 18-24 July 2021, Virtual Event , volume 139 of 
+
+Proceedings of Machine Learning Research , pages 11727–11737. PMLR, 2021. Y. Yang. Sharp generalization for nonparametric regression by over-parameterized neural networks: A distribution-free analysis in spherical covariate. In International Conference on Machine Learning (ICML) , 2025. Y. Yang and A. Barron. Information-theoretic determination of minimax rates of conver-gence. Ann. Statist. , 27(5):1564 – 1599, 1999. Y. Yang and P. Li. Gradient descent finds over-parameterized neural networks with sharp generalization for nonparametric regression. arXiv preprint arXiv:2411.02904 , 2024. URL 
+
+https://arxiv.org/abs/2411.02904 .
+
+> 47 Yang and Li
+
+M. Yuan and D.-X. Zhou. Minimax optimal rates of estimation in high dimensional additive models. Ann. Statist. , 44(6):2564 – 2593, 2016. G. Zhang, S. Fattahi, and R. Y. Zhang. Preconditioned gradient descent for overparameter-ized nonconvex burer–monteiro factorization with global optimality certification. Journal of Machine Learning Research , 24(163):1–55, 2023. Y. Zhang, J. Duchi, and M. Wainwright. Divide and conquer kernel ridge regression: a dis-tributed algorithm with minimax optimal rates. J. Mach. Learn. Res. , 16(1):3299–3340, Jan. 2015. ISSN 1532-4435. D. Zou and Q. Gu. An improved analysis of training over-parameterized deep neural net-works. In H. M. Wallach, H. Larochelle, A. Beygelzimer, F. d’Alch´ e-Buc, E. B. Fox, and R. Garnett, editors, Advances in Neural Information Processing Systems , pages 2053– 2062, 2019.

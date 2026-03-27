@@ -6,31 +6,34 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-26
-- 运行时间：2026-03-26 19:53:20 UTC
+- 最新运行日期：2026-03-27
+- 运行时间：2026-03-27 20:26:57 UTC
 - 运行状态：成功
-- 本次总论文数：3
+- 本次总论文数：4
 - 精读区：1
-- 速读区：2
+- 速读区：3
 
 ### 今日简报（AI）
-今日聚焦可解释学习的重大突破，深度解析满分论文 Symbolic-KAN 及其在分子优化与物理建模中的前沿应用。
-重点关注 Symbolic-KAN 如何通过离散符号结构实现透明化学习，以及大模型驱动的进化搜索在分子设计中的创新潜力。
-建议深入研究符号化网络与物理先验的结合，这是实现 AI 模型从“黑盒”转向“白盒”的关键路径。
-- 详情：[/202603/26/README](/202603/26/README)
+今日深度解析随机动力系统的稀疏发现技术，并同步追踪大模型溯因推理与神经网络可解释性的最新进展。
+核心突破在于通过弱形式高效识别随机生成器，同时“状态图”架构为 LLM 处理复杂逻辑任务提供了新思路。
+建议优先研读 9.0 分的随机生成器论文以掌握建模前沿，并关注如何构建具备自解释能力的深度表征。
+- 详情：[/202603/27/README](/202603/27/README)
 
 ### 精读区论文标签
-1. [Symbolic--KAN: Kolmogorov-Arnold Networks with Discrete Symbolic Structure for Interpretable Learning](/202603/26/2603.23854v1-symbolic--kan-kolmogorov-arnold-networks-with-discrete-symbolic-structure-for-interpretable-learning)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：在神经网络中使用离散符号结构进行控制方程的符号发现
+1. [Sparse Weak-Form Discovery of Stochastic Generators](/202603/27/2603.20904v3-sparse-weak-form-discovery-of-stochastic-generators)  
+   标签：评分：9.0/10、query:sr-alg
+   evidence：随机微分方程的抗噪数据驱动发现
 
 ### 速读区论文标签
-1. [MolEvolve: LLM-Guided Evolutionary Search for Interpretable Molecular Optimization](/202603/26/2603.24382v1-molevolve-llm-guided-evolutionary-search-for-interpretable-molecular-optimization)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：LLM引导的可执行化学符号操作进化搜索
-2. [Sparsely-Supervised Data Assimilation via Physics-Informed Schrödinger Bridge](/202603/26/2603.22319v1-sparsely-supervised-data-assimilation-via-physics-informed-schrdinger-bridge)  
+1. [Gradient Descent with Projection Finds Over-Parameterized Neural Networks for Learning Low-Degree Polynomials with Nearly Minimax Optimal Rate](/202603/27/2603.21062v1-gradient-descent-with-projection-finds-over-parameterized-neural-networks-for-learning-low-degree-polynomials-with-nearly-minimax-optimal-rate)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：针对偏微分方程系统的稀疏观测进行物理信息场重建
+   evidence：利用神经网络学习低阶多项式
+2. [Graph of States: Solving Abductive Tasks with Large Language Models](/202603/27/2603.21250v1-graph-of-states-solving-abductive-tasks-with-large-language-models)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：用于溯因推理和结构化信念状态的神经符号框架
+3. [Minimal Sufficient Representations for Self-interpretable Deep Neural Networks](/202603/27/2603.24041v1-minimal-sufficient-representations-for-self-interpretable-deep-neural-networks)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：识别自解释神经网络的最小表示
 
 
 <div class="dpr-home-promo-card">
