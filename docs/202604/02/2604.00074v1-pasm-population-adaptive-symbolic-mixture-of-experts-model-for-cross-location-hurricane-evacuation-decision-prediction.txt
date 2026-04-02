@@ -1,0 +1,438 @@
+Title: PASM: Population Adaptive Symbolic Mixture-of-Experts Model for Cross-location Hurricane Evacuation Decision Prediction
+
+URL Source: https://arxiv.org/pdf/2604.00074v1
+
+Published Time: Thu, 02 Apr 2026 00:05:20 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+# PASM: Population Adaptive Symbolic Mixture-of-Experts Model for Cross-location Hurricane Evacuation Decision Prediction 
+
+Xiao Qian 
+
+Dept. of Civil, Environmental, and Construction Engineering University of Delaware, Newark, DE, USA 
+
+qxiao@udel.edu 
+
+Shangjia Dong 
+
+Dept. of Civil, Environmental, and Construction Engineering University of Delaware, Newark, DE, USA 
+
+sjdong@udel.edu 
+
+Abstract 
+
+Accurate prediction of evacuation behavior is critical for disaster preparedness, yet models trained in one region often fail elsewhere. Us-ing a multi-state hurricane evacuation survey, we show this failure goes beyond feature dis-tribution shift: households with similar char-acteristics follow systematically different de-cision patterns across states. As a result, sin-gle global models overfit dominant responses, misrepresent vulnerable subpopulations, and generalize poorly across locations. We pro-pose Population-Adaptive Symbolic Mixture-of-Experts (PASM), which pairs large lan-guage model guided symbolic regression with a mixture-of-experts architecture. PASM dis-covers human-readable closed-form decision rules, specializes them to data-driven subpopu-lations, and routes each input to the appropriate expert at inference time. On Hurricanes Har-vey and Irma data, transferring from Florida and Texas to Georgia with 100 calibration sam-ples, PASM achieves a Matthews correlation coefficient of 0.607, compared to XGBoost (0.404), TabPFN (0.333), GPT-5-mini (0.434), and meta-learning baselines MAML and Proto-typical Networks (MCC ≤ 0.346). The routing mechanism assigns distinct formula archetypes to subpopulations, so the resulting behavioral profiles are directly interpretable. A fairness audit across four demographic axes finds no sta-tistically significant disparities after Bonferroni correction. PASM closes more than half the cross-location generalization gap while keep-ing decision rules transparent enough for real-world emergency planning. 
+
+1 Introduction 
+
+Disasters force communities to make evacuation decisions under extreme time pressure and with life-or-death consequences. Predicting who will evacuate is essential for emergency managers to al-locate resources, coordinate evacuations, and prior-itize rescue efforts. While frameworks such as the Protective Action Decision Model (PADM) provide a conceptual foundation (Lindell and Perry, 2012), real households are highly heterogeneous, varying in mobility, income, language access, caregiving responsibilities, and medical dependence (Perry, 2007; Cutter et al., 2003). One-size-fits-all models risk overlooking these vulnerable populations, who are often treated as statistical outliers yet face the highest risk (Fothergill and Peek, 2004). The conse-quences are well documented, from language barri-ers during Hurricane Katrina (Elder et al., 2007) to evacuation plans that implicitly assumed universal car ownership (Litman, 2006). Accurately predicting evacuation behavior is dif-ficult, particularly when generalizing these models across regions. Social, economic, and cultural dif-ferences lead to substantial variation in decision-making, and models calibrated in one context of-ten fail elsewhere. For example, wildfire studies identify both “evacuation-keen” and “evacuation-reluctant” subpopulations, implying that any single global model will misrepresent at least one group (Wong et al., 2023). Ignoring this heterogeneity re-sults in mistargeted warnings, inefficient resource allocation, and inequitable outcomes. 
+
+Challenges We examine the model transferabil-ity on several state-of-the-art models regarding how well they work when trained in one state and applied to others. We use a household sur-vey dataset collected after Hurricanes Harvey and Irma (Goodie et al., 2019b,a), containing 822 anonymized respondents from Texas (Harvey) and Florida and Georgia (Irma) in the United States, containing household evacuation decisions and as-sociated socioeconomic, cognitive, and experiential factors. We train all models using data from Florida and then test them on Florida, Texas, and Georgia. The results in Table 5 show a clear pattern: all models perform much worse when applied to Geor-gia. However, the performance remains largely             
+
+> arXiv:2604.00074v1 [cs.LG] 31 Mar 2026 UMAP Component 1
+> UMAP Component 2
+> Georgia - Florida Georgia - Texas
+> 0.30
+> 0.00
+> -0.30
+> Probability Di ff erence
+> Florida
+> Georgia
+> Texas Figure 1: Evacuation probability difference in UMAP (Uniform Manifold Approximation and Projection) space:
+> P(Evac |Georgia )−P(Evac |Florida )(left) and P(Evac |Georgia )−P(Evac |Texas )(right).
+
+unchanged when transferred between Florida and Texas. This asymmetric pattern of Florida-Texas compatibility, but a pronounced gap with Georgia, suggests that Georgia residents behave differently in evacuation decisions. To better understand why this happens, we visu-alize how evacuation decisions differ across states for people with the same characteristics in Figure 1. Each point in the visualization represents individu-als with identical profiles (same age, income, risk perception, etc.). If people across states made de-cisions in the same way, the differences would be close to zero everywhere. Instead, we see strong heterogeneity: large red regions (differences up to 0.30-0.45). In many cases (i.e., dominance of red regions), people in Georgia are much more likely to evacuate than similar individuals in Florida or Texas; blue regions indicate the opposite is true. Thus, identical factors can exert opposite effects across states. As a result, a single global model cannot reconcile conflicting behavior across states. There is also substantial intra-state behavioral heterogeneity, limiting the effectiveness of a sin-gle global model. To examine this, we compare three settings: (i) training and testing on Florida (FL → FL), (ii) training on Florida and testing on Georgia (FL → GA), and (iii) training and test-ing on Georgia (GA → GA). If Georgia were be-haviorally homogeneous, GA → GA would be ex-pected to outperform FL → GA. Table 6 reveals the opposite. Models trained on Georgia perform worse on Georgia test data than models trained on Florida. This counterintuitive result reflects intra-state heterogeneity under limited data. With only 100 training samples, Georgia-trained models overfit to the specific subgroups observed, failing to generalize across the state’s diverse behavioral patterns. In contrast, Florida’s broader training dis-tribution yields decision rules that transfer more robustly, despite being out-of-state. In all, we show that behavioral heterogeneity operates at multiple levels, both across and within states. Any single global model will favor dom-inant patterns and systematically underperform for minority subpopulations. This motivates our Mixture-of-Experts framework, which explicitly learns and combines multiple behavioral regimes rather than forcing a one-size-fits-all predictor. 
+
+Contribution We address the challenges by in-tegrating symbolic regression and Mixture-of-Experts (MoE) modeling. Symbolic regression yields transparent decision rules with strong ex-trapolation power, and recent LLM-guided meth-ods such as LaSR and DrSR outperform black-box models under distribution shift (Cranmer et al., 2020; Grayeli et al., 2024; Wang et al., 2025). How-ever, a single symbolic equation is insufficient: rules learned in one state generalize poorly to oth-ers. MoE architectures provide a remedy by com-bining specialized models with learned routing, en-abling shared structure while isolating conflicting patterns (Tian et al., 2023; Zhao et al., 2025b). We thus propose Population-Adaptive Symbolic MoE (PASM), which couples LLM-guided symbolic ex-perts with a learned controller to achieve an in-terpretable and robust evacuation model. PASM is distinct from the PADM framework mentioned earlier: whereas PADM provides a theory-driven model designed by domain experts, decomposing protective action decisions into sequential cogni-tive stages defined a priori. PASM, by contrast, is entirely data-driven: it uses symbolic regression to discover decision rules directly from observations, bypassing the need for expert-specified cognitive assumptions, and routes inputs through multiple symbolic experts to capture heterogeneous behav-ioral patterns. 
+
+2 Related Work 
+
+2.1 Evacuation Decision Prediction for Diverse Population 
+
+Evacuation research is grounded in the Protective Action Decision Model (PADM), which frames evacuation as a sequence of cognitive stages in-fluenced by environmental cues, social signals, and official warnings (Lindell and Perry, 2012; Huang et al., 2016). Empirical studies have largely operationalized PADM using logistic regression and discrete choice models to estimate evacua-tion likelihoods based on factors such as housing type, pet ownership, and prior experience (Hasan et al., 2011; Dash and Gladwin, 2007; Goodie et al., 2019b). While interpretable, these models as-sume a homogeneous decision process and perform poorly when transferred across regions or events. Machine learning approaches have improved pre-dictive accuracy by capturing nonlinear interactions (Sun et al., 2024), yet they continue to suffer from a persistent transfer gap: models trained on one disas-ter or region often generalize poorly to others due to latent spatial and temporal heterogeneity (Demuth et al., 2016). This limitation is also closely tied to concerns of algorithmic fairness, as global models tend to favor majority behaviors and systematically underperform for vulnerable subpopulations, such as low-income households without private vehicles (Gevaert et al., 2021). Recent work has explored personalized and mod-ular approaches. For example, ATHENA (Zhao et al., 2025a) uses LLMs to infer individualized utility functions for decision-making, but relies on rule-based subgrouping and per-instance op-timization, limiting scalability and control over bias. Our work differs by combining data-driven subpopulation discovery, symbolic regression for interpretable decision rules, and a learned Mixture-of-Experts architecture to enable transferable and population-adaptive evacuation modeling. 
+
+2.2 LLM-Augmented Symbolic Regression 
+
+Symbolic Regression (SR) aims to discover explicit mathematical expressions that explain observed data, jointly searching over equation structure and parameters rather than assuming a fixed functional form. Its inherent interpretability makes SR suit-able for high-stakes decision modeling, where black-box neural networks are often viewed with skepticism by policymakers (Schmidt and Lipson, 2009). Traditional SR methods have largely relied on genetic programming (GP), as implemented in tools such as Eureqa and gplearn . While effective in low-dimensional settings, GP-based approaches scale poorly and yield overly complex or physically implausible expressions (Petersen et al., 2021). Recent advances in large language models (LLMs) have revitalized SR by introducing strong priors over plausible functional forms. LLM-SR (Shojaee et al., 2025) leverages pretrained language models to propose equation skeletons, substantially reducing search complexity and sample require-ments. LaSR (Grayeli et al., 2024) further improves efficiency by using LLMs to learn and reuse sym-bolic concepts, while DrSR (Wang et al., 2025) in-corporates dual reasoning to iteratively refine sym-bolic hypotheses based on data feedback. They all demonstrated strong performance in recovering governing equations in physics and biology. However, most LLM-augmented SR methods are designed to identify a single global equation, an assumption that does not hold in social systems where behavior varies across subpopulations. In evacuation modeling, no universal decision law exists. Our proposed PASM framework adapts LLM-guided symbolic regression to this setting by generating a diverse set of interpretable behavioral heuristics and embedding them within a population-adaptive Mixture-of-Experts framework. 
+
+2.3 Mixture-of-Experts and Multi-Task Learning 
+
+While SR provides interpretable equations for mod-eling individual decision rules, a single global formula is often insufficient to capture heteroge-neous behavior across subpopulations. Mixture-of-Experts (MoE) architectures offer a natural solution to this challenge. Originally proposed by Jacobs et al. (1991), MoE trains multiple specialized sub-models (“experts") along with a gating network (“router") that assigns inputs to the most appropri-ate expert. This modularity allows different experts to capture distinct patterns within heterogeneous populations while sharing common information where appropriate. MoE has gained a lot of interest in deep learning, especially with sparse transformer variants such Stage 1 Subpopulation Discovery Stage 2 Symbolic Expert Construction Stage 3 Mixture-of-Experts Integration     
+
+> 1. Global expert modeling
+> 2: SubPopulation expert modeling
+> Expert Expert Expert Router MLP
+> Coe ffi cient Adaptive MLP
+> Input feature
+> Predicted evacuation decision =
+> Subpopulation C Subpopulation B
+> Feature embedding 1
+> Feature embedding 2
+> Subpopulation A
+
+Figure 2: Overview of the PASM framework. 
+
+as Mixtral (Jiang et al., 2024) and DeepSeekMoE (Dai et al., 2024), which scale efficiently to large models. A key challenge in MoE, particularly in transfer and multi-task settings, is managing inter-actions between shared and specialized parameters and avoiding “negative transfer," where optimizing one expert conflicts with others (Standley et al., 2020; Yu et al., 2020). Approaches like MoDULA (Ma et al., 2024) address this by separating domain-specific experts from a universal expert and employ-ing staged training to stabilize learning. Similar principles have been applied in robotics and re-inforcement learning: DT2GS (Tian et al., 2023) decomposes multi-agent tasks into sub-tasks, and M3W (Zhao et al., 2025b) routes diverse dynamics to specialized experts, improving generalization across contexts. Adapting MoE to SR introduces additional ad-vantages. Recent work, such as Symbolic-MoE (Chen et al., 2025), routes queries to different LLMs, forming an ensemble of black-box mod-els. In contrast, our PASM framework integrates SR with a learned MoE controller, enabling multi-ple interpretable symbolic experts to model distinct behavioral regimes within the population. The gat-ing network adaptively selects or combines experts for each individual based on their features, allow-ing the model to capture heterogeneous evacuation behaviors while maintaining interpretability. This design effectively extends the benefits of MoE to population-adaptive symbolic modeling, bridging the gap between interpretable rule discovery and scalable, heterogeneous behavioral prediction. 
+
+3 Method 
+
+The PASM framework models a function F (x) that maps household and situational features x ∈ Rd to a binary evacuation decision y ∈ { 0, 1}. To capture population heterogeneity and account for cross-location distribution shifts, F (x) is structured as a Mixture-of-Experts, where each expert Ek(x) is an interpretable symbolic expression tailored to a subset of the population. In Stage 1 (Subpopulation Discovery), we un-cover latent subpopulations by embedding house-hold features into a low-dimensional space and applying unsupervised clustering. Using UMAP (McInnes et al., 2018) for dimensionality reduction and HDBSCAN (McInnes et al., 2017) for density-based clustering, we partition the training data into coherent subgroups with distinct evacuation behav-iors without pre-specifying the number of clusters. In Stage 2 (Symbolic Expert Construction), we build a library of interpretable symbolic experts by first fitting a global model EG(x) to capture population-level patterns, then training cluster-specific experts to model subpopulation-specific decision logic. All experts are learned using LaSR (Grayeli et al., 2024), an LLM-guided symbolic regression framework that discovers compact and interpretable expressions via concept abstraction. In Stage 3 (Mixture-of-Experts Integration), the symbolic experts are composed through a learned MoE controller. A Router MLP outputs a dis-tribution π(x) over experts, indicating their rel-evance for the individual. In parallel, a Coefficient-Adaptive MLP calibrates each expert’s internal co-efficients. The final evacuation probability is ob-tained by applying a sigmoid to the weighted sum of calibrated expert logits. All components are trained jointly end-to-end, improving stability and robustness under distribution shift. Figure 2 illus-trates the complete pipeline. 3.1 Symbolic Mixture-of-Experts with Joint Coefficient Adaptation 
+
+Our preliminary experiments show that naively av-eraging symbolic expert outputs transfers poorly on another state. Expert relevance varies across households: while the global expert suffices for some, others are better explained by subpopulation-specific formulas. Moreover, coefficients learned in one subpopulation do not transfer reliably to another, as identical feature labels (e.g., high in-come or high risk perception) can have different contextual meanings across regions. For example, a high-income household in rural Georgia faces different constraints than one in Miami. This can lead to errors when coefficients are shared naively. To address this, PASM employs a learnable rout-ing mechanism that dynamically composes sym-bolic experts based on input features. Given a fea-ture vector x ∈ Rd, the router is a multi-layer perceptron that outputs a probability distribution over the expert library: 
+
+π(x) = softmax (MLP router (x)/τ ) ∈ ∆M −1,
+
+(1) where M is the total number of experts (one global expert and K subpopulation-specific experts), and 
+
+τ > 0 is a temperature parameter. We anneal τ
+
+from a higher initial value τinit to a lower final value 
+
+τfinal during early training to encourage exploration before converging to sharper routing decisions. Each symbolic expert Em produces a scalar logit 
+
+zm(x; θm) reflecting its confidence that household 
+
+x will evacuate. To accommodate cross-population differences in scale and interpretation, we apply a learnable affine calibration to each expert: 
+
+gm(x) = γm · zm(x; θm) + βm, (2) where γm and βm are expert-specific scale and bias parameters. The final mixture logit is computed as 
+
+ˆz(x) = 
+
+> M
+
+X
+
+> m=1
+
+πm(x) · gm(x). (3) and the predicted evacuation probability is ˆp(x) = 
+
+σ(ˆ z(x)) , with σ(·) denotes the sigmoid function. Each symbolic expert computes a real-valued out-put by numerically evaluating its closed-form for-mula on the input features. A sigmoid function then converts this output to an evacuation proba-bility. The coefficient adaptation network scales expert outputs before the router combines them via learned mixture weights, allowing the same symbolic structure to adapt across heterogeneous subpopulations. 
+
+Coefficient Adaptive Network. Beyond expert routing, we allow the internal coefficients of sym-bolic formulas to adapt to the input. For example, in a rule z(x) = θ1 · xwind − θ2, the threshold θ2
+
+reflects risk tolerance and should vary with housing characteristics (e.g., reinforced concrete vs. mobile homes). Rather than defining separate equations, we model coefficients as input-dependent: 
+
+θm(x) = MLP coeff ,m (x). (4) The coefficient network shares a common fea-ture backbone across experts while using expert-specific output heads. This enables a single sym-bolic structure to generalize across heterogeneous subpopulations by modulating its parameters con-textually. Jointly adapting both routing weights and coefficients mitigates negative interference across subgroups and allows symbolic rules to flexibly adjust to household-level characteristics. 
+
+Joint Optimization and Regularization. Unlike staged MoE pipelines that freeze experts during router training (Ma et al., 2024), PASM is trained end-to-end. We jointly optimize the router parame-ters ϕ, symbolic coefficients {θm}, and affine cali-bration terms {γm, β m}. The primary objective is a soft-margin loss for binary evacuation prediction: 
+
+Ltask = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+log (1 + exp ( −˜yi · ˆz(xi))) , (5) where ˜yi ∈ {− 1, +1 } is the label encoding. To prevent router collapse and encourage bal-anced expert utilization, we introduce auxiliary regularizers. A KL balance loss aligns the batch-averaged routing distribution ¯π = 1
+
+> N
+
+PNi=1 π(xi)
+
+with the uniform prior UM .
+
+LKL = λKL · DKL ( ¯ π ∥ U M ) , (6) An entropy regularizer maintains per-sample routing uncertainty, 
+
+Lent = −λent · 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+H (π(xi)) . (7) while a router z-loss stabilizes training by penal-izing large router logits (Fedus et al., 2022): 
+
+Lz = λz · 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+log 
+
+> M
+
+X
+
+> m=1
+
+exp( am(xi)) 
+
+!2
+
+, (8) where am(x) is the raw router logit for expert m.Finally, we encourage expert diversity by penal-izing squared cosine similarity between calibrated expert outputs (Shazeer et al., 2017): 
+
+Ldiv = λdiv · 1
+
+M 2
+
+X
+
+> m,m ′
+
+ g⊤
+
+> m
+
+gm′
+
+∥gm∥∥ gm′ ∥
+
+2
+
+. (9) The overall objective is 
+
+L = Ltask + LKL + Lent + Lz + Ldiv . (10) 
+
+Training Stability. Stable training of symbolic MoE requires several practical techniques. We first use a router warm-up: during early epochs, routing weights are fixed to be uniform (or the router is frozen), preventing premature expert collapse be-fore symbolic coefficients stabilize. KL balance regularization is activated only after this warm-up. To ensure numerical stability, we implement safe symbolic evaluation. Logarithm and square-root inputs are ϵ-shifted; exponentials and power opera-tions are clamped to bounded ranges; divisions are guarded against zero denominators; and all inter-mediate values are clipped to finite intervals, with NaN/Inf outputs replaced by zeros. Router logits are similarly clipped, and softmax stabilization is applied. We further employ gradient clipping, sepa-rate learning rates and weight decay for router and experts, optional router noise and expert dropout, and layer normalization in both router and coef-ficient networks. Training uses Adam with early stopping, best-checkpoint restoration, and inverse-frequency weighting to address class imbalance 
+
+3.2 Baselines and Metrics 
+
+We benchmark the proposed PASM framework against a diverse set of state-of-the-art models: 
+
+XGBoost. Gradient-boosted decision trees re-main the dominant paradigm for tabular prediction tasks, consistently matching or outperforming neu-ral models on medium-sized datasets (Chen and Guestrin, 2016; Grinsztajn et al., 2022; Rabbani et al., 2024). We use XGBoost as the primary tra-ditional ML benchmark. 
+
+Large Language Models (GPT-5-mini medium reasoning efforts). Recent studies apply LLMs to tabular prediction by prompting serialized features (Hegselmann et al., 2023; Dinh et al., 2022). While LLMs show promise in modeling human decision-making, they exhibit biases and limited robustness under distribution shift (Santurkar et al., 2023; van Rooij et al., 2024). We include GPT-5-mini with medium reasoning efforts to assess whether pre-trained world knowledge improves cross-location evacuation prediction. 
+
+TabPFN. TabPFN (Grinsztajn et al., 2025; Holl-mann et al., 2025, 2023) is a transformer pretrained on synthetic tabular data to perform approximate Bayesian inference. Designed specifically for tabu-lar classification, it provides a strong, low-tuning baseline and tests whether tabular-specific pretrain-ing outperforms general-purpose models. 
+
+Evaluation Metrics. Evacuation data are highly imbalanced, especially in inland regions like Geor-gia, where “stay” decisions dominate, making ac-curacy alone misleading. A trivial always-stay clas-sifier can achieve high accuracy while failing to identify evacuees. We therefore use Matthews Correlation Coef-ficient (MCC) as the primary metric (Matthews, 1975; Boughorbel et al., 2017). MCC is equiva-lent to the Pearson correlation between predicted and true labels and is widely regarded as the most robust single metric for imbalanced binary classi-fication. It rewards balanced performance across all confusion-matrix entries and ranges from −1
+
+(perfect disagreement) to +1 (perfect agreement). MCC =
+
+TP × TN − FP × FN 
+
+p(TP + FP )( TP + FN )( TN + FP )( TN + FN )
+
+(11) where TP, TN, FP, and FN denote true positives, true negatives, false positives, and false negatives, respectively. We additionally report ROC-AUC to assess threshold-independent ranking quality and Accu-racy for completeness. All metrics are computed using standard scikit-learn implementations. ROC-AUC =
+
+Z 10
+
+TPR (t) dFPR (t) (12) Accuracy = TP + TN TP + TN + FP + FN . (13) 
+
+3.3 Implementation Details Symbolic Regression. All experiments were con-ducted on a workstation with an Intel i7-13700KF CPU and an NVIDIA RTX 4070 Ti GPU. The full pipeline was implemented in Python 3.13 using PyTorch 2.9.0. Symbolic regression was performed with the LaSR library (Grayeli et al., 2024) (Julia 1.12.1), with LLM guidance provided by a locally deployed Qwen3-8B model via Ol-lama on an A6000 Ada server. Each run used 40 evolutionary generations with 30 parallel is-lands. The operator set included +, −, ×, /, ∧ and 
+
+exp , log , sin , cos , √·, and expression trees were capped at 40 nodes. LLM-guided genetic oper-ations were each assigned a trigger probability of 0.001. From the Pareto frontier balancing accuracy and complexity, we retained the top-5 expressions for the global expert and each cluster-specific ex-pert. 
+
+MoE Architecture. The router and coefficient networks are MLPs with hidden dimension 128 and dropout 0.1, following a LayerNorm–Linear– ReLU–Dropout–Linear architecture. The coeffi-cient network shares a backbone across experts with separate output heads. All parameters are trained jointly using Adam (learning rate 10 −3) for up to 100 epochs, with early stopping (patience = 10) to prevent overfitting on the limited target-domain calibration data. 
+
+Computational Resources. The full symbolic re-gression pipeline required 2,068 LLM calls (4.5M tokens total) at the configured mutation probability of 0.001, completing in approximately 10 hours on the A6000 Ada GPU (131 tokens/s). Router and coefficient network training required only 45 seconds. Peak GPU memory was 5.7 GiB for the Ollama-hosted LLM and 1.6 GiB for router train-ing. 
+
+3.4 Data 
+
+We evaluate PASM using the anonymized house-hold survey dataset collected after Hurricanes Harvey (Texas) and Irma (Florida and Georgia) (Goodie et al., 2019b,a). The dataset contains data from three feature domains: (1) demographic and socioeconomic attributes (age, sex, race, educa-tion, home ownership, household composition); (2) cognitive and experiential factors (risk perception, prior hurricane experience, past trauma, prepared-ness); and (3) social and environmental cues (the share of neighbors evacuated in the respondent’s ZIP code). Our preliminary analysis reveals substantial pop-ulation heterogeneity that limits cross-location gen-eralization. To reflect realistic deployment, where models trained on past disasters inform future emer-gency management, we construct a source-target split. Florida and Texas form the source domain (Domain A), while Georgia serves as the target do-main (Domain B). This split is motivated by an empirical test: models transfer reasonably well be-tween Florida and Texas but degrade sharply in Georgia, which has a distinct demographic profile and a much higher evacuation rate (70% vs. 33%). Within Domain A, 85% of samples are used to train symbolic experts, and 15% are held out for valida-tion. For MoE calibration, we augment the source validation set with a 100-shot random sample from Domain B. All remaining Georgia samples are re-served for final evaluation, with no hyperparameter tuning performed on the target test set. The dataset is publicly available on Mendeley Data (Goodie et al., 2019a). 
+
+4 Results 
+
+4.1 Symbolic MoE for Cross-location Adaptation 
+
+Table 1 summarizes performance on the Georgia test set. Higher values correspond to better perfor-mance. PASM achieves an MCC of 0.607, outper-forming XGBoost (0.404), GPT-5-mini-medium (0.434), and TabPFN (0.333). This corresponds to relative improvements of 50%, 40%, and 82%, respectively. Similar trends are observed on ROC-AUC: PASM achieves 0.840, compared to 0.680 for XGBoost, 0.692 for GPT-5-mini, and 0.751 for TabPFN. Overall, these results show that our pro-posed PASM framework transfers more reliably across states than existing tabular prediction ap-proaches.                
+
+> Model MCC ROC-AUC Accuracy XGBoost 0.404 0.680 0.692 TabPFN 0.333 0.751 0.654 GPT-5-mini(medium) 0.434 0.692 0.692 PASM 0.607 0.840 0.769
+> Table 1: Cross-location adaptation performance in Geor-gia.
+
+PASM also exhibits a smaller drop in perfor-mance when moving from calibration to held-out test data. On the calibration set (source valida-tion plus 100 Georgia samples), it reaches MCC = 0.669, ROC-AUC = 0.921, and Accuracy = 0.833. When evaluated on the Georgia test set, MCC de-creases to 0.607, a relative reduction of 9.3%. In contrast, both XGBoost and TabPFN experience much larger performance losses when transferred across states, with MCC drops exceeding 55% (Ta-ble 5). This smaller gap indicates that the symbolic experts and the routing mechanism learn decision patterns that remain consistent across populations in different states. In practical terms, the model fo-cuses on shared behavioral tendencies rather than state-specific quirks, making it better suited for real emergency planning, where insights from past dis-asters are expected to be applied to new locations. 
+
+4.2 Comparison with Heterogeneity-Aware Methods 
+
+To assess whether PASM’s gains stem from its sym-bolic structure or simply from modeling hetero-geneity, we compare against meta-learning meth-ods designed for few-shot adaptation and hetero-geneous data. Table 2 reports results for MAML (Finn et al., 2017), Prototypical Networks (Snell et al., 2017), Matching Networks (Vinyals et al., 2016), and a hierarchical clustering baseline (Hier-Clust+LR) that applies per-cluster logistic regres-sion.                   
+
+> Method MCC ROC-AUC Accuracy Matching Networks 0.280 ±0.117 0.732 ±0.096 0.589 ±0.045
+> MAML 0.314 ±0.158 0.753 ±0.061 0.631 ±0.071
+> Prototypical Networks 0.313 ±0.162 0.763 ±0.092 0.650 ±0.078
+> HierClust+LR 0.346 ±0.164 0.746 ±0.100 0.635 ±0.071
+> PASM (Ours) 0.607 0.840 0.769
+
+Table 2: Comparison with meta-learning and heterogeneity-aware baselines. 
+
+PASM outperforms all meta-learning methods by substantial margins, with MCC improvements of +0.26 to +0.33. MAML learns shared initializa-tions that adapt quickly to new tasks but does not produce interpretable subgroup-specific rules. Pro-totypical and Matching Networks operate in metric space without decomposing heterogeneity into dis-tinct behavioral regimes. HierClust+LR is the clos-est structural analog, applying per-cluster models, but lacks the capacity of symbolic regression for nonlinear feature interactions. These results indi-cate that combining symbolic rule discovery with learned routing captures behavioral heterogeneity more effectively than adaptation-based approaches alone. 
+
+Discovered Symbolic Formulas. The routing mechanism assigns clusters to three distinct for-mula archetypes. The simplest archetype is a linear additive model, TimesAsked + EvacPctZip , routed to the youngest cohort (cluster 0, mean age 33.4). This formula encodes direct response to institu-tional and social pressure without nonlinear trans-formations. The most widely routed archetype balances geographic evacuation rate against loga-rithmic age resistance, EvacPctZip /c 0 − log( Age ),where the amplification factor c0 ≈ 0.068 magni-fies community behavior approximately 14.7-fold. This formula serves five clusters (3, 4, 5, 6, 9) spanning diverse demographics. The most com-plex archetype integrates eight features with cosine and fourth-root transforms, modeling interactions between geographic signals, social isolation indi-cators (marital status), and demographic penalties (age, education). This multi-factor formula han-dles behaviorally complex groups, including those with non-standard marital status or extreme social isolation. These archetypes correspond to distinct decision mechanisms: direct social compliance, geographic pressure weighted against age-related resistance, and multi-factor risk integration. Full cluster profiling is provided in Appendix 6.4. 
+
+4.3 Ablation Studies 
+
+We conduct two ablation studies to isolate the con-tributions of the key architectural components. 
+
+Effect of Learned Routing vs. Naive Aggre-gation. We first test whether the gains come from the symbolic experts themselves or from the learned routing. To disentangle these effects, we compare PASM to two simple aggregation base-lines that do not use a router: (1) Top-1 Average, which applies the single best symbolic formula to all samples; and (2) Top-5 Average, which predicts using the average of the top-5 symbolic experts.                
+
+> Method MCC ROC-AUC Accuracy Top-1 Average 0.234 0.766 0.615 Top-5 Average 0.548 0.769 0.731 No SR (LR + Router) 0.434 0.752 0.731 PASM 0.607 0.840 0.769
+
+Table 3: Ablation on aggregation strategy. 
+
+As shown in Table 3, Top-1 Average performs poorly (MCC = 0.234), confirming that no sin-gle symbolic model generalizes across all target-domain subpopulations. Top-5 Average improves to MCC = 0.548 through ensembling, but PASM achieves a further 10.8% relative gain (0.548 →
+
+0.607) with a large improvement in ROC-AUC (0.769 → 0.840). Input-dependent routing, not static averaging, is the key to handling behavioral heterogeneity. To test whether symbolic regression itself is nec-essary, we replace all symbolic experts with logistic regression models while keeping the router and co-efficient adaptation intact. This variant achieves MCC = 0.434, a gain of 0.20 over Top-1 Average but 0.17 below full PASM. The gap shows that non-linear feature interactions captured by symbolic formulas (cosine, log, and square-root transforms) encode decision mechanisms that linear models cannot represent. 
+
+Effect of Joint Coefficient Adaptation. We next test whether it is necessary to adapt expert coeffi-cients jointly with the router, or whether simpler coefficient schemes are sufficient. We consider three variants: (1) Fixed Coefficients, where sym-bolic coefficients are frozen after symbolic regres-sion, and only the router is trained; (2) Learnable (Static) Coefficients, where coefficients are train-able but shared across all inputs; and (3) PASM (Full), where both routing weights and coefficients are input-dependent and optimized jointly. Table 4 reveals a counterintuitive result. Learn-able (Static) coefficients perform worse than Fixed Coefficients in terms of MCC (0.365 vs. 0.389), despite introducing additional flexibility. This is plausible due to globally learned coefficients am-plifying error propagation: a single set of coeffi-cients must reconcile conflicting behavioral pat-terns across subpopulations, so updates that im-prove performance for one group can degrade it for another. These conflicts then compound through the routing mechanism.             
+
+> Coefficient Strategy MCC ROC-AUC Accuracy Fixed Coefficients 0.389 0.763 0.692 Learnable (Static) 0.365 0.828 0.654 PASM (Full) 0.607 0.840 0.769
+> Table 4: Ablation on coefficient adaptation strategy.
+
+In contrast, Fixed Coefficients keep expert behav-ior stable, allowing the router to focus on selecting the appropriate expert without interference from shifting coefficients. PASM resolves this trade-off by making the coefficients input dependent. Condi-tioning coefficients on household features allows each symbolic formula to adjust its response to dif-ferent contexts. For example, applying different risk thresholds for residents in reinforced structures versus mobile homes. This joint, input-aware adap-tation avoids cascading errors while enabling fine-grained personalization, leading to the strongest overall performance. 
+
+5 Conclusion 
+
+This paper introduced PASM, a population-adaptive symbolic mixture-of-experts framework for predicting evacuation decisions across states. Our analysis shows that cross-location generaliza-tion failures are not solely due to feature distri-bution shifts: even households with similar ob-servable characteristics follow different decision patterns across three states. This behavioral het-erogeneity makes single global models unreliable when deployed beyond their training region. PASM addresses this by combining LLM-guided symbolic regression with a mixture-of-experts ar-chitecture. Symbolic models provide interpretable decision rules, while a learned router and input-dependent coefficient adaptation select and cali-brate experts for different subpopulations. On the Georgia test set, using only 100 calibration sam-ples, PASM achieves an MCC of 0.607, outper-forming XGBoost (0.404), TabPFN (0.333), and GPT-5-mini (0.434) by 40–82%. It also surpasses meta-learning baselines, including MAML (0.314), Prototypical Networks (0.313), and HierClust+LR (0.346), by MCC margins of +0.26 to +0.33, indi-cating that learned routing over symbolic experts captures behavioral heterogeneity more effectively than gradient-based or metric-space adaptation. The routing mechanism discovers three formula archetypes: a two-variable linear model for the youngest cohort, a geographic-pressure formula weighted against age for middle-demographic clus-ters, and an eight-feature nonlinear formula for socially isolated groups. These archetypes produce interpretable behavioral profiles consistent with es-tablished evacuation sociology. A fairness audit across four demographic axes (race, sex, educa-tion, age) detects no statistically significant dis-parities after Bonferroni correction. Calibration experiments further show that 50 target-domain samples already recover over 90% of the full-data MCC, suggesting that PASM can be deployed with minimal local data collection. Together, these prop-erties make PASM a practical tool for emergency planning where interpretability and cross-region robustness are required. 
+
+Limitations 
+
+PASM shows strong potential; however, several limitations remain. First, it is a “gray-box” model: although symbolic regression forms its core, the use of unsupervised subpopulation discovery and mixture-of-experts routing introduces elements that may reduce interpretability. Second, while infer-ence is efficient, training is computationally in-tensive due to repeated LLM queries when fitting symbolic experts, making it more costly than stan-dard tabular models. Third, the current UMAP + HDBSCAN clustering assumes discrete subpopu-lations, whereas real-world human heterogeneity is often continuous or hierarchical. Hard clustering may oversimplify fuzzy boundaries and overlap-ping memberships, while mathematically optimal partitions may not align with intuitive sociological categories, potentially reducing interpretability. A fairness audit across four demographic axes (race, sex, education, age) found no statistically signifi-cant disparities after Bonferroni correction, though a 4.7 percentage-point accuracy gap between male and female subgroups warrants continued moni-toring (Appendix 6.9). The current evaluation is limited to US hurricane contexts in three states; adaptation to other cultural or geographic settings would require retraining the router on a local cali-bration sample and updating the symbolic regres-sion concept library with region-specific domain knowledge. Future work will explore soft or proba-bilistic clustering and task-oriented clustering ap-proaches that balance predictive performance with semantic interpretability. 
+
+References 
+
+Sabri Boughorbel, Fethi Jarray, and Mohammed El-Anbari. 2017. Optimal classifier for imbalanced data using matthews correlation coefficient metric. PloS one , 12(6):e0177678. Justin Chih-Yao Chen, Sukwon Yun, Elias Stengel-Eskin, Tianlong Chen, and Mohit Bansal. 2025. Sym-bolic mixture-of-experts: Adaptive skill-based rout-ing for heterogeneous reasoning. arXiv preprint arXiv:2503.05641 .Tianqi Chen and Carlos Guestrin. 2016. Xgboost: A scalable tree boosting system. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining , pages 785–794. Miles Cranmer, Alvaro Sanchez-Gonzalez, Peter Battaglia, Rui Xu, Kyle Cranmer, David Spergel, and Shirley Ho. 2020. Discovering symbolic models from deep learning with inductive biases. Advances in Neural Information Processing Systems , 33. Susan L Cutter, Bryan J Boruff, and W Lynn Shirley. 2003. Social vulnerability to environmental hazards. 
+
+Social Science Quarterly , 84(2):242–261. Damai Dai, Chengqi Deng, Chenggang Zhao, RX Xu, H Gao, D Chen, J Li, W Zeng, X Yu, Y Wu, and 1 others. 2024. Deepseekmoe: Towards ultimate expert specialization in mixture-of-experts language models. arXiv preprint arXiv:2401.06066 .Nicole Dash and Hugh Gladwin. 2007. Evacuation de-cision making and behavioral responses: Individual and household. Natural Hazards Review , 8(3):69–77. Julie L Demuth, Rebecca E Morss, Jeffrey K Lazo, and Craig Trumbo. 2016. The effects of past hurricane experiences on evacuation intentions through risk perception and efficacy beliefs: A mediation analysis. 
+
+Weather, Climate, and Society , 8(4):327–344. Tuan Dinh, Yuchen Zeng, Ruisu Zhang, Ziqian Lin, Michael Gira, Shashank Rajput, Jy-yong Sohn, Dim-itris Papailiopoulos, and Kangwook Lee. 2022. Lift: Language-interfaced fine-tuning for non-language machine learning tasks. Advances in Neural Informa-tion Processing Systems , 35:11763–11784. Keith Elder, Sudha Xirasagar, Nancy Miller, Shelly Ann Bowen, Saundra Glover, and Crystal Piper. 2007. African Americans’ decisions not to evacuate New Orleans before Hurricane Katrina: A qualita-tive study. American Journal of Public Health ,97(S1):S124–S129. William Fedus, Barret Zoph, and Noam Shazeer. 2022. Switch transformers: Scaling to trillion parameter models with simple and efficient sparsity. Journal of Machine Learning Research , 23(120):1–39. Chelsea Finn, Pieter Abbeel, and Sergey Levine. 2017. Model-agnostic meta-learning for fast adaptation of deep networks. In International Conference on Ma-chine Learning , pages 1126–1135. PMLR. Alice Fothergill and Lori A Peek. 2004. Poverty and disasters in the United States: A review of recent sociological findings. Natural Hazards , 32(1):89– 110. Caroline M Gevaert, Mary Carman, Benjamin Rosman, Yola Georgiadou, and Robert Soden. 2021. Fairness and accountability of ai in disaster risk management: Opportunities and challenges. Patterns , 2(11). Adam Goodie, Prashant Doshi, and Adithya Raam Sankar. 2019a. Data for: Experience-based and de-mographic predictors of evacuation decisions in hur-ricanes harvey and irma. Published: 2019-10-24. Adam S Goodie, Adithya Raam Sankar, and Prashant Doshi. 2019b. Experience, risk, warnings, and de-mographics: Predictors of evacuation decisions in hurricanes harvey and irma. International journal of disaster risk reduction , 41:101320. Arya Grayeli, Atharva Sehgal, Omar Costilla Reyes, Miles Cranmer, and Swarat Chaudhuri. 2024. Sym-bolic regression with a learned concept library. Ad-vances in Neural Information Processing Systems ,37:44678–44709. Léo Grinsztajn, Edouard Oyallon, and Gaël Varoquaux. 2022. Why do tree-based models still outperform deep learning on typical tabular data? Advances in neural information processing systems , 35:507–520. Léo Grinsztajn, Klemens Flöge, Oscar Key, Felix Birkel, Philipp Jund, Brendan Roof, Benjamin Jäger, Do-minik Safaric, Simone Alessi, Adrian Hayler, Mi-hir Manium, Rosen Yu, Felix Jablonski, Shi Bin Hoo, Anurag Garg, Jake Robertson, Magnus Büh-ler, Vladyslav Moroshan, Lennart Purucker, and 7 others. 2025. Tabpfn-2.5: Advancing the state of the art in tabular foundation models. Preprint ,arXiv:2511.08667. Samiul Hasan, Satish Ukkusuri, Hugh Gladwin, and Pamela Murray-Tuite. 2011. Behavioral model to un-derstand household-level hurricane evacuation deci-sion making. Journal of Transportation Engineering ,137(5):341–348. Stefan Hegselmann, Alejandro Buendia, Hunter Lang, Monica Agrawal, Xiaoyi Jiang, and David Sontag. 2023. Tabllm: Few-shot classification of tabular data with large language models. In International conference on artificial intelligence and statistics ,pages 5549–5581. PMLR. Noah Hollmann, Samuel Müller, Katharina Eggensperger, and Frank Hutter. 2023. Tabpfn: A transformer that solves small tabular classification problems in a second. In International Conference on Learning Representations 2023 .Noah Hollmann, Samuel Müller, Lennart Purucker, Arjun Krishnakumar, Max Körfer, Shi Bin Hoo, Robin Tibor Schirrmeister, and Frank Hutter. 2025. Accurate predictions on small data with a tabular foundation model. Nature .Shih-Kai Huang, Michael K Lindell, and Carla S Prater. 2016. Who leaves and who stays? a review and sta-tistical meta-analysis of hurricane evacuation studies. 
+
+Environment and behavior , 48(8):991–1029. Robert A Jacobs, Michael I Jordan, Steven J Nowlan, and Geoffrey E Hinton. 1991. Adaptive mixtures of local experts. Neural computation , 3(1):79–87. Albert Q Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur Mensch, Blanche Savary, Chris Bam-ford, Devendra Singh Chaplot, Diego de las Casas, Emma Bou Hanna, Florian Bressand, and 1 oth-ers. 2024. Mixtral of experts. arXiv preprint arXiv:2401.04088 .Michael K Lindell and Ronald W Perry. 2012. The protective action decision model: Theoretical modifi-cations and additional evidence. Risk Analysis: An International Journal , 32(4):616–632. Todd Litman. 2006. Lessons from Katrina and Rita: What major disasters can teach transportation planners. Journal of Transportation Engineering ,132(1):11–18. Yufei Ma, Zihan Liang, Huangyu Dai, Ben Chen, De-hong Gao, Zhuoran Ran, Wang Zihan, Linbo Jin, Wen Jiang, Guannan Zhang, Xiaoyan Cai, and Libin Yang. 2024. Modula: Mixture of domain-specific and universal lora for multi-task learning. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing .Brian W Matthews. 1975. Comparison of the pre-dicted and observed secondary structure of T4 phage lysozyme. Biochimica et Biophysica Acta (BBA) -Protein Structure , 405(2):442–451. Leland McInnes, John Healy, Steve Astels, and 1 others. 2017. hdbscan: Hierarchical density based clustering. 
+
+J. Open Source Softw. , 2(11):205. Leland McInnes, John Healy, and James Melville. 2018. Umap: Uniform manifold approximation and projec-tion for dimension reduction. stat , 1050:6. Ronald W Perry. 2007. What is a disaster? In Havidán Rodríguez, Enrico L Quarantelli, and Rus-sell R Dynes, editors, Handbook of Disaster Re-search , pages 1–15. Springer. Brenden K Petersen, Mikel Landajuela Larma, Terrell N. Mundhenk, Claudio Prata Santiago, Soo Kyung Kim, and Joanne Taery Kim. 2021. Deep symbolic regres-sion: Recovering mathematical expressions from data via risk-seeking policy gradients. In International Conference on Learning Representations .Shourav B Rabbani, Ivan V Medri, and Manar D Samad. 2024. Attention versus contrastive learning of tabular data: a data-centric benchmarking. International Journal of Data Science and Analytics , pages 1–23. Shibani Santurkar, Esin Durmus, Faisal Ladhak, Cinoo Lee, Percy Liang, and Tatsunori Hashimoto. 2023. Whose opinions do language models reflect? In In-ternational Conference on Machine Learning , pages 29971–30004. PMLR. Michael Schmidt and Hod Lipson. 2009. Distilling free-form natural laws from experimental data. science ,324(5923):81–85. Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le, Geoffrey Hinton, and Jeff Dean. 2017. Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. In Inter-national Conference on Learning Representations .Parshin Shojaee, Kazem Meidani, Shashank Gupta, Amir Barati Farimani, and Chandan K. Reddy. 2025. LLM-SR: Scientific equation discovery via program-ming with large language models. In The Thirteenth International Conference on Learning Representa-tions .Jake Snell, Kevin Swersky, and Richard Zemel. 2017. Prototypical networks for few-shot learning. In Ad-vances in Neural Information Processing Systems ,volume 30. Trevor Standley, Amir Zamir, Dawn Chen, Leonidas Guibas, Jitendra Malik, and Silvio Savarese. 2020. Which tasks should be learned together in multi-task learning? In International conference on machine learning , pages 9120–9132. PMLR. Yuran Sun, Shih-Kai Huang, and Xilei Zhao. 2024. Predicting hurricane evacuation decisions with in-terpretable machine learning methods. International Journal of Disaster Risk Science , 15(1):134–148. Zikang Tian, Ruizhi Chen, Xing Hu, Ling Li, Rui Zhang, Fan Wu, Shaohui Peng, Jiaming Guo, Zidong Du, Qi Guo, and 1 others. 2023. Decompose a task into generalizable subtasks in multi-agent reinforcement learning. In Advances in Neural Information Pro-cessing Systems , volume 36, pages 66835–66858. Iris van Rooij, Olivia Guest, Federico G. Adolfi, Ronald de Haan, Antonina Kolokolova, and Patricia Rich. 2024. Reclaiming AI as a theoretical tool for cog-nitive science. Computational Brain & Behavior ,7(3):343–356. Oriol Vinyals, Charles Blundell, Timothy Lillicrap, Ko-ray Kavukciglu, and Daan Wierstra. 2016. Matching networks for one shot learning. In Advances in Neu-ral Information Processing Systems , volume 29. Runxiang Wang, Boxiao Wang, Kai Li, Yifan Zhang, and Jian Cheng. 2025. Drsr: Llm based scientific equation discovery with dual reasoning from data and experience. arXiv preprint arXiv:2506.04282 .Stephen D. Wong, Jacquelyn C. Broader, Joan L. Walker, and Susan A. Shaheen. 2023. Understanding california wildfire evacuee behavior and joint choice-making. Transportation , 50(4):1435–1473. Tianhe Yu, Saurabh Kumar, Abhishek Gupta, Sergey Levine, Karol Hausman, and Chelsea Finn. 2020. Gradient surgery for multi-task learning. In Ad-vances in Neural Information Processing Systems ,volume 33, pages 5824–5836. Yibo Zhao, Yang Zhao, Hongru Du, and Hao Frank Yang. 2025a. Personalized decision modeling: Util-ity optimization or textualized-symbolic reasoning.  
+
+> arXiv preprint arXiv:2511.02194 .Zijie Zhao, Zhongyue Zhao, Kaixuan Xu, Yuqian Fu, Ji-ajun Chai, Yuanheng Zhu, and Dongbin Zhao. 2025b. Learning and planning multi-agent tasks via an moe-based world model. In Advances in Neural Informa-tion Processing Systems .
+
+6 Appendix 
+
+We conducted a preliminary analysis to reveal the existence and nature of the cross-state gap. These analyses provide the empirical justification for our architecture. 
+
+6.1 Cross-State Transferability Gap 
+
+We first examine cross-state performance degrada-tion by training models on Florida data and evaluat-ing them on other states under varying training sam-ple sizes. As shown in Figure 3, all baseline models exhibit a substantial performance drop when trans-ferred to other states, indicating a clear cross-state distribution shift. To quantify this cross-state trans-fer gap, Table 5 reports the Matthews correlation coefficient (MCC) for each model trained on 100 Florida samples and evaluated on test sets from all three states. Several key patterns emerge. All models expe-rience substantial performance degradation when evaluated on Georgia data: TabPFN declines from 0.757 to 0.313 ( −58 .6% ), XGBoost from 0.729 to 0.325 ( −55 .4% ), and GPT-5-mini from 0.736 to 0.571 ( −22 .4% ). In contrast, transferring models between Florida and Texas results in minimal per-formance loss. This asymmetric transfer behavior, where Florida and Texas generalize well to each other, but both perform poorly on Georgia, suggests the presence of latent population heterogeneity that is not captured by standard feature representations or conventional modeling approaches. To illustrate the presence of state-specific effects and better understand their underlying mechanisms, we visualize evacuation probability differences us-ing heatmaps projected onto a UMAP embedding space. Figure 1 reveals a key insight: populations from different states exhibit distinct behavioral regimes. In the UMAP space, each point represents a fixed feature profile (e.g., identical age, income, and risk perception). If individuals across states followed the same decision function, the heatmap would be uniformly neutral, indicating no differ-ence in predicted evacuation probabilities. Instead, the map displays pronounced spatial heterogeneity, with large red regions (probability differences of approximately +0.30 to +0.45) interspersed with localized blue patches. This heterogeneous pattern has two important implications. First, the dominance of red regions indicates that, for most feature combinations, Geor-gia residents are more likely to evacuate than their counterparts in Florida or Texas. This points to a systematic “state effect”, potentially driven by dif-ferences in hurricane experience, state-level evac-uation policies, media messaging, or community norms. Second, the presence of blue regions shows that for certain feature profiles, residents of Florida TabPFN GPT-5-mini XGBoost 
+
+> Shot Size 100 50 20 10 52Shot Size 100 50 20 10 52Shot Size 100 50 20 10 52
+> Matthews Correlation Coe ffi cient (MCC)
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Florida → Florida (In-domain) Florida → Georgia (Cross-state) Florida → Texas (Cross-state)
+
+Figure 3: Cross-state transferability: models trained on Florida and evaluated on Florida (intra-state) vs. Geor-gia/Texas (cross-state).                                       
+
+> Florida Georgia Texas Model MCC AUC Accuracy MCC AUC Accuracy MCC AUC Accuracy GPT-5-mini .736 .867 .867 .571 .791 .787 .736 .867 .867 TabPFN .757 ±.046 .962 ±.009 .877 ±.023 .313 ±.067 .773 ±.018 .678 ±.026 .717 ±.055 .953 ±.012 .854 ±.030
+> XGBoost .729 ±.040 .944 ±.017 .864 ±.020 .325 ±.076 .719 ±.029 .686 ±.034 .714 ±.040 .927 ±.016 .855 ±.021
+
+Table 5: Cross-state transfer performance when training on Florida (100 shots) and testing on each state. 
+
+and Texas are more likely to evacuate, suggesting that the same decision factors (e.g., age or prepared-ness) can have opposite effects across states. These findings have direct implications for model design. A single global model cannot si-multaneously represent these conflicting behav-ioral patterns: learning one dominant relationship (e.g., higher preparedness increases evacuation like-lihood) will inevitably misrepresent subpopulations in certain states. This observation motivates our Mixture-of-Experts approach, in which multiple experts capture distinct behavioral regimes and a learned routing mechanism dynamically combines them based on input features, enabling the model to adapt to cross-state behavioral heterogeneity. 
+
+6.2 Heterogeneity Within a Target State 
+
+Cross-state transfer is not the only challenge: het-erogeneity among subpopulations within a single state can also limit the effectiveness of a unified global model. To examine this, we compare three training and testing configurations: (1) models trained on Florida data and evaluated on Florida (FL → FL), (2) models trained on Florida and evaluated on Georgia (FL → GA), and (3) models trained and evaluated on Georgia (GA → GA). If intra-state heterogeneity were minimal, we would expect configuration (3) to substantially outperform configuration (2), since both training and testing data would come from the same population. Table 6 shows a counterintuitive result: models trained on Georgia data (GA → GA) perform worse than Florida-trained models evaluated on Georgia (FL → GA). For TabPFN, the MCC decreases from 0.313 (FL → GA) to 0.274 (GA → GA), a rela-tive decline of 12.5%. XGBoost shows a more pronounced drop, from 0.325 to 0.224 ( −31 .1% ), while GPT-5-mini exhibits the largest degradation, with MCC falling from 0.571 to 0.295 ( −48 .3% ). This seemingly paradoxical outcome, where out-of-domain training data generalize better than in-domain data, can be explained by the interaction between intra-state population heterogeneity and limited training samples. Georgia’s population likely consists of multiple latent subgroups with distinct evacuation decision patterns. With a small training set (100 shots), models trained solely on Georgia data may overfit to the specific subgroups represented in the sample, failing to capture the broader behavioral diversity of the state. In con-Model Train → Test MCC AUC Accuracy GPT-5-mini FL → FL .736 .867 .867 FL → GA .571 .791 .787 GA → GA .295 .691 .795 TabPFN FL → FL .757 ±.046 .962 ±.009 .877 ±.023                          
+
+> FL →GA .313 ±.067 .773 ±.018 .678 ±.026
+> GA →GA .274 ±.101 .763 ±.066 .729 ±.037
+> XGBoost FL →FL .729 ±.040 .944 ±.017 .864 ±.020
+> FL →GA .325 ±.076 .719 ±.029 .686 ±.034
+> GA →GA .224 ±.091 .694 ±.073 .672 ±.025
+
+Table 6: Within-state heterogeneity analysis (100 train-ing shots). 
+
+trast, Florida’s larger and more diverse training dis-tribution may induce more robust decision bound-aries that transfer better to Georgia’s heterogeneous population, despite originating from a different state. These findings reinforce and extend the earlier cross-state transferability analysis (Figure 3). The observed transfer gap is not solely a cross-state phe-nomenon but reflects a deeper structural challenge: behavioral heterogeneity operates at multiple lev-els, both across states and within individual states. As a result, a single global model, whether trained on the source or target domain, tends to favor domi-nant behavioral patterns while underperforming for minority subgroups. This multi-level heterogeneity further motivates the proposed Mixture-of-Experts approach, which can identify and specialize in dis-tinct behavioral regimes regardless of their geo-graphic origin. 
+
+6.3 Theory-Inspired Two-Stage Prediction Still Faces a Transfer Gap 
+
+The Protective Action Decision Model (PADM) is a foundational theoretical framework for evacua-tion behavior analysis. It conceptualizes disaster decision-making as a sequence of interpretable cog-nitive stages, progressing from hazard cues to risk perception and from risk perception to protective action (Lindell and Perry, 2012; Huang et al., 2016). This two-stage decomposition offers strong theo-retical grounding and has informed a wide range of empirical studies (Demuth et al., 2016; Hasan et al., 2011). Motivated by this structure, we ex-amine whether a PADM-inspired architecture can improve cross-state generalization. Specifically, we evaluate an oracle setting in which the second-stage evacuation decision model is provided with ground-truth risk perception val-ues rather than predictions from the first stage, thereby eliminating error propagation from percep-tion modeling. If PADM’s cognitive decomposition captures the fundamental and transferable structure of evacuation decision-making, this oracle configu-ration should substantially reduce cross-state per-formance degradation.                          
+
+> Model Perception MCC AUC Acc GPT-5-mini Without .571 .791 .787 Oracle .629 .822 .813 TabPFN Without .313 ±.067 .773 ±.018 .678 ±.026
+> Oracle .335 ±.055 .797 ±.021 .694 ±.021
+> XGBoost Without .325 ±.076 .719 ±.029 .686 ±.034
+> Oracle .349 ±.038 .765 ±.024 .699 ±.018
+
+Table 7: PADM-inspired two-stage prediction: Florida →Georgia transfer (100 shots). 
+
+However, Table 7 shows that cross-state transfer remains limited even under this oracle condition. For TabPFN, the MCC increases only marginally from 0.313 to 0.335 (+7.0%), and for XGBoost from 0.325 to 0.349 (+7.4%). GPT-5-mini ex-hibits a larger improvement, from 0.571 to 0.629 (+10.2%), yet still falls well below within-state performance levels (Table 5, where Florida MCC exceeds 0.73). These results indicate that cross-state generaliza-tion challenges persist beyond errors in modeling risk perception. Differences across states likely arise not only in how residents form risk percep-tions from identical hazard cues, but also in how similar perceptions are translated into evacuation decisions. Such variation may reflect state-specific factors, including prior hazard experience, cultural norms, institutional practices, or infrastructure con-straints. 
+
+6.4 Symbolic Expert Cluster Profiles 
+
+The routing mechanism assigns each cluster to a symbolic expert based on learned activation weights. Table 8 summarizes the 10 discovered clusters, showing the routed expert formula, key demographic features, and behavioral interpreta-tion for each. Three distinct formula archetypes emerge from the routing analysis. Formula A (Expert 25, Cluster 0 only) uses a simple linear sum of TimesAsked and EvacPctZip , capturing direct response to ex-ternal pressure without nonlinear transformations. Formula B (Expert 26, Clusters 3,4,5,6,9) imple-ments a two-term tradeoff between amplified geo-graphic evacuation rate ( EvacPctZip /c 0, with am-Cluster Expert Formula Demographic Profile Behavioral Pattern C0 TimesAsked + EvacPctZip Youngest (age 33.4), unmarried, low education Direct response to external pressure C1 EvacPctZip  
+
+> c0
+
++ . . . − log( Age ) High age (69.5), non-standard mari-tal status Geographic signal vs. age resistance C2 EvacPctZip  
+
+> c0
+
++ . . . − log( Age ) Near-mean demographics, married females Calibration baseline group C3 EvacPctZip  
+
+> c0
+
+− log( Age ) Older (59.0), widowed females Community behavior vs. age C4 EvacPctZip  
+
+> c0
+
+− log( Age ) Young (34.5), divorced, low educa-tion Geographic rate vs. age C5 EvacPctZip  
+
+> c0
+
+− log( Age ) Young (33.1), high education, males with children Minimal age resistance, high compliance (96.9%) C6 EvacPctZip  
+
+> c0
+
+− log( Age ) Older (64.5), married males, high external pressure Strong community signal (75.5%) C7 EvacPctZip  
+
+> c0
+
++ . . . − log( Age ) Older (60.3), high education, so-cially isolated Low external cues, educa-tion offset C8 EvacPctZip  
+
+> c0
+
++ . . . − log( Age ) Older (60.1), married males, ex-treme isolation Zero evacuation (0.0%) C9 EvacPctZip  
+
+> c0
+
+− log( Age ) Older (63.1), high education, multi-story homes Structural protection percep-tion 
+
+Table 8: Cluster profiles showing routed expert formulas, demographic characteristics, and behavioral interpretations. Three formula archetypes emerge: (A) linear additive (C0 only), (B) geographic rate vs. log-age (C3,4,5,6,9), and (C) multi-factor with cosine and root transforms (C1,2,7,8). 
+
+plification factor approximately 14.7) and logarith-mic age resistance. Formula C (Expert 3, Clusters 1,2,7,8) integrates eight features through cosine and fourth-root transforms, modeling complex interac-tions between geographic signals, social isolation indicators, and demographic penalties. The routing mechanism assigns semantically co-herent clusters to formula archetypes. The sim-plest social-pressure formula serves the youngest cohort (C0, mean age 33.4). Age-resistance for-mulas serve mid-to-older populations across mul-tiple clusters with varying demographic contexts. Multi-factor formulas handle behaviorally complex groups, including those with non-standard mari-tal status (C1), near-mean demographics requiring fine-grained calibration (C2), or extreme social iso-lation (C7, C8). 
+
+6.5 Clustering Stability Analysis 
+
+To verify that the discovered subpopulations are not artifacts of random initialization, we evaluate clus-tering stability under two sources of randomness: UMAP embedding seed variation (Experiment A) and full pipeline randomness including data-split variation (Experiment B). Table 9 reports permutation-invariant stability metrics for Experiment A, where UMAP random state varies across 20 runs while the data split remains fixed. The high ARI (0.876) and NMI (0.916) values confirm that cluster assignments re-            
+
+> Metric Value Threshold Adjusted Rand Index (ARI) 0.876 >0.8 (strong) Normalized Mutual Information (NMI) 0.916 >0.8 (high) Co-clustering Jaccard 0.822 >0.75 (reliable) Cluster count (mode) 8range [6,11] Noise fraction 0.020 —
+
+Table 9: Clustering stability metrics for Experiment A (20 runs with varying UMAP random state, fixed data split). 
+
+main consistent across random seeds, with over 82% pairwise co-clustering agreement (Jaccard). Experiment B tests a stronger perturbation: both the data-split seed and UMAP initialization vary across 10 independent runs, so the training sample composition changes in each run. Despite this ad-ditional source of variation, structural properties remain stable: the cluster count concentrates at mode 6 (range [5, 10]) with mean 6.6 ± 1.5, and the noise fraction averages 0.014 ± 0.022 , confirm-ing that the vast majority of samples are assigned to well-defined density regions regardless of the specific training fold. These results demonstrate that the discovered subpopulations reflect stable density structures in the representation space rather than initialization artifacts. 
+
+6.6 Computational Cost and Ablation Details 
+
+Table 10 reports computational costs for PASM and two ablation baselines. The LLM is invoked only during symbolic regression search with probability 
+
+p = 0 .001 per genetic operation, not during router training or inference. The full pipeline completes within a single workday on commodity GPU hard-ware. Once experts are discovered, deployment requires only the lightweight router (45 seconds to train, negligible inference time), making the one-time symbolic search cost acceptable for practical applications.                 
+
+> Method MCC LLM Calls LLM Tokens Wall Time (s) PASM (Full) 0.607 2,068 4,508,756 24,699 No Routing (Top-1 SR) 0.234 150 313,483 1,718 No SR (LR + Router) 0.434 0045
+
+Table 10: Computational cost breakdown. GPU mem-ory: Ollama LLM server 5.720 GiB peak, router train-ing 1,576 MiB. Throughput: 131 tok/s (A6000 Ada), 79 tok/s (RTX 4070 Ti). 
+
+6.7 Calibration Sample-Size Sensitivity 
+
+We ablate MoE router training on varying num-bers of target-domain calibration samples (20, 30, 50, 80, 100), fixing the source-domain symbolic experts and the Georgia test set. Table 11 reports MCC for each sample size.       
+
+> Calibration Shots MCC 20 0.426 30 0.488 50 0.548 80 0.566 100 0.607
+
+Table 11: MoE router calibration MCC across target-domain sample sizes. Source-domain experts and Geor-gia test set are held fixed. 
+
+MCC rises monotonically from 0.426 (20 shots) to 0.548 (50 shots) and 0.607 (100 shots). The 20-to-50 gain (+0.12) roughly doubles the 50-to-100 gain (+0.06), indicating diminishing returns. Thus 50 calibration samples already yield strong router performance, and quantitative benefits plateau be-yond 100. 
+
+6.8 Policy-Relevant Demographic Grid Comparison 
+
+To assess the tradeoff between interpretability and predictive performance, we compare the data-driven UMAP+HDBSCAN clustering (main pipeline) against a policy-relevant demographic grid defined by Age (young/middle/old) × Edu-cation (high/low), yielding 6 groups. The demo-graphic grid achieves MCC = 0.457 ± 0.086, com-pared to PASM (data-driven) MCC = 0.607, a gap of 0.15. This gap reflects a fundamental tradeoff. De-mographic categories align with policy-relevant groupings (e.g., "elderly with low education") but miss latent behavioral heterogeneity that crosses demographic boundaries. Data-driven clustering captures these cross-cutting patterns at the cost of less intuitive group labels. A hybrid approach, using demographic priors as initialization for rep-resentation learning, may combine the strengths of both strategies by preserving interpretability while adapting to behavioral structure. 
+
+6.9 Demographic Fairness Analysis 
+
+We evaluate prediction fairness across four de-mographic axes (race, sex, education, age) using Fisher exact tests with Bonferroni correction. Ta-ble 12 reports accuracy for each group and statis-tical significance of differences. No axis shows a statistically significant accuracy disparity after correction (all corrected p > 0.05 ). The largest effect appears on the sex axis, where male respon-dents receive 4.7 percentage points higher accuracy than female respondents, but this difference does not reach significance (corrected p = 0 .259 ). We flag this gap for continued monitoring in future deployments. 
+
+Table 12: Demographic fairness analysis (N=679, overall accuracy 88.5%). No statistically significant disparities detected after Bonferroni correction.
