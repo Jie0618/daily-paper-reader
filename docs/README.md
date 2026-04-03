@@ -6,36 +6,43 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-02
-- 运行时间：2026-04-02 20:23:05 UTC
+- 最新运行日期：2026-04-03
+- 运行时间：2026-04-03 19:37:32 UTC
 - 运行状态：成功
-- 本次总论文数：5
-- 精读区：3
-- 速读区：2
+- 本次总论文数：7
+- 精读区：2
+- 速读区：5
 
 ### 今日简报（AI）
-今日聚焦符号回归与物理规律的深度融合，重点攻克了哈密顿量自动发现与飓风撤离决策预测。
-满分论文提出的 Buckingham-Sym
-- 详情：[/202604/02/README](/202604/02/README)
+今日聚焦神经符号发现与物理方程提取，深度剖析 7 篇前沿论文。
+重点关注函数类失配下的偏差继承问题，以及利用对称性过滤技术精准发现连续介质方程。
+建议深入探索物理先验与符号推理的结合，以提升科学计算模型的鲁棒性与可解释性。
+- 详情：[/202604/03/README](/202604/03/README)
 
 ### 精读区论文标签
-1. [Discovery of Symbolic Hamiltonian Expressions with Buckingham-Symplectic Networks](/202604/02/2604.00576v1-discovery-of-symbolic-hamiltonian-expressions-with-buckingham-symplectic-networks)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：从物理数据中发现符号哈密顿表达式
-2. [PASM: Population Adaptive Symbolic Mixture-of-Experts Model for Cross-location Hurricane Evacuation Decision Prediction](/202604/02/2604.00074v1-pasm-population-adaptive-symbolic-mixture-of-experts-model-for-cross-location-hurricane-evacuation-decision-prediction)  
+1. [Bias Inheritance in Neural-Symbolic Discovery of Constitutive Closures Under Function-Class Mismatch](/202604/03/2604.01335v1-bias-inheritance-in-neural-symbolic-discovery-of-constitutive-closures-under-function-class-mismatch)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：大语言模型引导的符号回归用于发现闭式决策规则
-3. [Predicting Dynamics of Ultra-Large Complex Systems by Inferring Governing Equations](/202604/02/2604.00599v1-predicting-dynamics-of-ultra-large-complex-systems-by-inferring-governing-equations)  
+   evidence：数据驱动的物理定律和符号闭合项发现
+2. [Symmetry-Informed Term Filtering for Continuum Equation Discovery](/202604/03/2604.01592v1-symmetry-informed-term-filtering-for-continuum-equation-discovery)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：从数据中推断大型网络系统的控制方程
+   evidence：基于对称性的物理控制方程发现
 
 ### 速读区论文标签
-1. [Learning Interatomic Force Coefficients from X-ray Thermal Diffuse Scattering Data](/202604/02/2603.28683v1-learning-interatomic-force-coefficients-from-x-ray-thermal-diffuse-scattering-data)  
+1. [Neuro-Symbolic Learning for Predictive Process Monitoring via Two-Stage Logic Tensor Networks with Rule Pruning](/202604/03/2603.26944v1-neuro-symbolic-learning-for-predictive-process-monitoring-via-two-stage-logic-tensor-networks-with-rule-pruning)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：直接从散射数据中提取原子间力常数
-2. [ParetoEnsembles.jl: A Julia Package for Multiobjective Parameter Estimation Using Pareto Optimal Ensemble Techniques](/202604/02/2603.29986v1-paretoensemblesjl-a-julia-package-for-multiobjective-parameter-estimation-using-pareto-optimal-ensemble-techniques)  
+   evidence：将领域知识集成为逻辑约束的神经符号学习
+2. [Deflation-PINNs: Learning Multiple Solutions for PDEs and Landau-de Gennes](/202604/03/2603.27936v2-deflation-pinns-learning-multiple-solutions-for-pdes-and-landau-de-gennes)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：多目标参数估计与帕累托最优权衡
+   evidence：学习数学物理中非线性偏微分方程的多个解
+3. [Informed Machine Learning with Knowledge Landmarks](/202604/03/2604.00256v1-informed-machine-learning-with-knowledge-landmarks)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：涉及物理方程的物理信息机器学习
+4. [Optimization-Based Discovery of A Non-Attracting Flow State in An Oscillating-Cylinder Wake](/202604/03/2604.00441v1-optimization-based-discovery-of-a-non-attracting-flow-state-in-an-oscillating-cylinder-wake)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：使用PINN研究流动解和控制方程
+5. [Performance of Neural and Polynomial Operator Surrogates](/202604/03/2604.00689v1-performance-of-neural-and-polynomial-operator-surrogates)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：用于科学发现的神经算子与多项式代理模型的比较
 
 
 <div class="dpr-home-promo-card">

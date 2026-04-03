@@ -1,0 +1,1382 @@
+Title: Symmetry-Informed Term Filtering for Continuum Equation Discovery
+
+URL Source: https://arxiv.org/pdf/2604.01592v1
+
+Published Time: Fri, 03 Apr 2026 00:27:59 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+## Symmetry-Informed Term Filtering for Continuum Equation Discovery 
+
+Junya Yokokura 1, ∗ and Kazumasa A. Takeuchi 1, 2, 3, †
+
+> 1
+
+Department of Physics, The University of Tokyo, 7-3-1 Hongo, Bunkyo-ku, Tokyo 113-0033, Japan 
+
+> 2
+
+Institute for Physics of Intelligence, The University of Tokyo, 7-3-1 Hongo, Bunkyo-ku, Tokyo 113-0033, Japan 
+
+> 3
+
+Universal Biology Institute, The University of Tokyo, 7-3-1 Hongo, Bunkyo-ku, Tokyo 113-0033, Japan 
+
+(Dated: 2026-04-03) Discovering governing equations, whether manually or by data-driven methods, has been central in physics and related areas. Since governing equations are typically constrained by a set of symmetries, using symmetry constraints to restrict terms is usually the first step in manually formulating a governing equation, but it often becomes intractable for complex systems with high-order derivatives or multiple fields. When a data-driven method is used, on the other hand, imposing physical constraints such as symmetries typically requires manual preprocessing or computationally expensive iterative procedures. Here, we propose an algebraic filtering method that enumerates all symmetry-allowed terms for continuum equations within a finite candidate space. By treating symmetry generators as linear operators on the candidate space, we reduce the problem of enforcing both discrete and continuous symmetries to solving a set of linear kernel equations. The solution yields a provably complete list of permitted terms. We demonstrate the method’s effectiveness by identifying invariant terms for systems with dihedral symmetry and recovering the governing equations for the Toner–Tu and Kardar–Parisi–Zhang systems, including higher-order terms useful for extending known models. The method provides a systematic way to obtain a symmetry-allowed search space for data-driven equation discovery, e.g., the sparse identification of nonlinear dynamics method. 
+
+Introduction. Inferring and discovering governing equations has been central to many areas of physics and beyond. Traditionally, governing equations have often been derived by hand based on physical arguments, sym-metry principles, and controlled approximations. How-ever, manual derivation is not always straightforward: multiple fields (e.g., vector fields) or high-order deriva-tives produce a combinatorially large set of candidate terms, making it difficult to maintain physical consis-tency. Recently, automated discovery methods have been developed to derive governing equations from data, in-cluding sparse regression [1, 2], symbolic regression [3, 4], and neural-network methods [5–7]. In practice, to be ro-bust against noise, these data-driven methods also re-quire physically informed constraints, most of which are based on symmetries. Some approaches add symmetry constraints to the loss function [6, 7], but this soft re-striction requires careful tuning of penalty weights and often complicates optimization. Other methods strictly enforce physical constraints by iteratively projecting can-didate solutions onto constraint manifolds at each op-timization step [8], resulting in computationally heavy iterations. Alternatively, discovering equations from a manually curated candidate space [2] requires explicitly encoding physical symmetries into the library construc-tion, which suffers from the same combinatorial explosion as manual derivation for systems with multiple fields or high-order derivatives. In this work, we present an algebraic filtering method that enumerates all symmetry-compatible linear combi-nations within a chosen finite candidate space, yielding a provably complete list of permitted terms under spec-ified symmetries. The method treats symmetry genera-tors as linear operators on the candidate space and re-duces the invariance conditions to finite kernel problems. This approach is applicable to both discrete and contin-uous symmetries. Applying the method to several classi-cal systems demonstrates its effectiveness in enumerating higher-order terms automatically and exhaustively. 
+
+Theory. Here we outline the theoretical framework of our method. See Supplemental Material [9] for a com-plete description of the theory and its proof. We consider systems described by classical fields. For simplicity, we assume the target system is described by real coordinates ⃗x = ( x 1, x 2, . . . , x d) ∈ Ω ⊂ Rd and a real smooth n-component field u = ( u1, u 2, . . . , u n) : Ω → Rn
+
+[10]. We denote the set of all such smooth fields as Un
+
+where U is the set of all smooth real functions on Ω. We further assume that the governing equations depend only on ⃗x and finitely many derivatives of u, including the field itself, i.e., we assume the locality of systems. More specifically, there exists a non-negative integer K and an 
+
+m-component smooth function F = ( F1, F 2, . . . , F m) ∈Fm such that the equations can be written as 
+
+∀⃗x ∈ Ω, F
+
+⃗x, u(⃗x),⃗ ∂u(⃗x), . . . ,⃗ ∂K u(⃗x)
+
+
+
+= 0, (1) where ⃗ ∂ku(⃗x) denotes the list of k-th order partial deriva-tives of u at point ⃗x. The set F m is the direct product of F, which consists of smooth real functions that take ⃗x, u(⃗x),⃗ ∂u(⃗x), . . . ,⃗ ∂K u(⃗x) as arguments. Equation (1) defines a solution manifold, denoted by SF ⊂ U n.Under a few assumptions that are usually valid for symmetries considered in physics (see Supplemental Ma-terial [9]), we search for governing equations [Eq. (1)] that are invariant under the given symmetries. We call the equations invariant under given symmetries if the solution manifold is invariant under all transforma-
+
+> arXiv:2604.01592v1 [cond-mat.stat-mech] 2 Apr 2026
+
+2tions T ∈ G , where G is the corresponding symmetry group. Under our definitions, this invariance condition for F ∈ F m is expressed as 
+
+∀T ∈ G , SF = T (SF ) = SMT (F ), (2) with a linear map MT on F such that SMT (F ) = T (SF ). We further impose the following covariance condition: 
+
+∃XT ∈ GL( m, R), MT (F ) = XT F . (3) This condition guarantees the invariance under the trans-formation T .In practice the symmetry group G is specified by generators. Let {T α}α∈A denote discrete generators and let S(θ) denote continuous transformations with multi-dimensional parameter θ = {θβ }β∈B which satisfy 
+
+S(0) = Id (identity map) [11]. Since MT forms a repre-sentation of the symmetry group G on F, we can reduce the invariance condition for all T ∈ G to a finite set of linear equations for the generators: 
+
+∀α ∈ A, ∃Xα ∈ GL( m, R), MαF = XαF , (4) 
+
+∀β ∈ B, ∃Yβ ∈ End( m, R), Dβ F = Yβ F , (5) with the covariance condition as a working criterion. Here, Mα stands for MTα , and the continuous gener-ators {D β }β∈B of the representation on F are defined by 
+
+Dβ = ∂∂θ β
+
+MS(θ)
+
+> θ=0
+
+. (6) Detailed proofs of this reduction are provided in Supple-mental Material [9]. While we can reformulate the constraints as general-ized eigenproblems, we specialize them for practical use. Write F = L + R where L denotes known (or assumed) terms and R denotes unknown terms to be discovered. We assume that L and R transform covariantly and are separated under the symmetry action, so that Eq. (4) becomes 
+
+∀α ∈ A, ∃Xα ∈ GL( m, R),
+
+(
+
+MαL = XαL,
+
+MαR = XαR. (7) To reduce the problem to a finite set of linear equa-tions, we expand L and R as 
+
+Li = L˜μi ˜f˜μ, L˜μi ∈ R, (8) 
+
+Ri = Rμi fμ, Rμi ∈ R, (9) where f = ( f1, f 2, . . . , f a) ∈ F a are the basis functions for the candidate space and ˜f =
+
+ ˜f1, ˜f2, . . . , ˜fc
+
+
+
+∈ F c
+
+are those for the known terms, which may differ from 
+
+fμ. We refer to f and ˜f as the candidate basis and analysis basis, respectively. The action of Mα on these bases is expanded using additional basis functions g =(g1, g 2, . . . , g b) ∈ F b and ˜ g = (˜ g1, ˜g2, . . . , ˜gd) ∈ F d as 
+
+Mαfμ = ( Tα)νμfν + ( Dα)ρμ(gα)ρ, (10) 
+
+Mα ˜fμ =
+
+ ˜Tα
+
+νμ
+
+˜fν +
+
+ ˜Dα
+
+ρμ
+
+(˜ gα)ρ. (11) Using Eqs. (7) to (11) and assuming that the coeffi-cient matrix L for the known terms has full row rank, which is natural since the equations are typically linearly independent, we can finally obtain the following equation as a reduced form of Eq. (4): 
+
+(
+
+RT α = L ˜TαL+R, RD α = O. (12) Here, L+ denotes the Moore-Penrose (right) inverse [12] satisfying LL + = I (see Supplemental Material [9]). This constitutes kernel equations for the unknown coefficients 
+
+R. For the continuous transformations [Eq. (5)], we can follow the same procedure and obtain the following kernel equations: 
+
+(
+
+RT ′ 
+
+> β
+
+= L ˜T ′ 
+
+> β
+
+L+R, RD ′ 
+
+> β
+
+= O, (13) with 
+
+Dβ fμ =  T ′
+
+> β
+
+νμfν +  D′
+
+> β
+
+ρμ
+
+ g′
+
+> β
+
+
+
+> ρ
+
+, (14) 
+
+Dβ ˜fμ =
+
+ ˜T ′
+
+> β
+
+νμ
+
+˜fν +
+
+ ˜D′
+
+> β
+
+ρμ
+
+ ˜g′
+
+> β
+
+
+
+> ρ
+
+. (15) The only difference is that L ˜T ′ 
+
+> β
+
+L+ need not be invertible. Thus we have reduced symmetry enforcement to fi-nite kernel equations for the unknown coefficient ma-trix R. Solving these kernel equations yields a finite-dimensional solution space with arbitrary basis vec-tors R1, R 2, . . . , R r , which correspond to the symmetry-allowed linear combinations of the candidate terms, i.e., the permitted terms R1f , R 2f , . . . , R r f .
+
+Algorithm. The details of the algorithm are presented in Algorithms 1 to 4. Before explaining the procedures, we first review the key concepts used in the algorithm as inputs, along with their notations and assumptions. The symbols ⃗ x = ( x 1, . . . , x d) = {xi}di=1 and u =(u1, . . . , u n) = {ui}ni=1 represent the system’s coordi-nates and fields, respectively. No specific symmetry con-straints are assumed on these symbols a priori . Users may choose any symbolic representation; for example, one can use x, y, z for the coordinates and u, v, w for the fields, or use indexed symbols like xi and ui.The symmetry transformations, {T α}α∈A for discrete symmetries and {S β (θ)}β∈B for continuous symmetries, generate the entire symmetry group. The discrete trans-formations Tα act as standard group generators. For the continuous transformations Sβ (θ), we consider infinites-imal θ, since it is sufficient to construct the derivatives 3
+
+Algorithm 1 Apply Transformation to Expressions  
+
+> 1:
+
+function apply trans ( {xi}di=1 , {ui}ni=1 , T , s ) 
+
+> 2:
+
+if s is of the form f (e1, e 2, . . . , e k ) where f : Rk → R
+
+then  
+
+> 3:
+
+for i ← 1, . . . , k do  
+
+> 4:
+
+e′ 
+
+> i
+
+← apply trans ({xi}di=1 , {ui}ni=1 , T , ei) 
+
+> 5:
+
+end for  
+
+> 6:
+
+return f (e′
+
+> 1
+
+, e ′
+
+> 2
+
+, . . . , e ′ 
+
+> k
+
+) ▷ Recursively apply the transformation to the arguments.  
+
+> 7:
+
+end if  
+
+> 8:
+
+for i ← 1, . . . , d do  
+
+> 9:
+
+if s is a coordinate xi then  
+
+> 10:
+
+return (χT )i(⃗x) ▷ Apply coordinate replacement rule.  
+
+> 11:
+
+end if  
+
+> 12:
+
+end for  
+
+> 13:
+
+for i ← 1, . . . , n do  
+
+> 14:
+
+if s is a field ui then  
+
+> 15:
+
+return (vT )i
+
+⃗x, u(⃗x),⃗ ∂u(⃗x),⃗ ∂2u(⃗x), . . . 
+
+
+
+▷
+
+Apply field replacement rule.  
+
+> 16:
+
+end if  
+
+> 17:
+
+end for  
+
+> 18:
+
+for i ← 1, . . . , d do  
+
+> 19:
+
+if s is a derivative ∂∂x i e then  
+
+> 20:
+
+e′ ← apply trans ({xi}di=1 , {ui}ni=1 , T , e) 
+
+> 21:
+
+return 
+
+Pdj=1 
+
+ J−1
+
+> T
+
+ 
+
+> i,j
+
+(⃗x) ∂∂x j
+
+
+
+(e′) ▷
+
+Apply derivative replacement rule and recursively apply the transformation to the differentiated term.  
+
+> 22:
+
+end if  
+
+> 23:
+
+end for  
+
+> 24:
+
+return s ▷ Return original expression if no rule matches.  
+
+> 25:
+
+end function 
+
+Dβ . This Sβ (θ) amounts to S(θeβ ) with the unit vector 
+
+eβ along the β-th direction. Each transformation T is explicitly defined by replace-ment rules for the new coordinates ⃗χ T and the new fields 
+
+vT . The replacement rules for derivatives additionally require the inverse Jacobian matrix J−1 
+
+> T
+
+, which can be automatically computed from ⃗χ T as ( JT )i,j = ∂(χT )j 
+
+> ∂x i
+
+.For continuous transformations Sβ (θ), ⃗χ Sβ , vSβ and J−1
+
+> Sβ
+
+must be parameterized by θ such that Sβ (0) = Id. This enables the algorithm to compute the correspond-ing infinitesimal generator by differentiating these rules at θ = 0. To summarize, the replacement rules are ap-plied as follows: 
+
+• For coordinates: ⃗x 7 →⃗χ T (⃗x), 
+
+• For fields: u(⃗x) 7 → v T
+
+⃗x, u(⃗x),⃗ ∂u(⃗x), . . . 
+
+
+
+,
+
+• For derivatives: ∂∂x i 7 →  J−1
+
+> T
+
+ 
+
+> i,j
+
+(⃗x) ∂∂x j .The candidate terms f = ( f1, . . . , f a) = {fi}ai=1 con-stitute the basis for the candidate space. Users can 
+
+Algorithm 2 Compute Coefficient Matrix for Expressions  
+
+> 1:
+
+function coeff matrix ( {si}ki=1 , {fi}li=1 ) 
+
+> 2:
+
+for i ← 1, . . . , k do  
+
+> 3:
+
+zi ← classify (si) ▷ Expand and simplify si into canonical form, then return the dictionary of coefficients for each basis function.  
+
+> 4:
+
+end for  
+
+> 5:
+
+K ← merge sets ({zi.keys }ki=1 ) 
+
+> 6:
+
+K ← remove keys (K, {fi}li=1 ) 
+
+> 7:
+
+{gi}mi=1 ← to list (K) 
+
+> 8:
+
+for i ← 1, . . . , k do  
+
+> 9:
+
+for j ← 1, . . . , l do  
+
+> 10:
+
+Cij ← zi[fj ] 
+
+> 11:
+
+end for  
+
+> 12:
+
+end for  
+
+> 13:
+
+for i ← 1, . . . , k do  
+
+> 14:
+
+for j ← 1, . . . , m do  
+
+> 15:
+
+Dij ← zi[gj ] 
+
+> 16:
+
+end for  
+
+> 17:
+
+end for  
+
+> 18:
+
+return C, D, {gi}mi=1  
+
+> 19:
+
+end function 
+
+Algorithm 3 Compute Transformation Matrix  
+
+> 1:
+
+function trans matrix ( {xi}di=1 , {ui}ni=1 , T , {fi}ki=1 ) 
+
+> 2:
+
+for i ← 1, . . . , k do  
+
+> 3:
+
+f ′ 
+
+> i
+
+← apply trans ({xi}di=1 , {ui}ni=1 , T , fi) 
+
+> 4:
+
+end for  
+
+> 5:
+
+T, D, ← coeff matrix ({f ′ 
+
+> i
+
+}ki=1 , {fi}ki=1 ) 
+
+> 6:
+
+return T , D 
+
+> 7:
+
+end function 
+
+choose any basis defining the search space for the un-known terms. A typical choice is to select monomials of coordinates, fields, and their derivatives, restricted by constraints such as maximum derivative order or maxi-mum monomial degree. Such a basis can be easily gen-erated by a helper function. For example, Algorithm 5 lists all monomial terms up to a maximum order Pmax .The known terms L = ( L1, . . . , L m) = {Li}mi=1 must be linearly independent and expressible as linear combi-nations of the analysis basis functions ˜f =
+
+ ˜f1, . . . , ˜fc
+
+
+
+=
+
+n ˜fi
+
+oci=1 
+
+, also specified by users. The transformed known terms must also lie within the span of the analysis basis for Xα and Yβ to be computed correctly. The analysis basis ˜f may be identical to f , or chosen distinctly to optimize performance. The subroutines of the algorithm proceed as follows. Algorithm 1 applies a transformation T to an expression 
+
+s (implementation of MT ). Algorithm 2 extracts the co-efficient matrices C and D and additional basis {gi}mi=1 4
+
+Algorithm 4 Compute Basis of Solution Space  
+
+> 1:
+
+procedure coeff basis ( {xi}di=1 , {ui}ni=1 , {T α}α∈A,
+
+{S β (θ)}β∈B , {fi}ai=1 , {Li}mi=1 ,
+
+n ˜fi
+
+oci=1 
+
+) 
+
+> 2:
+
+L, D L, ← coeff matrix ({Li}mi=1 ,
+
+n ˜fi
+
+oci=1 
+
+) 
+
+> 3:
+
+if DL̸ = O or rank( L) < m then  
+
+> 4:
+
+return failure  
+
+> 5:
+
+end if  
+
+> 6:
+
+for all α ∈ A do  
+
+> 7:
+
+˜Tα, ˜Dα ← trans matrix ( {xi}di=1 , {ui}ni=1 , Tα,n ˜fi
+
+oci=1 
+
+) 
+
+> 8:
+
+Xα ← L ˜TαL+ 
+
+> 9:
+
+if rank( Xα)̸ = m or L ˜Dα̸ = O then  
+
+> 10:
+
+return failure  
+
+> 11:
+
+end if  
+
+> 12:
+
+Tα, D α ← trans matrix ( {xi}di=1 , {ui}ni=1 , Tα,
+
+{fi}ai=1 ) 
+
+> 13:
+
+end for  
+
+> 14:
+
+for all β ∈ B do  
+
+> 15:
+
+˜Tβ , ˜Dβ ← trans matrix ( {xi}di=1 , {ui}ni=1 , Sβ (θ), n ˜fi
+
+oci=1 
+
+) 
+
+> 16:
+
+˜T ′ 
+
+> β
+
+← ∂∂θ ˜Tβ , ˜D′ 
+
+> β
+
+← ∂∂θ ˜Dβ 
+
+> 17:
+
+Yβ ← L ˜T ′ 
+
+> β
+
+L+ 
+
+> 18:
+
+if L ˜D′
+
+> β
+
+̸ = O then  
+
+> 19:
+
+return failure  
+
+> 20:
+
+end if  
+
+> 21:
+
+Tβ , D β ← trans matrix ( {xi}di=1 , {ui}ni=1 , Sβ (θ), 
+
+{fi}ai=1 ) 
+
+> 22:
+
+T ′ 
+
+> β
+
+← ∂∂θ Tβ , D′ 
+
+> β
+
+← ∂∂θ Dβ 
+
+> 23:
+
+end for  
+
+> 24:
+
+Solve the kernel equations [Eqs. (12) and (13)] for all 
+
+α ∈ A and β ∈ B, then obtain the basis of the solution space {Ri}ri=1 . 
+
+> 25:
+
+return {Ri}ri=1  
+
+> 26:
+
+end procedure 
+
+Algorithm 5 List All Monomial Terms  
+
+> 1:
+
+function list monomials ( {si}ki=1 , {pi}ki=1 , Pmax , P =0 )  
+
+> 2:
+
+if k = 0 then  
+
+> 3:
+
+return {1} 
+
+> 4:
+
+end if  
+
+> 5:
+
+L ← {}  
+
+> 6:
+
+for i ← 0, . . . , floor(( Pmax − P )/p 1) do  
+
+> 7:
+
+M ← list monomials ({si}ki=2 , {pi}ki=2 , Pmax ,
+
+P + i ∗ pi) 
+
+> 8:
+
+{Ni} ← si 
+
+> 1
+
+∗ Mi 
+
+> 9:
+
+L ← L + N 
+
+> 10:
+
+end for  
+
+> 11:
+
+return L 
+
+> 12:
+
+end function 
+
+Rotation 
+
+Reflection ⃗u
+
+sin ⃗u⃗u 3 |⃗u| 2⃗u⃗
+
+∇ × ⃗u
+
+⃗
+
+∇ · ⃗u
+
+⃗u⃗u
+
+|⃗u| 2⃗u
+
+⃗
+
+∇ · ⃗u
+
+⃗u⃗
+
+∇ × ⃗u⃗ u
+
+|⃗u| 2⃗u
+
+⃗
+
+∇ · ⃗u
+
+⃗u
+
+FIG. 1. The conceptual visualization of the algorithm: the candidate space is progressively filtered into lower-dimensional subspaces by imposing symmetry constraints such as rotation and reflection. 
+
+for a set of expressions {si}ki=1 with respect to a given basis {fi}li=1 . Algorithm 3 uses Algorithms 1 and 2 to obtain transformation matrices T, D with respect to a given basis {fi}ki=1 for a given transformation T , corre-sponding to Eqs. (10), (11), (14) and (15). The main procedure, coeff basis (Algorithm 4), takes coordinate symbols ⃗ x, field symbols u, symme-try generators defined as replacement rules {T α}α∈A and 
+
+{S β (θ)}β∈B , candidate terms f , known terms L, and analysis basis functions ˜f . It first computes the coef-ficient matrix L of the known term L and all transfor-mation matrices: Tα, D α, T ′ 
+
+> β
+
+, D ′ 
+
+> β
+
+for candidate basis and ˜Tα, ˜Dα, ˜T ′ 
+
+> β
+
+, ˜D′ 
+
+> β
+
+for the analysis basis. Then it formu-lates and solves the kernel equations for the unknown coefficients R. The output {Ri}ri=1 constitutes a ba-sis for the solution space of the kernel equations. This basis corresponds to the set of symmetry-allowed lin-ear combinations of the candidate terms, expressed as 
+
+R1f , R 2f , . . . , R r f .We have implemented this algorithm as a Python li-brary [13], utilizing SymPy [14] for symbolic computa-tion. To enhance performance, the kernel equations are solved sequentially for each transformation. This itera-tive process steadily reduces the dimension of the solution space basis, significantly lowering the computational cost of subsequent symbolic operations. This suggests a filter-like interpretation, as depicted in Fig. 1, where symmetry constraints act as filters to sieve symmetry-allowed terms from the candidate space. 
+
+Demonstrations. We demonstrate the validity and util-ity of our method through three examples. First, we use 5the dihedral group Dn as a benchmark to verify that the algorithm correctly recovers the known invariant polyno-mials. We then apply the method to the systems consid-ered by the Toner–Tu equation [15–17] and the Kardar– Parisi–Zhang (KPZ) equation [18]. As described below, we successfully enumerate all symmetry-allowed terms systematically, which include not only terms occasionally overlooked in manual derivations, but also higher-order contributions. 
+
+Example 1: Dn-invariant polynomials. We first con-sider a simple example of discrete rotation and reflection symmetries in two-dimensional space, i.e., the dihedral group Dn. Let the coordinates be ⃗v = ( x, y ) and the field be a scalar u : R2 → R. Converting to polar coordinates (r, θ ), the discrete rotation by angle 2πN and reflection are represented as the shift and the inversion of θ:
+
+R : (r, θ ) 7 →
+
+
+
+r, θ + 2πN
+
+
+
+, u 7 → u, (16) 
+
+X : (r, θ ) 7 → (r, −θ), u 7 → u. (17) Using Fourier series expansion in θ, the field u with in-variance under these transformations is expressed as 
+
+u(r, θ ) = 
+
+> ∞
+
+X
+
+> k=0
+
+Ak(r) cos( N kθ ). (18) Further, restricting u to be a polynomial in x
+
+and y, we obtain the expanded representation u =P∞
+
+> k=0
+
+P∞ 
+
+> l=0
+
+Bk,l fk,l , where the basis polynomials are de-fined as 
+
+fk,l :=  x2 + y2kRe  (x + iy )lN  = r2k+lN cos( lN θ ).
+
+(19) To apply our algorithm, we specifically consider the D5
+
+group ( N = 5) and search for invariant polynomials up to a total degree of 10 by setting the constant 1 as the known term L. The resulting basis R1f , R 2f , . . . , R r f
+
+for the invariant polynomials is shown in Table I. This result perfectly matches Eq. (19) up to the total degree 10, confirming that our method can exhaustively enu-merate symmetry-invariant terms. Note that the basis obtained by the algorithm is not always a natural basis. For example, the 6th and 10th terms in Table I are linear combinations of f5,0 and f0,2.In the following examples, we only show the terms re-expressed in natural forms. 
+
+Example 2: Toner–Tu equation. As a non-trivial phys-ical example, we consider the Toner–Tu equation [15–17] describing the collective motion of self-propelled parti-cles: 
+
+∂⃗ v∂t + λ1
+
+⃗v ·⃗ ∇
+
+⃗v + λ 2
+
+⃗
+
+∇ · ⃗v
+
+⃗v + λ 3⃗ ∇∥ ⃗v∥ 2
+
+= α⃗ v − β∥⃗v∥ 2⃗v
+
++ D1⃗ ∇
+
+⃗
+
+∇ · ⃗v
+
+
+
++ DT⃗ ∇2⃗v + D 2
+
+⃗v ·⃗ ∇
+
+2⃗v. 
+
+(20) Here we omitted pressure terms. While the equation was originally proposed in [15], the terms λ2
+
+⃗
+
+∇ · ⃗v
+
+⃗v and 
+
+λ3⃗ ∇∥ ⃗v∥ 2 were initially not present and added in the later analyses [16, 17]. Our method provides a systematic way to construct such equations. By treating the symmetry generators algebraically, we can ensure that all permitted terms are included. To demonstrate this, we searched for covariant terms using the velocity field ⃗v : R 3 → R3 and coordinates ⃗x = ( x, y, z ), under rotation and reflection symmetries. The candidate space consisted of polynomials of ⃗v and its spatial derivatives up to third order in fields and second order in derivatives (e.g., vy vz ∂v x 
+
+> ∂x
+
+). Our algo-rithm successfully recovered all terms of the complete Toner–Tu equation, as shown in Table II. Beyond the standard terms, we identified 14 additional symmetry-allowed terms at the same order (second order in deriva-tives, third order in fields). We verified that all these terms can be constructed from ⃗v and ⃗ ∇ using standard vector operations, such as ( ∇(⃗v · (∇ × ⃗v))) ×⃗v. While many of these may be irrelevant in the renormalization-group sense, their systematic enumeration ensures that no symmetry-compatible contribution is missed before performing scaling analysis. 
+
+Example 3: KPZ equation. The power of this alge-braic approach is even more evident when dealing with symmetries that involve field-dependent transformations. A prime example is the statistical tilt symmetry of the KPZ equation, which describes surface growth and other phenomena [18] (for a recent review, see, e.g., [19]). The KPZ equation reads: 
+
+∂h ∂t = ν⃗ ∇2h + λ
+
+2
+
+⃗
+
+∇h
+
+2
+
++ η, (21) where η is white Gaussian noise. This system possesses spatial rotation, reflection, and translation symmetries. 
+
+TABLE I. List of invariant polynomial terms under the dis-crete rotation by angle 2π 
+
+> 5
+
+and reflection, up to the total degree 10. The left column shows the raw outputs of the algorithm, while the right column expresses them as linear combinations of the natural basis fk,l defined in Eq. (19). 
+
+raw output Rif natural basis 
+
+1 f0,0
+
+x2 + y2 f1,0
+
+x4 + 2 x2y2 + y4 f2,0
+
+x6 + 3 x4y2 + 3 x2y4 + y6 f3,0
+
+x8 + 4 x6y2 + 6 x4y4 + 4 x2y6 + y8 f4,04x10  
+
+> 5
+
++ 9 x8y2 − 12 x6y4 + 30 x4y6 + y10 910 f5,0 − 110 f0,2 
+
+> x5
+> 5
+
+− 2x3y2 + xy 4 15 f0,1 
+
+> x7
+> 5
+
+− 9x5y2 
+
+> 5
+
+− x3y4 + xy 6 15 f1,1 
+
+> x9
+> 5
+
+− 8x7y2 
+
+> 5
+
+− 14 x5y4 
+
+> 5
+
++ xy 8 15 f2,1 
+
+> x10
+> 25
+
+− 4x8y2 
+
+> 5
+
++ 22 x6y4 
+
+> 5
+
+− 4x4y6 + x2y8 150 f5,0 + 150 f0,26For field-dependent symmetries, it has a global shift sym-metry h 7 → h + h0 and the statistical tilt symmetry, the latter of which represents an invariance under the follow-ing infinitesimal transformation: ⃗x 7 →⃗x − λ⃗ ϵt, t 7 → t, h 7 → h +⃗ϵ ·⃗x. (22) Our method handles this symmetry by using its genera-tor, even without an explicit finite transformation. Specifically, we searched for invariant terms up to fifth order in fields and fourth order in derivatives. The results, summarized in Table III, include all terms of the original KPZ equation [Eq. (21)] and several higher-order terms. Notably, the algorithm identified complex terms involving time derivatives and higher-order spatial derivatives that are required to maintain the statistical tilt symmetry. The same set of terms was obtained for both d = 2 and d = 3 spatial dimensions. 
+
+Conclusions and Outlook. In this work, we have devel-oped a systematic algebraic filtering method to identify                                                        
+
+> TABLE II. List of Toner–Tu covariant terms with vunder rotation and reflection symmetries, up to third order in fields and second order in derivatives. The first group contains terms appearing in Eq. (20). while the second group lists symmetry-allowed terms not present in Eq. (20).
+> terms ⃗v
+> ∥⃗v∥2⃗v⃗
+> ∇∥ ⃗v∥2
+> ⃗v·⃗∇
+> ⃗v
+> ⃗
+> ∇ · ⃗v
+> ⃗v⃗
+> ∇2⃗v⃗
+> ∇
+> ⃗
+> ∇ · ⃗v
+> ⃗v·⃗∇
+> 2⃗v⃗
+> ∇
+> ⃗
+> ∇ ·  ∥⃗v∥2⃗v⃗
+> ∇
+> ⃗v·
+> ⃗
+> ∇∥ ⃗v∥2 ⃗
+> ∇ ×
+> ⃗
+> ∇ ×  ∥⃗v∥2⃗v⃗
+> ∇ ×
+> ⃗v×
+> ⃗
+> ∇∥ ⃗v∥2 ⃗
+> ∇ ×
+> ⃗v×
+>  ⃗v·⃗∇
+> ⃗v
+>  ⃗
+> ∇ · ⃗v
+>  ⃗
+> ∇∥ ⃗v∥2⃗
+> ∇ · ⃗v
+>  ⃗v·⃗∇
+> ⃗v
+> ⃗
+> ∇ · ⃗v
+>  ⃗
+> ∇ · ⃗v
+> ⃗v
+> ⃗
+> ∇ ·
+> ⃗
+> ∇∥ ⃗v∥2 ⃗v
+> ⃗
+> ∇ ·
+>  ⃗v·⃗∇
+> ⃗v
+>  ⃗v
+> ⃗
+> ∇ ·
+>  ⃗
+> ∇ · ⃗v
+> ⃗v
+>  ⃗v
+> ∥⃗v∥2 ∇2⃗v ⃗v· ∇2⃗v ⃗v⃗ v×
+> ⃗
+> ∇ ×
+>  ⃗v·⃗∇
+> ⃗v
+> 
+> TABLE III. KPZ invariant terms with λ= 1 under rotation, reflection, shift, and statistical-tilt symmetries, up to fifth order in fields and fourth order in derivatives.
+> terms
+> 1⃗
+> ∇2h⃗
+> ∇4h
+> −2∂h ∂t +
+> ⃗
+> ∇h
+> 2
+> ⃗
+> ∇2h
+> 2
+> 
+> −2∂h ∂t +
+> ⃗
+> ∇h
+> 2⃗
+> ∇2h
+> 
+> −2∂h ∂t +
+> ⃗
+> ∇h
+> 22⃗
+> ∇2
+> 
+> −2∂h ∂t +
+> ⃗
+> ∇h
+> 2⃗
+> ∇⃗∇h2
+> ∂2h∂t 2−2
+> ⃗
+> ∇h
+> 
+> ·
+> ⃗
+> ∇∂h ∂t
+> 
+> +
+> ⃗
+> ∇h
+> 
+> ·
+> ⃗
+> ∇⃗∇h
+> 
+> ·
+> ⃗
+> ∇h
+> 
+
+all continuum equation terms permitted by a given sym-metry group. By treating symmetry transformations as linear operators on a finite-dimensional candidate space, we reduced the problem of symmetry enforcement to solving a set of kernel equations. This approach provides a provably complete list of invariant or covariant terms within the chosen basis, effectively eliminating the risk of omitting physically relevant terms due to human error. Our demonstrations on the Toner–Tu and KPZ equa-tions confirm the practical utility of the method. Besides confirming all the known terms, our method successfully listed higher-order terms permitted by the symmetries considered in each case, providing a solid basis for con-structing extended models. There are several directions for future work. First, the symmetry-filtered libraries generated by our method can be directly integrated into data-driven discovery frame-works, especially sparse regression, such as the sparse identification of nonlinear dynamics (SINDy) [1]. By re-stricting the search space to symmetry-consistent terms, these methods can achieve greater robustness against noise and ensure the physical validity of the discovered equations. Second, while our current implementation relies on symbolic manipulation, improving algorithmic performance through numerical linear-algebra solvers or more efficient basis representations will be essential for handling substantially larger candidate libraries. Finally, extending this framework to accommodate more complex systems, such as those considered in quantum field the-ory, would broaden its applicability to a wider range of fundamental physical systems. 
+
+Acknowledgments. This work is supported in part by JSPS KAKENHI (Grant Numbers JP23K17664 and JP24K00593), Japan Science and Technology Agency 7(JST) FOREST (Grant Number JPMJFR2364), and the JSPS Core-to-Core Program “Advanced core-to-core net-work for the physics of self-organizing active matter” (JPJSCCA20230002). J.Y. acknowledges support from FoPM, WINGS Program, the University of Tokyo.  
+
+> ∗
+
+junya-yk@g.ecc.u-tokyo.ac.jp  
+
+> †
+
+kat@kaztake.org [1] S. L. Brunton, J. L. Proctor, and J. N. Kutz, Discovering governing equations from data by sparse identification of nonlinear dynamical systems, Proc. Natl. Acad. Sci. USA 
+
+113 , 3932 (2016). [2] S. H. Rudy, S. L. Brunton, J. L. Proctor, and J. N. Kutz, Data-driven discovery of partial differential equations, Sci. Adv. 3, e1602614 (2017). [3] M. Schmidt and H. Lipson, Distilling free-form natural laws from experimental data, Science 324 , 81 (2009). [4] S.-M. Udrescu and M. Tegmark, Ai feynman: A physics-inspired method for symbolic regression, Sci. Adv. 6,eaay2631 (2020). [5] Z. Long, Y. Lu, X. Ma, and B. Dong, PDE-net: Learn-ing PDEs from data, in Proceedings of the 35th Interna-tional Conference on Machine Learning , Proceedings of Machine Learning Research, Vol. 80, edited by J. Dy and A. Krause (PMLR, 2018) pp. 3208–3216. [6] J. Sirignano and K. Spiliopoulos, Dgm: A deep learn-ing algorithm for solving partial differential equations, J. Comput. Phys. 375 , 1339 (2018). [7] M. Raissi, P. Perdikaris, and G. Karniadakis, Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations, J. Comput. Phys. 378 , 686 (2019). [8] A. A. Kaptanoglu, J. L. Callaham, A. Aravkin, C. J. Hansen, and S. L. Brunton, Promoting global stability in data-driven models of quadratic nonlinear dynamics, Phys. Rev. Fluids 6, 094401 (2021). [9] See Supplemental Material at URL-will-be-inserted-by-publisher for the full description of theory. [10] We denote non-spatial vector quantities by bold symbols and spatial vectors by arrowed symbols. [11] Multiple continuous symmetries can be treated by com-bining their parameters into a single multi-dimensional parameter θ.[12] G. Wang, Y. Wei, and S. Qiao, Equation solving gen-eralized inverses, in Generalized Inverses: Theory and Computations (Springer Singapore, Singapore, 2018) pp. 1–64. [13] J. Yokokura, apoblast: A priori operator-based linear algorithm for symmetric terms, https://github.com/ JyJyJcr/apoblast (2026). [14] A. Meurer, C. P. Smith, M. Paprocki, O. ˇCert´ ık, S. B. Kirpichev, M. Rocklin, A. Kumar, S. Ivanov, J. K. Moore, S. Singh, T. Rathnayake, S. Vig, B. E. Granger, R. P. Muller, F. Bonazzi, H. Gupta, S. Vats, F. Johans-son, F. Pedregosa, M. J. Curry, A. R. Terrel, v. Rouˇ cka, A. Saboo, I. Fernando, S. Kulal, R. Cimrman, and A. Scopatz, Sympy: symbolic computing in python, PeerJ Comput. Sci. 3, e103 (2017). [15] J. Toner and Y. Tu, Long-range order in a two-dimensional dynamical XY model: How birds fly to-gether, Phys. Rev. Lett. 75 , 4326 (1995). [16] J. Toner and Y. Tu, Flocks, herds, and schools: A quan-titative theory of flocking, Phys. Rev. E 58 , 4828 (1998). [17] J. Toner, Reanalysis of the hydrodynamic theory of fluid, polar-ordered flocks, Phys. Rev. E 86 , 031918 (2012). [18] M. Kardar, G. Parisi, and Y.-C. Zhang, Dynamic scaling of growing interfaces, Phys. Rev. Lett. 56 , 889 (1986). [19] K. A. Takeuchi, An appetizer to modern developments on the kardar–parisi–zhang universality class, Physica A: Statistical Mechanics and its Applications 504 , 77 (2018), lecture Notes of the 14th International Summer School on Fundamental Problems in Statistical Physics. Supplementary Material for “Symmetry-Informed Term Filtering for Continuum Equation Discovery” 
+
+Junya Yokokura 1, ∗ and Kazumasa A. Takeuchi 1, 2, 3, †
+
+> 1Department of Physics, The University of Tokyo, 7-3-1 Hongo, Bunkyo-ku, Tokyo 113-0033, Japan
+> 2Institute for Physics of Intelligence, The University of Tokyo, 7-3-1 Hongo, Bunkyo-ku, Tokyo 113-0033, Japan
+> 3Universal Biology Institute, The University of Tokyo, 7-3-1 Hongo, Bunkyo-ku, Tokyo 113-0033, Japan
+> (Dated: 2026-04-03)
+> FULL DESCRIPTION OF THEORY
+
+We consider systems described by classical fields. For simplicity, we assume the target system is described by real coordinates ⃗x = ( x 1, x 2, . . . , x d) ∈ Ω ⊂ Rd and a real smooth n-component field u = ( u1, u 2, . . . , u n) : Ω → Rn
+
+[1]. We denote the set of all such smooth fields as Un
+
+where U is the set of all smooth real functions on Ω. We further assume that the governing equations depend only on ⃗x and finitely many derivatives of u, including the field itself. More precisely, there exists a non-negative integer K and an m-component smooth function F =(F1, F 2, . . . , F m) such that the equations can be written as 
+
+∀⃗x ∈ Ω, F
+
+⃗x, u(⃗x),⃗ ∂u(⃗x), . . . ,⃗ ∂K u(⃗x)
+
+
+
+= 0, (1) where ⃗ ∂ku(⃗x) denotes the list of k-th order partial deriva-tives of u at point ⃗x. This assumption is typically satis-fied for systems with locality. For notational simplicity we use jet bundles [2]: the 
+
+k-th order jet of u at ⃗x is denoted by j k⃗ x u and the bundle of all such jets by J k(Ω , Rn). Practically, the jet jk⃗ x u can be treated as the tuple formed by the coordinates ⃗x, the field values u(⃗x), and all partial derivatives of u at ⃗x up to order k. The bundle J k(Ω , Rn) can be treated as the set of all such tuples for all ⃗x ∈ Ω and all smooth fields 
+
+u : Ω → Rn. Let F denote the set of smooth functions on J k(Ω , Rn) and Fm denote the set of m-component functions on J k(Ω , Rn). Especially, each component Fi
+
+is an element of F and the entire function F is an element of Fm. We can then write Eq. (1) in the compact form 
+
+∀⃗x ∈ Ω, F  jK⃗ x u = 0. (2) These equations define a solution manifold, denoted by 
+
+SF ⊂ U n.Then we define the class of symmetries under con-sideration. A symmetry transformation T : U → U is assumed to satisfy the following property: for a trans-formed field u′T = T (u), its value u′T (⃗x ′) at transformed coordinates ⃗ x ′ can be expressed in terms of the orig-inal coordinates ⃗ x and finitely many derivatives of u  
+
+> ∗junya-yk@g.ecc.u-tokyo.ac.jp
+> †kat@kaztake.org
+
+at ⃗x, including the field itself. More precisely, we as-sume the existence of a smooth bijection of coordinates ⃗χ T : Ω → Ω, a non-negative integer L, and a smooth function vT : J L(Ω , Rn) → Rn such that 
+
+∀⃗x ∈ Ω, u ′T (⃗χ T (⃗x)) = v T
+
+ jL⃗ x u, (3) or equivalently, 
+
+∀⃗x ∈ Ω, u ′T (⃗x) = v T
+
+
+
+jL⃗ χ −1  
+
+> T(⃗x)
+
+u
+
+
+
+. (4) This assumption holds for symmetries that preserve the locality of the system. With these assumptions, we search for governing equa-tions [Eq. (2)] that are invariant under the given sym-metries. We call the equations invariant under given symmetries if the solution manifold is invariant under all transformations T ∈ G , where G is the corresponding symmetry group. Under our definitions, this invariance condition for F ∈ F m is expressed as 
+
+∀T ∈ G , SF = T (SF ), (5) or equivalently, 
+
+∀T ∈ G , ∀u ∈ U ,  ∀⃗x ∈ Ω, F  jK⃗ x u = 0
+
+⇔  ∀⃗x ∈ Ω, F  jK⃗ x u′T
+
+ = 0. (6) Here, considering Eq. (4), the jet of the transformed field jK⃗ x u′T can be constructed from that of the origi-nal field by applying the chain rule to each derivative in jK⃗ x and propagating it through vT . Because this procedure increases the necessary derivative order by at most L, we can express this mapping with a function 
+
+yT : J K+L(Ω , Rn) → J K (Ω , Rn) as 
+
+∀⃗x ∈ Ω, j K⃗ x u′T = yT
+
+
+
+jK+L⃗ χ −1  
+
+> T(⃗x)
+
+u
+
+
+
+. (7) The transformed equations may be written as 
+
+∀⃗x ∈ Ω, F
+
+
+
+yT
+
+
+
+jK+L⃗ χ −1  
+
+> T(⃗x)
+
+u
+
+ 
+
+= 0, (8) or equivalently, 
+
+∀⃗x ∈ Ω, F ′T
+
+ jK+L⃗ x u = 0, (9) where F ′T = F ◦ yT . Here we used the bijection prop-erty of ⃗χ T . Equation (9) is more convenient since F ′T2depends on the same arguments as F except for the or-der of derivatives. To simplify the later discussions, we extend F to the set of all smooth functions defined on 
+
+JK (Ω , Rn) for any K ∈ Z≥0, so that F ′T remains an ele-ment of Fm. This modification does not affect the pre-ceding discussions, as long as the domains of the other functions are extended accordingly. Thus the invariance condition [Eq. (6)] reduces to the requirement that, for every T ∈ G and every field u ∈ U n,Eq. (2) and Eq. (9) are equivalent. While this equivalence is not trivial in general, it holds in typical cases when the transformed governing functions are related to the original ones by an invertible linear map. Concretely, suppose there exists an m × m invertible matrix XT ∈
+
+GL( m, R) such that 
+
+F ′T = XT F , (10) then the invariance condition is proven as (⇒) ∀⃗x ∈ Ω, F ′T
+
+ jK+L⃗ x u = XT F  jK⃗ x u = XT 0 = 0,
+
+(⇐) ∀⃗x ∈ Ω, F  jK⃗ x u = X−1 
+
+> T
+
+F ′T
+
+ jK+L⃗ x u = 0.
+
+(11) We refer to Eq. (10) as the covariance condition on F un-der T and adopt it as the working criterion for invariance. This choice is natural in practice because XT plays the role of the representation matrix of the symmetry action on the space of governing functions. We can reformulate this process from the perspective of representations of symmetry groups. Each transfor-mation T derives a map MT : F → F , which acts on 
+
+F ∈ F as 
+
+MT (F ) := F ◦ yT , (12) as implicitly used in Eq. (9). Since F is a vector space over R and MT is a linear map, we can show that 
+
+{M T }T ∈G is a representation of the symmetry group G
+
+on F by verifying the homomorphism property: 
+
+MT1T2 (F ) = F ◦ yT1T2 = F ◦ yT1 ◦ yT2
+
+= MT2 (MT1 (F )) ,
+
+MT1T2 = MT2 MT1 .
+
+(13) Note that the order of the composition is reversed. As demonstrated in Eq. (11), two sets of equations are equivalent if their components span the same linear subspace in F. Thus, instead of working with an explicit list of equations, it is more convenient to reformulate Eq. (10) as the invariance of the spanned subspace ⟨F ⟩ := span {F1, F 2, . . . , F m}:
+
+MT ⟨F ⟩ = ⟨F ⟩. (14) This invariance property derives a subgroup GF ⊂ G as 
+
+GF := {T ∈ G : MT ⟨F ⟩ = ⟨F ⟩} . (15) The conjunction of all covariance conditions on F is ex-pressed with GF as 
+
+GF = G. (16) In practice the symmetry group G is specified by generators. Let {T α}α∈A denote discrete generators and let S(θ) denote continuous transformations with multi-dimensional parameter θ = {θβ }β∈B which sat-isfy S(0) = Id (identity map) [3]. Since the subgroup containing these transformations constitutes the entire group G, Eq. (16) is equivalent to 
+
+∀α ∈ A, Tα ∈ G F , (17) 
+
+∃U ∈ N (0), ∀θ ∈ U, S(θ) ∈ G F , (18) where N (θ) is a set of neighborhoods of θ.For continuous transformations, we can further sim-plify the condition. Let us denote the generators of the representation on F by {D β }β∈B as 
+
+Dβ = ∂∂θ β
+
+MS(θ)
+
+> θ=0
+
+. (19) Then we can select a neighborhood U ∈ N (0) such that 
+
+∀θ ∈ U, ∃D ∈ span {D β }β∈B , MS(θ) = eD . (20) With Eq. (20) we can show that Eq. (18) is equivalent to 
+
+∀β ∈ B, Dβ ⟨F ⟩ ⊂ ⟨ F ⟩. (21) Obtaining Eq. (21) from Eq. (18) is straightforward by expanding the derivative in Eq. (19). Conversely, to ob-tain Eq. (18) from Eq. (21), we use the Taylor expan-sion of the exponential mapping eD . This expansion, together with the finite-dimensionality of ⟨F ⟩, shows 
+
+MS(θ)⟨F ⟩ = eD ⟨F ⟩ ⊂ ⟨ F ⟩ for all θ ∈ U . Moreover, since 
+
+S(0) = Id, the continuity of the rank with respect to θ
+
+ensures that the mapping preserves the dimension of ⟨F ⟩
+
+within a sufficiently small neighborhood U ′ ⊂ U . Con-sequently, we obtain MS(θ)⟨F ⟩ = ⟨F ⟩ for any θ ∈ U ′,completing the proof. As a result, checking the invariance condition [Eq. (5)] reduces to 
+
+∀α ∈ A, ∃Xα ∈ GL( m, R), MαF = XαF , (22) 
+
+∀β ∈ B, ∃Yβ ∈ End( m, R), Dβ F = Yβ F , (23) with covariance conditions as working criterion. Here and in the following, we denote MTα as Mα for notational simplicity. Although the covariance conditions reduce invariance checking to linear-algebra constraints, solving them for arbitrary functions in Fm remains infeasible. We there-fore restrict attention to a finite-dimensional candidate subspace ⟨f ⟩, where f = ( f1, f 2, . . . , f a) ∈ F a is a cho-sen basis of the space. We call ⟨f ⟩ the candidate space 3and refer to fμ as candidate terms. In this setting each component of F is represented as a linear combination: 
+
+Fi = Cμi fμ, Cμi ∈ R. (24) Here and in the following, we use Einstein summation notation for repeated indices. We first address the discrete-generator constraints in Eq. (22). The transformed image Mαfμ may not lie in the candidate space, so we introduce overflow basis func-tions gα = (( gα)1, (gα)2, . . . , (gα)bα ) ∈ F bα to complete the representation. This allows us to represent the trans-formed candidate terms as 
+
+Mαfμ = ( Tα)νμfν + ( Dα)ρμ(gα)ρ, (25) where ( Tα)νμ, (Dα)ρμ ∈ R are the transformation matrices for the candidate terms and the overflow basis functions, respectively. Hence 
+
+MαFi = Cμi Mαfμ = Cμi
+
+ (Tα)νμfν + ( Dα)ρμ(gα)ρ
+
+. (26) Comparing this with the covariance requirement yields linear-algebra constraints on the coefficients Cμi :
+
+∃Xα ∈ GL( m, R),Cμi
+
+
+
+(Tα)νμfν + ( Dα)ρμ(gα)ρ
+
+
+
+= ( Xα)ji Cμj fμ. (27) Comparing the coefficients of fμ and ( gα)ρ on both sides, we obtain 
+
+∃Xα ∈ GL( m, R),
+
+(
+
+Cμi (Tα)νμ = ( Xα)ji Cνj ,Cμi (Dα)ρμ = 0 , (28) or using matrix notation, 
+
+∃Xα ∈ GL( m, R),
+
+(
+
+CT α = XαC, CD α = O, (29) These are the linear-algebra constraints on the coeffi-cients Cμi .While we can reformulate the constraints as general-ized eigenproblems, we specialize them for practical use. Write F = L + R where L denotes known (or assumed) terms and R denotes unknown terms to be discovered. We assume that L and R transform covariantly and are separated under the symmetry action, so that Eq. (22) becomes 
+
+∀α ∈ A, ∃Xα ∈ GL( m, R),
+
+(
+
+MαL = XαL,
+
+MαR = XαR. (30) We expand L and R as 
+
+Li = L˜μi ˜f˜μ, L˜μi ∈ R, (31) 
+
+Ri = Rμi fμ, Rμi ∈ R. (32) where ˜f =
+
+ ˜f1, ˜f2, . . . , ˜fc
+
+
+
+∈ F c are the basis functions for known terms, which can be different from fμ. Let us call them the analysis basis functions. They provide transformation matrices different from those of candidate terms as 
+
+Mα ˜fμ =
+
+ ˜Tα
+
+νμ
+
+˜fν +
+
+ ˜Dα
+
+ρμ
+
+(˜ gα)ρ. (33) Following the previous process, Eq. (30) is rewritten as 
+
+∃Xα ∈ GL( m, R),
+
+
+
+L ˜Tα = XαL, L ˜Dα = O, RT α = XαR, RD α = O. 
+
+(34) To proceed, we assume the coefficient matrix L for the known terms has full row rank, which is natural since the equations are typically linearly independent. In that case Xα can be computed as Xα = L ˜TαL+, where L+
+
+denotes the Moore–Penrose (right) inverse [4] satisfying 
+
+LL + = I. The constraints on the unknown coefficients 
+
+R then read 
+
+(
+
+RT α = L ˜TαL+R, RD α = O, (35) which are kernel equations for the unknown coefficients 
+
+R. Note that L ˜TαL+ is not necessarily invertible in gen-eral, so one should verify L ˜TαL+ ∈ GL( m, R) holds since the covariance condition requires an invertible represen-tation. For the continuous transformations [Eq. (23)], we can follow the same procedure and obtain the following kernel equations: 
+
+(
+
+RT ′ 
+
+> β
+
+= L ˜T ′ 
+
+> β
+
+L+R, RD ′ 
+
+> β
+
+= O, (36) with 
+
+Dβ fμ =  T ′
+
+> β
+
+νμfν +  D′
+
+> β
+
+ρμ
+
+ g′
+
+> β
+
+
+
+> ρ
+
+, (37) 
+
+Dβ ˜fμ =
+
+ ˜T ′
+
+> β
+
+νμ
+
+˜fν +
+
+ ˜D′
+
+> β
+
+ρμ
+
+ ˜g′
+
+> β
+
+
+
+> ρ
+
+. (38) The only difference is that L ˜T ′ 
+
+> β
+
+L+ need not be invertible. Thus we have reduced symmetry enforcement to fi-nite kernel equations for the unknown coefficient ma-trix R. Solving these kernel equations yields a finite-dimensional solution space with arbitrary basis vec-tors R1, R 2, . . . , R r , which correspond to the symmetry-allowed linear combinations of the candidate terms, i.e., the permitted terms R1f , R 2f , . . . , R r f .4
+
+[1] We denote non-spatial vector quantities by bold symbols and spatial vectors by arrowed symbols. [2] D. J. Saunders, The Geometry of Jet Bundles , London Mathematical Society Lecture Note Series (Cambridge University Press, 1989). [3] Multiple continuous symmetries can be treated by com-bining their parameters into a single multi-dimensional parameter θ.[4] G. Wang, Y. Wei, and S. Qiao, Equation solving general-ized inverses, in Generalized Inverses: Theory and Com-putations (Springer Singapore, Singapore, 2018) pp. 1–64.
