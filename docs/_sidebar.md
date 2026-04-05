@@ -1,6 +1,9 @@
 * <a class="dpr-sidebar-root-link" href="#/">首页</a>
 * <a class="dpr-sidebar-root-link dpr-sidebar-noactive-link" href="javascript:void(0)" data-dpr-hash="#/tutorial/README">使用教程</a>
 * Daily Papers
+  * 2026-04-05 <!--dpr-date:20260405-->
+    * 速读区
+      * <a class="dpr-sidebar-item-link dpr-sidebar-item-structured" href="#/202604/05/2603.27936v1-deflation-pinns-learning-multiple-solutions-for-pdes-and-landau-de-gennes" data-sidebar-item="{&quot;title&quot;: &quot;Deflation-PINNs: Learning Multiple Solutions for PDEs and Landau-de Gennes&quot;, &quot;link&quot;: &quot;https://arxiv.org/abs/2603.27936v1-deflation-pinns-learning-multiple-solutions-for-pdes-and-landau-de-gennes&quot;, &quot;score&quot;: &quot;6.0&quot;, &quot;tags&quot;: [{&quot;kind&quot;: &quot;query&quot;, &quot;label&quot;: &quot;sr-alg&quot;}], &quot;evidence&quot;: &quot;使用物理信息神经网络学习物理方程的多个解&quot;}">Deflation-PINNs: Learning Multiple Solutions for PDEs and Landau-de Gennes</a>
   * 2026-04-04 <!--dpr-date:20260404-->
     * 速读区
       * <a class="dpr-sidebar-item-link dpr-sidebar-item-structured" href="#/202604/04/2604.01330v1-evolutionary-multi-objective-fusion-of-deepfake-speech-detectors" data-sidebar-item="{&quot;title&quot;: &quot;Evolutionary Multi-Objective Fusion of Deepfake Speech Detectors&quot;, &quot;link&quot;: &quot;https://arxiv.org/abs/2604.01330v1-evolutionary-multi-objective-fusion-of-deepfake-speech-detectors&quot;, &quot;score&quot;: &quot;6.0&quot;, &quot;tags&quot;: [{&quot;kind&quot;: &quot;query&quot;, &quot;label&quot;: &quot;sr-alg&quot;}], &quot;evidence&quot;: &quot;共同最小化检测误差和系统复杂度&quot;}">Evolutionary Multi-Objective Fusion of Deepfake Speech Detectors</a>
