@@ -1,0 +1,3822 @@
+Title: Learning interacting particle systems from unlabeled data
+
+URL Source: https://arxiv.org/pdf/2604.02581v1
+
+Published Time: Mon, 06 Apr 2026 00:14:46 GMT
+
+Number of Pages: 39
+
+Markdown Content:
+# Learning interacting particle systems from unlabeled data 
+
+Viska Wei ∗ Fei Lu †
+
+Abstract 
+
+Learning the potentials of interacting particle systems is a fundamental task across various scientific disciplines. A major challenge is that unlabeled data collected at discrete time points lack trajectory information due to limitations in data collection methods or privacy constraints. We address this challenge by introducing a trajectory-free self-test loss function that leverages the weak-form stochastic evolution equation of the empirical distribution. The loss function is quadratic in potentials, supporting parametric and nonparametric regression algorithms for robust estimation that scale to large, high-dimensional systems with big data. Systematic nu-merical tests show that our method outperforms baseline methods that regress on trajectories recovered via label matching, tolerating large observation time steps. We establish the conver-gence of parametric estimators as the sample size increases, providing a theoretical foundation for the proposed approach. 
+
+Contents 
+
+1 Introduction 12 The trajectory-free self-test loss 43 Algorithms: parametric and nonparametric regression 11 4 Error bounds for the parametric estimator 16 5 Numerical experiments 18 6 Conclusion 25 A Numerical details 26 B Proofs for the error bound of the parametric estimator 30 
+
+1 Introduction 
+
+Learning the dynamics of interacting particle systems is a central problem across physics, biology, social science, and neuroscience [1, 3, 10, 16, 19, 34, 36, 37, 39]. A central inverse task is to recover the interaction and external potentials from data. In many applications, however, the data are unlabeled particle snapshots at discrete times that miss the trajectory information of the particles across time. This loss of particle labels and trajectory information, caused by imaging limitations or privacy constraints, makes the dynamics inference substantially difficult. 
+
+> ∗
+
+Department of Applied Mathematics and Statistics and Department of Physics and Astronomy, Johns Hopkins University, Baltimore, MD 21218, USA. Email: swei20@jhu.edu 
+
+> †
+
+Department of Mathematics, Johns Hopkins University, Baltimore, MD 21218, USA. Email: feilu@math.jhu.edu 
+
+> arXiv:2604.02581v1 [stat.ML] 2 Apr 2026
+
+Specifically, consider the estimation of the interaction potential Φ and external potential V in the interacting particle system of N particles in Rd:
+
+dX it “ ´ 1
+
+N
+
+> N
+
+ÿ
+
+> j“1,j ‰i
+
+∇ΦpXit ´ Xjt qdt ´ ∇V pXit qdt ` σdW it , i “ 1, . . . N , t P r 0, T s (1.1) from unlabeled data consisting of a sequence of sample ensembles denoted by 
+
+D “ t Xπ,m tℓ uL,M ℓ,m “1 with Xπt “ p Xπtp1q 
+
+> t
+
+, . . . , X πtpN q 
+
+> t
+
+q, (1.2) Here, the stochastic noise W it P Rd is a standard Brownian motion, σ ě 0 is the noise intensity, 
+
+ttℓuLℓ“0 Ă r 0, T s are time points with tℓ “ ℓ∆t, M is the number of samples, and πt is an unknown permutation of particle indices t1, . . . , N u at time t. In particular, the data is unlabeled in the sense that the permutation πt is unknown for all t. This means that the data misses trajectory information, i.e., the positions Xi,m tℓ and Xi,m tℓ`1 are not paired in data since the label is unknown. The unlabeled setting breaks the main assumption behind most existing estimators based on particle trajectories, such as velocity matching, likelihood maximization, or Bayesian trajectory inference (see e.g., [2, 7, 9, 11, 17, 18, 20, 21, 28–31, 42]). Moreover, the number of particles is often not large enough to use the mean-field equation for the inference [4, 22, 33, 42]. As a result, learning from unlabeled data is a major open problem in the field, and existing methods either resort to label (and hence trajectory) recovery [6, 27, 38] or minimization of distributional distance between the data and model predictions [24, 24], both of which are computationally expensive and can be inaccurate when the time gap between observations is large. In this work, we overcome the challenge by introducing a self-test loss function based on the weak-form partial differential equation (PDE) for the evolution of the empirical distribution of the particles. This approach is inspired by the self-test framework in [13]. Specifically, by Itô’s chain rule, the empirical distribution of the particles 
+
+μNt pxq :“ μXt pxq “ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+δXit pxq (1.3) satisfies weak-form (in the distributional sense) stochastic evolution equation: 
+
+BtμNt “ ∇ ¨ “μNt ∇`Φ ˚ μNt ` V ˘‰ ` σ2
+
+2 ∆μNt ` 9mXt , x P Rd, t P r 0, T s
+
+with 9mXt being a martingale noise. The task of learning Φ and V from the unlabeled data is equivalent to estimating them in the weak-form PDE from the empirical distributions tμN,m tℓ u of the data. By using tΦ ˚ μN,m tℓ ` V u as test functions, we obtain a trajectory-free loss function for learning Φ and V from the data. The loss is quadratic in the potentials, and each of its minimizer satisfies the weak-form PDE up to a martingale term. The resulting objective is quadratic in the potentials, supports both parametric and neural-network estimators, and remains effective at coarse observation intervals where label recovery be-comes unreliable. It avoids the computational expense and inaccuracy of label recovery and distri-butional matching methods, providing a robust and scalable solution for learning from unlabeled data in interacting particle systems. 2Contributions. Our main contributions are: 
+
+• We introduce a trajectory-free loss function for learning the interaction and external potentials from unlabeled ensemble data. The loss is quadratic in the potentials and is based on the weak-form PDE of the empirical particle distribution (Section 2). 
+
+• We present both parametric and neural network estimators for minimizing the loss function (Sec-tion 3). In particular, we prove error bounds for the parametric estimator, showing convergence of the estimator as the sample size increases and the observation interval decreases (Section 4). 
+
+• We systematically examine the performance of the proposed algorithms on synthetic data gener-ated from six models, including a reference model with regularity assumptions and five stress-test radial and non-radial models. We validate the convergence of the parametric estimator on the reference model. We also compare our method with baseline methods that regress on trajectories recovered via label matching, showing that our method outperforms them at large time steps where label recovery fails, scales with sample size and time step size, and can recover non-radial potentials (Section 5). 
+
+1.1 Related work 
+
+There is relatively limited prior work on learning the potentials from unlabeled data for interacting particle systems with finitely many particles. 
+
+Generic methods based on distribution transport. The generic approaches mainly fall into two categories: regression after label recovery and distributional matching. Since the particles are unlabeled, one may attempt regression after recovery of the labels (equivalently, trajectory reconstruction) by optimal transport methods [5, 14, 26]. However, as we show in the numerical section, this approach is computationally expensive and can be inaccurate when the time gap between observations is large. Another approach is to directly minimize a distributional distance (e.g., Wasserstein distance) between the empirical distribution of the data and the distribution predicted by the model [24,25,43]. However, this approach is also computationally expensive because it requires simulating the full particle system at every training step and solving an optimal transport problem to compute the loss gradient. 
+
+Mean-field based methods. This study applies the self-testing functions in [13] to construct a loss function, using the empirical distribution’s weak-form PDE that resembles the mean-field equation up to a martingale-induced noise term. The pioneering work [33] uses the weak form of the mean-field PDE to construct a loss function that can be estimated from the unlabeled data. However, the test functions are a library to be pre-selected. Another pioneering work [4] learns the interaction kernel in the mean-field limit using the derivative of the particle positions, which requires particle labels. Recent work on learning for mean-field equations includes [4, 7, 22, 44], but none of these methods can be applied to the weak-form PDE of the empirical distribution of finitely many particles. 
+
+Energy variational methods. The energy-dissipation-based loss in [32] aims to learn stochastic differential equations from density data by enforcing the energy balance of the system, which is a fundamental energy variational principle [41]. Applying it directly to our setting, the energy balance will lead to a loss function that is quartic in the potentials, which is more difficult to optimize than our quadratic loss function. The central difference is that the self-test loss function is based on variation over the potentials, while the energy balance is based on variation over the density. 3The paper is organized as follows. Section 2 introduces the trajectory-free loss function and summarizes its key properties. Section 3 presents parametric and neural network algorithms for minimizing the loss function. Section 4 establishes error bounds for the parametric estimator, showing convergence as the sample size increases and the observation interval decreases. Section 5 systematically tests the method on synthetic data from six models, comparing it with baseline methods based on label recovery. Finally, Section 6 concludes with a discussion of future directions. The code is available at https://github.com/ViskaWei/lips_unlabeled_data .
+
+2 The trajectory-free self-test loss 
+
+This section introduces a trajectory-free loss function for learning the potentials from unlabeled ensemble data. Section 2.1 presents the loss function and summarizes its key properties; Section 2.2 derives it from the weak-form PDE of the empirical distribution; Section 2.3 analyzes the discretiza-tion bias when the loss is evaluated on discrete data. 
+
+2.1 Loss formulation and key properties 
+
+We propose a new trajectory-free loss function for learning the potential functions from the unla-beled ensemble data (1.2). It is based on a weak-form stochastic PDE satisfied by the empirical distribution of the system and it is inspired by the self-test loss function in [13]. The weak-form PDE is from the Itô chain rule. Recall that for any test function f P C2 
+
+> b
+
+pRdq,Itô’s formula leads to: 
+
+d 1
+
+N
+
+ÿ
+
+> i
+
+f pXit q “ 1
+
+N
+
+ÿ
+
+> i
+
+“ ´ ∇f pXit q ¨ `∇V pXit q ` 1
+
+N
+
+ÿ
+
+> j
+
+∇ΦpXit ´ Xjt q˘ ` σ2
+
+2 ∆f pXit q‰dt ` σdm Xt pf q,
+
+with dm Xt pf q being the differential of the martingale 
+
+mXt pf q :“
+
+ż t
+
+> 0
+
+1
+
+N
+
+ÿ
+
+> i
+
+∇f pXit qdW it . (2.1) Equivalently, in terms of the empirical distribution μNt in (1.3), we have 
+
+dxμNt , f y “ 
+
+ˆ
+
+x∇.rμNt p∇Φ ˚ μNt ` ∇V qs , f y ` x σ2
+
+2 ∆μNt , f y
+
+˙
+
+dt ` σdm Xt pf q.
+
+That is, μNt evolves according to the following weak-form stochastic evolution equation (interpreted in the distributional sense): 
+
+BtμNt “ ∇ ¨ “μNt ∇`Φ ˚ μNt ` V ˘‰ ` σ2
+
+2 ∆μNt ` σ 9mXt , x P Rd, t P r 0, T s, (2.2) where 9mXt is the time-derivative of the martingale. Since this martingale has mean zero and variance Var pmXt pf qq “ Op1{N q by Itô’s isometry, it can be viewed as a small observation noise, and the error caused by it vanishes as the sample size M and the number of particles N increases. Note that Eq.(2.2) is not the Liouville or Fokker-Planck equation of the ODE or SDE, which characterizes the evolution of the joint probability density of the particles on RN d . Instead, it is a PDE for the evolution of the empirical distribution of the particles on Rd. In particular, when 
+
+σ “ 0 it reduces to a transport equation; when σ ą 0 it is a non-closed stochastic PDE with a state-dependent martingale term mXt pf q.4Importantly, the empirical distribution μNt is observable from the unlabeled snapshot data, and the weak-form PDE (2.2) characterizes how the evolution of μNt depends on the potentials without requiring individual trajectories. Thus, it provides the foundation for constructing a trajectory-free loss function. We construct a trajectory-free loss function via the self-testing approach for weak-form PDEs in [13]. The key idea is to test the PDE against a family of test functions f “ V ` Φ ˚ μNt with 
+
+μNt P t μN,m tℓ uL´1,M ℓ“0,m “1, which depend on the potentials themselves and the data, and construct a loss function whose Fréchet derivative at the true potentials is zero so that the weak-form PDE for the observed μNt is satisfied up to the unobservable zero-mean martingale term. See Section 2.2 for a detailed derivation. The trajectory-free self-test loss function for learning Φ and V from the data is given by 
+
+EDpΦ, V q “ 1
+
+M T 
+
+> M,L
+
+ÿ
+
+> m,ℓ “1
+
+EXmtℓ ,Xmtℓ`1
+
+pΦ, V q, with 
+
+EXtℓ ,Xtℓ`1 pΦ, V q “ 12
+
+ż
+
+|∇V ` ∇Φ ˚ μNtℓ |2μNtℓ dx 
+
+looooooooooooooomooooooooooooooon 
+
+> Jdiss :Dissipation
+
+∆t ´ σ2
+
+2
+
+ż
+
+r∆V ` ∆Φ ˚ μNtℓ sμNtℓ dx 
+
+looooooooooooooomooooooooooooooon  
+
+> Jdif f :Diffusion
+
+∆t
+
+`
+
+ż
+
+rV ` 12 Φ ˚ μNt sμNt dx 
+
+ˇˇˇtℓ`1
+
+> tℓ
+
+loooooooooooooooomoooooooooooooooon  
+
+> δE f:Energy change
+
+,
+
+(2.3) where by the definition of μNt , the integrals can be computed as: 
+
+Jdiss pXtq :“ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+ˇˇ∇V pXit q ` 1
+
+N
+
+> N
+
+ÿ
+
+> j‰i
+
+∇ΦpXit ´ Xjt qˇˇ2,Jdif f pXtq :“ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+∆V pXit q ` 1
+
+N 2
+
+ÿ
+
+> i‰j
+
+∆Φ pXit ´ Xjt q,Ef pXtq :“ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+V pXit q ` 12N 2
+
+> N
+
+ÿ
+
+> i,j “1,i ‰j
+
+ΦpXit ´ Xjt q, δE f “ Ef pXtℓ`1 q ´ Ef pXtℓ q.
+
+(2.4) Here, the first term Jdiss represents the energy dissipation due to the drift, the second term Jdif f 
+
+represents the contribution from diffusion, and the third term δE f represents the change in the free energy of the system between two time points. For even Φ, ∇Φp0q “ 0, so excluding the self-interaction j “ i in Jdiss is equivalent to including it. We write both pairwise sums with j ‰ i to match the finite-particle free energy Ef and the regression vectors used later. The self-test loss function has several important properties. 
+
+• Trajectory-free and derivative-free : all three terms Jdiss , Jdif f , and Ef depend on the parti-cle positions only through the empirical distribution μNt , so no particle labels or trajectories are needed. Also, it does not require any derivative of μNt , making it suitable for empirical distribution data with relatively large time steps. 
+
+• Quadratic : the loss function is quadratic in the potentials, which is different from the Wasserstein-distance-based loss functions that are typically non-convex and highly nonlinear in the poten-tials, or the mean-square prediction error of the energy balance that is quartic (see Section 2.2). 5This quadratic structure allows for efficient optimization and robust convergence properties. In particular, it leads to a least squares regression problem when the potentials are linearly parameterized. 
+
+• Minimizers well-characterized : At each minimizer, the Fréchet derivative of the loss function is zero, which leads to the weak-form PDE (2.2) without the martingale term. Thus, each minimizer makes all the data tμN,m t u satisfy the weak-form PDE up to a martingale term. Moreover, under a coercivity condition, the minimizer is unique and hence the true potentials are identifiable from data; see Theorem 4.2 for an error bound. We therefore define the estimator as the minimizer of the loss over a hypothesis space H “
+
+HV ˆ HΦ that enforces the required symmetry and smoothness conditions: 
+
+ppΦ, pV q “ arg min   
+
+> pΦ,V qP H
+
+EDpΦ, V q. (2.5) The spaces HΦ and HV can be chosen as parametric classes (e.g., a linear space with pre-selected basis functions) or nonparametric function spaces (e.g., RKHS or neural networks). In particular, we require that Φ is even: Φpxq “ Φp´ xq for all x P Rd, which is necessary for the drift to be the gradient of the free energy Ef . We also assume that the potentials are smooth enough such that the gradients and Laplacians in (2.4) are well defined. Finally, the loss is invariant under additive shifts of V and Φ, so the potentials are identifiable only up to additive constants. In practice we do not need to enforce these constants during optimization; when a canonical representative is needed, one may impose V p0q “ 0 and Φp0q “ 0.
+
+2.2 Derivation of the loss function 
+
+We derive the trajectory-free loss function (2.3) using the self-test approach for weak-form PDEs in [13]. The key structural property that enables the self-test approach is that the weak-form PDE depends linearly on the unknown potentials, despite being nonlinear in the empirical distribution. This linearity allows us to construct a quadratic loss function whose minimizer makes the data sastisfy the weak-form PDE. To highlight the key ideas, we first reformulate the problem in an abstract weak operator form. Here, we present a formal derivation of the loss function, ignoring technical details such as regularity and integrability conditions. The rigorous justification of the loss function and the convergence of the estimator are given in Section 4. Let ϕ “ p V, Φq denote the unknown potentials. Define the drift operator 
+
+Rϕrus :“ ´ ∇ ¨ “u p∇V ` ∇Φ ˚ uq‰, (2.6) which maps a probability measure u to the negative divergence of the drift flux. The weak-form PDE (2.2) can then be rewritten as a weak-form linear equation in ϕ:
+
+Rϕ‹ rμN,m t s ´ σ ddt mXmt “ gN,m t , gN,m t :“ ´B tμN,m t ` σ2
+
+2 ∆μN,m t ,
+
+where gN,m t depends only on μN,m t and σ, Here, the differential of the martingale ddt mXmt , which is unobservable from data and has mean zero, is interpreted as noise. A key structural property is that Rϕrus is linear in ϕ, despite being nonlinear in u. This linearity, together with the goal of fitting the data u to the weak-form equation, directs us to construct a 6quadratic loss function of ϕ by testing the equation against a family of test functions that depend 
+
+linearly on ϕ and depend on the data u. Denote such a family by tfϕrusu ϕ. The loss function will have quadratic form 
+
+Epϕq “ 12 Bupϕ, ϕ q ´ x g, f ϕrusy , Bupϕ, ψ q :“ x Rϕrus, f ψrusy ,
+
+where x¨ , ¨y denotes the duality pairing between distributions and test functions. In this variational formulation, to make the true potentials ϕ‹ a minimizer of the loss, we require the bilinear form 
+
+Bupϕ, ψ q to be symmetric and non-negative , so that 
+
+Epϕq ´ Epϕ‹q “ 12 Bupϕ ´ ϕ‹, ϕ ´ ϕ‹q ě 0 for all ϕ. 
+
+These conditions strongly constrain the test family. Following [13], consider the self-testing family 
+
+fϕrus “ V ` Φ ˚ u, 
+
+the total potential felt by a particle in the configuration u. This choice satisfies all three conditions: 
+
+• Linearity : fϕ`ψrus “ fϕrus ` fψrus, so Bupϕ, ψ q is bilinear in pϕ, ψ q.
+
+• Symmetry : for ϕ “ p V, Φq and ψ “ p ˜V , ˜Φq, integration by parts gives 
+
+Bupϕ, ψ q “ 
+
+ż
+
+> Rd
+
+u ∇pV ` Φ ˚ uq ¨ ∇p ˜V ` ˜Φ ˚ uq dx “ Bupψ, ϕ q.
+
+• Non-negativity : Bupϕ, ϕ q “ ş 
+
+> Rd
+
+u |∇pV ` Φ ˚ uq| 2 dx ě 0.Intuitively, this is the infinite-dimensional analogue of minimizing 12 xJAx ´ bJx for a symmetric positive-semidefinite system Ax “ b. The linearity of fϕrus and the symmetry of Bu ensure that the Fréchet derivative of the loss at ϕ‹ is zero, 
+
+lim 
+
+> ϵÑ0
+
+Epϕ‹ ` ϵϕ q ´ Epϕ‹q
+
+ϵ “ x Rϕ‹ rus ´ g, f ϕrusy “ 0 for all ϕ, 
+
+that is, Rϕ‹ rus “ g tested against the family tfϕrusu ϕ, which is the deterministic part of the weak-form PDE (2.2) tested against the self-testing family. Applying this construction to the empirical distributions tμN,m tℓ u with Riemann-sum approxi-mation for the time integral ştℓ`1 
+
+> tℓ
+> 12
+
+xRϕrμN,m t s, f ϕrμN,m t sy dt and averaging over the dataset D, we obtain the self-test loss function :
+
+EDpΦ, V q “ 1
+
+M T 
+
+> M,L
+
+ÿ
+
+> m,ℓ “1
+
+” 12 xRϕrμN,m tℓ s, f ϕrμN,m tℓ sy ∆t ´
+
+ż tℓ`1
+
+> tℓ
+
+xgN,m t , f ϕrμN,m t sy 
+
+ı
+
+. (2.7) To compute the term xgN,m t , f ϕrμN,m t sy with gNt “ ´B tμNt ` σ2 
+
+> 2
+
+∆μNt , note first that 
+
+x´B tμNt , V ` Φ ˚ μNt y “ ´ ddt 
+
+ż
+
+> Rd
+
+”
+
+V ` 12 Φ ˚ μNt
+
+ı
+
+μNt dx, 
+
+7where we used the fact that ddt xμNt , Φ ˚ μNt y “ xB tμNt , Φ ˚ μNt y ` x μNt , Φ ˚ B tμNt y “ 2xB tμNt , Φ ˚ μNt y
+
+since Φ is symmetric (i.e., Φpx´yq “ Φpy´xq). Also, by integration by parts, 
+
+x σ2
+
+2 ∆μNt , V ` Φ ˚ μNt y “ σ2
+
+2
+
+ż
+
+> Rd
+
+μNt r∆V ` ∆Φ ˚ μNt sdx. 
+
+Substituting them into (2.7) and using the Riemann-sum approximation for the time integral 
+
+ştℓ`1 
+
+> tℓ
+
+x σ2 
+
+> 2
+
+∆μNt , V ` Φ ˚ μNt ydt , we obtain 
+
+EDpΦ, V q “ 1
+
+M T 
+
+> M,L
+
+ÿ
+
+> m,ℓ “1
+
+„ 12
+
+ż
+
+> Rd
+
+μN,m tℓ |∇V ` ∇Φ ˚ μN,m tℓ |2dx ∆t
+
+´ σ2
+
+2
+
+ż
+
+> Rd
+
+μN,m tℓ r∆V ` ∆Φ ˚ μN,m tℓ sdx ∆t `
+
+ż
+
+> Rd
+
+μN,m tℓ
+
+“V ` 12 Φ ˚ μN,m tℓ
+
+‰dx 
+
+ˇˇˇtℓ`1
+
+> tℓ
+
+ȷ
+
+.
+
+The three terms are, respectively, 12 Jdiss ∆t, ´ σ2 
+
+> 2
+
+Jdif f ∆t, and δE f , recovering the decomposi-tion (2.3)–(2.4). 
+
+Remark 2.1 (Negative minimum of the loss) The minimum of the loss function is negative. To see this, consider the simplest setting with M “ 1, L “ 1, and g “ Rϕ‹ rus (i.e., without noise). The loss function becomes 
+
+EDpϕq “ 12 xRϕrus, f ϕrusy ´ x g, f ϕrusy “ 12 xRϕ´ϕ‹ rus, f ϕ´ϕ‹ rusy ´ 12 xRϕ‹ rus, f ϕ‹ rusy ,
+
+where the second equality uses the symmetry and bilinearity of Bu. The first term is non-negative and equals zero if ϕ “ ϕ‹. Thus the minimum of the loss is ´ 12 xRϕ‹ rus, f ϕ‹ rusy , which is strictly negative. In the presence of small perturbations from discretization or the martingale term, the minimum deviates from this value but remains negative. 
+
+Remark 2.2 (Numerical integration in time) The Riemann-sum approximation for the time integral in the loss function has a discretization error of order Op∆t2q per interval, and it leads to an Op∆tq bias in the parameter estimation (see Theorem 4.2). One can reduce this bias by using a higher-order quadrature rule, such as the trapezoidal rule, which reduces the per-interval error to 
+
+Op∆t3q and the parameter estimation bias to Op∆t2q (see Corollary 4.3). 
+
+Remark 2.3 (Mean-field limit of the loss function) Notably, N is finite in the above loss func-tion. When N Ñ 8 , by the propagation of chaos [40], the empirical distribution μNt converges to 
+
+ut almost surely, where ut is the solution to the mean-field equation 
+
+Btut “ ∇ ¨ r utp∇V ` ∇Φ ˚ utqs ` σ2
+
+2 ∆ut,
+
+for t P r 0, T s. Correspondingly, the three integrals in the loss function converge almost surely to their mean-field limits, and the loss function EDpΦ, V q with M “ 1 converges almost surely to 
+
+EpΦ, V q “ 12
+
+ż T
+
+> 0
+
+ż
+
+> Rd
+
+|∇V pxq ` ∇Φ ˚ utpxq| 2utpxqdxdt ´ σ2
+
+2
+
+ż T
+
+> 0
+
+ż
+
+> Rd
+
+r∆V pxq ` ∆Φ ˚ utpxqs utpxqdxdt 
+
+`
+
+ż
+
+> Rd
+
+rV pxq ` 12 Φ ˚ uT pxqs uT pxqdx ´
+
+ż
+
+> Rd
+
+rV pxq ` 12 Φ ˚ u0pxqs u0pxqdx. 
+
+(2.8) 8This is the probabilistic loss function of the mean-field equation and has been studied in [22] for the recovery of radial interaction potentials. 
+
+Remark 2.4 (Energy balance-based loss function.) Energy balance of the particle system does not directly lead to the self-test loss function. The square mean residual of the energy balance leads to a quartic loss function that has multiple minima and is difficult to optimize. Specifically, let 
+
+Ef pXtq be the free energy defined in (2.4) . The SDE in (1.1) can be written as gradient flow with noise: 
+
+dXt “ ´ N ∇XEf pXtqdt ` σd Wt.
+
+Applying Itô’s formula to Ef pXtq, we obtain: 
+
+dE f pXtq “ ∇XEf ¨ dXt ` σ2
+
+2 ∆XEf dt 
+
+“ ∇XEf ¨ p´ N ∇XEf dt ` σd Wtq ` σ2
+
+2 ∆XEf dt 
+
+“ ´ N |∇XEf |2dt ` σ2
+
+2 ∆XEf dt ` σ∇XEf ¨ dWt.
+
+(2.9) 
+
+Integrating over rtℓ, t ℓ`1s and noting that N |∇XEf |2 “ 1
+
+> N
+
+řNi“1
+
+ˇˇˇ∇V pXit q ` 1
+
+> N
+
+ř 
+
+> j
+
+∇ΦpXit ´ Xjt q
+
+ˇˇˇ2
+
+“
+
+Jdiss pXtq and ∆XEf “ 1
+
+> N
+
+řNi“1
+
+´
+
+∆V pXit q ` 1
+
+> N
+
+ř 
+
+> j
+
+∆Φ pXit ´ Xjt q
+
+¯
+
+“ Jdif f pXtq, we have 
+
+Ef pXtℓ`1 q ´ Ef pXtℓ q ` 
+
+ż tℓ`1
+
+> tℓ
+
+Jdiss pXtqdt ´ σ2
+
+2
+
+ż tℓ`1
+
+> tℓ
+
+Jdif f pXtqdt “
+
+ż tℓ`1
+
+> tℓ
+
+σ∇XEf ¨ dWt.
+
+Since the martingale term has a zero mean, the square mean error of the energy balance is: 
+
+LEB pV, Φq :“
+
+ˇˇˇˇE
+
+„
+
+Ef pXtℓ`1 q ´ Ef pXtℓ q ` 
+
+ż tℓ`1
+
+> tℓ
+
+Jdiss pXtqdt ´ σ2
+
+2
+
+ż tℓ`1
+
+> tℓ
+
+Jdif f pXtqdt 
+
+ȷˇ ˇˇˇ
+
+> 2
+
+.
+
+The function LEB is quartic in the potentials V and Φ because Jdiss is quadratic in the potentials. In particular, it has multiple minimizers: in addition to the true potentials, pV, Φq ” p 0, 0q is another minimizer of LEB pV, Φq since LEB p0, 0q “ 0. Thus, it has multiple minima and is non-convex, which may lead to optimization difficulties. In contrast, the self-test loss function is quadratic in the potentials, which leads to better optimization properties. 
+
+2.3 Extension to discrete-time models 
+
+The self-test loss function also applies to discrete-time models of the system that depends linearly on the unknown potentials, such as the Euler-Maruyama discretization of the SDE in (1.1). In this case, the loss function is derived from the discrete-time weak-form PDE of the empirical distribution, and it has the same form as (2.3). This extension is important for practical applications where the data are collected at discrete time points and the underlying dynamics may be better described by a discrete-time model. Specifically, consider the time series model 
+
+Xitℓ`1 “ Xitℓ ´ ∇V pXitℓ q∆t ´ 1
+
+N
+
+> N
+
+ÿ
+
+> j“1
+
+∇ΦpXitℓ ´ Xjtℓ q∆t ` σ?∆tZ iℓ, i “ 1, . . . , N, (2.10) 9where Ziℓ are i.i.d. standard normal random variables and ∆t ă 1. It is from the Euler-Maruyama discretization of the SDE in (1.1). We first derive the weak-form PDE for the discrete model by Taylor expansion. Note that 
+
+Xitℓ`1 ´ Xitℓ is dominated by the diffusion term σ?∆tZ iℓ, particularly when ∆t is small. For f P
+
+C2 
+
+> b
+
+pRdq, Taylor expansion gives, 
+
+f pXitℓ`1 q “ f pXitℓ q ` ∇f pXitℓ q ¨ p Xitℓ`1 ´ Xitℓ q ` 12 pXitℓ`1 ´ Xitℓ qJ∇2f pXitℓ qp Xitℓ`1 ´ Xitℓ q ` op∆tq“ f pXitℓ q ` ∇f pXitℓ q ¨ 
+
+„
+
+´ ∇V pXitℓ q∆t ´ 1
+
+N
+
+> N
+
+ÿ
+
+> j“1
+
+∇ΦpXitℓ ´ Xjtℓ q∆t ` σ?∆tZ iℓ
+
+ȷ
+
+` σ2∆t
+
+2 ZiJ 
+
+> ℓ
+
+∇2f pXitℓ qZiℓ ` op∆tq,
+
+where the op∆tq term is of order p∆tq3{2, and we kept only the σ2∆t 
+
+> 2
+
+ZiJ 
+
+> ℓ
+
+∇2f pXitℓ qZiℓ term in the second-order expansion since it is of order ∆t and dominates the other second-order terms that are of order p∆tq2. Summing over i and dividing by N , we have 
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+f pXitℓ`1 q “ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+f pXitℓ q ´ ∆t 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+∇f pXitℓ q ¨ “∇V pXitℓ q ` 1
+
+N
+
+> N
+
+ÿ
+
+> j“1
+
+∇ΦpXitℓ ´ Xjtℓ q‰
+
+` σ2∆t
+
+21
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+ZiJ 
+
+> ℓ
+
+∇2f pXitℓ qZiℓ ` σ?∆t 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+∇f pXitℓ q ¨ Ziℓ ` op∆tq.
+
+Approximating the second-order term by its expectation since the Ziℓ are i.i.d. standard normal random variables, we have 
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+ZiJ 
+
+> ℓ
+
+∇2f pXitℓ qZiℓ « 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+tr p∇2f pXitℓ qq “ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+∆f pXitℓ q.
+
+Hence, the above equation can be written as 
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+f pXitℓ`1 q “ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+f pXitℓ q ´ ∆t 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+∇f pXitℓ q ¨ “∇V pXitℓ q ` 1
+
+N
+
+> N
+
+ÿ
+
+> j“1
+
+∇ΦpXitℓ ´ Xjtℓ q‰
+
+` σ2∆t
+
+21
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+∆f pXitℓ q ` σ?∆t 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+∇f pXitℓ q ¨ Ziℓ ` Op∆tq
+
+for any f P C2pRdq, where the Op∆tq term is dominated by the bias σ2∆t
+
+> 2
+
+“ 1
+
+> N
+
+řNi“1 ZiJ 
+
+> ℓ
+
+∇2f pXitℓ qZiℓ ´
+
+> 1
+> N
+
+řNi“1 ∆f pXitℓ q‰. Thus, we can write it as a discrete-time weak-form PDE of the empirical distri-bution μNt of the discrete model: 
+
+xμNtℓ`1 , f y ´ x μNtℓ , f y “ x RϕrμNtℓ s, f y∆t ` x σ2
+
+2 ∆μNtℓ , f y∆t ` σ∆mXt pf q ` Op∆tq, (2.11) where ∆mXt pf q “ 1
+
+> N
+
+řNi“1 ∇f pXitℓ q ¨ Ziℓ
+
+?∆t.The self-test loss function can be derived from the above discrete-time weak-form PDE in the same way as in Section 2.2, and it has the same form as (2.3). 10 The main difference from the continuous-time SDE model case is that one uses the Taylor expansion (instead of the Itô formula) to derive the weak-form PDE, and the error from the Taylor expansion leads to an Op∆tq bias in the PDE. Since the model itself is discrete, one cannot reduce this bias by using a higher-order quadrature rule for the time integral in the loss function, as one would do for the continuous-time model. Also, this bias will prevent the estimator from converging to the true parameters as M Ñ 8 , unless ∆t is sufficiently small, which is observed in the zero-gap regime in numerical experiments in Figure 3 in Section 5.2. 
+
+3 Algorithms: parametric and nonparametric regression 
+
+The self-test loss function provides a principled way to learn the potentials from the data. It can be optimized using standard optimization algorithms, and its quadratic structure allows for efficient optimization and robust convergence properties. In particular, when the potentials are linearly parameterized, the loss function reduces to a least squares regression problem, which can be solved efficiently with closed-form solutions or iterative solvers. For high-dimensional or complex potentials where nonparametric flexibility is needed, we can use neural network regression to minimize the loss function. 
+
+3.1 Least squares regression with basis functions 
+
+When the potentials Φ and V are linearly parametrized using basis functions (including kernel ridge regression), the learning problem reduces to solving a linear system. This is a direct consequence of the quadratic structure of the self-test loss function derived in Section 2. Specifically, let tψkuKV
+
+> k“1
+
+and tϕsym l uKΦ 
+
+> l“1
+
+be linearly independent basis functions in C2pRdq, which can be either a prescribed dictionary of functions or radial basis functions, we expand the potentials with coefficients θ “ p α, β q:
+
+Vαpxq “ 
+
+> KV
+
+ÿ
+
+> k“1
+
+αkψkpxq, Φβ pxq “ 
+
+> KΦ
+
+ÿ
+
+> l“1
+
+βlϕsym l pxq. (3.1) Then, the loss function in (2.3) can be written as a function of the coefficients θ:
+
+Lpθq “ 1
+
+M T 
+
+> L´1
+
+ÿ
+
+> ℓ“0
+> M
+
+ÿ
+
+> m“1
+
+ˆ 12 Qℓ,m pθq∆t ´ σ2
+
+2 Lℓ,m pθq∆t ` Eℓ`1,m pθq ´ Eℓ,m pθq
+
+˙
+
+, (3.2) where the terms are obtained by substituting the basis expansions into the terms defined in (2.4): the dissipation term Qℓ,m pθq “ N ´1 ř 
+
+> i
+
+|∇VαpXi,m tℓ q ` 1
+
+> N
+
+ř 
+
+> j‰i
+
+∇Φβ pXi,m tℓ ´ Xj,m tℓ q| 2 is a quadratic 
+
+in θ; the diffusion correction Lℓ,m pθq “ 1
+
+> N
+
+řNi“1 ∆VαpXi,m tℓ q ` 1 
+
+> N2
+
+ř 
+
+> i‰j
+
+∆Φ β pXi,m tℓ ´ Xj,m tℓ q and the potential energy Eℓ,m pθq “ 1
+
+> N
+
+řNi“1 VαpXi,m tℓ q ` 12N 2
+
+ř 
+
+> i‰j
+
+Φβ pXi,m tℓ ´ Xj,m tℓ q are linear in θ.Consequently, the loss function is a quadratic polynomial in θ of the form: 
+
+Lpθq “ 12 θJAM, ∆tθ ´ bJ
+
+> M, ∆t
+
+θ, (3.3) where the normal matrix AM, ∆t is assembled from the cross-terms of the basis function gradients in Qℓ, and the normal vector bM, ∆t aggregates the contributions from the linear energy difference and diffusion terms. They are computed by 
+
+AM, ∆t “ 1
+
+M LN 
+
+> M
+
+ÿ
+
+> m“1
+> L´1
+
+ÿ
+
+> ℓ“0
+
+ÿ
+
+> i
+
+pFmi,t ℓ qJFmi,t ℓ , bM, ∆t “ 1
+
+M T 
+
+> M
+
+ÿ
+
+> m“1
+> L´1
+
+ÿ
+
+> ℓ“0
+
+“ σ2
+
+2 δmtℓ ∆t ´ p hmtℓ`1 ´ hmtℓ q‰. (3.4) 11 Here, for each sample Xmtℓ , Fmi,t ℓ :“ FipXmtℓ q, δmtℓ :“ δpXmtℓ q, and hmtℓ :“ hpXmtℓ q, where for any particle configuration X “ p X1, . . . , X N q P p RdqN , we introduce vector-valued regression functions for the forces, diffusion correction and potential energy: 
+
+FipXq P RdˆK , i “ 1, . . . , N ; δpXq P RK ; hpXq P RK
+
+with components 
+
+FipXq:,k “
+
+#∇ψkpXiq, 1 ď k ď KV ,
+
+> 1
+> N
+
+ř 
+
+> j‰i
+
+∇ϕsym k´KV pXi ´ Xj q, KV ă k ď K, 
+
+δpXqk “
+
+$&%
+
+> 1
+> N
+
+řNi“1 ∆ψkpXiq, 1 ď k ď KV , 
+
+> 1
+> N2
+
+ř 
+
+> i‰j
+
+∆ϕsym k´KV pXi ´ Xj q, KV ă k ď K, 
+
+hpXqk “
+
+$&%
+
+> 1
+> N
+
+řNi“1 ψkpXiq, 1 ď k ď KV , 
+
+> 12N2
+
+ř 
+
+> i‰j
+
+ϕsym k´KV pXi ´ Xj q, KV ă k ď K. 
+
+(3.5) Minimizing Lpθq is therefore equivalent to solving the linear system (normal equations) with proper regularization if necessary: 
+
+AM, ∆t pθM, ∆t “ bM, ∆t. (3.6) Thus, the estimator pθM, ∆t can be obtained by a single linear solve, which is computationally efficient and numerically stable for moderate K.
+
+Regularization. When the number of basis functions K is large (or when they are not carefully chosen) and the data are noisy, the normal equations can be ill-conditioned, leading to unstable so-lutions. In this case, regularization is necessary to ensure numerical stability and reliable parameter estimation. In particular, the estimation of the interaction potential Φ is more ill-posed than that of the confining potential V because the data provide indirect information about Φ through the average of 
+
+N pairwise interactions, while V can be inferred more directly from the individual particle positions. This is reflected in the coercivity condition in Proposition B.3: the interaction block is weighted by 
+
+cN “ p N ´ 1q{ N 2 “ Op1{N q, whereas the confining-potential block has Op1q coercivity. When the sample size is finite, this leads to the block corresponding to Φ in the normal matrix AM, ∆t having smaller eigenvalues and a larger condition number than the block corresponding to V .To stabilize the solution, we apply Tikhonov (ridge) regularization: 
+
+pAM, ∆t ` λIqˆθ “ bM, ∆t,
+
+and we select the hyperparameter λ ą 0 via the Hansen L-curve method [15]. Specifically, we compute the SVD of AM, ∆t, evaluate the L-curve (log residual norm vs. log solution norm) analyt-ically over a grid of candidate λ values, and choose the λ that maximizes the curvature κpλq of the curve plog }AM, ∆t ˆθλ ´ bM, ∆t}, log }ˆθλ}q . When the curve is flat (curvature |κ| ă 0.01 , indicating an absence of a L-shaped corner), we fall back to a minimal regularization λ “ 10 ´6.We summarize the procedure in Algorithm 1. The computational cost of assembling AM, ∆t and 
+
+bM, ∆t is OpM LN 2K2q due to the pairwise interactions. The linear solve step has a cost of OpK3q,which is negligible compared to the assembly step for moderate K.12 1: Input: Unlabeled ensembles D “ t X1: Mtℓ uLℓ“0, basis functions tψkuKV 
+
+> k“1
+
+and tϕsym l uKΦ
+
+> l“1
+
+. 
+
+> 2:
+
+Assemble: Assemble the matrices AM, ∆t and bM, ∆t from the basis functions and the unlabeled data in parallel for each snapshot pair pℓ, m q P t 0, . . . , L ´1u ˆ t 1, . . . , M u. 
+
+> 3:
+
+Solve: ˆθ “ p AM, ∆t ` λ Iq´1 bM, ∆t with λ selected via the Hansen L-curve method.  
+
+> 4:
+
+Output: Recovered potentials Vˆα, Φ ˆβ with ˆθ “ p ˆα, ˆβq.Algorithm 1: Least squares regression with basis functions 
+
+3.2 Neural network regression 
+
+When the dimension is high or the potentials are complex and suitable basis functions are unknown, we employ a deep neural network to approximate the potentials. Let Vαpxq and Ψβ pxq be parameter-ized by a neural network, where Φβ pxq “ 12 pΨβ pxq ` Ψβ p´ xqq to enforce evenness ( Φpxq “ Φp´ xq). Our loss function depends on the gradients and the Laplacians of the potential, which we compute using Automatic Differentiation (AD). We compute the loss function efficiently using batches of ℓ, m , which allows us to leverage parallelism and reduce memory usage, since we can compute the terms in (2.4) for each unlabeled sample pair pXmtℓ , Xmtℓ`1 q.The network parameters θ “ p α, β q are optimized using stochastic gradient descent with the Adam optimizer. The computational cost per iteration is OpBN 2q due to the pairwise interactions, where B is the batch size. The number of iterations depends on the optimization dynamics and convergence criteria. In particular, since the minimizer of the loss function is negative (see Remark 2.1), we use early stopping based on the flattening of the loss curve and the stabilization of the validation loss to prevent overfitting. We summarize the procedure in Algorithm 2.  
+
+> 1:
+
+Input: Unlabeled ensembles D “ t Xmtℓ uL,M ℓ,m “1, batch size B, and termination criteria (e.g., max epochs, early stopping).  
+
+> 2:
+
+Initialize: Network parameters θ “ p α, β q. 
+
+> 3:
+
+Optimization Loop: Until termination criteria are met, perform the following steps: (a) Sample a batch of indices Ibatch Ă t 1, . . . , L ´ 1u ˆ t 1, . . . , M u of size B.(b) For each pℓ, m q P Ibatch , using the unlabeled snapshot pair pXmtℓ , Xmtℓ`1 q:(i) Compute Gradients/Laplacians: For each particle i, compute ∇VαpXi,m tℓ q,
+
+∆VαpXi,m tℓ q, ∇Φβ and ∆Φ β using automatic differentiation. (ii) Evaluate Integral Estimates: Compute Jpℓ,m q 
+
+> diss
+
+, Jpℓ,m q 
+
+> dif f
+
+, and δE pℓ,m q 
+
+> f
+
+in batches. (c) Loss computation by assembling the batch estimates: 
+
+Lpθq “ 1
+
+B
+
+ÿ
+
+> ℓ,m PIbatch
+
+„ 12 Jpℓ,m q 
+
+> diss
+
+∆t ´ σ2
+
+2 Jpℓ,m q 
+
+> dif f
+
+∆t ` δE pℓ,m q
+
+> f
+
+ȷ
+
+,
+
+(d) Update: θ Ð θ ´ γ∇θL (e.g., Adam optimizer).  
+
+> 4:
+
+Output: Learned potentials Vα, Φβ .Algorithm 2: Neural Network Estimation via Trajectory-Free Loss 13 A visual overview of the two algorithms is shown in Figure 1. SELF-TEST LOSS FORMULATION                 
+
+> Unlabeled Ensemble Data: D={X(m)
+> tℓ}ℓ, m (permutation-invariant)
+> Self-Test Loss (quadratic in V, Φ): L= 12Jdiss ∆t−σ2
+> 2Jdiff ∆t+ ∆ E
+
+Least Squares Regression                                
+
+> V=∑
+> kαkψk,Φ = ∑
+> lβlϕsym
+> l(basis / RBF)
+> Compute ∇ψk,∆ψk,∇ϕl,∆ϕl
+> Assemble AD,bD
+> L(θ) = 12θ⊤Aθ−b⊤θ+C
+> (AD+λI) ˆθ=bD(closed-form)
+> ˆV,ˆΦ
+
+Neural Network Regression                  
+
+> Vθ: MLP , Φθ: MLP (Softplus/Tanh, C2)
+> ∇V,∆V,∇Φ,∆Φ via autodiff
+> Evaluate Jdiss ,Jdiff ,∆E
+> mini-batch over snapshot pairs
+> Adam + Cosine annealing
+> ˆVθ,ˆΦθ
+
+Figure 1: Workflow of both estimation algorithms using the self-test loss function. Left: Least squares regression expands V and Φ in prescribed basis functions (or RBFs), and solves the minimizer via least squares with regularization. Right: Neural network regression parameterizes Vθ and Φθ by neural networks, computes derivatives via automatic differentiation, and minimizes the loss using stochastic gradient descent. 
+
+3.3 Baseline methods and computational complexity 
+
+To evaluate the performance of the proposed self-test approach, we compare it against several com-plementary estimation strategies that represent different combinations of assumptions and method-ologies. These baselines serve to contextualize the results and highlight the advantages of the self-test approach in various settings. 
+
+1. MLE with labeled data: ideal upper benchmark. This method assumes that the true particle labels are known across time, so trajectories are fully observed. It fits the drift by minimizing the negative log-likelihood using the Euler–Maruyama discretization, 
+
+LM LE pΦ, V q “ ÿ
+
+> ℓ,i
+
+›››››Xitℓ`1 ´ Xitℓ ` ` 1
+
+N
+
+ÿ
+
+> j‰i
+
+∇ΦpXitℓ ´ Xjtℓ q ` ∇V pXitℓ q˘∆t
+
+›››››
+
+> 2
+
+.
+
+This baseline represents the best-case trajectory-based estimator : it uses information that is unavail-able in the unlabeled setting, and therefore provides an ideal upper bar for the self-test approach. It is asymptotically optimal when the model is correctly specified and ∆t Ñ 0. Its limitation is that it cannot be applied to unlabeled data, and its performance degrades rapidly as ∆t increases due to the bias in the finite-difference velocity estimation. 
+
+2. Sinkhorn MLE: practical unlabeled baseline. For unlabeled data, a natural practical approach is to first reconstruct trajectories via label assignment and then apply the MLE regression. To do so, between two consecutive snapshots, we compute an entropically regularized optimal 14 transport coupling with cost 
+
+Cij “ | Xitℓ ´ Xjtℓ`1 |2,
+
+using the Sinkhorn algorithm [8, 12], and convert the coupling into matched pairs and hence the particle labels. The resulting pseudo-trajectories are then used in the MLE regression above to obtain potential estimates. This baseline is a practical competitor for unlabeled data: it combines a widely used matching procedure with a standard estimator. Its limitation is that matching errors grow quickly with ∆t and diffusion σ, leading to biased potential estimates. Importantly, the computational cost of the Sinkhorn algorithm is significant compared to the self-test regression, since it requires solving an optimization problem of label assignment for each snapshot pair; see Table 1. To evaluate the performance of the self-test approach relative to these baselines, we consider a linear parametric setting where the potentials are expanded in a known set of basis functions, as described in Section 3.1. In this setting, we can apply the three estimation strategies with the same basis function representation, leading to labeled MLE, self-test regression, and Sinkhorn MLE estimators. This allows for a systematic comparison of the methods under controlled conditions, where the true functional form is known and the only difference is the estimation strategy and the availability of labels. In addition, we apply the self-test NN estimator, which does not rely on basis functions and can capture more complex potentials, providing a complementary perspective on the performance of the self-test approach in a nonparametric setting. We do not combine Sinkhorn with NN regression, since inaccurate label recovery at large ∆t introduces biased potential estimates that a more expressive regressor cannot correct. 
+
+Computational complexity. Table 1 shows the computational complexity of these methods. Table 1: Computational complexity of all estimation methods. Here, M is the number of tra-jectories, L is the number of time snapshots, N is the number of particles, d is the dimension, 
+
+K “ KV `KΦ is the basis size, PV , P Φ are the network parameters, E is the number of epochs, and 
+
+TS is the number of Sinkhorn iterations.                        
+
+> Method Labeled #Params Complexity Labeled MLE ✓KO`M Ld N K pN`Kq ` K3˘
+> Self-Test LSE —K
+> Sinkhorn MLE —KO`M Ld rN K pN`Kq ` TSdN 2s` K3˘
+> Self-Test NN —PO`EM Ld pN P V`N2PΦq˘
+
+The labeled MLE is the ideal benchmark with the lowest complexity, since it does not require matching. Its complexity is dominated by the evaluation of pairwise interactions for each particle and each snapshot, leading to OpN 2q per snapshot, and the linear solve step for the basis regression, leading to OpK3q, where K is the number of basis functions. The self-test LSE has the same asymptotic complexity as the labeled MLE, since it also relies on pairwise interactions and a linear solve step, but it does not require labels. The Sinkhorn MLE method adds the cost of the Sinkhorn algorithm for label matching, which is 
+
+OpTS dN 2q per snapshot, where TS is the number of Sinkhorn iterations. This significantly increases the computational cost compared to the self-test regression, especially for large N and M L .15 The self-test NN method minimizes the loss function via iterative optimization using stochastic gradient descent, and the cost per iteration depends on the network architecture and the number of epochs required for convergence. The cost is dominated by the forward and backward passes through the network for each particle and each snapshot, leading to OpEM Ld pN P V ` N 2PΦqq ,where E is the number of epochs, PV and PΦ are the number of parameters in the networks for V
+
+and Φ, respectively. Thus, the computational complexity of the methods increases from the labeled MLE and the self-test LSE (same and lowest), to the Sinkhorn MLE (higher due to matching), and finally to the self-test NN (highest due to iterative optimization). 
+
+4 Error bounds for the parametric estimator 
+
+This section establishes the convergence and error bounds of the self-test estimator in the linear parametric setting in Section 3.1. We show that the coercivity of the dissipation term guarantees the well-posedness of the inverse problem in the large sample limit. The finite-sample error bounds are then derived using matrix perturbation theory, explicitly connecting the sample size M , obser-vation time gap ∆t, and particle number N . The nonparametric neural network estimator is more challenging to analyze due to the non-convexity of the loss landscape and the implicit regularization effects of the optimization, which we leave for future work. Recall that in the linear parametric setting, the potentials are expanded in a finite set of basis functions (as in (3.1)): 
+
+Vαpxq “ αJψpxq, Φβ pxq “ βJϕpxq, θ “ p α, β q P RK , K “ KV ` KΦ,
+
+where the basis functions are collected into the vectors 
+
+ψpxq “ `ψ1pxq, . . . , ψ KV pxq˘J, ϕpxq “ `ϕsym  
+
+> 1
+
+pxq, . . . , ϕ sym KΦ pxq˘J.
+
+The estimator pθM, ∆t solves the normal equation (3.6), i.e., 
+
+pθM, ∆t “ A:
+
+> M, ∆t
+
+bM, ∆t,
+
+where the empirical normal matrix AM, ∆t and normal vector bM, ∆t are given by 
+
+AM, ∆t :“ 1
+
+M L 
+
+> M
+
+ÿ
+
+> m“1
+> L´1
+
+ÿ
+
+> ℓ“0
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+pFmi,t ℓ qJFmi,t ℓ , bM, ∆t :“ 1
+
+M L 
+
+> M
+
+ÿ
+
+> m“1
+> L´1
+
+ÿ
+
+> ℓ“0
+
+σ2
+
+2 δmtℓ ´ 1
+
+M T 
+
+> M
+
+ÿ
+
+> m“1
+
+`hmT ´ hm
+
+> 0
+
+˘.
+
+Here, Fmi,t ℓ , δmtℓ , and hmt are the regression vectors defined in (3.5), which depend on the gradients, Laplacians, and values of the basis functions, evaluated at the sample Xmtℓ .Our goal is to prove that the estimator pθM, ∆t converges to the true parameter θ˚ “ p α˚, β ˚q as 
+
+M Ñ 8 and ∆t Ñ 0.We make the following assumptions on the data-generating process and the basis functions. 
+
+Assumption 4.1 Conditions on the distribution of pXtqtPr 0,T s and the basis functions: 
+
+• Basis moment bounds. The basis functions ψk, ϕ sym ℓ P C4 
+
+> b
+
+pRdq satisfy 
+
+cmax,p “ max 
+
+> 1ďkďKV
+
+}ψk}Cpb pRdq ` max 
+
+> 1ďℓďKΦ
+
+}ϕsym ℓ }Cpb pRdq ă 8 , 2 ď p ď 4,
+
+16 each ϕsym ℓ is symmetric, and the time-averaged Gram matrices 
+
+GV :“ 1
+
+T
+
+ż T
+
+> 0
+
+E“∇ψpX1 
+
+> t
+
+qJ∇ψpX1 
+
+> t
+
+q‰dt, GΦ :“ 1
+
+T
+
+ż T
+
+> 0
+
+E“∇ϕpX1,2 
+
+> t
+
+qJ∇ϕpX1,2 
+
+> t
+
+q‰dt (4.1) 
+
+are positive definite, where ∇ψ “ p ∇ψ1, . . . , ∇ψKV q and ∇ϕ “ p ∇ϕsym  
+
+> 1
+
+, . . . , ∇ϕsym KΦ q. Also, the true potentials Vα˚ and Φβ˚ are in the span of the basis functions. 
+
+• Exchangeability and conditional independence. For each t P r 0, T s, the law of Xt “pX1 
+
+> t
+
+, . . . , X Nt q is exchangeable. For a.e. t P r 0, T s, there exists a sub-σ-algebra Ft such that 
+
+X1 
+
+> t
+
+´ X2 
+
+> t
+
+and X1 
+
+> t
+
+´ X3 
+
+> t
+
+are conditionally independent given Ft.
+
+• Weak cross-correlation. There exists c0 P r 0, 1q s.t. for every θ “ p α, β q P RKV ˆ RKΦ ,
+
+ˇˇˇˇż T
+
+> 0
+
+E“∇VαpX1 
+
+> t
+
+q¨ ∇Φβ pX1 
+
+> t
+
+´X2 
+
+> t
+
+q‰dt 
+
+ˇˇˇˇ ď c0NN ´ 1
+
+ż T
+
+> 0
+
+E“|∇VαpX1 
+
+> t
+
+q| 2`cN |∇Φβ pX1 
+
+> t
+
+´X2 
+
+> t
+
+q| 2‰dt, (4.2) 
+
+where cN “ N ´1  
+
+> N2
+
+.
+
+The first item is a regularity and moment-bounds condition on the basis functions and the data, which are natural assumptions for using Itô calculus and the Riemann-sum approximation. In particular, when the basis functions are in C2 
+
+> b
+
+pRdq, the processes ht “ hpXtq, δt “ δpXtq, and 
+
+Fi,t “ FipXtq in (3.5) satisfy 
+
+E“ sup  
+
+> tPr 0,T s
+
+|ht|2‰ ă Kc 2
+
+> max, 2
+
+, E“ sup  
+
+> tPr 0,T s
+
+|δt|2‰ ă Kc 2
+
+> max, 2
+
+, E“ sup  
+
+> tPr 0,T s
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+}Fi,t }2
+
+> F
+
+‰ ă K2c2
+
+> max, 2
+
+.
+
+The C4 
+
+> b
+
+condition is used to control the time-discretization error in Lemma B.5, and it can be replaced by a weaker condition that the maps t Þ Ñ E
+
+” 1
+
+> N
+
+řNi“1 FJ
+
+> i,t
+
+Fi,t 
+
+ı
+
+and t Þ Ñ Erδts are Lipschitz continuous on r0, T s.The second item on exchangeability and conditional independence is used to establish coercivity, which is essential for well-posedness in estimating the interaction potential. The third item, a weak cross-correlation between the external and interaction terms, ensures the coercivity of the dissipation term, which guarantees that the joint estimation of V and Φ is well-posed. The weak cross-correlation condition is automatically satisfied with c0 “ 0 if the basis functions for V and Φ
+
+are chosen to be orthogonal in the sense that ş ∇ψkpxq ¨ ∇ϕsym ℓ px ´ yqdμ tpx, y q “ 0 for every k, ℓ and a.e. t P r 0, T s, where μt is the joint law of pX1 
+
+> t
+
+, X 2 
+
+> t
+
+q. In general, such orthogonality may not hold, but the weak cross-correlation condition allows for some degree of correlation while still ensuring identifiability. Also, the factors NN ´1 and cN in (4.2) are a technical artifact that arises from the symmetrization of the interaction potential, and their product converges to 0 as N Ñ 8 , agreeing with the ill-posedness in estimating Φ in the mean-field limit in [13, 22, 23]. 
+
+Theorem 4.2 (Error bound) Under Assumption 4.1 , for every η P p 0, 1q, we have 
+
+|pθM, ∆t ´ θ˚| ď C
+
+ˆ
+
+∆t ` 1
+
+?M η 
+
+˙
+
+(4.3) 
+
+with probability at least 1 ´ η, provided M ě M0{η and ∆t ď ∆0 for some constants C, M 0 and ∆0
+
+independent of M and ∆t.
+
+17 The constants in Theorem 4.2 can be chosen as ∆0 “ μ˚ 
+
+> 4LA
+
+, M0 “ 32 CA
+
+> μ2
+> ˚
+
+and C “ max tC1, C 2u
+
+with C1 “ 43μ˚
+
+` σ2Lb 
+
+> 2
+
+`LA|θ˚|˘ and C2 “ 4?2 
+
+> μ˚
+
+max ␣?Cb, ?CAp| θ˚| ` C1∆0q(. Here, μ˚ “ λmin pA˚q
+
+with A˚ is the continuum expected normal matrix in (B.1), and the constants LA, L b, C A, C b arise in Lemma B.5 and Lemma B.7 for controlling the discretization error and concentration and are given by 
+
+LA “ Cd,K N
+
+´
+
+2d c max, 1 ` σ2
+
+2
+
+¯
+
+c2
+
+> max, 3
+
+, Lb “ Cd,K N
+
+´
+
+2d c max, 1 ` σ2
+
+2
+
+¯
+
+cmax, 4,CA “ 4d2K2c4
+
+> max, 2
+
+, Cb “
+
+´
+
+σ4 ` 16 
+
+T 2
+
+¯
+
+K2c2
+
+> max, 4
+
+with Cd,K denoting a constant depending only on d and K.When the trapezoidal rule (Section 2.3) is used in place of the left-endpoint Riemann sum, the discretization bias improves from Op∆tq to Op∆t2q.
+
+Corollary 4.3 (Trapezoidal error bound) Under Assumption 4.1 with the strengthened regu-larity ψk, ϕ sym ℓ P C6 
+
+> b
+
+pRdq, define the trapezoidal estimator pθ trap  
+
+> M, ∆t
+
+by replacing the left-endpoint sums in (3.4) with their trapezoidal counterparts: 
+
+Atrap  
+
+> M, ∆t
+
+“ 12M LN 
+
+ÿ
+
+> m,ℓ
+
+ÿ
+
+> i
+
+”
+
+pFmi,t ℓ qJFmi,t ℓ ` p Fmi,t ℓ`1 qJFmi,t ℓ`1
+
+ı
+
+,
+
+btrap  
+
+> M, ∆t
+
+“ 1
+
+M T 
+
+ÿ
+
+> m,ℓ
+
+” σ2
+
+4 pδmtℓ ` δmtℓ`1 q∆t ´ p hmtℓ`1 ´ hmtℓ q
+
+ı
+
+.
+
+Then, for every η P p 0, 1q, there exist constants C, M0 and ∆0 such that 
+
+|pθ trap  
+
+> M, ∆t
+
+´ θ˚| ď C
+
+ˆ
+
+p∆tq2 ` 1
+
+?M η 
+
+˙
+
+(4.4) 
+
+with probability at least 1 ´ η for all M ě M0{η and ∆t ď ∆0.
+
+We postpone the proofs of the main results to Appendix B and give a sketch of the main ideas here. To establish the error bound, the first task is to show that the continuum expectation normal equation A˚θ “ b˚, where A˚ “ lim M Ñ8 ,∆tÑ0 AM, ∆t and b˚ “ lim M Ñ8 ,∆tÑ0 bM, ∆t, has a unique solution at θ˚ “ A´1 
+
+> ˚
+
+b˚. Here, a key step is to show that A˚ is invertible, for which we introduce a coercivity condition. The second task is to quantify the distances between the empirical normal matrix/vector and the continuum expectation normal matrix/vector, and establish an error bound for the estimator pθM, ∆t.
+
+5 Numerical experiments 
+
+This section examines the performance of the proposed self-test approach on synthetic data. We first validate the error bound in Theorem 4.2 and the velocity-free advantage of the self-test on a reference model that satisfies all assumptions (Sections 5.1–5.4). We then probe the boundaries of the theory by testing models that violate or stress different assumptions (Section 5.5). 18 5.1 Experimental setup Data generation. Ground truth trajectories are generated using the Euler–Maruyama scheme with total time T “ 1.0, diffusion coefficient σ “ 1.0, and unless otherwise specified, N “ 10 
+
+particles in d “ 2 dimensions. We simulate M “ 20 ,000 independent ensembles and generate observations under two protocols that differ in the relationship between the simulation step δt and the observation interval ∆tobs . Initial conditions are drawn as Xi,m  
+
+> 0
+
+„ N p0, 0.25 ¨ Idq. At each observation time, particle indices are randomly permuted to remove trajectory information. In the gap regime (δt ! ∆tobs ), a single set of M fine-step trajectories is simulated with step 
+
+δt “ 10 ´4 (random seed fixed across all ∆tobs ), and particle positions are recorded at intervals 
+
+∆tobs P t 10 ´3, 10 ´2, 10 ´1u by striding the same fine-step trajectory at stride ∆tobs {δt ; this ensures that all observation frequencies share identical underlying dynamics and differ only in sampling rate. This is the default protocol for the method comparison, boundary tests, and the trapezoid-quadrature M -scaling study (Sections 5.2–5.5, Figure 2). Additionally, to test the discrete-time model discussed in Section 2.3, we consider a zero-gap regime (δt “ ∆tobs ), in which the data is simulated directly at each observation time step ∆tobs Pt10 ´4, 10 ´3, 10 ´2, 10 ´1u. This regime is used for the M -scaling analysis in Figure 3. 
+
+Evaluation metrics. We evaluate accuracy using the relative L2pρq error on the gradients: Err p∇V q “ }∇ ˆV ´ ∇V ˚}L2pρV q
+
+}∇V ˚}L2pρV q
+
+, Err p∇Φq “ }∇ ˆΦ ´ ∇Φ˚}L2pρΦq
+
+}∇Φ˚}L2pρΦq
+
+,
+
+where, for radial models, ρV is the one-dimensional empirical density of particle radial positions 
+
+ri “ | Xi| P R` and ρΦ is the density of pairwise distances rij “ | Xi ´ Xj | P R`, both estimated via Gaussian KDE (bandwidth h “ 0.15 ˆ σdata ) on the full M “ 20 ,000 dataset at ∆tobs “ 10 ´3
+
+(2 ˆ 10 8 particle positions for ρV , 9 ˆ 10 8 pairwise distances for ρΦ). Since ρV and ρΦ are properties of the stationary distribution and do not depend on the observation frequency, this single KDE is used for all ∆tobs settings. For non-radial models, ρV and ρΦ are the corresponding densities on 
+
+Rd. The L2pρq integrals are computed via trapezoidal quadrature on a fixed grid of 2000 points over a model-specific range that covers the support of the empirical density. All reported errors are mean ˘ std over 10 non-overlapping blocks of M “ 2,000 from the M “ 20 ,000 pool, each solved independently against the shared KDE density. 
+
+5.2 Validation of the error bound and scaling laws Reference model. We validate the error bound in Theorem 4.2 on a reference model that satisfies all assumptions of the theory, including C4 
+
+> b
+
+regularity, finite basis moment bounds, and a well-conditioned Gram matrix. The reference model has radial potentials of the form 
+
+V ˚pxq “ 12 α1|x| ` α2|x|2, Φ˚prq “ 
+
+> 2
+
+ÿ
+
+> k“1
+
+βk exp 
+
+´
+
+´ pr ´ ckq2
+
+2σ2
+
+> k
+
+¯
+
+, (5.1) with parameters α “ p´ 1, 2q, β “ p´ 3, 2q. Here, c “ p 0.75 , 1.5q, and pσ1, σ 2q “ p 0.125 , 0.25 q. The confining potential V ˚ combines linear and quadratic radial terms. Since Φ˚ P C8pRq with rapid Gaussian decay, the basis moment bounds cmax,p are finite for all p; its well-separated peaks yield a well-conditioned GΦ. The oracle basis consists of KV “ 2 functions ( |x| and |x|2) for V and 
+
+KΦ “ 2 Gaussian bumps for Φ, giving total dimension K “ 4. We use this oracle basis to eliminate approximation error; all regularized solvers select λ by Hansen’s L-curve method. 19 Convergence rates in sample size. Figure 2 shows the convergence rates in sample size for the left-endpoint Riemann sum and the trapezoidal rule on the reference model. The Op∆tq dis-10 2 10 3                
+
+> M
+> 10 0
+> 10 1
+> Relative  L 2(ρ) error (“%)
+> ∇V
+> Riemann O(∆ t)
+> ∆t
+> bias
+> 10 210 3
+> M
+> ∇Φ
+> Riemann O(∆ t)
+> 10 210 3
+> M
+> ∇V
+> Trapezoidal O((∆ t)2)
+> 10 210 3
+> M
+> ∇Φ
+> Trapezoidal O((∆ t)2)
+> ∆t= 10 −4∆t= 10 −3∆t= 10 −2∆t= 10 −1O(M−1/2)
+
+Figure 2: M -scaling on the reference model under Riemann-sum (left pair) and trapezoidal (right pair) time integrations. Both with data generated with δt “ 10 ´4 and integrated with the various 
+
+∆t values. The Riemann-sum has error bound Op∆t ` M ´1{2q, so the four ∆t values track the 
+
+OpM ´1{2q rate (green line) until they saturate at an Op∆tq floor (left pair), while the trapezoidal rule has error bound Opp ∆tq2 ` M ´1{2q, so all four ∆t values track the OpM ´1{2q rate without saturation (right pair). The mean and standard deviation are computed over 10 trials per point; detailed numbers in Table 6. cretization floor visible at ∆t “ 10 ´1 (left pair) arises because the Op∆t2q per-interval quadrature error (Section 2.3) accumulates to Op∆tq over L “ T {∆t intervals, producing a parameter bias that persists as M increases. The trapezoidal rule lowers this floor to Op∆t2q (Corollary 4.3, right pair): coarse observations ( ∆t “ 10 ´1) now achieve the same convergence as dense ones since 
+
+p∆tq2 is smaller than M ´1{2 for all M values in the plot. The numbers are reported in Table 6 in Appendix A.2. 
+
+Discrete-model bias. When δt “ ∆t (zero gap), the particle system is a discrete time series rather than an SDE discretization, so the Op∆tq bias is intrinsic to the model and cannot be removed by refining the quadrature; see Section 2.3. The saturation floors in Figure 3 are predicted by the leading-order Op∆tq. Since this model bias dominates the quadrature correction, the Riemann-sum and trapezoidal rules yield identical results. 
+
+Condition number scaling. Figure 4 shows the condition numbers κ˚, κV V , κΦΦ of the normal matrix A˚ and its diagonal blocks as N varies at d “ 2, 5, 10 (with M “ 2000 , ∆t “ 10 ´2). Proposition B.3 predicts κV V “ Op1q, κΦΦ “ OpN q (since cN “ N ´1  
+
+> N2
+
+„ 1{N ), and κ˚ “ OpN q;these rates are confirmed at d “ 10 . The full-matrix κ˚ exceeds both block values because the off-diagonal V –Φ coupling shrinks λmin pA˚q; see Table 7 (Appendix A.2) for the full N ˆ d grid. Further tests with d “ 20 (not presented here) show that κV V remains stable, but κΦΦ and hence 
+
+κ˚ exceed 10 6 at N “ 100 due to the concentration of pairwise distances. Thus, the flattening of 
+
+κΦΦ at d “ 2 and d “ 5 is likely due to a lack of proper concentration of the pairwise distances which prevents the Φ-block conditioning from seeing the full OpN q growth, particularly when the basis functions are smooth and slowly varying relative to the distance distribution. 20 10 2 10 3              
+
+> M
+> 10 0
+> 10 1
+> 10 2
+> Relative  L 2(ρ) error (“%)
+> ∇V
+> θ∗
+> V∆t/ 2 = 20%
+> 10 210 3
+> M
+> ∇Φ
+> θ∗
+> Φ∆t/ 2 = 100%
+> ∆t= 10 −4∆t= 10 −3∆t= 10 −2∆t= 10 −1O(M−1/2)
+
+Figure 3: Convergence for discrete-time model (i.e., δt “ ∆t, zero gap). The intrinsic Op∆tq bias of the discrete-time model (see Section 2.3) dominates the error when ∆t is large, and the convergence in M is only visible at ∆t ď 10 ´3 (and ∆t “ 10 ´4 for Φ) where the bias is small enough to allow the OpM ´1{2q statistical error to dominate. See also in Table 6. 5 10 20 50 100                   
+
+> N
+> 10 2
+> 10 3
+> Condition number
+> ∗
+> joint matrix
+> +0.5
+> +0.3
+> +1.1
+> cN∼1/N
+> 510 20 50 100
+> N
+> VV
+> confinement block
+> slope ≈0
+> Nindep. samples
+> 510 20 50 100
+> N
+> ΦΦ
+> interaction block
+> -0.7
+> +0.1
+> +0.9
+> d= 2 d= 5 d= 10 O(N)
+
+Figure 4: Condition numbers scaling with N for the normal matrix and its diagonal blocks ( κ˚, κV V ,
+
+κΦΦ ). Slopes (italic numbers at N “100 ) are log-log regression rates from Table 7. Dashed/dotted green lines show the OpN q theoretical rates. Left: κ˚ increases in N , with a rate near OpN q when 
+
+d “ 10 . Center: κV V is N -independent. Right: κΦΦ has a rate near OpN q when d “ 10 due to distance concentration. 
+
+5.3 Method comparison 
+
+We compare the four estimation strategies in Section 3.3 (labeled MLE, Sinkhorn MLE, self-test LSE, and self-test NN) as ∆t varies over t10 ´4, 10 ´3, 10 ´2, 10 ´1u with δt “ 10 ´4 fixed. Labeled MLE and Sinkhorn MLE require the finite-difference approximated velocity vi “ ∆Xi{∆t, whose 
+
+Op∆tq discretization bias persists as M Ñ 8 . The self-test loss (2.3) depends only on particle positions and requires no velocity estimation, so this bias does not arise. Table 2 reveals a crossover between MLE and self-test as ∆t increases. When ∆t “ δt , there is no discretization error and the sampling error caused by the noise σ{?∆t is averaged out by the 
+
+M ˆ L observations, so MLE achieves the lowest errors. As ∆t grows, the velocity bias degrades MLE, and the self-test overtakes MLE at ∆t “ 10 ´2 and ∆t “ 10 ´3. At ∆t “ 10 ´2, the self-test errors are more than an order of magnitude lower than MLE for both ∇V and ∇Φ; at ∆t “ 10 ´1,the same order-of-magnitude advantage remains for ∇Φ. This improvement comes from avoiding 21 Table 2: Method comparison across observation intervals ∆t for the reference model (relative gra-dient errors, %). Oracle: true basis, mean ˘ std over 10 trials. NN: MLP r64 ,64 ,64 s, mean ˘ std over 10 trials. Green = best per ∆t.                                           
+
+> d“2,N“10 ,M“2,000 ,T“1,σ“1,δt “10 ´4
+> Labeled MLE Self-Test LSE Sinkhorn MLE Self-Test NN
+> ∆t∇V∇Φ∇V∇Φ∇V∇Φ∇V∇Φ10 ´40.80 ˘0.55 0 .35 ˘0.19 1.35 ˘0.79 1.24 ˘0.29 1.34 ˘0.80 0.82 ˘0.18 ——
+> 10 ´31.41 ˘0.45 5.18 ˘0.16 0.67 ˘0.37 0 .74 ˘0.15 3.13 ˘0.58 7.17 ˘0.15 0.91 ˘0.17 1.74 ˘0.13 10 ´210 .44 ˘0.41 37 .49 ˘0.28 0.80 ˘0.43 1 .10 ˘0.17 21 .64 ˘0.34 47 .38 ˘0.25 1.25 ˘0.33 2.47 ˘0.22 10 ´111 .30 ˘0.58 89 .38 ˘0.18 6.84 ˘0.58 6.93 ˘0.72 45 .37 ˘0.56 95 .78 ˘0.23 3.15 ˘0.68 5 .80 ˘0.42
+
+velocity estimation entirely: the self-test loss only incurs quadrature error in the dissipation and diffusion integrals, while the energy change δE f is computed exactly from data. The Sinkhorn MLE method, which also relies on velocity estimation, performs worse than MLE at every ∆t due to the additional label-matching error, which degrades significantly with ∆t as nonlinear non-Gaussian dynamics prevents accurate label recovery. In summary, as a practical method, the self-test LSE has a significant advantage over Sinkhorn MLE at every ∆t ą δt . In particular, recall that the self-test approach is much more computationally efficient than Sinkhorn MLE since it does not require the costly label-matching step, so the self-test is more accurate and more efficient than Sinkhorn MLE. 
+
+5.4 Neural network estimation 
+
+The self-test NN requires neither particle labels nor basis knowledge, so it is applicable to general problems with no prior information about the underlying potentials, particularly when the potentials are non-radial or high-dimensional. We test self-test NN on the reference model and a non-radial model, and compare it with the three methods with basis functions and with the radial basis function (RBF) method. Following Algorithm 2, we use 3-layer MLPs ( r64 ,64 ,64 s, Softplus, „17 ,000 parameters), and train it by minimizing the self-test loss. Training details, including asymmetric learning rates, cosine annealing, gradient clipping, and mini-batch construction, are given in Appendix A.1. 
+
+Radial potentials. For the radial potentials in the reference model, the self-test NN achieves errors comparable to or better than the parametric methods (Table 2). In particular, at the large 
+
+∆t “ 10 ´1, the self-test NN outperforms all parametric methods because neural networks can learn a more flexible representation than when the multi-step iterations of the nonlinear and non-Gaussian dynamics render the basis functions inadequate. 
+
+Non-radial potentials. For non-radial potentials, no finite radial basis can represent the target, so parametric and RBF methods do not apply. The self-test NN extends directly: we replace the radial MLP with a general MLP enforcing evenness Φpzq “ Φp´ zq, without changing the loss function—only the architecture changes, unlike basis methods which would require entirely new function families. Because the self-test loss evaluates Laplacian terms ∆V and ∆Φ , all activations must be C2-smooth; ReLU and Leaky ReLU are excluded since their second derivatives vanish almost everywhere (Appendix A.1). 22 We test this on anisotropic potentials: V pxq “ a1x21 ` a2x22 with a “ p 1, 4q, and Φpzq “ 
+
+A exp `´ 12 pz21 {s21 ` z22 {s22q˘ with A “ 2 and s “ p 0.5, 1.5q. Unlike radial models where errors are measured on the scalar derivative dΦ{dr , non-radial evaluation compares the full vector gradient 
+
+∇z Φ P Rd. Figure 5 shows the true and recovered potentials in the case d “ 2, where the NN is trained with data using ∆tobs “ ∆tfine “ 10 ´3 (zero discretization gap) and M “ 2000 . The esti-mator captures the anisotropic contours of V and Φ, with relative errors of 3.6% for ∇V and 12 .3% 
+
+for ∇Φ. This demonstrates that the self-test NN can successfully recover non-radial potentials. 2 1 0 1 2                
+
+> x1
+> 2
+> 1
+> 0
+> 1
+> 2
+> x2
+> True V(x)
+> 21012
+> x1
+> NN V(x) (3.6%)
+> 0
+> 4
+> 7
+> 11
+> 14
+> 18
+> 21
+> 25
+> 21012
+> z1
+> 2.0
+> 1.5
+> 1.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> z2
+> True (z)
+> 21012
+> z1
+> NN (z) (12.3%)
+> 0.0
+> 0.3
+> 0.6
+> 0.9
+> 1.1
+> 1.4
+> 1.7
+> 2.0
+
+Figure 5: Non-radial potential recovery ( d“2). Percentages are relative L2pρq errors. 
+
+5.5 Boundary stress tests 
+
+We further test the self-test approach on four additional models at the boundaries of the theory, each designed to violate or stress a condition in Assumption 4.1. The potentials in these four models are as follows. 
+
+• Smoothness test: V ˚pxq “ 12 α1|x| ` α2|x|2, Φ˚prq “ β11ϵ
+
+> r0.5,1s
+
+prq ` β21ϵ
+
+> r1,2s
+
+prq, with α “p´ 1, 2q, β “ p´ 3, 2q. Here, 1ϵ 
+
+> r0.5,1s
+
+indicates the smoothed indicator interaction via tanh smooth-ing with ε“0.05 , restoring C4 regularity but with relatively large derivatives. 
+
+• Conditioning test: V ˚pxq “ 14 p| x|2 ´ 1q2 ´ 14 , Φ˚prq “ ´ γr {p r ` 1q, with γ “ 0.5. The slow-decay interaction yields ill-conditioned normal matrices with condition number κ three orders of magnitude above the reference model; see Table 5. 
+
+• Singularity test: V ˚pxq “ k 
+
+> 2
+
+|x|2, Φ˚prq “ 4ε“pσ{rq12 ´p σ{rq6‰, with k “ 2, ε “ 0.5, σ “ 0.5. We clamp pairwise distances at rsafe “ 0.35 to avoid numerical instability, but the resulting large derivatives still pose a challenge, with condition number κ two orders of magnitude above the reference model; see Table 5. 
+
+• Smooth control: V ˚pxq “ 14 p| x|2 ´ 1q2 ´ 14 , Φ˚prq “ D“p1 ´ e´apr´r0qq2 ´ p 1 ´ ear 0 q2‰, with 
+
+D “ 0.5, a “ 2, r 0 “ 0.8. This model has a double-well confining potential and a smooth Morse interaction potential with moderate derivatives, so it satisfies all assumptions and serves as a well-behaved baseline for comparison. Table 3 presents an overview of these models and the specific assumptions they violate or stress. 
+
+Stability across ∆t. We examine stability across ∆t of the self-test method in these boundary test models. Table 4 reports the relative errors. The self-test estimators consistently outperform the Sinkhorn-MLEs across ∆t for all four models. At ∆t “ 10 ´3, the self-test LSE is competitive 23 Table 3: Boundary test models and the assumptions they violate or stress. 
+
+Model Φ type Violation / stress point Smoothness test Smoothed indicator 1ϵ 
+
+> ra,b s
+
+C4 
+
+> b
+
+smoothness (Assumption 4.1(i)) Conditioning test γ{p r ` 1q inverse Coercivity — near-singular Gram matrix Singularity test r´12 ´ r´6 singularity C4 
+
+> b
+
++ gradient blowup Smooth control Dp1 ´ e´apr´r0qq2 None (well-behaved baseline) 0 1 2         
+
+> r
+> −40
+> −20
+> 0
+> 20
+> 40
+> 60
+> ∇Φ( r)
+> Smoothness
+> 0123
+> r
+> −0.5
+> −0.4
+> −0.3
+> −0.2
+> −0.1
+> 0.0
+> Conditioning
+> 12
+> r
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> LJ Singularity
+> 012
+> r
+> −30
+> −20
+> −10
+> 0
+> Morse (control)
+> Ground truth MLE Self-test LSE NN self-test
+
+Figure 6: Typical estimators of Φ1prq for the four boundary test models ( d“2, M “2,000 , σ“1,
+
+δt “10 ´4, ∆t“10 ´2). Gray shading indicates the approximate exploration measure ρΦ. Smooth-ness: Smoothed indicator with sharp transitions at r “ 0.5 and r “ 1. Conditioning: Slow-decaying 1{p r`1q interaction that challenges conditioning. Singularity: Lennard-Jones r´12 ´r´6
+
+singularity; gradient diverges as r Ñ 0. Smooth control: Morse potential with equilibrium at 
+
+r0 “ 0.8.with labeled MLE and is substantially better on the singularity and smooth-control models. As 
+
+∆t increases, the self-test estimators degrade much slower than the MLEs. At ∆t “ 10 ´1, the self-test NN is best on the smoothness, singularity, and smooth-control models and yields the best 
+
+∇Φ error on the conditioning model, demonstrating robustness to coarse observations even in these challenging settings. We also test the RBF method on the radial models with a dictionary of 20 Gaussian RBFs with centers uniformly spaced in r0, 3s and bandwidth 0.5; see Appendix A for details. Figure 7 there shows that with such limited basis, the RBF method leads to oscillatory estimators, underperforming the self-test estimators. 24 Table 4: Relative errors (%) as ∆t varies in boundary tests. Parametric estimators: mean ˘ std in 10 trials ( M “2,000 subsampled from Mtotal “20 ,000 ). Green = best among unlabeled methods.                                                                                                                          
+
+> d“2,N“10 ,Mtotal “20 ,000 ,M“2,000 ,T“1,σ“1,δt “10 ´4
+> Labeled MLE Self-Test Sinkhorn Self-Test NN Model ∆t∇V∇Φ∇V∇Φ∇V∇Φ∇V∇Φ
+> Smoothness 10 ´36.70 ˘0.62 12 .98 ˘0.19 1.07 ˘0.52 2.01 ˘0.20 6.30 ˘0.53 14 .42 ˘0.19 1.76 ˘0.54 3.32 ˘0.29 10 ´221 .05 ˘0.55 52 .63 ˘0.18 0.85 ˘0.47 2.55 ˘0.29 18 .23 ˘0.45 59 .31 ˘0.16 1.41 ˘0.44 4.60 ˘0.86 10 ´13.57 ˘0.32 92 .15 ˘0.22 9.07 ˘1.33 10 .01 ˘0.74 31 .32 ˘0.20 95 .89 ˘0.12 3.64 ˘1.42 8.77 ˘0.88
+> Conditioning 10 ´31.15 ˘0.59 11 .97 ˘9.08 1.46 ˘0.73 31 .02 ˘9.63 13 .58 ˘1.06 271 ˘11 3.83 ˘0.38 26 .7˘8.8
+> 10 ´22.67 ˘0.82 15 .85 ˘11 .25 1.58 ˘0.55 40 .26 ˘10 .29 34 .74 ˘1.22 719 ˘14 7.84 ˘3.51 24 .6˘11 .7
+> 10 ´121 .58 ˘0.75 24 .75 ˘12 .55 6.19 ˘0.85 185 ˘31 59 .21 ˘1.18 1258 ˘13 10 .8˘7.3125 ˘12
+> Singularity 10 ´325 .46 ˘0.53 55 .12 ˘0.09 8.88 ˘0.46 13 .89 ˘0.25 25 .46 ˘0.53 55 .12 ˘0.09 1.91 ˘0.81 40 .4˘18 .610 ´24.53 ˘0.37 99 .40 ˘0.10 13 .34 ˘0.85 21 .75 ˘0.91 4.53 ˘0.37 99 .40 ˘0.10 2.70 ˘1.16 4.96 ˘0.41
+> 10 ´147 .51 ˘0.21 100 ˘0.08 15 .36 ˘2.19 39 .68 ˘2.13 49 .72 ˘0.20 101 ˘0.08 1.60 ˘0.60 4.80 ˘0.89
+> Smooth ctrl 10 ´32.77 ˘1.05 5.61 ˘0.91 1.72 ˘0.88 1.69 ˘0.73 4.82 ˘1.17 8.87 ˘0.85 2.34 ˘0.29 3.43 ˘0.82 10 ´213 .06 ˘1.02 31 .30 ˘0.71 2.01 ˘1.25 3.86 ˘1.51 4.13 ˘0.98 8.00 ˘0.75 2.96 ˘0.64 2.95 ˘0.38
+> 10 ´132 .19 ˘0.47 78 .79 ˘1.09 8.05 ˘5.73 33 .42 ˘10 .24 33 .88 ˘0.63 38 .51 ˘0.56 5.91 ˘0.33 6.78 ˘1.01
+
+Table 5: Condition number κpA˚q across all models. Rate in N : log-log regression Blog κ{B log N ;Proposition B.3 predicts slope ď 1.    
+
+> d“2,∆t“10 ´2,M“2000 ,oracle basis
+
+Model N “5 N “10 N “20 N “50 N “100 Rate in N
+
+Reference 37 53 80 123 155 0.5
+
+Smoothness 42 46 88 208 396 0.8
+
+Conditioning 81K 146K 262K 564K 962K 0.8
+
+Singularity 10.8K 12.1K 11.8K 12.1K 11.8K 0.0 (constant) 
+
+Smooth ctrl 7.9K 14.2K 25.4K 53.5K 89.5K 0.8
+
+6 Conclusion 
+
+We have developed a trajectory-free loss function for learning interaction and confining potentials from unlabeled particle snapshots. Our method constructs a quadratic loss from the weak-form PDE of the empirical distribution, using data-dependent test functions of the form f “ V ` Φ ˚ μNt , where 
+
+μNt is the empirical measure from data. This is fundamentally different from existing approaches: trajectory-based methods require label recovery for velocity estimation (which fails for large ∆t), while optimal transport methods are nonlinear and computationally expensive. We have provided nonasymptotic error bounds for the parametric estimator, showing that the error scales as Opp ∆tqα ` M ´1{2q and is tight, with α “ 1 for the Riemann sum and α “ 2 for the trapezoidal rule. Numerical tests confirm these error bounds. Importantly, the self-test approach has a significant advantage over labeled MLE when the observation gap is large, and it is more accurate and more efficient than Sinkhorn-MLE because it does not require costly label-matching. Furthermore, the self-test approach applies to neural networks, which require no basis knowledge, successfully recovers non-radial potentials, and remains effective at coarse observation intervals where fixed basis choices become limiting. 25 The method has various potential applications to real-world datasets in physics, biology and social science. The self-test approach enables learning interaction potentials from static snapshots of particle systems, addressing a fundamental challenge across multiple scientific domains. The method’s efficiency and robustness to coarse observations make it a promising direction for datasets where continuous trajectory information is unavailable or unreliable. On the theoretical side, an important direction is to establish minimax rates for the unlabeled setting and compare them with the known minimax rates for labeled data, which would clarify the fundamental limits of learning without trajectories. 
+
+Limitations. The self-test approach relies on particle homogeneity, which underpins the use of the empirical distribution to encode unlabeled data. Extension to heterogeneous systems with multiple particle types from unlabeled data would require type identification and coupled weak-form PDEs, which is a challenging open problem beyond the scope of the current framework. Another limitation is that the current method assumes the interaction potential is sufficiently smooth and free of singularities; extending it to singular potentials would require careful handling of derivative blowup, such as data-adaptive truncation or regularization. 
+
+A Numerical details 
+
+A.1 Implementation details 
+
+This appendix specifies the computational details deferred from the main text: the RBF basis construction in the parametric baselines and the full neural network training recipe. For singular potentials, pairwise distances are clamped at rsafe “ 0.35 for Lennard-Jones (truncated at rcut “
+
+2.5), and smoothness-test indicators are smoothed via tanh transitions ( ε “ 0.05 ). 
+
+RBF basis construction. We use Gaussian RBFs ψkprq “ exp 
+
+´
+
+´ pr´ck q2
+
+> 2w2
+
+¯
+
+, where ck are the centers and w is the width. The centers are placed equidistantly on r0.01 , r max s, where rmax is determined from the largest dataset as the 99th percentile of pairwise distances for Φ and of particle norms for V . The width is set to w “ 1.5 ¨ rmax {K, ensuring sufficient overlap between adjacent RBFs for smooth interpolation. For simplicity, we take KV “ KΦ “ 20 centers for all models; thus, the performance of the RBF basis approach can be further improved by increasing the number of centers and fine tuning their placement and width. Gradients and Laplacians of the basis functions are computed analytically, with gradients ψ1
+
+> k
+
+prq “ ´ r´ck 
+
+> w2
+
+ψkprq and the Laplacian evaluated via the radial formula ∆xf pxq “ g2prq ` d´1 
+
+> r
+
+g1prq for any radial function f pxq “ gp| x|q .
+
+NN Training protocol. For radial models, both networks take scalar input |x| („8,513 param-eters each, „17 ,026 total); for non-radial models, d-dimensional input ( „8,577 parameters each at 
+
+d“2, „17 ,154 total). The potentials are identifiable only up to additive constants; the offset cancels in the loss. We use Adam with: 
+
+• Activation: The self-test loss involves Laplacian terms ∆V , ∆Φ , requiring C2-smooth ac-tivations; ReLU and Leaky ReLU are excluded since their second derivatives vanish almost everywhere. In the current implementation we use Softplus for the reference model and Softplus or Tanh for the boundary test models. 
+
+• Learning rates: γV “ 10 ´4 for the V network and γΦ “ 5 ˆ 10 ´4 for the Φ network. The higher learning rate for Φ was found empirically to improve convergence in our experiments. 26 • Cosine annealing: Both learning rates follow a cosine schedule from their initial values down to ηmin “ 0.01 ¨ η0, i.e., γV anneals from 10 ´4 to 10 ´6 and γΦ from 5 ˆ 10 ´4 to 5 ˆ 10 ´6 over 
+
+Tmax “ 200 epochs. 
+
+• Gradient clipping: Each network’s gradients are clipped independently at ℓ2-norm 1.0. Inde-pendent clipping prevents the larger-gradient network from dominating parameter updates. Each epoch iterates over all M pL´1q snapshot pairs, jointly shuffled into mini-batches; the full dataset tensor is pre-allocated on GPU. Unlike explicit Tikhonov regularization in the basis solver, the neural network relies on implicit regularization: the finite-width MLP restricts the hypothesis space to smooth functions, and the Adam optimizer with gradient clipping and cosine annealing bi-ases optimization toward low-complexity solutions [35]. Since the loss minimum is strictly negative, early stopping monitors loss flattening rather than vanishing: gradient errors are evaluated every 5 epochs, and training stops after 100 epochs without improvement (patience = 20 evaluations), restoring the best model. All experiments use random seed 42. 
+
+A.2 Detailed numerical results 
+
+This section reports the additional numerical results referenced in the main text. We highlight the main findings from each table below. Table 6 reports the M -scaling under two quadrature rules. Panels (a) and (b) reports estimation errors for the Riemann-sum and trapezoidal time integration using the observation time step size 
+
+∆t P t 10 ´4, 10 ´3, 10 ´2, 10 ´1u, while the ground-truth data is generated at a fixed fine step δt “
+
+10 ´4. The bias floor for these two integration methods are Op∆tq for Riemann sum and Opp ∆tq2q
+
+for trapezoidal rule. In Panel (a), the Op∆tq bias dominates at ∆t “ 10 ´1, producing a flat error floor (slope “ 0) for ∇V and ∇Φ. In contrast, Panel (b) shows that the Opp ∆tq2q bias is smaller than the sampling error OpM ´1{2q, so the error decay rate can be observed. Panel (c) shows that for the discrete-time model (by setting δt “ ∆t), the Op∆tq bias dominates at ∆t ě 10 ´2, producing a flat error floor (slope “ 0) for error decay in M . This bias floor is due to the use of Taylor expansion in the self-test approach for the discrete-time model with unlabeled data, and it is different from the numerical error in the continuous-time model. Table 7 reports the condition numbers of the normal matrix A˚ and its diagonal blocks AV V 
+
+and AΦΦ for the self-test LSE of the reference model. Figure 7 shows the estimators from all methods for the four stress test radial models when d “ 2.In particular, it shows that the RBF basis, when applied with MLE for the labeled data (either ground truth or recovered by Sinkhorn) or with self-test LSE, produces oscillatory estimators with errors larger than those of the other methods, confirming the importance of basis specification or finetuning for least squares estimation. 27 Table 6: M -scaling of self-test LSE: relative L2pρq errors (%) for the reference model ( d“2, N “10 ,10 trials per cell). (a)-(b) : Riemann sum and Trapezoidal quadrature for time integration. The observation time step ∆t P t 10 ´3, 10 ´2, 10 ´1u, and the data is generated with time step fixed at 
+
+δt “ 10 ´4. (c) : Zero-gap regime ( δt “ ∆t). The slope is estimated by log-log regression of error vs. 
+
+M . Those slopes matching the theoretical OpM ´1{2q rate are highlighted in green . See Figure 2 for the corresponding plots. 
+
+(a) Riemann sum ( δt “10 ´4 fixed):        
+
+> d“2,N“10 ,T“1,σ“1,oracle basis, δt “10 ´4
+
+∆t“10 ´3 10 ´2 10 ´1
+
+M ∇V ∇Φ ∇V ∇Φ ∇V ∇Φ
+
+20 6.4˘2.9 3.1˘1.0 5.4˘3.1 3.6˘1.9 12 .2˘7.2 6.0˘3.5
+
+50 4.2˘1.9 1.8˘0.8 4.9˘1.3 2.2˘0.8 5.8˘2.8 4.1˘2.8
+
+200 2.2˘1.2 1.3˘0.6 1.9˘1.0 1.5˘0.6 5.3˘1.8 2.6˘0.9
+
+1000 0.8˘0.5 0.9˘0.2 1.0˘0.5 0.8˘0.3 3.9˘1.1 1.0˘0.7
+
+2000 0.8˘0.3 0.9˘0.2 0.8˘0.4 0.8˘0.3 3.7˘1.0 0.8˘0.4
+
+5000 0.3˘0.2 0.7˘0.1 0.5˘0.3 0.8˘0.2 3.8˘0.4 0.6˘0.3
+
+slope ´0.5 ´0.2 ´0.4 ´0.3 ´0.2 ´0.4
+
+(b) Trapezoid quadrature ( δt “10 ´4 fixed):        
+
+> d“2,N“10 ,T“1,σ“1,oracle basis, δt “10 ´4
+
+∆t“10 ´4 10 ´3 10 ´2 10 ´1
+
+M ∇V ∇Φ ∇V ∇Φ ∇V ∇Φ ∇V ∇Φ
+
+20 6.6˘2.2 2.8˘1.5 6.4˘2.9 3.1˘1.0 5.9˘3.2 3.5˘1.9 12 .3˘6.7 5.7˘3.4
+
+50 4.1˘1.9 2.2˘1.4 4.2˘1.9 1.7˘0.8 5.1˘1.7 2.2˘0.7 5.5˘2.4 3.8˘2.9
+
+200 2.2˘1.1 1.2˘0.6 2.2˘1.2 1.2˘0.6 2.1˘0.9 1.4˘0.6 4.2˘2.0 2.4˘0.8
+
+1000 1.4˘0.6 0.7˘0.3 0.8˘0.5 0.9˘0.2 1.0˘0.5 0.7˘0.2 2.0˘1.0 1.0˘0.6
+
+2000 1.1˘0.5 0.6˘0.2 0.8˘0.4 0.9˘0.2 0.7˘0.3 0.6˘0.3 1.3˘0.6 0.7˘0.3
+
+5000 0.6˘0.4 0.6˘0.1 0.4˘0.2 0.7˘0.1 0.5˘0.2 0.7˘0.2 0.8˘0.4 0.5˘0.3
+
+slope ´0.4 ´0.3 ´0.5 ´0.2 ´0.5 ´0.3 ´0.5 ´0.4
+
+(c) Zero-gap ( δt “∆t):       
+
+> d“2,N“10 ,T“1,σ“1,oracle basis
+
+δt “ ∆t “ 10 ´4 δt “ ∆t “ 10 ´3 δt “ ∆t “ 10 ´2 δt “ ∆t “ 10 ´1
+
+M ∇V ∇Φ ∇V ∇Φ ∇V ∇Φ ∇V ∇Φ
+
+20 18 .0˘8.7 8.3˘5.7 17 .2˘8.3 10 .1˘4.4 15 .6˘6.4 47 .3˘3.0 20 .0˘2.0 100 .8˘1.7
+
+50 11 .8˘6.1 7.6˘1.5 12 .8˘4.7 7.1˘3.5 15 .5˘3.4 47 .0˘1.6 20 .2˘0.8 100 .5˘1.5
+
+200 4.7˘3.6 3.6˘2.0 5.9˘3.3 7.2˘3.2 14 .1˘1.4 46 .6˘1.2 20 .0˘0.5 100 .2˘0.5
+
+1000 2.2˘1.3 1.6˘0.5 2.5˘1.1 6.1˘1.3 13 .7˘0.6 46 .8˘0.3 19 .8˘0.2 100 .4˘0.3
+
+2000 1.3˘0.8 1.2˘0.3 1.6˘0.8 6.1˘0.9 13 .6˘0.5 46 .7˘0.3 19 .9˘0.1 100 .3˘0.2
+
+5000 1.2˘0.5 0.8˘0.4 1.2˘0.5 6.2˘0.4 13 .7˘0.3 46 .7˘0.2 19 .8˘0.1 100 .4˘0.1
+
+slope ´0.5 ´0.5 ´0.5 ´0.1 0.0 0.0 0.0 0.0
+
+28 Table 7: Condition numbers of the normal matrix and its diagonal blocks in self-test LSE for the reference model. Rate in N is estimated via log-log regression B log κ{B log N ; Proposition B.3 predicts that κ˚ “ OpN q, i.e. a rate 1.
+
+∆t“10 ´2, M “2000 , T “1, σ“1, oracle basis 
+
+d “ 2 d “ 5 d “ 10 
+
+N κ˚ κV V κΦΦ κ˚ κV V κΦΦ κ˚ κV V κΦΦ 
+
+5 37 19 .7 12 .8 42 35 .4 6.2 170 156 3.0
+
+10 53 20 .2 6.8 44 32 .4 4.7 232 166 6.9
+
+20 80 20 .5 3.7 50 31 .4 4.5 533 171 14 
+
+50 123 20 .8 1.9 69 30 .7 6.1 1629 177 31 
+
+100 155 20 .9 1.5 98 30 .4 9.1 3426 179 50 
+
+Rate in N 0.5 0.0 ´0.7 0.3 0.0 0.1 1.1 0.0 0.9
+
+λmax « 0.23 « 0.38 « 0.92 0.0 0.5 1.0 1.5 
+
+r
+
+> −15
+> −10
+> −5
+> 0
+> 5
+> 10
+> 15
+> ∇V(r)
+
+Smoothness     
+
+> 0.0 0.5 1.0 1.5 2.0
+
+r
+
+Conditioning     
+
+> 0.0 0.5 1.0 1.5 2.0
+
+r
+
+Singularity (LJ)     
+
+> 0.0 0.5 1.0 1.5 2.0
+
+r
+
+Smooth control (Morse)   
+
+> 012
+
+r  
+
+> −60
+> −40
+> −20
+> 0
+> 20
+> 40
+> 60
+> Φ′(r)
+> 012
+
+r  
+
+> 123
+
+r  
+
+> 012
+
+r
+
+> Ground truth
+> Labeled MLE
+> Sinkhorn MLE
+> Self-test LSE
+> NN self-test
+> RBF MLE
+> RBF Sinkhorn
+> RBF Self-Test
+> ρ
+
+Figure 7: Typical estimators of V 1 and Φ1 for the radial potentials when d “ 2. Top left: Smoothness test. Top right: Conditioning test. Bottom left: Singularity test (LJ). Bottom right: Smooth control (Morse). Gray shading indicates the empirical density of observed distances. 29 B Proofs for the error bound of the parametric estimator 
+
+B.1 Continuum expectation limit and coercivity Lemma B.1 (Continuum expectation normal equation) Under Assumption 4.1, denote 
+
+A˚ “ 1
+
+T
+
+ż T
+
+> 0
+
+E
+
+«
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+FJ
+
+> i,t
+
+Fi,t 
+
+ff 
+
+dt, b˚ “ σ2
+
+2T
+
+ż T
+
+> 0
+
+Erδtsdt ´ 1
+
+T ErhT ´ h0s. (B.1) 
+
+Then, the true parameter θ˚ satisfies 
+
+A˚θ˚ “ b˚, (B.2) 
+
+Proof. Recall the definition of the vector-valued regression functions for the forces Fi,t “ FipXtq,diffusion correction δt “ δpXtq, and potential energy ht “ hpXtq in (3.5). Note that the drift parametrized by θ at particle i at time t is simply 
+
+∇VαpXit q ` 1
+
+N
+
+ÿ
+
+> j‰i
+
+∇Φβ pXit ´ Xjt q “ Fi,t θ, (B.3) and direct differentiation of hpXq gives 
+
+∇Xht “ 1
+
+N pF1,t , . . . , FN,t q, ∆Xht “ δt.
+
+Then, with the true parameter θ˚, the particle system has the form 
+
+dX it “ ´ Fi,t θ˚ dt ` σ dW it , i “ 1, . . . , N. 
+
+Applying Itô’s formula componentwise to ht gives 
+
+dht “ ´ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+FJ
+
+> i,t
+
+Fi,t θ˚ dt ` σ2
+
+2 δt dt ` σN
+
+> N
+
+ÿ
+
+> i“1
+
+FJ 
+
+> i,t
+
+dW it . (B.4) Integrating over r0, T s, taking expectations, and using the fact that the stochastic integral has mean zero, we obtain 
+
+1
+
+T
+
+ż T
+
+> 0
+
+E
+
+«
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+FJ
+
+> i,t
+
+Fi,t 
+
+ff 
+
+dt θ ˚ “ σ2
+
+2T
+
+ż T
+
+> 0
+
+Erδtsdt ´ 1
+
+T ErhT ´ h0s,
+
+which is exactly (B.2). 
+
+Lemma B.2 (Interaction coercivity) Under Assumption 4.1 (1)–(2) , for every β P RKΦ ,
+
+1
+
+T
+
+ż T
+
+> 0
+
+E“ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+ˇˇ 1
+
+N
+
+ÿ
+
+> j‰i
+
+∇Φβ pXit ´ Xjt qˇˇ2‰dt ě cN
+
+T
+
+ż T
+
+> 0
+
+E “|∇Φβ pX1 
+
+> t
+
+´ X2 
+
+> t
+
+q| 2‰ dt “ cN βJGΦβ, (B.5) 
+
+where cN “ N ´1  
+
+> N2
+
+and GΦ is defined in (4.1) .
+
+30 Proof. Assumption 4.1(1) ensures that the second moment of the interaction potential exists and is integrable in time. Expanding the square and applying exchangeability, we have 
+
+E
+
+«
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+ˇˇ 1
+
+N
+
+ÿ
+
+> j‰i
+
+∇Φβ pXit ´ Xjt qˇˇ2
+
+ff 
+
+“ 1
+
+N 3
+
+> N
+
+ÿ
+
+> i“1
+
+ÿ
+
+> j‰i
+
+E“|∇Φβ pXit ´ Xjt q| 2‰ ` 1
+
+N 3
+
+> N
+
+ÿ
+
+> i“1
+
+ÿ
+
+> j,k ‰ij‰k
+
+E“∇Φβ pXit ´ Xjt q ¨ ∇Φβ pXit ´ Xkt q‰
+
+“ N ´ 1
+
+N 2 Er| ∇Φβ pX1 
+
+> t
+
+´ X2 
+
+> t
+
+q| 2s ` pN ´ 1qp N ´ 2q
+
+N 2 Er∇Φβ pX1 
+
+> t
+
+´ X2 
+
+> t
+
+q ¨ ∇Φβ pX1 
+
+> t
+
+´ X3 
+
+> t
+
+qs 
+
+For the off-diagonal part, conditional independence and exchangeability yield 
+
+E“∇Φβ pX1 
+
+> t
+
+´ X2 
+
+> t
+
+q ¨ ∇Φβ pX1 
+
+> t
+
+´ X3 
+
+> t
+
+q‰ “ E
+
+”ˇˇEr∇Φβ pX1 
+
+> t
+
+´ X2 
+
+> t
+
+q | Ftsˇˇ2ı
+
+ě 0.
+
+Therefore, 
+
+E“ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+ˇˇ 1
+
+N
+
+ÿ
+
+> j‰i
+
+∇Φβ pXit ´ Xjt qˇˇ2‰ ě N ´ 1
+
+N 2 E“|∇Φβ pX1 
+
+> t
+
+´ X2 
+
+> t
+
+q| 2‰.
+
+Integrating over t P r 0, T s gives (B.5). 
+
+Proposition B.3 (Coercivity for joint estimation) Under Assumption 4.1, for every θ “ p α, β q,
+
+θJA˚θ “ 1
+
+T
+
+ż T
+
+> 0
+
+E“Jθdiss pXtq‰dt ě p 1 ´ c0q `αJGV α ` cN βJGΦβ˘ . (B.6) 
+
+In particular, A˚ is positive definite with λmin pA˚q ě p 1 ´ c0q min tλmin pGV q, c N λmin pGΦqu .
+
+Proof. Expand Jθdiss and apply the exchangeability, we have 
+
+ErJθdiss pXtqs “ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+Eˇˇ∇VαpXit q ` 1
+
+N
+
+> N
+
+ÿ
+
+> j“1
+
+∇Φβ pXit ´ Xjt qˇˇ2
+
+“Eˇˇ∇VαpX1 
+
+> t
+
+qˇˇ2 ` 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+Eˇˇ 1
+
+N
+
+> N
+
+ÿ
+
+> j“1
+
+∇Φβ pXit ´ Xjt qˇˇ2 ` 2pN ´ 1q
+
+N E“∇VαpX1 
+
+> t
+
+q ¨ ∇Φβ pX1 
+
+> t
+
+´ X2 
+
+> t
+
+q‰.
+
+Integrating over t P r 0, T s and applying the bound in Lemma B.2 for the pure interaction term and the bound for the mixed term in Assumption 4.1(3), we have 
+
+1
+
+T
+
+ż T
+
+> 0
+
+E“Jθdiss pXtq‰dt ěp 1 ´ c0q
+
+ˆż T
+
+> 0
+
+E“|∇VαpX1 
+
+> t
+
+q| 2‰dt ` cN
+
+ż T
+
+> 0
+
+E“|∇Φβ pX1 
+
+> t
+
+´ X2 
+
+> t
+
+q| 2‰dt 
+
+˙
+
+“p 1 ´ c0q `αJGV α ` cN βJGΦβ˘ .
+
+Together with the fact that θJA˚θ “ 1
+
+> T
+
+şT 
+
+> 0
+
+E“Jθdiss pXtq‰dt , this gives (B.6). 31 Remark B.4 (Negative minimum) The joint coercivity in Proposition B.3 implies that θ˚ is the unique minimizer of the continuum expectation loss function ¯L˚ defined by 
+
+¯L˚pθq :“ 12 θJA˚θ ´ p b˚qJθ, 
+
+and the minimum value is ¯L˚pθ˚q “ ´ 12 pθ˚qJA˚θ˚ “ ´ 12 pb˚qJpA˚q´1b˚ ă 0 when θ˚ ‰ 0. Thus, when M is sufficiently large and ∆t is sufficiently small, the empirical loss L is close to ¯L˚, and has a strictly negative minimum. Furthermore, the quadratic form of ¯L˚ around θ˚ is given by 
+
+¯L˚pθq ´ ¯L˚pθ˚q “ 12 pθ ´ θ˚qJA˚pθ ´ θ˚q ě 12 λmin pA˚q| θ ´ θ˚|2,
+
+so the joint coercivity implies that the loss function is convex at the minimum θ˚. This is a key prop-erty that enables one to establish error bounds for the estimator pθM, ∆t by quantifying the perturbation of the empirical loss relative to its continuum-expectation counterpart. 
+
+B.2 Fixed-grid concentration and perturbation 
+
+For a fixed observation grid, define 
+
+A∆ :“ ErAM, ∆ts, b∆ :“ ErbM, ∆ts, θ∆ :“ A´1∆ b∆. (B.7) 
+
+Lemma B.5 (Discretization error) Under Assumption 4.1, A∆ and b∆ in (B.7) satisfy 
+
+}A∆ ´ A˚} ď LA∆t, |b∆ ´ b˚| ď σ2Lb
+
+2 ∆t, (B.8) 
+
+where LA “ CAN
+
+´
+
+2dc max, 1 ` σ2
+
+> 2
+
+¯
+
+c2 
+
+> max, 3
+
+and Lb “ CbN
+
+´
+
+2dc max, 1 ` σ2
+
+> 2
+
+¯
+
+cmax, 4 with constants CA
+
+and Cb depending only on d and K.
+
+Proof. Set Gptq :“ E
+
+” 1
+
+> N
+
+řNi“1 FJ
+
+> i,t
+
+Fi,t 
+
+ı
+
+and dptq :“ Erδts. By definition, 
+
+A∆ “ 1
+
+L
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+Gptℓq, b∆ “ σ2
+
+2L
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+dptℓq ´ ErhT ´ h0s
+
+T ,
+
+A˚ “ 1
+
+T
+
+ż T
+
+> 0
+
+Gptqdt, b˚ “ σ2
+
+2T
+
+ż T
+
+> 0
+
+dptqdt ´ ErhT ´ h0s
+
+T .
+
+Since ∆t “ T {L, we have 
+
+A∆ ´ A˚ “ 1
+
+T
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+ż tℓ`1
+
+> tℓ
+
+`Gptℓq ´ Gptq˘dt, b∆ ´ b˚ “ σ2
+
+2T
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+ż tℓ`1
+
+> tℓ
+
+`dptℓq ´ dptq˘dt. 
+
+If G and d are Lipschitz continuous with constants LA and Lb, then 
+
+}A∆ ´ A˚} ď 1
+
+T
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+ż tℓ`1
+
+> tℓ
+
+LA|t ´ tℓ|dt ď LA∆t, |b∆ ´ b˚| ď σ2Lb
+
+2 ∆t. 
+
+32 Next, we show that G and d are indeed Lipschitz continuous by using the generator of the diffusion process, which requires the C4 
+
+> b
+
+regularity of the basis functions. Denote 
+
+Γkk 1 pXq :“ 1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+`FipXqJFipXq˘ 
+
+> kk 1
+
+, DkpXq :“ δpXqk, k, k 1 “ 1, . . . , K. 
+
+Then Gptqkk 1 “ ErΓkk 1 pXtqs and dptqk “ ErDkpXtqs .By the Itô formula for Xt, for every s, t P r 0, T s,
+
+Gptqkk 1 ´ Gpsqkk 1 “ ErΓkk 1 pXtqs ´ ErΓkk 1 pXsqs “ 
+
+ż ts
+
+Erp L‹Γkk 1 qp Xrqs dr, 
+
+dptqk ´ dpsqk “
+
+ż ts
+
+Erp L‹Dkqp Xrqs dr, 
+
+where L‹ is the generator of the true particle system, i.e., for any H P C2 
+
+> b
+
+pp RdqN q,
+
+pL‹Hqp Xq “ ´ 
+
+> N
+
+ÿ
+
+> i“1
+
+b‹ 
+
+> i
+
+pXq ¨ ∇xi HpXq ` σ2
+
+2
+
+> N
+
+ÿ
+
+> i“1
+
+∆xi HpXq,
+
+where b‹ 
+
+> i
+
+pXq “ ∇V‹pXiq ` 1
+
+> N
+
+ř 
+
+> j‰i
+
+∇Φ‹pXi ´ Xj q. Since the true potentials are in the span of the basis functions, the true drift is uniformly bounded, B‹ :“ sup XPp RdqN max 1ďiďN |b‹ 
+
+> i
+
+pXq| ă 2dc max, 1.
+
+Then, for every H P C2 
+
+> b
+
+pp RdqN q,
+
+ˇˇˇErp L‹Hqp Xtqs 
+
+ˇˇˇ ď N B ‹}∇H}8 ` σ2
+
+2 N }∇2H}8.
+
+Applying to Γkk 1 and Dk, we have 
+
+|Gptqkk 1 ´ Gpsqkk 1 | ď 
+
+ż ts
+
+ˇˇˇErp L‹Γkk 1 qp Xrqs 
+
+ˇˇˇdr ď N
+
+´
+
+B‹ ` σ2
+
+2
+
+¯
+
+}Γkk 1 }C2  
+
+> bpp RdqNq
+
+|t ´ s|,
+
+|dptqk ´ dpsqk| ď 
+
+ż ts
+
+ˇˇˇErp L‹Dkqp Xrqs 
+
+ˇˇˇdr ď N
+
+´
+
+B‹ ` σ2
+
+2
+
+¯
+
+}Dk}C2  
+
+> bpp RdqNq
+
+|t ´ s|.
+
+By the definition of Γkk 1 and Dk, each entry of Gptq and dptq is a spatial average of the corresponding 
+
+Γkk 1 and Dk. Thus, the Lipschitz constants for G and d are controlled by the C2 
+
+> b
+
+norms of Γkk 1 and 
+
+Dk, which in turn are controlled by the C4 
+
+> b
+
+norms of the basis functions: 
+
+max  
+
+> k,k 1
+
+}Γkk 1 }C2   
+
+> bpp RdqNq
+
+ď CA c2
+
+> max, 3
+
+, max  
+
+> 1ďkďK
+
+}Dk}C2   
+
+> bpp RdqNq
+
+ď Cb cmax, 4,
+
+for constants CA “ CApd, K q and Cb “ Cbpd, K q independent of t. Consequently, G and d are Lipschitz continuous with constants LA “ CAN
+
+´
+
+2dc max, 1 ` σ2
+
+> 2
+
+¯
+
+c2 
+
+> max, 3
+
+and Lb “ CbN
+
+´
+
+2dc max, 1 `
+
+> σ2
+> 2
+
+¯
+
+cmax, 4, respectively. 
+
+Lemma B.6 (Trapezoidal discretization error) Under Assumption 4.1 with the strengthened regularity ψk, ϕ sym ℓ P C6 
+
+> b
+
+pRdq, define 
+
+Atrap ∆ :“ 12L
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+“Gptℓq ` Gptℓ`1q‰, btrap ∆ :“ σ2
+
+4L
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+“dptℓq ` dptℓ`1q‰ ´ ErhT ´ h0s
+
+T .
+
+33 Then, 
+
+}Atrap ∆ ´ A˚} ď L1
+
+> A
+
+p∆tq2, |btrap ∆ ´ b˚| ď σ2L1
+
+> b
+
+2 p∆tq2, (B.9) 
+
+where L1 
+
+> A
+
+“ 112 C1 
+
+> A
+
+N 2
+
+´
+
+2d c max, 1 ` σ2
+
+> 2
+
+¯2
+
+c2 
+
+> max, 5
+
+and L1 
+
+> b
+
+“ 112 C1 
+
+> b
+
+N 2
+
+´
+
+2d c max, 1 ` σ2
+
+> 2
+
+¯2
+
+cmax, 6 with con-stants C1
+
+> A
+
+, C 1 
+
+> b
+
+depending only on d and K.
+
+Proof. For any f P C2pr 0, T sq , the composite trapezoidal rule with step ∆t “ T {L satisfies 
+
+ˇˇˇˇ
+
+1
+
+T
+
+ż T
+
+> 0
+
+f ptq dt ´ 12L
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+“f ptℓq ` f ptℓ`1q‰ˇˇˇˇ ď p∆tq2
+
+12 sup  
+
+> tPr 0,T s
+
+|f 2ptq| .
+
+Applying this entrywise to Gptq and dptq, it suffices to bound sup t |G2ptqkk 1 | and sup t |d2ptqk|.By the proof of Lemma B.5, G1ptqkk 1 “ Erp L‹Γkk 1 qp Xtqs . Differentiating once more, 
+
+G2ptqkk 1 “ Erp L2
+
+> ‹
+
+Γkk 1 qp Xtqs .
+
+Since Γkk 1 depends on first derivatives of the basis functions, Γkk 1 P C4 
+
+> b
+
+pp RdqN q when the basis functions are in C5 
+
+> b
+
+pRdq, and L2
+
+> ‹
+
+Γkk 1 is bounded when the basis functions are in C6 
+
+> b
+
+pRdq. By the generator bound in the proof of Lemma B.5 applied twice, 
+
+sup  
+
+> tPr 0,T s
+
+|G2ptqkk 1 | ď N 2´
+
+B‹ ` σ2
+
+2
+
+¯2
+
+}Γkk 1 }C4   
+
+> bpp RdqNq
+
+ď C1
+
+> A
+
+N 2´
+
+2dc max, 1 ` σ2
+
+2
+
+¯2
+
+c2
+
+> max, 5
+
+.
+
+Consequently, }Atrap ∆ ´ A˚} ď L1
+
+> A
+
+p∆tq2. The bound for btrap ∆ ´ b˚ follows identically with Dk in place of Γkk 1 and cmax, 6 in place of cmax, 5.
+
+Lemma B.7 (Concentration of normal matrix and vector) Under Assumption 4.1, for ev-ery η P p 0, 1q, with probability at least 1 ´ η,
+
+}AM, ∆t ´ A∆}F ď
+
+d
+
+2CA
+
+M η , |bM, ∆t ´ b∆| ď 
+
+d
+
+2Cb
+
+M η , (B.10) 
+
+where CA :“ 4d2K2c4
+
+> max, 2
+
+, Cb “ p σ4 ` 16   
+
+> T2
+
+qK2c2
+
+> max, 4
+
+, and A∆ and b∆ are defined in (B.7) .
+
+Remark B.8 (Sharper concentration and nonparametric estimation) Sharper concentration bounds can be obtained by replacing the Chebyshev bounds in Lemma B.7 with Bernstein-type bounds under stronger tail assumptions. This is particularly useful in nonparametric estimation settings, where finer control over the concentration of empirical quantities is needed. The main challenge for nonparametric estimation is the coercivity condition in the infinite-dimensional function space. We leave this as a direction for future work. 
+
+Proof. We use Chebyshev’s inequality to prove the concentration. Denote 
+
+A :“ 1
+
+L
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+FJ 
+
+> i,t ℓ
+
+Fi,t ℓ , b :“ 1
+
+L
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+σ2
+
+2 δtℓ ´ 1
+
+T phT ´ h0q.
+
+34 Then, A∆ “ E rAs, b∆ “ E rbs. With Apmq and bpmq being i.i.d. copies of A and b, we have 
+
+AM, ∆t ´ A∆ “ 1
+
+M
+
+> M
+
+ÿ
+
+> m“1
+
+`Apmq ´ A∆
+
+˘, bM, ∆t ´ b∆ “ 1
+
+M
+
+> M
+
+ÿ
+
+> m“1
+
+`bpmq ´ b∆
+
+˘.
+
+For the matrix term, each column of FipXq is either ∇ψkpXiq or 1
+
+> N
+
+ř 
+
+> j‰i
+
+∇ϕsym k´KV pXi ´ Xj q, so Assumption 4.1(1) gives |FipXq:,k | ď cmax, 2. Hence, 
+
+}A}F ď 1
+
+L
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+1
+
+N
+
+> N
+
+ÿ
+
+> i“1
+
+››FJ 
+
+> i,t ℓ
+
+Fi,t ℓ
+
+››F ď dKc 2
+
+> max, 2
+
+.
+
+Consequently, with }A∆}F ď E r} A}F s, we have 
+
+E}A ´ A∆}2 
+
+> F
+
+ď 4E}A}2 
+
+> F
+
+ď 4d2K2c4 
+
+> max, 2
+
+“ CA.
+
+By the independence of the trajectories, 
+
+E}AM, ∆t ´ A∆}2 
+
+> F
+
+“ 1
+
+M E}A ´ A∆}2 
+
+> F
+
+ď CA
+
+M .
+
+Then, Chebyshev’s inequality yields P
+
+´
+
+}AM, ∆t ´ A∆}F ą
+
+b 2CA
+
+> M η
+
+¯
+
+ď η 
+
+> 2
+
+.For the vector term, note that 
+
+b ´ b∆ “ 1
+
+L
+
+> L´1
+
+ÿ
+
+> ℓ“0
+
+σ2
+
+2
+
+`δtℓ ´ Erδtℓ s˘ ´ 1
+
+T
+
+`phT ´ h0q ´ ErhT ´ h0s˘.
+
+By Assumption 4.1(1), |δpXqk| ď cmax, 4 for every k, so }δtℓ ´ Erδtℓ s} ď 2Kc max, 4. By the definition of hpXq and the boundedness of the basis functions, |hpXqk| ď cmax, 4 for every k, so }p hT ´ h0q ´ 
+
+ErhT ´ h0s} ď 4Kc max, 4. Hence, 
+
+E “}b ´ b∆}2‰ ď σ4K2c2 
+
+> max, 4
+
+` 16 K2
+
+T 2 c2 
+
+> max, 4
+
+“ p σ4 ` 16 
+
+T 2 qK2c2 
+
+> max, 4
+
+“ Cb.
+
+Then, Chebyshev’s inequality gives P
+
+´
+
+|bM, ∆t ´ b∆| ą 
+
+b 2Cb
+
+> M η
+
+¯
+
+ď η 
+
+> 2
+
+.
+
+B.3 Proof of the main error bound Proof of Theorem 4.2. We decompose the error into sampling error and discretization error: 
+
+|pθM, ∆t ´ θ˚| ď | pθM, ∆t ´ θ∆| ` | θ∆ ´ θ˚|. (B.11) We first bound the discretization error |θ∆ ´ θ˚|, and then the sampling error |pθM, ∆t ´ θ∆|.
+
+Step 1: bound on the discretization error. By Proposition B.3, A˚ is positive definite, hence μ˚ :“
+
+λmin pA˚q ą 0. By Lemma B.5, }A∆ ´ A˚} ď LA∆t and |b∆ ´ b˚| ď σ2Lb 
+
+> 2
+
+∆t. Choose ∆0 “ μ˚ 
+
+> 4LA
+
+so that LA∆0 ď μ˚{4. Then, for every ∆t ď ∆0,
+
+λmin pA∆q ě λmin pA˚q ´ } A∆ ´ A˚} ě 3μ˚
+
+4 ,
+
+35 so A∆ is invertible and }A´1∆ } ď 43μ˚ . Using A∆θ∆ “ b∆ and A˚θ˚ “ b˚,
+
+θ∆ ´ θ˚ “ A´1∆
+
+´
+
+pb∆ ´ b˚q ´ p A∆ ´ A˚qθ˚
+
+¯
+
+,
+
+and therefore 
+
+|θ∆ ´ θ˚| ď } A´1∆ }
+
+´
+
+|b∆ ´ b˚| ` } A∆ ´ A˚} | θ˚|
+
+¯
+
+ď C1∆t, 
+
+where C1 :“ 43μ˚
+
+´ σ2Lb 
+
+> 2
+
+` LA|θ˚|
+
+¯
+
+.
+
+Step 2: bound on the sampling error. Let ΩM,η be the event on which the concentration bounds in (B.10) in Lemma B.7 hold, and we have PpΩM,η q ě 1 ´ η.Choose M0 “ 32 CA
+
+> μ2
+> ˚
+
+, then for every M ě M0{η, we have 
+
+b 2CA 
+
+> M η
+
+ď μ˚ 
+
+> 4
+
+. Then, on ΩM,η ,
+
+}AM, ∆t ´ A∆} ď } AM, ∆t ´ A∆}F ď μ˚
+
+4 ,
+
+and, since λmin pA∆q ě 3μ˚{4, we have 
+
+λmin pAM, ∆tq ě λmin pA∆q ´ } AM, ∆t ´ A∆} ě μ˚
+
+2 .
+
+Thus AM, ∆t is invertible and }A´1
+
+> M, ∆t
+
+} ď 2 
+
+> μ˚
+
+.Using the equations AM, ∆t pθM, ∆t “ bM, ∆t and A∆θ∆ “ b∆, we have 
+
+pθM, ∆t ´ θ∆ “ A´1
+
+> M, ∆t
+
+´
+
+pbM, ∆t ´ b∆q ´ p AM, ∆t ´ A∆qθ∆
+
+¯
+
+.
+
+Also, Step 1 gives |θ∆| ď | θ˚| ` C1∆0 “: Bθ. Hence, on ΩM,η ,
+
+|pθM, ∆t ´ θ∆| ď } A´1
+
+> M, ∆t
+
+}
+
+´
+
+|bM, ∆t ´ b∆| ` } AM, ∆t ´ A∆} | θ∆|
+
+¯
+
+ď 2
+
+μ˚
+
+˜d 
+
+2Cb
+
+M η ` Bθ
+
+d
+
+2CA
+
+M η 
+
+¸
+
+ď C2
+
+1
+
+?M η ,
+
+with constant C2 :“ 4?2 
+
+> μ˚
+
+max ␣?Cb, ?CAp| θ˚| ` C1∆0q(.Combining the two bounds with (B.11), we obtain on ΩM,η 
+
+|pθM, ∆t ´ θ˚| ď C1∆t ` C2
+
+1
+
+?M η .
+
+Since PpΩM,η q ě 1 ´ η, this proves (4.3). 
+
+Proof of Corollary 4.3. We decompose the error as in (B.11). For the discretization error, Lemma B.6 gives }Atrap ∆ ´ A˚} ď L1
+
+> A
+
+p∆tq2 and |btrap ∆ ´ b˚| ď σ2L1 
+
+> b
+> 2
+
+p∆tq2. By the same perturbation argument as in Step 1 of Theorem 4.2, 
+
+|θtrap ∆ ´ θ˚| ď C1
+
+> 1
+
+p∆tq2, C1 
+
+> 1
+
+“ 43μ˚
+
+´ σ2L1
+
+> b
+
+2 ` L1
+
+> A
+
+|θ˚|
+
+¯
+
+.
+
+The sampling error bound is identical to Step 2 of Theorem 4.2, since the trapezoidal averages are still sample means 1
+
+> M
+
+ř
+
+> m
+
+p¨q and the concentration bounds in Lemma B.7 apply. Then, Eq. (4.4) follows by combining the two bounds. 36 Declaration of generative AI and AI-assisted technologies in the manuscript prepara-tion process 
+
+During the preparation of this work, the authors used AI agents for numerical computations and writing assistance. After using these tools, the authors reviewed and edited the content as needed and take full responsibility for the content of the published article. 
+
+Acknowledgments 
+
+FL was in part supported in part by the National Science Foundation under grants DMS-2238486 and DMS-2511283. FL would like to thank Quanjun Lang and Yuan Gao for helpful discussions on formulating the self-test loss function. 
+
+References 
+
+[1] Daron Acemoglu, Asuman Ozdaglar, and Ali ParandehGheibi. Opinion fluctuations and dis-agreement in social networks. Mathematics of Operations Research , 38(1):1–27, 2013. [2] Chiara Amorino, Akram Heidari, Vytaut˙ e Pilipauskait˙ e, and Mark Podolskij. Parameter es-timation of discretely observed interacting particle systems. Stochastic Processes and their Applications , 2023. [3] Hans T. Bjornsson, Martin I. Sigurdsson, M. Daniele Fallin, Rafael A. Irizarry, Thor As-pelund, Hengmi Cui, Wenqiang Yu, Michael A. Rongione, Tomas J. Ekström, Tamara B. Harris, Lenore J. Launer, Gudny Eiriksdottir, Mark F. Leppert, Carmen Sapienza, Vilmundur Gudnason, and Andrew P. Feinberg. Intra-individual change over time in dna methylation with familial clustering. JAMA , 299(24):2877–2883, 06 2008. [4] Mattia Bongini, Massimo Fornasier, Markus Hansen, and Mauro Maggioni. Inferring interaction rules from observations of evolutive systems i: The variational approach. Mathematical Models and Methods in Applied Sciences , 27(05):909–951, 2017. [5] Charlotte Bunne, Laetitia Papaxanthos, Andreas Krause, and Marco Cuturi. Proximal op-timal transport modeling of population dynamics. In International Conference on Artificial Intelligence and Statistics , pages 6511–6528. PMLR, 2022. [6] Laetitia Chapel, Mokhtar Z Alaya, and Gilles Gasso. Partial optimal tranport with applications on positive-unlabeled learning. Advances in Neural Information Processing Systems , 33:2903– 2913, 2020. [7] Xiaohui Chen. Maximum likelihood estimation of potential energy in interacting particle sys-tems from single-trajectory data. Electron. Commun. Probab. , 26:1–13, 2021. [8] Marco Cuturi. Sinkhorn distances: Lightspeed computation of optimal transport. In Advances in Neural Information Processing Systems , volume 26, 2013. [9] Frank De Jong and Pedro Santa-Clara. Conditional moment estimation for diffusion processes. 
+
+NBER Working Paper , 2004. [10] François Delarue, Daniel Lacker, and Kavita Ramanan. From the master equation to mean field game limit theory: A central limit theorem. Electronic Journal of Probability , 24:1–54, 2019. [11] Jinchao Feng, Yunxiang Ren, and Sui Tang. Data-driven discovery of interacting particle systems using gaussian processes. arXiv preprint arXiv:2106.02735 , 2021. [12] Jean Feydy, Thibault Séjourné, François-Xavier Vialard, Shun-ichi Amari, Alain Trouvé, and Gabriel Peyré. Interpolating between optimal transport and mmd using sinkhorn divergences. 37 In The 22nd International Conference on Artificial Intelligence and Statistics , pages 2681–2690. PMLR, 2019. [13] Yuan Gao, Quanjun Lang, and Fei Lu. Self-test loss functions for learning weak-form operators and gradient flows. arXiv preprint arXiv:2412.03506 , 2024. [14] Aude Genevay, Marco Cuturi, Gabriel Peyré, and Francis Bach. Stochastic optimization for large-scale optimal transport. Advances in Neural Information Processing Systems , 29, 2016. [15] Per Christian Hansen. Analysis of discrete ill-posed problems by means of the L-curve. SIAM Review , 34(4):561–580, 1992. [16] Jessica N Howard, Stephan Mandt, Daniel Whiteson, and Yibo Yang. Learning to simulate high energy particle collisions from unlabeled data. Scientific Reports , 12(1):7567, 2022. [17] Hui Huang, Jian-Guo Liu, and Jianfeng Lu. Learning interacting particle systems: Diffusion parameter estimation for aggregation equations. Mathematical Models and Methods in Applied Sciences , 29(01):1–29, 2019. [18] Stefano M Iacus. Simulation and inference for stochastic differential equations . Springer, 2009. [19] Gareth Jenkinson, Elena Pujadas, John Goutsias, and Andrew P Feinberg. Potential en-ergy landscapes identify the information-theoretic nature of the epigenome. Nature Genetics ,49(5):719–729, 2017. [20] Raphael A. Kasonga. Maximum likelihood theory for large interacting systems. SIAM J. Appl. Math. , 50(3):865–875, 1990. [21] Yury A Kutoyants. Parameter estimation for partially observed hypoelliptic diffusions. Journal of the Royal Statistical Society: Series B , 66(2):405–422, 2004. [22] Quanjun Lang and Fei Lu. Learning interaction kernels in mean-field equations of first-order systems of interacting particles. SIAM Journal on Scientific Computing , 44(1):A260–A285, 2022. [23] Quanjun Lang and Fei Lu. Identifiability of interaction kernels in mean-field equations of interacting particles. Foundations of Data Science , 5(4):480–502, 2023. [24] Qin Li, Maria Oprea, Li Wang, and Yunan Yang. Stochastic inverse problem: stability, regu-larization and wasserstein gradient flow. arXiv preprint arXiv:2410.00229 , 2024. [25] Qin Li, Maria Oprea, Li Wang, and Yunan Yang. Inverse problems over probability measure space. arXiv preprint arXiv:2504.18999 , 2025. [26] Xingjie Li, Fei Lu, Molei Tao, and Felix X-F Ye. Robust first-and second-order differentiation for regularized optimal transport. SIAM Journal on Scientific Computing , 47(3):C630–C654, 2025. [27] Jiaming Liang, Chao Xu, and Shengze Cai. Recurrent graph optimal transport for learning 3d flow motion in particle tracking. Nature Machine Intelligence , 5(5):505–517, 2023. [28] Meiqi Liu and Huijie Qiao. Parameter estimation of path-dependent McKean-Vlasov stochastic differential equations. Acta Mathematica Scientia , 42(3):876–886, 2022. [29] Fei Lu, Mauro Maggioni, and Sui Tang. Learning interaction kernels in heterogeneous systems of agents from multiple trajectories. Journal of Machine Learning Research , 22(32):1–67, 2021. [30] Fei Lu, Mauro Maggioni, and Sui Tang. Learning interaction kernels in stochastic systems of interacting particles from multiple trajectories. Foundations of Computational Mathematics ,pages 1–55, 2021. 38 [31] Fei Lu, Ming Zhong, Sui Tang, and Mauro Maggioni. Nonparametric inference of interaction laws in systems of agents from trajectory data. Proc. Natl. Acad. Sci. USA , 116(29):14424– 14433, 2019. [32] Yubin Lu, Xiaofan Li, Chun Liu, Qi Tang, and Yiwei Wang. Learning generalized diffusions using an energetic variational approach, 2024. [33] Daniel A Messenger and David M Bortz. Learning mean-field equations from particle data using wsindy. Physica D: Nonlinear Phenomena , 439:133406, 2022. [34] Sebastien Motsch and Eitan Tadmor. Heterophilious Dynamics Enhances Consensus. SIAM Rev , 56(4):577 – 621, 2014. [35] Behnam Neyshabur, Srinadh Bhojanapalli, David McAllester, and Nati Srebro. Exploring gen-eralization in deep networks. In Advances in Neural Information Processing Systems , volume 30, 2017. [36] Reza Olfati-Saber, J Alex Fax, and Richard M Murray. Consensus and cooperation in networked multi-agent systems. Proceedings of the IEEE , 95(1):215–233, 2007. [37] Aharon Razin and Howard Cedar. DNA methylation and gene function. Science ,210(4470):604–610, 1980. [38] Geoffrey Schiebinger, Jian Shu, Marcin Tabaka, Brian Cleary, Vidya Subramanian, Aryeh Solomon, Joshua Gould, Siyan Liu, Stacie Lin, Peter Berube, et al. Optimal-transport analysis of single-cell gene expression identifies developmental trajectories in reprogramming. Cell ,176(4):928–943, 2019. [39] Louis Sharrock, Nikolas Kantas, Panos Parpas, and Grigorios A. Pavliotis. Parameter esti-mation for the McKean-Vlasov stochastic differential equation. ArXiv210613751 Math Stat ,2021. [40] Alain-Sol Sznitman. Topics in propagation of chaos . Springer, 1991. [41] Yiwei Wang, Jiuhai Chen, Chun Liu, and Lulu Kang. Particle-based energetic variational inference. Statistics and Computing , 31:1–17, 2021. [42] Jianghui Wen, Xiangjun Wang, Shuhua Mao, and Xinping Xiao. Maximum likelihood estima-tion of McKean-Vlasov stochastic differential equation and its application. Applied Mathematics and Computation , 274:237–246, 2016. [43] Liu Yang, Constantinos Daskalakis, and George E Karniadakis. Generative ensemble regres-sion: Learning particle dynamics from observations of ensembles with physics-informed deep generative models. SIAM Journal on Scientific Computing , 44(1):B80–B99, 2022. [44] Rentian Yao, Xiaohui Chen, and Yun Yang. Mean-field nonparametric estimation of interacting particle systems. In Conference on Learning Theory , pages 2242–2275. PMLR, 2022. 39
