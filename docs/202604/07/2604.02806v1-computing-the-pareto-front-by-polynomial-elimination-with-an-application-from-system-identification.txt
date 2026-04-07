@@ -1,0 +1,583 @@
+Title: Computing the Pareto Front by Polynomial Elimination, With an Application From System Identification
+
+URL Source: https://arxiv.org/pdf/2604.02806v1
+
+Published Time: Mon, 06 Apr 2026 00:32:12 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+# Computing the Pareto Front by Polynomial Elimination, With an Application From System Identification ∗
+
+Hans van Rooij ‡, Christof Vermeersch †, ‡, Marie Deferme ‡ and Bart De Moor ‡
+
+> †
+
+Corresponding author ( christof.vermeersch@esat.kuleuven.be )
+
+> ‡
+
+Center for Dynamical Systems, Signal Processing, and Data Analytics (STADIUS), Dept. of Electrical Engineering (ESAT), KU Leuven, Kasteelpark Arenberg 10, 3001 Leuven, Belgium 
+
+April 6, 2026 
+
+Abstract 
+
+We propose a novel numerical approach to compute the Pareto front in mul-tivariate polynomial multi-objective optimization problems. When the objective functions and (equality) constraints are multivariate polynomials, the Pareto front, which describes the efficient points of the multiple (often conflicting) objective func-tions, can be interpreted as a subset of a positive-dimensional algebraic variety. By combining the objective functions with weights and considering the weights as ad-ditional decision variables, we can eliminate all variables except the objective values and obtain one (or multiple) polynomial equation(s) that describes the Pareto front. Unlike sampling-based methods that approximate the Pareto front point-wise, our elimination-based approach yields an explicit algebraic relation between the objec-tive values, representing the Pareto front as a geometric object in the objective space without requiring a predetermined number of sample points. Besides numer-ical examples illustrating the elimination-based approach, we use elimination on a challenging application that originates from system identification, in which we an-alyze the trade-off between misfit and latency terms when determining the optimal model parameters from measured data. 
+
+# 1 Introduction 
+
+Due to possibly conflicting and incommensurable objective functions in multi-objective (or vector) optimization problems, it is generally not possible to find a single solution that is optimal for all objectives simultaneously [9]. In that sense, such problems do not admit a unique optimum but rather a set of efficient solutions called Pareto-efficient points , for which no objective can be improved without worsening another. 1 The corre-sponding set of objective values, the Pareto front , represents the trade-offs inherent to the optimization problem and is, therefore, central in the decision making process. 
+
+> ∗
+
+This work was supported in part by the KU Leuven Research Fund (grants IBOF/23/064, C3/20/117, and C3I/21/00316); in part by the Fonds Wetenschappelijk Onderzoek (grants S005319 and T001919N); in part by the Departement Economie, Wetenschap & Innovatie via the Flanders AI Re-search Program; in part by the Vlaams Agentschap Innoveren & Ondernemen (grant HBC/2021/0076); and in part by the European Research Council (grant 885682). The work of Christof Vermeersch was supported in part by a FWO PHC Tournesol mobility grant (grant VS00326N). 
+
+> 1
+
+The concept is attributed to both Francis Ysidro Edgeworth and Vilfredo Pareto, two economists from the late 19th, early 20th century. Although Edgeworth presented the idea first, it is named after Pareto, who introduced the notion of economic efficiency in the context of income distribution and 
+
+1
+
+> arXiv:2604.02806v1 [math.OC] 3 Apr 2026
+
+When the objective functions and (equality) constraints are multivariate polynomi-als, the Pareto front can be interpreted as a subset of a positive-dimensional algebraic variety. We present in this paper a novel approach to compute in that case the Pareto front by (numerical) polynomial elimination: eliminating all variables except the objec-tive values yields polynomial equations(s) of which a part of the solution set corresponds to the Pareto front. Existing methods for computing (parts of) the Pareto front typically encode the relative importance of the objective functions before ( a priori ) or after ( a posteriori )optimization, for instance through weights, constraints, or ordering on the objective functions. A survey of such methods is given in [8]. A common approach is scalarization, in which the multi-objective optimization problem is reformulated as a family of scalar problems that sample the Pareto front. The (convex) weighted sum method is widely used in scalarization because of its simplicity: a weighted combination of the objective functions is minimized for varying weights and each minimizer corresponds to a distinct point on the Pareto front. However, it has two well-known limitations: (i) a uniform spread of weights does not generally produce a uniform spread on the Pareto front and (ii) non-convex regions of the Pareto front cannot be detected. Moreover, obtaining a finer approximation of the Pareto front increases the computational cost proportionally. In contrast, our elimination-based approach treats the weights as additional vari-ables rather than fixed parameters. The first-order necessary optimality conditions for the corresponding scalarized, but parametrized, multivariate polynomial multi-objective optimization problem results in a system of multivariate polynomial equations. Unlike sampling-based methods that approximate the Pareto front point-wise, eliminating all variables except the objective values yields an explicit algebraic relation between the objective values; the Pareto front is a subset of this implicitly represented geometric object in the objective space. It is no longer necessary to decide in advance on the number of sampling points. Although our approach is still computationally intensive, it does not suffer from the above-mentioned two limitations. Multi-objective trade-offs arise naturally in many engineering applications (see [9, 12] and references therein). For example, in system identification, determining model pa-rameters that best describe measured data leads inherently to competing objectives. Here, we apply our elimination-based approach to the misfit-versus-latency model class, where the mismatch between measured and model-compliant data, which result from external influences such as measured noise, observed disturbances, and unmodeled ef-fects, are represented by a misfit term and an unknown latent input. The optimal model parameters are obtained by distributing this mismatch between both terms, resulting in a multi-objective optimization problem that minimizes them simultaneously. Although only a limited number of data points is considered, the accompanying numerical example provides both a challenging elimination benchmark (with ten decision variables) and an illustration of the application potential of Pareto fronts in system identification. 
+
+Outline and contributions The remainder of this paper is organized as follows. Firstly, in Section 2, we explain how Pareto fronts appear in multi-objective minimiza-tion. We state the problem mathematically and give a motivational example. In Sec-tion 3, we present our elimination-based approach for computing an algebraic description 
+
+> welfare economics [11]. His key insight was that a society’s resources are optimally allocated when no individual can be made better off without making another worse off—a condition now known as Pareto efficiency.
+
+2of the Pareto front; this constitutes the main contribution of the paper . We consider in Section 4 three numerical examples. Afterwards, in Section 5, we apply elimination to parameter estimation in the misfit-versus-latency model class, which forms a secondary contribution . Finally, Section 6 concludes the paper and outlines directions for future work. 
+
+# 2 Pareto Fronts in Minimization 
+
+Given m objective functions f1(x), f 2(x), . . . , f m(x) in n decision variables x = ( x1, x 2,. . . , x n) ∈ Rn with m ≥ 2 and fi(x) : Rn → R, the multi-objective minimization problem denotes the simultaneous minimization of each of these objective functions on a given real-valued 2 feasible decision space X ⊆ Rn,min 
+
+> x
+
+f1(x) f2(x) . . . fm(x)T ,
+
+subject to x ∈ X
+
+(1) which is defined as finding all Pareto-efficient points x⋆ in X. The concept of Pareto efficiency (other terms are admissibility , non-inferiority , and Pareto optimality ) is used in multi-objective minimization because typically no single global minimum exists, and it is defined as follows. 
+
+Definition 1. A point x⋆ ∈ X is Pareto-efficient if there exists no feasible x ∈ X such that fi(x) ≤ fi(x⋆) for all i = 1 , 2, . . . , m, and fj (x) < f j (x⋆) for at least one j.
+
+The set of objective values of all (possibly infinitely many) Pareto-efficient points is the so-called Pareto front. A stricter definition exists that excludes certain degenerate Pareto fronts. 
+
+Definition 2. A point x⋆ ∈ X is properly Pareto-efficient if it is Pareto-efficient and if there exists a scalar R > 0 such that, for each i, we have that 
+
+fi(x) − fi(x⋆)
+
+fj (x⋆) − fj (x) ≤ R, (2) for some j such that fj (x) > f j (x⋆) whenever x ∈ X and fi(x) < f i(x⋆). 
+
+The ratio in (2) measures the gain in objective function fi(x) relative to the loss in objective function fj (x). Proper Pareto efficiency requires this ratio to be bounded by the same R. If no finite R exists, which means that there are sequences of feasible points where this ratio grows unbounded, then x⋆ is Pareto-efficient but improper. The (convex) weighted sum method rephrases the multi-objective minimization prob-lem (1) into a scalar minimization problem given by min 
+
+> x
+> m
+
+X
+
+> i=1
+
+wifi(x),
+
+subject to x ∈ X,
+
+(3) where the weights wi, for i = 1 , 2, . . . , m , satisfy the following constraints: 
+
+wi ≥ 0 and 
+
+> m
+
+X
+
+> i=1
+
+wi = 1 .
+
+> 2In engineering applications, the decision variables are typically real-valued. For an introductory text that discusses multivariate polynomial minimization with complex-valued decision variables, see [17].
+
+3For a specific choice of weights w, the solution of the weighted minimization problem (3) gives one point on the Pareto front. The proof of the following important theorem is given, for maximization, in [3]. 
+
+Theorem 1. Let wi > 0 be fixed for i = 1 , 2, . . . m with Pmi=1 wi = 1 . If x⋆ is a minimum of the (convex) weighted minimization problem (3) , then x⋆ is properly Pareto-efficient in (1) .
+
+The multi-objective minimization problem potentially has ng equality constraints 
+
+gk(x) : Rn → R:
+
+gk(x) = 0 , k = 1 , 2, . . . , n g,
+
+which determine the feasible decision space X ⊆ Rn.
+
+Definition 3. The feasible decision space X ⊆ Rn, also called constraint set , is defined as the set {x : gk(x) = 0 , k = 1 , 2, . . . , n g}.
+
+The critical points of the weighted minimization problem (3) can in that case be found by solving the Karush–Kuhn–Tucker (KKT) conditions [10] for a specific choice of weights w:
+
+∇xL(x, λ) = 0,gk(x) = 0 , k = 1 , 2, . . . , n g, (4) where the Lagrangian L(x, λ) is given by 
+
+L(x, λ) = 
+
+> m
+
+X
+
+> i=1
+
+wifi(x) −
+
+> ng
+
+X
+
+> k=1
+
+λkgk(x).
+
+One of the critical points obtained by solving the KKT system (4), specifically the global minimum, is a Pareto-efficient point of the multi-objective minimization problem (1). Since the focus in the paper is on the subclass of multivariate polynomial multi-objective minimization with equality constraints, we restrict ourselves to objective func-tions and constraints that are multivariate polynomials: 
+
+fi(x), g k(x) ∈ R[x].
+
+The Pareto front can then be described by multivariate polynomial equations and is, therefore, contained in a (positive-dimensional) algebraic variety. Note that when poly-nomial inequalities constraints are present, it is a subset of a semi-algebraic set, which itself is contained in a variety. 
+
+Example 1 (Motivational example) . Consider the problem of creating an investment portfolio 3, in which one has to decide the amount of money to invest in three different stock options xi, i = 1 , 2, 3. The two conflicting objectives are to maximize revenue, 
+
+f1(x) = aTx, and minimize risk, f2(x) = xTBx . Under the constraint that one has a limited amount of money to invest, g(x) = P3 
+
+> i=1
+
+xi − 100 = 0, the multi-objective minimization problem corresponds to min 
+
+> x
+
+−aTxxTBx 
+
+
+
+subject to 
+
+> 3
+
+X
+
+> i=1
+
+xi − 100 = 0 ,
+
+> 3As Pareto fronts have their roots in economics, we introduce a small motivational example from that setting, which we use throughout the paper to illustrate the key concepts and our novel approach. The example is based on the work of Nobel prize winner Harry Markowitz [7].
+
+4−20 −18 −16 −14 −12 −10      
+
+> 0
+> 2
+> 4
+> 6
+> 8
+> 10
+> s1
+> s2Figure 1: Visualization of the Pareto front for the portfolio optimization problem in Example 1. The Pareto front ( ) is obtained by considering the zero set of the eliminant polynomial ( ), which is computed via our novel elimination-based approach in Section 3.4. Only the points that correspond to nonnegative weights are contained in the Pareto front. A linear level curve ( )allows to recover the weight vector and decision variables that correspond to a specific point on the Pareto front ( ).
+
+where the vector a ∈ R3 contains the expected revenue per stock and the covariance matrix B describes the risk associated with every stock. Depending on the values of a
+
+and B, the objective functions can be conflicting, which is the case for 
+
+a =
+
+
+
+10 20 15 
+
+ · 10 −2 and B =
+
+
+
+5 1 21 10 32 3 7
+
+ · 10 −4.
+
+Figure 1 displays the Pareto front for these values of a and B as a solid blue line ( ). The objective variables s1 and s2 denote the negated expected revenue −aTx
+
+and expected risk xTBx , respectively. 
+
+# 3 Computational Elimination Approach 
+
+We now present our elimination-based approach for computing the Pareto front of mul-tivariate polynomial multi-objective minimization problems. We first describe how the Pareto front can be characterized through a system of multivariate polynomial equa-tions derived from the KKT conditions, and how its computation can be formulated as an elimination problem (Section 3.1). Next (in Section 3.2), we introduce a numerical elimination algorithm that uses the Macaulay matrix to compute polynomial relations between the objective variables. The interpretation of the resulting eliminant system and corresponding Pareto front are discussed afterwards (Section 3.3). Finally, the complete procedure is illustrated on the motivational example (Section 3.4). 
+
+3.1 Reformulation of the Pareto front as an eliminant 
+
+If each fi(x), g k(x) is a multivariate polynomial, then the KKT conditions (4) yield a multivariate polynomial system in the variables ( x, w, λ). To obtain a description of 5the Pareto front in the objective space, we introduce m additional variables 
+
+s = ( s1, s 2, . . . , s m) ,
+
+representing the objective values, and impose the relations 
+
+si − fi(x) = 0 , i = 1 , 2, . . . , m. (5) Combining the KKT conditions (4) and objective relations (5) yields the so-called Pareto front (PF) system: 
+
+∇xL(x, λ) = 0,gk(x) = 0 , k = 1 , 2, . . . , n g,si − fi(x) = 0 , i = 1 , 2, . . . , m. 
+
+(6) Eliminating n′ = n + m + ng variables ( x, w, λ) from (6) yields algebraic relations in the objective values s. Hence, computing the Pareto front can be formulated as an elimination problem. The eliminant system , of which the solutions contain the Pareto front, may consist of a single polynomial equation or a multivariate polynomial system. The elimination of ( x, w, λ) can be done symbolically or numerically. Numerical elimination is a relatively recent development compared to the long-standing symbolic tradition. In contrast to symbolic approaches, numerical formulations rely on techniques from numerical linear algebra at every stage of the computation, allowing floating-point arithmetic [1, 19, 13]. 
+
+3.2 Numerical elimination algorithm 
+
+Our numerical elimination algorithm uses Macaulay matrices Md ∈ Rpd×qd of increasing degree d, which are built from the coefficients of the PF system (6) and monomial multiples up to total degree d [14]. To construct a Macaulay matrix, we take each polynomial in the PF system (6) and multiply it by all monomials of increasing total degree so that the highest total degree does not exceed d, and we collect the coefficients of these polynomials in a structured matrix with columns labeled by the monomials [14]. Its dimensions pd × qd depend on the degree d.Each row of the Macaulay matrix Md represents one polynomial (either an original equation or a monomial multiple) expressed in a fixed monomial basis [14]. Hence, the row space of Md, denoted by Rd, consists of polynomial combinations of the polynomi-als, ri(z) with total degree di, in the PF system (6): 
+
+Rd =
+
+( n′
+
+X
+
+> i=1
+
+ci(z) ri(z) : ci(z) ∈ R[z]≤d−di
+
+)
+
+.
+
+Here, R[z]≤d−di denotes the set of polynomials in z = ( x, w, λ, s) with real coefficients of degree at most d − di. Thus, the row space Rd can be interpreted as the space of all polynomial combinations of the PF system with degree bounded by d.The goal of our numerical elimination algorithm is to remove all variables except the objective variables s. To achieve this goal, we construct polynomial combinations of the original system that no longer contain the elimination variables. Since each vector in the row space Rd represents such a polynomial combination, this amounts to finding vectors whose elements corresponding to monomials involving elimination variables are zero. Equivalently, we seek vectors whose nonzero entries correspond only to monomials in s. We construct a so-called zero pattern vector t ∈ Rqd that “forces” coefficients to zero in the row space. The idea is illustrated in the following example. 6Example 2. Let x = ( x1, x 2, x 3) and consider two objectives ( m = 2) without con-straints. The variables are ( x1, x 2, x 3, w 1, w 2, s 1, s 2). We eliminate all decision and weight variables, so that only the objective variables ( s1, s 2) remain. The predeter-mined zero pattern in the row space corresponds to 
+
+tT =1 x1 · · · w2 s1 s2 x21
+
+[ ]• 0 0 0 • • 0 · · · ,
+
+where • denotes an arbitrary real number. This vector represents a linear combina-tion of the rows of Md in which all coefficients corresponding to monomials containing elimination variables are zero, while coefficients of monomials in only ( s1, s 2) may be nonzero. As a result, the corresponding polynomial(s) depend solely on ( s1, s 2). 
+
+The zero pattern vector t can be parametrized as 
+
+tT = • • • · · · 
+
+1 0 0 0 0 0 0 0 · · · 
+
+0 0 0 0 0 0 1 0 · · · 
+
+0 0 0 0 0 0 0 1 · · · 
+
+... ... ... ... ... ... ... ... . . .
+
+| {z }
+
+> Ed
+
+.
+
+The rows of Ed form an orthonormal basis of the elimination vector space Ed. The matrix Ed acts as a selector that keeps only the entries corresponding to monomials in the decision variables s and sets all other entries to zero. Consequently, Ed consists of all coefficient vectors that have this prescribed zero pattern, i.e., vectors whose nonzero entries correspond only to monomials in s.Consequently, elimination reduces to finding vectors that lie in both Rd and Ed, i.e., to computing their intersection. Vectors in Rd correspond to polynomial combinations of the original system, while vectors in Ed encode the requirement that only monomials in the objective variables s remain. Therefore, vectors in the intersection Rd ∩Ed represent polynomial combinations of the PF system (6) in which all elimination variables vanish, yielding relations purely in s. A nontrivial intersection requires dim( Rd ∩ Ed) > 0.
+
+Using Grassmann’s dimension theorem [2], the dimension of the intersection is given by dim( Rd ∩ Ed) = rank( Md) − rank( Nd),
+
+where Nd ∈ Rpd×q′ 
+
+> d
+
+is a submatrix of the Macaulay matrix Md that consists of the q′
+
+> d
+
+columns associated with at least one variable that need to be eliminated. 4 A positive dimension, i.e., rank( Md) > rank( Nd), (7) guarantees the existence of an eliminant system, meaning that there exist nontrivial combinations of the original polynomials in which all eliminated variables cancel out. The degree d is increased until the rank condition in (7) is satisfied, since higher degrees include more monomial multiples of the original equations, allowing additional polynomial combinations that can eliminate the elimination variables.      
+
+> 4The presented approach uses the left singular vectors of Nd, which is a submatrix of the Macaulay matrix. Although not explained in this paper, an alternative approach via principal angles and directions between Rdand Edis computationally more efficient [13].
+
+7For that degree, a basis V ∈ Rpd×l for the left null space of Nd is computed, such that 
+
+V TNd = 0,
+
+A left multiplication of the Macaulay matrix Md by V T thus results in linear combina-tions of the rows of Md, while eliminating all monomials containing one or more of the variables to be removed. The result, ST = V TMd ∈ Rl×qd , only involves the objective variables s.The eliminant system is then constructed by interpreting the l′ nonzero columns of 
+
+S as coefficient vectors of multivariate polynomials 
+
+t1(s) = · · · = tl′ (s) = 0 . (8) These polynomials form the eliminant system, of which the solution set contains the Pareto front. Computing the dimension of the intersection between Rd and Ed involves two rank computations per degree d, which constitute the main computational complexity of the elimination-based approach. The first one requires O(pdqd min( pd, q d)) operations, while the second one has complexity O(pdq′ 
+
+> d
+
+min( pd, q ′
+
+> d
+
+)). Once the degree d is found for which (7) is fulfilled, an orthogonal basis matrix V for the left null space of Nd is computed, which requires again O(pdq′ 
+
+> d
+
+min( pd, q ′
+
+> d
+
+)) operations. Finally, a matrix-matrix multiplication, ST = V TMd, yields the vector space that contains the representation of the eliminant system, costing O(lp dqd) operations. 
+
+3.3 Geometric interpretation of the Pareto front 
+
+Let P ⊂ Rm denote the Pareto front in the objective space, obtained after elimination as (a subset of) the algebraic variety defined by (8). The Jacobian matrix of the eliminant system is 
+
+Jt(s⋆) = 
+
+
+
+∇t1(s⋆)T
+
+...
+
+∇tl′ (s⋆)T
+
+ ,
+
+and the tangent space of P at s⋆ is then given by (Jt(s⋆)), while the normal space is row ( Jt(s⋆)), where and row denote the right null space and row space of Jt(s⋆), respectively. At a Pareto-efficient point s⋆, there exists a vector w⋆ ∈ Rm such that (w⋆)Ts ≥ (w⋆)Ts⋆,
+
+for all feasible points s in the objective space. The hyperplane ( w⋆)Ts = ( w⋆)Ts⋆ passes through s⋆ and all feasible points lie on one side of it. Geometrically, this hyperplane is tangent to the Pareto front at s⋆; its normal vector must belong to the normal space of 
+
+P at that point. Therefore, 
+
+w⋆ ∈ row ( Jt(s⋆)) .
+
+In the case where the Pareto front is described by a single polynomial equation, t1(s) = 0, this reduces to checking whether w⋆ is parallel to ∇t1(s⋆). Alternatively, when the eliminant system (8) consist of multiple polynomials, the weight vector lies in the span of their gradients, i.e., 
+
+w⋆ =
+
+> l′
+
+X
+
+> i=1
+
+αi∇ti(s⋆), αi ∈ R.
+
+8Since we consider a multi-objective minimization problem, only weight vectors with strictly positive components are of interest. Not every point of the algebraic variety thus corresponds to a Pareto-efficient point. The Pareto front P consists of those points 
+
+s⋆ for which the normal space row ( Jt(s⋆)) contains a vector with only nonnegative components. For fixed weights w⋆, the corresponding decision variables x⋆ can be obtained from the first-order optimality conditions given by the KKT system (4). Substituting w⋆
+
+results in a multivariate polynomial system that is generically zero-dimensional. Solving the substituted system yields all critical points x⋆ and the corresponding Lagrange multipliers λ⋆.
+
+3.4 Step-by-step solution of the motivational example 
+
+Example 3. The PF system associated with Example 1 takes the form 
+
+−w1a + 2 w2Bx + λ1 = 0,x1 + x2 + x3 − 100 = 0 ,s1 + xTa = 0 ,s2 − xTBx = 0 ,
+
+(9) with 1 = 1 1 1T. Since we are using convex weights, w2 is replaced by 1 − w1. We have a system of six equations in seven variables and eliminate the variables x1, x2, x3,
+
+w1, and λ. The elimination-based approach requires a 384 × 330 Macaulay matrix of degree four and yields a bivariate polynomial relation between s1 and s2. The zero set of this eliminant polynomial is shown as the red dashed curve ( ) in Figure 1. Every point on the true Pareto front is contained in this zero set. The converse does not hold: not all points in the zero set correspond to Pareto-efficient solutions. A discrepancy can arise because the KKT conditions are necessary but not sufficient, and therefore they also capture stationary points that are not minima. However, this is not the case here. The difference arises from omitting the inequality constraints wi ≥ 0. Suppose that we are interested in the point s⋆ = ( −16 .59 , 4.74) on the Pareto front, which is indicated by a yellow triangle ( ) on Figure 1. The gradient of the eliminant polynomial at this point equals −3.12 −3.82 T·10 −2, which yields, after normalization, the weights w⋆ = (0 .45 , 0.55). The level curve ( w⋆)Ts = ( w⋆)Ts⋆ is also shown on Figure 1 in yellow ( ). As can be seen, this curve is tangent to the Pareto front at s⋆.Substituting s⋆ and w⋆ in the PF system in (9), and solving the resulting system, gives the corresponding decision variable x⋆ = (18 .18 , 50 .00 , 31 .82). It can easily be verified that this point indeed corresponds to the objective values in s⋆.
+
+# 4 Various Numerical Examples 
+
+To evaluate the practical behavior of the proposed elimination-based approach, we present three numerical examples. 5 Although these examples appear simple, they al-ready illustrate how rapidly the Macaulay matrix (and therefore the computational complexity) grows when the degree d increases. For each numerical example, we com-pute the eliminant system that describes the Pareto front and verify its correctness     
+
+> 5We use the MacaulayLab toolbox to perform our numerical examples, which is a Matlab imple-mentation of to construct, manipulate, and use Macaulay matrices [16].
+
+9by substituting points on the sampled Pareto front into the algebraic expression. The characteristics are reported in Table 1. 
+
+Example 4. Consider the unconstrained multivariate polynomial tri-objective opti-mization problem min 
+
+> x
+
+
+
+(x1 − 3) 2 + ( x2 − 2) 2
+
+x1 + x2
+
+x1 + 2 x2
+
+ .
+
+The first objective function has a unique minimizer x⋆ = (3 , 2), while the other two objective functions are linear and favor different directions in R2. As a result, the three objective functions are conflicting, and the Pareto front is a subset of a two-dimensional surface in the ( s1, s 2, s 3)-space. The numerical elimination algorithm yields an eliminant polynomial in the objective variables whose zero set describes this surface. After rounding the coefficients for readability, the eliminant can be written as 5 s22 −
+
+6s2s3 + 2 s23 − s1 − 8s2 + 2 s3 + 13 = 0. 
+
+The next numerical example illustrates how the Macaulay matrix can grow quickly, even when the underlying optimization problem is low-dimensional and structurally simple. 
+
+Example 5. Consider the constrained multivariate polynomial bi-objective optimiza-tion problem min 
+
+> x
+
+−x31 − x32
+
+x21 − x22
+
+
+
+,
+
+subject to x21 + ( x2 + 1) 2 − 1 = 0 .
+
+Applying our elimination-based approach to this problem results in a polynomial of degree six: s62 − 12 s52 − 12 s1s42 + 16 s41 + 48 s31s2 + 48 s21s22 + 32 s1s32 + 48 s42 − 32 s31 − 48 s21s2.The degree of the Macaulay matrix, however, has to be eight, leading to a 3234 × 3003 matrix. 
+
+Not every Pareto front is contained in the solution set of a single multivariate poly-nomial. 
+
+Example 6. Consider the unconstrained multivariate polynomial tri-objective problem min 
+
+> x
+
+
+
+x2
+
+(x − 1) 2
+
+(x − 2) 2
+
+ ,
+
+over a one-dimensional decision space. The Pareto front is a one-dimensional curve embedded in R3. Its algebraic description is given by the two independent polynomial equations 
+
+t1(s1, s 2, s 3) = s1 − 2s2 + s3 − 2 = 0 , (10) 
+
+t2(s1, s 2, s 3) = s22 − 2s2s3 + s23 − 2s2 − 2s3 + 1 = 0 .
+
+The numerical elimination algorithm for a Macaulay matrix of degree three does not produce this system exactly, but instead returns five polynomial equations that have the same zero set. The numerical elimination procedure returns a set of linearly independent polynomials, but it does not enforce algebraic independence. As a consequence, the output may contain more equations than strictly necessary, even though they define the same zero set as the symbolically obtained relations in (10). The residual in Table 1 is calculated using the numerically obtained eliminant system. 
+
+10 Table 1: Characteristics of the numerical examples. Here, m and n denote the number of objectives and decision variables, respectively; # z is the total number of variables in the PF system; d is the minimal required degree of the Macaulay matrix; pd and qd are the matrix dimensions for that degree; and the final column reports the maximum residual obtained by evaluating the eliminant system at sampled points on the Pareto front. 
+
+problem m n #z d pd qd max ∥t(s⋆)∥2
+
+Example 4 3 2 7 2 19 36 3.16 × 10 −15 
+
+Example 5 2 2 6 8 3234 3003 2.79 × 10 −12 
+
+Example 6 3 1 6 3 49 84 4.73 × 10 −15 
+
+# 5 System Identification Problem 
+
+We apply elimination to the misfit-versus-latency model class, where finding the model parameters that “best” describe measured data is inherently a minimization problem with two competing objective functions. This example also serves to illustrate the potential of elimination-based techniques for computing Pareto fronts. We start firstly by giving a short background on the misfit-versus-latency model class (Section 5.1). Afterwards, we explain how the Pareto front enters the picture (Sec-tion 5.2) and solve the identification problem for some given output data (Section 5.3). Notice that our approach is at this point not useful for real-life system identification problems with hundreds of data points, due to scale of the multivariate polynomial optimization problem and its corresponding computational complexity. 
+
+5.1 Misfit-versus-latency modeling 
+
+Misfit-versus-latency modeling [5] is a system identification framework for (dynamic) linear time-invariant models that combines the so-called “latency” approach in which residuals are introduced to explain the measured data (i.e., the prediction error ap-proach [6] containing models such as autoregressive moving-average), and “misfit” ap-proach that considers an error term between the measured and model-compliant data (i.e., the behavioral approach [18] containing models such as total least squares or errors-in-variables). The motivation for this modeling approach lies in the fact that there is no reason to exclude a misfit of the measurements in the presence of a latency term, and vice versa. A schematic representation of the misfit-versus-latency model class is given in Fig-ure 2. It considers model equations of the form 
+
+a(q)by = b(q)bu + c(q)e, (11) in which bu ∈ RN and by ∈ RN are model-compliant input and output data of length N ,respectively. The polynomials a(q), b(q), and c(q), respectively of degrees na, nb and nc,are polynomials in the delay operator q and constitute the model dynamics. The vector 
+
+e ∈ RN −na+nc represents the unkown, latent input. Between the measured input-output data u, y and the model-compliant input-output data bu, by, there is a misfit 
+
+ey = y − by, eu = u − bu. (12) When identifying the model parameters, the goal is to minimize both the misfit and 11 b(q)
+
+> a(q)
+> c(q)
+> a(q)
+
++
+
++
+
++̂
+
+u
+
+e (latency) ̂
+
+y
+
+u y
+
+˜u ˜y(misfit) 
+
+(measured data) Figure 2: Schematic representation of the misfit-latency model class: the measured data ( u, y)is described by a latent input term ( e) and misfit term ( eu, ey), such that the model-compliant data ( bu, by) satisfies a linear time-invariant model equation of the form a(q)by = b(q)bu + c(q)e.
+
+latency introduced in the model, leading to the following objective function 12
+
+
+
+α ∥ey∥22 + β ∥eu∥22 + γ ∥e∥22
+
+
+
+, (13) with ∥·∥ 2 denoting the Euclidean norm. The scalars α, β, and γ are nonnegative hy-perparameters that determine the relative importance of the misfit and latency terms, and they can be infinity as well. Several well-known model classes arise for particular choices of these hyperparameters (see [5, Table 1]). Together with (11) and (12), the objective function (13) defines a constrained multivariate polynomial optimization prob-lem. Using the KKT conditions, a system of multivariate polynomial equations can be constructed. For fixed values of α, β and γ, this multivariate polynomial system can be solved using any polynomial root-finding method. 
+
+5.2 Relation to the Pareto front 
+
+When considering misfit-versus-latency models, we actually have a trade-off between minimizing the output misfit, input misfit, and latency term. Rather than fixing the hyperparameters α, β and γ in advance, we can approach misfit-versus-latency modeling as a multi-objective polynomial minimization problem: min 
+
+> x
+
+12
+
+∥ey∥22 ∥eu∥22 ∥e∥22
+
+T
+
+subject to a(q)by = b(q)bu + c(q)e,
+
+(14) where the decision variables x are a, b, c, e, by, and bu. Via elimination, we aim to characterize the Pareto front that describes the optimal misfit and latency for each possible combination of hyperparameters, which constitute, after normalization, the weights w.
+
+5.3 Applied numerical example 
+
+As an applied numerical example, we consider a simplified version of the model in (11) that is autonomous and has no moving-average term ( nc = 0). The minimization prob-12 lem in (14) reduces to the following weighted minimization problem: min  
+
+> a,by,e
+
+12
+
+
+
+α ∥ey∥2 + (1 − α) ∥e∥2
+
+,
+
+subject to bY a = e
+
+(15) We only retain one hyperparameter and replace the other one ( γ in this case) by 1 −
+
+α, resulting in a convex combination. The matrix bY ∈ R(N −na)×(na+1) is a Hankel matrix constructed from the model-compliant output data by and bY a = e is identical to considering a(q)by = e for all data points. The Lagrangian is equal to 
+
+L(a, by, e, λ) = 12
+
+
+
+α ∥ey∥22 + (1 − α) ∥e∥22
+
+
+
+− λT  bY a − e
+
+
+
+,
+
+where λ ∈ RN −na are the Lagrange multipliers for the equality constraint. The corre-sponding KKT system is 
+
+−( bY ′)Tλ = 0,α(y − by) − T T 
+
+> a
+
+λ = 0,
+
+(1 − α)e + λ = 0,
+
+bY a − e = 0,
+
+(16) in which bY ′ denotes the Hankel matrix bY without its right-most column and Ta is a banded Toeplitz matrix with a on its band diagonal. The PF system can be constructed from (16) supplemented with 
+
+s1 − ∥ ey∥22 = 0 ,s2 − ∥ e∥22 = 0 .
+
+Eliminating all decision variables except s1 and s2 from this multivariate polynomial system with 3 N − 2na + 2 equations yields an algebraic expression that contains the Pareto front of the identification problem. 
+
+Example 7. Given N = 4 observed output data points, 
+
+y = 1 4 2 3T ,
+
+we consider the weighted minimization problem in (15) for a first-order model, i.e., 
+
+na = 1. We eliminate all variables in the PF system (which consists of twelve equations) except for s1 and s2, leading to one bivariate polynomial equation t1(s1, s 2) = 0 that contains the Pareto front. Its zero set is visualized in Figure 3 as a solid blue line ( ). We can verify that the obtained zero set contains the Pareto front by using a sampling approach. Some points of the sampled Pareto front are shown as black dots ( ). Note that, with the approach in Section 3.3, it is now possible to easily retrieve the different weights and model parameters along the Pareto front, providing insights into the models that describe the measured output data. The two intersection points with the axes correspond to two specific model classes. On the one hand, the intersection with the s2-axis corresponds to a pure autoregressive model without misfit. The value of s2 at this intersection is equal to the norm of the latent input ∥e∥22. When identifying a pure autoregressive model for the given 13 0 2 4 6 8       
+
+> 0
+> 2
+> 4
+> 6
+> 8
+> 10
+> s1
+> s2Figure 3: Visualization of the Pareto front for the misfit-versus-latency modeling problem in Example 7. The Pareto front ( ) is a subset of the eliminant ( ) obtained through the elimination approach described in Section 3.2, and it is validated by sampling Pareto-efficient points ( ). The two intersection points with the axes correspond to a pure autoregressive model without misfit ( ) and a pure autonomous model with output misfit ( ), which can also be obtained using dedicated identification algorithms.
+
+measured output data (with the globally optimal techniques described in [15]), the same model parameters can be obtained. The corresponding objective values are visualized in Figure 3 with the green dot ( ). The intersection with the s1-axis, on the other hand, resembles an autonomous model with output misfit. Computing the misfit in the case that the latent input is zero yields the same value as when using the globally optimal methods from [4], as is shown with the red dot ( ). It is clear that along the Pareto front, the mismatch between the measured output data and model is distributed among these two modifications. 
+
+# 6 Conclusions and Future Work 
+
+We presented a novel approach to compute the Pareto front in multi-objective minimiza-tion for multivariate polynomial optimization problems. Through systematic elimination of all variables except the objective values, the method produces an exact algebraic de-scription that contains the entire Pareto front. In contrast to sampling-based methods, our elimination-based approach does not depend on a sampling distance or a priori 
+
+weight assumptions. When elimination is performed numerically, it handles floating-point coefficients naturally. Several numerical examples confirmed the correctness of the proposed elimination-based approach and illustrate how elimination yields algebraic relations that describe the Pareto front. We applied elimination also in the context of system identification: computing the Pareto-efficient trade-off between misfit and latency when identifying the model from given output data. This example highlighted an interesting potential application of elimination-based techniques for computing Pareto fronts. The resulting Pareto front confirms the theoretical idea in [5] that a continuum of equivalent models exists, with the pure latency and pure misfit models as limiting cases. Crucially, the Pareto front 14 gives engineers a principled, complete picture of the trade-off landscape, enabling an informed model selection rather than an arbitrary, a priori choice of hyperparameters. Although our elimination-based approach looks very promising, two challenges that popped up during the system identification problem merit attention in future work. Firstly, the computational complexity remains a bottleneck for problems with many variables or high polynomial degrees; a hierarchical elimination strategy could enable scaling to larger problems. Secondly, extending the elimination idea beyond polynomial objective functions is an important open direction that we intend to pursue in the near future. 
+
+# References 
+
+[1] Kim Batselier, Philippe Dreesen, and Bart De Moor. A geometrical approach to finding multivairate approximate LCMs and GCDs. Linear Algebra and its Applications , 438(9):3618–3628, 2013. [2] Desmond Fearnley-Sander. Hermann Grassmann and the creation of linear algebra. 
+
+The American Mathematical Monthly , 86(10):809–817, 1979. [3] Arthur M. Geoffrion. Proper efficiency and the theory of vector maximization. 
+
+Journal of Mathematical Analysis and Applications , 22:618–63, 1968. [4] Sibren Lagauw, Lukas Vanpoucke, and Bart De Moor. Exact solution to the least squares realization problem as multiparameter eigenvalue problem. Automatica ,185:112792, 2026. [5] Philippe Lemmerling and Bart De Moor. Misfit versus latency. Automatica ,37(12):2057–2067, 2001. [6] Lennart Ljung. System Identification: Theory for the User . Prentice Hall Informa-tion and System Science Series. Prentice Hall PTR, Upper Saddle River, NJ, USA, 2nd edition, 1999. [7] Harry Markowitz. Portfolio selection. The Journal of Finance , 7(1):77–91, 1952. [8] Tim R. Marler and Jasbir S. Arora. Survey of multi-objective optimization methods for engineering. Structural and Multidisciplinary Optimization , 26:369–395, 2004. [9] Kaisa Miettinen. Nonlinear Multiobjective Optimization . Kluwer Academic Pub-lishers, Dordrecht, The Netherlands, 1st edition, 1999. [10] Jorge Nocedal and Stephen J. Wright. Numerical Optimization . Springer Series in Operations Research and Financial Engineering. Springer, New York, NY, USA, 2nd edition, 2006. [11] Vilfredo Pareto. Cours D’ ´Economie Politique . F. Rouge, Lausanne, Switzerland, 1896. [in French]. [12] Wolfram Stadler, editor. Multicriteria Optimization in Engineering and in the Sci-ences , volume 1 of Mathematical Concepts and Methods in Science and Engineering .Springer, New York, NY, USA, 1988. 15 [13] Hans van Rooij and Bart De Moor. Numerical elimination theory via the Macaulay matrix. Technical report, KU Leuven, Leuven, Belgium, 2026. https://ftp.esat. kuleuven.be/stadius/hvanrooi/numerical_elimination_theory.pdf .[14] Christof Vermeersch. The (Block) Macaulay Matrix . PhD thesis, KU Leuven, Leuven, Belgium, 2023. [15] Christof Vermeersch and Bart De Moor. Globally optimal least-squares ARMA model identification is an eigenvalue problem. IEEE Control Systems Letters ,3(4):1062–1067, 2019. [16] Christof Vermeersch and Bart De Moor. Solving multivariate polynomial systems and rectangular multiparameter eigenvalue problems with MacaulayLab. Technical report, KU Leuven, Leuven, Belgium, 2025. [17] Christof Vermeersch, Sibren Lagauw, and Bart De Moor. Multivariate polyno-mial optimization in complex variables is a (rectangular) multiparameter eigenvalue problem. In Proc. of the 62nd IEEE Conference on Decision and Control (CDC) ,pages 7305–7311, Marina Bay Sands, Singapore, 2023. [18] Jan C. Willems. From time series to linear systems — Part I. finite dimensional linear time invariant systems. Automatica , 22(5):561–580, 1986. [19] Zhonggang Zeng. A numerical elimination method for polynomial computations. 
+
+Theoretical Computer Science , 409(2):318–331, 2008. 16

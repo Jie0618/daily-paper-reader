@@ -1,0 +1,494 @@
+Title: O-ConNet: Geometry-Aware End-to-End Inference of Over-Constrained Spatial Mechanisms
+
+URL Source: https://arxiv.org/pdf/2604.02038v1
+
+Published Time: Fri, 03 Apr 2026 01:08:48 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# O-ConNet: Geometry-Aware End-to-End Inference of Over-Constrained Spatial Mechanisms 
+
+Haoyu Sun 1, Meng Zhao 1, Tianhao Wang 1, and Jianxu Wu 1∗
+
+Abstract — Deep learning-driven scientific discovery has achieved breakthroughs in microscopic domains such as protein folding and molecular synthesis, yet this paradigm has not been fully examined in macroscopic rigid-body kinematics. Spatial over-constrained mechanisms are governed by strin-gent geometric-algebraic constraints, making their generative design a litmus test for whether AI can truly internalize three-dimensional physical-topological constraints. Focusing on rigid over-constrained mechanisms, this paper proposes O-ConNet (Over-Constrained Network): an end-to-end learn-ing framework that directly predicts mechanism structural parameters from only three sparse reachable points while simultaneously reconstructing the complete motion trajectory, without explicitly solving any constraint equations. On a self-constructed dataset of 42,860 samples, O-ConNet achieves a Param-MAE of 0.276 ± 0.077 and a Traj-MAE of 0.145 ± 0.018 
+
+(mean ± std over 10 independent runs), outperforming the best sequence-prediction baseline (LSTM-Seq2Seq) by 65.1% and 88.2%, respectively. These results provide preliminary evidence that end-to-end deep learning is a viable approach to the inverse design of spatial over-constrained mechanisms. This work represents an exploratory attempt to understand macroscopic rigid-body geometric constraints in a data-driven manner, offering a feasible methodology for computationally synthesizing high-performance spatial mechanisms that may surpass human intuition. 
+
+I. INTRODUCTION The persistent industrial demand for spatial motion pre-cision has made the inverse design of spatial closed-chain mechanisms a recurring engineering bottleneck: a designer can only specify a few key waypoints that the end-effector must pass through, yet must accurately recover structural parameters from a parameter space subject to stringent geometric-algebraic constraints. While forward kinematics yields a unique motion trajectory for any given parameter set, the inverse direction must recover structural parameters from only a small number of observed positions, a task that is inherently ill-posed and poses substantial challenges. This asymmetry motivates investigating whether a neural network trained solely on data distributions satisfying the constraints can implicitly internalize three-dimensional rigid-body geometric constraints as a generalizable structural representation in latent vector space, thereby supporting end-to-end inverse inference from extremely sparse observations to precise parameters. 
+
+> 1School of Mechanical, Electronic and Control Engineering, Beijing Jiaotong University, Beijing, China.
+> ∗Corresponding author: J. Wu (wujx@bjtu.edu.cn). This work was supported by the National Natural Science Foundation of China (Grant No. 52575002).
+
+Spatial over-constrained mechanisms are ideal objects for examining this question: their assemblable parameter sets occupy only an extremely sparse subset of the full parameter space, and a model must distill the intrinsic geometric structure of the constraint manifold from limited samples to generalize reliably on unseen parameters. This paper takes the Bennett 4R mechanism—the minimal and most tightly constrained representative among such mechanisms—as the 
+
+Minimum Viable Model , and proposes O-ConNet with the following main contributions:  
+
+> •
+
+Task Framework : We formulate the inverse design of spatial over-constrained mechanisms as end-to-end learning from three sparse waypoints to structural pa-rameters, with auxiliary trajectory reconstruction en-abling implicit internalization of closed-loop geomet-ric constraints.  
+
+> •
+
+Technical Design : We present a network design that exploits trajectory reconstruction as a geometric con-straint proxy, with encoding and loss strategies adapted to the sparse-observation, angular-periodic, and multi-task nature of the problem.  
+
+> •
+
+Evaluation Benchmark : A 42,860-sample Bennett 4R dataset, a dual-metric (parameter + trajectory) eval-uation protocol, and three architectural baselines are provided as a reproducible testbed. Section II situates this work within existing traditional and learning-based approaches. Section III formalizes the Bennett mechanism, derives the two-parameter constraint structure that defines the learning task, and describes dataset construc-tion. Section IV presents the network architecture and loss function, with each design choice tied to a specific challenge identified above. Section V evaluates these choices through baseline comparisons and ablation studies. Section VI con-cludes with a discussion of broader implications. II. RELATED WORK Traditional methods for mechanism synthesis can be classified into three categories [1]. Analytical methods [2] employ dual quaternions or algebraic elimination to obtain exact closed-form solutions under special configurations; while theoretically rigorous and verifiable, extending them to three-dimensional pose-coupled over-constrained mech-anisms poses significant scaling challenges. Metaheuris-tic methods, represented by genetic algorithms and parti-cle swarm optimization [3], bypass solvability limitations through stochastic sampling and exhibit broad applicability, though convergence speed in high-dimensional parameter 
+
+> arXiv:2604.02038v1 [cs.RO] 2 Apr 2026
+
+spaces remains an open issue. Atlas-based methods [4] com-bine discretized databases with fast retrieval, suited for real-time scenarios, but their coverage precision over continuous parameter domains is bounded by the database size. Each category possesses distinct advantages, collectively forming a solid foundation for mechanism synthesis research. Kong [5] further exemplifies this line of inquiry by performing type synthesis of variable-DOF single-loop spatial mechanisms built upon Bennett 4R and Goldberg 5R loops, confirming that over-constrained closed chains remain a structurally central and actively studied building block in spatial mech-anism design. These advances establish robust foundations, while manifold complexity motivates exploring complemen-tary approaches. The breakthroughs of deep learning in domains such as protein folding [6] demonstrate that data-driven paradigms can capture deep structural regularities in physical systems. This insight is beginning to extend to macroscopic rigid-body kinematics. For planar four-bar mechanisms, Desh-pande et al. [7] employed machine learning to achieve end-to-end prediction from trajectory images to parameters. Lin et al. [8] applied a VAE-based generative synthesis to eight-bar mechanisms using images as the medium, explicitly modeling the trajectory manifold in latent space via an autoencoder to improve generalization to unseen trajecto-ries. Jadhav and Farimani [9] introduced an autoregressive diffusion model for conditional generation of planar link-age mechanisms. For spatial mechanisms, Deng et al. [10] completed path synthesis of RSCR spatial mechanisms through an encoder–decoder framework. These works reveal a core insight: trajectory reconstruction can serve as a proxy task for parameter inversion , enabling the network to implicitly encode kinematic constraint structures in fea-ture space. The assemblable manifold of spatial single-loop over-constrained mechanisms is an extremely sparse subset of the full parameter space, and inverse design simultane-ously faces the dual challenges of three-dimensional screw coupling and constraint manifold sparsity. To date, no end-to-end framework has been specifically developed for this class of mechanisms. Large-scale generatable datasets form the material ba-sis for data-driven synthesis. Li and Chen [11] proposed parametrization-invariant Fourier descriptors for path nor-malization. Heyrani Nobari et al. [12] constructed LINKS, a dataset containing one hundred million planar linkage sam-ples. On the technical tool front, PointNet [13] provides a permutation-invariant point cloud encoding paradigm that naturally suits the processing of unordered sparse spatial ob-servations. The Transformer [14] offers powerful long-range modeling capability for efficient periodic three-dimensional trajectory reconstruction. ResNet-style [15] residual shortcut connections provide stable gradient pathways for deep pa-rameter prediction heads. This combination of tools has not yet been fully demonstrated in the inverse design of spatial over-constrained mechanisms; the present work constructs O-ConNet at precisely this intersection. 
+
+Fig. 1: D-H parameterization schematic of the Bennett mech-anism. III. PROBLEM FORMULATION AND DATASET CONSTRUCTION 
+
+A. Bennett Mechanism Parameterization 
+
+The Bennett mechanism consists of four links connected end-to-end by revolute joints to form a spatial closed chain [16], as illustrated in Fig. 1. The modified D-H convention is adopted to describe the geometric relationships between adjacent joints: ai denotes the common normal distance between the two revolute axes bounding the i-th link (link length), αi is the twist angle between adjacent axes, the offset di≡0, and θi is the joint variable (joint angle) of joint i. Specifically, the parameters connecting joint i to joint i+1 are denoted ai and αi (e.g., α12 denotes the twist angle of the link between joints 1 and 2). The homogeneous transformation matrix at each joint is: 
+
+Ti(θi) = 
+
+
+
+cθi −sθi cαi sθi sαi aicθi
+
+sθi cθi cαi −cθi sαi aisθi
+
+0 sαi cαi 00 0 0 1
+
+ (1) where cx= cos x and sx= sin x. The concatenation of four transformations must satisfy the spatial closure constraint: 
+
+T1(θ1) T2(θ2) T3(θ3) T4(θ4) = I (2) Given the driving angle θ1, this system of equations uniquely determines the follower angles (θ2, θ 3, θ 4); sweeping θ1 ∈
+
+[0 , 2π) traces the trajectory of the third joint endpoint. For a general spatial four-bar mechanism, the link lengths and twist angles of the four links yield eight indepen-dent D-H parameters (a12 , a 23 , a 34 , a 41 , α 12 , α 23 , α 34 , α 41 ).However, the necessary and sufficient condition for (2) to admit real solutions over the entire [0 , 2π) imposes stringent geometric constraints on these eight parameters, ultimately compressing the degrees of freedom to only two . Two sequential reductions achieve this. Opposite links must satisfy the equal-length and equal-twist symmetry: 
+
+a12 = a34 , a23 = a41 , α12 = α34 , α23 = α41 (3) This symmetry folds eight parameters into four independent quantities (a12 , a 23 , α 12 , α 23 ). On this basis, adjacent links must further satisfy the proportionality relation: 
+
+sin α12 
+
+a12 
+
+= sin α23 
+
+a23 
+
+(4) Fig. 2: 3D trajectory visualization of dataset samples. Each panel displays the complete motion trajectory of a Bennett mechanism’s third joint endpoint, with speed magnitude encoded by a plasma colormap. Once (a12 , a 23 , α 12 ) are specified, the twist angle α23 
+
+is therefore uniquely determined, reducing the count of independent parameters to three. Noting further that the kinematic behavior of the mechanism depends only on the relative proportions of the links, not on the absolute scale, we impose: 
+
+a12 + a23 = 1 (5) to eliminate the redundant scale degree of freedom, whereby 
+
+a23 = 1 − a12 becomes a derived quantity. The independent parameters required to fully describe a Bennett mechanism thus reduce to exactly two: 
+
+a12 ∈ (0 , 1) , α12 ∈ (0 , 2π) (6) It is precisely based on these constraints that the inverse design of the Bennett mechanism essentially degenerates into a two-dimensional search problem, and the learning objective of O-ConNet is accordingly determined. 
+
+B. Input Representation and Learning Task 
+
+The typical starting point for mechanism inverse design is: the designer specifies a small number of desired waypoints 
+
+that the end-effector must pass through precisely, and the goal is to recover the mechanism structural parameters that realize these configurations. In this paper, each desired way-point is represented as a 7-dimensional kinematic state vec-tor: 
+
+xi = ( px, p y , p z
+
+| {z }
+
+> position
+
+, v x, v y , v z
+
+| {z }
+
+> velocity
+
+, r|{z} 
+
+> speed ratio
+
+) ∈ R7 (7) where the three-dimensional position comes from the third joint endpoint coordinates, the velocity vector is estimated by central differencing, and the normalized speed ratio 
+
+r=|vi|/ max j |vj | ∈ [0 , 1] eliminates the influence of abso-lute velocity magnitude. The three components collectively provide complementary descriptions of configuration, motion direction, and speed distribution. From Nin =3 desired waypoints {xi}3 
+
+> i=1
+
+(uniformly sam-pled from the complete trajectory), the core learning ob-jective is to recover the mechanism parameters (ˆ a12 , ˆα12 )
+
+from extremely sparse input. The complete trajectory for each training sample originates from the forward kinematics solver operating over 360 uniformly spaced driving angles (see Algorithm 1). From this 360-frame sequence, 64 rep-resentative frames are uniformly subsampled to constitute the dense ground-truth trajectory, and the three input way-points are in turn drawn at equal intervals from this 64-point set. Directly regressing parameters from three discrete configurations is highly underdetermined in an information-theoretic sense; therefore, the following strategy is adopted: The network first reconstructs a complete 64-point densely sampled trajectory ˆT ∈ R64 ×3 from the three sparse points, then feeds both the reconstructed trajectory and the original three observations into a joint pathway that collaboratively infers the mechanism structural parameters. By routing gra-dients through trajectory reconstruction before reaching the parameter head, the closed-loop constraint structure implicit in parameter space becomes encoded in the shared latent rep-resentation, while the combined trajectory-and-observation pathway equips the parameter head with richer geometric and kinematic discriminative signals than either source alone could provide. Although the encoder handles arbitrary Nin , this paper universally fixes Nin =3 . The choice is grounded in geo-metric minimality: two spatial points constrain at most an arc segment and cannot disambiguate distinct closed-loop configurations, whereas three non-collinear points constitute the minimal non-degenerate specification for a spatial curve, placing Nin =3 at the lowest cardinality at which the inverse problem is well-posed. Adopting this most information-sparse setting further ensures that successful parameter re-covery reflects genuine encoding of the constraint manifold rather than reliance on input redundancy. 
+
+C. Dataset Construction and Normalization 1) Generation Pipeline: The central challenge in con-structing a high-quality dataset is that the Bennett con-straint admits real solutions on only an extremely sparse subset of the parameter space, and the numerical forward kinematics solver suffers from ill-conditioned Jacobians in certain parameter regions. The complete generation pipeline is given in Algorithm 1; the design choices at each stage are explained below. Algorithm 1 Bennett 4R Dataset Generation 
+
+Require: N =360 : frames per sample; 
+
+θ1 sampled uniformly on [0 , 2π)
+
+Require: ϵ=10 −6: LM solver convergence tolerance 
+
+Require: fc=72 : low-pass cutoff frequency; harmonics ≤fc retained 
+
+Require: τ =3 σT : inter-frame jump threshold; 
+
+σT = std k∥T k+1 − T k∥
+
+Ensure: D = (a(i)12 , α (i)12 , T ∗ 
+
+> i
+
+) : valid samples with filtered trajectories  
+
+> 1:
+
+Build candidate grid: 
+
+a12 ∈ [0 .02 , 0.48] ∪ [0 .52 , 0.98] 
+
+α12 ∈ [5 ◦, 178 ◦] ∪ [185 ◦, 355 ◦] 
+
+> 2:
+
+for each candidate (a12 , α 12 ) do  
+
+> 3:
+
+a23 ← 1 − a12  
+
+> 4:
+
+sin α23 ← a23 
+
+a12 
+
+sin α12 ▷ Bennett constraint (4) 
+
+Gate 1 — real-solution check  
+
+> 5:
+
+if | sin α23 | > 1 then skip  
+
+> 6:
+
+(θ2,k , θ 3,k , θ 4,k ) ← LM 
+
+Q4 
+
+> j=1
+
+Tj (θj,k )= I; ϵ
+
+
+
+,
+
+k=0 , . . . , N −1 
+
+> 7:
+
+nok ← #{converged frames }
+
+Gate 2 — assemblability check  
+
+> 8:
+
+if nok < 0.8N then skip  
+
+> 9:
+
+T ∗ ← DFT -LPF( T , f c)
+
+▷ suppress numerical noise 
+
+Gate 3 — branch-jump check  
+
+> 10:
+
+if max k ∥T ∗ 
+
+> k+1
+
+− T ∗ 
+
+> k
+
+∥ > τ then skip  
+
+> 11:
+
+D ← D ∪ { (a12 , α 12 , T ∗)} 
+
+> 12:
+
+end for  |D| =42 ,860 ; ≈62% pass rate  
+
+> 13:
+
+return D
+
+The non-uniform screening of the parameter space delib-erately avoids three types of regions. When a12 approaches 0 or 1, the opposite link length ratio becomes extreme, causing the Jacobian condition number of the LM solver to increase sharply. When a12 ≈ 0.5 (i.e., a12 = a23 ), the constraint equations exhibit a symmetric solution structure, and the numerical solver is prone to branch switching. When 
+
+α12 ≈ 0◦, the spatial mechanism degenerates into a planar four-bar; when α12 ≈ 180 ◦, adjacent link axes are nearly anti-parallel, and the valid solutions of the Bennett constraint become drastically sparse in this neighborhood. Accordingly, 
+
+a12 is sampled from [0 .02 , 0.48] ∪ [0 .52 , 0.98] and α12 from 
+
+[5 ◦, 178 ◦] ∪ [185 ◦, 355 ◦].The three gates serve distinct purposes. Gate 1 analytically verifies | sin α23 | ≤ 1 using the Bennett closure constraint, filtering out candidates with no physically real solutions before simulation at negligible cost. Gate 2 uses a suc-cess rate threshold of 80% rather than 100% to tolerate a small number of anomalous frames at trajectory endpoints, avoiding excessive rejection of assemblable samples. Gate 3 applies low-pass filtering to address occasional branch jumps between adjacent frames in the LM solver, and the 3σ test discards samples that still exhibit large inter-frame jumps af-ter filtering. The three gates collectively retain approximately 
+
+Algorithm 2 Two-Stage Coordinate Normalization 
+
+Require: D: raw dataset from Algorithm 1 
+
+Ensure: ˜D: normalized dataset with coordinates in [−1, 1]  
+
+> 1:
+
+for each sample (a12 , α 12 , T ∗) ∈ D do  
+
+> 2:
+
+κ ← 1/a 23 ▷ a 23 = 1 −a12 prior to scaling  
+
+> 3:
+
+(a12 , T ∗) ← κ · (a12 , T ∗) ▷ Stage 1: set a23 =1 .0 
+
+> 4:
+
+end for  
+
+> 5:
+
+c99 ← percentile 99 
+
+ {∥T ∗∥}  ▷ computed as 29 .44 on training split  
+
+> 6:
+
+for each sample ∈ D do  
+
+> 7:
+
+(a12 , T ∗) ← (a12 , T ∗) / c 99 
+
+▷ Stage 2: global percentile scaling  
+
+> 8:
+
+end for  
+
+> 9:
+
+return ˜D  a12 ∈ (0 , 1.66) ; 99% of coords in [−1, 1] 
+
+62% of candidates, yielding 42,860 valid samples. Fig. 2 displays 14 randomly selected samples from the dataset, intuitively illustrating the diversity of trajectories generated by Bennett mechanisms at different locations in parameter space. 
+
+2) Two-Stage Normalization: Without normalization, tra-jectory magnitudes conflate mechanism geometry with the sample-varying a23 , and coordinates routinely exceed the sat-uration threshold of Sigmoid and Tanh near ±3. Algorithm 2 treats both effects in sequence: Stage 1 fixes a23 =1 per sam-ple to isolate shape from scale, while Stage 2 applies a global 99th-percentile divisor that confines 99% of coordinates to 
+
+[−1, 1] and restores healthy gradient flow. The renormalized 
+
+a12 range of (0 , 1.66) motivates Amax =2 .0 in (10); all metrics in Section V are reported in this coordinate system. IV. MODEL O-ConNet adopts a “shared encoder–dual-branch” archi-tecture (Fig. 3): a permutation-invariant kinematic state en-coder compresses Nin =3 sparse observations into a 512-dimensional latent vector z; a Transformer decoder expands z
+
+into a 64-point trajectory and synchronized velocity field; and a ResNet-style shortcut–residual parameter head produces the final predictions. Routing parameter gradients through both the encoder and the reconstructed trajectory compels the shared representation to internalize kinematic structure discriminative for inverse design. 
+
+A. Network Architecture 
+
+Let the Nin sparse input points be {xi}Nin 
+
+> i=1
+
+, with xi =(pi, vi, r i) ∈ R7, where pi ∈ R3 is the 3D coordinate, vi ∈
+
+R3 is the velocity vector, and ri = |vi|/ max j |vj | is the normalized speed ratio. 
+
+Permutation-Invariant Kinematic State Encoder. The sparse observations {xi} lack global temporal alignment and simultaneously carry multi-modal information including po-sition and velocity, precluding any assumption of inherent or-dering. To this end, an Unordered Set Mapping Mechanism is designed: drawing on the unordered set processing paradigm of PointNet [13], each kinematic state is independently Fig. 3: Complete architecture of O-ConNet. On the left, a permutation-invariant kinematic state encoder processes 3 sparse observation points through a shared-weight MLP and learnable attention pooling (AttnPool), compressing them into a global latent vector z ∈ R512 . In the center, a Transformer decoder expands z into 64-point trajectory coordinates ˆT and a velocity field ˆV. On the right, the parameter prediction head adopts a ResNet-style shortcut-residual dual-path structure, where the shortcut branch maps z directly to coarse logits s (supervised by Laux ) and the residual branch reads the reconstructed trajectory to produce a zero-initialized refinement r; the merged output is decoded via Sigmoid and atan2 into (ˆ a12 , ˆα12 ).In all trajectory visualizations throughout this paper, blue solid lines denote ground truth (GT), red dashed lines show the network prediction (Pred), green dotted lines represent the forward kinematic reconstruction from predicted parameters (Kin), and orange stars mark the input observation points. decoupled through shared-weight per-point high-dimensional projection layers (MLP 7 → 64 → 128 → 256 , with LayerNorm, GELU activation, and Dropout at each layer), followed by learnable attention pooling (AttnPool) for weighted aggregation of the global geometric representation: 
+
+z = Proj( P 
+
+> i
+
+wi fi) ∈ R512 , wi = exp( g(fi)) 
+
+P 
+
+> j
+
+exp( g(fj )) (8) where g is a two-layer MLP ( 256 → 128 → 1, Tanh activation) and wi assigns a learnable global participation weight to each observation point. The aggregated feature is projected (Linear 256 → 512 ), followed by LayerNorm and GELU, to output a permutation-invariant latent vector z serving as the global condition for the decoder. Compared to MaxPool’s per-dimension discrete argmax selection, attention weights blend contributions from all Nin observation points in a continuously differentiable manner, yielding more thorough gradient flow and richer feature expressiveness under the extremely sparse Nin =3 setting. 
+
+Decoder. The decoder expands z into L=64 -point sequen-tial output. A 4-layer Pre-LN Transformer Decoder [14] (8-head attention, hidden dimension 256, FFN dimension 1024) takes z projected through a linear layer as the cross-attention memory, and uses L fixed sinusoidal positional encodings 
+
+directly as query vectors with no additional learnable query parameters. At the decoder output, two structurally identical independent linear heads produce the trajectory coordinates 
+
+ˆT ∈ R64 ×3 and velocity vectors ˆV ∈ R64 ×3, respectively (each: LayerNorm → Linear( 256 → 128 ) → GELU →
+
+Dropout → Linear( 128 → 3)). 
+
+Parameter Prediction Head. Parameter regression em-ploys a ResNet-style [15] shortcut–residual dual-branch structure (see Fig. 3, right), balancing prediction accuracy and training stability. 
+
+Shortcut Branch. This branch directly predicts coarse parameter logits s ∈ R3 from the encoder latent vector z
+
+through a three-layer MLP ( 512 → 256 → 128 → 3, with LayerNorm, GELU, and Dropout( 0.1) after the first hidden layer), providing a stable global signal during early training. 
+
+Residual Branch. Taking reconstructed points [ˆ pj ; ˆ vj ] ∈
+
+R6 as input, this branch again invokes the Unordered Set Mapping Mechanism (MLP 6 → 64 → 128 → 256 , max+avg dual-path pooling aggregation, MLP 256 → 128 → 64 ) to extract a refinement residual r ∈ R3 from the reconstructed trajectory. The residual head weights are zero-initialized ,making the training start equivalent to the shortcut branch alone. The two paths merge to decode the final parameters: 
+
+m = s + r, m = [ ma, m sin , m cos ] (9) 
+
+ˆa12 = σ(ma) · Amax ∈ (0 , A max ), Amax = 2 .0 (10) 
+
+ˆα12 = atan2( msin , m cos ) mod 2 π ∈ [0 , 2π) (11) 
+
+a12 is mapped to (0 , A max ) via Sigmoid; Amax =2 .0 rather than 1.0 because the actual numerical range of a12 after data processing extends to (0 , 1.66) , and Amax =2 .0 provides sufficient headroom for the Sigmoid output while preventing predicted values from being clipped to the boundary. α12 
+
+is represented via the sin / cos dual-channel to circumvent angular wrap-around discontinuity, recovered through atan2 .To further strengthen the independent learning capacity of the shortcut branch, an auxiliary loss Laux (§IV-B) is introduced to directly supervise the shortcut branch’s parameter predictions ˆa(sc) 12 , ˆα(sc) 12 , ensuring baseline accuracy even without residual correction. 
+
+B. Loss Function 
+
+Uncertainty-adaptive multi-task weighting is adopted, with a learnable log-variance si = log σ2 
+
+> i
+
+for each of the trajectory, velocity, and parameter sub-tasks, automatically balancing dimensional disparities among tasks. The auxiliary branch is supervised with a fixed weight: 
+
+L = X
+
+> i∈{ t,v,p }
+
+ 12 e−si Li + 12 si
+
+
+
++ λaux Laux (12) where st, s v are initialized to 0 and sp is initialized to −2
+
+(assigning a higher initial precision weight to the parame-ter task). The trajectory loss is Lt = MSE( ˆT, T). The velocity loss decouples direction and magnitude: 
+
+Lv =
+
+
+
+1 − cos( ˆV, V)
+
+
+
++ L1 
+
+
+
+log | ˆV|, log |V|
+
+
+
+(13) Here cos( ˆV, V) = 1
+
+> LB
+
+P 
+
+> b,l
+
+cos(ˆ vb,l , vb,l ) is the mean cosine similarity averaged over all L=64 frames and B batch samples, with cos( u, v) ≜ u · v/(∥u∥ ∥ v∥), and log | · | 
+
+is applied element-wise to per-frame velocity norms. The parameter loss consists of four terms: MSE and log-space L1 (handling the right-skewed distribution) for a12 , and periodicity-aware Huber ( β=0 .1) and sin / cos direct L2 supervision for α12 :
+
+Lp = MSE(ˆ a12 , a 12 ) + 0 .5 L1(log ˆ a12 , log a12 )
+
+| {z } 
+
+> a12 loss
+
++SmoothL1 
+
+ ∆α12 
+
+2π , 0; β=0 .1
+
+
+
++ λsc 
+
+ ∥ˆs − s∗∥2 + ∥ˆc − c∗∥2| {z } 
+
+> α12 loss
+
+(14) 
+
+∆α12 =  (ˆ α12 − α12 + π) mod 2 π − π (15) where ˆs = msin , ˆc = mcos are the merged sin / cos logits and 
+
+s∗ = sin α∗
+
+> 12
+
+, c ∗ = cos α∗ 
+
+> 12
+
+are the ground truth. The sin / cos 
+
+direct supervision bypasses the non-differentiable points of 
+
+atan2 , providing smooth continuous gradient signals, and significantly improves α12 accuracy (see Table I). The log-space L1 loss L1(log ˆ a12 , log a12 ) is more sensitive to small 
+
+a12 values, mitigating the problem of large values dominating the gradient under the right-skewed data distribution. The auxiliary loss Laux supervises the shortcut branch’s independent predictions ˆa(sc) 12 , ˆα(sc) 12 :
+
+Laux = MSE(ˆ a(sc) 12 , a 12 ) + SmoothL1 ∆α(sc) 12 
+
+2π , 0; β=0 .1
+
+!
+
+(16) Default hyperparameters are λaux =10 and λsc =1 . The si are jointly optimized with the model parameters. V. EXPERIMENTS The normalized 42,860-sample dataset is partitioned at an 8:2 train/val ratio for all experiments. Training employs AdamW at a peak learning rate of 3×10 −4 with a short lin-ear warm-up followed by cosine annealing, balancing early stability against broad mid-training exploration. Each con-figuration completes 100 epochs on an NVIDIA RTX 4090 with batch size 256 and mixed-precision acceleration. 
+
+Fig. 4: Trajectory prediction and kinematic verification com-parison for three representative validation samples. Each row shows one sample; from left to right: 3D view and XY/XZ/YZ projections. Color coding follows Fig. 3. 
+
+A. Evaluation Metrics 
+
+Five metrics are defined to cover all three output modal-ities: parameter prediction, trajectory reconstruction, and velocity reconstruction. All are computed in the normalized coordinate system, where lower values indicate better perfor-mance. Let the predicted parameters be (ˆ a12 , ˆα12 ) and the ground truth be (a12 , α 12 ); predicted and ground-truth trajec-tories/velocity fields are both in RT ×3 (T =64 ); ⟨·⟩ denotes averaging over samples. The five metrics are defined as: 
+
+a12 -MAE = |ˆa12 − a12 | (17) 
+
+α12 -MAE = | wrap(ˆ α12 − α12 )| ,
+
+wrap( δ) ≜ [( δ + π) mod 2 π] − π (18) Param-MAE = 12
+
+ a12 -MAE + α12 -MAE  (19) Traj-MAE = 1 
+
+> T d
+
+∥ ˆP − P∥1 (20) Vel-MAE = 1 
+
+> T d
+
+∥ ˆV − V∥1 (21) 
+
+wrap( ·) folds the angular difference into (−π, π ], elim-inating the systematic overestimation caused by the 2π
+
+periodic boundary on naive MAE. Param-MAE takes the arithmetic mean of the two parameter errors and serves as the composite ranking metric. To cover comparisons across different architectural paradigms, three baseline groups are established. MLP-Direct flattens the 3 input points and maps them to 2-dimensional parameter output via a 4-layer fully connected network, without a trajectory decoding branch. PointNet-Only retains the point cloud encoder and parameter predic-tion MLP but removes the Transformer decoder and ResNet residual structure, regressing parameters directly from the 512-dimensional latent vector. LSTM-Seq2Seq employs a two-layer LSTM encoder–decoder architecture to generate trajectories in parallel, then extracts parameters from the reconstructed trajectory via PointNet; it is the only baseline with trajectory output capability. TABLE I: Comprehensive performance summary on the validation set. MLP-Direct and PointNet-Only lack trajectory decoding branches ( †); corresponding metrics are marked “–”. Each ablation alters only one factor while keeping all others consistent with the full model. All metrics are computed in the normalized coordinate system; lower is better. All values are mean ± std over 10 independent runs.                                                                                     
+
+> Sub-group Method Params Param-MAE ↓a12 -MAE ↓α12 -MAE ↓Traj-MAE ↓Vel-MAE ↓
+> Proposed O-ConNet (Full) 5.00M 0.276 ±0.077 0.0063 ±0.0013 0 .316 ±0.063 0 .145 ±0.018 0 .017 ±0.002
+> Ablation Enc. Pooling MaxPool+AttnPool 5.13M 0.260 ±0.084 0.0065 ±0.0008 0.337 ±0.118 0.149 ±0.025 0.017 ±0.003
+> MaxPool only 4.97M 0.283 ±0.109 0.0067 ±0.0010 0.339 ±0.131 0.175 ±0.031 0.018 ±0.003
+> MaxPool+AvgPool 5.10M 0.286 ±0.114 0.0065 ±0.0012 0.336 ±0.122 0.154 ±0.033 0.018 ±0.004
+> Param. Head w/o ResNet Residual 4.97M 0.391 ±0.079 0.0088 ±0.0018 0.502 ±0.106 0.199 ±0.017 0.021 ±0.001
+> w/o Aux. Branch Loss 5.00M 0.301 ±0.076 0.0056 ±0.0009 0.345 ±0.090 0.160 ±0.025 0.018 ±0.002
+> Loss Func. w/o Velocity Loss 5.00M 0.342 ±0.059 0.0165 ±0.0022 0.399 ±0.075 0.185 ±0.013 1.859 ±0.797
+> w/o Periodic Angle Loss 5.00M 0.425 ±0.036 0.0340 ±0.0055 0.781 ±0.075 0.287 ±0.044 0.031 ±0.003
+> w/o sin/cos Supervision 5.00M 0.422 ±0.041 0.0150 ±0.0011 0.539 ±0.071 0.199 ±0.031 0.023 ±0.002
+> Decoder w/ Local Attn. Bias 5.14M 0.520 ±0.131 0.0139 ±0.0071 0.650 ±0.149 1.705 ±0.068 0.183 ±0.006
+> Baselines MLP-Direct †0.11M 0.331 ±0.047 0.0141 ±0.0025 0.550 ±0.043 ––PointNet-Only †0.48M 0.554 ±0.103 0.0161 ±0.0015 0.719 ±0.066 ––LSTM-Seq2Seq 3.25M 0.790 ±0.152 0.0234 ±0.0084 0.875 ±0.043 1.230 ±0.138 0.181 ±0.032
+
+B. Comparative Experiments 
+
+Table I reports results for all methods. Single-path baselines reveal how much the trajectory reconstruction branch contributes. MLP-Direct proves that direct regression from sparse input is feasible (Param-MAE 0.331 ± 0.047 ), yet without any trajectory output its predictions have no kinematic self-consistency guarantee. PointNet-Only adds stronger feature extraction but also relies on a single path; starved of the auxiliary gradient that trajectory reconstruc-tion would supply, it actually regresses to Param-MAE 
+
+0.554 ±0.103 , worse than the shallower MLP-Direct. LSTM-Seq2Seq, the only baseline with trajectory output, is under-mined by autoregressive error accumulation, reaching Param-MAE 0.790 ±0.152 and Traj-MAE 1.230 ±0.138 . O-ConNet reduces those two figures to 0.145 ±0.018 and 0.017 ±0.002 ,gains of 88.2% and 90.6% over LSTM-Seq2Seq. Fig. 4 illustrates the complementary nature of the two out-put streams. Pred closely follows the GT envelope across all projection planes, confirming that the decoder has internal-ized the spatial geometry of the closed-loop trajectory. The independently computed Kin curve converges to the same shape via a completely separate path, providing a physical sanity check: agreement between Kin and GT validates that the predicted parameters encode genuine kinematic structure, not merely a plausible-looking spatial curve. 
+
+C. Ablation Study 
+
+Each ablation changes one design factor while keeping the rest identical to the full model; Fig. 5 provides trajectory-level visual evidence alongside the quantitative table. On pooling, both MaxPool+AttnPool and AttnPool-only were evaluated. MaxPool+AttnPool achieves a slight advan-tage on Param-MAE ( 0.260 ± 0.084 vs. 0.276 ± 0.077 ), whereas AttnPool-only leads on Traj-MAE ( 0.145 vs. 0.149 )and yields more balanced performance across all metrics. We therefore adopt AttnPool as the final encoder despite its marginal Param-MAE deficit. MaxPool-only and Max-Pool+AvgPool both trail the attention-pooling family, con-firming that learned attention weighting is the decisive ele-ment. Removing the ResNet residual structure (w/o ResNet) raises Param-MAE from 0.276 to 0.391. A telling disso-ciation appears in the trajectory visualizations: the Pred curve still approximately follows the GT shape, while the independently computed Kin curve drifts noticeably away. This gap between visual plausibility and analytical precision confirms that the residual branch is indispensable for the parameter head to achieve the fine-grained accuracy that trajectory resemblance alone cannot guarantee. Removing the auxiliary branch loss has a comparatively milder effect. Three loss-function ablations reveal qualitatively distinct failure modes. Removing the velocity loss (w/o Vel-Loss) preserves the coarse trajectory shape but drives Vel-MAE from 0.017 to 1.859, and the distorted velocity features sub-sequently propagate noisy gradients into the parameter head, quietly eroding parameter accuracy. Omitting the periodicity-aware angle loss (w/o Periodic) nearly triples α12 -MAE from 0.316 to 0.781, with visible shape distortions concentrated near twist angles of 0 or π where the 2π wrap-around is most disruptive. Dropping sin/cos supervision (w/o Sin/Cos) raises α12 -MAE to 0.539, confirming that direct geometric supervision on the angular representation is comparably crit-ical. Local-Bias inflicts the worst single degradation, pushing Traj-MAE from 0.145 to 1.705. Because the Gaussian log-space bias is active only during training, the decoder learns an attention distribution it cannot replicate at inference; compounding this inconsistency, any fixed locality prior prevents the global cross-position attention that coherent curve extrapolation from three sparse points demands. Throughout all configurations a12 -MAE remains well be-low α12 -MAE (0.005–0.034 vs. 0.316–0.875), identifying twist-angle estimation as the persistent bottleneck. Even Fig. 5: 3D trajectory comparison of ablation configurations and baselines across randomly selected validation samples. Color coding follows Fig. 3. Baselines without a trajectory-decoding branch (MLP-Direct, PointNet-Only) predict pa-rameters directly and thus show no Pred curve (red dashed). modest ∆α12 errors are nonlinearly amplified by the Ben-nett closure constraint, which explains why Kin curves can diverge sharply from GT in samples where Pred still looks reasonable. VI. CONCLUSION We have proposed O-ConNet, an end-to-end framework that infers Bennett mechanism parameters and reconstructs full motion trajectories from only three sparse waypoints, im-plicitly encoding closed-loop geometric constraints through data rather than explicit equations. On the validation split, 
+
+a12 -MAE has reached 0.0063 , α12 -MAE has reached 0.316 ,and Traj-MAE has reached 0.145 , with the twist-angle term remaining the dominant source of error due to the nonlinear amplification imposed by the Bennett closure constraint. Future work will extend data generation and evaluation to other over-constrained families such as Bricard and Gold-berg, and explore whether the periodicity-aware angular representation and dual-path parameter head transfer without architectural modification. REFERENCES [1] V. K. Pathak, R. Singh, A. Sharma, R. Kumar, and D. Chakraborty, “A historical review on the computational techniques for mechanism synthesis: developments up to 2022,” Archives of Computational Methods in Engineering , vol. 30, no. 2, pp. 1131–1156, 2023. [2] A. Perez and J. M. McCarthy, “Dual quaternion synthesis of con-strained robotic systems,” J. Mech. Des. , vol. 126, no. 3, pp. 425–435, 2004. [3] J. Cabrera, A. Simon, and M. Prado, “Optimal synthesis of mech-anisms with genetic algorithms,” Mechanism and machine theory ,vol. 37, no. 10, pp. 1165–1177, 2002. [4] J. Sun, N. Xue, W. Liu, and J. Chu, “A synthesis method for path generation of a planar five-bar mechanism based on dynamic self-adaptive atlas database,” Inverse Problems in Science and Engineering ,vol. 28, no. 11, pp. 1609–1632, 2020. [5] X. Kong, “Type synthesis of variable-dof single-loop spatial mech-anisms using bennett 4r mechanisms and goldberg 5r mechanisms,” 
+
+Mechanism and Machine Theory , vol. 206, p. 105902, 2025. [6] J. Jumper, R. Evans, A. Pritzel, T. Green, M. Figurnov, O. Ron-neberger, K. Tunyasuvunakool, R. Bates, A. ˇZ´ ıdek, A. Potapenko 
+
+et al. , “Highly accurate protein structure prediction with alphafold,” 
+
+nature , vol. 596, no. 7873, pp. 583–589, 2021. [7] S. Deshpande and A. Purwar, “A machine learning approach to kinematic synthesis of defect-free planar four-bar linkages,” Journal of Computing and Information Science in Engineering , vol. 19, no. 2, p. 021004, 2019. [8] J. Lin, J. Ning, J. Goldfeder, and H. Lipson, “Creative synthesis of kinematic mechanisms,” arXiv preprint arXiv:2510.03308 , 2025. [9] Y. Jadhav and A. B. Farimani, “Linkd: Autoregressive diffusion model for mechanical linkage synthesis,” arXiv preprint arXiv:2601.04054 ,2026. [10] X. Deng, A. Nurizada, and A. Purwar, “Path synthesis of spatial revolute-spherical-cylindrical-revolute mechanisms using deep learn-ing,” Frontiers of Mechanical Engineering , vol. 20, no. 2, p. 9, 2025. [11] X. Li and P. Chen, “A parametrization-invariant fourier approach to planar linkage synthesis for path generation,” Mathematical Problems in Engineering , vol. 2017, no. 1, p. 8458149, 2017. [12] A. Heyrani Nobari, A. Srivastava, D. Gutfreund, and F. Ahmed, “Links: A dataset of a hundred million planar linkage mechanisms for data-driven kinematic design,” in International Design Engineering Technical Conferences and Computers and Information in Engineering Conference , vol. 86229. American Society of Mechanical Engineers, 2022, p. V03AT03A013. [13] C. R. Qi, H. Su, K. Mo, and L. J. Guibas, “Pointnet: Deep learning on point sets for 3d classification and segmentation,” in Proceedings of the IEEE conference on computer vision and pattern recognition ,2017, pp. 652–660. [14] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, and I. Polosukhin, “Attention is all you need,” 
+
+Advances in neural information processing systems , vol. 30, 2017. [15] K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for image recognition,” in Proceedings of the IEEE conference on computer vision and pattern recognition , 2016, pp. 770–778. [16] C.-C. Lee, “Kinematic analysis and dimensional synthesis of bennett 4r mechanism,” JSME international journal. Ser. C, Dynamics, control, robotics, design and manufacturing , vol. 38, no. 1, pp. 199–207, 1995.
