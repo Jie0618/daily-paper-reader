@@ -6,70 +6,67 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-07
-- 运行时间：2026-04-07 20:26:32 UTC
+- 最新运行日期：2026-04-08
+- 运行时间：2026-04-08 20:13:59 UTC
 - 运行状态：成功
-- 本次总论文数：16
-- 精读区：4
+- 本次总论文数：15
+- 精读区：3
 - 速读区：12
 
 ### 今日简报（AI）
-今日精选 16 篇论文，深度解析了 $1/\pi$ 级数构造与拉马努金连分数的数学奥秘。
-重点关注通过柯西乘积推导出的 $1/\pi$ 新公式，以及艾森斯坦级数与高阶连分数间的深刻恒等关系。
-建议数学爱好者研读满分级数论文，AI 开发者可关注 LLM 在强化学习算法自动发现中的跨界应用。
-- 详情：[/202604/07/README](/202604/07/README)
+今日聚焦 15 篇前沿进展，深度解析了从噪声中提取随机非线性动力学及物理约束神经网络的突破性框架。
+满分论文揭示了机器学习还原复杂动力学的巨大潜力，同时强化学习在形式化验证与逻辑推理领域正加速迭代。
+推荐优先研读物理信息神经网络（PINNs）的演进方向，并关注 RL 如何赋能自动化建模与猜想证明。
+- 详情：[/202604/08/README](/202604/08/README)
 
 ### 精读区论文标签
-1. [Series for $1/π$ arising from Cauchy product](/202604/07/2604.03327v1-series-for-1-arising-from-cauchy-product)  
-   标签：评分：10.0/10、query:math-ai
-   evidence：使用柯西乘积的1/pi级数
-2. [On Eisenstein series identities and new identities connecting Ramanujan-Göllnitz-Gordon continued fraction and Ramanujan's continued fraction of order four](/202604/07/2603.29284v1-on-eisenstein-series-identities-and-new-identities-connecting-ramanujan-gllnitz-gordon-continued-fraction-and-ramanujans-continued-fraction-of-order-four)  
-   标签：评分：9.0/10、query:math-ai
-   evidence：连接拉马努金连分数的恒等式
-3. [A Robust SINDy Autoencoder for Noisy Dynamical System Identification](/202604/07/2604.04829v1-a-robust-sindy-autoencoder-for-noisy-dynamical-system-identification)  
+1. [A machine learning framework for uncovering stochastic nonlinear dynamics from noisy data](/202604/08/2604.06081v1-a-machine-learning-framework-for-uncovering-stochastic-nonlinear-dynamics-from-noisy-data)  
+   标签：评分：10.0/10、query:sr-alg
+   evidence：用于揭示随机非线性动力学的混合符号回归
+2. [WGFINNs: Weak formulation-based GENERIC formalism informed neural networks](/202604/08/2604.02601v2-wgfinns-weak-formulation-based-generic-formalism-informed-neural-networks)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：用于发现动力系统控制方程的SINDy自动编码器
-4. [On algebraic independence of three p-adic continued fractions](/202604/07/2604.01464v1-on-algebraic-independence-of-three-p-adic-continued-fractions)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：p-adic连分数的代数独立性
+   evidence：利用GENERIC形式化信息神经网络进行控制方程的数据驱动发现
+3. [Model-independent constraints on generalized FLRW consistency relations with bootstrap-based symbolic regression](/202604/08/2604.05822v1-model-independent-constraints-on-generalized-flrw-consistency-relations-with-bootstrap-based-symbolic-regression)  
+   标签：评分：9.0/10、query:math-ai
+   evidence：基于符号回归的宇宙学数据非参数重建方法
 
 ### 速读区论文标签
-1. [Evolutionary Discovery of Reinforcement Learning Algorithms via Large Language Models](/202604/07/2603.28416v1-evolutionary-discovery-of-reinforcement-learning-algorithms-via-large-language-models)  
+1. [Execution-Verified Reinforcement Learning for Optimization Modeling](/202604/08/2604.00442v1-execution-verified-reinforcement-learning-for-optimization-modeling)  
    标签：评分：7.0/10、query:math-ai
-   evidence：通过大语言模型进化发现强化学习算法
-2. [Reinforcement Learning-based Knowledge Distillation with LLM-as-a-Judge](/202604/07/2604.02621v1-reinforcement-learning-based-knowledge-distillation-with-llm-as-a-judge)  
+   evidence：用于数学规划和特定求解器代码生成的强化学习
+2. [Apriel-Reasoner: RL Post-Training for General-Purpose and Efficient Reasoning](/202604/08/2604.02007v1-apriel-reasoner-rl-post-training-for-general-purpose-and-efficient-reasoning)  
    标签：评分：7.0/10、query:math-ai
-   evidence：数学推理基准的强化学习
-3. [On Data-Driven Koopman Representations of Nonlinear Delay Differential Equations](/202604/07/2604.03086v1-on-data-driven-koopman-representations-of-nonlinear-delay-differential-equations)  
+   evidence：数学与推理的强化学习后训练
+3. [Automated Conjecture Resolution with Formal Verification](/202604/08/2604.03789v1-automated-conjecture-resolution-with-formal-verification)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：解决研究级数学问题的自动化框架
+4. [InferenceEvolve: Towards Automated Causal Effect Estimators through Self-Evolving AI](/202604/08/2604.04274v1-inferenceevolve-towards-automated-causal-effect-estimators-through-self-evolving-ai)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：非线性微分方程的数据驱动表示与学习
-4. [Evolutionary Search for Automated Design of Uncertainty Quantification Methods](/202604/07/2604.03473v1-evolutionary-search-for-automated-design-of-uncertainty-quantification-methods)  
+   evidence：用于发现因果方法和科学发现的进化框架
+5. [Reciprocal binomial sums via Beta integrals](/202604/08/2604.04566v1-reciprocal-binomial-sums-via-beta-integrals)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：经典恒等式的推导和二项式和的符号计算
+6. [Interpretation of Crystal Energy Landscapes with Kolmogorov-Arnold Networks](/202604/08/2604.04636v1-interpretation-of-crystal-energy-landscapes-with-kolmogorov-arnold-networks)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：通过进化搜索发现以Python程序表示的方法
-5. [Data-Driven Tensor Decomposition Identification of Homogeneous Polynomial Dynamical Systems](/202604/07/2604.03508v1-data-driven-tensor-decomposition-identification-of-homogeneous-polynomial-dynamical-systems)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：数据驱动的多项式动力系统识别
-6. [Spectral Path Regression: Directional Chebyshev Harmonics for Interpretable Tabular Learning](/202604/07/2604.04091v1-spectral-path-regression-directional-chebyshev-harmonics-for-interpretable-tabular-learning)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：通过频谱路径控制复杂度的可解释回归模型
-7. [CARV: A Diagnostic Benchmark for Compositional Analogical Reasoning in Multimodal LLMs](/202604/07/2603.27958v1-carv-a-diagnostic-benchmark-for-compositional-analogical-reasoning-in-multimodal-llms)  
+   evidence：KAN网络用于揭示潜在物理关系
+7. [On the Mirage of Long-Range Dependency, with an Application to Integer Multiplication](/202604/08/2603.29069v2-on-the-mirage-of-long-range-dependency-with-an-application-to-integer-multiplication)  
    标签：评分：6.0/10、query:math-ai
-   evidence：从多模态大模型的视觉对中提取符号规则
-8. [ERPO: Token-Level Entropy-Regulated Policy Optimization for Large Reasoning Models](/202604/07/2603.28204v1-erpo-token-level-entropy-regulated-policy-optimization-for-large-reasoning-models)  
+   evidence：用于整数乘法和数学运算的神经元细胞自动机
+8. [$p$-adic Character Neural Network](/202604/08/2603.29905v1-p-adic-character-neural-network)  
    标签：评分：6.0/10、query:math-ai
-   evidence：针对推理模型的可验证奖励强化学习
-9. [Stochastic Dimension Implicit Functional Projections for Exact Integral Conservation in High-Dimensional PINNs](/202604/07/2603.29237v1-stochastic-dimension-implicit-functional-projections-for-exact-integral-conservation-in-high-dimensional-pinns)  
+   evidence：用于求解多项式方程的神经网络架构
+9. [LiveMathematicianBench: A Live Benchmark for Mathematician-Level Reasoning with Proof Sketches](/202604/08/2604.01754v1-livemathematicianbench-a-live-benchmark-for-mathematician-level-reasoning-with-proof-sketches)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：数学家级推理基准
+10. [Hardware-Oriented Inference Complexity of Kolmogorov-Arnold Networks](/202604/08/2604.03345v1-hardware-oriented-inference-complexity-of-kolmogorov-arnold-networks)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：高维PINN中的精确积分守恒
-10. [O-ConNet: Geometry-Aware End-to-End Inference of Over-Constrained Spatial Mechanisms](/202604/07/2604.02038v1-o-connet-geometry-aware-end-to-end-inference-of-over-constrained-spatial-mechanisms)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于科学发现和推断物理机构结构参数的深度学习
-11. [Computing the Pareto Front by Polynomial Elimination, With an Application From System Identification](/202604/07/2604.02806v1-computing-the-pareto-front-by-polynomial-elimination-with-an-application-from-system-identification)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：多项式多目标优化的帕累托前沿计算
-12. [General Explicit Network (GEN): A novel deep learning architecture for solving partial differential equations](/202604/07/2604.03321v1-general-explicit-network-gen-a-novel-deep-learning-architecture-for-solving-partial-differential-equations)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于求解偏微分方程的深度学习架构
+   evidence：符号回归中常用的 Kolmogorov-Arnold 网络复杂度分析
+11. [Domain-Contextualized Inference: A Computable Graph Architecture for Explicit-Domain Reasoning](/202604/08/2604.04344v1-domain-contextualized-inference-a-computable-graph-architecture-for-explicit-domain-reasoning)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：在符号和神经网络基质上的独立执行
+12. [Assessing Large Language Models for Stabilizing Numerical Expression in Scientific Software](/202604/08/2604.04854v1-assessing-large-language-models-for-stabilizing-numerical-expression-in-scientific-software)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：大语言模型对数值表达式的推理和数学公式的稳定化
 
 
 <div class="dpr-home-promo-card">

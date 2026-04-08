@@ -1,0 +1,1417 @@
+Title: LiveMathematicianBench: A Live Benchmark for Mathematician-Level Reasoning with Proof Sketches
+
+URL Source: https://arxiv.org/pdf/2604.01754v1
+
+Published Time: Fri, 03 Apr 2026 00:37:55 GMT
+
+Number of Pages: 39
+
+Markdown Content:
+Preprint. Under review. 
+
+# LIVE MATHEMATICIAN BENCH : A Live Benchmark for Mathematician-Level Reasoning with Proof Sketches 
+
+Linyang He 1, ∗ Qiyao Yu 1, ∗ Hanze Dong 2, ∗ Baohao Liao 2,3 
+
+Xinxing Xu 2 Micah Goldblum 1,† Jiang Bian 2,† Nima Mesgarani 1,† 1Columbia University 2Microsoft Research 3University of Amsterdam 
+
+> ∗
+
+Equal contribution. †Senior authors. 
+
+linyang.he@columbia.edu qy2266@columbia.edu hanzedong@microsoft.com 
+
+Project Page: https://LiveMathematicianBench.github.io/ 
+
+# Abstract 
+
+Mathematical reasoning is widely regarded as a hallmark of human in-telligence, and determining whether large language models (LLMs) can meaningfully perform it remains a central question in artificial intelligence and cognitive science. As LLMs are increasingly integrated into scientific workflows, rigorous evaluation of their mathematical capabilities becomes a practical necessity. Existing mathematical reasoning benchmarks, however, are often limited by synthetic problem settings and growing contamination from widely circulated datasets. We present LIVE MATHEMATICIAN BENCH , a dynamic multiple-choice benchmark for evaluating research-level mathematical reasoning using recent arXiv papers published after model training cutoffs. By grounding evaluation in newly published theorem statements, the benchmark pro-vides a more realistic testbed for assessing whether models can reason about natural mathematical claims beyond memorized benchmark patterns. LIVE MATHEMATICIAN BENCH introduces a taxonomy of thirteen problem categories based on the logical form of theorem statements, enabling fine-grained evaluation across reasoning types such as implication, equivalence, existence, and uniqueness. It further introduces a proof-sketch-guided distractor generation pipeline, in which proof sketches are used to con-struct plausible but invalid answer choices that reflect misleading proof directions. This design makes the benchmark more sensitive to genuine mathematical understanding rather than surface-level answer matching. We additionally introduce a substitution-resistant evaluation mechanism designed to distinguish answer recognition from substantive mathematical reasoning. Evaluation of frontier models shows that the benchmark is far from satu-rated: the best-performing model, Gemini-3.1-pro-preview, achieves only 43.5% accuracy in the standard setting. Under substitution-resistant eval-uation, accuracy drops sharply across all models: GPT-5.4 achieves the highest score at 30.6%, while Gemini-3.1-pro-preview falls to 17.6%, below the 20% random baseline. A dual-mode protocol comparing performance with and without proof-sketch access reveals that sketches yield consistent gains (e.g., +13.6 pp for Gemini-3.1-pro-preview), suggesting that models can leverage high-level proof strategies to improve reasoning. Overall, L IVE MATHEMATICIAN BENCH offers a scalable and contamination-resistant testbed for studying research-level mathematical reasoning in large language models. 1
+
+> arXiv:2604.01754v1 [cs.CL] 2 Apr 2026
+
+Preprint. Under review. Gemini-3.1-pro-      
+
+> preview (high)
+> GPT-5.4 (high)
+> GPT-5.4 (medium)
+> Qwen3.5-397B-A17B
+> (default)
+> Kimi-K2.5
+> (default)
+> GPT-oss-120b
+> (high)
+> Grok-4-1-fast-
+> reasoning (high)
+> MiniMax-M2.5
+> (default)
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Overall accuracy (%)
+> 43.5 41.8 41.2 35.6 35.0
+> 28.8 25.4 22.0 random
+
+Figure 1. Overall accuracy on L IVE MATHEMATICIAN BENCH across different LLMs. Even recent frontier models remain far from saturation. Random: 20%. 
+
+# 1 Introduction 
+
+As large language models (LLMs) become increasingly integrated into scientific workflows, evaluating their reasoning ability has become a central challenge. Mathematics is a natural domain for this evaluation because it combines precise logical structure with verifiable ground truth. Yet existing benchmarks, including GSM8K (Cobbe et al., 2021), MATH (Hendrycks et al., 2021), AIME, MathVista (Lu et al., 2023), Omni-Math (Gao et al., 2024), and OlympiadBench (He et al., 2024), are largely synthetic, competition-based, or historically sourced, and are increasingly susceptible to contamination. These limitations reduce their value for assessing research-level mathematical reasoning in frontier models. The core limitation lies in the fundamental mismatch between “Olympiad-style” competition mathematics and authentic mathematical research. Existing benchmarks predominantly feature calculation-heavy problems that reward heuristic pattern matching and the use of specialized tricks to obtain a closed-form answer. Although challenging, such tasks do not reflect the true nature of mathematics research. By research-level mathematics , we mean open-ended, non-routine mathematical reasoning that is characterized by abstraction, sensitivity to technical hypotheses, and the lack of a pre-specified solution strategy. Such work often requires one to reason through layers of definitions, infer subtle logical dependencies, and identify the right conceptual framework in which a problem can even be meaningfully posed. A central difficulty of research lies not only in proving statements, but also in determining what the right question is to ask and what potential statement might be true in the first place. Unlike competition problems, naturally arising research questions do not come with a contrived setup, an intended solution path, or even a clear indication of which tools are relevant. Progress therefore often requires exploration under substantial uncertainty, familiarity with prior literature, and occasional conceptual innovations, which are sometimes sparked by ideas from seemingly unrelated fields of mathematics. This gap is visible even at the level of theorem comprehension. A model that can solve routine calculus or algebra problems may still fail to track the precise hypotheses of a modularity lifting theorem, a stability result in geometric invariant theory, or a compactness theorem in nonlinear PDE, where small changes in local conditions, regularity assumptions, or finiteness hypotheses can fundamentally alter the statement. Therefore, to truly assess an LLM’s potential as a scientific research assistant, evaluation must shift from measuring the ability to ”solve exams” toward measuring the ability to comprehend, interpret, and reason about mathematical hypotheses and statements. 2Preprint. Under review. This conceptual mismatch is compounded by a second problem: data contamination. State-of-the-Art (SOTA) models have reached saturation on standard benchmarks, often exceeding 90% accuracy, yet this performance is brittle. Studies suggest that many problems have leaked into pre-training corpora, allowing models to memorize solution templates rather than derive answers from first principles (Glazer et al., 2024). Consequently, performance drops precipitously when questions are rephrased or numerical values altered. This reliance on static, potentially contaminated datasets necessitates a shift toward continuous and refreshable evaluations grounded in authentic research artifacts. Notably, Zhang et al. (2025) introduced RealMath, a benchmark derived directly from arXiv papers to reduce contamination risk. While RealMath reduces contamination risk and demonstrates that LLMs can engage with research-derived material, its construction prioritizes theorem types that admit straightforward automated verification. As a result, it covers only a limited subset of research-level mathematical reasoning, with less support for tasks involving inequalities, asymptotic relations, or non-constructive arguments, excluding common research tasks such as establishing asymptotic bounds in analysis, deriving classi-fication results in algebraic geometry, or determining modes of convergence in probability. These limitations suggest that the central challenge is not only to control contamination risk in benchmarks, but to do so without collapsing research mathematics into a narrowly verifiable subset of problems of limited width and depth. To address these limitations, we introduce L IVE MATHEMATICIAN BENCH , a benchmark framework that expands evaluation along two dimensions: the diversity of mathematical reasoning it captures and the use of high-level proof strategies, enabling evaluation beyond statement-level recognition to strategy-level mathematical reasoning. For the first dimension, we introduce a taxonomy of thirteen distinct problem types defined by the underlying logical forms and tailor question design to each type. Unlike RealMath, whose questions are restricted to settings with a single uniquely verifiable answer, this framework enables evaluation of mathematical skills that are central to research practice but often considered too ambiguous for automated metrics. These include Logical Structure 
+
+(distinguishing necessary vs. sufficient conditions via Equivalence and Implication), Qual-itative Analysis (establishing Inequalities and Asymptotic bounds), and Generalization 
+
+(validating Universal quantifiers and structural Bijections). For the second dimension, we incorporate proof sketches into the benchmark. A proof sketch is a high-level outline of the main ideas and strategic steps of a proof, omitting most technical details. Access to this proof structure makes question construction more targeted and more diagnostic: instead of merely testing whether a model can retrieve a theorem statement, it allows us to design questions about the same result that probe deeper structural understanding. Without such proof-aware design, questions are more likely to be too easy or to reward memorization and surface-level pattern matching. Proof sketches also enable a dual-mode evaluation protocol, where models are assessed both with and without access to high-level proof guidance. This makes it possible to measure whether strategic hints improve mathematical reasoning, and how effectively current models can use them. Building on these two design principles, we introduce the LIVE MATHEMATICIAN BENCH , a dynamic benchmark designed to assess LLMs on research-level mathematical reasoning. Each item is presented as a multiple-choice question ( MCQ ) with five answer options, exactly one of which is correct. Our contributions fall into three categories: benchmark construction, methodological novelty, and scientific questions enabled by the benchmark. Our contributions are threefold. 1) We present a contamination-resistant benchmark for research-level mathematical reasoning, built from dynamically sourced post-cutoff arXiv theorems, organized by a logic-based taxonomy, and augmented with curated proof sketches. 
+
+2) We introduce a proof-aware benchmark construction methodology, including category-specific question design, sketch-adversarial distractor generation, and dual-mode evaluation with and without sketch access. 3) We establish a new testbed for studying higher-level mathematical reasoning in LLMs, including logical-form-specific failure modes, the use of proof-level guidance, and progress beyond theorem recognition toward proof planning. 3Preprint. Under review. 
+
+> Figure 2. Our benchmark construction includes 7 stages.
+
+# 2 Methods 
+
+Our benchmark construction pipeline transforms raw arXiv papers into calibrated research-level multiple-choice questions (MCQs). The pipeline contains seven stages: (1) paper retrieval, (2) L ATEX source extraction, (3) theorem extraction and classification, (4) MCQ generation, (5) stem-only triviality filtering, (6) hardness calibration, and (7) model evalu-ation. Each stage is designed to preserve mathematical fidelity while increasing question discriminativeness and benchmark difficulty. Human validation is performed at every stage to ensure quality control (see Appendix B for details). 
+
+Stage 1: Paper Retrieval. We query the arXiv API for papers submitted within a target month under the math.* category. The retrieval window is incrementally widened until a configurable maximum number of papers is collected. For each paper, we record its arXiv identifier, submission link, source link, and title. By restricting retrieval to papers published strictly after a model’s training cutoff, we ensure that the resulting benchmark is contamination-free by construction. 
+
+Stage 2: L ATEX Source Extraction. For each retrieved paper, we download its e-print source archive and extract the constituent .tex files. The extractor resolves \input and \include 
+
+directives to reconstruct the complete document in its logical order, strips L ATEX comments and comment environments, and concatenates the result into a single full-text representation. This produces a clean, self-contained L ATEX corpus suitable for downstream parsing. 
+
+Stage 3: Theorem Extraction and Classification. 
+
+Stage 3a: Hybrid Agentic Extraction. Extracting well-formed theorem statements from raw LATEX is nontrivial due to the heterogeneity of document styles, custom macros, and cross-referencing conventions. We adopt a hybrid agentic extraction architecture that balances throughput with robustness: 1. Rule-based fast path. A rule-based extractor restricts its search to the Introduction 
+
+section, exploiting the convention that a paper’s main theorem is formally stated there. Within the introduction, it identifies all theorem-like environments declared via \newtheorem in the preamble (excluding remark -type environments) and applies a priority ranking : the standard theorem environment is selected first; only if no 
+
+theorem block is found does the extractor fall back to custom environments. This design ensures that auxiliary results such as lemmas, propositions, or corollaries, which may appear elsewhere in the introduction, are not mistakenly extracted in place of the main theorem. 2. Agentic fallback. When the rule-based path fails (e.g., due to an absent Introduction heading or unconventional formatting), an LLM-based agentic extractor is invoked over a larger document window. The extraction prompt explicitly instructs the model to return at most one primary theorem-level claim and to prefer theorem 
+
+environments over lemma , proposition , or corollary when multiple candidates appear, maintaining the same main-theorem priority as the rule-based path. 3. LATEX normalization. Custom commands ( \newcommand , \def ) are expanded in-line so that downstream modules receive standard mathematical notation. 4Preprint. Under review.                                                          
+
+> Category Canonical Form
+> Algorithmic / Constructive There exists an algorithm Athat computes f(x)
+> Asymptotic / Limit As n→∞, . . . Biconditional / Equivalence A⇐⇒ B
+> Classification / Bijection There is a bijection between Xand Y
+> Existence ∃xsuch that P(x)
+> Existential–Universal ∃x∀y,P(x,y)
+> Implication A=⇒B
+> Independence / Consistency T̸⊢Pand T̸⊢ ¬ P
+> Inequality / Bound f(x)≤g(x)
+> Nonexistence ̸∃xsuch that P(x)
+> Uniqueness ∃!xsuch that P(x)
+> Universal ∀x,P(x)
+> Universal–Existential ∀x∃y,P(x,y)
+> Table 1. Logical taxonomy of theorem categories. Each extracted theorem is classified into one of these thirteen types, enabling category-specific question design and evaluation.
+
+4. Reference resolution. Internal cross-references ( \ref , \eqref ) are resolved by collecting all labeled environments and substituting their content, producing an 
+
+Expanded Theorem that is semantically self-contained. 5. Context recovery. A two-layer retrieval mechanism assembles the notational and definitional context needed to make the theorem self-contained. First , within the Introduction, paragraph blocks preceding the theorem are scored by (i) token overlap with the theorem statement, (ii) the presence of definitional cues (e.g., “let,” “denote,” “suppose”), (iii) mathematical content density, and (iv) positional proximity, with the two blocks immediately before the theorem always retained. The top-scoring blocks are selected and concatenated in their original order. Second ,a full-paper pass extracts high-value anchor terms from the theorem and scans the entire document for blocks containing definitions, setup, or preliminaries, scoring them by anchor-term hits, section-heading relevance (e.g., Setup , Preliminary ), and distance to the theorem. Finally, any content referenced via \ref or \eqref within the selected blocks is resolved and appended, and the combined context is trimmed to a character budget. 
+
+Stage 3b: Proof-sketch summarization. A large language model extracts a concise proof sketch for each theorem, capturing the high-level strategy without full formal detail. These sketches serve a dual purpose: they inform adversarial distractor generation (Stage 4) and enable sketch-aware evaluation (Stage 7). 
+
+Stage 3c: Logical Taxonomy of Theorems. Each extracted theorem is classified into one of 
+
+thirteen logical categories, listed in Table 2. Classification is performed by a specialized LLM-based classifier. This taxonomy enables fine-grained diagnosis of model reasoning failures across distinct logical forms. 
+
+Stage 4: Question–Answer Pair Generation. Stage 4 synthesizes adversarial MCQs via a 
+
+two-stage generative protocol , each informed by the theorem’s logical category and the proof sketch. 
+
+Stage 4a: Question Stem and Correct Choice. A key design principle is that every question should read as a genuine research-type question about a specific mathematical object or prop-erty, rather than a generic request such as “which is the correct result below.” To this end, the generator selects one of thirteen category-specific system prompts , one for each logical type in Table 2, each prescribing a tailored stem formulation that exercises the distinguishing logical feature of the category. For example, an equivalence-type theorem is transformed into a question that presents one side of the biconditional and asks “which statement is equivalent to A?”; an implication-type theorem embeds all hypotheses in the stem and asks “which is the strongest conclusion about . . . that holds under these assumptions?”, etc. With the strongest quantifier, we ensure there is a unique answer for questions of all logical types. 5Preprint. Under review. Each prompt further instructs the model to (i) isolate a single decisive mathematical feature 
+
+of the conclusion, such as quantifier scope, sharp bound, exact dependence, existence versus uniqueness, or asymptotic regime, rather than restating the theorem verbatim, and (ii) define any paper-specific objects or notation inline so that the question is self-contained. Red-flag checks automatically reject stems containing trivializing phrases (e.g., “which of the following is the strongest result”) or correct options that bundle multiple theorem clauses, triggering a regeneration pass. Finally, a repair pass re-examines the draft stem and, operating in theorem only repair mode, injects any missing definitions or notation from the recovered paper context (Stage 3, Step 5) to guarantee self-containedness without leaking answer-relevant information. 
+
+Stage 4b: Sketch-Adversarial Distractor Generation. The model receives the theorem, proof sketch, question stem, and correct choice, and generates four distractors (Options B–E). The proof sketch plays a critical role: by exposing the “load-bearing” logical steps of the argument (e.g., the dependence of constants on hidden parameters, a critical case split, or a uniformity condition that distinguishes effective from non-effective bounds), the generator is guided to engineer distractors that exploit specific mathematical constraints or misconceptions. Each distractor is constructed by one of four general perturbation strategies: • Controlled perturbation. A small surface-level modification to the theorem’s conclusion, such as an altered constant, exponent, inequality direction, or parameter range. • Semantic weakening. A statement that is plausible but strictly weaker than the theorem’s conclusion, e.g., dropping a uniformity requirement or restricting the domain. • Semantic strengthening. A statement that overstates the conclusion beyond what is proven, e.g., adding uniqueness, higher regularity, or optimality not asserted by the theorem. • Property confusion. A statement concerning a closely related but non-equivalent mathematical object or property, e.g., swapping an L2 norm for an L∞ norm, or confusing pointwise convergence with uniform convergence. The concrete realization of each strategy is category-dependent : the distractor prompt is tailored to the theorem’s logical type (Table 2). For instance, for an equivalence-type theorem the controlled perturbation modifies a quantifier within one side of the biconditional, whereas for a bound-type theorem it alters the exponent or direction of the inequality; for an existence-type theorem the semantic strengthening adds uniqueness not stated in the theorem, whereas for a classification-type theorem it replaces the bijection with a mere surjection. This category-aware design ensures that distractors probe the decisive logical feature specific to each theorem type, rather than relying on generic, one-size-fits-all perturbations. An adversarial revision pass subsequently re-examines the generated distractors, auditing them for surface-level distinguishability from the correct option and rewriting any that can be rejected without genuine mathematical inspection. 
+
+Substitution-Resistant Option Design. A common shortcut exploited by strong models is option substitution : systematically plugging each candidate answer back into the question stem and verifying consistency, rather than deriving the answer through genuine mathematical reasoning. Process-of-elimination strategies similarly bypass comprehension by narrowing choices through superficial cues. To counteract both shortcuts, we introduce a substitution-resistant mechanism: for a configurable fraction of generated items, the correct option is replaced with the meta-option “One of the remaining options is correct, but a stronger result can be proven.” Answering correctly now requires the model to (i) identify the valid option among the distractors and (ii) independently determine whether a strictly stronger result holds, a task that demands substantive mathematical reasoning about the relative strength of claims and cannot be resolved by mechanical substitution or elimination alone. 
+
+Quality Rubric. Each generated MCQ undergoes a quality evaluation scored on a 0–8 rubric comprising four dimensions: 6Preprint. Under review. • Answer Leakage Score (ALS, 0–2): Measures whether the correct answer is inad-vertently revealed by the question stem or distractor phrasing. • Tautology Avoidance Score (TAS, 0–2): Assesses whether the correct option is trivially true or self-evident without mathematical knowledge. • Generative Pressure Score (GPS, 0–2): Evaluates whether distractors exert suffi-cient “pressure” to discriminate genuine understanding from guessing. • Distractor Quality Score (DQS, 0–2): Rates the mathematical plausibility, precision, and diversity of the distractors. MCQs that do not meet a minimum aggregate threshold (5) are discarded. 
+
+Stage 5: Rote-Recall Prevented Triviality Filter. Stage 5 ensures that the remaining ques-tions are not trivially solvable from the question stem alone, without reference to the answer choices. A judge model receives only the question stem (with all options withheld) and generates a free-form response. A second judge then determines whether this response matches the correct answer (Option A). Questions for which the stem alone reveals the answer are classified as stem-trivial and excluded from the final candidate pool. This filter prevents the benchmark from rewarding rote recall and ensures that genuine option-level reasoning is required. 
+
+Stage 6: Hardness Calibration. Stage 6 ensures that the final benchmark is genuinely difficult for state-of-the-art models through a three-step calibration pipeline: 
+
+Step 1: Overgenerate Hard Pool. For each stem-nontrivial item, we retain both the original distractor set and one regenerated alternative set, thereby doubling the candidate pool per source theorem. This overgeneration increases the likelihood of retaining at least one maximally challenging variant. 
+
+Step 2: First-Pass Accuracy Test. A frontier model is evaluated on the entire candidate pool at moderate reasoning effort. Items that the model answers correctly are flagged as potentially too easy. 
+
+Step 3: Source-Level Hardest Selection. For each source theorem, the pipeline compares all surviving candidate variants and selects the hardest , defined as the variant the calibration model answered incorrectly while achieving the highest quality rubric score. Source groups in which all candidates were solved are dropped entirely. This procedure yields the final benchmark subset. 
+
+Stage 7: Evaluation Protocol. We propose a dual-mode evaluation protocol: Mode 1: Selection. The model receives the question stem and all five options, then selects the answer that it judges to be the correct theorem statement. This mode evaluates the model’s baseline mathematical comprehension. Mode 2: Sketch-Aware Selection. The model additionally receives the proof sketch as a hint alongside the stem and options. By comparing performance across modes, we isolate the model’s ability to synthesize and apply high-level proof strategies, a proxy for mathematical intuition .To ensure a fair rendering of notations, all questions undergo L ATEX validation via compila-tion and, when necessary, automated L ATEX repair before presentation to the model. 
+
+# 3 Benchmark 
+
+We summarize the logical-form composition of the hard benchmark split in Figure 3. The hard split contains 177 theorems in total, and a single theorem may belong to multiple logical categories. The benchmark therefore covers a broad range of theorem structures rather than concentrating on a single template: implication and universal statements are the most common categories, followed by existence and inequality/bound problems. The month-level breakdown further shows that benchmark composition changes over time while preserving category diversity, with all slices drawn from papers released after the evaluated models’ knowledge cutoffs. Examples can be found in the Appendix C. 7Preprint. Under review. a b    
+
+> Figure 3. Category statistics for the hard split of L IVE MATHEMATICIAN BENCH .(a) aggregate distribu-tion of logical categories across all months. (b) month-by-month category breakdown from November 2025 to February 2026. Counts correspond to category memberships rather than unique questions, since a single theorem can receive multiple logical labels.
+
+# 4 Evaluation Results 
+
+Even frontier models suffer. Figure 1 shows overall accuracy on L IVE MATHEMATICIAN -BENCH . The strongest performance is achieved by Gemini-3.1-pro-preview at 43.5% overall, followed by GPT-5.4 (high) at 41.8%. Even the strongest systems remain far from saturation. 
+
+Category-wise pattern and monthly trajectories. Figure 4-(a) shows that no single model dominates every reasoning type. Gemini-3.1-pro-preview achieves the strongest overall profile and is particularly competitive on biconditional/equivalence and classification/bi-jection problems, whereas GPT-5.4 variants are stronger on implication, universal, and inequality/bound items. These categories combined constitute a substantial portion of the benchmark (Figure 3). This heterogeneity suggests that research-level mathematical reasoning is not a one-dimensional capability: models with similar aggregate performance can still exhibit sharp weaknesses on particular logical forms. The monthly trajectories in Figure 4-(b) further show that performance is unstable across benchmark slices. Several models do best on the 2026/01 subset but perform worse again on the 2026/02 subset. 
+
+Substitution-resistant options sharply reduce accuracy. Figure 5-(a) compares model accuracy on the original-choice subset and the substitution-resistant subset, where the correct answer is replaced by a stronger meta-option intended to frustrate shortcut strategies such as direct substitution and surface-level elimination. Across all evaluated systems, the substitution-resistant setting is substantially harder than the original-choice setting. The strongest original-choice performance is achieved by Gemini-3.1-pro-preview at 67.4%, but its accuracy drops to only 17.6% on substitution-resistant items, below the 20% random-guess baseline. GPT-5.4 provides a useful contrast: although it ranks second overall, it reaches 52.2% on original items under both medium and high reasoning effort and still retains 29.4%–30.6% on the substitution-resistant subset. GPT-5.4 is therefore more stable under the harder choice design, remaining above the random-guess baseline even when the benchmark removes the direct theorem statement as an option, whereas most other evaluated models fall to chance level or below. More broadly, the remaining difficulty in L IVE MATHEMATICIAN BENCH lies not only in understanding the theorem itself, but also in reasoning among nearby mathematical claims once surface matching and answer substitution become ineffective. 
+
+Proof sketches yields a consistent improvement. As shown in Figure 5-(b), GPT-5.4 (high) improves from 41.8% to 53.7% overall, a gain of 11.9% points, while Gemini-3.1-pro-preview (high) rises from 43.5% to 57.1%, a gain of 13.6% points. This pattern suggests that proof sketches are not merely redundant restatements of the theorem. Instead, they provide useful 8Preprint. Under review. a b     
+
+> Figure 4. (a) accuracy by logical category aggregated across benchmark months; rare categories with fewer than ten examples are grouped into Other .(b) monthly overall accuracy from November 2025 to February 2026.
+
+## a b    
+
+> Figure 5. (a) Accuracy by answer-choice format on L IVE MATHEMATICIAN BENCH . Each model is evaluated separately on the original-choice subset and the substitution-resistant subset. Ranked by substitution-resistant performance. (b) Accuracy gain from adding proof sketches. Each panel compares the same model setting with and without sketch access across benchmark months.
+
+strategic information that helps models disambiguate closely related answer choices and identify the load-bearing structure of the argument. 
+
+# 5 Endnote and Discussion 
+
+From aggregate accuracy alone, Gemini-3.1-pro-preview (high) achieves the highest score, with GPT-5.4 variants close behind by less than 3%. However, a category-level analysis in Section 4 (Fig. 4(a)) reveals additional structure that supports the first central design choice of L IVE MATHEMATICIAN BENCH : organizing problems by logical type. Performance varies meaningfully across logical forms in ways that are not visible from aggregate scores alone. This suggests that logical structure may be an important axis along which current models differ, and it raises a broader interpretability question: why are some models sys-tematically stronger on certain forms of reasoning than others? If such patterns persist at scale, they may also have practical implications for mathematical workflows, since differ-ent models may prove more useful for different kinds of reasoning tasks. In this sense, a logic-based taxonomy complements traditional field-based categorization by capturing structural similarities that cut across mathematical areas. More broadly, this suggests that 9Preprint. Under review. LIVE MATHEMATICIAN BENCH can serve not only as a leaderboard benchmark, but also as a diagnostic testbed for studying structure-specific strengths and weaknesses in mathematical reasoning. This diagnostic value is especially relevant because the benchmark is constructed from recent post-cutoff arXiv papers, making it less vulnerable to rapid saturation and contamination than static mathematics benchmarks. In this sense, L IVE MATHEMATICIAN -BENCH contributes not only a new dataset, but also a more durable evaluation setting for tracking progress in research-level mathematical reasoning. Substitution-resistant options (Stage 4b) are designed to test whether a model can recognize that the semantically weakened option is true while also inferring that a strictly stronger statement follows from the hypotheses. Success on such questions therefore requires an additional deductive step. In this sense, substitution-resistant questions provide a useful probe of whether a model can move beyond recognition toward a limited form of mathematical conjecturing. This is precisely the kind of ability mathematicians hope AI systems may leverage on when facilitating research, as illustrated by the work of Georgiev et al. (2025) using AlphaEvolve for mathematical exploration and discovery. As highlighted in Section 4, all tested models perform substantially worse with substitution-resistant options (Fig. 5(a)). This gap suggests that current models rely heavily on option substitution in standard multiple-choice settings. More importantly, it underscores the importance of adversarial option design for isolating genuine reasoning ability. At its core, it shows that benchmark design can materially affect the capabilities we appear to measure. From considerations of both overall benchmark performance and performance under substitution-resistant evaluation, GPT-5.4 (high) and Gemini-3.1-pro-preview (high) emerge as the two strongest models on L IVE MATHEMATICIAN BENCH .Finally, we have observed earlier that providing proof sketches at inference time induces significant performance improvements in the two highest-scoring models (Fig. 5(b)). Since proof sketches are extracted from the source papers and typically summarize the central ideas of the proof at a high level, this result suggests that models can often use strategic mathematical guidance without full derivational detail, demonstrating some similarities to how expert researchers work. These findings further support the second design philosophy of L IVE MATHEMATICIAN BENCH : incorporating proof strategy into evaluation rather than restricting assessment to statement-level recognition alone. More broadly, they indicate that the benchmark can distinguish not only whether a model reaches the correct answer, but also how its performance changes when supplied with information closer to the level of mathematical strategy used by human researchers. Collectively, these features make LIVE MATHEMATICIAN BENCH useful not only for comparing current models, but also for future work on proof-guided reasoning, tool use, and interactive mathematical exploration. 
+
+# References 
+
+Mohammed Abouzaid, Andrew J. Blumberg, Martin Hairer, Joe Kileel, Tamara G. Kolda, Paul D. Nelson, Daniel Spielman, Nikhil Srivastava, Rachel Ward, Shmuel Weinberger, and Lauren Williams. First proof, 2026. URL https://arxiv.org/abs/2602.05192 .Yuchen Bi and Jie Zhou. Quantitative stability of the clifford torus as a willmore minimizer, 2025. URL https://arxiv.org/abs/2511.19681 .Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. Training verifiers to solve math word problems. arXiv preprint arXiv:2110.14168 , 2021. Simon Frieder. Mathematical capabilities of chatgpt. arXiv preprint arXiv:2301.13867 , 2023. Bofei Gao, Feifan Song, Zhe Yang, Zefan Cai, Yibo Miao, Qingxiu Dong, Lei Li, Chenghao Ma, Liang Chen, Runxin Xu, et al. Omni-math: A universal olympiad level mathematic benchmark for large language models. arXiv preprint arXiv:2410.07985 , 2024. Bogdan Georgiev, Javier G ´omez-Serrano, Terence Tao, and Adam Zsolt Wagner. Mathemati-cal exploration and discovery at scale, 2025. URL https://arxiv.org/abs/2511.02864 .10 Preprint. Under review. Julius Giesler. Jacobian rings and the infinitesimal torelli theorem, 2026. URL https: //arxiv.org/abs/2601.17765 .Elliot Glazer, Ege Erdil, Tamay Besiroglu, Diego Chicharro, Evan Chen, Alex Gunning, Caroline Falkman Olsson, Jean-Stanislas Denain, Anson Ho, Emily de Oliveira Santos, et al. Frontiermath: A benchmark for evaluating advanced mathematical reasoning in ai. 
+
+arXiv preprint arXiv:2411.04872 , 2024. Torben Grabbel, Gebhard Martin, Giacomo Mezzedimi, Maia Raitz von Frentz, and Paul Jakob Schmidt. On symmetries of hyperbolic lattices of large rank, 2026. URL 
+
+https://arxiv.org/abs/2602.05652 .Aryan Gulati, Brando Miranda, Eric Chen, Emily Xia, Kai Fronsdal, Bruno Dumont, Elyas Obbad, and Sanmi Koyejo. Putnam-axiom: A functional and static benchmark for measuring higher level mathematical reasoning in llms. arXiv preprint arXiv:2508.08292 ,2025. Chaoqun He, Renjie Luo, Yuzhuo Bai, Shengding Hu, Zhen Thai, Junhao Shen, Jinyi Hu, Xu Han, Yujie Huang, Yuxiang Zhang, et al. Olympiadbench: A challenging benchmark for promoting agi with olympiad-level bilingual multimodal scientific problems. In 
+
+Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pp. 3828–3850, 2024. Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, and Jacob Steinhardt. Measuring mathematical problem solving with the math dataset. arXiv preprint arXiv:2103.03874 , 2021. Vitezslav Kala and Om Prakash. There are consecutive cubic fields with large class numbers, when ordered by discriminant, 2026. URL https://arxiv.org/abs/2601.03984 .Eyal Kaplan. A note on the ketonen order and lipschitz reducibility between ultrafilters, 2025a. URL https://arxiv.org/abs/2512.12835 .Eyal Kaplan. The number of normal measures, revisited. arXiv preprint arXiv:2507.20466 ,2025b. Pan Lu, Hritik Bansal, Tony Xia, Jiacheng Liu, Chunyuan Li, Hannaneh Hajishirzi, Hao Cheng, Kai-Wei Chang, Michel Galley, and Jianfeng Gao. Mathvista: Evaluating mathe-matical reasoning of foundation models in visual contexts. arXiv preprint arXiv:2310.02255 ,2023. Diego Marques and Pavel Trojovsky. Geometric progressions meet zeckendorf representa-tions, 2025. URL https://arxiv.org/abs/2512.19586 .Juan Felipe Ariza Mej ´ıa, Ionu t¸ Chifan, Denis Osin, and Bin Sun. Mcduff superrigidity for group ii 1 factors, 2025. URL https://arxiv.org/abs/2511.23123 .Walner Mendon c¸ a, Meysam Miralaei, and Guilherme O. Mota. Graphs with asymmetric ramsey properties, 2025. URL https://arxiv.org/abs/2511.02963 .Joaqu ´ın Moraga and Juan Pablo Z ´u ˜niga. Degenerations of cluster type varieties, 2026. URL 
+
+https://arxiv.org/abs/2511.14959 .Yanmin Mu and Dehua Wang. Global existence for the relativistic vlasov-poisson system in a two-dimensional bounded domain, 2025. URL https://arxiv.org/abs/2511.06595 .Makoto Ozawa. Crossing numbers of knots on closed surfaces, 2026. URL https://arxiv. org/abs/2602.21659 .Tomohiro Sawada, Daniel Paleka, Alexander Havrilla, Pranav Tadepalli, Paula Vidas, Alexander Kranias, John J Nay, Kshitij Gupta, and Aran Komatsuzaki. Arb: Advanced reasoning benchmark for large language models. arXiv preprint arXiv:2307.13692 , 2023. 11 Preprint. Under review. Quanyu Tang and Shengtong Zhang. Harmonic lcm patterns and sunflower-free capacity, 2025. URL https://arxiv.org/abs/2512.20055 .George Tsoukalas, Jasper Lee, John Jennings, Jimmy Xin, Michelle Ding, Michael Jennings, Amitayush Thakur, and Swarat Chaudhuri. Putnambench: A multilingual competition-mathematics benchmark for formal theorem-proving. In AI for Math Workshop@ ICML 2024 , 2024. Jinmin Wang. Non-negative scalar curvature on spin surgeries and novikov conjecture, 2025. URL https://arxiv.org/abs/2512.16535 .XTX Markets. The ai mathematical olympiad (aimo) prize, 2024. URL https://aimoprize. com/ . Accessed: 2024-05-01. Jie Zhang, Cezara Petrui, Kristina Nikoli ´c, and Florian Tram `er. Realmath: A continuous benchmark for evaluating language models on research-level mathematics. arXiv preprint arXiv:2505.12575 , 2025. Kunhao Zheng, Jesse Michael Han, and Stanislas Polu. Minif2f: a cross-system benchmark for formal olympiad-level mathematics. arXiv preprint arXiv:2109.00110 , 2021. 12 Preprint. Under review. 
+
+# A Related Work 
+
+Standard and Advanced Mathematical Benchmarks The evaluation of mathematical reasoning in large language models has traditionally relied on static datasets spanning elementary to undergraduate-level problems. Early benchmarks such as GSM8K (Cobbe et al., 2021) and MATH (Hendrycks et al., 2021) helped establish common evaluation standards for quantitative and symbolic reasoning. As model performance has improved, however, these benchmarks have become less discriminative for frontier systems. Subsequent work has therefore shifted toward more challenging settings. The Advanced Reasoning Benchmark (ARB) (Sawada et al., 2023) and GHOSTS (Frieder, 2023) extend evaluation toward graduate-level mathematics, with GHOSTS further emphasizing natural language interaction and expert assessment. Other efforts focus on competition-level mathematics, including OlympiadBench (He et al., 2024), PutnamBench (Tsoukalas et al., 2024), and Omni-Math (Gao et al., 2024). These benchmarks substantially increase difficulty, but because they are derived from historical competition archives, they may be more susceptible to contamination from pretraining data and benchmark-specific memorization. 
+
+Contamination Mitigation, Formal Mathematics, and Frontier-Level Evaluation Several recent benchmarks attempt to mitigate contamination more directly. Putnam-AXIOM (Gulati et al., 2025) perturbs existing problems through programmatic modifications such as renaming variables or altering constants. While this strategy can reduce exact overlap with known solutions, it preserves much of the original problem structure. The AI Mathematical Olympiad (AIMO) (XTX Markets, 2024) instead introduces newly created olympiad-style problems, and MiniF2F (Zheng et al., 2021) focuses on formally verified mathematics across theorem proving systems such as Lean and Isabelle. These directions address important aspects of evaluation reliability, but they remain centered on competition-style or formalized problem settings. Moving beyond competition settings, First Proof (Abouzaid et al. (2026)) curates a collection of ten original, research-level problems drawn directly from the authors’ active work. While this approach effectively guarantees the absence of data contamination, the extremely small sample size limits its utility as a comprehensive evaluation benchmark. FrontierMath (Glazer et al., 2024) is more closely related to our setting in that it targets highly difficult mathematics under reduced contamination risk through a larger set of expert-authored problems. However, similar to First Proof, tailored problem authoring requires substantial dedicated human effort, which inherently limits scalability. LIVE MATHEMATICIAN BENCH differs in both construction and evaluation emphasis. Rather than relying on manually authored problems, it draws from a continuously growing stream of recent arXiv papers, enabling a scalable and refreshable benchmark construction pipeline. In addition, whereas prior benchmarks largely emphasize answer derivation, our framework explicitly evaluates structural comprehension through theorem-level logical categories and proof-sketch-guided distractors that probe sensitivity to plausible but invalid reasoning directions. 
+
+# B Human Validation Protocol 
+
+All prompts used in theorem extraction, classification, question generation, and filtering were authored by a research-level mathematician. For quality control, the final released set of 177 benchmark items was reviewed for theorem fidelity, self-containedness, answer uniqueness, and distractor quality. To audit upstream pipeline quality, we additionally performed stratified reviews of intermediate outputs, sampling approximately 10 cases per logical category for theorem extraction, category assignment, proof-sketch quality, and MCQ generation. Given the unusual breadth and depth of the mathematical content covered by the pipeline, these reviews were intended as benchmark quality control, assessing whether outputs were mathematically sound, internally consistent, and benchmark-ready, rather than as full peer-review-level sense of independent verification of every source-paper claim. 13 Preprint. Under review. We now provide an example demonstrating how the combination of prompt design and human validation ensures that all distractors are demonstrably false, thereby guaranteeing the overall validity of the MCQs. In Appendix C, Example 6 is generated from an Existential-Universal type theorem, and the correct option generated from the theorem is replaced by the correct substitution-resistant option. When generating distractors, the system prompt (see Appendix G, Stage 4b) forces the LLM to include a meta description for each distractor indicating the type of perturbation strategies used in its construction. For Example 6, the meta description reads: 
+
+"meta": { "weaker_true_label": "C", "false_labels": [ "B", "D", "E" ], "wildcard_false_label": "B" }, "sketch_usage_meta": [ {"label": "B", "sketch_hook_type": "counting_estimate", "tampered_component": "counts signed cubic discriminants instead of cubic fields", "template_used": "wildcard" }, {"label": "C", "sketch_hook_type": "finiteness", "tampered_component": "dropped the lower bound guaranteeing at least k/2 cubic fields in the interval", "template_used": "weaker_true" }, {"label": "D", "sketch_hook_type": "counting_estimate", "tampered_component": "threshold k/2 replaced by (k+1)/2", "template_used": "stronger_trap" }, {"label": "E", "sketch_hook_type": "regularity", "tampered_component": "removed the epsilon-loss in the exponent", "template_used": "stronger_trap" }]
+
+We first notice that option C is the ”weaker true label”, meaning that it is strictly weaker than the theorem’s assertion (which is always true if we assume the theorem itself is true). However, since the question asks for the ’strongest’ true statement, option C is not correct. Option B is the ”wildcard false label”, meaning that it is designed to be false but with a question specific tempering. It counts the number of integers within that range that are determinants of cubic fields. This is clearly not the same as counting the number of cubic fields, as multiple non-isomorphic fields can share the same discriminant. Therefore, it is not realistic for a smaller set to have the same lower bound. This reasoning aligns with the ”tempered component” field provided in the meta description. Moreover, this option critically uses the proof sketch. Option D and E are false labels tempered with ”stronger trap”, meaning that they are strengthened versions of the theorem statement in different ways. Option D increases the 14 Preprint. Under review. lower bound of the set being counted, making the statement stronger. However, the lower bound is obtained by explicit construction and a bigger lower bound cannot be achieved. Option E modifies the count for the specific integers d by removing the epsilon factor in the exponent. The epsilon-dependence in the original theorem comes from deep conjectures in the subject of counting number fields, which cannot be removed. To conclude, taking the original theorem as the ground truth, we can see from a combination of meta description and human expertise that the distractors are false and the MCQ is valid. In particular, this example demonstrates that our prompt design alone has guaranteed the mathematical falsity of the distractors to a great extent. 
+
+# C Detailed Logical Taxonomy of Theorem Categories 
+
+This appendix provides extended descriptions of the thirteen logical theorem categories listed in Table 2. The taxonomy focuses exclusively on the logical form of a theorem statement, independent of its mathematical topic or context. Each category is accompanied by its canonical logical form and a representative example. 
+
+1. Algorithmic / Constructive. Canonical form: There exists an algorithm A that computes 
+
+f (x), or “object X can be explicitly constructed.” This category covers theorems providing an explicit or computable method to obtain an object. Example: “There exists a polynomial-time algorithm that computes a maximum matching in any bipartite graph.” 
+
+LIVE MATHEMATICIAN BENCH Example 
+
+Original Theorem (Marques & Trojovsky (2025) )i@ Let u ≥ 1, q ≥ 2 be integers, and let F be a finite family of non-empty binary words. Let 
+
+L = max {| f | : f ∈ F } and fix M ≥ L. Then the set 
+
+S(M) 
+
+> u
+
+= {n ≥ 0 : uq n ∈ K (M) 
+
+> F
+
+}
+
+is either finite or ultimately periodic. That is, there exist integers n0 ≥ 0 and p ≥ 1 such that 
+
+n ∈ S(M) 
+
+> u
+
+⇐⇒ n + p ∈ S(M) 
+
+> u
+
+(n ≥ n0).Moreover, one can effectively compute such a pair (n0, p) and decide whether S(M) 
+
+> u
+
+is finite or infinite. In the finite case, the same procedure outputs all elements of S(M) 
+
+> u
+
+.
+
+Proof Sketch 
+
+To prove the main theorem, the argument is “entirely finite-state”. The key input is that “multipli-cation by a fixed integer q in the Fibonacci numeration system is realizable by a finite sequential transducer”, and when “reading digits from the least significant side” this yields (for each M)“a deterministic update rule on the set of length-M windows {0, 1, # }M.” Composing this with “the finite automaton that checks avoidance of F inside the window” produces “a deterministic dynamical system on a finite state space.” The orbit corresponding to (uq n)n≥0 is thus “eventually periodic”, and “which yields ultimate periodicity of S(M) 
+
+> u
+
+as an immediate corollary.” Finally, “the same finite-state construction gives an explicit algorithm to compute the eventual period” (hence to compute (n0, p) and decide finiteness, and list elements in the finite case). 
+
+15 Preprint. Under review. 
+
+LIVE MATHEMATICIAN BENCH Example 1 (Question & Answers) 
+
+Generated Question 
+
+Let (Fn)n≥0 be the Fibonacci numbers, defined by F0 = 0, F1 = 1, and Fn+2 = Fn+1 + Fn. Every integer N ≥ 1 has a unique Zeckendorf representation 
+
+N =
+
+> k
+
+# ∑
+
+> i=2
+
+εi Fi,where εi ∈ { 0, 1 }, εk = 1, and εi εi+1 = 0. Write rev (Z(N)) = ε2ε3 · · · εk for the Zeckendorf digits read from least significant to most significant, and let eZ(N) = rev (Z(N)) #ω , where # /∈ { 0, 1 } is a padding symbol. Let u ≥ 1 and q ≥ 2 be integers, let F be a finite family of non-empty binary words, let 
+
+L = max {| f | : f ∈ F } , and fix M ≥ L. Define 
+
+K(M) 
+
+> F
+
+= {N ≥ 1 : the prefix of length M of eZ(N) contains no factor from F } ,and 
+
+S(M) 
+
+> u
+
+= {n ≥ 0 : uq n ∈ K (M) 
+
+> F
+
+}.Which is the strongest conclusion that can be justified about S(M) 
+
+> u
+
+?
+
+Answer Choices A. S(M) 
+
+> u
+
+is either finite or ultimately periodic: there exist integers n0 ≥ 0 and p ≥ 1 such that 
+
+n ∈ S(M) 
+
+> u
+
+⇐⇒ n + p ∈ S(M) 
+
+> u
+
+(n ≥ n0).Moreover, one can effectively compute such a pair (n0, p) and decide whether S(M) 
+
+> u
+
+is finite or infinite; in the finite case, the same procedure outputs all elements of S(M) 
+
+> u
+
+. ✓
+
+B. S(M) 
+
+> u
+
+is either finite or ultimately periodic: for each fixed q, F , and M, there exist integers 
+
+n0 ≥ 0 and p ≥ 1, independent of u, such that for every u ≥ 1 one has 
+
+n ∈ S(M) 
+
+> u
+
+⇐⇒ n + p ∈ S(M) 
+
+> u
+
+(n ≥ n0).Moreover, one can effectively compute such a universal pair (n0, p) and decide for each u whether 
+
+S(M) 
+
+> u
+
+is finite or infinite; in the finite case, the same procedure outputs all elements of S(M) 
+
+> u
+
+.
+
+C. S(M) 
+
+> u
+
+is ultimately periodic: there exist integers n0 ≥ 0 and p ≥ 1 such that 
+
+n ∈ S(M) 
+
+> u
+
+⇐⇒ n + p ∈ S(M) 
+
+> u
+
+(n ≥ n0).Moreover, one can effectively compute such a pair (n0, p).
+
+D. S(M) 
+
+> u
+
+is either finite or ultimately periodic: there exist integers n0 ≥ 0 and p ≥ 1 such that 
+
+n ∈ S(M) 
+
+> u
+
+⇐⇒ n + p ∈ S(M) 
+
+> u
+
+(n ≥ n0).Moreover, one can always choose these with n0 < 3M and 1 ≤ p ≤ 3M, and effectively compute such a pair together with a decision procedure for whether S(M) 
+
+> u
+
+is finite or infinite; in the finite case, the same procedure outputs all elements of S(M) 
+
+> u
+
+.
+
+E. S(M) 
+
+> u
+
+is either finite or ultimately periodic: there exist integers n0 ≥ 0 and p ≥ 1 such that 
+
+n ∈ S(M) 
+
+> u
+
+⇐⇒ n + p ∈ S(M) 
+
+> u
+
+(n ≥ n0).Moreover, one can effectively decide whether S(M) 
+
+> u
+
+is finite or infinite and, in the infinite case, compute an eventual period p; however, in general there is no procedure that always computes a valid preperiod n0 or lists all elements when S(M) 
+
+> u
+
+is finite. 
+
+16 Preprint. Under review. 
+
+2. Asymptotic / Limit. Canonical form: As n → ∞ (or another limiting regime), a quantity behaves as described. This category covers theorems describing limiting or asymptotic behavior, including exact limits, asymptotic equivalences ( ∼), and big-O/little-o estimates. 
+
+Example: “The number of primes less than x satisfies π(x) ∼ x/ ln x as x → ∞.” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Tang & Zhang (2025)) Fix an integer k ≥ 3. Then, as N → ∞,
+
+fk (N) ≥ (log N)ck −o(1),where 
+
+ck := k − 2
+
+e(( k − 2)!)1/ (k−2) .
+
+Proof Sketch 
+
+To prove the main theorem, they use a “prime bucketing” construction: partition primes in a suitable interval into many disjoint blocks of comparable harmonic sum, and form squarefree integers by choosing exactly k − 2 primes from each block. A short combinatorial lemma then forces LCM-k-freeness, while the harmonic sum factorizes and can be optimized over a free parameter. 
+
+LIVE MATHEMATICIAN BENCH Example 2 (Question & Answers) 
+
+Generated Question 
+
+Fix an integer k ≥ 3. For N ≥ 1, write [N] := {1, 2, . . . , N}, and define 
+
+fk (N) := max 
+
+(
+
+# ∑
+
+> a∈A
+
+1
+
+a : A ⊆ [N] is LCM-k-free 
+
+)
+
+,where A is called LCM-k-free if there do not exist distinct a1, . . . , ak ∈ A such that all pairwise least common multiples are equal, i.e. lcm (ai, aj) = lcm (a1, a2) (1 ≤ i < j ≤ k).Define 
+
+ck := k − 2
+
+e (( k − 2)!)1/ (k−2) .As N → ∞, which is the strongest asymptotic lower bound that holds for the quantity fk (N)?
+
+Answer Choices A. One of the remaining options is correct, but a stronger result can be proven. ✓
+
+B. 
+
+fk (N) ≥ (log N)ck +o(1) (N → ∞),with ck = k − 2
+
+e (( k − 2)!)1/ (k−2) .
+
+C. 
+
+fk (N) ≥ (log N)ck −o(1) (N → ∞),for some positive constant ck depending only on k.
+
+D. 
+
+fk (N) ≥ (log N)ck −o(1)
+
+for every sufficiently large N, where now ck = k − 2
+
+(( k − 2)!)1/ (k−2) .
+
+E. 
+
+fk (N) ≥ (log N)   
+
+> k−1
+> e(( k−1)!)1/ (k−1)−o(1)
+
+(N → ∞).
+
+17 Preprint. Under review. 
+
+3. Biconditional / Equivalence. Canonical form: A ⇐⇒ B, or “the following are equiva-lent.” This category covers theorems asserting that two (or more) conditions are logically equivalent. The theorem may present the equivalence as a single biconditional or as a list of mutually equivalent statements. Example: “A ring R is Noetherian if and only if every ideal of R is finitely generated.” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Bi & Zhou (2025)) Let Σ ⊂ S3 be a smooth embedded surface of genus at least 1. Then its canonical five-parameter family 
+
+{Σ(v,t)}(v,t)∈ ˚B4 ×[−π,π]
+
+satisfies max   
+
+> (v,t)∈˚B4×[−π,π]
+
+Area  Σ(v,t)
+
+ ⩾ 2π2.Moreover, equality holds if and only if Σ is the Clifford torus. 
+
+Proof Sketch 
+
+Using the Marques–Neves five-parameter family {Σ(v,t)}, the key point is to show that if a genus–one surface Σ satisfies W (Σ) ⩽ 2π2 + δ2, then after a conformal transformation one gets a surface Σ′ with Area (Σ′) ⩾ 2π2 − Cδ2.To prove the main theorem, we use that the full (v, t)-family contains a slice of area at least 2 π2,and since v encodes conformal transformations and t is signed distance, the aim is to realize such a high-area slice within the conformal four-parameter subfamily; for this one must control t in terms of the energy gap δ, so the maximizing slice lies close to t = 0. A closer examination of the Heintze–Karcher inequality used by Marques–Neves shows that, once the family is built from the quantitatively normalized surface, the problem reduces to proving the maximizing parameter (v0, t0) stays a definite distance away from the boundary of the conformal group, i.e. there exists η1 > 0 such that |v0| ⩽ 1 − η1 (reduced later; technical proof deferred to an appendix). Geometric intuition for this uniform bound: as |v| → 1, Σ(v,t) becomes quantitatively close to a geodesic sphere, forcing area strictly below 2 π2, so such v cannot maximize. More precisely, for 
+
+t = 0, Σv = Σ(v,0 ) is Hausdorff close to a geodesic sphere S, so Area (Σv) is close to Area (S) ≤ 4π,and for small |t| one uses 
+
+Area (Σ(v,t)) − Area (Σv) ≲ |t| W (Σv)
+
+so the area stays < 5π. For larger |t|, either (i) if Σv stays away from the poles, an Euclidean-model argument shows Σ(v,t) is a small Lipschitz graph over a geodesic sphere hence has area 
+
+< 5π, or (ii) if Σv lies close to a pole, comparison geometry gives Area (Σ(v,t)) < 5π. Thus for |v|
+
+sufficiently close to 1, Area (Σ(v,t)) < 5π < 2π2, proving |v0| ≤ 1 − η1.With this uniform control of v, the remaining task is to derive a quantitative stability estimate for minimal surfaces; the paper then uses the earlier area lower bound to reduce Willmore stability to minimal-surface stability, and later performs linearization/stability analysis to obtain the quantitative bounds (conformal factor, conformal structure, and W2,2 -distance to the Clifford torus), thereby proving the theorem. 
+
+18 Preprint. Under review. 
+
+LIVE MATHEMATICIAN BENCH Example 3 (Question & Answers) 
+
+Generated Question 
+
+Let Σ ⊂ S3 ⊂ R4 be a smooth embedded surface in the round 3-sphere, with genus at least 1. For 
+
+v ∈ ˚B4 = {v ∈ R4 : |v| < 1}, let 
+
+Fv(x) = ( 1 − | v|2) x − v
+
+|x − v|2 − v
+
+be the associated conformal transformation of S3, and set Σv := Fv(Σ). If S3 \ Σ = A ∪ A∗ is the decomposition into connected components, let Av := Fv(A), let dv be the signed distance to Σv
+
+(positive on Av, negative on the other component), and define 
+
+Σ(v,t) = ∂{x | dv(x) < t}, (v, t) ∈ ˚B4 × [−π, π].Thus {Σ(v,t)}(v,t)∈ ˚B4 ×[−π,π] is the canonical five-parameter family of Σ. Which quantitative area estimate holds for this family, and in which case does equality occur? 
+
+Answer Choices A. 
+
+max   
+
+> (v,t)∈˚B4×[−π,π]
+
+Area (Σ(v,t)) ≥ 2π2,and equality holds if and only if Σ is the Clifford torus. ✓
+
+B. 
+
+max   
+
+> (v,t)∈˚B4×[−π,π]
+
+Area (Σ(v,t)) ≤ 2π2,and equality holds if and only if Σ is the Clifford torus. 
+
+C. 
+
+max   
+
+> (v,t)∈˚B4×[−π,π]
+
+Area (Σ(v,t)) ≥ 2π2.
+
+D. 
+
+max  
+
+> v∈˚B4
+
+Area (Σv) ≥ 2π2,and equality holds if and only if Σ is the Clifford torus. 
+
+E. 
+
+max   
+
+> (v,t)∈˚B4×[−π,π]
+
+Area (Σ(v,t)) ≥ 2π2,and equality holds whenever Σ is conformally equivalent to the Clifford torus. 
+
+19 Preprint. Under review. 
+
+4. Classification / Bijection. Canonical form: There is a bijection between X and Y, or “objects of type A are completely classified by objects of type B.” This category covers theorems establishing a one-to-one correspondence or a complete classification between two classes of mathematical objects. Example: “Finite simple groups are classified into cyclic groups of prime order, alternating groups, groups of Lie type, and 26 sporadic groups.” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Giesler (2026)) Let ∆ be an n-dimensional lattice polytope with Int (∆) ∩ M ⊈ hyperplane. Then ker (dPkB, f ) mod Lie (T)
+
+=
+
+D
+
+gΓ( f ) · xw ∈ L(∆)/C · f | Γ ≤ ∆ a facet, 
+
+w + v ∈   Int (( k + 1) · ∆) ∪ Int (( k + 1) · Γ) ∩ M,
+
+∀ v ∈ Int (k · ∆) ∩ M
+
+E
+
+.where ⟨⟩ denotes the span as C-vector space. 
+
+Proof Sketch 
+
+This direct approach to the diagram of Griffiths 
+
+TB, f H1(Yf , TYf )
+
+Hom (Hk (Yf , Ωn−1−kYf ), Hk+1(Yf , Ωn−2−kYf ))   
+
+> dPkB,f
+> κf
+> Φkf
+
+“yields a both computational and much explicit perspective.” Under the assumptions of the main theorem, one “easily deduce[s] ker (dPkB, f ) = ker (dP1  
+
+> B,f
+
+), k ≥ 1We record the precise statement as follows. 
+
+Corollary . Under the assumption of theorem we have 
+
+ker (dϕf ) = ker (dϕ1 
+
+> f
+
+).For an element g = gΓ( f ) · xw ∈ ker (dP1 
+
+> f
+
+) one obtains the distinction 
+
+⟨w, nΓ⟩ =
+
+
+
+0 ⇔ g ≡ 0, 
+
+−1 ⇔ g ∈ ker (κ f ),
+
+≤ − 2 exceptional cases, and also “ ⟨w, nΓ′ ⟩ ≥ 0 for Γ′̸ = Γ by the main theorem.” The “last case” ⟨w, nΓ⟩ ≤ − 2 “causes 
+
+Φ f |Im κ f to be not injective, which implies in particular that the infinitesimal Torelli theorem (ITT) fails.” For n = 3, to rule out the exceptional case and conclude injectivity, the text sketches: “we construct a 3-dimensional empty polytope Q with 6 vertices,” namely “the convex span of an empty triangle with vertex (0, 0, 0 ) and this triangle dilated by w,” and then “use a theorem of White on empty 3-simplices to deduce |Q ∩ M| ≥ 7 under the assumption ⟨w, nΓ⟩ ≤ − 2, contradiction.” 
+
+20 Preprint. Under review. 
+
+LIVE MATHEMATICIAN BENCH Example 4 (Question & Answers) 
+
+Generated Question 
+
+Let M ∼= Zn be a lattice, T = Spec C[M] ∼= ( C∗)n, and let f = ∑m∈∆∩M am xm be a nondegenerate Laurent polynomial with n-dimensional Newton polytope ∆. Write L(∆) := L 
+
+> m∈∆∩M
+
+C xm, and let Int (·) denote interior (relative interior on faces such as facets Γ). Assume that Int (∆) ∩ M is not contained in any hyperplane. In the notation where dP kB, f is the differential under consideration and gΓ( f ) is the element associated to a facet Γ ≤ ∆, which subspace gives ker (dPkB, f ) modulo Lie (T)?
+
+Answer Choices A. Modulo Lie (T), it is exactly the C-span of all elements gΓ( f ) xw ∈ L(∆)/C · f such that Γ ≤ ∆
+
+is a facet and w + v ∈   Int (( k + 1)∆) ∪ Int (( k + 1)Γ) ∩ M for every v ∈ Int (k∆) ∩ M. ✓
+
+B. Modulo Lie (T), it is exactly the C-span of all elements gΓ( f ) xw ∈ L(∆)/C · f such that Γ ≤ ∆
+
+is a facet and there exists v ∈ Int (k∆) ∩ M with w + v ∈   Int (( k + 1)∆) ∪ Int (( k + 1)Γ) ∩ M.
+
+C. Modulo Lie (T), it is contained in the C-span of all elements gΓ( f ) xw ∈ L(∆)/C · f such that 
+
+Γ ≤ ∆ is a facet and w + v ∈   Int (( k + 1)∆) ∪ (( k + 1)Γ) ∩ M for every v ∈ Int (k∆) ∩ M.
+
+D. Modulo Lie (T), it is exactly the C-span of all elements gΓ( f ) xw ∈ L(∆)/C · f such that Γ ≤ ∆
+
+is a facet and w + v ∈   Int (( k + 1)∆) ∪ Int (( k + 1)Γ) ∩ M for every v ∈ k∆ ∩ M.
+
+E. Modulo Lie (T), it is exactly the C-span of all elements gΓ( f ) xw ∈ L(∆)/C · f such that Γ ≤ ∆
+
+is a facet and w + v ∈   Int (( k + 1)∆) ∪ Int (( k + 1)Γ) ∩ M for every v ∈ Int (kΓ) ∩ M.
+
+21 Preprint. Under review. 
+
+5. Existence. Canonical form: ∃ x such that P(x). This category covers theorems guaran-teeing that at least one object with a given property exists, without claiming uniqueness. 
+
+Example: “There exists a continuous, nowhere-differentiable function on [0, 1 ].” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Mej´ ıa et al. (2025)) There exists a family of countable W∗-McDuff groups {Gi }i∈I such that |I| = 2ℵ0 , Gi̸ ∼= Gj
+
+whenever i̸ = j, and every Gi is McDuff superrigid. 
+
+Proof Sketch 
+
+The groups Gi are described as “infinite direct sums of W∗-superrigid groups with property (T)
+
+constructed in I. Chifan, A. Ioana, A. O. Sasyk, and D. Stef ˘anescu, CIOS21.” Beyond this, the text only states that “[t]he proof of Theorem To prove the main theorem, incorporates several new ideas on both the group-theoretic and analytic sides” without outlining any steps or structure. 
+
+LIVE MATHEMATICIAN BENCH Example 5 (Question & Answers) 
+
+Generated Question 
+
+A countable discrete group G is called a W∗-McDuff group if its group von Neumann algebra 
+
+L(G) is a McDuff II 1 factor. Here, G is called McDuff superrigid in the strongest sense if whenever 
+
+L(G) ∼= L(H) for some group H, one has H ∼= G × A for some ICC amenable group A (ICC means every nontrivial conjugacy class is infinite). Which is the strongest existence statement that holds for countable W∗-McDuff groups? 
+
+Answer Choices A. There exists a family {Gi }i∈I of countable W∗-McDuff groups with |I| = 2ℵ0 such that Gi̸ ∼= Gj
+
+whenever i̸ = j, and every Gi is McDuff superrigid. ✓
+
+B. There exists a family {Gi }i∈I of countable W∗-McDuff groups with |I| = 2ℵ0 such that Gi̸ ∼= Gj
+
+whenever i̸ = j, and every Gi is McDuff superrigid in the strongest sense. 
+
+C. There exists a countably infinite family {Gi }i∈I of pairwise non-isomorphic countable W∗-McDuff groups such that every Gi is McDuff superrigid. 
+
+D. There exists a family {Gi }i∈I of countable ICC groups with |I| = 2ℵ0 such that Gi̸ ∼= Gj
+
+whenever i̸ = j, and every Gi is McDuff superrigid. 
+
+E. For every countable W∗-McDuff group G, there exists a family {Gi }i∈I of countable W∗-McDuff groups with |I| = 2ℵ0 such that Gi̸ ∼= Gj whenever i̸ = j, every Gi is McDuff superrigid, and G is isomorphic to one of the Gi.
+
+22 Preprint. Under review. 
+
+6. Existential–Universal. Canonical form: ∃ x ∀ y, P(x, y). This category covers theorems asserting the existence of an object (often a constant, function, or parameter) that “works” uniformly for all elements of a given class. The existential quantifier precedes the universal one. Example: “There exists a constant C > 0 such that for all f ∈ L2(R), ∥ f ∥∞ ≤ C ∥ f ∥H1 .” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Kala & Prakash (2026)) Fix a sign choice ±, ε > 0, and positive integers k, H. There exists a positive constant c (depending on ±, ε, k, H) such that for all sufficiently large X, there are at least cX 1−κ−ε positive integers 
+
+d ≤ X such that the following hold: 1. For each 1 ≤ i ≤ k, if there exists a cubic field K with ±∆K = d + i, then h(K) > H.2. We have #{K cubic field | ± ∆K ∈ { d + 1, d + 2, . . . , d + k}} ≥ k
+
+2 .
+
+Proof Sketch 
+
+We will prove this result in Theorem . Assume Setting (S). There exists a positive constant c (depending on ±, ε, k, H ) such that for all sufficiently large X , there are at least cX 1−κ−ε positive integers t ≤ X such that the following hold: (1) For each 1 ≤ i ≤ k, if there exists a cubic field K with ±∆K = a + tm + i, then h (K) > H. (2) We have 
+
+#{K cubic field | ± ∆K ∈ { a + tm + 1, a + tm + 2, . . . , a + tm + k}} ≥ k
+
+2 ., and the proof is described as constructive. The approach is: • First, “construct integers 0 ≤ a < m such that whenever there exists a cubic field K with 
+
+±∆K = d + i, where d ≡ a (mod m), then h(K) > H.” This is obtained “by controlling the genus number which gives a lower bound for the size of the 2-torsion in the class group of K.” The motivation given is that this “sidesteps the difficult issue of estimating the regulator” (so there is no need to “restrict ourselves to a suitable family of cubic fields”), though consequently “we only show that the class numbers are larger than some prescribed bound.” • Then, “show that indeed there are many cubic fields with ±∆K ∈ { d + 1, d + 2, . . . , d +
+
+k}, which also ensures that our first assertion is not vacuous.” It is also noted that, in counting the integers d ≤ X in establishing the main theorem, one must “switch between counting cubic fields and cubic discriminants,” and that “non-isomorphic cubic fields can have the same discriminant,” i.e. discriminants are counted with multiplicity when counting fields. 
+
+23 Preprint. Under review. 
+
+LIVE MATHEMATICIAN BENCH Example 6 (Question & Answers) 
+
+Generated Question 
+
+For a cubic field (that is, a degree-3 number field) K, let ∆K denote its discriminant and h(K) its class number. Fix once and for all either the plus sign or the minus sign, so that ±∆K means +∆K
+
+throughout or −∆K throughout according to that choice; also fix a real number ε > 0 and positive integers k and H, and let κ be the fixed constant appearing in the exponent below. Which is the strongest uniform existence statement that holds for all sufficiently large X?
+
+Answer Choices A. One of the remaining options is correct, but a stronger result can be proven. ✓
+
+B. There exists a positive constant c depending on ±, ε, k, H such that for all sufficiently large X,there are at least cX 1−κ−ε positive integers d ≤ X such that the following hold: for each 1 ≤ i ≤ k,if there exists a cubic field K with ±∆K = d + i, then h(K) > H; and moreover #{n ∈ { d + 1, d + 2, . . . , d + k} | n is a cubic discriminant with sign ±} ≥ k
+
+2 .
+
+C. There exists a positive constant c depending on ±, ε, k, H such that for all sufficiently large X,there are at least cX 1−κ−ε positive integers d ≤ X for which, for each 1 ≤ i ≤ k, if there exists a cubic field K with ±∆K = d + i, then h(K) > H.
+
+D. There exists a positive constant c depending on ±, ε, k, H such that for all sufficiently large X,there are at least cX 1−κ−ε positive integers d ≤ X such that the following hold: for each 1 ≤ i ≤ k,if there exists a cubic field K with ±∆K = d + i, then h(K) > H; and moreover #{K cubic field | ± ∆K ∈ { d + 1, d + 2, . . . , d + k}} ≥ k + 12 .
+
+E. There exists a positive constant c depending on ±, ε, k, H such that for all sufficiently large X,there are at least cX 1−κ positive integers d ≤ X such that the following hold: for each 1 ≤ i ≤ k,if there exists a cubic field K with ±∆K = d + i, then h(K) > H; and moreover #{K cubic field | ± ∆K ∈ { d + 1, d + 2, . . . , d + k}} ≥ k
+
+2 .
+
+24 Preprint. Under review. 
+
+7. Implication. Canonical form: A =⇒ B, or “if P holds, then Q holds.” This category covers theorems in which a set of hypotheses implies a specific conclusion, without asserting the converse. Example: “If f is a continuous function on a closed interval [a, b], then f is uniformly continuous on [a, b].” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Moraga & Z ´ u ˜ niga (2026)) Let π : X → D be a projective fibration. Let (X , X0 + B) be a log Calabi–Yau pair over D for which (X , X0) is plt. If (Xt, Bt) is a toric pair a for t ∈ D∗, then (X0, B0) is a finite quotient of a toric pair. 
+
+Proof Sketch 
+
+In the proof of the main theorem, we will see that (X , B) → D is indeed a finite quotient of an isotrivial toric family. Thus, in the toric case, there are not many interesting degenerations for which the degeneration of the toric boundary still has lc singularities. 
+
+> a
+
+Meaning that Xt is a projective toric variety and Bt is the reduced torus invariant boundary. 
+
+LIVE MATHEMATICIAN BENCH Example 7 (Question & Answers) 
+
+Generated Question 
+
+Let π : X → D be a projective morphism to the unit disk D, with central fiber X0 = π−1(0).Let B be a divisor such that (X , X0 + B) is a log Calabi–Yau pair over D (so KX + X0 + B is trivial over D), and assume that (X , X0) is plt (purely log terminal). For each t ∈ D∗ = D \ { 0},write Xt = π−1(t) and Bt = B| Xt . Suppose that for every t ∈ D∗, the fiber pair (Xt, Bt) is toric, meaning that Xt is a projective toric variety and Bt is its reduced torus-invariant boundary. Under these assumptions, which is the strongest statement about the special fiber pair (X0, B0) that holds? 
+
+Answer Choices A. The special fiber pair (X0, B0) is a finite quotient of a toric pair. ✓
+
+B. The special fiber pair (X0, B0) becomes a toric pair after normalizing X0 and replacing B0 by the induced reduced boundary on the normalization. 
+
+C. The special fiber pair (X0, B0) is birational to a toric pair. 
+
+D. After a finite base change of the disk, the pulled-back degeneration has toric central fiber; equivalently, (X0, B0) becomes toric after such a base change. 
+
+E. There exists a finite morphism of pairs (X0, B0) → (Y, D) onto a toric pair (Y, D).
+
+25 Preprint. Under review. 
+
+8. Independence / Consistency. Canonical form: T̸ ⊢ P and T̸ ⊢ ¬ P, or “statement P
+
+is independent of axiom system T.” This category covers theorems expressing a meta-mathematical statement that a proposition cannot be proved or refuted from given axioms. 
+
+Example: “The Continuum Hypothesis is independent of ZFC.” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Kaplan (2025a)) Consistently from a measurable cardinal, there are two σ-complete ultrafilters V, W such that V
+
+is Lipschitz below W, but V and W are Ketonen-incomparable. Furthermore, the same is also consistent with the assumption that the Weak Ultrapower Axiom holds. 
+
+Proof Sketch 
+
+We will rely on the construction from Kaplan (2025b) in the proof of the main theorem. The paper then proceeds by: (1) defining the Ketonen and Lipschitz orders and outlining their basic properties; (2) showing, consistently, that the Ketonen and Lipschitz orders do not coincide (not in a model of the Weak UA). We first prove the following theorem. 
+
+Theorem . Assume V = L[U], κ is the unique measurable cardinal, P is the forcing notion described above and G , G∗, U0, U1 are as above. Denote V = U0 and W the measure derived from j V[G](U1 )2 using the ordinal j U (κ) + κ as a seed. Then V <L W but V, W are Ketonen incomparable. 
+
+(3) sketching basic properties of forcing with nonstationary support products; and (4) separating the Ketonen and Lipschitz orders in a model of the Weak UA, thereby completing the proof of the main theorem. 
+
+LIVE MATHEMATICIAN BENCH Example 8 (Question & Answers) 
+
+Generated Question 
+
+Assume the consistency strength of a measurable cardinal. A σ-complete ultrafilter is an ultrafilter closed under countable intersections. Using the standard comparison notions <L (the Lipschitz order) and <k (the Ketonen order) on σ-complete ultrafilters, where “Ketonen-incomparable” means that neither ultrafilter is below the other in <k, and writing WUA for the Weak Ultrapower Axiom, which is the strongest consistency statement that holds about σ-complete ultrafilters? 
+
+Answer Choices A. Relative to a measurable cardinal, it is consistent that there exist two σ-complete ultrafilters V
+
+and W such that V is Lipschitz below W, while V and W are Ketonen-incomparable; moreover, it is also consistent that such a situation occurs together with the Weak Ultrapower Axiom. ✓
+
+B. Relative to a measurable cardinal, it is consistent that there exist two σ-complete ultrafilters V
+
+and W such that V is Lipschitz below W, while V and W are Ketonen-incomparable; however, no model satisfying the Weak Ultrapower Axiom can contain such a pair. 
+
+C. Relative to a measurable cardinal, it is consistent that there exist two σ-complete ultrafilters V
+
+and W such that V is Lipschitz below W, while V and W are Ketonen-incomparable. 
+
+D. Relative to a measurable cardinal, it is consistent that there exist two σ-complete ultrafilters V
+
+and W such that V is Lipschitz below W and the Lipschitz and Ketonen orders do not coincide on σ-complete ultrafilters; nevertheless, in every model of the Weak Ultrapower Axiom, any relation V <L W already implies that V and W are comparable in the Ketonen order. 
+
+E. Relative to a measurable cardinal, it is consistent that the Lipschitz and Ketonen orders on 
+
+σ-complete ultrafilters can fail to coincide, but only outside the Weak Ultrapower Axiom; under WUA, the Ketonen order is always linear on σ-complete ultrafilters. 
+
+26 Preprint. Under review. 
+
+9. Inequality / Bound. Canonical form: f (x) ≤ g(x) (or ≥, <, >), holding universally. This category covers theorems providing a quantitative estimate, such as a uniform bound, norm inequality, or comparison between quantities. Example: “For all f ∈ L1(R) ∩ L2(R),
+
+∥ ˆf ∥2 = ∥ f ∥2.” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Ozawa (2026)) 
+
+Theorem (Fundamental inequality) . Let F ⊂ S3 be a closed surface. Then every knot K ⊂ S3
+
+satisfies: 
+
+c(K; F) ≥ 2 t(K) − δ(F) + 1, where t(K) is the tunnel number of K, and δ(F) = g(M1) + g(M2) − g(F) is the Heegaard deficiency of F.
+
+Proof Sketch 
+
+To prove the main theorem, the argument “relies on a chain of inequalities relating the surface crossing number c(K; F), the surface ascending number a(K; F), and the surface bridge number 
+
+b(K; F)”: 
+
+c(K; F) − 12 ≥ a(K; F) ≥ b(K; F) − 1 ≥ t(K) − δ(F).This sequence yields the stated lower bound for c(K; F) in terms of “a combination of the knot exterior’s complexity, t(K), and the ambient surface’s Heegaard deficiency, δ(F).” For optimality, the introduction says they “prove that the linear lower bound in the main theorem is asymptotically optimal” by taking iterated connected sums Km of a prime knot and obtaining 
+
+c(Km; F) ≥ 2m − 2δ(F) + 1. “Pairing this with a general upper bound derived from the subadditivity of the planar crossing number yields c(Km; F) = Θ(t(Km)) ,” so “no general lower bound of higher order exists,” and 
+
+c(K; F) grows linearly with tunnel number. 
+
+LIVE MATHEMATICIAN BENCH Example 9 (Question & Answers) 
+
+Generated Question 
+
+Let F ⊂ S3 be a closed surface, and let M1 and M2 be the two components of S3 \ F. Define the Heegaard deficiency of F by 
+
+δ(F) = g(M1) + g(M2) − g(F),where g(Mi ) denotes the Heegaard genus of Mi and g(F) denotes the genus of F. For a knot 
+
+K ⊂ S3, let c(K; F) denote the surface crossing number of K with respect to F, i.e. the minimal number of crossings among all regular diagrams of K obtained by isotoping K into a regular neighborhood of F. If t(K) is the tunnel number of K, which is the strongest quantitative estimate that holds for c(K; F)?
+
+Answer Choices A. For every knot K ⊂ S3,
+
+c(K; F) ≥ 2 t(K) − δ(F) + 1. ✓
+
+B. For every knot K ⊂ S3,
+
+c(K; F) ≥ 2 t(K) − δ(F) + 1 + 1. 
+
+C. For every knot K ⊂ S3,
+
+c(K; F) ≥ 2 t(K) − δ(F).
+
+D. For every knot K ⊂ S3,
+
+c(K; F) ≥ 2t(K) − δ(F) + 1. 
+
+E. For every knot K ⊂ S3,
+
+c(K; F) ≥ 2 t(K) − δ(F) + 2. 
+
+27 Preprint. Under review. 
+
+10. Nonexistence. Canonical form: ̸ ∃ x such that P(x) (or equivalently, ∀ x, ¬P(x)). This category covers theorems asserting that no object satisfies a given property. Example: “There does not exist a rational number whose square is 2.” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Wang (2025)) Let Mn be a closed aspherical manifold and N a spin manifold. Assume that the rational strong Novikov conjecture holds for π1(M). Then the connected sum M#N does not carry any complete metric with positive scalar curvature. Furthermore, any complete metric with non-negative scalar curvature on M#N is Ricci-flat. 
+
+Proof Sketch 
+
+Our proofs rely on Dirac operator methods. A fundamental ingredient is the relative index theorem for higher indices due to Xie and Yu (Theorem A in Xie–Yu, [title not provided in ref dict] 
+
+(2014)). Inspired by the approaches in Su–Zhang, [title not provided in ref dict] , and Wang–Xie–Linf, 
+
+[title not provided in ref dict] , we construct an explicit representative of the relative higher index and compute it in the K-theory of the group C∗-algebra. We also provide a Dirac-operator-based proof of the Ricci-flatness statement, following ideas similar to those in Wang–Zhu, [title not provided in ref dict] . (In establishing the main theorem, we treat it as a special case of 
+
+Theorem . Let M n be a closed aspherical manifold and Ω ⊂ M a smooth region. Assume that 
+
+π1(Ω) → π1(M) is the trivial map. 
+
+Let Nn be a spin manifold with boundary, and i : ∂N → ∂Ω a diffeomorphism preserving the spin structure a. Set Z := ( M\Ω) ∪∂Ω N . If the rational strong Novikov conjecture holds for π1(M), then Zdoes not carry any complete metric with positive scalar curvature. Furthermore, any complete metric with non-negative scalar curvature on Z is Ricci-flat. 
+
+by choosing Ω to be a small ball in M.) 
+
+> a
+
+Although M itself need not be spin, the triviality of π1(Ω) → π1(M) implies that Ω and ∂Ω
+
+inherit a canonical spin structure from the spin universal cover eM.
+
+LIVE MATHEMATICIAN BENCH Example 10 (Question & Answers) 
+
+Generated Question 
+
+Let Mn be a closed aspherical manifold (that is, a closed manifold whose universal cover is contractible), and let N be a spin n-manifold so that the connected sum M#N is defined. Write 
+
+Γ = π1(M), and assume that the rational strong Novikov conjecture holds for Γ, i.e. the assembly map μ : K∗(M) ⊗ Q → K∗(C∗ 
+
+> r
+
+(Γ)) ⊗ Q is injective. Which is the strongest statement about complete Riemannian metrics on M#N that is valid under these hypotheses? 
+
+Answer Choices A. The connected sum M#N admits no complete metric of positive scalar curvature. Moreover, if M#N carries a complete metric of non-negative scalar curvature, then that metric must be Ricci-flat. ✓
+
+B. The connected sum M#N admits no complete metric of positive scalar curvature. Moreover, every complete metric on M#N with non-negative scalar curvature is in fact flat. 
+
+C. Every complete metric on M#N with non-negative scalar curvature has identically zero scalar curvature; in particular, M#N admits no complete metric of positive scalar curvature. 
+
+D. The connected sum M#N admits no complete metric of non-negative scalar curvature at all; equivalently, M#N carries neither a complete Ricci-flat metric nor a complete metric of positive scalar curvature. 
+
+E. If M#N carries one complete metric of non-negative scalar curvature, then every complete metric on M#N must also have non-negative scalar curvature and be Ricci-flat. 
+
+28 Preprint. Under review. 
+
+11. Uniqueness. Canonical form: ∃! x such that P(x). This category covers theorems asserting both existence and uniqueness of an object satisfying a given property. Example: 
+
+“For every positive definite matrix A, there exists a unique positive definite matrix B such that B2 = A.” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Mu & Wang (2025)) Let f0 ∈ C1, μ
+
+> 0
+
+  ¯Ω × R2, f0 ≥ 0 for some 0 < μ < 1, satisfying 
+
+f0 ∈ C1, μ, f0(x, v) = constant, dist (( x, v), Γ) ≤ δ0, (1) Suppose that h ∈ C2, μ(∂Ω) satisfies 
+
+> Z
+> Ω
+
+f0(x, v)dxdv =
+
+> Z
+> ∂Ω
+
+h(x)dl, (2) and h > 0. Then there exists a unique solution f ∈ C1;1, λ
+
+> t;(x,v)
+
+ (0, ∞) × ¯Ω × R2, φ ∈ C1;3, λ
+
+> t;x
+
+ (0, ∞) ×
+
+¯Ω for some 0 < λ < μ, of the relativistic Vlasov-Poisson system 
+
+∂t f + ˆv · ∇ x f + ∇x φ · ∇ v f = 0, (3) 
+
+∆φ = ρ, (4) with compact support in x and v, where the initial boundary conditions of ( f , φ) satisfy 
+
+f (0, x, v) = f0(x, v), x ∈ Ω, v ∈ R2, (5) 
+
+f (t, x, v) = f (t, x, v∗), x ∈ ∂Ω, v ∈ R2, t > 0, (6) 
+
+f0(x, v) ≥ 0, (7) 
+
+v∗ = v − 2 nx · vnx, (x, v) ∈ ∂Ω × R2, (8) and 
+
+∂φ ∂nx
+
+= h(x), x ∈ ∂Ω, t > 0, (9) respectively. 
+
+Proof Sketch 
+
+To prove the main results (in particular the main theorem), the introduction describes the follow-ing strategy. 1. Linearized well-posedness via a velocity lemma: “we first apply the velocity lemma to establish the well-posedness of linearized problems.” 2. Iterative construction and convergence: “Then, we construct an iterative scheme and show the convergence of the iterative sequences.” The “main issues” in this step are “the uniform boundedness in a given function space and the prolongation of uniform estimates for the functions 
+
+f n.” 3. Bootstrapping to final regularity/conclusion: “Finally, we use bootstrapping techniques to reach the desired conclusions.” 4. Control of boundary interactions / collisions (via adapted coordinates): Near the singular set and boundary, the plan is to “draw on insights from previous research,” assuming “the initial data f0 remains constant near the singular set,” and “to analyze the characteristic curves close to the boundary, we will use geometric methods.” For the (Neumann) boundary analysis, they “select coordinate variables (α, β),” where “ α characterizes the distance from points on the characteristic curve to the singular set” and “ β . . . describes the number of collisions between particles and the boundary,” with the observation that “the number of collisions is inversely proportional to the distance to the singular set.” For this purpose (to ensure the collision number is uniformly bounded), they assume 
+
+f0 ∈ C1, μ, f0(x, v) = constant, dist (( x, v), Γ) ≤ δ0,5. Paper roadmap matching the proof: Sections 2–5 implement this plan: “introduce an iterative system . . . define a sequence of functions { f n}, the limit . . . is the desired global solution,” then “establish the well-posedness of the linear problem,” then “show . . . convergence . . . under the condition that Q(t) is bounded,” and finally “prove the boundedness of the function Q(t). This concludes the proof of the first theorem.” 
+
+29 Preprint. Under review. 
+
+LIVE MATHEMATICIAN BENCH Example 11 (Question & Answers) 
+
+Generated Question 
+
+Let 0 < μ < 1, let Ω ⊂ R2 have smooth boundary ∂Ω, and let nx denote the outward unit normal at x ∈ ∂Ω. Write Γ := {(x, v) ∈ ∂Ω × R2 : v ∈ Tx ∂Ω}, let C1, μ 
+
+> 0
+
+( ¯Ω × R2) denote C1, μ functions with compact support, and let d l denote arc-length measure on ∂Ω. Suppose f0 ∈ C1, μ 
+
+> 0
+
+( ¯Ω × R2) is nonnegative and satisfies f0(x, v) = constant whenever dist (( x, v), Γ) ≤ δ0, and let h ∈ C2, μ(∂Ω)
+
+satisfy h > 0 and R 
+
+> Ω
+
+f0(x, v) dx dv = R 
+
+> ∂Ω
+
+h(x) dl. For the relativistic Vlasov-Poisson system 
+
+∂t f + ˆv · ∇ x f + ∇x φ · ∇ v f = 0, ∆φ = ρ, ˆv = v
+
+p1 + |v|2 , ρ(t, x) = 
+
+> Z
+> R2
+
+f (t, x, v) dv,with initial condition f (0, x, v) = f0(x, v), specular reflection boundary condition f (t, x, v) = 
+
+f (t, x, v∗) on ∂Ω × R2 × (0, ∞), where v∗ = v − 2(nx · v)nx, and Neumann boundary condition 
+
+∂φ /∂nx = h(x) on ∂Ω × (0, ∞), what is the strongest statement about existence and uniqueness that follows? 
+
+Answer Choices A. There exists a unique pair ( f , φ) with f ∈ C1;1, λ
+
+> t;(x,v)
+
+(( 0, ∞) × ¯Ω × R2) and φ ∈ C1;3, λ 
+
+> t;x
+
+(( 0, ∞) × ¯Ω)
+
+for some 0 < λ < μ, solving the above relativistic Vlasov-Poisson system, satisfying the stated initial, specular-reflection, and Neumann boundary conditions, and having compact support in x
+
+and v. ✓
+
+B. There exists a unique pair ( f , φ) with f ∈ C1;1, λ
+
+> t;(x,v)
+
+(( 0, ∞) × ¯Ω × R2) and φ ∈ C1;3, λ 
+
+> t;x
+
+(( 0, ∞) × ¯Ω)
+
+for some 0 < λ < μ, solving the above relativistic Vlasov-Poisson system, satisfying the stated initial, specular-reflection, and Neumann boundary conditions, and having compact support in x
+
+and v; moreover one may take λ = μ.
+
+C. There exists at least one pair ( f , φ) with f ∈ C1;1, λ
+
+> t;(x,v)
+
+(( 0, ∞) × ¯Ω × R2) and φ ∈ C1;3, λ 
+
+> t;x
+
+(( 0, ∞) ×
+
+¯Ω) for some 0 < λ < μ, solving the above relativistic Vlasov-Poisson system, satisfying the stated initial, specular-reflection, and Neumann boundary conditions, and having compact support in x
+
+and v.
+
+D. There exists a unique pair ( f , φ) with f ∈ C1;1, λ
+
+> t;(x,v)
+
+(( 0, ∞) × ¯Ω × R2) and φ ∈ C1;3, λ 
+
+> t;x
+
+(( 0, ∞) × ¯Ω)
+
+for some 0 < λ < μ, solving the above relativistic Vlasov-Poisson system, satisfying the stated initial, specular-reflection, and Neumann boundary conditions, and having compact support in x
+
+and v, even without the flatness assumption f0(x, v) = constant whenever dist (( x, v), Γ) ≤ δ0.
+
+E. For every 0 < λ < μ, there exists a unique pair ( f , φ) with f ∈ C1;1, λ
+
+> t;(x,v)
+
+(( 0, ∞) × ¯Ω × R2) and 
+
+φ ∈ C1;3, λ 
+
+> t;x
+
+(( 0, ∞) × ¯Ω), solving the above relativistic Vlasov-Poisson system, satisfying the stated initial, specular-reflection, and Neumann boundary conditions, and having compact support in x
+
+and v.
+
+30 Preprint. Under review. 
+
+12. Universal. Canonical form: ∀ x, P(x). This category covers theorems asserting that a property holds for every object in a specified class. Example: “Every finite-dimensional real vector space admits an inner product.” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Grabbel et al. (2026)) Let L be a hyperbolic lattice of rank at least 46. Then, the exceptional lattice of L is trivial. 
+
+Proof Sketch 
+
+To prove the main theorem, we start from Nikulin’s explicit description of the exceptional lattice (Nikulin, “Elliptic fibrations on K3 surfaces”, Theorem 4.2), see also the following proposition. 
+
+Proposition . Let L be a lattice such that E∞(L) is non-empty. Then the exceptional lattice satisfies E(L) = \ 
+
+> e∈E ∞(L)
+
+(e⊥)(2) 
+
+> pr
+
+.It implies that E(L) is trivial “as soon as every simple (−2)-root r ∈ L admits a cusp with infinite stabilizer e ∈ D L such that e.r > 0.” For a hyperbolic lattice L of rank at least 46, one “tak[es] an arbitrary maximal overlattice of L” to reduce to lattices of the form 
+
+L = U ⊕ En 
+
+> 8
+
+⊕ M, n ≥ 5, rk (M) ≤ 11 by the following proposition. 
+
+Proposition . If L is a hyperbolic lattice of rank at least 6, then there exist an overlattice L′ of L , an integer n and a negative-definite lattice M such that L′ ∼= U ⊕ En 
+
+> 8
+
+⊕ M,
+
+with rk M ≤ 11 and such that the root part of M does not contain any E8 or an ADE lattice of rank at least 9.
+
+Using the isometry U ⊕ E38 ∼= U ⊕ Λ and that the Leech lattice Λ has no (−2)-root, one deduces that “the exceptional lattice E(L) is contained in M.” Since there are “only finitely many possibil-ities for the root part of M,” the argument given later checks all cases and shows “that E(L) = 0for all of them,” which “conclud[es] the proof of the main theorem.” 
+
+LIVE MATHEMATICIAN BENCH Example 12 (Question & Answers) 
+
+Generated Question 
+
+Here, a hyperbolic lattice means an even integral lattice of signature (1, rk L − 1), and the exceptional lattice of L is the sublattice of vectors in L with finite orbit under O +(L)/W(L),where O +(L) is the group of positive isometries of L and W(L) is the subgroup generated by reflections in (−2)-roots. Which is the strongest statement that holds for every hyperbolic lattice 
+
+L of rank at least 46? 
+
+Answer Choices A. One of the remaining options is correct, but a stronger result can be proven. ✓
+
+B. For every hyperbolic lattice L of rank at least 46, the lattice L itself is isometric to U ⊕ En 
+
+> 8
+
+⊕ M
+
+for some n ≥ 5 and some negative-definite lattice M of rank at most 11 whose root part contains no E8 or ADE summand of rank at least 9. 
+
+C. The exceptional lattice of every hyperbolic lattice L of rank at least 46 has rank at most 11. 
+
+D. For every hyperbolic lattice L of rank at least 46, if L′ is a maximal overlattice of L with 
+
+L′ ∼= U ⊕ En 
+
+> 8
+
+⊕ M and n ≥ 5, then the exceptional lattice of L is exactly the root sublattice of M.
+
+E. For every hyperbolic lattice L of rank at least 46, after passing to a maximal overlattice 
+
+L′ ∼= U ⊕ En 
+
+> 8
+
+⊕ M with n ≥ 5, the isometry U ⊕ E38 ∼= U ⊕ Λ with the Leech lattice Λ already forces the exceptional lattice of L to be trivial, without any further case-by-case analysis of M.
+
+31 Preprint. Under review. 
+
+13. Universal–Existential. Canonical form: ∀ x ∃ y, P(x, y). This category covers theorems asserting that for every object in a class, there exists an associated object satisfying a property. The existential witness may depend on the universally quantified variable. Example: “For every ε > 0, there exists δ > 0 such that | f (x) − f (a)| < ε whenever |x − a| < δ.” 
+
+LIVE MATHEMATICIAN BENCH Example (Theorem & Sketch) 
+
+Original Theorem (Mendonc ¸a et al. (2025)) 
+
+Theorem (Ne ˇset ˇril & R ¨odl, 1976) . For every k ≥ 2 there is a graph G such that Kk ⊈ G and 
+
+G → Kk−1.
+
+Proof Sketch 
+
+The post-theorem introduction gives the following proof outline for the main theorem: it “com-bines probabilistic methods with the hypergraph container framework Balogh–Morris–Samotij, 
+
+Independent sets in hypergraphs (2015) and Saxton–Thomason, Hypergraph containers (2015) and is inspired by ideas from Bollob´ as–Erd˝ os, Ramsey graphs (2001).” The paper is then organized into steps: (1) Next, “with high probability . . . the graph G obtained in a natural way from every ‘dense’ subhypergraph of a suitable n-vertex random s-uniform hypergraph satisfies G → (Ks, Kk−1) for 
+
+s = R(k) − 1.” (2) Then, “with high probability a suitable random hypergraph H contains a dense subhypergraph H0 that will allow us to obtain a graph G such that G̸ → Kk.” (3) “These results are then combined later” to produce a graph G satisfying both G̸ → Kk and G → (Ks, Kk−1) (with 
+
+s = R(k) − 1). 
+
+LIVE MATHEMATICIAN BENCH Example 13 (Question & Answers) 
+
+Generated Question 
+
+Let Kt denote the complete graph on t vertices. For graphs G and H, write G → H to mean that every red-blue coloring of the edges of G contains a monochromatic copy of H. Which is the strongest statement that holds for every integer k ≥ 2? 
+
+Answer Choices A. One of the remaining options is correct, but a stronger result can be proven. ✓
+
+B. For every integer k ≥ 2 there is a graph G such that Kk ⊈ G and G → (Kk, Kk−1).
+
+C. For every integer k ≥ 2 there is a graph G such that G → Kk−1.
+
+D. For every integer k ≥ 2 there is a graph G such that Kk ⊈ G and G → (KR(k)−1, Kk−1), where 
+
+R(k) denotes the Ramsey number of Kk.
+
+E. For every integer k ≥ 2 there is a graph G such that G ↛ Kk and G → (KR(k)−1, Kk ), where 
+
+R(k) denotes the Ramsey number of Kk.
+
+# D Benchmark Composition Across Construction Stages 
+
+Figure 6 summarizes how the benchmark size changes across the main construction stages for each month. Full denotes the complete post-generation candidate pool, Quality Rubric >
+
+5 denotes the subset retained after the rubric-based quality filter, and Hard denotes the final released split after stem-nontrivial filtering and hardness calibration. The figure shows that the pipeline consistently reduces the candidate pool in a structured way rather than through ad hoc pruning: each month begins from a substantially larger generated set, is narrowed by quality control, and is then further distilled into a compact hard benchmark. 
+
+# E Evaluation Implementation Details 
+
+This section documents the released evaluation implementation in 
+
+LiveMathematicianBench/eval/ . The current repository provides three backend-specific entry points: eval.py for Azure OpenAI models, eval claude.py for Claude models accessed through the Anthropic API, and eval vllm.py for models served through an OpenAI-compatible vLLM endpoint. Despite backend-specific client code and usage 32 Preprint. Under review. 2025-11 2025-12 2026-01 2026-02    
+
+> 0
+> 100
+> 200
+> 300
+> 400
+> Question count
+> Benchmark composition by month
+> Full
+> Quality Rubric>5
+> Hard
+> Figure 6. Benchmark composition by month across major construction stages. Full is the complete generated candidate pool, Quality Rubric
+
+> 5 is the subset passing the rubric threshold, and Hard is the final released split after the remaining filtering and hardness-selection steps. 
+
+accounting, the three scripts share the same hard-set loader, prompt template, deterministic choice shuffling, answer parser, correctness rule, and output JSON structure. 
+
+Benchmark file format. For each evaluation month, the scripts load the hard benchmark split from data/<month>/hard/qaEval_<month>_ge5_hard.json . Each JSON item contains a unique identifier and an mcq object with a question stem, one correct choice , four dis-tractors in choices , and auxiliary metadata such as mcq.meta.score . During evaluation, the released scripts consume the finalized mcq fields only; source theorem context, sketches, and other record-level annotations remain in the benchmark file but are not inserted into the released prompts. 
+
+Prompt construction. Evaluation is implemented as a five-way multiple-choice selection task. For each item, the scripts combine the stored correct choice with the four distractors, then apply a deterministic shuffle using a per-item seed equal to the global seed plus the item’s dataset index. The shuffled options are relabeled as A–E. The model then receives a fixed system prompt instructing it to act as an expert mathematician, reason step by step, and place its final answer inside \boxed{} . The user prompt contains only two blocks: 1. the question stem from mcq.question ; and 2. the five relabeled answer choices. The choices are formatted as “ (A) ... ”, “ (B) ... ”, and so on, separated by blank lines. All models were evaluated in the without-sketch setting. Due to budget constraints, we additionally ran sketch-aware evaluation only for the few models that performed best in the without-sketch setting. 
+
+Answer extraction and scoring. After generation, the scripts recover the model’s predicted label by first searching for the last occurrence of \boxed{A} through \boxed{E} . If no boxed answer is found, the parser falls back to either a one-character response in A–E or, failing that, the last standalone capital letter in A–E. In the Azure and vLLM evaluators, answer extraction is applied directly to the returned response text. In the Claude evaluator, the Anthropic response is split into text and thinking blocks; the final prediction is extracted from the text block, while the thinking block is recorded separately. An item is marked correct iff the extracted label matches the post-shuffle label of the ground-truth option. Monthly accuracy is then computed as correct/total over the evaluated hard split. 33 Preprint. Under review. 
+
+Execution details. All evaluators parallelize item-level inference with a
+
+ThreadPoolExecutor controlled by --concurrency . They also support repeated sam-pling through --n ; in that case each question is answered multiple times, a full per-sample list is stored under samples , and the top-level prediction fields intentionally mirror the first sample for backward compatibility. For every sample, the scripts record elapsed time, prompt tokens, completion tokens, total tokens, and reasoning-token counts whenever the backend exposes them. The backend-specific command-line options differ as follows. The Azure evaluator requires 
+
+--endpoint and --api-key , accepts --api-version , exposes both a client-wide --timeout 
+
+and a per-sample --request-timeout , and optionally switches from chat completions to the Responses API through --use-responses-api ; this switch is also enabled automatically when the model name contains gpt-5.4 . The Claude evaluator requires --base-url , ac-cepts --api-key , supports --thinking-budget to request extended thinking, and exposes 
+
+--debug , --timeout , and --request-timeout . The vLLM evaluator requires --base-url ,accepts an optional --api-key , exposes --temperature , --top-p , --debug , --timeout , and 
+
+--request-timeout , and also supports optional --use-responses-api with automatic acti-vation for model names containing gpt-5.4 .Token accounting is normalized across backends. Azure records usage directly from the provider response. Claude and vLLM additionally normalize completion tokens so that, when reasoning-token metadata is available, the reported completion count includes both visible output tokens and reasoning tokens, matching the OpenAI-style accounting used elsewhere in the benchmark. 
+
+Resuming and result serialization. All scripts support fault-tolerant resumption through --resume . If an output file already exists, the evaluator loads the pre-vious JSON, skips items whose prior record has a non-None model answer and no recorded error, and re-runs unanswered or failed items only. Results are written to 
+
+results/<month>/accuracy_test_<model>_<month>_<effort>.json , where model names are sanitized for filesystem safety and <effort> defaults to default when no reasoning level is specified. Each output file contains (i) test info metadata such as model name, month, seed, maximum token budget, number of samples, and timestamps; (ii) duplicated aggregate accuracy summaries under summary.all and overall ; and (iii) detailed results 
+
+records containing the item identifier, extracted model answer , shuffled correct answer ,
+
+raw response , correctness flag, latency, token usage, reasoning tokens , reasoning effort, 
+
+n samples , optional per-sample samples , auxiliary mcq.meta.score , and any backend error message. For Claude runs, each record additionally stores raw thinking extracted from the Anthropic thinking block. 
+
+# F Additional Evaluation Results 
+
+F.1 Sketch-Aware Accuracy with Substitution-Resistant Settings 
+
+Built upon the sketch-aware evaluation results in Figure ?? , we further analyze how the presence of proof sketches interacts with and without substitution-resistant question formu-lations. We break down sketch-aware gains, separating standard multiple-choice questions from substitution-resistant items. Figure 7 shows that proof sketches improve performance in both settings, but the magnitude of the gain depends on the model and the choice style. GPT-5.4 benefits more strongly on the original-choice subset, whereas Gemini-3.1-pro-preview shows especially large gains on the substitution-resistant subset. This suggests that proof-level guidance can help models not only identify the correct theorem statement, but also reason through adversarial answer formulations designed to resist shortcut strategies. 
+
+F.2 Cost Analysis 
+
+Accuracy alone does not capture how practical a model is for benchmark-scale evaluation. Figure 8 shows that the accuracy-cost frontier is led by GPT-5.4 rather than by the highest-token models. Gemini-3.1-pro-preview achieves the top accuracy at 43.5%, but it requires 34 Preprint. Under review. Original 
+
+> (n=92)
+> Substitution-
+> Resistant
+> (n=85)
+> Original
+> (n=92)
+> Substitution-
+> Resistant
+> (n=85)
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> 90
+> Accuracy (%)
+> +17.4 pp
+> +5.9 pp
+> +12.0 pp
+> +15.3 pp
+
+GPT-5.4 (high) Gemini-3.1-pro-preview 
+
+> No sketch
+> With sketch
+> No sketch
+> With sketch
+
+Figure 7. Sketch-aware accuracy gains broken down by choice style. For each model, we com-pare accuracy without sketch access and with sketch access on the original-choice subset and the substitution-resistant subset. Proof sketches improve accuracy in both regimes, but the relative gain differs across models and is particularly pronounced on the harder substitution-resistant items for Gemini-3.1-pro-preview. 
+
+Figure 8. Accuracy versus average completion tokens on L IVE MATHEMATICIAN BENCH . Each point denotes one model setting. The most favorable region is the upper-left, which corresponds to higher accuracy with fewer generated tokens. GPT-5.4 lies on a particularly strong frontier: it remains close to Gemini-3.1-pro-preview in accuracy while using substantially fewer completion tokens. 
+
+about 15.3k average completion tokens. By contrast, GPT-5.4 (high) reaches a similar 41.8% accuracy with only about 7.0k tokens, and GPT-5.4 (medium) remains close at 41.2% with about 3.8k tokens. In other words, GPT-5.4 combines high accuracy with materially lower token cost, while several other long-generation models, such as Qwen and Kimi, use far more tokens without matching GPT-5.4 or Gemini in accuracy. At the same time, several open-weight or alternative frontier systems occupy distinct efficiency niches. Qwen3.5-397B-A17B and Kimi-K2.5 achieve mid-tier accuracy at higher token budgets, while GPT-oss-120b generates even more tokens without matching the top closed-model accuracy band. This pattern suggests that improvements in research-level mathematical reasoning cannot be reduced to simply allocating more inference budget: 35 Preprint. Under review. architectural and training differences still materially affect how efficiently models convert tokens into correct mathematical judgments. 
+
+# G Prompt Details 
+
+We provide below some examples of system prompts used in our construction pipeline. We will focus on prompts used in Stage 4 (Question-Answer Pair Generation) as it best demonstrates the methodological novelty of L IVE MATHEMATICIAN BENCH .To show case our category-specific system prompts, we include prompts from two categories: 
+
+biconditional/equivalence and implication as they are representative of our central design philosophy. 
+
+Stage 4a: Question Stem and Correct Choice Generation. System Prompt for Biconditional/Equivalence Theorems 
+
+You are an expert in mathematics. You are given one input: • "main theorem" : the full L ATEX code of a theorem-like environment. The "main theorem" is an equivalence-type theorem: statements asserting “A if and only if B” or “the following are equivalent.” 
+
+Task: Generate a multiple-choice question stem and the single correct answer option that exactly and faithfully represent the full mathematical content of the theorem. 1. Detect the equivalence structure: Read the theorem and identify any “if and only if” or “the following are equivalent” pattern. List each distinct statement or property that appears in the equivalence. Rewrite them as short, self-contained statements such as A, B, C, etc. 2. Decide which side(s) will appear in the question. If there are two statements ( A ⇔
+
+B), design the question as “Which of the following statements is equivalent to A?”. i.e. A appears in the stem and B becomes the correct answer. If there are three or more equivalent statements ( A ⇔ B ⇔ C . . . ), focus on identifying any new side of the equivalence introduced by the theorem, and write the question as “Which of the following statements is equivalent to both A and B?”. 3. Write the question stem. Use only the side(s) named in Step 2. Do not include the correct equivalent statement in the stem. Phrase the question clearly, using formal but concise mathematical language. Avoid referencing the theorem itself (“according to the theorem”, etc.). Do not use phrases such as: • “according to the theorem/statement” • “the theorem shows” • “as proved above” 4. Determine the correctness criterion for the correct option. The correct option must satisfy all of the following: • It captures the full conclusion of the theorem, up to harmless rephrasing; • It includes all essential aspects of the result (structure, existence, bounds, condi-tional clauses, arithmetic restrictions, etc.); • It does not omit essential components, strengthen or weaken the statement, change quantifiers or scope, or add auxiliary conclusions not present in the theorem. 5. Output requirements. 
+
+• Do NOT generate distractors. • Do NOT mention any proof or proof sketch. • Produce a JSON object with exactly the following fields: 
+
+{"question": "<question stem written from main_theorem>", "correct_choice": {"label": "A", "text": "<the correct option based on main_theorem>"} }
+
+36 Preprint. Under review. 
+
+System Prompt for Implication Theorems 
+
+You are an expert in mathematics. You are given one input: • "main theorem" : the full L ATEX code of a theorem-like environment. The "main theorem" is an implication-type theorem, i.e. it asserts that certain assumptions imply a specific conclusion (for example: “If A holds, then B holds”). 
+
+Task: Generate a multiple-choice question stem and the single correct answer option that exactly and faithfully represent the full mathematical content of the theorem. 
+
+Instruction: 
+
+1. Detect the implication structure: 
+
+Read the theorem and identify: • the full set of assumptions (A), including parameter ranges, structural hypotheses, and problem setup; • the conclusion (B). Rewrite these internally as self-contained statements, but do not simplify or strengthen them. 2. Write the question stem 
+
+The question stem must: • explicitly include all essential assumptions of the theorem (including equations, boundary conditions, parameter ranges, and structural hypotheses); • ask the solver to identify the strongest statement that can be proved under these assumptions; • avoid referencing the theorem itself (“according to the theorem”, etc.). Do not use phrases such as: • “according to the theorem/statement” • “the theorem shows” • “as proved above” Acceptable stem formulations include: • “What is the strongest statement that can be proved about . . . ?” • “Which of the following is the strongest consequence of the assumptions above?” The stem should be general enough that weaker consequences, stronger but unjustified conclusions, and conclusions about closely related properties all appear plausible. 3. Determine the correctness criterion for the correct option 
+
+The correct option must satisfy all of the following: • It captures the full conclusion of the theorem, up to harmless rephrasing; • It includes all essential aspects of the result (structure, existence, bounds, condi-tional clauses, arithmetic restrictions, etc.); • It does not omit essential components, strengthen or weaken the statement, change quantifiers or scope, or add auxiliary conclusions not present in the theorem. 4. Output requirements 
+
+• Do NOT generate distractors. • Do NOT mention any proof or proof sketch. • Produce a JSON object with exactly the following fields: 
+
+{"question": "<question stem written from main_theorem>", "correct_choice": {"label": "A", "text": "<the correct option based on main_theorem>"} }
+
+37 Preprint. Under review. 
+
+Stage 4b: Sketch-Adversarial Distractor Generation. System Prompt for Biconditional/Equivalence Type Theorems 
+
+You are a senior research mathematician generating hard-negative distractors. You are given four inputs: • "main theorem" : full L ATEX theorem-like environment. • "proof sketch" : proof outline for distractor design only. • "question stem" : the question stem (string). • "correct choice" : the correct option (string). 
+
+Task: 
+
+Generate exactly four choices B–E: • B, D, E: false but highly plausible (hard negatives). • C: weaker-but-true: A ⇒ C and C ⇏ A.Do not edit question stem or correct choice.text .
+
+Mandatory internal workflow (do internally; then output metadata): • Read & parse everything (including the sketch): fully read main theorem , proof sketch ,
+
+question stem , and Option A; identify central objects, hypotheses, quantifiers, case splits, and what the sketch highlights as “hard steps.” • Extract sketch load-bearers: from the sketch, identify 1–3 load-bearing steps and the constraints they enforce (ranges, excluded cases, dependence of constants, uniform vs non-uniform, effective vs non-effective, quantifier order, hidden hypotheses, structural restrictions). • Design distractors via sketch-derived constraint tampering: – Each false distractor must violate a specific sketch-derived constraint and be really difficult to rule out without the sketch. 
+
+– The weaker-true distractor C must be implied by A by dropping one critical component. • Keyword normalization: spread ≥ 2 key technical terms from A across ≥ 2 of B/D/E. • Near-miss requirement: every distractor must differ from A in only one or two mathe-matically meaningful places. Avoid obviously unrelated statements, blatant negations, or options that can be rejected by surface reading alone. • Anti-triviality requirement: make the solver distinguish options by subtle issues such as quantifier order, dependence of constants, exact asymptotic regime, necessity of an extra hypothesis, sharpness of the bound, uniqueness vs mere existence, completeness of a classification, or uniformity vs pointwise validity. 
+
+False distractors: required breakdown 
+
+• Produce three false options (B, D, E) with: 
+
+– Two template-based (choose two different): boundary/range trap; uniformity/-effectivity mirage; quantifier/dependence trap; property confusion; stronger-theorem trap. 
+
+– One wildcard false distractor (exactly one of B/D/E): does not need to match a template, but must still be tightly coupled to a specific sketch-derived constraint. 
+
+– record its label in meta.wildcard false label .
+
+Surface anti-gaming constraints: 
+
+• B, D, E: match A in logical shape (quantifiers/clauses), L ATEX/technical density, and approximate length. • C may be slightly shorter (natural weakening). • No hedging unless A uses it. Proper L ATEX syntax. • Do not make any distractor obviously false from a missing definition, gross type mis-match, or dramatic change of topic. • If A contains several clauses, each false distractor should tamper with only one load-bearing clause, keeping the rest close to A. 
+
+38 Preprint. Under review. 
+
+• At least two of B/D/E should look locally compatible with the hypotheses and fail only on a subtle point that an expert would have to inspect carefully. 
+
+Output format: 
+
+Return a single JSON object, for example: 
+
+{"choices": [ {"label": "B", "text": "<false distractor>"}, {"label": "C", "text": "<weaker-true distractor>"}, {"label": "D", "text": "<false distractor>"}, {"label": "E", "text": "<false distractor>"} ], "meta": { "weaker_true_label": "C", "false_labels": ["B", "D", "E"], "wildcard_false_label": "<one of B/D/E>" }, "sketch_usage_meta": [ {"label": "B", "sketch_hook_type": "<one of: case_split | counting_estimate | trace_identity | geometric_construction | computational_check | outer_automorphism | finiteness | characteristic | regularity | other>", "tampered_component": "<short identifier of the sketch-derived constraint you tampered with>", "template_used": "<one of: boundary_range | uniformity_effectivity | quantifier_dependence | property_confusion | stronger_trap | wildcard>" }, {"label": "C", "sketch_hook_type": "<same enum>", "tampered_component": "<what critical component of A was dropped to make C weaker-true>", "template_used": "weaker_true" }, {"label": "D", "sketch_hook_type": "<same enum>", "tampered_component": "<short identifier>", "template_used": "<one of: boundary_range | uniformity_effectivity | quantifier_dependence | property_confusion | stronger_trap | wildcard>" }, {"label": "E", "sketch_hook_type": "<same enum>", "tampered_component": "<short identifier>", "template_used": "<one of: boundary_range | uniformity_effectivity | quantifier_dependence | property_confusion | stronger_trap | wildcard>" }]}
+
+39
