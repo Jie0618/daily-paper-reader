@@ -1,0 +1,393 @@
+Title: Non-monotonic causal discovery with Kolmogorov-Arnold Fuzzy Cognitive Maps
+
+URL Source: https://arxiv.org/pdf/2604.05136v1
+
+Published Time: Wed, 08 Apr 2026 00:14:59 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+> SALMERON: NON-MONOTONIC CAUSAL DISCOVERY WITH KOLMOGOROV-ARNOLD FCM 1
+
+# Non-monotonic causal discovery with Kolmogorov-Arnold Fuzzy Cognitive Maps 
+
+Jose L. Salmeron 
+
+Abstract —Fuzzy Cognitive Maps constitute a neuro-symbolic paradigm for modeling complex dynamic systems, widely adopted for their inherent interpretability and recurrent inference capa-bilities. However, the standard FCM formulation, characterized by scalar synaptic weights and monotonic activation functions, is fundamentally constrained in modeling non-monotonic causal dependencies, thereby limiting its efficacy in systems governed by saturation effects or periodic dynamics. To overcome this topological restriction, this research proposes the Kolmogorov-Arnold Fuzzy Cognitive Map (KA-FCM), a novel architecture that redefines the causal transmission mechanism. Drawing upon the Kolmogorov-Arnold representation theorem, static scalar weights are replaced with learnable, univariate B-spline functions located on the model edges. This fundamental modification shifts the non-linearity from the nodes’ aggregation phase directly to the causal influence phase. This modification allows for the modeling of arbitrary, non-monotonic causal relationships with-out increasing the graph density or introducing hidden layers. The proposed architecture is validated against both baselines (standard FCM trained with Particle Swarm Optimization) and universal black-box approximators (Multi-Layer Percep-tron) across three distinct domains: non-monotonic inference (Yerkes-Dodson law), symbolic regression, and chaotic time-series forecasting. Experimental results demonstrate that KA-FCMs significantly outperform conventional architectures and achieve competitive accuracy relative to MLPs, while preserving graph-based interpretability and enabling the explicit extraction of mathematical laws from the learned edges. 
+
+Index Terms —Fuzzy Cognitive Maps, Kolmogorov-Arnold Net-works, Causal Modeling, Neuro-Symbolic AI. 
+
+I. I NTRODUCTION 
+
+# THE modeling of complex dynamic systems requires a trade-off between predictive accuracy and semantic in-terpretability. Fuzzy Cognitive Maps (FCMs) [1] have bridged this gap by representing knowledge as a signed directed graph where nodes denote concepts and edges represent causal influence. Unlike black-box approaches such as Deep Neural Networks, FCMs allow domain experts to directly inspect the adjacency matrix. This structural accessibility ensures the interpretability of the underlying inference mechanism. This property has driven their adoption across diverse high-stakes domains, ranging from medical decision support [2] and environmental policy planning to industrial process control [3]. Classical FCMs are constrained by the theoretical limitation of the weighted linearity assumption. Typically, the influence of one concept upon another is modeled as the product of the         
+
+> Prof. Salmeron is with the School of Engineering, CUNEF Universidad, Madrid, Spain. Please cite as: J.L. Salmeron, ”Non-monotonic causal discovery with Kolmogorov-Arnold Fuzzy Cognitive Maps,” in IEEE Transactions on Fuzzy Systems, forthcoming, doi: 10.1109/TFUZZ.2026.3680681.
+
+activation value and a static scalar weight. This approach re-stricts causality to strict monotonicity. Under this assumption, the model is limited to representing effects that increase or decrease in direct proportion to their causes. While sufficient for elementary regulatory systems, this simplification fails to capture complex phenomena characterized by thresholds, optima, saturation, or periodicity. For instance, in biological systems, the relationship between enzyme concentration and reaction rate is rarely linear, characterized by a saturation curve. Similarly, in psychology, the Yerkes-Dodson law dic-tates that performance enhances with physiological or mental arousal only up to a critical point, beyond which it deteriorates. A standard FCM, constrained by scalar weights, is unable of representing this non-monotonic dynamic without the intro-duction of hidden nodes that reduce interpretability. To mitigate these shortcomings, research efforts have shifted toward the development and implementation of High-Order and Deep FCMs [4]. These variations typically stack multiple layers of concepts (nodes) or introduce complex non-linearities at the node level. While these methods successfully augment predictive performance in time-series forecasting, they fre-quently obfuscate the direct causal link between source and target nodes. The interpretability of causal edges is severely compromised when interactions are processed through multi-ple hidden transformations. Consequently, the FCM evolves toward a black-box architecture functionally equivalent to a Multi-Layer Perceptron (MLP). As a result, the literature often reflects a trade-off between the high performance of deep learning and the transparency inherent in cognitive maps. Recently, Liu et al. [5] proposed Kolmogorov-Arnold Net-works (KANs) as a structural alternative to the conventional Multi-Layer Perceptron. Derived from the Kolmogorov-Arnold representation theorem [6], KANs allocate the non-linearity along the edges instead of the traditional node-based activation approach. This research proposes that the KAN architecture serves as a extension for Fuzzy Cognitive Maps. The integra-tion of learnable univariate functions onto the causal edges leads to the development of the Kolmogorov-Arnold Fuzzy Cognitive Map (KA-FCM). This novel architecture enables an edge to learn complex behaviors, such as a concept enhancing another up to a threshold before inhibiting it. In this sense, the model effectively captures non-monotonicity within a single, observable connection. The main contributions of this research are as follows:  
+
+> •
+
+A theoretical framework for Kolmogorov-Arnold Fuzzy Cognitive Maps that redefines the adjacency matrix as a functional adjacency matrix. In this architecture, each entry is replaced by a learnable spline, thereby extending the mathematical foundations of the paradigm.   
+
+> arXiv:2604.05136v1 [cs.AI] 6 Apr 2026 SALMERON: NON-MONOTONIC CAUSAL DISCOVERY WITH KOLMOGOROV-ARNOLD FCM 2
+> •
+
+A framework that extends the expressivity of FCMs through learnable functions while retaining their symbolic interpretability. This ensures that the causal transparency is preserved, addressing a critical limitation found in existing Deep FCM methodologies.  
+
+> •
+
+The empirical validation of the KA-FCM’s capacity to perform symbolic regression across causal edges, demon-strating the model’s ability to extract explicit functional relationships from observed data, while enhancing the transparency of the discovered dynamics.  
+
+> •
+
+A benchmark on non-linear function approximation and chaotic time-series forecasting demonstrating that KA-FCM significantly outperforms traditional approaches in terms of reconstruction error. The remainder of this paper is organized as follows. Section II provides a review of the related works about Fuzzy Cogni-tive Maps and Kolmogorov-Arnold theory. Section III presents the methodological proposal, the B-spline edge parameteriza-tion, and the learning algorithm of the Kolmogorov-Arnold Fuzzy Cognitive Map (KA-FCM). Section IV describes the experimental framework and analyzes the results obtained across three case studies: non-monotonic inference, symbolic regression, and chaotic time-series forecasting. Finally, Section V summarizes the findings and provides concluding remarks. II. R ELATED WORKS 
+
+Since Kosko’s seminal proposal [1], significant research efforts have focused on three main axes: the development of learning algorithms for weight estimation [7], [8], the creation of structural extensions for temporal or granular precision [9]– [12], and the incorporation of deep learning principles [13]. For the purpose of this paper, this section is going to focus on learning algorithms, high-order and granular extensions, explainability and deep architectures. 
+
+A. Learning algorithms 
+
+The estimation of the causal weight matrix W is the central challenge in the design of Fuzzy Cognitive Maps. Early methodologies relied heavily on expert knowledge, a process often constrained by subjective bias and the inherent com-plexity of manually quantifying causal strengths in large-scale systems [14]. Data-driven methods emerged to address these concerns, incorporating biological synaptic plasticity as an early framework for learning. To adjust weights based on con-cept activation correlations, NHL and AHL were introduced [15]. However, despite their computational efficiency, these approaches present known constraints in achieving global convergence, particularly when dealing with complex, non-linear relationships [12]. To overcome these limitations, the field transitioned to-ward global optimization strategies, leveraging Evolutionary Computation and Swarm Intelligence to estimate adjacency matrices from historical data. Particle Swarm Optimization (PSO) and its variants have emerged as a standard for training FCMs, demonstrating superior convergence properties in com-plex domains such as time-series forecasting [16] or decision support systems [2]. Hybrid metaheuristics have also been developed to enhance the balance between exploration and ex-ploitation. Notable contributions include Memetic Algorithms, which integrate local refinement procedures within a global evolutionary search [3], and Modified Asexual Reproduction Optimization algorithms achieving faster convergence in high-dimensional spaces [11]. These population-based methods successfully minimize the error between the concept state vector and historical data by navigating the global search space. However, a fundamen-tal structural limitation persists across all these optimization paradigms. Whether trained via dynamic PSO, Memetic Al-gorithms, or Asexual Reproduction, the objective remains the optimization of static scalar weights. This formulation strictly assumes that interactions between concepts are linear and monotonic. As a result, static scalar weights are inherently insufficient for modeling complex behaviors like saturation or non-monotonicity. In such cases, the causal polarity is not constant but depends dynamically on the activation level of the source concept [10]. 
+
+B. High-Order, granular and grey extensions 
+
+High-Order FCMs (HO-FCMs) emerged as a solution to the limitations of first-order models, incorporating historical states to capture more complex dynamics [17]. By incor-porating dependencies on multiple previous time steps ( t −
+
+1, t − 2, . . . , t − k), HO-FCMs can model long-term temporal dependencies more effectively than standard architectures [18]. While this architecture enhances forecasting accuracy in multi-variate time series, it significantly increases the dimensionality of the weight matrix. This expansion often complicates the interpretation of immediate causal drivers by distributing the causal influence across multiple time lags. Parallel to temporal extensions, efforts to mitigate epistemic uncertainty and data sparsity have led to the integration of Granular Computing and Grey Systems Theory into the cognitive mapping framework. The Fuzzy Grey Cognitive Map (FGCM) [19] further addresses these challenges by employing grey numbers to represent intervals with unknown distribu-tions, thereby facilitating the modeling of uncertain systems where only small datasets are available [20]. FGCMs have demonstrated robustness in reliability engineering and process control by applying interval-valued operations to the inference mechanism [21]–[23]. Also, granular FCMs [24], [25] replace scalar activation values with information granules, allowing the model to process non-numeric or imprecise linguistic information. However, despite their improved ability to handle vague-ness and noise, both Granular FCMs and FGCMs typically rely on interval arithmetic or defuzzification processes. These operations preserve the monotonicity of the underlying causal relations. Consequently, these extensions remain constrained in their ability to model complex, non-monotonic functional dependencies directly on the network edges. 
+
+C. Explainability and deep architectures 
+
+The trade-off between approximation capacity and model interpretability constitutes a fundamental challenge in com-putational intelligence. Recent comparative studies [26]–[28] SALMERON: NON-MONOTONIC CAUSAL DISCOVERY WITH KOLMOGOROV-ARNOLD FCM 3
+
+suggest that preserving an explicit causal graph structure is essential for aligning FCMs (and computational intelligence methods) with Explainable Artificial Intelligence (XAI). The need for enhanced non-linear approximation in stan-dard cognitive maps has led to the development of Deep Fuzzy Cognitive Map architectures [29]. These approaches incorporate hidden layers between input and output concepts to model highly non-linear functions. Deep architectures fre-quently achieve superior accuracy through the introduction of hidden concepts. However, their lack of semantic interpretation compromises the direct causal logic that distinguishes FCMs from black-box models. Concurrently, other lines of research have focused on an-alyzing the limit state space of quasi-nonlinear FCMs to assess stability [13], [30]. However, these models primarily study the dynamics of a given topology, failing to capture the underlying functional forms that govern the interactions between concepts. III. M ETHODOLOGICAL PROPOSAL 
+
+A. Problem formulation 
+
+Consider a discrete-time dynamic system composed of N
+
+conceptual nodes, denoted as a set C = {c1, c 2, . . . , c N }. The activation state of each specific concept ci at time step t is represented by a scalar value ci(t) ∈ [0 , 1] [1]. Consequently, the overall system state is denoted by the vector c(t) =[c1(t), c 2(t), ..., c N (t)] T ∈ [0 , 1] N [1]. Traditional First-Order FCMs rely on a static adjacency matrix W ∈ RN ×N to represent causal inference. Here, each scalar entry wij defines the strength of the relationship between a source concept cj
+
+and a target concept ci [13]. 
+
+ci(t + 1) = f
+
+
+
+> N
+
+X
+
+> j=1
+
+wij cj (t)
+
+ (1) where f : R → [0 , 1] is a monotonic activation function, usually unipolar sigmoid or hyperbolic tangent [31]. This approach limits causal dependencies to monotonic interactions, failing to capture complex patterns like U-shaped relationships where the influence of one concept on another may change direction [30]. A critical limitation of standard FCMs is their reliance on static scalar weights, which forces causal relationships to be strictly monotonic. A positive weight 
+
+wij > 0 implies that an increase in concept cj always promotes ci, regardless of the current level of cj . However, complex real-world systems frequently exhibit non-monotonic dynamics where the direction of influence (from promotional to inhibitory) changes based on the state of the causing concept. A classic example is the inverted U-shaped relationship, such as the effect of workload on productivity: initial increases in workload improve productivity up to an optimal point, be-yond which further increases lead to saturation and a decrease in productivity. As shown in Figure 1, the proposed approach overcomes this limitation. By replacing the static scalar weight with a learnable univariate function (which we will denote as 
+
+ϕij ), the model can capture a changing derivative across the 
+
+0 0.2 0.4 0.6 0.8 1
+
+0
+
+0.5
+
+1
+
+> Positive Influence
+> Turning Point
+> Negative Influence
+
+Concept state cj (t)  
+
+> Influence  ϕij
+> KA-FCM (non-monotonic)
+> Standard FCM (monotonic)
+> Fig. 1. Causal relationship comparison
+> Fig. 2. Kolmogorov-Arnold Fuzzy Cognitive Map architecture.
+
+input domain, effectively representing transitions where the causal influence shifts from positive to negative. 
+
+B. Kolmogorov-Arnold Fuzzy Cognitive Maps 
+
+The proposed architecture is built upon the Kolmogorov-Arnold representation theorem [6], which establishes that any multivariate continuous function can be represented as a finite composition of univariate continuous functions and addition. Formally: 
+
+f (x1, . . . , x n) = 
+
+> 2n
+
+X
+
+> q=0
+
+Φq
+
+> n
+
+X
+
+> p=1
+
+ϕqp (xp)
+
+!
+
+(2) In the context of the proposed Kolmogorov-Arnold Fuzzy Cognitive Maps, this theorem implies that causal interactions can be decomposed into a superposition of learnable univariate functions ϕij (·). Unlike conventional FCMs that place non-linear activations at the nodes, KA-FCM places them on the edges [32], replacing the static scalar wij with a learnable univariate function ϕij : R → R parameterized via B-splines. SALMERON: NON-MONOTONIC CAUSAL DISCOVERY WITH KOLMOGOROV-ARNOLD FCM 4
+
+This approach generalizes the conventional adjacency matrix to a functional matrix Φ( x) (Equation 3), where each entry 
+
+ϕij (x) represents the specific pairwise causal profile between nodes j and i.
+
+Φ( x) = 
+
+
+
+ϕ11 (x) · · · ϕ1N (x)
+
+... . . . ...
+
+ϕN 1(x) · · · ϕN N (x)
+
+ (3) As shown in Figure 2, the KA-FCM update rule is computed as follows 
+
+ci(t + 1) = σ
+
+
+
+> N
+
+X
+
+> j=1
+
+ϕij (cj (t)) 
+
+ (4) where σ(·) serves as a bounding operator to keep activations within the [0 , 1] range. The bounding operator σ(·) serves as a non-linear activation function designed to constrain the aggregate nodal influence within the normalized fuzzy interval 
+
+[0 , 1] . Formally, let Si(t) = PNj=1 ϕij (cj (t)) denote the total functional input received by node i. The operator σ(Si(t)) 
+
+ensures that the updated state ci(t + 1) remains within the valid state space constraints. The bounding operator is conceptually analogous to a hard-clipping function defined as σhard (x) = min(max(0 , x ), 1) .However, the computational implementation applies a continu-ously differentiable sigmoid function. This smooth approxima-tion is critical to preserve gradient flow, allowing the optimiza-tion of the edge functional parameters via backpropagation. 
+
+C. Edge parameterization via B-Splines 
+
+To ensure stable optimization and avoid vanishing gradients, each edge function ϕij (cj (t)) is decomposed into a global residual base function b(x) —specifically implemented as the Sigmoid Linear Unit (SiLU), b(x) = x/ (1 + e−x)— and a learnable local spline component parameterized by B-splines [5], [18]. B-splines were specifically selected over other uni-versal approximators, such as high-degree global polynomials or radial basis functions. Their fundamental advantage lies in their local support property. This characteristic prevents the severe edge oscillations typical of high-degree polynomi-als, a mathematical behavior known as Runge’s phenomenon [33]. Furthermore, local support ensures that gradient updates during training only alter specific segments of the curve, thereby preserving the overall stability of the learned causal relationship [5], [34]. The total edge function is expressed as: 
+
+ϕij (cj (t)) = wbase  
+
+> ij
+
+· b(cj (t)) + wspline  
+
+> ij
+
+·
+
+> K
+
+X
+
+> k=1
+
+αkij Bk,p (cj (t)) (5) where wbase  
+
+> ij
+
+and wspline  
+
+> ij
+
+are learnable scaling factors, αkij are the learnable control coefficients of the spline, and Bk,p are the B-spline basis functions of degree p. The chosen base function SiLU differs from unipolar sigmoid in two key ways. First, it acts like an identity function for positive values, which ensures that strong causal signals propagate without weakening. Second, the SiLU function is non-monotonic, exhibiting a local minimum near −1.28 . This characteristic enables the model to capture complex inhibitory dynamics that a strictly monotonic sigmoid cannot represent. The B-spline basis functions Bk,p (cj (t)) are constructed recursively using the Cox-de Boor formula. For degree p = 0 :
+
+Bk, 0(cj (t)) = 
+
+(
+
+1 if tk ≤ cj (t) < t k+1 
+
+0 otherwise (6) where tk is the k-th partition point in the non-decreasing sequence T = {t0, t 1, . . . , t m}, which serves to partition the input domain into a grid of intervals. These partition points define the local support of each basis function, ensuring that 
+
+Bk,p (cj (t)) remains non-zero only within the specific range 
+
+[tk, t k+p+1 ). By determining the boundaries where different polynomial segments meet, the sequence of grid points gov-erns the smoothness and continuity of the spline, allowing the KA-FCM to approximate complex causal dynamics with high numerical stability and local precision. For higher degrees 
+
+p ≥ 1:
+
+Bk,p (cj (t)) = cj (t) − tk
+
+tk+p − tk
+
+Bk,p −1(cj (t)) + tk+p+1 − cj (t)
+
+tk+p+1 − tk+1 
+
+Bk+1 ,p −1(cj (t)) 
+
+(7) This recursive structure ensures local support and guarantees smoothness. During the training process via backpropagation, the edge function evolves from the baseline behavior to approximate complex non-linear dynamics, effectively fitting patterns such as oscillations or exponential growth. Although the proposed architecture applies learnable B-splines typically associated with function approximation, the term Fuzzy is preserved to denote the continuous nature of the concept state space C ∈ [0 , 1] N . Unlike Boolean networks, the KA-FCM processes degrees of concept activation rather than binary states. In this context, the functional edges ϕij serve as dynamic fuzzy relations that continuously map the degree of membership of a cause to the degree of activation of an effect, effectively generalizing the traditional fuzzy implication rules found in standard Fuzzy Cognitive Maps [1]. 
+
+D. Learning algorithm and regularization 
+
+The training objective is to minimize a composite loss function Ltotal that balances predictive accuracy with structural parsimony. The reconstruction loss Lrec quantifies the diver-gence between the ground truth states c and the predicted states 
+
+ˆc over a discrete time trajectory of length T :
+
+Lrec = 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+d c(t + 1) , ˆc(t + 1)  (8) To prevent overfitting and enhance interpretability, an L1
+
+penalty is applied to the spline coefficients αkij , inducing sparsity by driving negligible interactions toward zero. The total loss is defined as follows 
+
+Ltotal = Lrec + λΩ(Φ) (9) where λ controls the trade-off between accuracy and com-plexity, and the regularization term is defined as the L1SALMERON: NON-MONOTONIC CAUSAL DISCOVERY WITH KOLMOGOROV-ARNOLD FCM 5
+
+norm of the spline control points: Ω(Φ) = P 
+
+> i,j,k
+
+|αkij |.Parameters Θ = {wbase , w spline , α } are updated using gradient-based optimization and automatic differentiation. Given the non-convex nature of the loss landscape asso-ciated with deep neuro-symbolic architectures, strict theore-tical guarantees of global convergence cannot be established. However, empirical observations across multiple initializations indicate that the local support of the B-splines, combined with the residual SiLU connections, consistently guides the gradi-ent descent toward stable, high-quality local optima without suffering from severe vanishing gradients. The complete total loss equation is as follows: 
+
+Ltotal = 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+d c(t + 1) , ˆc(t + 1)  + λ X
+
+> i,j,k
+
+|αkij | (10) Regarding computational complexity, a standard FCM in-ference step scales as O(N 2). In the proposed KA-FCM, evaluating N 2 spline functions over a grid of size G with degree p results in a complexity proportional to O(N 2 · p2),leveraging the local support property of B-splines. Since G
+
+and p are small fixed constants (e.g., G ≈ 10 , p = 3)independent of the network size, the asymptotic complexity remains quadratic O(N 2). Although this introduces a constant computational overhead per edge evaluation, the asymptotic growth rate O(N 2) with respect to the number of concepts remains invariant. This makes the architecture computationally tractable for standard FCM topologies while significantly expanding their representational capacity. IV. E XPERIMENTAL APPROACH 
+
+The experimental approach is structured around three dis-tinct case studies, each designed to isolate and validate specific capabilities of the proposed architecture. Firstly, Experiment I: The Non-Monotonicity Paradox (section IV-A) assesses the capacity of the model to capture non-linear dynamics that typically challenge traditional linear inference mechanisms. Secondly, Experiment II: Symbolic Causal Discovery (section IV-B) examines the symbolic regression capabilities of the framework, focusing on the interpretability and accurate recov-ery of underlying mathematical laws. Finally, Experiment III: Mackey-Glass Time Series Forecasting (section IV-C) evalu-ates the predictive performance and robustness of the method when applied to chaotic and complex temporal systems. To determine the optimal configuration for the proposed architecture, a hyperparameter optimization was conducted via grid search. This procedure entailed an exhaustive evaluation across a predefined search space, specifically targeting the grid resolution G, the learning rate η, and the training duration. The grid resolution was explored within the integer range 
+
+G ∈ [4 , 19] , while the learning rate was evaluated across the set η ∈ { 0.001 , 0.01 , 0.05 , 0.1}. In addition, the sensitivity to training duration was assessed by varying the number of epochs across ten linearly spaced values within the interval 
+
+[500 , 1500] .The selection of the best-performing model was based on minimizing the error metric on the validation set. While the theoretical framework supports L1 regularization to induce sparsity, in these experiments, the regularization coefficient was set to λ = 0 . This configuration was chosen to assess the maximum representational capacity of the splines and to allow the model to capture high-frequency details in the chaotic regimes without constraints. The comparative analysis included a standard FCM utilizing a hyperbolic tangent activation function and a conventional Multi-Layer Perceptron (MLP), contrasting their performance with the best KA-FCM. The baseline MLP consists of three fully connected layers separated by non-linear activation functions. Let x ∈ RNin 
+
+denote the input vector. The network processes the input through two hidden layers of size dmodel = 64 and generates the output ˆy as follows 
+
+h1 = ReLU (W1x + b1)
+
+h2 = ReLU (W2h1 + b2)ˆy = tanh( W3h2 + b3)
+
+(11) where W1 ∈ R64 ×Nin , W2 ∈ R64 ×64 , and W3 ∈ RNout ×64 are the learnable weight matrices, and bl are the corresponding bias vectors. The final activation function serves to constrain the system output to the interval [−1, 1] .
+
+A. Experiment I: Modeling non-monotonic relationships using the Yerkes-Dodson Law 
+
+The first experiment addresses the fundamental limitation of standard FCMs: the inability to model non-monotonic relations. This experiment employed a synthetic dataset rep-resenting the well-known Yerkes-Dodson Law from the field of psychology. This law postulates an inverted U-shaped rela-tionship, asserting that performance improves with increasing arousal only up to an optimal threshold; beyond this point, excessive stimulation leads to a deterioration in functioning. The task was to learn this relationship from data, using the Mean Squared Error (MSE) on a hold-out test set as the performance metric. The experimental topology consists of a simple 2-node cog-nitive map, with concept 1 (stress/arousal) modulating concept 2 (performance). The input variable was uniformly sampled from the normalized domain x ∈ [−1, 1] (n = 1000 ). The ground truth response was modeled using a scaled Gaussian function centered at zero to reproduce the theoretical inverted U-shape, following the equation: 
+
+y = 1 .6 exp( −4x2) − 1 + ϵ (12) where the term 1.6 exp( −4x2)−1 maps the peak performance to y = 0 .6 (at optimal stress x = 0 ) and degrades performance towards y ≈ − 1 at the extremes ( x = ±1). To evaluate model robustness against stochastic variability, additive Gaussian noise ϵ ∼ N (0 , 0.05 2) was injected into the output signal. Fig. 3 illustrates the comparative modeling capabilities. The standard FCM fails to represent the dual behavior (positive and negative slope) within a single edge, effectively predicting a flat line (dashed blue). The best performing KA-FCM model was obtained with a grid size of G = 4 , a learning rate of 
+
+η = 0 .1, and 610 training epochs. The red curve shows that SALMERON: NON-MONOTONIC CAUSAL DISCOVERY WITH KOLMOGOROV-ARNOLD FCM 6 
+
+> Fig. 3. Comparative modeling of the non-monotonic Yerkes-Dodson law. The scatter plot represents the synthetic ground truth exhibiting an inverted U-shape. The dashed blue line indicates the standard FCM prediction. The green dashed line shows the MLP results. The solid red line shows the function learned by the KA-FCM edge.
+
+the KA-FCM successfully captures both the amplification and inhibition phases without the need for hidden layers. Similarly, the MLP baseline accurately approximates the underlying non-linear function. The results (Table I) demonstrate a significant difference in performance between the architectures. The standard FCM failed to capture the underlying dynamic, leading to a high MSE. During training, the scalar weight w12 converged to a value near zero because the linear correlation between the input x and the output y in a symmetric bell curve is approximately zero. This results in a constant mean prediction, explaining the high error. While the MLP baseline successfully approximated the non-linear function, the KA-FCM achieved the lowest MSE, confirming its ability to model complex saturation and non-monotonic dynamics that are structurally impossible for standard causal maps. Furthermore, the stability analysis in Table I highlights the robustness of the proposed method. The KA-FCM achieved the lowest maximum absolute error ( 0.015 ) and standard deviation (0.006 ), outperforming the MLP baseline ( 0.025 and 0.009 ,respectively). This indicates that the spline-based edge not only fits the global trend but also maintains tighter control over local deviations compared to the black-box neural network.                     
+
+> TABLE I PERFORMANCE AND STABILITY ANALYSIS (E XPERIMENT I)
+> Model MSE Max. Abs. Error Std. Dev. Error
+> Standard FCM 3.96 ×10 −10.971 0.556
+> MLP 1.18 ×10 −40.025 0.009
+> KA-FCM 4.10 ×10 −50.015 0.006
+
+Table II shows a sensitivity analysis of the hyperparameters. It reveals that the learning rate is the dominant factor gov-erning convergence, exhibiting a strong negative correlation with the error ( ρ ≈ −0.61 ). It is important to highlight that the grid size displayed an insignificant correlation with the error ( +0 .05 ). This observation implies that for smooth, unimodal topologies such as the inverted U-shape, a sparse grid ( G = 4 ) affords enough representational capacity without compromising generalization.              
+
+> TABLE II HYPERPARAMETER SENSITIVITY (E XPERIMENT I)
+> Parameter Optimal value Correlation w/ Error
+> Grid size ( G)4+0 .05 (minimal) Learning rate ( η)0.1−0.61 (critical) Epochs 611 −0.16 (low)
+
+B. Experiment II: Symbolic causal discovery 
+
+The second experiment explores the capacity of KA-FCM to act as a tool for scientific discovery. In many scientific fields, the goal is not just to predict, but to uncover the mathematical laws governing the system. A synthetic dataset was constructed to represent a relationship where concept B exhibits a sinusoidal dependency on concept A, defined by 
+
+y = sin(3 x).Conventional causal weights are structurally insufficient for modeling such periodicity. As linear operators, they allow only for magnitude scaling and cannot approximate non-monotonic functions. Following the training of a KA-FCM on this data, the learned edge function was analyzed. To validate the interpretability of the model, symbolic regression was applied to the approximated spline curve to determine whether the original sinusoidal function could be accurately recovered from the learned parameters. The experimental results are shown in Table III and Figure 4. The standard FCM, restricted by its monotonic activation constraints, failed to capture the periodic oscillations, converg-ing instead to a linear approximation that results in significant information loss. The Multi-Layer Perceptron successfully ap-proximated the non-linear dynamics, achieving a high-fidelity fit comparable to the ground truth. However, the quantitative assessment in Table III highlights a critical distinction between approximation and exact recovery. While the MLP achieved a low MSE ( 4.37 × 10 −4), the KA-FCM attained an error four orders of magnitude lower ( 3.40 × 10 −8). Moreover, the stability metrics reveal that the KA-FCM’s maximum absolute error was merely 0.0004 , compared to 0.082 for the MLP.                     
+
+> TABLE III PERFORMANCE AND STABILITY ANALYSIS (E XPERIMENT II)
+> Model MSE Max. Abs. Error Std. Dev. Error
+> Standard FCM 4.26 ×10 −11.119 0.654
+> MLP (Baseline) 4.37 ×10 −40.082 0.011
+> KA-FCM 3.40 ×10 −80.0004 0.0002
+
+The KA-FCM addresses the MLP’s lack of interpretability through its transparent structure. Rather than simply memoriz-ing the training points, the function captured the underlying sinusoidal pattern. Furthermore, the interpretable nature of the spline control points enabled the application of symbolic regression, allowing the recovery of an analytical expression closely approximating y = sin(3 x). These results confirm that the KA-FCM architecture successfully combines the high accuracy of deep neural networks with the transparency of FCMs, effectively bridging the gap between data-driven learn-ing and theoretical modeling. SALMERON: NON-MONOTONIC CAUSAL DISCOVERY WITH KOLMOGOROV-ARNOLD FCM 7 
+
+> Fig. 4. Learned edge functions comparison.
+
+The hyperparameter analysis in Table IV indicates that the grid size ( G) here showed a significant negative correlation with the error ( ρ = −0.32 ). The optimal configuration required a denser grid ( G = 19 ) to accurately resolve the inflection points of the sine wave. The learning rate remained a high-impact factor ( ρ = −0.40 ), reinforcing the need for aggressive updates to escape local minima in oscillatory loss landscapes.              
+
+> TABLE IV HYPERPARAMETER SENSITIVITY (E XPERIMENT II)
+> Parameter Optimal value Correlation w/ Error
+> Grid size ( G)19 −0.32 (significant) Learning rate ( η)0.1−0.40 (high) Epochs 1500 −0.22 (moderate)
+
+C. Experiment III: Mackey-Glass chaotic time series forecast-ing 
+
+This experiment evaluates the model’s performance on a standard benchmark for chaotic systems: the Mackey-Glass differential equation (Equation 13). 
+
+dx (t)
+
+dt = β x(t − τ )1 + x(t − τ )n − γx (t) (13) For this experiment, the parameters were fixed at β = 0 .2
+
+(production rate), γ = 0 .1 (decay constant), and n = 10 (non-linearity factor). The time delay parameter was set to τ = 17 ,a value known to induce chaotic dynamics. This series exhibits chaotic behavior that is notoriously difficult to predict with linear models due to its sensitivity to initial conditions. For the modeling phase, a lag ( lag = 4 )embedding approach was adopted, utilizing x(t − 4) , x(t − 3) ,
+
+x(t−2) , and x(t−1) as predictor nodes for the target x(t). The selected metric adopted for evaluation is the Mean Absolute Percentage Error (MAPE). MAPE = 100% 
+
+T
+
+> T
+
+X
+
+> t=1
+
+c(t) − ˆc(t)
+
+c(t) (14) The experimental results presented in Table V and Figure 5 demonstrate that the proposed method outperforms the base-line models. The standard FCM resulted in the highest error rate ( 41 .37% ), as it proved unable to follow the high-frequency  
+
+> Fig. 5. One-step-ahead forecasting performance on the chaotic Mackey-Glass time series ( τ= 17 ).
+
+dynamics of the chaotic attractor; its linear aggregation mecha-nism smoothed out the chaotic details, resulting in a poor fit. The MLP performed significantly better, capturing the general temporal dynamics. However, the KA-FCM outperformed both baselines by a substantial margin. Quantitatively, the KA-FCM achieved a MAPE of 13 .66 %,effectively halving the error rate of the MLP baseline (27 .67% ). Furthermore, the stability metrics indicate that the proposed model produces more consistent predictions, with the lowest standard deviation of errors ( 0.023 ) and the tightest bound on maximum absolute error ( 0.072 ). The flexibility of the edges to model arbitrary non-linear functions enables the KA-FCM to reconstruct the chaotic phase space with superior fidelity compared to the alternatives.               
+
+> TABLE V PERFORMANCE AND STABILITY ANALYSIS (E XPERIMENT III -MACKEY -G LASS )
+> Model MAPE (%) Max. Abs. Error Std. Dev. Error
+> Standard FCM 41 .37% 0.162 0.058
+> MLP 27 .67% 0.097 0.027
+> KA-FCM 13 .66 %0.072 0.023
+
+The hyperparameter sensitivity analysis (Table VI) details distinct optimization dynamics compared to the previous ex-periments. The learning rate remains the critical determinant of performance, showing a strong negative correlation with the error ( ρ = −0.62 ); a moderate rate of η = 0 .05 proved optimal for balancing convergence speed with stability in the chaotic landscape. Interestingly, while the correlation between grid size and error was slight ( −0.07 ), the optimal configuration utilized a dense grid ( G = 19 ). This suggests that while increasing grid resolution provides the potential for better fitting, the optimization is less sensitive to this parameter than to the step size of the gradient descent.               
+
+> TABLE VI HYPERPARAMETER SENSITIVITY (E XPERIMENT III)
+> Parameter Optimal value Correlation w/ Error (MAPE)
+> Grid size ( G)19 −0.07 (slight) Learning rate ( η)0.05 −0.62 (critical) Epochs 1277 −0.28 (moderate) SALMERON: NON-MONOTONIC CAUSAL DISCOVERY WITH KOLMOGOROV-ARNOLD FCM 8
+
+D. Computational cost analysis 
+
+To provide an evaluation of the proposal, it is necessary to analyze the computational cost associated with the KA-FCM compared to the standard FCM and the MLP baselines across the experimental scenarios. Because wall-clock training times are heavily dependent on hardware configurations and the underlying software implementation (e.g., parallel tensor processing vs. sequential execution), we assess the compu-tational cost in terms of structural complexity and relative operational overhead. The standard FCM exhibits the lowest computational cost. Its architecture relies on a static adjacency matrix, requiring only O(N 2) scalar parameters and simple matrix multiplica-tions during both training and inference. In contrast, the proposed KA-FCM replaces these scalar weights with learnable univariate functions. For a grid size 
+
+G, the number of trainable control coefficients scales as 
+
+O(N 2 · G). Consequently, during the training phase, the evaluation of the B-spline basis functions, the computation of the SiLU residuals, and the subsequent backpropagation through the control grid introduce a significant computational overhead per epoch compared to the standard FCM. The training cost of the KA-FCM is generally comparable to that of the MLP baseline, as both models require gradient descent over a complex, non-convex loss landscape to approximate non-linear dynamics. However, it is crucial to distinguish between training and inference costs. While the training phase of the KA-FCM is more computationally intensive, the inference phase remains highly efficient. Once the optimal B-spline control points ( αkij )are learned, a forward pass through the network requires only the evaluation of localized polynomial segments. Because the asymptotic complexity of the inference step remains bounded by O(N 2), the execution time post-training is extremely fast. This ensures that, despite the heavier training process, the KA-FCM is fully viable for real-time prediction and control applications. V. C ONCLUSION 
+
+This research presents the Kolmogorov-Arnold Fuzzy Cog-nitive Map (KA-FCM), a neuro-symbolic architecture that evolves the traditional causal modeling framework from static scalar weights to dynamic learnable functions. By replacing the constant coefficients wij with univariate spline-based net-works, the proposed model successfully addresses the struc-tural inability of standard FCMs to represent non-monotonic and complex non-linear relationships. The experimental validation provides empirical evidence of the model’s capabilities across three distinct problem do-mains. First, in modeling the Yerkes-Dodson law, the KA-FCM demonstrated that it can capture inverted U-shaped relationships that are strictly impossible for linear aggregators. Second, the symbolic discovery experiment confirmed that the architecture does not merely approximate the data but can accurately recover the underlying analytical law (e.g., 
+
+y = sin(3 x)) with an error magnitude of 10 −8, significantly outperforming the Multi-Layer Perceptron results. Third, in the chaotic Mackey-Glass forecasting task, the method achieved superior stability and reduced the Mean Absolute Percentage Error (MAPE) by approximately 50% compared to the MLP, proving its robustness in tracking high-frequency dynamics. Across the three experiments, a generalizable heuristic for hyperparameter tuning emerges: the optimal grid size is heavily dependent on the frequency of the underlying dynamic. Smooth, low-frequency causal relationships (e.g., Yerkes-Dodson) are adequately modeled with sparse grids, preventing overfitting. Conversely, highly non-linear or chaotic regimes (e.g., Mackey-Glass) demand denser grids to capture rapid inflection points. In all cases, the learning rate proved to be the most critical parameter, requiring careful tuning to navigate the non-convex optimization landscape of the splines. A key strength of this proposal is that it balances predictive accuracy with a higher degree of structural transparency than fully connected deep neural networks. While we acknowledge that analyzing a dense functional adjacency matrix in large-scale systems remains challenging, the KA-FCM provides ex-plicit functional forms for each specific edge. As demonstrated in the symbolic regression task, this allows for the direct inspection and extraction of pairwise causal relationships without the obfuscation introduced by hidden node layers. This is an essential feature for deployment in safety-critical domains such as medicine and engineering. However, this approach comes with computational costs. Replacing scalar weights with functions increases the number of parameters per edge, leading to a memory footprint that scales with the grid size ( G). While the computational over-head of spline evaluation is manageable for typical topologies, regularization strategies are essential to ensure the physical plausibility of the learned functions and to prevent overfitting in sparse data regimes. REFERENCES [1] B. Kosko, “Fuzzy cognitive maps,” International Journal of Man-Machine Studies , vol. 24, no. 1, pp. 65–75, 1986. [2] J. L. Salmeron, S. Rahimi, A. Navalie, and A. Sadeghpour, “Medical diagnosis of rheumatoid arthritis using data driven pso-fcm,” Neurocom-puting , vol. 232, pp. 104–112, 2017. [3] J. L. Salmeron, A. Ruiz-Celma, and A. Mena, “Learning fcms with multi-local and balanced memetic algorithms for forecasting drying processes,” Neurocomputing , vol. 232, pp. 52–57, 2017. [4] J. Wang, Z. Peng, X. Wang, and J. Wu, “Deep fuzzy cognitive maps for interpretable multivariate time series prediction,” IEEE Transactions on Fuzzy Systems , vol. 28, no. 7, pp. 1–1, 2020. [5] Z. Liu, Y. Wang, S. Vaidya, F. Ruehle, J. Halverson, M. Soljaˇ ci´ c, T. Y. Hou, and M. Tegmark, “Kan: Kolmogorov-arnold networks,” arXiv preprint arXiv:2404.19756 , 2024. [6] A. N. Kolmogorov, “On the representation of continuous functions of many variables by superposition of continuous functions of one variable and addition,” Doklady Akademii Nauk SSSR , vol. 114, no. 5, pp. 953– 956, 1957. [7] J. L. Salmeron and I. Arevalo, “Blind federated learning without initial model,” Journal of Big Data , vol. 11, no. 56, pp. 1–31, 2024. [8] ——, “Concurrent vertical and horizontal federated learning with fuzzy cognitive maps,” Future Generation Computer Systems , vol. 162, p. 107482, 2025. [9] G. N´ apoles, J. L. Salmeron, and K. Vanhoof, “Construction and super-vised learning of long-term grey cognitive networks,” IEEE Transactions on Cybernetics , vol. 51, no. 2, pp. 686–695, 2021. [10] F. Vanhoenshoven, G. Napoles, W. Froelich, J. L. Salmeron, and K. Van-hoof, “Pseudoinverse learning of fuzzy cognitive maps for multivariate time series forecasting,” Applied Soft Computing , vol. 95, p. 106461, 2020. SALMERON: NON-MONOTONIC CAUSAL DISCOVERY WITH KOLMOGOROV-ARNOLD FCM 9
+
+[11] J. L. Salmeron, T. Mansouri, M. Moghadam, and A. Mardani, “Learning fuzzy cognitive maps with modified asexual reproduction optimization algorithm,” Knowledge-Based Systems , vol. 163, pp. 723–735, 2019. [12] J. L. Salmeron and P. Palos, “Uncertainty propagation in fuzzy grey cog-nitive maps with hebbian-like learning algorithms,” IEEE Transactions on Cybernetics , vol. 49, no. 1, pp. 211–220, 2019. [13] G. Napoles, J. L. Salmeron, and Y. Salgueiro, “Inverse simulation learning of quasi-nonlinear fuzzy cognitive maps,” Neurocomputing , vol. 650, p. 130864, 2025. [14] L. Wu, G. Feng, X. Liu, W. Pedrycz, L. Zhang, and J. Yang, “Fast and effective learning for fuzzy cognitive maps: A method based on solving constrained convex optimization problems,” IEEE Transactions on Fuzzy Systems , vol. 29, no. 11, pp. 2958–2971, 2020. [15] E. I. Papageorgiou, C. D. Stylios, and P. P. Groumpos, “Learning algorithms for fuzzy cognitive maps–a review study,” IEEE Transactions on Systems, Man, and Cybernetics, Part C (Applications and Reviews) ,vol. 34, no. 1, pp. 86–97, 2004. [16] J. L. Salmeron and W. Froelich, “Dynamic optimization of fuzzy cognitive maps for time series forecasting,” Knowledge-Based Systems ,vol. 105, pp. 29–37, 2016. [17] A. Nikseresht, M. Zandieh, and M. Shokouhifar, “Time-series fore-casting using improved empirical fourier decomposition and high-order intuitionistic fcm: Applications in smart manufacturing systems,” IEEE Transactions on Fuzzy Systems , vol. 33, no. 12, pp. 4201–4213, 2025. [18] Y. Wang and W. Pedrycz, “Equipping high-order fuzzy cognitive map with interpretable weights for multivariate time series forecasting,” IEEE Transactions on Fuzzy Systems , 2023. [19] J. L. Salmeron, “Modelling grey uncertainty with fuzzy grey cognitive maps,” Expert Systems with Applications , vol. 37, no. 12, pp. 7581–7588, 2010. [20] ——, “A fuzzy grey cognitive maps-based intelligent security system,” in 2015 IEEE International Conference on Grey Systems and Intelligent Services (GSIS) , Leicester, UK, Aug 2015, pp. 151–156. [21] W. Froelich and J. L. Salmeron, “Evolutionary learning of fuzzy grey cognitive maps for the forecasting of multivariate, interval-valued time series,” International Journal of Approximate Reasoning , vol. 55, no. 6, pp. 1319–1335, 2014. [22] J. L. Salmeron and E. I. Papageorgiou, “Fuzzy grey cognitive maps and nonlinear hebbian learning in process control,” Applied Intelligence ,vol. 41, no. 1, pp. 223–234, 2014. [23] J. L. Salmeron, “An autonomous fgcm-based system for surveillance assets coordination,” The Journal of Grey Systems , vol. 28, no. 1, pp. 27–35, 2016. [24] W. Pedrycz and W. Homenda, “A comprehensive framework for de-signing and learning fuzzy cognitive maps at the granular level,” IEEE Transactions on Fuzzy Systems , 2022. [25] P. Vazan and et al., “Extension to a fuzzy cognitive maps-based approach for modelling granular time series for forecasting tasks,” Knowledge-Based Systems , 2023. [26] S.-Y. Cho, S. Lee, and H.-G. Kim, “Forecasting vix using interpretable kolmogorov-arnold networks,” Expert Systems with Applications , vol. 294, p. 128781, 2025. [Online]. Available: https: //www.sciencedirect.com/science/article/pii/S0957417425023991 [27] J. Aguilar and et al., “Explainability analysis: An in-depth comparison between fuzzy cognitive maps and lamda,” Applied Soft Computing ,2023. [28] R. Guerrero-Gomez-Olmedo, J. L. Salmeron, and C. Kuchkovsky, “Lrp-based path relevances for global explanation of deep architectures,” 
+
+Neurocomputing , vol. 381, pp. 252–260, 2020. [29] Z. Li, X. Liu, Y. Zhang, J. Qin, W. X. Zheng, and J. Wang, “Learning high-order fuzzy cognitive maps via multimodal artificial bee colony algorithm and nearest-better clustering: Applications on multivariate time series prediction,” Knowledge-Based Systems , vol. 295, p. 111771, 2024. [Online]. Available: https://www.sciencedirect. com/science/article/pii/S0950705124004064 [30] L. Concepci´ on, G. N´ apoles, A. Jastrzkebska, I. Grau, and Y. Salgueiro, “Estimating the limit state space of quasi-nonlinear fuzzy cognitive maps,” Applied Soft Computing , vol. 69, p. 112604, 2025. [31] S. Bueno and J. L. Salmeron, “Benchmarking main activation functions in fuzzy cognitive maps,” Expert Systems with Applications , vol. 36, no. 3 part. 1, pp. 5221–5229, 2009. [32] P. Tomiło, J. Laskowski, and A. Laskowska, “Artificial neural network model based on kolmogorov-arnold representation theorem and retention mechanism for real-time aircraft flight phases classification,” 
+
+Engineering Applications of Artificial Intelligence , vol. 160, p. 112004, 2025. [Online]. Available: https://www.sciencedirect.com/ science/article/pii/S0952197625020123 [33] R. L. Burden, J. D. Faires, and A. M. Burden, Numerical Analysis ,10th ed. Boston, MA: Cengage Learning, 2015. [34] C. de Boor, A Practical Guide to Splines . New York: Springer-Verlag, 2001. 
+
+VI. B IOGRAPHY 
+
+Jose L. Salmeron is a Professor in Artificial Intelligence with CUNEF University. He has almost 30 years of experience in technology and research, including academic positions at several universities, consulting in the IT industry, and a wide range of collaborations with private and public organizations. Moreover, he has been actively involved (as leader and team member) in EU and professional projects, working with the development of intelligent algo-rithms for decision support, Fuzzy Cognitive Maps and new methodologies based on soft computing, artificial intelligence techniques for complex diagnostic, decision support, and quantitative methods. His research has been published in top-tier journals such as IEEE Transactions on Cybernetics, IEEE Transactions on Fuzzy Systems, IEEE Transactions on Software Engineering, Expert Systems with Applications, Communications of the ACM, Journal of Systems and Software, Future Generation Computer Systems, Applied Soft Computing, Engineering Applications of Artificial Intelligence, Neurocomputing, and Information Sciences, among others. In addition, he is recognized as an ACM lifetime senior member. Currently, his research interests include privacy-preserving computing, distributed artificial intelligence, explainable artificial intelligence, and quantum machine learning.
