@@ -1,0 +1,506 @@
+Title: Robust Nonlinear System Identification in Reproducing Kernel Hilbert Spaces via Scenario Optimization
+
+URL Source: https://arxiv.org/pdf/2604.05798v1
+
+Published Time: Wed, 08 Apr 2026 01:11:30 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Robust Nonlinear System Identification in Reproducing Kernel Hilbert Spaces via Scenario Optimization 
+
+Jannis L¨ ubsen 1 and Annika Eichler 1,2
+
+Abstract — This paper proposes a method for constructing one-step prediction tubes for nonlinear systems using repro-ducing kernel Hilbert spaces. We approximate a bounded reproducing kernel Hilbert space (RKHS) hypothesis set by a finite-dimensional subspace using bounds based on n-widths and a greedy algorithm for basis reduction. For kernels whose native spaces are norm-equivalent to Sobolev spaces, we derive how the required basis size scales with kernel smoothness and input dimension. This finite-dimensional representation enables the use of convex scenario optimization to obtain violation guarantees for the learned predictor without requiring an a priori bound on the true system’s RKHS norm or Lipschitz constant. The method is demonstrated on an obstacle-avoidance task. We also discuss the main limitations of the current analysis, including dimensional scaling and dependence on i.i.d. data. 
+
+I. I NTRODUCTION 
+
+Data-driven modeling and control of dynamical systems have attracted significant attention in recent years. In par-ticular, kernel methods have emerged as a powerful tool for learning complex nonlinear relationships from data due to their flexibility and strong theoretical foundations. The use of kernel methods for system identification is not new, and a substantial body of work has developed in this area. The literature can be divided into two sub-branches: one rooted in systems and control theory, e.g., [14, 8], and one rooted in machine learning, e.g., [18]. However, except for the linear case [22], rigorous uncertainty bounds for identified nonlinear kernel models remain limited. A related operator-theoretic perspective is provided by the Koopman framework. Koopman operators can be directly approximated in an RKHS using methods such as extended dynamic mode decomposition [21]. More recently, pointwise error bounds for the Koopman operator in an RKHS that is norm-equivalent to a Sobolev space have been derived [11]. The practical implementation of this method can quickly become infeasible as the state space dimension increases due to the curse of dimensionality, a phenomenon that also appears in our analysis. Another prominent approach is to use Gaussian processes (GPs) for system identification [10, 16], leveraging their uncertainty quantification to design robust model predictive controllers [9, 3]. This approach, however, also faces a fundamental limitation, i.e., to derive theoretically sound bounds on the uncertainty, strong assumptions on the system          
+
+> 1Institute of Control Systems, Hamburg Uni-versity of Technology, Hamburg, Germany
+
+{jannis.luebsen,annika.eichler }@tuhh.de  
+
+> 2Machine Beam Controls, Deutsches Elektronen-Synchrotron (DESY), Hamburg, Germany
+
+annika.eichler@desy.de 
+
+are required, e.g., upper bounds on the RKHS norm in the frequentist setting or correctly specified hyperparameters in the Bayesian setting. Robustly identifying nonlinear systems from data without requiring an a priori upper bound on the true system’s RKHS norm or a Lipschitz constant remains a significant challenge. In this paper, we address this challenge by combining the scenario approach with the RKHS framework. Our main contribution is a systematic procedure based on n-widths for constructing an effective finite-dimensional subspace that approximates an infinite-dimensional RKHS with arbitrary accuracy. We analyze how this subspace’s dimension is influenced by the kernel and the input space. This finite-dimensional representation enables the application of the scenario framework [6] to derive rigorous robustness guar-antees for the identified one-step model without requiring knowledge of the system’s RKHS norm or its Lipschitz constant. We validate the proposed method by using the identified model to solve an obstacle-avoidance problem in simulation. The paper is structured as follows: In Section II, the necessary theoretical background on RKHSs and the scenario approach is provided. In Section III, the concept of n-widths is introduced, and bounds on the required dimension of the finite-dimensional subspace are derived. In Section IV, a numerical method for estimating the effective dimension is presented, and the approach is applied on a robust system identification problem. Finally, in Section V, the work is summarized. II. T HEORY 
+
+A. Reproducing Kernel Hilbert Spaces 
+
+We denote by Lp(Ω , μ ), for 1 ≤ p < ∞, the space of equivalence classes [f ]∼ of measurable functions f : Ω → R
+
+such that 
+
+∥f ∥p := 
+
+Z 
+
+> Ω
+
+|f (x)|p dμ (x)
+
+1/p 
+
+< ∞,
+
+where [f ]∼ is the equivalence class of all functions that agree 
+
+μ-almost everywhere with f . For p = ∞, we use as usual the supremum norm. The inclusion operator is defined as 
+
+id : H → Lpμ(Ω) 
+
+f 7 → [f ]∼,
+
+for an arbitrary normed vector space (n.v.s.) H, and is assumed to be continuous. 
+
+> arXiv:2604.05798v1 [eess.SY] 7 Apr 2026
+
+We define the norm 
+
+∥f ∥W pm := 
+
+ X
+
+> 0≤| α|≤ m
+
+∥Dαf ∥pLp
+
+
+
+> 1/p
+
+.
+
+The Sobolev space W mp (Ω) [1] is defined as the completion of Cm(Ω) , the space of m-times continuously differentiable functions, with respect to the norm ∥ · ∥ W pm . Hence, W mp (Ω) 
+
+contains functions whose weak derivatives up to order m are in Lp(Ω) .A RKHS H is a Hilbert space of functions f : Ω → R
+
+such that the evaluation functional δx : H → R, defined by δx(f ) = f (x), is bounded for all x ∈ Ω. By the Riesz representation theorem, there exists a unique function kx ∈
+
+H such that f (x) = ⟨f, k x⟩H for all f ∈ H. The function 
+
+k : Ω × Ω → R defined by k(x, y ) = ky (x) is called the reproducing kernel of H.
+
+B. Scenario Approach and Interval Predictor Models 
+
+We use the scenario framework [6] to certify probabilistic guarantees on the robustness of the model, given a finite set of samples. We describe the probability space by the triplet 
+
+(∆ , F, P). In statistical learning, the true probability measure 
+
+P is typically unknown, so we rely on a finite number of samples, δi, assumed to be drawn i.i.d. from P. Within this framework, the scenario optimization problems addressed in this manuscript are rewritten in their epigraph form and can be cast as a convex scenario program 
+
+min  
+
+> θ
+
+c⊤θ
+
+s.t. g(θ, δ i) ≤ 0, i = 1 , . . . , N, (1) where g(·, δ ) is convex in θ.
+
+θ ∈ Rn+1 is the decision variable, and the δi are the samples. We denote the optimized decision variable as θ⋆.The violation probability V (θ) is defined as 
+
+V (θ) := P {δ ∈ ∆ : g(θ, δ ) > 0},
+
+which is the probability that the variable θ does not satisfy the constraints for random samples δ ∈ ∆. Usually we accept a risk ε ∈ (0 , 1] of violating the feasible set defined in (1). For a convex scenario program with decision dimension n +1, i.i.d. samples, and a unique optimizer, the solution θ⋆
+
+satisfies 
+
+PN {V (θ⋆) > ε } ≤ 
+
+> n
+
+X
+
+> i=0
+
+Ni
+
+
+
+εi(1 − ε)N −i. (2) Setting a confidence level β ∈ (0 , 1) , we can solve for N
+
+which yields the minimum number of samples needed to guarantee that the violation probability is not larger than ε
+
+with a probability of at least 1 − β.It is clear that, to guarantee small violation probabilities with a high confidence level, the amount of samples N needs to be significantly larger than the dimension of the decision variable θ. More precisely, as shown in [6] the number of samples can be lower bounded by 
+
+N ≥ 2
+
+ε
+
+
+
+n + ln 
+
+ 1
+
+β
+
+ 
+
+(3) which depends linearly on n. Alternatively, N can be computed by applying a simple bisection which is less conservative compared to (3). If two scalar scenario programs are solved independently with risk ε and confidence parameter β, then by the union bound the joint violation risk is at most 2ε, and the joint confidence is at least 1 − 2β.Obtaining interval-predictor models (IPMs) corresponds to a specific formulation of the scenario optimization problem. The goal is to find a function f ∈ M n, where Mn := span {ϕ1, . . . , ϕ n} is spanned by n linearly independent functions, while minimizing the maximum error to the train-ing data. The optimization problem for constructing an IPM can be formulated as a min-max problem 
+
+min  
+
+> f∈M n
+
+max  
+
+> i=1 ,...,N
+
+l(f, δ i), (4) where the loss function l : Mn × (Ω × Y ) → R is given as l(f, (z, y )) = |y − f (z)| and δi := ( zi, y i) ∈ Ω × Y is an input-output pair. Equation (4) can be reformulated as a scenario optimization problem 
+
+min  
+
+> α∈Rn,γ ∈R
+
+γ
+
+s.t. |yi − fα(zi)| ≤ γ, i = 1 , . . . , N fα = α⊤Φ,
+
+(5) where α = [ α1, . . . , α n]⊤ and Φ = [ ϕ1, . . . , ϕ n]⊤. Here, 
+
+γ represents the upper bound on the loss l(fα, δ i) over all samples. Applying the previously discussed scenario optimization, the solution θ⋆ = [α⋆, γ ⋆]⊤ provides the parameters for a nominal model fα⋆ and a worst-case loss value γ⋆.Traditionally, IPMs are constructed using a fixed finite-dimensional space Mn. This approach requires prior knowl-edge to select a suitable model structure. If the chosen parametric family is not rich enough, it may fail to capture the true system dynamics accurately. Non-parametric models, such as those based on RKHS, offer a more flexible alter-native. Usually, one considers an RKHS ball of the form 
+
+BR := {f ∈ H : ∥f ∥H ≤ R} for some R > 0. However, the dimension of this ball is infinite. In the next section we will discuss why kernel methods can still be used to construct IPMs and how the resulting dimension depends on the choice of the kernel. III. K OLMOGOROV N -WIDTHS AND APPROXIMATION 
+
+NUMBERS 
+
+As already mentioned, since H is infinite-dimensional, the question is whether it is possible to find Mn ⊂ H that is finite dimensional and can approximate the set BR suffi-ciently well. More concretely, are there dominant dimensions in H that contain the majority of the approximation capacity and, if so, how large is the worst-case approximation error when considering an n−dimensional subspace composed of exactly these dimensions? These questions directly lead to the so-called n−widths. We restrict ourselves in this work to the approximation numbers and Kolmogorov n−widths. BRMnHe := sup      
+
+> f∈BR
+> inf
+> g∈M n
+> ‖f−g‖LqegfFig. 1. Error governed by the Kolmogorov n−widths.
+
+Definition 1 (Approximation numbers & n-widths): Let 
+
+A and B be n.v.s. such that id : A → B is bounded, and let 
+
+AE be a ball in A. The approximation number of AE in B
+
+is defined as 
+
+an(AE , B ) = inf   
+
+> T∈L (A,B )rank( T)≤n
+
+sup  
+
+> f∈AE
+
+∥f − T f ∥B , (6) where the infimum is taken over all bounded linear operators 
+
+T that map from A to B with rank( T ) ≤ n.The Kolmogorov n-width of AE in B is defined as 
+
+dn(AE , B ) = inf 
+
+> Bn⊂B
+> |Bn|=n
+
+sup  
+
+> f∈AE
+
+inf 
+
+> g∈Bn
+
+∥f − g∥B , (7) where the infimum is taken over all subspaces Bn of B with dimension n.Approximation numbers and the Kolmogorov n-width are closely related. Approximation numbers describe the worst case minimum that occurs by applying a low rank transfor-mation. The Kolmogorov n−width characterizes the minimal worst-case error in B-norm achievable when approximating elements of a set AE ⊂ B by n−dimensional subspaces of 
+
+B, hence, the approximation takes place in the image space 
+
+B. Comparing both expressions, we can see that g = T f 
+
+for (6) is linear in f whereas in (7) g ∈ Bn. Since the inner infimum with respect to g might depend nonlinearly on f in a general n.v.s., the Kolmogorov n−widths are more flexible than the approximation numbers which implies 
+
+an(AE , B ) ≥ dn(AE , B ).In our setting, B is replaced by Lq and AE by BR which denotes the RKHS ball with radius R. We recall that we want to find a subspace Mn ⊂ H such that the worst case error with respect to the Lq norm is minimized, see Fig. 1. Hence, the usual definition of Kolmogorov n−widths needs to be adapted to Bn ⊂ A in (7). Indeed, this is a notable restriction of the approximation space such that asymptotic decays from the literature for Kolmogorov n−widths as in [17] may not hold. Therefore, the more conservative approximation numbers are considered. Instead of merely establishing the existence of subspaces, we adopt a constructive perspective. To this end, we restrict attention to kernels whose native spaces are norm-equivalent to Sobolev spaces. Prominent examples include compactly supported Wendland functions [20] as well as the Mat` ern family of kernels. Moreover, we define X ⊂ Ω to be a discrete set with mesh norm 
+
+hX := sup 
+
+> x∈Ω
+
+min  
+
+> xi∈X
+
+∥x − xi∥.
+
+First, we recall a slightly simplified version of Theo-rem 11.32 from [20]. We define the interpolant PX f as the orthogonal projection onto the space span {k(x, ·), x ∈ X},i.e., the space spanned by kernel functions centered at the grid points of X.
+
+Theorem 2 (cf. [20], Thm. 11.32, integer-order case): 
+
+Let Ω ⊂ Rd be a bounded domain satisfying an interior cone condition. Fix l ∈ N and m ∈ N0, and let 1 ≤ p < ∞,
+
+p ≤ q ≤ ∞ . Assume the Sobolev embedding condition [1] (this ensures that id : W lp(Ω) → W mq (Ω) is continuous) 
+
+(l > m + d/p, p > 1,l ≥ m + d, p = 1 .
+
+Then, for any f ∈ W lp(Ω) the error satisfies 
+
+∥f − PX f ∥W mq (Ω) ≤ C h l−m−d (1 /p −1/q )+ 
+
+> X
+
+∥f ∥W lp(Ω) ,
+
+where (α)+ := max {α, 0}, hX sufficiently small, and C > 0
+
+is a constant independent of f and X.The definition of interior cone conditions can be found in [20] definition 3.6. Loosely speaking, it ensures that every point in Ω can be embedded into a cone, with a fixed angle and radius, which is itself fully contained in Ω. The resulting angle and radius depend on the domain under consideration. Note that the interior cone condition is not very restrictive and holds for many domains, e.g., hypercubes, hyperspheres. In the following we will use Theorem 2 to derive bounds on the approximation numbers of kernel native spaces. 
+
+Corollary 3: Let H be an RKHS which is norm-equivalent to the Sobolev space W l
+
+> 2
+
+(Ω) for some l ∈ N, l > d/ 2, where Ω ⊂ Rd is a compact domain satisfying an interior cone condition. Furthermore, let BR := {f ∈ H :
+
+∥f ∥H ≤ R}. Then, for 2 ≤ q ≤ ∞ there exists a constant 
+
+C > 0 such that 
+
+an(BR, L q ) ≤ C n −l/d +(1 /2−1/q )+ .
+
+Proof: 
+
+an(BR, L q ) = inf    
+
+> T∈L (H,L q)rank( T)≤n
+
+sup  
+
+> f∈BR
+
+∥f − T f ∥Lq
+
+≤ sup  
+
+> f∈BR
+
+∥f − PX f ∥Lq
+
+= sup  
+
+> f∈BR
+
+∥ id : W 0 
+
+> q
+
+(Ω) → Lq (Ω) ∥∥ f − PX f ∥W 0
+
+> q
+
+= sup  
+
+> f∈BR
+
+∥f − PX f ∥W 0
+
+> q
+
+≤ C1 h l−d (1 /2−1/q )+ 
+
+> X
+
+R
+
+which follows by applying Theorem 2 with p = 2 and m =0. The last step follows from the fact that using a quasi-uniform grid there is C2 > 0 such that hX ≤ C2n−1/d .Hence, we have C = C1 C2 R.
+
+Remark 4: Since the derivation of Theorem 2 is construc-tive, one may ask whether the decay for the approximation numbers is optimal. Indeed, [17] proved that the approxima-tion numbers of Sobolev spaces satisfy an(W l
+
+> 2
+
+(Ω) , L q ) ≍
+
+n−l/d +(1 /2−1/q ) for q ∈ [2 , ∞] which matches the decay rate in Corollary 3. This implies asymptotic optimality of Theorem 2. However, there may be fast-decaying terms that dominate for small n. Hence, the bound in Corollary 3 is not necessarily tight. 
+
+Remark 5: Corollary 3 can be extended to RKHSs with smooth native spaces, e.g., Gaussian kernels. In this case, the approximation numbers decay super-exponentially, i.e., 
+
+an(BR, L q ) ≤ C exp( −cn 1/d ) for some c > 0, see [20] Theorem 11.22 with C defined analogously. Note that the approximation numbers suffer from the curse of dimensionality for q > 2. Substituting l = ν + d/ 2
+
+in the statement of Corollary 3 we have an(BR, L q ) ≤
+
+Cn −ν/d +(1 /2−1/q )+ . Hence, ν needs to grow at least linearly with d to compensate. IV. A PPLICATION 
+
+Even though the bounds derived in Corollary 3 are not always useful in practice, they show how the order of required samples scales with the dimension of the input space as well as the smoothness of the kernel. In this section, we show that approximation numbers can be estimated using numerical data. We then apply the results to a robust system identification problem. All code is available on Zenodo [13]. 
+
+A. Greedy Basis Selection via the Power Function 
+
+We consider the approximation numbers an(BR, L ∞) and define a tolerance on the approximation error τ > 0. Recall that the goal is to find the smallest n such that 
+
+inf   
+
+> T∈L (H,L ∞)rank( T)≤n
+
+sup  
+
+> f∈BR
+
+∥f − T f ∥L∞ ≤ τ, 
+
+where BR is defined as in the previous section. Let PZ be a projection operator onto the subspace spanned by {k(·, z i) : 
+
+zi ∈ Z and |Z| = n}. From the multi-armed bandit and safe Bayesian optimization literature, e.g., [7, 12], we have that 
+
+|f (x) − PZ f (x)| ≤ R PZ (x), ∀x ∈ Ω, ∀f ∈ BR, (8) where PZ (x) =
+
+q
+
+k(x, x ) − k(Z, x )⊤K−1 
+
+> Z
+
+k(Z, x ) is the power function, k(Z, x ) = [k(z1, x ), . . . , k (zn, x )] ⊤ and 
+
+[KZ ]ij = k(zi, z j ). In the context of Bayesian optimization, the power function is also known as the posterior standard deviation of a Gaussian process. However, note that although the two functions look identical, they have completely dif-ferent interpretations. In view of (8), to achieve a tolerance τ the goal is to find a set Z such that inf Z∈Ωn sup x∈Ω PZ (x) ≤ τ /R . This is a highly non-convex min-max problem. To simplify computa-tions, Ω is discretized into a set XM = [ x1, . . . , x M ]. Hence, we replace the continuous-domain Ω by the discrete domain 
+
+XM such that 
+
+inf  
+
+> Z∈Ωn
+
+max 
+
+> x∈XM
+
+PZ (x) ≤ τ /R. (9) 
+
+Input: X, kernel k, tolerance tol 
+
+Output: Basis ZZ ← ∅ ;
+
+j ← 0;
+
+while 1 do 
+
+z ← arg max x∈X PZ (x)2;
+
+if PZ (z)2 < tol then break end 
+
+Z ← Z ∪ { z};
+
+j ← j + 1 ;
+
+end Algorithm 1: P-greedy algorithm for estimating the effective dimension This problem can be solved using a P-greedy algorithm [2] as given in Algorithm 1. The algorithm returns the reduced basis defined as Mn := span {k(·, z i) : zi ∈ Z} with n = |Z|. In contrast to (9), the tolerance τ is used as a stopping criterion instead of n.
+
+B. Robust System Identification using RKHS 
+
+In this section, we show how the previous complexity analysis of RKHSs can be used in practice jointly with the scenario approach. We will show this in terms of a toy example, the Van der Pol oscillator, which is given by 
+
+˙x1 = x2
+
+˙x2 = (1 − x21)x2 − x1 − 2 + 2 u. 
+
+We define the state vector as x = [ x1, x 2]⊤. After discretiz-ing the continuous-time system, we obtain the discrete-time state-space model xk+1 = f (xk, u k)+ ωk, where ωk denotes process noise. Using this model, we generate the dataset by randomly sampling xk and uk from Ω and computing 
+
+xk+1 . The input and output data points are given as zk =[x⊤ 
+
+> k
+
+, u k]⊤, and yk = xk+1 , respectively. After computing the required number of basis functions via Algorithm 1, N
+
+is computed via bisection of the right side of (2). The goal is to design a control input u that steers the system from an initial state x0 = [4 , 0] ⊤ to the end point xf = [ −2, 0] ⊤ while avoiding a star-shaped obstacle centered at [0 , −4] , see Fig. 2. The remaining settings are specified in Table I. The scenario optimization problem for each state y(l) can be formulated as 
+
+min 
+
+> αl∈Rn,γ l∈R
+
+γl
+
+s.t. α⊤ 
+
+> l
+
+KZ αl ≤ R2, (10) 
+
+|y(l) 
+
+> i
+
+− α⊤ 
+
+> l
+
+k(Z, zi)| ≤ γl, ∀ i = 1 , . . . , N. 
+
+Taking the union bound over both states yields a total violation risk of at most 0.05 and confidence of at least 
+
+1 − 2 · 10 −6. In Table I, we can see that the resulting radii 
+
+γ1 and γ2 are close to the third standard deviation 3 σnoise ,which includes 99.7% of the probability mass. −2 −1 0 1 2 3 4
+
+−5
+
+−4
+
+−3
+
+−2
+
+−1
+
+0
+
+xf x0
+
+x1                                            
+
+> x2
+> Constrained Trajectories
+> Unconstrained Trajectory
+> Fig. 2. Obstacle avoidance example using a robust RKHS model of the Van der Pol oscillator. The red line indicates the optimal trajectory without obstacle avoidance. The blue lines are optimal trajectories with obstacle avoidance and sampled initial states around x0.TABLE I SETUP FOR THE VAN DER POL EXAMPLE .
+> Quantity Value
+> Sampling domain Ω := [ −5,5] 3
+> Kernel Mat´ ern with ν= 5 /2
+> Noise ωk=N(0 , σ 2noise I2)
+> Noise standard deviation σnoise = 0 .02
+> Tube sizes γ1≈0.057 ,γ2≈0.068
+> Sampling time Ts= 0 .1
+> Tolerance τ= 0 .1
+> RKHS norm bound R= 350
+> Risk ϵ= 0 .025
+> Confidence β= 10 −6
+> Number of scenarios N= 4200
+> Dataset ∆ = {(zi,yi)}Ni=1
+> Number of basis functions n= 60
+> Optimization variables αl∈Rn, γ l∈R
+
+Fig. 2 shows the results of the robust system identifi-cation and control. The robust model predictive controller is implemented using Acados [19], which operates with a prediction horizon of 30 steps and solves each optimization in approximately (0.4 - 0.7) ms on a standard notebook with an Intel® Core™ i7-8565U CPU. The initial state for each of the 20 blue trajectories is sampled around x0. Moreover, the tube radii are propagated over the horizon by recursively evaluating the model at the four corners in the state space, i.e., yk + [ ±γ1, ±γ2]⊤. Of course, this does not rigorously ensure that the whole MPC rollout is safe. As demonstrated in Fig. 2, the controller successfully steers the system to the end point while respecting all constraints. 
+
+C. Discussion 
+
+In the introduction, we claimed that this approach, unlike methods based on uncertainty bounds for support vector regression, does not rely on strong assumptions about the unknown system, such as its RKHS norm. Indeed, the norm bound R in (1) only restricts the hypothesis set to an RKHS ball. It does not claim to contain the true system. The radius 
+
+γl obtained from (1) depends on R, e.g., if R is too small, the resulting radius γl will be large because the function class is not allowed to vary too much. Nevertheless, the theoretical guarantees for the constructed tube will hold. In contrast to the presented approach where we have defined the optimization variables a priori, the a posteriori scenario framework [4] can be used to bound the violation probability using the number of active support constraints that are observed after solving the optimization problem. Combined with an l1-regularization term in the optimization problem, this can further reduce the number of active support constraints and hence the violation probability. However, as shown in Theorem 3, we expect that the number of active support constraints scales with the dimension of the input space, which implies that huge Gram matrices need to be stored and evaluated. This is a major bottleneck and quickly leads to memory issues. This is exactly the reason why the P-greedy algorithm is applied on an extra training set, in order to compress the data. Since the current theoretical guarantees do not allow the same training set to be used twice, there are two ways to obtain an additional dataset. The first option is to sample from some space that contains the system’s manifold, e.g. a hypercube. The second option is to sample directly from the system’s trajectories, i.e., by running the system and collecting data. Of course, the first approach is easier to implement, but it may lead to a larger number of support vectors due to the fact that the samples are not restricted to the system’s manifold. The second approach provides a better estimate, since the effective dimension is lower, but it requires running the system and collecting data, which may be costly. To improve data efficiency, we plan to investigate compression-based learning approaches [5, 15] in future work. These approaches can reduce the number of support constraints beforehand. Another major bottleneck in dynamical-system applica-tions is the i.i.d. requirement on the data. In practice, of course, this is barely satisfied. Usually, one assumes that the underlying dynamical system mixes over time, which permits subsampling from trajectories. V. C ONCLUSION 
+
+In this paper, we presented a new method for nonlinear system identification with finite-sample one-step violation guarantees within an RKHS framework. Our approach suc-cessfully bridges the scenario approach with approximation theory to provide these guarantees without requiring a correct a priori upper bound on the true system’s RKHS norm. We have shown that the required amount of data to achieve a desired approximation accuracy increases exponentially with the input dimension. Moreover, the i.i.d. assumption on the data is not satisfied in practice, which further complicates the application of the scenario approach. Future work will focus on addressing these limitations by exploring compression-based methods to improve memory efficiency and by inves-tigating extensions/alternatives to the scenario approach that can handle dependent data. REFERENCES 
+
+[1] Robert A. Adams and John J. F. Fournier. Sobolev Spaces . 2nd ed. Pure and Applied Mathematics v. 140. Amsterdam Boston: Academic Press, 2003. ISBN :978-0-12-044143-3. [2] Peter Binev et al. “Convergence Rates for Greedy Algorithms in Reduced Basis Methods”. In: SIAM Journal on Mathematical Analysis 43.3 (2011). DOI :
+
+10.1137/100795772 .[3] Eric Bradford et al. “Stochastic Data-Driven Model Predictive Control Using Gaussian Processes”. In: 
+
+Computers & Chemical Engineering 139 (Aug. 2020). 
+
+> DOI
+
+: 10 . 1016 / j . compchemeng . 2020 . 106844 .[4] M. C. Campi and S. Garatti. “Wait-and-Judge Scenario Optimization”. In: Mathematical Programming 167.1 (Jan. 2018), pp. 155–189. DOI : 10.1007/s10107-016-1056-9 .[5] Marco C. Campi and Simone Garatti. Compression, Generalization and Learning . 2024. arXiv: 2301 . 12767 [cs.LG] . URL : https://arxiv.org/ abs/2301.12767 .[6] Marco C. Campi and Simone Garatti. Introduction to the Scenario Approach . Philadelphia, PA: Society for Industrial and Applied Mathematics, Nov. 5, 2018. 
+
+> ISBN
+
+: 978-1-61197-543-7 978-1-61197-544-4. DOI :
+
+10.1137/1.9781611975444 .[7] Sayak Ray Chowdhury and Aditya Gopalan. On Ker-nelized Multi-armed Bandits . 2017. arXiv: 1704 . 00445 [cs.LG] . URL : https://arxiv.org/ abs/1704.00445 .[8] Mohammad Khosravi and Roy S. Smith. “The Exis-tence and Uniqueness of Solutions for Kernel-Based System Identification”. In: Automatica 148 (2023), p. 110728. DOI : 10 . 1016 / j . automatica . 2022.110728 .[9] J. Kocijan et al. “Gaussian Process Model Based Pre-dictive Control”. In: Proceedings of the 2004 Amer-ican Control Conference . Proceedings of the 2004 American Control Conference. Boston, MA, USA: IEEE, 2004. ISBN : 978-0-7803-8335-7. DOI : 10 . 23919/ACC.2004.1383790 .[10] Juˇ s Kocijan. Modelling and Control of Dynamic Sys-tems Using Gaussian Process Models . Springer Cham, 2016. ISBN : 978-3-319-21021-6. DOI : 10 . 1007 / 978-3-319-21021-6 .[11] Frederik K¨ ohne et al. L∞-Error Bounds for Approxi-mations of the Koopman Operator by Kernel Extended Dynamic Mode Decomposition . July 4, 2024. DOI :
+
+10.48550/arXiv.2403.18809 . arXiv: 2403. 18809 [math] . Pre-published. [12] Jannis Luebsen and Annika Eichler. An Analysis of Safety Guarantees in Multi-Task Bayesian Optimiza-tion . 2025. arXiv: 2503 . 08555 [cs.LG] . URL :
+
+https://arxiv.org/abs/2503.08555 .[13] Jannis Luebsen and Annika Eichler. code-Robust-Nonlinear-System- Identification-using-Reproducing-Kernel-Hilbert- Spaces: Code for Final Submission .Version v1.0. Apr. 2026. DOI : 10.5281/zenodo. 19438697 .[14] Gianluigi Pillonetto. “System Identification Using Kernel-Based Regularization: New Insights on Stabil-ity and Consistency Issues”. In: Automatica 93 (2018), pp. 321–332. DOI : 10 . 1016 / j . automatica . 2018.03.065 .[15] Roberto Rocchetta, Alexander Mey, and Frans A. Oliehoek. “A Survey on Scenario Theory, Complex-ity, and Compression-Based Learning and General-ization”. In: IEEE Transactions on Neural Networks and Learning Systems 35.12 (2024), pp. 16985–16999. 
+
+> DOI
+
+: 10.1109/TNNLS.2023.3308828 .[16] Anna Scampicchio et al. Gaussian Processes for Dy-namics Learning in Model Predictive Control . Feb. 4, 2025. DOI : 10 . 48550 / arXiv . 2502 . 02310 .arXiv: 2502.02310 [eess] . Pre-published. [17] Ingo Steinwart. “A Short Note on the Comparison of Interpolation Widths, Entropy Numbers, and Kol-mogorov Widths”. In: Journal of Approximation The-ory 215 (Mar. 2017). DOI : 10 . 1016 / j . jat . 2016.11.006 .[18] Johan A.K. Suykens, Carlos Alzate, and Kristiaan Pelckmans. “Primal and Dual Model Representations in Kernel-Based Learning”. In: Statistics Surveys 4(2010). DOI : 10.1214/09-SS052 .[19] Robin Verschueren et al. “Acados – a Modular Open-Source Framework for Fast Embedded Optimal Con-trol”. In: Mathematical Programming Computation 
+
+(2021). [20] Holger Wendland. Scattered Data Approximation .Cambridge Monographs on Applied and Computa-tional Mathematics. 2004. ISBN : 978-0-521-84335-5. [21] Matthew O. Williams, Ioannis G. Kevrekidis, and Clarence W. Rowley. “A Data–Driven Approximation of the Koopman Operator: Extending Dynamic Mode Decomposition”. In: Journal of Nonlinear Science 
+
+25.6 (Dec. 1, 2015). DOI : 10.1007/s00332-015-9258-5 .[22] Mingzhou Yin and Roy S. Smith. “Error Bounds for Kernel-Based Linear System Identification With Un-known Hyperparameters”. In: IEEE Control Systems Letters 7 (2023). DOI : 10.1109/LCSYS.2023. 3287305 .
