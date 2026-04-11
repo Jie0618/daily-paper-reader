@@ -1,0 +1,991 @@
+Title: Introducing sapphire: Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation
+
+URL Source: https://arxiv.org/pdf/2604.06318v1
+
+Published Time: Thu, 09 Apr 2026 00:13:25 GMT
+
+Number of Pages: 48
+
+Markdown Content:
+Draft version April 9, 2026 
+
+Typeset using L ATEX twocolumn style in AASTeX631 
+
+Introducing sapphire :Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 
+
+Viraj Pandya ,1, ∗ Greg L. Bryan ,2, 3 T. Lucas Makinen ,4 Austen Gabrielpillai ,2
+
+Christopher Carr ,5, 2 Drummond B. Fielding ,6 Lars Hernquist ,7 Matthew Ho ,1 Kartheik Iyer ,1, 3, ∗
+
+Christian Kragh Jespersen ,5 Sophie Koudmani ,8, 9 Marta Laska, 10 Pablo Lemos ,11, 12, 13 
+
+Christopher C. Lovell ,9, 14 Lucia A. Perez ,3, 5 William F. Robinson Jr., 2 Rachel S. Somerville ,3
+
+Tjitske K. Starkenburg ,15, 16, 17 Richard Stiskalek ,18 Bryan Terrazas ,19 and G. Mark Voit 20 
+
+> 1
+
+Columbia Astrophysics Laboratory, Columbia University, 550 West 120th Street, New York, NY 10027, USA 
+
+> 2
+
+Department of Astronomy, Columbia University, 550 West 120th Street, New York, NY 10027, USA 
+
+> 3
+
+Center for Computational Astrophysics, Flatiron Institute, 162 5th Ave, New York, NY 10010, USA 
+
+> 4
+
+Imperial Centre for Inference and Cosmology (ICIC) & Astrophysics Group, Imperial College London, Blackett Laboratory, Prince Consort Road, London SW7 2AZ, United Kingdom 
+
+> 5
+
+Department of Astrophysical Sciences, Princeton University, Princeton, NJ 08544, USA 
+
+> 6
+
+Department of Physics, New York University, 726 Broadway, New York, NY 10003, USA 
+
+> 7
+
+Center for Astrophysics — Harvard & Smithsonian, 60 Garden Street, Cambridge, MA 02138, USA 
+
+> 8
+
+Centre for Astrophysics Research, Department of Physics, Astronomy and Mathematics, University of Hertfordshire, College Lane, Hatfield AL10 9AB, UK 
+
+> 9
+
+Kavli Institute for Cosmology, Cambridge, University of Cambridge, Madingley Road, Cambridge, CB3 0HA, UK 
+
+> 10
+
+Department of Astronomy & Astrophysics, The Pennsylvania State University, University Park, PA 16802, USA 
+
+> 11
+
+Department of Physics, Universit´ e de Montr´ eal, Montr´ eal, Canada 
+
+> 12
+
+Mila - Quebec AI Institute, Montr´ eal, Canada 
+
+> 13
+
+Ciela, Montreal Institute for Astrophysics and Machine Learning, Montr´ eal, Canada 
+
+> 14
+
+Institute of Astronomy, Madingley Road, Cambridge CB3 0HA, UK 
+
+> 15
+
+Center for Interdisciplinary Exploration and Research in Astrophysics (CIERA), Northwestern University, 1800 Sherman Ave, Evanston, IL 60201, USA 
+
+> 16
+
+Department of Physics and Astronomy, Northwestern University, 2145 Sheridan Rd, Evanston IL 60208, USA 
+
+> 17
+
+NSF-Simons AI Institute for the Sky (SkAI), 172 E. Chestnut St., Chicago, IL 60611, USA 
+
+> 18
+
+Astrophysics, University of Oxford, Denys Wilkinson Building, Keble Road, Oxford, OX1 3RH, UK 
+
+> 19
+
+Department of Physics & Astronomy, Oberlin College, Oberlin, OH, 44074, USA 
+
+> 20
+
+Michigan State University, Department of Physics and Astronomy, East Lansing, MI 48824, USA 
+
+ABSTRACT Semi-analytic models (SAMs) have been treating galaxy populations as dynamical systems for ≳ 50 years, but their evolution equations remain poorly constrained. We introduce sapphire , a modular, automatically differentiable, GPU-accelerated SAM written from scratch in JAX . For the first time, we compute exact Jacobian matrices of our nonlinear differential equations and show that they have inter-pretable, non-random structures, using the Pandya et al. (2023) physical model as an initial example. Both local and global sensitivity analyses reveal that supernova energy loading is a key astrophysi-cal parameter for galaxy evolution. We use gradient descent and Hamiltonian Monte Carlo (HMC) to perform comprehensive mock parameter recovery tests. These indicate that the z = 0 stellar-to-halo-mass relation alone does not contain enough information to infer many astrophysical parameters. Using observations of star-forming galaxies from the MaNGA survey and the Behroozi et al. (2019) empirical model as one baseline, we derive multiple posteriors assuming different combinations of data, including z = 0 interstellar medium gas fractions and metallicities. The inferred physical param-eters suggest that galaxies self-regulate their star formation primarily through preventative rather than ejective feedback. Both Fisher and HMC forecasts demonstrate the potential of sapphire to 
+
+Corresponding author: Viraj Pandya vgp2108@columbia.edu 
+
+> arXiv:2604.06318v1 [astro-ph.GA] 7 Apr 2026
+
+2 Viraj Pandya et al. 
+
+enable precision inference for galaxy formation, but more work is needed to expand its library of models. We discuss how our unique blend of differentiability, massive GPU parallelization, numerical robustness and principled Bayesian methods sets the stage for hybrid physics-informed, data-driven discovery of galaxy formation astrophysics and cosmology. We make sapphire publicly available at https://github.com/virajpandya/sapphire.  
+
+> 1.
+
+INTRODUCTION 1.1. The Cosmological Context 
+
+Galaxies represent one of our most promising cos-mological probes of fundamental physics. Their abun-dance, dynamics and clustering contribute a variety of evidence for dark matter, dark energy and inflation. Some examples include luminosity functions (Sandage 1988; Binggeli et al. 1988), rotation curves (Rubin et al. 1980; Bosma 1981), correlation functions (Peebles 1980; Davis & Peebles 1983; Geller & Huchra 1989), ab-sorption line studies (Gunn & Peterson 1965), lensing (Kaiser & Squires 1993), satellite merger rates (Bond et al. 1991; Hopkins et al. 2010), intrinsic alignments (Kiessling et al. 2015; Libeskind et al. 2018; Pandya et al. 2019, 2025), and maybe even morphology (Os-triker & Peebles 1973; Bullock & Boylan-Kolchin 2017; Pandya et al. 2024). These helped establish the modern “concordance” ΛCDM paradigm in which galaxies grow hierarchically through accretion and mergers dictated by the dark matter halos within which they are assumed to live (e.g., Blumenthal et al. 1984). One of the grand challenges of modern astrophysics is to develop a fully predictive theory of galaxy formation so that galaxies can become more robust cosmological probes. However, this requires overcoming five obstacles: (1) the relevant physical processes span a large dynamic range, (2) they are non-linearly coupled across scales leading to compli-cated emergent behavior, (3) many of those processes are not understood from first principles, (4) we can-not directly observe the evolution of individual galax-ies on human timescales so must resort to statistical, population-level studies, and (5) we have noisy, incom-plete data. Together, these pose a formidable challenge for the ambitious goal of connecting galaxy formation astrophysics to the fundamental physics of cosmology. Fortunately, the past century of observations has re-vealed that galaxies, despite their individual complex-ity, exhibit remarkable statistical regularity. For exam-ple, they appear to follow morphological “sequences” (e.g., Hubble 1926), and both local (e.g., Mannucci et al. 2010) and global (e.g., Faber & Jackson 1976; Tully & Fisher 1977) scaling relations. More generally,  
+
+> ∗Hubble Fellow
+
+galaxies occupy relatively thin manifolds in the space of their observable features, which implies that physi-cal laws drive them towards equilibrium attractor solu-tions. In addition, the observed clustering of galaxies agrees remarkably well with simulations of the ΛCDM cosmology in which early density fluctuations grew to become the seeds responsible for galaxy and large-scale structure formation (Davis et al. 1985; Primack 2012; Frenk & White 2012). Anisotropies in the cosmic mi-crowave background (CMB) have enabled precision mea-surements of ΛCDM model parameters, including the relative densities of baryons, dark matter and dark en-ergy (White et al. 1994; Hu & Dodelson 2002; Planck Collaboration et al. 2016). However, the growing ten-sions between CMB and late-universe probes of the cos-mic expansion rate (i.e., the Hubble constant H0) as well as the matter density fluctuation amplitude ( σ8) may re-quire modifications to ΛCDM such as early dark energy (Kamionkowski & Riess 2023; Primack 2024). Upcoming facilities (e.g., the Nancy Grace Roman Space Telescope, Rubin Observatory, Euclid) will map tens of billions of galaxies, providing unprecedented op-portunities to pursue precision cosmology. New simu-lation efforts are underway that aim to reconstruct our initial density field from this “late-time” galaxy clus-tering data (e.g., Gottloeber et al. 2010; Wang et al. 2014; Jasche & Lavaux 2019; Modi et al. 2021; Li et al. 2024; Hahn et al. 2024; Lemos et al. 2024; McAlpine et al. 2025). These have the potential to provide pow-erful, complementary constraints on the nature of dark matter, dark energy and inflation using galaxies as cos-mological tracers. However, it is becoming increasingly clear that astrophysical uncertainties will hamper our interpretation of this forthcoming data. For example, the large-scale matter power spectrum is sensitive to the choice of small-scale baryonic physics (Villaescusa-Navarro et al. 2021; Ni et al. 2023; Delgado et al. 2023; Gebhardt et al. 2024; Schaller et al. 2025), and so far it has been challenging to robustly infer cosmology across different astrophysical models (Perez et al. 2023; Jo et al. 2023, 2025). Thus, we argue that precision cosmology with galaxies requires precision astrophysics: we need to elucidate the key astrophysical processes, identify the most sensitive observables, and forecast the uncertain-ties required to achieve some target precision on model parameters so that we actually believe consistency with sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 3or departures from ΛCDM in terms of galaxy proper-ties. Fortunately, by combining these same galaxy sur-veys, originally intended for cosmology, with forthcom-ing data on the thermodynamic state of gas within and around galaxies, we can improve our understanding of the foundational astrophysics for its own sake (helping to achieve the “cosmic ecosystems” science case of the 2020 Decadal Survey; National Academies of Sciences, Engineering, and Medicine 2023). 1.2. The State of Galaxy Formation 
+
+Since it is not possible to perform ab initio predictions for galaxy populations, a wide variety of approaches have been developed to model galaxy formation in a cos-mological context (e.g., see recent reviews by Somerville & Dav´ e 2015; Naab & Ostriker 2017; Wechsler & Tin-ker 2018). On the one hand, “empirical” models are now able to fit much of the available photometric galaxy survey data by assuming relatively simple mappings be-tween simulated dark matter halo properties and observ-able galaxy properties, which often happens to repro-duce the observed clustering of different types of galaxies (Vale & Ostriker 2006; Conroy et al. 2006; Moster et al. 2010; Behroozi et al. 2013a; Rodr´ ıguez-Puebla et al. 2017; Behroozi et al. 2019; Zhang et al. 2023; Shuntov et al. 2025). These empirical models constrain the over-all efficiency of converting baryons into stars as a func-tion of halo mass and redshift, but remain ambiguous about the underlying astrophysics which makes it diffi-cult to interpret their results. Furthermore, for the pur-poses of inferring cosmological parameters from galaxy clustering data, many empirical approaches only forward model a limited number of galaxy observables and dis-card information on small scales, which, for example, fails to capture halo and galaxy assembly bias (Zentner et al. 2014; Hearin et al. 2016; Hadzhiyska et al. 2020). Like many other approaches, these empirical models are also fit assuming a single cosmological model, so great care must be taken when using them to constrain and interpret cosmological parameters. On the other hand, modern hydrodynamical simula-tions can now make detailed predictions for galaxy prop-erties down to sub-pc scales, allowing unprecedented theoretical investigations (e.g., see recent reviews by Vogelsberger et al. 2020; Crain & van de Voort 2023; Feldmann & Bieri 2025). However, galaxy-scale sim-ulations on their own lack two essential qualities: (1) interpretability, and (2) causal identifiability. The first is due to their complexity: simple abstractions are re-quired to extract insights from these highly nonlin-ear numerical experiments. The second refers to map-ping noisy, observable outputs back to uncertain in-puts (and vice versa), a task that requires prohibitively expensive computational resources and analysis tech-niques. Both Pandya et al. (2021) and Pandya et al. (2023), for example, stressed that it would be impos-sible to disentangle cause-and-effect relationships from emergent galaxy properties in “single-shot” simulations without the ability to do parameter variations and equi-librium analysis. This is slowly changing thanks to expensive simulation suites like AGORA (Kim et al. 2014), CAMELS (Villaescusa-Navarro et al. 2021) and FLAMINGO (Schaye et al. 2023; Kugel et al. 2023) as well as the recent proliferation of machine learning techniques, which enable the training of emulators for Bayesian inference with neural networks (e.g., Jo et al. 2023; Ho et al. 2024; Alsing et al. 2024; Iyer et al. 2025; Lovell et al. 2025b). However, as recently reviewed by Primack (2024), no existing simulation simultaneously reproduces all observed properties of the evolving galaxy population. The field therefore requires a new hybrid approach that blends the strengths of both empirical and physical models. If we want to understand galaxy populations as dy-namical systems, we must first identify their key state variables and governing equations. Similar to how hy-drodynamical simulations co-evolve billions of fluid ele-ments, semi-analytic models (SAMs) reduce galaxy evo-lution to the simpler problem of tracking the phase space evolution of galactic-scale summary statistics using con-tinuity equations. It is an open question as to how many independent state variables are needed to sufficiently characterize galaxies and their cosmic ecosystems. The term “semi-analytic” is historical and reflects the fact that the dark matter halo formation process is so non-linear that it must be simulated and summarized as merger trees, which then act as the backbone for or-dinary differential equations (ODEs) that approximate various baryonic processes. Early works conceived SAM-like approaches to test the basic viability of different cos-mological paradigms using simple physical arguments to model the competition between gas accretion, cooling, star formation, feedback and chemical evolution (e.g., Tinsley 1968; Rees & Ostriker 1977; White & Rees 1978; Ostriker & Cowie 1981; Dekel & Silk 1986; White & Frenk 1991; Kauffmann et al. 1993; Lacey & Cole 1993; Somerville & Primack 1999; Cole et al. 2000). In the decades since, SAMs have exploded in complexity with the inclusion of black hole growth and feedback (Kauff-mann & Haehnelt 2000; Croton et al. 2006; Somerville et al. 2008), multi-element chemical evolution (Arrigoni et al. 2010; Yates et al. 2013), multi-phase gas parti-tioning (Lagos et al. 2011; Somerville et al. 2015), mor-phological evolution (Dutton et al. 2007; Forbes et al. 4 Viraj Pandya et al. 
+
+2014; Porter et al. 2014; Krumholz et al. 2018; Stevens et al. 2024), cosmic reionization (Mutch et al. 2016), and thermodynamic evolution of gaseous galactic atmo-spheres (Sharma & Theuns 2020; Pandya et al. 2023). Minimalist variants have emerged that restrict the num-ber of state variables and impose equilibrium conditions to help extract key insights about the overall “baryon cycling” process (these are sometimes called “bathtub” or “gas regulator” models; Bouch´ e et al. 2010; Dav´ e et al. 2012; Lilly et al. 2013; Dekel & Burkert 2014; Mitra et al. 2015; Rodr´ ıguez-Puebla et al. 2016; Belfiore et al. 2019; Carr et al. 2023; Voit et al. 2024b,a). 1.3. A New Physics-Informed, Data-Driven Approach 
+
+To make further progress in understanding galaxy evo-lution, we need to unify SAMs and hydrodynamical sim-ulations into an interpretable Bayesian framework as originally envisioned in the PhD thesis of Pandya (2021). This has long been a goal of the galaxy formation com-munity (Benson et al. 2001; Yoshida et al. 2002; Helly et al. 2003; Stringer et al. 2010; Lu et al. 2011a; Neis-tein et al. 2012; Hirschmann et al. 2012; Pandya et al. 2020; Mitchell & Schaye 2022; Gabrielpillai et al. 2022). Previous authors have already emphasized that this will require a new standard of numerical robustness, mod-ular code development and principled Bayesian meth-ods (Henriques et al. 2009; Bower et al. 2010; Lu et al. 2011b; Benson 2012; Croton et al. 2016; Lagos et al. 2018; Forbes et al. 2019). Recently, Pandya et al. (2023) took a step towards this by benchmarking and improv-ing standard SAM recipes to roughly emulate the FIRE-2 simulations, as one example testbed (Hopkins et al. 2018, and references therein). In particular, Pandya et al. (2023) introduced a two-zone model that tracked flows of mass, metals and energy between the interstellar medium (ISM), circumgalactic medium (CGM) and in-tergalactic medium (IGM). Their simple model approxi-mately reproduced the time evolution of stellar, ISM and CGM masses and metallicities, as well as thermal and turbulent CGM pressure support, of individual galaxies in the core FIRE-2 simulation suite. They achieved this by measuring many of their free parameters in the sim-ulations and then using the resulting fits in their SAM, noting that FIRE-2 provided only one of many possi-ble “priors” for their model. Carr et al. (2023) and Voit et al. (2024b,a) showed that a similar model without any calibration to FIRE-2 could also naturally explain em-pirical constraints on the inefficiency of star formation in Milky Way (MW) and lower mass galaxies. Here we introduce sapphire , an automatically differ-entiable, multi-GPU-parallelized framework for model-ing the dynamical phase space evolution of galaxy popu-lations. 1 We have written sapphire from scratch in the lightweight AI/ML Python package JAX (Bradbury et al. 2018) so that we can rapidly compute exact gradients of our ODE solutions with respect to free parameters using automatic differentiation (see Baydin et al. 2018, for a recent review). This can help address the lack of both interpretability and causal identifiability in existing ap-proaches that we introduced earlier, and is only possi-ble now because we are drawing on recent developments in computer science made available by open-source dif-ferentiable ODE solver packages like diffrax (Kidger 2022). We are following in the footsteps of Hearin et al. (2021, 2023) who pioneered differentiable, prob-abilistic modeling of galaxy populations, except here we are numerically solving and automatically differentiat-ing through the internals of adaptive ODE solvers for highly nonlinear systems without assuming parameter-ized, equilibrium solutions. sapphire is designed to be generalized far beyond any one model so that we can ul-timately perform hybrid physics-informed, data-driven differential equation discovery using inputs from many simulations and datasets. This is the latest paper in a series building on Pandya et al. (2020, 2021, 2023) as well as the broader vision for multi-scale Bayesian SAMs outlined in the PhD thesis of Pandya (2021), which grew out of the Simulating Multi-scale Astrophysics to Understand Galaxies (SMAUG) Collaboration, now part of the broader Simons Collabo-ration on Learning the Universe (LtU). 2 Our work com-plements ongoing efforts to generate ever larger, higher resolution simulations with coarse parameter variations by taking a fundamentally new approach of making the entire code differentiable, inspired by the successes of, e.g., BORG (Jasche & Lavaux 2019; McAlpine et al. 2025). This unlocks previously inaccessible techniques for understanding the richness of even simple dynamical systems like the ODE-based physical model of Pandya et al. (2023). For example, we will use the gradients to interpret the nonlinear dynamics of our model, per-form local and global parameter sensitivity analysis (i.e., understanding cause-and-effect with parameter varia-tions), derive Fisher uncertainties and fully Bayesian posteriors, and forecast the impact of improved obser-vational uncertainties, all of which are standard in cos-mology but not galaxy formation. We will deliberately focus on a very simple initial application involving fit-ting three z = 0 scaling relations where the data is rea-         
+
+> 1We make the code publicly available at https://github.com/ virajpandya/sapphire and encourage community development.
+> 2https://learning-the-universe.org/
+
+sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 5sonably well understood and complete. This extends seminal work by Henriques et al. (2009); Bower et al. (2010); Henriques et al. (2012, 2013, 2015); Lu et al. (2011b); Forbes et al. (2019) who demonstrated the po-tential of SAMs for Bayesian inference, as well as G´ omez et al. (2014), Ole´ skiewicz & Baugh (2020) and Bose & Deason (2025) who performed the only other sensitivity analyses of SAM-like models that we can find. This paper is organized as follows. In Section 2, we de-scribe galaxy scaling relation data used for inference. In Section 3, we introduce the model and in Section 4, we outline our methods. In Section 5 we present sensitivity analyses and mock parameter recovery tests. In Sec-tion 6, we infer model parameters by combining z = 0 galaxy scaling relations. Finally, we discuss our results in Section 7 and conclude in Section 8. Throughout this paper we assume a standard Planck Collaboration et al. (2016) cosmology with Ω M = 0 .3075, Ω b = 0 .0486 and 
+
+h = 0 .6774.  
+
+> 2.
+
+OBSERVATIONAL DATA Here we describe the observational data we use for inference. Our model does not yet include black holes or satellite galaxies, so we cannot predict total galaxy number densities or realistic group/cluster populations. However, even with this baseline model, we can already begin to probe the information content of galaxy scaling relations for constraining a subset of model parameters (as was done by Carr et al. 2023; Voit et al. 2024a). For simplicity, we focus on three z = 0 galaxy scaling rela-tions involving “quasi-observables” inferred from data. We defer forward modeling of galaxy spectrophotomet-ric observables to future work, but note that this will be necessary to disentangle astrophysics and cosmology from observational selection effects. First, we use the stellar-mass-halo-mass (SMHM) re-lation restricted to only star-forming central galaxies at 
+
+z = 0 as tabulated by Behroozi et al. (2019). Our model can help provide astrophysical interpretations for the normalization and shape of this empirically-determined relation. We limit our analysis to eleven bins ranging from log Mvir /M ⊙ ∼ 10 − 12, with the lower limit set by the resolution of their DM simulations and the upper limit chosen to avoid the contribution of black hole feed-back. For each bin, they report the median log M∗/M vir 
+
+and the 16 − 84 percentile uncertainties. Appendix A details our efforts to assign halo mass posteriors to in-dividual MaNGA galaxies and the biased relation that results, motivating us to simply use the inferred relation from Behroozi et al. (2019) as-is. We will combine the z = 0 SMHM relation with z = 0 ISM gas fractions and the ISM mass-metallicity rela-tion. For this, we analyze the Mapping Nearby Galaxies at APO (MaNGA; Bundy et al. 2015) survey, which pro-vides properties for ∼ 10 , 000 galaxies at z ∼ 0 that we can compute summary statistics from in the same way as we do for the model. We restrict to only star-forming galaxies and require cross-matches to both the Pipe3D stellar population catalog (S´ anchez et al. 2022) as well as Data Release 3 of HI-MaNGA (Masters et al. 2019; Stark et al. 2021), leaving 1787 galaxies in our final sam-ple. More details are given in Appendix A. Finally, to demonstrate the future generality of our framework, we will do posterior predictive checks for a few quantities that we will not directly infer in this first proof-of-concept paper. This includes all three scaling relations at one example higher redshift ( z = 2). For the SMHM relation, we again use the tabulated values for SF centrals from Behroozi et al. (2019) as well as new JWST-based results from Shuntov et al. (2025). For the ISM mass-metallicity relation (MZR) at z = 2, we will show both pre-JWST (Sanders et al. 2021) and post-JWST (He et al. 2024; Khostovan et al. 2025) results, which do not always agree with each other making our approach uniquely powerful. We also predict the star-forming main sequence at z = 0 (using MaNGA SFRs from S´ anchez et al. 2022) and z = 2 (Whitaker et al. 2014; Speagle et al. 2014; Pandya et al. 2017; Clarke et al. 2024).  
+
+> 3.
+
+SAPPHIRE FRAMEWORK DESCRIPTION This section describes the sapphire framework with an emphasis on dynamics and numerics. Our baseline galaxy formation model is from Pandya et al. (2023) and we refer the reader to that paper for more details about it. Figure 1 illustrates the core dynamical components of any baseline SAM as well as several foundational, in-terdisciplinary areas that we needed to bridge to build 
+
+sapphire . Here we only review the elements most rel-evant for this paper. We refer the reader to Appendix B for essential numerical tests, including details about 
+
+diffrax (Kidger 2022), the JAX -based differential equa-tion solver package that we use. 3.1. State variables and evolution equations 
+
+We implement a nearly identical version of the model from Pandya et al. (2023) in JAX with slight modifi-cations as discussed below. Briefly, the model defines eight state variables that summarize the co-evolution of the long-lived stars, ISM and CGM of a galaxy: ⃗x = [ M ∗, M ISM , M CGM , E th CGM , E turb CGM ,M Z 
+
+> ∗
+
+, M Z
+
+> ISM
+
+, M Z
+
+> CGM
+
+] . (1) Here, MX refers to mass and M ZX refers to metal mass, with the stars/ISM and CGM being treated as two sep-6 Viraj Pandya et al. 
+
+Figure 1. Schematic overview of sapphire . The innermost boxes with solid black borders list the five universal ingredients of any dynamical system: state variables ⃗x, evolution equations ⃗ f , free parameters ⃗ θ, initial conditions ⃗x 0 and forcing functions ⃗g. We built sapphire to be differentiable so that we can add small, interpretable neural networks ⃗ fNN to correct model mis-specification (dotted black border). The values and functional forms of these components are dictated by multiple sub-domains spanning both astrophysics and cosmology (blue boxes). The reader is directed to Figure 1 of Pandya et al. (2023) for a visualization of our baseline physical model. Our goal is to discover the unknown, nonlinear, time-dependent structure of this dynamical system using hybrid physics-informed, data-driven techniques, which requires input from both observations and hydrodynamical simulations (yellow arrows). Achieving this requires bridging several foundational interdisciplinary areas including robust numerical methods, GPU parallelization, modular and reproducible code, Bayesian inference techniques and automatic differentiation for training and interpreting neural corrections to baseline dynamical models (outer gray boxes). 
+
+arate “zones.” One unique aspect of the Pandya et al. (2023, see also Carr et al. 2023; Voit et al. 2024b,a) model is that it introduces two new state variables for the thermal energy ( Eth CGM ) and turbulent kinetic energy (Eturb CGM ) of the CGM. These state variables co-evolve ac-cording to this system of nonlinearly 3 coupled ODEs: ˙M∗ = (1 − R) MISM 
+
+tdep 
+
+(2) ˙MISM = MCGM 
+
+tcool ,eff + tff ,eff 
+
+−
+
+
+
+1 + ηM
+
+1 − R
+
+  
+
+(1 − R) MISM 
+
+tdep 
+
+
+
+(3) ˙MCGM = fprev fUV fb ˙MDM − MCGM 
+
+tcool ,eff + tff ,eff 
+
++ ηM
+
+MISM 
+
+tdep 
+
+− ˙Eout ,halo 
+
+ECGM /M CGM 
+
+(4)   
+
+> 3When we say galaxy formation is nonlinear, we mean that, even in the context of this very simple model, it is impossible to rewrite the right-hand side as the product of a state-independent matrix and the state vector itself, plus some vector of constants. This makes the dynamics very hard to understand without the tools we will introduce in this and future papers. The main sources of nonlinearity in the Pandya et al. (2023) ODEs are the new CGM cooling, turbulence dissipation and over-pressurization terms.
+
+sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 7˙Eth CGM = f acc th evir fprev fUV fb ˙MDM −
+
+Z
+
+4πr 2n(r)2Λ( MCGM , E th CGM , Z CGM )dr + Eturb CGM 
+
+tturb 
+
++ f wind th ηE eSN 
+
+MISM 
+
+tdep 
+
+− f th CGM 
+
+"
+
+Eth CGM + Eturb CGM − evir MCGM 
+
+thalo dyn 
+
+#
+
+(5) ˙Eturb CGM = (1 − f acc th )evir fprev fUV fb ˙MDM − Eturb CGM 
+
+tturb 
+
++ (1 − f wind th )ηE eSN 
+
+MISM 
+
+tdep 
+
+− (1 − f th CGM )
+
+"
+
+Eth CGM + Eturb CGM − evir MCGM 
+
+thalo dyn 
+
+#
+
+(6) ˙M Z 
+
+> ∗
+
+= (1 − R) M Z
+
+> ISM
+
+tdep 
+
+(7) ˙M Z 
+
+> ISM
+
+= M Z
+
+> CGM
+
+tcool ,eff + tff ,eff 
+
+− (1 − R + ηM ) M Z
+
+> ISM
+
+tdep 
+
++ (1 − ηZ )(1 − R)yZ
+
+MISM 
+
+tdep 
+
+(8) ˙M Z 
+
+> CGM
+
+= Zin ,halo fprev fUV fb ˙MDM − M Z
+
+> CGM
+
+tcool ,eff + tff ,eff 
+
++ (1 − R + ηM ) M Z
+
+> ISM
+
+tdep 
+
++ ηZ (1 − R)yZ
+
+MISM 
+
+tdep 
+
+(9) We refer the reader to Section 2 and Table 1 of Pandya et al. (2023) for definitions and justifications of the in-dividual terms. In short, these ODEs approximate flows of mass, metals and energy between the galaxy and CGM zones due to cosmic accretion, gas cooling, star formation, supernova (SN) feedback, and CGM over-pressurization. They are, in a sense, “continuity equa-tions” that must hold on galactic scales, but it is not clear a priori how to parameterize the individual terms describing each process. Guided by simple physical ar-guments, Pandya et al. (2023) showed that it is possible to calibrate these ODEs by extracting the time evolu-tion of the state variables and individual source/sink terms from cosmological simulations (using the FIRE-2 suite from Hopkins et al. 2018 as an initial testbed; the analysis followed what was done by Pandya et al. 2020 and Pandya et al. 2021). In this way, simulations can be used to provide “physics-informed priors” where data may otherwise be too ambiguous. Our goal with sapphire is to begin to infer the nonlin-ear, time-dependent structure of this differential equa-tion system from observational data, and then extend it to more state variables in an interpretable way. As a first step towards that vision, here we stick with the baseline equations from Pandya et al. (2023) and infer a subset of free parameters that encode our ignorance about various astrophysical processes. For simplicity, following the Appendix of Pandya et al. (2023), here we set f acc th = f wind th = 1 which prevents driving of turbu-lence and puts the CGM in the purely thermal limit, negating the need to evolve the Eturb CGM state variable (as in Carr et al. 2023). 3.2. Astrophysical parameters 
+
+In this paper, we will infer the mass, energy and metal loading factors of SN feedback as well as the ISM deple-tion time using galaxy scaling relations. Other parame-ters are fixed to what Pandya et al. (2023) found. These are defined as 
+
+ηM ≡ ˙Mwind 
+
+SFR , (10) 
+
+ηE ≡ ˙Ewind 
+
+eSN SFR , (11) 
+
+ηZ ≡ ˙M Z, SN wind 
+
+yZ SFR . (12) Here, eSN = 10 51 erg /100M ⊙ and yZ = 2 M⊙/100 M⊙ ≈
+
+0.02 are, respectively, the specific energy and metal yield from supernovae per 100 M⊙ of stars formed with a canonical Kroupa (2001) or Chabrier (2003) initial mass function (IMF). Note that we define ηZ with respect to only the pure SN-enriched material in the outflow, ˙M Z, SN wind . There is a separate contribution from entrained ISM metals ( ZISM ηM SFR) that together determines the total outflowing metal mass ˙M Z 
+
+> wind
+
+(as in Carr et al. 2023). Lastly, the ISM depletion time is defined as 
+
+tdep ≡ MISM 
+
+SFR . (13) 8 Viraj Pandya et al. 
+
+Motivated by Pandya et al. (2023, see their Figures 4 and 5) for how these astrophysical parameters may vary with halo mass and redshift, here we introduce general-ized power laws for inference: 
+
+θX = 10 AX
+
+ Vvir 
+
+125kms −1
+
+α0  
+
+> X+αzX(1+ z)
+
+(1 + z)βX . (14) Here, θX represents any one of the four astrophysical parameters: ηM , ηE , ηZ or tdep . These are each allowed to vary with halo virial velocity Vvir and redshift z as determined by their respective power law log-amplitude 
+
+AX and slope α0 
+
+> X
+
+. The log-amplitude and slope are both allowed to vary with redshift as dictated by the corresponding βX and αzX parameters. In this first pa-per, we will only use z = 0 galaxy scaling relations as constraints and, for simplicity, we fix all αzX = βX = 0 except for βSF = −0.7 since we know empirically from observations that tdep must decrease with redshift (e.g., see review by Tacconi et al. 2020). 3.3. Cosmology and halo merger trees 
+
+Cosmology provides initial conditions (ICs) and forc-ing functions for our ODEs in the form of halo merger trees. These merger trees determine the initial, evolv-ing and final z = 0 distribution of halo virial masses, radii, velocities and concentrations. For any individual halo, its time-dependent mass accretion rate acts as an external forcing function for the above ODEs. For this work, we use publicly available halo merger trees from the dark matter-only TNG100-1-Dark simulations (Nel-son et al. 2019a; Gabrielpillai et al. 2022), generated with the Rockstar halo finder and consistent-trees codes (Behroozi et al. 2013b,c). The ∼ 10 7M⊙ DM particle mass of TNG100-1-Dark means we can resolve halos as small as ∼ 10 9M⊙, assuming 100 particles are required to adequately measure halo mass and concentration. 4 In order to minimally resolve the main progenitor branch, we make a factor of ten larger cut on the smallest allowed root halo mass: log Mvir /M ⊙ > 10 at z = 0. From the full (100 Mpc) 3 box, we take five random (20 Mpc) 3 sub-volumes which together contain ∼ 10 5 halos above this root mass limit. For our Bayesian inference, we only need a random subset of these halos ( ∼ 10 3) which we select by assigning an inverse weight to each halo based on how many other halos we have of similar mass. This allows us to generate a uniform random root halo mass distribution without over-representing low-mass halos, which are otherwise far more abundant. Our results are  
+
+> 4Throughout we assume the virial overdensity mass and radius definition of Bryan & Norman (1998).
+
+not sensitive to the choice of different random subsam-ples. For numerical compatibility with adaptive ODE solvers, automatic differentiation, and massive vector-ization and parallelization (Appendix B below), we need to smoothly interpolate these merger trees. By de-fault, the TNG100-1-Dark trees record halo properties at ∼ 100 discrete snapshots from z ∼ 10 to z = 0. We first use finite-differencing to convert the time se-ries of halo mass into a mass accretion rate, requiring that the halo mass can only ever increase and setting the accretion rate to zero otherwise. 5 Following subsec-tion 2.7 of Pandya et al. (2023), we apply a 1D Gaussian smoothing 6 to five time series: (1) halo mass accretion rate, (2) virial mass, (3) virial radius, (4) virial veloc-ity and (5) concentration, using the Klypin et al. (2001) definition for the latter. Since every halo starts at a different initial redshift (depending on when its earliest main branch progenitor was first resolved/identified), we first use a cubic univariate spline to interpolate all halos onto the same common time grid, zero-padding earlier non-existing snapshots as needed. Then we use differen-tiable cubic Hermite splines with backward differences (Morrill et al. 2021) to interpolate each of the five time series, resulting in a coefficient matrix encoding time-dependent forcing functions for each halo ODE system. This coefficient matrix has the same fixed shape for all halos and can be stacked for efficient vectorization and parallelization. Finally, we compute the ICs of our ODE state vari-ables by assuming that every halo starts out with CGM mass MCGM = fbMvir where fb = Ω b/ΩM = 0 .158 is the universal cosmic baryon fraction, CGM thermal en-ergy Eth CGM ∼ MCGM V 2vir and small but non-zero stellar mass, ISM mass, and metal masses corresponding to an initial metallicity Z/Z ⊙ = 10 −4 with Z⊙ = 0 .02. The small, non-zero initial masses are required since we solve our ODEs using logarithmic state variables for numer-ical stability, but our results are not sensitive to rea-sonable IC variations because the rapid, steep assembly phase of halos dominates early galaxy evolution in our model. Note that even though halos are initialized with their fair share of the cosmic baryon fraction, they may end up being depleted of baryons if their CGM becomes significantly over-pressurized (Pandya et al. 2023; Carr             
+
+> 5In this paper, we only model central galaxies. Subhalos, which host satellite galaxies, can experience mass loss but we defer those to Gabrielpillai et al. (in prep.).
+> 6We arbitrarily choose a Gaussian width of 10 snapshots which corresponds to ∼30 Myr at z∼10, increasing to ∼200 Myr at
+> z∼0.
+
+sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 9et al. 2023; Voit et al. 2024b,a) and/or if photoionization from the cosmic ultraviolet background suppresses halo accretion which can happen for the lowest mass dwarfs we consider (we follow the approach of Gnedin 2000; Somerville 2002; Kravtsov et al. 2004; Okamoto et al. 2008).  
+
+> 4.
+
+METHODS In this section, we describe our methods for local and global sensitivity analysis with Jacobians, parameter op-timization, and Bayesian inference. We again refer the reader to Appendix B for important numerical tests. Figure 2 serves as an outline for this section and sum-marizes our essential modeling steps. After fixing our choice of numerics (Appendix B) and cosmology (sub-section 3.3), we draw astrophysical parameters from priors 7, evolve an ensemble of galaxy state variables through time using our ODEs, compute differentiable summary statistics, compute a likelihood and its gradi-ent, and repeat this process until convergence using gra-dient descent and/or Hamiltonian Monte Carlo (HMC). We now describe each of these steps in turn, starting with Latin hypercube sampling over our choice of pri-ors. 4.1. Latin hypercube sampling with uniform priors 
+
+Throughout this paper we will want to assess the causal identifiability 8 of our model across parameter space given just a few z = 0 galaxy scaling relations as constraints. For this, we will use mock tests and local sensitivity analyses at many different points throughout parameter space (as well as efficient parameter optimiza-tion and inference techniques). Even with only 8 free pa-rameters, it is prohibitively expensive to do grid-based sampling so instead we adopt Latin hypercube sampling (e.g., see Bower et al. 2010; Villaescusa-Navarro et al. 2021; Perez et al. 2023; Ho et al. 2024; Chaikin et al. 2025). We draw N random points in our 8-dimensional parameter space by sampling each along its respective prior and then stacking the resulting parameter vectors. For simplicity, we adopt uniform priors for all parame-ters. The slope parameters are limited to −4 < α 0 
+
+> X
+
+< 0. For the log-amplitudes, we impose AM ∈ [−2, 1], AE ∈
+
+[−2, 0], ASF ∈ [0 , 1.1] and AZ ∈ [−2, 0]. In principle, we could have allowed for infinitely wide priors, but we al-ready know that some combinations are unphysical. For example, energy loading from SNe alone cannot exceed       
+
+> 7In principle, we can also vary cosmology, but that is deferred to future work.
+> 8As explained in Subsection 1.2, by this we mean mapping noisy observable outputs back to input model parameters.
+> Figure 2. Flowchart illustrating our galaxy population evo-lution model that bridges numerics, cosmology, astrophysics and Bayesian statistics. We first choose our numerical setup (ODE solver, automatic differentiation method and paral-lelization strategy). Next, we interpolate halo merger trees which provides initial conditions and forcing functions for our galaxy formation ODE system. In principle, this step can involve cosmology variations but we neglect that here. After drawing the astrophysical parameters from their re-spective priors, we evolve the ODE system for our ensemble of galaxies in parallel, compute summary statistics with dif-ferentiable Gaussian kernel regression, and finally compute the explicit assumed Gaussian likelihood and its gradient with respect to each astrophysical parameter. The latter enables efficient Bayesian MAP optimization and/or Hamil-tonian Monte Carlo inference.
+
+one due to continuity arguments, and SN feedback alone is unlikely to cause loading factors to increase with halo mass since potential wells get deeper. Our limited (but still quite large) uniform prior ranges encode these “im-plicit” physical arguments to prevent us from wasting computation in pathological parts of solution space. 4.2. Sensitivity Analysis with Jacobians 
+
+Even without defining a loss or doing any inference, we can immediately assess the sensitivity of our dynam-ical model parameters to its different outputs. In this paper, we use forward-mode autodiff to compute the Ja-cobian matrix of partial derivatives of our z = 0 galaxy 10 Viraj Pandya et al. 
+
+state variables with respect to our eight free astrophys-ical amplitude and slope parameters: 
+
+J =
+
+    
+
+> ∂log M∗
+> ∂A M
+> ∂log M∗
+> ∂α 0
+> M
+
+. . . ∂ log M∗  
+
+> ∂A Z
+> ∂log M∗
+> ∂α 0
+> Z
+
+... . . . . . . . . . ...      
+
+> ∂log MZ
+> CGM
+> ∂A M
+> ∂log MZ
+> CGM
+> ∂α 0
+> M
+
+. . . ∂ log M Z   
+
+> CGM
+> ∂A Z
+> ∂log MZ
+> CGM
+> ∂α 0
+> Z
+
+
+
+(15) The rows of J are called “gradients” of a single state variable with respect to all parameters at once. The columns are referred to as parameter sensitivities, show-ing the effect of perturbing a single parameter on all state variables at once. By construction, Jacobians are local measures of the nonlinear sensitivity of our galaxy state variables to free parameters. Thanks to the com-bination of jit and auto-diff, for the first time, we will be able to compute these local sensitivity metrics at any arbitrary point across the global parameter space. This provides a fundamentally new and complementary technique for model interpretability compared to tradi-tional coarse-grained parameter variations. Note that 
+
+J is time-dependent since the ODE system is subject to forcing functions from cosmology-dependent merger trees as well as redshift-dependent astrophysical param-eters. In Appendix B, we compare the accuracy of our auto-diff Jacobians to those computed with expensive finite-differencing. 4.3. Differentiable Gaussian kernel regression 
+
+In this paper, we will employ explicit likelihood in-ference so we need to compute summary statistics from the set of discrete data points representing our individ-ual evolved model galaxy properties. 9 Traditional ap-proaches involving hard, fixed bins suppress the flow of gradient information, preventing the application of dif-ferentiable inference techniques. As a simple alterna-tive, here we use univariate Gaussian kernel regression for each of the three scaling relations individually (es-sentially soft binning). Briefly, each point is convolved with a Gaussian along the independent variable axis to provide a smooth, non-parametric, locally-weighted av-erage of the dependent variable. The normalized weight of the ith point at location x is 
+
+Wi(x) = N (x − xi, σ 2 
+
+> W
+
+)
+
+P 
+
+> j
+
+N (x − xj , σ 2 
+
+> W
+
+) (16) where N (. . . ) denotes a Gaussian. The Gaussian ker-nel bandwidth σW is assumed to be the same for every   
+
+> 9Makinen et al. (in prep.) will present implicit likelihood inference which can non-parametrically learn the full, joint distribution of
+> sapphire model outputs.
+
+point, and it depends on both the actual covariance of the data as well as the sample size following the empir-ical “Scott’s rule” (Scott 2010): 
+
+σW = σx · N −1/(d+4) (17) with d = 1 for our univariate regression case. Here we take the zeroth order average of the Gaussian contribu-tions at a given location, which is known as Nadaraya-Watson regression (Nadaraya 1964; Watson 1964). As an example, the kernel-weighted average SMHM ratio 
+
+y ≡ log M∗/M vir at an arbitrary x ≡ log Mvir /M ⊙ is: ¯y(x) = X Wi(x − xi) · yi (18) where the sum runs over all data points ( xi, y i). The intrinsic standard error on ¯ y(x) is: 
+
+σ¯y (x) = 
+
+ P Wi(x − xi) · (yi − ¯y(x)) 2
+
+Neff (x)
+
+1/2
+
+(19) where 
+
+Neff (x) = 1
+
+P W2 
+
+> i
+
+(x) (20) is the local effective sample size at x based on the squared sum of normalized Gaussian weights. Figure 3 shows prior predictive checks for the three 
+
+z = 0 galaxy scaling relations that we will focus on in this paper. The priors correspond to the same uni-form ranges for the eight parameters discussed in Sub-section 4.1. For all three quasi-observables, the prior predictive checks encompass the data, which means we can pursue inference in Section 6. Interestingly, the 
+
+fISM ≡ MISM /M ∗ relations span a wide range above and below the data but the distribution of SMHM and MZR relations tend to be on the higher side compared to the data. This is telling us something about both the baseline model and data. For example, if we turn off pre-enrichment of halo inflows, this allows us to pre-dict ISM MZRs with even lower normalizations, which will be useful when we interpret our posterior predictive checks in Subsection 6.4. 4.4. Loss function and posterior 
+
+We assume an independent Gaussian log-likelihood for every individual kernel-weighted average across all three 
+
+z = 0 scaling relations: 
+
+log L(⃗θ) = − 12
+
+X
+
+> i
+
+" ¯yi − ¯yobs 
+
+> i
+
+σi, tot 
+
+2
+
++ log(2 πσ 2
+
+> i, tot
+
+)
+
+#
+
+(21) 
+
+where the subscript i runs over regression kernels and 
+
+σi, tot (⃗ θ) = 
+
+q
+
+σ2 
+
+> W
+
++ σ2 
+
+> i, obs
+
+(22) sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 11 
+
+Figure 3. Prior predictive checks for the three z = 0 galaxy scaling relations we focus on in this paper. In each panel, the black line comes from data and the gray lines are draws from uniform priors for model parameters. Left: stellar-mass-halo-mass relation. Middle: total ISM-to-stellar-mass ratios as a function of stellar mass. Right: ISM mass-metallicity relation. The prior predictive checks span the range of the data. In the right panel, we further show the effect of turning off pre-enriched halo inflows (magenta lines) which causes the ISM MZRs to reach a lower floor compared to our fiducial model. This will be used in Subsection 6.4 to interpret our baseline posteriors and illustrate the impact of MZR systematics. 
+
+is the total uncertainty from quadrature summing the intrinsic model scatter and measurement errors on y.To account for measurement errors in both x and y, we use the approach of “multiple imputations” as described in Appendix A. The dependence of the log-likelihood on parameters ⃗ θ comes through both ¯ yi and σi, tot . For simplicity, we assume no covariance between the three 
+
+z = 0 scaling relations so we can further just sum their individual log-likelihood contributions. We know this is not correct because of the existence of multi-dimensional galaxy scaling relations and that it erases some informa-tion (e.g., Jo et al. 2026), but it is sufficient for our proof-of-concept demonstration (we can also address this with implicit likelihood inference; Ho et al. 2024, and Maki-nen et al., in prep.). Since we assume uniform priors for all parameters, our likelihood is equivalent to the pos-terior. Taking its negative gives us a loss function that we can minimize with gradient descent (subsection 4.6) and/or explore in a fully Bayesian way with Hamiltonian Monte Carlo (subsection 4.7). 4.5. Fisher/Laplace analysis 
+
+The curvature of the loss landscape encodes the sen-sitivity of the model to our astrophysical parameters ⃗ θ.This loss landscape remains largely uncharted for com-plicated, nonlinear and historically expensive dynamical galaxy formation models such as ours. One way to probe this sensitivity both locally and globally is to compute the Hessian of our loss function throughout parameter space. This is routinely done in precision cosmology (Turner 2022) and sometimes for empirical abundance-matching models (Wechsler & Tinker 2018), but never for physically-grounded dynamical models. The Hessian is a symmetric, positive-definite matrix that encodes the second-order gradients of the loss: 
+
+H =
+
+
+
+− ∂2 log L 
+
+> ∂2AM
+
+· · · · · · · · · · · · − ∂2 log L 
+
+> ∂A M∂α 0
+> M
+
+− ∂2 log L
+
+> ∂2α0
+> M
+
+· · · · · · · · · 
+
+... . . . . . . . . . ...
+
+− ∂2 log L  
+
+> ∂A M∂A Z
+
+− ∂2 log L  
+
+> ∂α 0
+> M∂A Z
+
+· · · − ∂2 log L 
+
+> ∂2AZ
+
+· · · − ∂2 log L 
+
+> ∂A M∂α Z
+> 0
+
+− ∂2 log L 
+
+> ∂α 0
+> M∂α Z
+> 0
+
+· · · − ∂2 log L 
+
+> ∂A Z∂α 0
+> Z
+
+− ∂2 log L
+
+> ∂2α0
+> Z
+
+
+
+(23) The diagonal entries give the marginal parameter sen-sitivities whereas the off-diagonals encode degenera-cies between different combinations of two parameters. Just like the Jacobian (equation 15), the Hessian varies across parameter space. At minima, we can use the Fisher/Laplace approximation to invert H, which pro-vides errorbars (i.e., a full covariance matrix) for pa-rameters assuming the posterior was locally Gaussian. At saddle points, the Hessian is non-positive-definite so an inverse does not exist and local parameter uncertain-ties cannot be computed. In this paper, we will run multiple gradient descent trajectories (subsection 4.6) to identify the maximum a posteriori (MAP) point esti-mate of parameters and compute the covariance matrix there. This is a useful, efficient method that comple-ments fully Bayesian HMC, which is much more expen-sive (subsection 4.7). 4.6. MAP optimization with gradient descent 
+
+To efficiently find MAP point estimates, we use gra-dient descent with the adam optimizer (Kingma & Ba 2017) as implemented in the JAX optax library (Deep-Mind et al. 2020). Briefly, adam applies a series of transformations to our “raw” first-order gradient of the 12 Viraj Pandya et al. 
+
+loss function. 10 These transformations include averag-ing over the history of past gradients (“momentum”) to smooth over stochastic noise and identify directions in parameter space where the loss consistently decreases. To prevent large parameter jumps, we first clip the raw gradient vector so that its norm is one. At each iteration, the parameters are updated in the direction opposite to the gradient so that the loss decreases: ⃗θnew =⃗ θ − αlr fadam [∇(− log L)] (24) where fadam (. . . ) denotes that adam transformations are applied to the raw-clipped gradient of the loss (nega-tive log-likelihood). αlr is the learning rate (effectively a step size) which determines the update for each pa-rameter. Normally, the learning rate is considered a hyper-parameter that must be tuned but we forgo that for the simple proof-of-concept demonstrations in this paper. We assume an exponentially decaying learning rate schedule with an initial value of 0 .01, a decay rate of 0.95 every 50 steps, and a floor of 10 −4. Our conver-gence/stopping criteria are that both the norm of the parameter update vector and the relative change in the loss must be less than 10 −3. We find that this generally suffices to get near the central bottom of minima. 4.7. Hamiltonian Monte Carlo 
+
+To complement our local Fisher/Laplace analysis (subsection 4.5), we utilize HMC which performs fully Bayesian exploration of the global parameter space guided by gradients. We use the No U-Turn Sampler variant (NUTS; Hoffman & Gelman 2014) implemented in the JAX -compatible numpyro probabilistic program-ming language (Phan et al. 2019). We refer the reader to Betancourt (2017) for a conceptual introduction to HMC. Briefly, at each point in parameter space, the loss is analogous to a potential energy that we want to min-imize and the gradient of the loss is akin to a force that determines parameter update directions. Given some starting position in parameter space, a random momentum vector is drawn from a multivariate normal with zero mean and a covariance (“mass”) matrix that is typically adapted during warm-up based on the av-erage curvature of the loss landscape. The joint po-sition–momentum system is then evolved according to Hamilton’s equations, where gradients of the loss act as forces that update the momentum. Unlike adam , a sin-gle iteration of HMC can involve hundreds or thousands of loss and gradient evaluations to generate a long, cor-related trajectory through parameter space. In exact  
+
+> 10 Since the loss is a scalar, its Jacobian is a single-row matrix.
+
+arithmetic the Hamiltonian (the sum of potential and kinetic energies) would be conserved; in practice, nu-merical integration errors are corrected by a Metropo-lis–Hastings accept/reject step at the end of each tra-jectory. The NUTS variant of HMC further automates this process by adaptively selecting: (1) the step size to target a desired acceptance probability during warm-up, and (2) the number of integration steps by terminating trajectories that begin to turn back on themselves. Although HMC can be ∼ 100 × faster to converge than standard MCMC, it is still extremely expensive, espe-cially for dynamical population evolution models like ours where we need to solve ODE systems in parallel for ∼ 10 3 galaxies per iteration. Since the Hamilto-nian needs to be conserved, we do not have the flex-ibility to clip and arbitrarily transform gradients like for adam . Thus, HMC/NUTS is susceptible to choos-ing impractically small step sizes if it detects regions of very high curvature, as can happen near steep minima. In practice, by including measurement uncertainties for our Gaussian kernel regression, we effectively smear and smooth the loss landscape, enabling efficient HMC. We will show that the loss landscape is slightly multimodal depending on what constraints are used, but different HMC chains are able to switch between the modes. We do not find evidence that our fiducial choice of ODE solver and tolerances affect convergence across param-eter space, which would otherwise require these to be fine-tuned. Here we impose a target acceptance probability of 0.8 with a maximum allowed 2 10 steps per trajectory, as recommended by numpyro . We generally only need ∼
+
+1000 warmup iterations with a dense mass matrix and draw ≳ 1000 samples to map the posterior. We run four chains in parallel and verify that we are converged by requiring that the Gelman & Rubin (1992) statistic is 
+
+≈ 1. We will use HMC primarily for fitting the observed data and forecasting the impact of different statistical and systematic uncertainties.  
+
+> 5.
+
+SENSITIVITY ANALYSES AND MOCK TESTS In this section, we show that the Jacobians of indi-vidual and ensembles of halos have non-random, inter-pretable structure. We then use the information pro-vided by these gradients to perform mock parameter re-covery tests. 5.1. Example Jacobian of a single MW galaxy at z = 0 Figure 4 illustrates an example Jacobian sensitivity matrix for a single z = 0 MW-mass halo at a random point in parameter space. We can immediately see that the energy loading power law amplitude AE dominates sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 13 the sensitivity for every state variable. This is gener-ally the case throughout parameter space and for other halos (see next subsection). The signs of the gradients make sense: as we increase energy loading, the ther-mal energy of the CGM increases which reduces ISM accretion and ultimately the SFR. We also find a much weaker sensitivity to mass loading amplitude, which in some cases has the opposite sign (e.g., increasing AM
+
+increases z = 0 stellar mass, unlike increasing AE ; see also Carr et al. 2023; Voit et al. 2024b,a). There is only mild sensitivity to the ISM depletion time and metal loading parameters. The z = 0 metal mass state vari-ables show an order of magnitude greater sensitivity to 
+
+AE than AZ , but the sensitivity to the latter may help break degeneracies between ηM and ηZ .5.2. Jacobians across parameter space for many halos 
+
+It is remarkable that we were able to identify and in-terpret systematic patterns in the Jacobian of a single random MW-mass halo. But does that clarity trans-late to ensembles of halos? Figure 5 extends the pre-vious analysis to 1000 halos spanning a range of halo masses (and formation histories) for which we compute the z = 0 Jacobian in each of 1000 random latin hyper-cube realizations (for a total of 1 million Jacobians). 11 
+
+We confirm that AE dominates the sensitivity regard-less of halo mass or location in parameter space. The only exception is low-mass halos for high AE which show decreased sensitivity because ηE gets clipped to be ≤ 1(similar behavior is seen for high values of AM and AZ
+
+as well as very steep α0 
+
+> E
+
+). Another interesting feature is a low-sensitivity “stripe” at log Mvir /M ⊙ ∼ 11 .8 for all four slope parameters. This happens because that mass corresponds to the reference point Vvir ≈ 125 km s −1
+
+in our assumed power law functional forms (see Subsec-tion 3.2). The gradient of those functions with respect to the slope goes to zero exactly at the reference point and remains ≲ 10 −2 in a region whose width depends on the value of the power law normalization. This just means that we need more halos of other masses to con-strain slope parameters (though of course the reference point is arbitrary and could be moved). 5.3. Mock parameter recovery tests with adam 
+
+Now we turn to mock parameter recovery tests using gradient descent. Following Section 4, we generate 100 random points in parameter space, evolve 1000 halos for each realization, summarize the three z = 0 scaling re-lations, define a loss involving combinations of the mock relations, run adam from three different initial guesses to  
+
+> 11 This expensive application demands multi-GPU parallelization.
+
+find the MAP, and finally compute the local Fisher ma-trix. We repeat this for all seven possible combinations of the three scaling relations but our default progression in this paper will be to start with the SMHM only, then add ISM gas fractions, and then incorporate the ISM MZR. In this subsection, we start with the best case scenario of no measurement uncertainties, adding those in the next subsection. Figure 6 summarizes the identifiability of our input model parameters given different combinations of output 
+
+z = 0 scaling relations. With the z = 0 SMHM relation as the only constraint, AE is often converged to the true value. However, the loss landscape contains many saddle points and long, flat plateaus that adam gets stuck in, so many of the other parameters are not well constrained and Fisher uncertainties cannot be computed due to the absence of a local minimum where adam ended. 12 This is also the case if we use only fISM or the ISM MZR as single constraints. If we combine the z = 0 SMHM rela-tion with fISM , many of these false minima and saddle points go away because the ISM depletion time param-eters get pinned down precisely, in turn enabling tight constraints on AE , αE , ASF , αSF and cases with high 
+
+AM ≳ 0. But strong degeneracies remain between mass and metal loading parameters with AZ and αZ for the latter showing large scatter. Again, other combinations of only two relations show similarly large degeneracies for some parameters. Adding ISM MZR information to SMHM and fISM helps break the ηM − ηZ degeneracy leading to smaller uncertainties and more accurate pa-rameter recovery. Naturally, the best precision and ac-curacy are achieved with all three constraints combined. 5.4. Precision and bias summary statistics 
+
+Figure 7 summarizes our maximum achievable preci-sion in the best case scenario of no measurement un-certainties. We focus only on the default progression corresponding to the top three rows of Figure 6. With 
+
+M∗/M h as the only constraint, AE is pinned down rela-tively well but many of the other parameters have large Fisher uncertainties. This happens because adam fre-quently cannot pin down the true tdep parameters. Pro-gressively adding fISM and ISM MZR decreases the un-certainties around θMAP as given by the diagonals of the Fisher matrix. We also consider the bias (accuracy) which we de-fine as the difference between θMAP and θtrue normalized by σtrue Fisher . The distribution of these normalized Fisher   
+
+> 12 Later in section 6, when fitting actual data, we will get around this by also running HMC to map the full posterior, not just the MAP with adam .
+
+14 Viraj Pandya et al. 
+
+Figure 4. Example Jacobian at a random point in parameter space for a single MW-mass halo showing the exact z = 0 sensitivity of the ODE state variables to parameter variations. The non-random structure of this Jacobian encodes the astrophysics and locally linearized dynamics of our galaxy formation model. Note that the colorbar uses a symmetric log normalization. The greatest sensitivity is to the energy loading normalization (third column). Mass loading sensitivity is weaker and has the opposite effect of energy loading for many state variables. Metal loading only affects the metal mass state variables (lower right). There is only mild sensitivity to the ISM depletion time parameters. 
+
+residuals is centered on zero and generally falls within 
+
+±1σ of the true minimum. Note that it is difficult to get exactly to the bottom of the true minimum, espe-cially when the loss landscape is steep, and this requires fine-tuning of the optimizer which is beyond the scope of (and unnecessary for) this paper. Overall, we are unbiased in the noise-free case and, as we will show in the next subsection, also when including observational uncertainties. The third row of Figure 7 investigates the optimiza-tion failure rate as a function of included constraints. We define failure as adam ending at a saddle point from all three initializations. Thus the Hessian would not be invertible and the Fisher matrix cannot be computed to give parameter uncertainties and degeneracies. The fail-ure rate defined in this way is surprisingly high at ∼ 90% when M∗/M h is the only constraint. Again, this hap-pens because without additional constraints from fISM ,
+
+adam cannot identify the true tdep parameters so even if it has found the correct value of, e.g., AE , we are still likely at a saddle point in the broader high-dimensional landscape. As we add more constraints, the failure rate drops dramatically and is nearly zero when including both fISM and the ISM MZR. This emphasizes the need to supplement adam with methods like HMC that map the full posterior. Lastly, in the bottom row of Figure 7, we compute the condition number κ of the Fisher matrix, which quantifies how “stretched out” the Fisher ellipsoid is locally around the θMAP found by adam . A smaller κ
+
+denotes a more spherical, less degenerate local posterior whereas a large κ indicates that the posterior is strongly stretched out along certain parameters compared to oth-ers. 13 Note that we deliberately defined our free param-eters and state variables to all be of order unity which simplifies the interpretation of κ. Figure 7 reveals that κ
+
+decreases by a factor of ∼ 10 as we add more constraints. This can be understood as degeneracies being weakened         
+
+> 13 Specifically, κis the ratio of the largest to smallest eigenvalue of the Fisher matrix. The individual off-diagonal entries of the Fisher matrix encode detailed information about correlations be-tween specific parameters whereas κis a simple summary statistic of the overall ellipticity of the N-dimensional Fisher ellipsoid.
+
+sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 15                      
+
+> Figure 5. Fractional sensitivity across parameter space for a range of halo masses. Brighter colors correspond to higher sensitivities. The 2D histogram panels show the ratio of the norm of each Jacobian column (parameter sensitivity) to the norm of the entire Jacobian matrix as a function of parameter value and halo mass. The combined sensitivity of all state variables to
+> AEdominates over their sensitivity to the other parameters. The AEsensitivity drops for low-mass halos in high AEand/or very steep α0
+> Erealizations because we clip ηE≤1. The cyan dotted lines mark the parameter values of the example Jacobian for the single MW-mass halo from Figure 4. The lack of sensitivity for the four slope parameters near log Mvir /M ⊙∼11 .8 is due to reference point Vvir ≈125 km s −1in our power law functional form where the gradient with respect to αnaturally goes to zero.
+
+or even broken as additional quasi-observables provide more information about model parameters. There is not much difference in κ between including or excluding the ISM MZR at least in this best case of assuming no measurement uncertainties. This plateau likely reflects the strong degeneracy between parameters like ηM and 
+
+ηZ that may require additional data beyond these three 
+
+z = 0 constraints alone to break. 5.5. Dependence of mock tests on observational errors 
+
+In the previous two subsections, we assumed the best case scenario of no measurement uncertainties and sys-tematics. Here we incorporate observational uncertain-ties reflective of our data as described in Section 2 and Appendix A. For simplicity, to each standard error from our Gaussian kernel regression, we add in quadrature a constant 0 .1 dex for the SMHM relation, 0 .2 dex for ISM gas fractions and 0 .3 dex for the ISM MZR. We then re-run our parameter recovery tests with adam for the same 100 random mocks as before. We repeat this two more times using half and tenth the errors given above. For this subsection, we restrict ourselves to only fitting all three z = 0 scaling relations together since the previous tests already revealed that using only one or two is insufficient for adam .Figure 8 summarizes the dependence of mock preci-sion and bias on assumed error for each parameter. Im-portantly, the bias remains close to zero indicating that adding in these uncertainties does not cause adam to systematically end too far from the true minimum. The spread in bias does get larger for smaller errors, but just like in Figure 7, this reflects the fact that we have not tuned the adam hyper-parameters to take into account the changing steepness of the loss landscape. Naturally, the precision on every parameter improves as the ob-servational error decreases. The behavior appears close to linear with a factor of two (ten) drop in observa-tional error leading to a factor of two (ten) decrease in parameter uncertainty. This exercise suggests that we can achieve percent-level precision on many parameters with sufficiently small observational uncertainties. We will return to this in Subsection 6.3 when fitting actual observational data.  
+
+> 6.
+
+APPLICATION TO DATA 16 Viraj Pandya et al. 
+
+Figure 6. Mock parameter recovery tests using different combinations of z = 0 quasi-observable scaling relations in the best case scenario of no measurement uncertainties. Circles and errorbars show the MAP and Fisher uncertainty from adam . Crosses indicate that all three adam trajectories ended at a saddle point and we report only the lowest-loss solution. The top three rows with the gray background reflect our default progression for the rest of this paper: starting with SMHM as the only constraint (teal), then adding fISM (indigo), and subsequently adding ISM MZR (orange). The next four rows show other possible combinations of one or two relations. The best precision and accuracy are achieved when all three constraints are combined. In other cases, AE is well recovered but there are often saddle points leading to poor convergence for the other parameters. Note how, in our default progression, combining SMHM and fISM pins down the ISM depletion time and energy loading, but strong degeneracies remain between mass and metal loading. Incorporating the ISM MZR distinguishes mass and metal loading parameters with smaller uncertainties. The sheer number of mock parameter optimizations here (300 adam 
+
+trajectories per row; 2100 in total) demonstrates the power of sapphire to accelerate model calibration and development. sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 17                 
+
+> Figure 7. Mock parameter recovery summary statistics for our default progression of combining SMHM, fISM and ISM MZR (i.e., the top three rows from Figure 6). This is the best case with no measurement uncertainties. Top row: Precision as quantified by Fisher parameter uncertainties normalized by the MAP parameter value. The errorbars denote the 16, 50 and 84th percentiles from all mock realizations. Naturally, uncertainties improve as more constraints are included: teal for only M∗/M h, purple when adding fISM , and orange when further including the ISM MZR. Second row: Bias defined as the deviation of the MAP from the true parameter value normalized by the true minimum Fisher curvature. We are generally within ±1σof the true minimum and hence unbi-ased. Third row: optimization failure rate (fraction of mocks where all 3 adam optimizers ended at a saddle point) drops as we add more constraints. With M∗/M halone, there are many more false saddle points for gradient descent to get stuck in. Fourth row: condition number of the Fisher ma-trix (proxy for parameter degeneracy strength) also drops as we add more constraints.
+
+In this section, we combine the different quasi-observables described in Section 2 to infer sapphire pa-rameter posteriors and interpret the underlying physics. 6.1. Posterior predictive checks 
+
+Figure 9 starts off by showing posterior predictive checks from fitting different combinations of the data. Whereas the prior predictive checks from Figure 3showed much larger variations in the model relations compared to the data, the posterior predictive checks are more tightly constrained. It is not surprising that, when we leave one or more constraints out, the posterior predictives for those observables are wider than allowed by the data. For example, fitting SMHM alone does not automatically constrain the fISM and the ISM MZR predictions to the range of the data. This implies that there are multiple star formation and stellar feedback scenarios consistent with the same z = 0 SMHM rela-tion. Combining SMHM with fISM leads to many MZR realizations higher than observed. Nevertheless, it is encouraging that when we fit to all three constraints to-gether, sapphire is able to simultaneously match those relations. The agreement with the data is essential be-cause it means that we can analyze the parameter pos-teriors to interpret the physics implied by our dynamical model, which we turn to next. 6.2. Joint posteriors for astrophysical parameters 
+
+Figure 10 shows joint posteriors for astrophysical pa-rameters when fitting different combinations of data (corresponding to the previous Figure 9). One immedi-ate takeaway is that the amplitude of the energy loading power law is tightly constrained to AE ∼ − 0.5, implying 
+
+ηE ∼ 0.3 for MW-mass halos and rising to ηE ∼ 0.4−1.0for lower-mass halos, depending on the slope αE which is less well constrained. The tight posterior on AE is not surprising since our Jacobian analysis revealed that it is the parameter that state variables have the highest sensitivity to, including M∗ alone (Figures 4 and 5). However, when fitting to SMHM alone, most other parameters are poorly constrained. For example, the metal loading parameter posteriors are effectively the same as our assumed uniform priors. The mass load-ing power law amplitude posterior is also unconstrained, though there is a slight preference for a very steep slope 
+
+αM < −2. Some weakly constrained parameters show complicated degeneracies. For instance, the amplitude and slope of the tdep power law are positively corre-lated: higher ASF corresponds to a shallower slope. This makes sense since the z = 0 SMHM relation encodes only the integrated star formation history, and many different tdep power laws can reproduce this depending on whether star formation is efficient at early or late times. Breaking that degeneracy between ASF and αSF 
+
+requires adding an independent constraint such as SFRs or ISM gas fractions. 18 Viraj Pandya et al. 
+
+Figure 8. Dependence of mock precision (black) and bias (blue) on assumed observational uncertainty. The left (right) column shows amplitude (slope) parameters. The fiducial observational uncertainty reflects our data as described in Section 2 and Appendix A. Here we always fit to all three z = 0 scaling relations and the errorbars reflect the 16-84 percentile spread across 100 random mocks. The precision improves as the observational error decreases, following a roughly linear behavior. The bias, defined as in Figure 7, also remains high. The larger spread in bias for smaller errors reflects the lack of tuning of adam 
+
+hyper-parameters to account for very steep loss landscapes, but that is unimportant for this paper. 
+
+Figure 9. Posterior predictive checks from fitting different combinations of the z = 0 SMHM relation (left panel), ISM gas fractions (middle panel) and ISM MZR (right panel). In every panel, the black lines are for the data and there are three different sets of 100 colored lines which represent random draws from the posterior of a particular data combination (see legend). Note how the posterior draws are much tighter than the prior predictive checks from Figure 3. When fitting to the SMHM relation alone (teal lines), large variations are allowed for the model fISM and MZR. Combining SMHM and fISM (indigo lines) leads to tight fits for those two, but posterior predictive checks for the MZR tend to be higher than observed. It is possible for sapphire 
+
+to simultaneously fit all three relations together (orange). sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 19                                  
+
+> θp16 p50 p84
+> AM-0.013 0.218 0.404
+> α0
+> M-3.313 -2.420 -1.279
+> AE-0.590 -0.554 -0.515
+> α0
+> E-1.325 -0.934 -0.588
+> ASF 0.851 0.884 0.914
+> α0SF -2.672 -2.342 -1.989
+> AZ-1.768 -1.214 -0.626
+> α0
+> Z-2.992 -1.441 -0.402
+> Table 1. Parameter posteriors from fitting all three z=0 scaling relations together (corresponding to the orange curves in Figures 9 and 10). We provide the 16, 50 and 84 percentiles to summarize each marginal parameter poste-rior. The HMC chains used to create this table are available on the sapphire GitHub repository.
+
+Indeed, when we add fISM as a second constraint, the tdep power law amplitude and slope posteriors be-come tighter and more localized. The posterior of the mass loading power law amplitude also begins to take shape: it is multimodal with a large, broad peak at 
+
+AM ∼ 0 (corresponding to a weak mass loading solution) as well as a second mode at AM ∼ 0.8 (corresponding to more ejective feedback). 14 The energy loading and metal loading posteriors remain unchanged. When we add the ISM MZR as a third constraint, the mass loading amplitude posterior becomes tighter at 
+
+AM ∼ 0.2, consistent with relatively weak ejective feed-back. The metal loading is still largely unconstrained, likely due to the large uncertainties on the ISM MZR, though there is a slight preference for low amplitude and shallow slope. The other posteriors remain similar to the case of jointly fitting SMHM and fISM . Table 1 summarizes our posteriors for this case of combining all three observables. This leaves us wondering: what do these posteriors mean? Why do our observational constraints correspond to the posterior distributions that they do? By how much would the posteriors improve if the data uncertain-ties were lower? Understanding this requires additional inference runs with controlled data variations, which we turn to next. 6.3. Forecasting the impact of smaller errors 
+
+One way to appreciate the power of the sapphire ap-proach is to forecast how the precision on physical pa-rameters improves with tighter observational errorbars. This can quickly become unwieldy so for simplicity, here    
+
+> 14 As explained in Subsection 4.7, we verified that our Gelman & Rubin (1992) statistic is ∼1 so this multimodality is not due to different chains getting stuck in separate minima.
+
+we restrict to scaling the existing observational error-bars down by a constant factor of two or ten, includ-ing systematics. We only consider the case of fitting all three datasets together since we showed earlier that is necessary. We also compare HMC and gradient de-scent, where for the latter we take the lowest-loss MAP from ten adam trajectories. Given the flatness of the loss landscape along the mass and especially metal loading parameter directions, adam always converges to a saddle point so we cannot obtain a local Fisher uncertainty, ex-cept in the case where we drop the observational errors by a factor of ten. For these and more generally, the global HMC posterior should be taken more seriously. Figure 11 shows the precision, defined as the HMC posterior width (half of the 16-84 percentile range) or Fisher uncertainty normalized by the median or MAP value. Naturally, this precision improves as the obser-vational error decreases. For some parameters like AM ,the boost is large: ten times lower uncertainties on our three observed z = 0 scaling relations corresponds to 
+
+∼ 10 × smaller uncertainties on AM . For others like 
+
+α0 
+
+> M
+
+, the precision decreases only by a factor of a few. In general, percent-level precision on the data seems to correspond to percent-level precision on some param-eters, with sub-percent precision possible for AE and 
+
+ASF . In the tightest observational error forecasts, adam 
+
+and HMC parameter values and their precision agree remarkably well, increasing our confidence in using the much more cost-effective gradient descent method for fu-ture sapphire applications. Of course, these precisions should only be taken as illustrative lower limits. Once we start leaving more parameters free and/or transition-ing between different, more complex models, this preci-sion will get worse but how that happens has not been charted before in galaxy formation. With the unified 
+
+sapphire framework we will be in a position to rigor-ously explore these questions. 6.4. Interpreting the posterior with data perturbations 
+
+Instead of changing the errorbars, let us now apply systematic shifts to one z = 0 relation at a time, leaving the other relations and all uncertainties fixed. By re-running HMC multiple times, we can derive even more intuition about our fiducial posterior and the robustness of our interpretation of it, at least within the context of this one baseline model. Again in this subsection, we will always fit all three observational constraints together while perturbing only one relation at a time. Since this is a proof of concept demonstration, we will restrict our-selves to simple, constant normalization shifts. 6.4.1. Perturbing the SMHM relation 20 Viraj Pandya et al.          
+
+> Figure 10. Joint posterior for astrophysical parameters when fitting to different combinations of data. The color scheme is the same as in the previous Figure 9: teal for SMHM only, indigo for SMHM and fISM , and orange for all three together. The top-right panels show power laws corresponding to 100 random draws from each posterior. The most tightly constrained parameter is the energy loading power law amplitude AE.When fitting to only SMHM, many other parameters are poorly constrained. Adding fISM and ISM MZR progressively tightens the posteriors, though many still remain broad.
+
+Figure 12 compares the fiducial posterior based on the original data to posteriors obtained after shifting the SMHM relation either up or down by 0 .3 dex. With the shifted SMHM relations, we are still able to match the other two relations reasonably well but with different parameter posterior distributions. If the SMHM rela-tion had a higher normalization, that requires a lower energy loading amplitude, faster depletion time ampli-tude, higher mass loading amplitude or shallower mass loading slope. The other parameters remain largely un-changed. This makes sense: feedback has to be less efficient and/or the SFR per unit gas mass must be higher. The former can be achieved by launching lower specific energy winds, i.e., lower AE and higher AM .If instead the SMHM relation had a lower normaliza-tion, feedback would have to be stronger (higher AE )sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 21 
+
+Figure 11. Forecasts for improved precision on our baseline model parameters assuming the observational errors are cut by a factor of two or ten including systematics. Top panel: 16-50-84 percentiles of the HMC posterior (large symbols) and the lowest-loss MAP and local Fisher uncertainty out of ten gradient descent trajectories (small symbols). For the latter, we show a cross if all ten adam trajectories ended at a saddle point, which happens for the fiducial and half uncertainty cases. The gray shaded area shows the uniform prior for each parameter. Bottom panel: precision defined as the ratio of the posterior width to the median HMC posterior or MAP value. The precision generally improves with decreasing observational error as expected. Some parameters benefit enormously, e.g., mass loading precision increases by ∼ 10 if the data has ten times lower uncertainties including systematics. We use an upward triangle for the adam precision on α0 
+
+> Z
+
+since the MAP is near the prior boundary and the Fisher uncertainty is unreliable. Of course, this is a lower limit on the precision since the baseline model has many other parameters that we have not yet allowed to vary, our baseline model is just one of many that must be explored, and there are many more observables left to incorporate. But this gives a preview of what sapphire will enable in a uniquely scalable way. 
+
+and/or the star formation efficiency would need to be lower (longer ASF ). The fact that we can make intuitive sense of the changes in the posteriors demonstrates the potential of sapphire for interpretable precision infer-ence under different astrophysical scenarios. 6.4.2. Perturbing the fISM − M∗ relation 
+
+Figure 13 similarly shows the effect of perturbing the 
+
+fISM − M∗ relation up or down, leaving the other two fixed. Again, we are able to reproduce all three relations simultaneously as evidenced by our HMC posterior pre-dictive checks. If gas fractions were overall higher, that primarily maps to longer depletion times and lower mass and energy loadings. This implies the gas takes longer to be converted into stars, less gas is ejected, and there is less CGM heating (and hence more gas accretion). Since we enforced a fit to the SMHM relation, the energy load-ing slope becomes somewhat steeper to prevent excess CGM cooling and gas accretion in dwarfs. If instead we decrease the gas fractions relative to the original ob-served relation, all parameters remain largely unchanged 22 Viraj Pandya et al.    
+
+> Figure 12. Posterior predictive checks (top panels) and marginal parameter posteriors (bottom panels) illustrating the effect of shifting the normalization of the SMHM relation. Gray curves reflect the original data whereas blue (red) curves are from shifting the SMHM relation by +0 .3 ( −0.3) dex. With all else fixed, increasing the SMHM relation corresponds to lower energy loading, faster depletion time, more mass loading and shallower αM. In other words, producing more stars requires less feedback and/or higher SFRs per unit gas mass, and the opposite is true if the SMHM normalization were decreased.
+
+except for ASF , which shifts to lower values, i.e., faster depletion times which consume more of the gas. 6.4.3. Perturbing the ISM MZR 
+
+Lastly, Figure 14 shows the effect of shifting the ISM MZR on the posterior. Relative to the fiducial observed relation, the higher normalization MZR induces a signif-icant decrease in the mass and metal loading power law amplitudes. This makes sense: if galaxies have higher metallicities, then they must retain more of their met-als which constrains both the metals entrained from the ISM in mass-loaded outflows as well as the metal loading of pure supernova ejecta (see Equation 12). The energy loading power law also has a steeper slope. This follows from the decreased mass loading: low-mass halos retain more of their ISM gas, so the energy loading needs to in-crease more steeply in the dwarf regime to prevent excess CGM cooling and further gas accretion. The gas deple-tion time also becomes slightly faster perhaps indicating a degeneracy with the metal yield. The other parame-ter posteriors are largely unchanged. For the downward shift, we further turn off pre-enrichment of halo inflows since without those, our prior predictive checks in Figure 3 do not extend much below MaNGA at the MW-scale. This primarily maps to an increase in the mass load-ing amplitude, causing more metals to be ejected via entrainment in ISM outflows. The metal loading is un-changed perhaps because we forced the overall system to now also receive less metals from halo inflows. The en-ergy loading slope also becomes shallower. Since MZRs suffer from large systematic uncertainties, this exercise shows the utility of sapphire not only for interpret-ing baseline posteriors, but also assessing the impact of those systematic errors. 6.5. Additional Posterior Predictive Distributions 
+
+In this paper, we have only fit to various combinations of the z = 0 SMHM relation, ISM gas fractions and ISM MZR as a proof of concept, but the baseline time-dependent model from Pandya et al. (2023) makes self-consistent predictions for many other quantities. Figure sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 23       
+
+> Figure 13. Same as Figure 12 but now shifting only the fISM −M∗scaling relation. Higher (lower) gas fractions map primarily to higher (lower) depletion time power law amplitudes. Higher gas fractions also correspond to lower mass loading (less gas ejection) and lower energy loading (enhanced CGM cooling and gas accretion).
+
+15 shows predictions for a few additional example quan-tities at both z = 0 and z = 2 using random draws from the posterior based on fitting all three z = 0 scaling relations together. In a way, we are ending where we began: similar to the prior predictive checks from Fig-ure 3, the agreements and discrepancies we show here reflect the starting point for future iterations of model improvement and inference. 6.5.1. z = 0 SFMS, feedback and CGM thermodynamics 
+
+Both the mean and scatter of the z = 0 model star-forming main sequence (SFMS) agree quite well with the Hα-derived SFMS for MaNGA galaxies (S´ anchez et al. 2022). This is perhaps not surprising since we included 
+
+z = 0 ISM gas fractions as a constraint, but since SFRs are easier to obtain than multi-phase gas observations, the two may be interchangeable. We do not attempt to compile SFRs at lower masses and/or quenched fractions but that is an obvious direction for future work. Closely related is the mass loading factor which decreases as a function of stellar mass but shows a large spread between posterior realizations. At the MW-scale, ηM is at most of order unity whereas for log M∗/M ⊙ ∼ 8 dwarfs, it can vary by more than an order of magnitude from ηM ∼
+
+10 − 100. As emphasized by Pandya et al. (2023, see also Pandya et al. 2020; Carr et al. 2023; Voit et al. 2024b,a), there is additional information about model parameters in both gas flows and CGM observables. As an example, we show how various model quantities depend on the ratio 
+
+AE /A M as a proxy for SN wind specific energy. On average, the ratio of the cooling time to freefall time in the inner halo tends to be larger for lower-mass halos and is correlated with AE /A M such that higher specific energy winds increase this ratio. Note that we do not include non-thermal pressure support such as turbulence driven by the full Pandya et al. (2023) model, which would affect this ratio. Figure 15 also shows the ratio of halo inflow, ISM ac-cretion and SFR normalized by the DM halo growth rate. The halo inflow rate drops below the cosmic value ( fb = 0 .158; Planck Collaboration et al. 2016) for dwarfs due to preventative feedback (Pandya et al. 2020, 2023; Carr et al. 2023). The star formation rate 24 Viraj Pandya et al.    
+
+> Figure 14. Same as Figure 12 but now shifting only the ISM MZR. Increasing the MZR normalization causes a substantial decrease in the mass and metal loading since galaxies need to retain more of their metals. The energy loading power law also becomes steeper to prevent excess CGM cooling in lower mass halos which now retain more of their ISM gas due to ηM
+> decreasing. For the downward shift, we also turn off pre-enrichment of halo inflows since otherwise the prior predictive checks in Figure 3 do not extend much below MaNGA. This scenario primarily maps to a larger mass loading, which ejects more metals via entrainment in ISM outflows.
+
+is only a few percent of the instantaneous DM halo growth rate for dwarfs but increases towards ∼ 50% for MW-mass halos. The ISM accretion rate naturally correlates with AE /A M and can exceed the halo accre-tion rate for highly mass-loaded realizations. Lastly, the significant over-pressurization of our purely thermally-supported CGM causes the halo baryon fractions to be significantly lower than the cosmic value, even at MW scales. Pandya et al. (2023) showed that it is possible to construct MW-mass halos containing their fair share of baryons with a roughly virial temperature CGM, but more work is needed to reconcile our posterior results with those. 6.5.2. z = 2 scaling relations 
+
+Figure 15 additionally shows posterior predictions for the SFMS, SMHM relation, ISM gas fractions and ISM MZR at z = 2 as one other example redshift. Our SFMS tends to be lower than observed (Whitaker et al. 2014; Speagle et al. 2014; Pandya et al. 2017) but there can be systematics of order this discrepancy due to different calibrations even for the same SFR indicator, dust at-tenuation laws, etc. (e.g., Shivaei et al. 2015; Clarke et al. 2024). Our z = 2 SFMS also has noticeably less scatter than the z = 0 one; e.g., for galaxies with log M∗/M ⊙ = 9 − 9.5, the standard deviation of our model SFRs is ∼ 0.33 dex at z = 0 and ∼ 0.18 dex at 
+
+z = 2. This is likely lower than and in conflict with es-timates at high-redshift and may indicate that we need additional sources of scatter beyond halo mass accretion histories. Our z = 2 SMHM relation is systematically higher than both Behroozi et al. (2019) and the more recent JWST-based Shuntov et al. (2025) by ∼ 0.5 dex and 
+
+∼ 0.25 dex, respectively. This likely indicates that our model galaxies are forming their stars too fast and too early. We show predictions for ISM gas fractions at 
+
+z = 2 even though current facilities lack the sensitivity to detect the bulk of the neutral atomic ISM in indi-sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 25 vidual galaxies beyond z ∼ 0.5 (Fern´ andez et al. 2016; Tacconi et al. 2020). Our model predicts ∼ 1 dex vari-ation in the mean gas fraction of low-mass dwarfs at 
+
+z = 2. While this may not be pinned down any time soon in terms of HI, there are deep surveys with, e.g., ALMA for molecular gas and other datasets that could be incorporated for sapphire calibration purposes (e.g., Popping et al. 2015; Guo et al. 2023). Lastly, our ISM MZR at z = 2 is lower than observed by several tenths of a dex. This includes comparisons to both pre-JWST data (e.g., Sanders et al. 2021) as well as JWST data which go to lower masses (e.g., He et al. 2024; Khosto-van et al. 2025). Of course, we did not fit to any of these extra quanti-ties but it is interesting that fitting to z = 0 does not au-tomatically reproduce the high redshift data. Our model has additional redshift dependent terms that may need to take on non-zero values to fit this data. The fact that some of the observed relations are different from each other underscores the need for our approach to map systematics back to interpretable model variations as in Subsection 6.4. It is possible that our baseline model cannot simultaneously accommodate the data, in which case sapphire is uniquely positioned to discover inter-pretable corrections to our assumed equations (Figure 1).  
+
+> 7.
+
+DISCUSSION Here we discuss the astrophysical implications of our results, place our work in a greater context, and outline current limitations and caveats. 7.1. Implications for galaxy population evolution 
+
+Our results are consistent with the idea that galaxies self-regulate their star formation via preventative rather than ejective feedback (e.g., Lu et al. 2015, 2017; Pandya et al. 2020; Carr et al. 2023; Voit et al. 2024b,a). There are at least two channels for this: (1) reducing halo gas accretion below the cosmic baryon fraction, and (2) over-pressurizing the CGM so that it cools and accretes more slowly into galaxies. On the first point, our model ex-plicitly suppresses some fraction of halo accretion pref-erentially in dwarfs (middle-left panel of Figure 15). Al-though we fixed that parameter in this paper following Pandya et al. (2023), in principle it can and should be inferred from data, perhaps folding in IGM observables. As for CGM over-pressurization, we infer relatively low mass loading ( ηM ≲ 1 at the MW-scale and ηM ∼ 10 for classical dwarfs; Figures 10 and 15) and high energy loading ( ηE ∼ 0.2 for MW-mass halos and ηE ≈ 0.5 − 1for dwarfs; Figure 10). Together, these imply high spe-cific energy winds, which increase the CGM cooling time, decrease the ISM accretion rate, evacuate CGM baryons and lead to low halo baryon fractions (top-right, middle-left and middle-center panels of Figure 15). The sensitivity of the scaling relations to this ratio of en-ergy to mass loading is made clear by our inference with controlled normalization shifts applied to the data; e.g., a higher SMHM relation requires higher AM and lower 
+
+AE (in other words, lower specific energy feedback; Fig-ure 12). Our low mass loadings are in line with recent observational determinations (e.g., Heckman et al. 2015; McQuinn et al. 2019; Kado-Fong et al. 2024) but com-parison to CGM data is needed to thoroughly test the preventative feedback interpretation. 15 Interestingly, if the SMHM relation was the only constraint, the high mass loading solution is allowed (teal posterior in Fig-ure 10), as is assumed or required by some large-volume simulations (see Figure 13 of Mitchell et al. 2020), but this would predict much lower gas fractions than ob-served. The fact that including the ISM MZR, despite its large uncertainties, strongly localizes the mass load-ing posterior reaffirms that observables tracing chemical evolution can help break astrophysical parameter degen-eracies. Our approach has the potential to provide additional constraints on assumed and/or emergent properties of galaxies in sophisticated hydrodynamical simulations. Many if not all simulations are currently benchmarked against the SMHM relation inferred from simple empiri-cal approaches (Wechsler & Tinker 2018). The forth-coming inclusion of satellite and black hole feedback processes within sapphire will enable us to add large-scale galaxy clustering as a constraint and therefore de-rive plausible SMHM relations independently of sub-halo abundance matching or halo occupation distribu-tion models. Beyond that, we can also provide con-straints on interpretable effective parameters such as mass, energy, metal loading and ISM depletion time. These constraints can then inform more refined numeri-cal experiments to map out plausible physical scenarios consistent with the phenomenological constraints. For example, what freedom do we have with supernova clus-tering, thermalization efficiency, multi-phase gas parti-tioning, CGM and cosmic accretion geometry, etc. to reproduce the SMHM ratios of Mvir ∼ 10 11 M⊙ dwarfs while enforcing ηM ∼ 1 and ηE ∼ 0.5? Addressing ques-tions like these requires the ability to systematically ex-  
+
+> 15 One future direction is to incorporate a new module for ExpCGM ,which generalizes the Pandya et al. (2023); Carr et al. (2023) model to keep track of the baryons that feedback has pushed beyond the virial radius of a halo. See Voit et al. (2024b,a) and https://gmvoit.github.io/ExpCGM/
+
+26 Viraj Pandya et al. 
+
+Figure 15. Posterior predictive distributions for a few additional quantities that we did not fit to. Panels with black (red) borders are for z = 0 ( z = 2). As in previous figures, orange curves show Nadaraya-Watson regressions for 100 random draws from the posterior with fitting all three z = 0 scaling relations. In some panels, we color-code these curves by the ratio of AE /A M
+
+(colorbar range shown in top-right panel). Top-left: the z = 0 SFMS predicted by the model agrees with MaNGA (magenta points). The scatter also roughly matches as indicated by one example model realization (orange points). Top-center: mass loading factor decreases as a function of stellar mass but shows a large spread between realizations. Top-right: the ratio of cooling time to free-fall time in the inner halo spans a large range but tends to decrease with halo mass. On average, this ratio is higher in realizations with larger AE /A M , and almost always exceeds the tcool /t ff = 10 precipitation limit. Middle-left: halo gas inflow (black), ISM accretion (colored) and SFR (orange) all normalized by DM halo growth rate. Dwarfs experience preventative feedback for halo inflows. ISM inflows can exceed the cosmic halo baryon accretion rate (gray dashed) if SN feedback is highly mass-loaded. Middle-center: halo baryon fractions are below the cosmic value due to CGM over-pressurization. Middle-right: 
+
+z = 2 model SFMS tends to be lower than observed (Whitaker et al. 2014; Speagle et al. 2014; Pandya et al. 2017), though systematics can be large (Clarke et al. 2024). Lower-left: z = 2 model SMHM is higher than empirically inferred (Behroozi et al. 2019; Shuntov et al. 2025). Lower-center: z = 2 model ISM gas fractions vary by ∼ 1 dex on average for low-mass halos between posterior realizations. Lower-right: the z = 2 model ISM MZR tends to be lower than observed (Sanders et al. 2021; He et al. 2024; Khostovan et al. 2025). Many of these discrepancies suggest the model complexity needs to be increased. sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 27 plore parameter and model variations as well as map-ping the stability of equilibria (as argued by Pandya et al. 2021, 2023). Fortunately, at least with the simple baseline model considered here, it seems that combin-ing even a few z = 0 scaling relations leads to relatively tight constraints on the assumed parameterizations of input physics. Taking our results at face value (but see caveats in Subsection 7.3 below), our inferred mass, energy and metal loadings are broadly consistent with what Pandya et al. (2021) and Pandya et al. (2023) found for the FIRE-2 simulations (see also Muratov et al. 2015, 2017; Angl´ es-Alc´ azar et al. 2017; Hafen et al. 2019). This agreement is not trivial since although we did fix a few other parameters to our FIRE-2 “priors,” our inference for loading factors and tdep are based on wide uniform priors. The functional forms for the loading factors and 
+
+tdep in FIRE-2 required additional redshift dependence for both the amplitude and slope that we neglect here, but we mostly agree at the order of magnitude level. The lowest mass FIRE-2 dwarfs have ηM approaching 
+
+∼ 100 if all outflowing material is considered rather than just the high specific energy wind component, so this is potentially a point of tension with our lower inferred 
+
+ηM ≲ 10 for Mvir ∼ 10 10 M⊙ ultrafaint halos. However, the top-middle panel of Figure 15 shows that ηM ∼ 100 is not ruled out for dwarfs, though it is unlikely. We would need to explore a wider variety of models includ-ing non-thermal partitioning (e.g., Martin-Alvarez et al. 2026) before drawing stronger conclusions about consis-tency with different simulations. Switching to large-volume simulations, Nelson et al. (2019b) report ηM ∼ 3 with no outflow velocity cut for MW-mass galaxies in the TNG50 simulations (Pillepich et al. 2019), which falls within our posterior range. Their log M∗/M ⊙ ∼ 9 dwarfs have ηM ≳ 10 which is at the higher end of our posterior (top-middle panel of Fig-ure 15). Oren et al. (2025) recently presented measure-ments of the emergent energy loading for TNG100 (Nel-son et al. 2019a). Their Figure 13 shows a different dependence of ηE on halo mass than we infer in our Figure 10, though the flatness of their relation may in part be driven by black hole feedback which we do not yet include in sapphire . Bennett et al. (2024) also em-phasize that the energy loading assumed by TNG at injection at the MW-scale is ηE ∼ 1, far above our in-ferred ηE ∼ 0.3. For EAGLE, Mitchell et al. (2020, their Figure 13) measured ηM ∼ 1 at the MW-scale and 
+
+ηM ≲ 10 at the dwarf scale, which is consistent with our posteriors (see also Wright et al. 2024). They also report ηE ≈ 0.1 − 0.3 without a strong dependence on halo mass (their Figure 5); this may be consistent with our ηE posterior although we find a steep dependence on Vvir .Returning to the SMAUG vision for multi-scale Bayesian SAMs originally laid out in the PhD thesis of Pandya (2021), our sapphire approach may eventually be able to connect simulations and observations across scales. For example, how do we reconcile the lower mass loading factors predicted by small-scale suites of ideal-ized simulations like TIGRESS (Kim et al. 2020) with the larger loading factors required by traditional cosmo-logical simulations and SAMs (e.g., Pandya et al. 2020, 2021; Oren et al. 2025)? Can we use our inference frame-work to bridge both global and local scaling relations (e.g., Motwani et al. 2022)? The answers to at least some of these questions may lie in how the mass, energy and metals carried by multiphase winds couple to the CGM on larger scales (e.g., Fielding et al. 2017, 2020; Smith et al. 2024b,a; Bennett et al. 2024). Previous SAMs have already hinted that predictions may be very sensitive to the assumed fate of ejected gas (e.g., Hen-riques et al. 2013; White et al. 2015). This motivated Pandya (2021) and Pandya et al. (2023, see also Carr et al. 2023; Voit et al. 2024b,a) to try to self-consistently couple energy flows between galaxies and their CGM so that observables of the latter could be incorporated as additional constraints. With sapphire we are now in a position to accelerate the exploration and discovery of more sophisticated, yet still interpretable, multi-scale models of galaxy evolution beyond the simple Pandya et al. (2023) baseline. 7.2. Differentiable GPU-accelerated galaxy evolution 
+
+We are not the first to pursue numerical robustness, modular code and Bayesian inference for SAMs (e.g., see Henriques et al. 2009; Bower et al. 2010; Lu et al. 2011a; Benson 2012; Croton et al. 2016; Lagos et al. 2018; Forbes et al. 2019). We are also not the first to explore the usage of automatic differentiation (e.g., Hearin et al. 2021, 2023; Horowitz et al. 2024; Horowitz & Luki´ c 2025; Pandey et al. 2025b) and GPU par-allelization (e.g., Schneider & Robertson 2015; Ocvirk et al. 2016; Villasenor et al. 2021; Wibking & Krumholz 2022; Alarcon et al. 2025) for modeling galaxy forma-tion. However, to the best of our knowledge, our work is the first to combine all of the above elements into a single framework for modeling galaxy populations as dynamical systems with interpretable equations and pa-rameters (see again our Figure 1). This allows us to perform unprecedented local and global sensitivity anal-ysis across parameter space, which helps reveal the most important model parameters and quasi-observables in a principled way. The ability to compute parameter 28 Viraj Pandya et al. 
+
+gradients through the internals of our numerical model offers a fundamentally new way to assess the sensitiv-ity of galaxy formation to uncertain astrophysics. Our work complements coarse parameter variations of exist-ing simulation and SAM codes to generate training data for emulators (Bower et al. 2010; Villaescusa-Navarro et al. 2021; Jespersen et al. 2022; Perez et al. 2023) and related generative modeling approaches (e.g., Alsing et al. 2024; Thorp et al. 2025; Deger et al. 2025; Nguyen et al. 2025; Pandey et al. 2025c,a; Nguyen et al. 2026). 
+
+sapphire also sets the stage for data-driven corrections to the baseline dynamics using small neural networks to address model mis-specification in an interpretable way (these are the fNN terms in the center of Figure 1 that we defer to a future paper; e.g., Chen et al. 2018; Rackauckas et al. 2020; Kidger 2022). There will likely be challenges with continuing to maintain differentiability and interpretability as addi-tional physical processes are added to sapphire , but we argue that those difficulties will teach us about impor-tant, poorly understood regimes of galaxy formation. For example, we did not allow SNe to drive CGM tur-bulence in this paper but Pandya et al. (2023) showed that the dynamical system experiences a “bifurcation” (sudden change in equilibrium) when radiative cooling fails to balance heating. Should the model remain dif-ferentiable through the resulting phase transition from a cool, turbulent, early CGM to a warm-hot corona at low-redshift? Similarly, during galaxy mergers, would pa-rameter gradients explode, and might the small scatter of scaling relations contain information to preserve gra-dient flow through such chaotic events (Genel et al. 2019; Keller et al. 2019)? These cases all raise deep questions about the search for a single, effective, coarse-grained model that can describe galaxies through various trans-formations across cosmic time. On top of this, there is the fact that we do not observe the intrinsic physical state of galaxies but rather noisy, incomplete observables which requires forward modeling spectra (e.g., Conroy 2013; Hearin et al. 2023; Lovell et al. 2025a; Roper et al. 2026). The combination of differentiability and GPU paral-lelization will be tremendously helpful for identifying a minimal set of state variables, evolution equations and astrophysical parameters to summarize galaxy evo-lution. For example, here we assumed simple deter-ministic power laws for our astrophysical parameters, but there may be additional dependencies beyond Vvir 
+
+and/or other functional forms may have been equally capable of fitting the z = 0 scaling relations. One way to get at this is to continue to build out a “library” of priors for sapphire by analyzing different simula-tions in the same way, perhaps using symbolic regres-sion (e.g., Cranmer 2023; Salim et al. 2025; Iyer et al. 2025). Another way is hierarchical Bayesian inference where we fit for scatter in the coarse-grained parame-ters assigned to each galaxy. This would introduce more hyper-parameters to be inferred but gradients can help us scale. Together, these can help us map the most un-certain aspects of the state space and parameter space in which galaxies evolve. This interpretable SAM-guided analysis of simulations was started by Pandya et al. (2020, 2021); Pandya (2021); Pandya et al. (2023) us-ing the FIRE-2 suite (Hopkins et al. 2018) as one proof of concept example and has recently been extended to TNG (Oren et al. 2025). With the full sapphire frame-work, we will now be able to generalize and bridge to data as well. It is widely believed that galaxy formation model-ing approaches span a continuum with an underlying dichotomy between empirical and physically-motivated methods (e.g., Wechsler & Tinker 2018). However, given the five grand challenges of galaxy formation that we outlined in the first paragraph of Section 1, clearly ev-ery galaxy-scale simulation and model (including ours) must make choices for numerics, physics and statistics to confront noisy, incomplete observations of the evolv-ing galaxy population. Even if we had infinite resolu-tion, that may not be enough because we do not fully understand the microphysics of many relevant phenom-ena from first principles (e.g., cosmic rays, turbulence, dust, multi-phase mixing). On macroscopic scales, this is compounded because so many variables are at play, and often we do not even know what all the variables are. The vast freedom allowed for these choices there-fore necessitates re-framing the problem of galaxy evo-lution as the empirical exercise that it is: repeatedly assess, in a Bayesian way, whether and how different descriptions of various physical processes fit together to match multi-scale datasets and simulations. We argue that the overall challenge of galaxy formation then is to map and interpret the space of plausible dynamical models for how galaxy populations assemble into the 
+
+n-dimensional manifolds that summarize their observ-able properties, accounting for variations in both astro-physics and cosmology. This could mean exploring the space of functional forms for our different ODE terms and/or identifying when more sophisticated sets of state variables and evolution equations are needed to max-imally extract information from both simulations and data, which is exactly what sapphire was designed to do. 7.3. Limitations, caveats and future prospects sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 29 Our study, like any other, is subject to limitations and caveats. Here we discuss some as avenues for future work. First, we have only allowed eight parameters to vary, with the remaining ∼ 20 fixed based on simple physi-cal arguments or “priors” from the FIRE-2 simulations following Pandya et al. (2023). The limited-scope dy-namical model considered here is capable of reproduc-ing the z = 0 quasi-observable scaling relations so we are justified in trying to interpret the parameter poste-riors. However, if we had allowed more parameters to be free, that would likely result in broader posteriors. The three constraints we chose almost certainly cannot, by themselves, inform the choice of functional forms and parameter values for CGM structure, turbulence driving and dissipation, large-scale halo gas inflow suppression, redshift dependent structure growth and other elements of our full model. Constraining these and other physical processes likely requires additional quasi-observables de-scribing large-scale CGM/IGM properties, archaeologi-cal star formation histories, and the redshift evolution of many more scaling relations. In parallel, by incor-porating priors from a wider range of multi-scale simu-lations, sapphire can serve as a unified framework for comparing and testing the emergent predictions of dif-ferent subgrid recipes. Second, we are missing several core physical processes in the baseline model used here, namely satellite galaxy evolution, mergers and black hole feedback. This pre-vents us from predicting total galaxy number counts, understanding environmental processes, and extending to group/cluster scales where SN feedback alone can-not limit excess star formation. We are actively im-plementing these and defer describing them to future work (Gabrielpillai et al., in prep.; Terrazas et al., in prep.). Capturing galaxy morphology and struc-ture will require adding more zones, more state vari-ables and possibly partial differential equations to model spatially-dependent physical processes, but this will be challenging to do while retaining interpretability and causal identifiability in sapphire . Relatedly, sapphire 
+
+will need to be extended to model the back-reaction of baryons on DM halo properties (Dutton et al. 2007; Schneider & Teyssier 2015; Pandey et al. 2025b) and account for variations in cosmology (e.g., by changing the input merger trees; Zhao et al. 2009; Benson et al. 2013; Perez et al. 2023, Robinson et al., in prep.). As for our inference, there are numerous things that we could have improved. For example, we chose a very simple Gaussian log-likelihood that neglected co-variance between the different galaxy scaling relations, which erases information. In principle, this covariance could be recovered with more sophisticated summary statistics like a multivariate kernel density estimate af-ter dimensionality reduction and/or with a neural net-work that learns the implicit likelihood (Makinen et al. 2023; Ho et al. 2024, Makinen et al., in prep.). On a longer timescale, we will take advantage of the modu-lar nature of our code to enable Bayesian evidence cal-culations across different galaxy formation models with fixed numerics. Nested sampling (Handley et al. 2015) and/or evidence networks (Jeffrey & Wandelt 2024) may be useful for this. This is of paramount importance be-cause without a unified framework like sapphire , the field will not be able to clearly attribute similarities and discrepancies between different galaxy evolution scenar-ios to physics, numerics, statistics or some combination thereof.  
+
+> 8.
+
+SUMMARY We introduced sapphire , which is a modular, au-tomatically differentiable, multi-GPU-parallelized, pub-licly available framework for evolving and understanding galaxy populations as dynamical systems. sapphire is written from scratch in JAX (Bradbury et al. 2018) and leverages the open-source diffrax package for solving and computing gradients through nonlinear, physically-motivated differential equations (Kidger 2022). Build-ing on work started by Pandya et al. (2020); Pandya (2021); Pandya et al. (2023) as part of the SMAUG and LtU collaborations, sapphire bridges astrophysics, cos-mology, numerics, dynamics and statistics in new ways (Figure 1) to provide much-needed interpretability and causal identifiability for both simulations and observa-tions. Our key takeaways are: 
+
+• For the first time, we used exact Jacobians to perform both local and global sensitivity anal-ysis across parameter space, using the Pandya et al. (2023) physical model as an example base-line. The Jacobians of our model galaxies contain non-random, interpretable structure. Notably, SN wind energy loading dominates the sensitivity of all z = 0 state variables whereas mass loading has much weaker, often opposite-sign, gradients. This is the case across a large range in parameter space and halo mass accretion histories. (Figures 4, 5) 
+
+• We use gradient descent for comprehensive mock parameter recovery tests to show that the z = 0 SMHM relation alone does not contain enough in-formation to infer model parameters related to star formation and stellar feedback. Adding z = 0 ISM gas fractions and the ISM MZR breaks degenera-cies and improves parameter recovery. Fisher fore-30 Viraj Pandya et al. 
+
+casts suggest that percent-level precision can be achieved on some parameters by combining these 
+
+z = 0 galaxy scaling relations, though systematics and broader model degeneracies may be a prob-lem. (Figures 6, 7, 8) 
+
+• We simultaneously fit the z = 0 SMHM rela-tion from Behroozi et al. (2019) as well as ISM gas fractions and the ISM MZR for star-forming galaxies from the MaNGA survey. We infer rel-atively low mass loading ( ηM ≲ 1 at the MW-scale and ηM ∼ 10 for classical dwarfs) and high energy loading ( ηE ∼ 0.2 at the MW-scale and 
+
+ηE ∼ 0.5 − 1 for dwarfs). Together these argue against ejective feedback as the dominant mecha-nism for regulating galaxy evolution and instead are consistent with preventative feedback. (Fig-ures 9,10) 
+
+• We use both gradient descent and HMC to fore-cast how the precision on model parameters would improve if the data uncertainties were cut by a fac-tor of two or ten, including systematics. Consis-tent with our mocks, we can achieve percent-level precision on some parameters though more work is needed to see how this degrades as we allow more parameters to vary. We also apply system-atic shifts in the normalizations of the three z = 0 scaling relations to interpret our fiducial posteri-ors. The SMHM relation is most sensitive to the amplitude of ηE and tdep . ISM gas fractions are primarily controlled by the amplitude of ηM and 
+
+tdep . The ISM MZR strongly constrains the am-plitude of mass and metal loading as well as slope of energy loading. (Figures 11, 12, 13, 14) 
+
+• We present posterior predictive checks for a few example z = 0 and z = 2 quantities we did not fit to but which are obvious avenues for future work. We are in good agreement with the normalization and scatter of the z = 0 SFMS from MaNGA. Our mass loading factors show a large spread at fixed stellar mass for dwarfs. The ratio of cooling time to free-fall time in the inner halo, ISM accretion rates and halo baryon fractions all correlate with the specific energy of SN feedback across different posterior realizations. At z = 2, our model SFMS tends to be below the data with smaller scatter. Our z = 2 SMHM posterior draws are systemati-cally higher than empirically determined both pre-and post-JWST. ISM gas fractions at z = 2 show a large scatter between posterior draws. Finally, our ISM MZR at z = 2 is systematically lower than inferred from pre- and post-JWST datasets. Some of these discrepancies may require additional redshift dependent parameters which sapphire is uniquely positioned to help constrain. (Figure 15) 
+
+sapphire represents a step towards building an in-terpretable dynamical model that can reveal the key state variables, evolution equations and astrophysical parameters of galaxies directly from observational data, using simulations and simple arguments as “prior” in-puts. In future papers, we will introduce more physical processes and numerical techniques for hybrid physics-informed, data-driven Bayesian modeling of galaxy pop-ulation evolution in a cosmological context. VP thanks the Simons Collaboration on Learning the Universe and specifically credits Jens Jasche, Guilhem Lavaux, Ben Wandelt and Chirag Modi for first mak-ing him aware of differentiable programming. VP ded-icates this paper to the memory of Joel Primack who taught him much about galaxy formation and the his-tory and purpose of SAMs during his PhD at UC Santa Cruz. VP also thanks Sandy Faber, Shy Genel, Doug Hellinger, Patrick Kidger, Avery Kim, David Koo, Lachlan Lancaster, Hui Li, Shivam Pandey, Hiranya Peiris, Volker Springel and others for helpful discus-sions. Support for VP was provided by: (1) NASA Hubble Fellowship Grant HST-HF2-51489 awarded by the Space Telescope Science Institute, which is oper-ated by the Association of Universities for Research in Astronomy, Inc., for NASA, under contract NAS5-26555, and (2) NSF Astronomy & Astrophysics Grant No. 2307419. GLB acknowledges support from the NSF (AST-2108470, AST-2307419), NASA TCAN award 80NSSC21K1053, and the Simons Foundation through the Learning the Universe Collaboration. TS grate-fully acknowledges the support of the NSF-Simons AI-Institute for the Sky (SkAI) via grants NSF AST-2421845 and Simons Foundation MPS-AI-00010513. TS is supported by NSF through grant AST-2510183 and by NASA through grants 22-ROMAN22-0055 and 22-ROMAN22-0013. This work would not be possible with-out the open-source development efforts of the JAX team at Google, and without the significant computational resources provided by the Scientific Computing Core at the Flatiron Institute. We also thank the MaNGA team and Peter Behroozi for making their data publicly avail-able in tabular form. 
+
+> 12345678910 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33
+
+Here we use the Contributor Roles Taxonomy (CRediT) system 16 to list the roles and contributions of the  
+
+> 16 https://credit.niso.org/
+
+sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 31 co-authors: Conceptualization: VP Data cura-tion: VP Formal analysis: VP Investigation: VP 
+
+Methodology: VP, GB, LM, MH, PL Project admin-istration: VP Resources: RSS Software: VP Su-pervision: GB Validation: VP, GB, LM, AG, DF, KI, PL, WR Visualization: VP Writing – original draft: VP Writing – review & editing: VP, GB, LM, AG, CC, DF, LH, MH, KI, CJ, SK, ML, PL, CL, LP, WR, RSS, TS, RS, BT, MV REFERENCES 
+
+Alarcon, A., Hearin, A. P., Becker, M. R., et al. 2025, arXiv e-prints, arXiv:2510.27604, doi: 10.48550/arXiv.2510.27604 Alsing, J., Thorp, S., Deger, S., et al. 2024, ApJS, 274, 12, doi: 10.3847/1538-4365/ad5c69 Andrews, B. H., & Martini, P. 2013, ApJ, 765, 140, doi: 10.1088/0004-637X/765/2/140 Angl´ es-Alc´ azar, D., Faucher-Gigu` ere, C.-A., Kereˇ s, D., et al. 2017, MNRAS, 470, 4698, doi: 10.1093/mnras/stx1517 Arrigoni, M., Trager, S. C., Somerville, R. S., & Gibson, B. K. 2010, MNRAS, 402, 173, doi: 10.1111/j.1365-2966.2009.15924.x Asplund, M., Grevesse, N., Sauval, A. J., & Scott, P. 2009, ARA&A, 47, 481, doi: 10.1146/annurev.astro.46.060407.145222 Barrera, M., Springel, V., White, S. D. M., et al. 2023, MNRAS, 525, 6312, doi: 10.1093/mnras/stad2688 Baydin, A. G., Pearlmutter, B. A., Radul, A. A., & Siskind, J. M. 2018, Journal of Machine Learning Research, 18, 1. http://jmlr.org/papers/v18/17-468.html Behroozi, P., Wechsler, R. H., Hearin, A. P., & Conroy, C. 2019, MNRAS, 488, 3143, doi: 10.1093/mnras/stz1182 Behroozi, P. S., Wechsler, R. H., & Conroy, C. 2013a, ApJ, 770, 57, doi: 10.1088/0004-637X/770/1/57 Behroozi, P. S., Wechsler, R. H., & Wu, H.-Y. 2013b, ApJ, 762, 109, doi: 10.1088/0004-637X/762/2/109 Behroozi, P. S., Wechsler, R. H., Wu, H.-Y., et al. 2013c, ApJ, 763, 18, doi: 10.1088/0004-637X/763/1/18 Belfiore, F., Vincenzo, F., Maiolino, R., & Matteucci, F. 2019, MNRAS, 487, 456, doi: 10.1093/mnras/stz1165 Bennett, J. S., Smith, M. C., Fielding, D. B., et al. 2024, arXiv e-prints, arXiv:2410.12909, doi: 10.48550/arXiv.2410.12909 Benson, A. J. 2012, NewA, 17, 175, doi: 10.1016/j.newast.2011.07.004 Benson, A. J., Pearce, F. R., Frenk, C. S., Baugh, C. M., & Jenkins, A. 2001, MNRAS, 320, 261, doi: 10.1046/j.1365-8711.2001.03966.x Benson, A. J., Farahi, A., Cole, S., et al. 2013, MNRAS, 428, 1774, doi: 10.1093/mnras/sts159 Betancourt, M. 2017, arXiv e-prints, arXiv:1701.02434, doi: 10.48550/arXiv.1701.02434 Binggeli, B., Sandage, A., & Tammann, G. A. 1988, ARA&A, 26, 509, doi: 10.1146/annurev.aa.26.090188.002453 Blanton, M. R., Kazin, E., Muna, D., Weaver, B. A., & Price-Whelan, A. 2011, AJ, 142, 31, doi: 10.1088/0004-6256/142/1/31 Blanton, M. R., Bershady, M. A., Abolfathi, B., et al. 2017, AJ, 154, 28, doi: 10.3847/1538-3881/aa7567 Blumenthal, G. R., Faber, S. M., Primack, J. R., & Rees, M. J. 1984, Nature, 311, 517, doi: 10.1038/311517a0 Bogacki, P., & Shampine, L. 1989, Applied Mathematics Letters, 2, 321, doi: https://doi.org/10.1016/0893-9659(89)90079-7 Bond, J. R., Cole, S., Efstathiou, G., & Kaiser, N. 1991, ApJ, 379, 440, doi: 10.1086/170520 Bose, S., & Deason, A. J. 2025, arXiv e-prints, arXiv:2509.07066, doi: 10.48550/arXiv.2509.07066 Bosma, A. 1981, AJ, 86, 1825, doi: 10.1086/113063 Bouch´ e, N., Dekel, A., Genzel, R., et al. 2010, ApJ, 718, 1001, doi: 10.1088/0004-637X/718/2/1001 Bower, R. G., Vernon, I., Goldstein, M., et al. 2010, MNRAS, 407, 2017, doi: 10.1111/j.1365-2966.2010.16991.x Bradbury, J., Frostig, R., Hawkins, P., et al. 2018, JAX: composable transformations of Python+NumPy programs, 0.3.13. http://github.com/jax-ml/jax Bryan, G. L., & Norman, M. L. 1998, ApJ, 495, 80, doi: 10.1086/305262 Bullock, J. S., & Boylan-Kolchin, M. 2017, ARA&A, 55, 343, doi: 10.1146/annurev-astro-091916-055313 Bundy, K., Bershady, M. A., Law, D. R., et al. 2015, ApJ, 798, 7, doi: 10.1088/0004-637X/798/1/7 Cardelli, J. A., Clayton, G. C., & Mathis, J. S. 1989, ApJ, 345, 245, doi: 10.1086/167900 Carr, C., Bryan, G. L., Fielding, D. B., Pandya, V., & Somerville, R. S. 2023, ApJ, 949, 21, doi: 10.3847/1538-4357/acc4c7 Catinella, B., Saintonge, A., Janowiecki, S., et al. 2018, MNRAS, 476, 875, doi: 10.1093/mnras/sty089 Chabrier, G. 2003, PASP, 115, 763, doi: 10.1086/376392 32 Viraj Pandya et al. 
+
+Chaikin, E., Schaye, J., Schaller, M., et al. 2025, arXiv e-prints, arXiv:2509.04067, doi: 10.48550/arXiv.2509.04067 Chen, R. T. Q., Rubanova, Y., Bettencourt, J., & Duvenaud, D. 2018, arXiv e-prints, arXiv:1806.07366, doi: 10.48550/arXiv.1806.07366 Clarke, L., Shapley, A. E., Sanders, R. L., et al. 2024, ApJ, 977, 133, doi: 10.3847/1538-4357/ad8ba4 Cole, S., Lacey, C. G., Baugh, C. M., & Frenk, C. S. 2000, MNRAS, 319, 168, doi: 10.1046/j.1365-8711.2000.03879.x Conroy, C. 2013, ARA&A, 51, 393, doi: 10.1146/annurev-astro-082812-141017 Conroy, C., Wechsler, R. H., & Kravtsov, A. V. 2006, ApJ, 647, 201, doi: 10.1086/503602 Corless, R., & Fillion, N. 2013, A Graduate Introduction to Numerical Methods: From the Viewpoint of Backward Error Analysis, doi: 10.1007/978-1-4614-8453-0 Crain, R. A., & van de Voort, F. 2023, ARA&A, 61, 473, doi: 10.1146/annurev-astro-041923-043618 Cranmer, M. 2023, arXiv e-prints, arXiv:2305.01582, doi: 10.48550/arXiv.2305.01582 Croton, D. J., Springel, V., White, S. D. M., et al. 2006, MNRAS, 365, 11, doi: 10.1111/j.1365-2966.2005.09675.x Croton, D. J., Stevens, A. R. H., Tonini, C., et al. 2016, ApJS, 222, 22, doi: 10.3847/0067-0049/222/2/22 Dav´ e, R., Finlator, K., & Oppenheimer, B. D. 2012, MNRAS, 421, 98, doi: 10.1111/j.1365-2966.2011.20148.x Davis, M., Efstathiou, G., Frenk, C. S., & White, S. D. M. 1985, ApJ, 292, 371, doi: 10.1086/163168 Davis, M., & Peebles, P. J. E. 1983, ApJ, 267, 465, doi: 10.1086/160884 DeepMind, Babuschkin, I., Baumli, K., et al. 2020, The DeepMind JAX Ecosystem. http://github.com/google-deepmind Deger, S., Peiris, H. V., Thorp, S., et al. 2025, arXiv e-prints, arXiv:2509.20430, doi: 10.48550/arXiv.2509.20430 Dekel, A., & Burkert, A. 2014, MNRAS, 438, 1870, doi: 10.1093/mnras/stt2331 Dekel, A., & Silk, J. 1986, ApJ, 303, 39, doi: 10.1086/164050 Delgado, A. M., Angl´ es-Alc´ azar, D., Thiele, L., et al. 2023, MNRAS, 526, 5306, doi: 10.1093/mnras/stad2992 Diemer, B. 2018, ApJS, 239, 35, doi: 10.3847/1538-4365/aaee8c Dutton, A. A., van den Bosch, F. C., Dekel, A., & Courteau, S. 2007, ApJ, 654, 27, doi: 10.1086/509314 Faber, S. M., & Jackson, R. E. 1976, ApJ, 204, 668, doi: 10.1086/154215 Feldmann, R., & Bieri, R. 2025, arXiv e-prints, arXiv:2507.08925, doi: 10.48550/arXiv.2507.08925 Fern´ andez, X., Gim, H. B., van Gorkom, J. H., et al. 2016, ApJL, 824, L1, doi: 10.3847/2041-8205/824/1/L1 Fielding, D., Quataert, E., McCourt, M., & Thompson, T. A. 2017, MNRAS, 466, 3810, doi: 10.1093/mnras/stw3326 Fielding, D. B., Tonnesen, S., DeFelippis, D., et al. 2020, ApJ, 903, 32, doi: 10.3847/1538-4357/abbc6d Forbes, J. C., Krumholz, M. R., Burkert, A., & Dekel, A. 2014, MNRAS, 438, 1552, doi: 10.1093/mnras/stt2294 Forbes, J. C., Krumholz, M. R., & Speagle, J. S. 2019, MNRAS, 487, 3581, doi: 10.1093/mnras/stz1473 Frenk, C. S., & White, S. D. M. 2012, Annalen der Physik, 524, 507, doi: 10.1002/andp.201200212 Gabrielpillai, A., Somerville, R. S., Genel, S., et al. 2022, MNRAS, 517, 6091, doi: 10.1093/mnras/stac2297 Gebhardt, M., Angl´ es-Alc´ azar, D., Borrow, J., et al. 2024, MNRAS, 529, 4896, doi: 10.1093/mnras/stae817 Geller, M. J., & Huchra, J. P. 1989, Science, 246, 897, doi: 10.1126/science.246.4932.897 Gelman, A., & Rubin, D. B. 1992, Statistical Science, 7, 457 , doi: 10.1214/ss/1177011136 Genel, S., Bryan, G. L., Springel, V., et al. 2019, ApJ, 871, 21, doi: 10.3847/1538-4357/aaf4bb Gnedin, N. Y. 2000, ApJ, 542, 535, doi: 10.1086/317042 G´ omez, F. A., Coleman-Smith, C. E., O’Shea, B. W., Tumlinson, J., & Wolpert, R. L. 2014, ApJ, 787, 20, doi: 10.1088/0004-637X/787/1/20 Gottloeber, S., Hoffman, Y., & Yepes, G. 2010, arXiv e-prints, arXiv:1005.2687, doi: 10.48550/arXiv.1005.2687 Gunn, J. E., & Peterson, B. A. 1965, ApJ, 142, 1633, doi: 10.1086/148444 Guo, H., Wang, J., Jones, M. G., & Behroozi, P. 2023, ApJ, 955, 57, doi: 10.3847/1538-4357/aced47 Hadzhiyska, B., Bose, S., Eisenstein, D., Hernquist, L., & Spergel, D. N. 2020, MNRAS, 493, 5506, doi: 10.1093/mnras/staa623 Hafen, Z., Faucher-Gigu` ere, C.-A., Angl´ es-Alc´ azar, D., et al. 2019, MNRAS, 488, 1248, doi: 10.1093/mnras/stz1773 Hahn, C., Lemos, P., Parker, L., et al. 2024, Nature Astronomy, 8, 1457, doi: 10.1038/s41550-024-02344-2 Hairer, E., Nørsett, S., & Wanner, G. 2008, Solving Ordinary Differential Equations I: Nonstiff Problems, Springer Series in Computational Mathematics (Springer Berlin Heidelberg). https://books.google.com/books?id=F93u7VcSRyYC Handley, W. J., Hobson, M. P., & Lasenby, A. N. 2015, MNRAS, 453, 4384, doi: 10.1093/mnras/stv1911 sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 33 
+
+Haynes, M. P., Giovanelli, R., Martin, A. M., et al. 2011, AJ, 142, 170, doi: 10.1088/0004-6256/142/5/170 He, X., Wang, X., Jones, T., et al. 2024, ApJL, 960, L13, doi: 10.3847/2041-8213/ad12cd Hearin, A. P., Chaves-Montero, J., Alarcon, A., Becker, M. R., & Benson, A. 2023, MNRAS, 521, 1741, doi: 10.1093/mnras/stad456 Hearin, A. P., Chaves-Montero, J., Becker, M. R., & Alarcon, A. 2021, The Open Journal of Astrophysics, 4, 7, doi: 10.21105/astro.2105.05859 Hearin, A. P., Zentner, A. R., van den Bosch, F. C., Campbell, D., & Tollerud, E. 2016, MNRAS, 460, 2552, doi: 10.1093/mnras/stw840 Heckman, T. M., Alexandroff, R. M., Borthakur, S., Overzier, R., & Leitherer, C. 2015, ApJ, 809, 147, doi: 10.1088/0004-637X/809/2/147 Heitmann, K., Frontiere, N., Rangel, E., et al. 2021, ApJS, 252, 19, doi: 10.3847/1538-4365/abcc67 Helly, J. C., Cole, S., Frenk, C. S., et al. 2003, MNRAS, 338, 913, doi: 10.1046/j.1365-8711.2003.06152.x Henriques, B. M. B., Thomas, P. A., Oliver, S., & Roseboom, I. 2009, MNRAS, 396, 535, doi: 10.1111/j.1365-2966.2009.14730.x Henriques, B. M. B., White, S. D. M., Lemson, G., et al. 2012, MNRAS, 421, 2904, doi: 10.1111/j.1365-2966.2012.20521.x Henriques, B. M. B., White, S. D. M., Thomas, P. A., et al. 2015, MNRAS, 451, 2663, doi: 10.1093/mnras/stv705 —. 2013, MNRAS, 431, 3373, doi: 10.1093/mnras/stt415 Hirschmann, M., Naab, T., Somerville, R. S., Burkert, A., & Oser, L. 2012, MNRAS, 419, 3200, doi: 10.1111/j.1365-2966.2011.19961.x Ho, M., Bartlett, D. J., Chartier, N., et al. 2024, The Open Journal of Astrophysics, 7, 54, doi: 10.33232/001c.120559 Hoffman, M. D., & Gelman, A. 2014, Journal of Machine Learning Research, 15, 1593. http://jmlr.org/papers/v15/hoffman14a.html Hopkins, P. F., Croton, D., Bundy, K., et al. 2010, ApJ, 724, 915, doi: 10.1088/0004-637X/724/2/915 Hopkins, P. F., Wetzel, A., Kereˇ s, D., et al. 2018, MNRAS, 480, 800, doi: 10.1093/mnras/sty1690 Horowitz, B., Hahn, C., Lanusse, F., Modi, C., & Ferraro, S. 2024, MNRAS, 529, 2473, doi: 10.1093/mnras/stae350 Horowitz, B., & Luki´ c, Z. 2025, MNRAS, 544, 960, doi: 10.1093/mnras/staf1785 Hu, W., & Dodelson, S. 2002, ARA&A, 40, 171, doi: 10.1146/annurev.astro.40.060401.093926 Hubble, E. P. 1926, ApJ, 64, 321, doi: 10.1086/143018 Ishiyama, T., Prada, F., Klypin, A. A., et al. 2021, MNRAS, 506, 4210, doi: 10.1093/mnras/stab1755 Iyer, K. G., Starkenburg, T. K., Bryan, G. L., et al. 2025, arXiv e-prints, arXiv:2508.21152, doi: 10.48550/arXiv.2508.21152 Jasche, J., & Lavaux, G. 2019, A&A, 625, A64, doi: 10.1051/0004-6361/201833710 Jeffrey, N., & Wandelt, B. D. 2024, Machine Learning: Science and Technology, 5, 015008, doi: 10.1088/2632-2153/ad1a4d Jespersen, C. K., Cranmer, M., Melchior, P., et al. 2022, ApJ, 941, 7, doi: 10.3847/1538-4357/ac9b18 Jo, Y., Genel, S., Leja, J., & Wandelt, B. 2026, ApJ, 998, 238, doi: 10.3847/1538-4357/ae19e4 Jo, Y., Genel, S., Sengupta, A., et al. 2025, ApJ, 991, 120, doi: 10.3847/1538-4357/adec78 Jo, Y., Genel, S., Wandelt, B., et al. 2023, ApJ, 944, 67, doi: 10.3847/1538-4357/aca8fe Kado-Fong, E., Geha, M., Mao, Y.-Y., et al. 2024, ApJ, 966, 129, doi: 10.3847/1538-4357/ad3042 Kaiser, N., & Squires, G. 1993, ApJ, 404, 441, doi: 10.1086/172297 Kamionkowski, M., & Riess, A. G. 2023, Annual Review of Nuclear and Particle Science, 73, 153, doi: 10.1146/annurev-nucl-111422-024107 Kauffmann, G., & Haehnelt, M. 2000, MNRAS, 311, 576, doi: 10.1046/j.1365-8711.2000.03077.x Kauffmann, G., White, S. D. M., & Guiderdoni, B. 1993, MNRAS, 264, 201, doi: 10.1093/mnras/264.1.201 Keller, B. W., Wadsley, J. W., Wang, L., & Kruijssen, J. M. D. 2019, MNRAS, 482, 2244, doi: 10.1093/mnras/sty2859 Kennicutt, Jr., R. C. 1998, ApJ, 498, 541, doi: 10.1086/305588 Khostovan, A. A., Sanders, R. L., Shapley, A. E., et al. 2025, arXiv e-prints, arXiv:2512.16989, doi: 10.48550/arXiv.2512.16989 Kidger, P. 2022, arXiv e-prints, arXiv:2202.02435, doi: 10.48550/arXiv.2202.02435 Kiessling, A., Cacciato, M., Joachimi, B., et al. 2015, SSRv, 193, 67, doi: 10.1007/s11214-015-0203-6 Kim, C.-G., Ostriker, E. C., Somerville, R. S., et al. 2020, ApJ, 900, 61, doi: 10.3847/1538-4357/aba962 Kim, J.-h., Abel, T., Agertz, O., et al. 2014, ApJS, 210, 14, doi: 10.1088/0067-0049/210/1/14 Kingma, D. P., & Ba, J. 2017, Adam: A Method for Stochastic Optimization. https://arxiv.org/abs/1412.6980 Klypin, A., Kravtsov, A. V., Bullock, J. S., & Primack, J. R. 2001, ApJ, 554, 903, doi: 10.1086/321400 Kobulnicky, H. A., & Kewley, L. J. 2004, ApJ, 617, 240, doi: 10.1086/425299 34 Viraj Pandya et al. 
+
+Kravtsov, A. V., Gnedin, O. Y., & Klypin, A. A. 2004, ApJ, 609, 482, doi: 10.1086/421322 Kroupa, P. 2001, MNRAS, 322, 231, doi: 10.1046/j.1365-8711.2001.04022.x Krumholz, M. R., Burkhart, B., Forbes, J. C., & Crocker, R. M. 2018, MNRAS, 477, 2716, doi: 10.1093/mnras/sty852 Kugel, R., Schaye, J., Schaller, M., et al. 2023, MNRAS, 526, 6103, doi: 10.1093/mnras/stad2540 Lacey, C., & Cole, S. 1993, MNRAS, 262, 627, doi: 10.1093/mnras/262.3.627 Lagos, C. D. P., Baugh, C. M., Lacey, C. G., et al. 2011, MNRAS, 418, 1649, doi: 10.1111/j.1365-2966.2011.19583.x Lagos, C. d. P., Tobar, R. J., Robotham, A. S. G., et al. 2018, MNRAS, 481, 3573, doi: 10.1093/mnras/sty2440 Lemos, P., Parker, L., Hahn, C., et al. 2024, Field-level simulation-based inference of galaxy clustering with convolutional neural networks, doi: 10.1103/PhysRevD.109.083536 Li, Y., Modi, C., Jamieson, D., et al. 2024, ApJS, 270, 36, doi: 10.3847/1538-4365/ad0ce7 Libeskind, N. I., van de Weygaert, R., Cautun, M., et al. 2018, MNRAS, 473, 1195, doi: 10.1093/mnras/stx1976 Lilly, S. J., Carollo, C. M., Pipino, A., Renzini, A., & Peng, Y. 2013, ApJ, 772, 119, doi: 10.1088/0004-637X/772/2/119 Little, R. J. A., & Rubin, D. B. 2002, Statistical analysis with missing data Lovell, C. C., Roper, W. J., Vijayan, A. P., et al. 2025a, The Open Journal of Astrophysics, 8, 152, doi: 10.33232/001c.145766 Lovell, C. C., Starkenburg, T., Ho, M., et al. 2025b, MNRAS, 544, 3949, doi: 10.1093/mnras/staf1888 Lu, Y., Benson, A., Wetzel, A., et al. 2017, ApJ, 846, 66, doi: 10.3847/1538-4357/aa845e Lu, Y., Kereˇ s, D., Katz, N., et al. 2011a, MNRAS, 416, 660, doi: 10.1111/j.1365-2966.2011.19072.x Lu, Y., Mo, H. J., & Wechsler, R. H. 2015, MNRAS, 446, 1907, doi: 10.1093/mnras/stu2215 Lu, Y., Mo, H. J., Weinberg, M. D., & Katz, N. 2011b, MNRAS, 416, 1949, doi: 10.1111/j.1365-2966.2011.19170.x Makinen, T. L., Alsing, J., & Wandelt, B. D. 2023, arXiv e-prints, arXiv:2310.03812, doi: 10.48550/arXiv.2310.03812 Mannucci, F., Cresci, G., Maiolino, R., Marconi, A., & Gnerucci, A. 2010, MNRAS, 408, 2115, doi: 10.1111/j.1365-2966.2010.17291.x Martin-Alvarez, S., Sijacki, D., Haehnelt, M. G., et al. 2026, MNRAS, 545, staf2106, doi: 10.1093/mnras/staf2106 Masters, K. L., Stark, D. V., Pace, Z. J., et al. 2019, MNRAS, 488, 3396, doi: 10.1093/mnras/stz1889 McAlpine, S., Jasche, J., Ata, M., et al. 2025, MNRAS, 540, 716, doi: 10.1093/mnras/staf767 McKay, M. D., Beckman, R. J., & Conover, W. J. 1979, Technometrics, 21, 239. http://www.jstor.org/stable/1268522 McQuinn, K. B. W., van Zee, L., & Skillman, E. D. 2019, ApJ, 886, 74, doi: 10.3847/1538-4357/ab4c37 Mitchell, P. D., & Schaye, J. 2022, MNRAS, 511, 2948, doi: 10.1093/mnras/stab3339 Mitchell, P. D., Schaye, J., Bower, R. G., & Crain, R. A. 2020, MNRAS, 494, 3971, doi: 10.1093/mnras/staa938 Mitra, S., Dav´ e, R., & Finlator, K. 2015, MNRAS, 452, 1184, doi: 10.1093/mnras/stv1387 Modi, C., Lanusse, F., & Seljak, U. 2021, Astronomy and Computing, 37, 100505, doi: 10.1016/j.ascom.2021.100505 Morrill, J., Kidger, P., Yang, L., & Lyons, T. 2021, arXiv e-prints, arXiv:2106.11028, doi: 10.48550/arXiv.2106.11028 Moster, B. P., Somerville, R. S., Maulbetsch, C., et al. 2010, ApJ, 710, 903, doi: 10.1088/0004-637X/710/2/903 Motwani, B., Genel, S., Bryan, G. L., et al. 2022, ApJ, 926, 139, doi: 10.3847/1538-4357/ac3d2d Muratov, A. L., Kereˇ s, D., Faucher-Gigu` ere, C.-A., et al. 2015, MNRAS, 454, 2691, doi: 10.1093/mnras/stv2126 —. 2017, MNRAS, 468, 4170, doi: 10.1093/mnras/stx667 Mutch, S. J., Liu, C., Poole, G. B., et al. 2016, MNRAS, 463, 3556, doi: 10.1093/mnras/stw2187 Naab, T., & Ostriker, J. P. 2017, ARA&A, 55, 59, doi: 10.1146/annurev-astro-081913-040019 Nadaraya, E. A. 1964, Theory of Probability & Its Applications, 9, 141, doi: 10.1137/1109020 National Academies of Sciences, Engineering, and Medicine. 2023, Pathways to Discovery in Astronomy and Astrophysics for the 2020s (Washington, DC: The National Academies Press), doi: 10.17226/26141 Neistein, E., Khochfar, S., Dalla Vecchia, C., & Schaye, J. 2012, MNRAS, 421, 3579, doi: 10.1111/j.1365-2966.2012.20584.x Nelson, D., Springel, V., Pillepich, A., et al. 2019a, Computational Astrophysics and Cosmology, 6, 2, doi: 10.1186/s40668-019-0028-x Nelson, D., Pillepich, A., Springel, V., et al. 2019b, MNRAS, 490, 3234, doi: 10.1093/mnras/stz2306 Nguyen, T., Modi, C., Mishra-Sharma, S., Yung, L. Y. A., & Somerville, R. S. 2025, MNRAS, 543, 722, doi: 10.1093/mnras/staf1487 sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 35 
+
+Nguyen, T., Villaescusa-Navarro, F., Mishra-Sharma, S., et al. 2026, ApJ, 997, 336, doi: 10.3847/1538-4357/ae28dc Ni, Y., Genel, S., Angl´ es-Alc´ azar, D., et al. 2023, ApJ, 959, 136, doi: 10.3847/1538-4357/ad022a Nocedal, J., & Wright, S. 2006, Numerical Optimization (New York) Ocvirk, P., Gillet, N., Shapiro, P. R., et al. 2016, MNRAS, 463, 1462, doi: 10.1093/mnras/stw2036 Okamoto, T., Gao, L., & Theuns, T. 2008, MNRAS, 390, 920, doi: 10.1111/j.1365-2966.2008.13830.x Ole´ skiewicz, P., & Baugh, C. M. 2020, MNRAS, 493, 1827, doi: 10.1093/mnras/stz3560 Oren, Y., Pandya, V., Somerville, R. S., et al. 2025, arXiv e-prints, arXiv:2510.23343, doi: 10.48550/arXiv.2510.23343 Ostriker, J. P., & Cowie, L. L. 1981, ApJL, 243, L127, doi: 10.1086/183458 Ostriker, J. P., & Peebles, P. J. E. 1973, ApJ, 186, 467, doi: 10.1086/152513 Pandey, S., Lovell, C. C., Modi, C., & Wandelt, B. D. 2025a, arXiv e-prints, arXiv:2511.08438, doi: 10.48550/arXiv.2511.08438 Pandey, S., Salcido, J., To, C.-H., et al. 2025b, PhRvD, 111, 043529, doi: 10.1103/PhysRevD.111.043529 Pandey, S., Modi, C., Wandelt, B. D., et al. 2025c, PhRvD, 112, 103503, doi: 10.1103/vlm2-tm6k Pandya, V. 2021, PhD thesis, University of California, Santa Cruz Pandya, V., Brennan, R., Somerville, R. S., et al. 2017, MNRAS, 472, 2054, doi: 10.1093/mnras/stx2027 Pandya, V., Primack, J., Behroozi, P., et al. 2019, MNRAS, 488, 5580, doi: 10.1093/mnras/stz2129 Pandya, V., Somerville, R. S., Angl´ es-Alc´ azar, D., et al. 2020, ApJ, 905, 4, doi: 10.3847/1538-4357/abc3c1 Pandya, V., Fielding, D. B., Angl´ es-Alc´ azar, D., et al. 2021, MNRAS, 508, 2979, doi: 10.1093/mnras/stab2714 Pandya, V., Fielding, D. B., Bryan, G. L., et al. 2023, ApJ, 956, 118, doi: 10.3847/1538-4357/acf3ea Pandya, V., Zhang, H., Huertas-Company, M., et al. 2024, ApJ, 963, 54, doi: 10.3847/1538-4357/ad1a13 Pandya, V., Loeb, A., McGrath, E. J., et al. 2025, ApJ, 986, 72, doi: 10.3847/1538-4357/adcd78 Peebles, P. J. E. 1980, The large-scale structure of the universe Peeples, M. S., Werk, J. K., Tumlinson, J., et al. 2014, ApJ, 786, 54, doi: 10.1088/0004-637X/786/1/54 Perez, L. A., Genel, S., Villaescusa-Navarro, F., et al. 2023, ApJ, 954, 11, doi: 10.3847/1538-4357/accd52 Phan, D., Pradhan, N., & Jankowiak, M. 2019, arXiv e-prints, arXiv:1912.11554, doi: 10.48550/arXiv.1912.11554 Pillepich, A., Nelson, D., Springel, V., et al. 2019, MNRAS, 490, 3196, doi: 10.1093/mnras/stz2338 Planck Collaboration, Ade, P. A. R., Aghanim, N., et al. 2016, A&A, 594, A13, doi: 10.1051/0004-6361/201525830 Popping, G., Behroozi, P. S., & Peeples, M. S. 2015, MNRAS, 449, 477, doi: 10.1093/mnras/stv318 Porter, L. A., Somerville, R. S., Primack, J. R., & Johansson, P. H. 2014, MNRAS, 444, 942, doi: 10.1093/mnras/stu1434 Press, W. H., Teukolsky, S. A., Vetterling, W. T., & Flannery, B. P. 2007, Numerical Recipes 3rd Edition: The Art of Scientific Computing, 3rd edn. (Cambridge University Press) Primack, J. R. 2012, Annalen der Physik, 524, 535, doi: 10.1002/andp.201200077 —. 2024, Annual Review of Nuclear and Particle Science, 74, 173, doi: 10.1146/annurev-nucl-102622-023052 Rackauckas, C., Ma, Y., Martensen, J., et al. 2020, arXiv e-prints, arXiv:2001.04385, doi: 10.48550/arXiv.2001.04385 Rees, M. J., & Ostriker, J. P. 1977, MNRAS, 179, 541, doi: 10.1093/mnras/179.4.541 Rodr´ ıguez-Puebla, A., Primack, J. R., Avila-Reese, V., & Faber, S. M. 2017, MNRAS, 470, 651, doi: 10.1093/mnras/stx1172 Rodr´ ıguez-Puebla, A., Primack, J. R., Behroozi, P., & Faber, S. M. 2016, MNRAS, 455, 2592, doi: 10.1093/mnras/stv2513 Roper, W., Lovell, C., Vijayan, A., et al. 2026, The Journal of Open Source Software, 11, 9436, doi: 10.21105/joss.09436 Rubin, D. B. 1987, Multiple Imputation for Nonresponse in Surveys (Wiley), 258 Rubin, V. C., Ford, Jr., W. K., & Thonnard, N. 1980, ApJ, 238, 471, doi: 10.1086/158003 Saintonge, A., Kauffmann, G., Kramer, C., et al. 2011, MNRAS, 415, 32, doi: 10.1111/j.1365-2966.2011.18677.x Salim, D. M., Orr, M. E., Burkhart, B., Somerville, R. S., & Cramner, M. 2025, ApJ, 995, 73, doi: 10.3847/1538-4357/ae13ac S´ anchez, S. F., Barrera-Ballesteros, J. K., Lacerda, E., et al. 2022, ApJS, 262, 36, doi: 10.3847/1538-4365/ac7b8f Sandage, A. 1988, ARA&A, 26, 561, doi: 10.1146/annurev.aa.26.090188.003021 Sanders, R. L., Shapley, A. E., Jones, T., et al. 2021, ApJ, 914, 19, doi: 10.3847/1538-4357/abf4c1 36 Viraj Pandya et al. 
+
+Schaller, M., Schaye, J., Kugel, R., Broxterman, J. C., & van Daalen, M. P. 2025, MNRAS, 539, 1337, doi: 10.1093/mnras/staf569 Schaye, J., Kugel, R., Schaller, M., et al. 2023, MNRAS, 526, 4978, doi: 10.1093/mnras/stad2419 Schneider, A., & Teyssier, R. 2015, JCAP, 2015, 049, doi: 10.1088/1475-7516/2015/12/049 Schneider, E. E., & Robertson, B. E. 2015, ApJS, 217, 24, doi: 10.1088/0067-0049/217/2/24 Scott, D. W. 2010, WIREs Computational Statistics, 2, 497, doi: 10.1002/wics.103 Sharma, M., & Theuns, T. 2020, MNRAS, 492, 2418, doi: 10.1093/mnras/stz2909 Shivaei, I., Reddy, N. A., Shapley, A. E., et al. 2015, ApJ, 815, 98, doi: 10.1088/0004-637X/815/2/98 Shuntov, M., Ilbert, O., Toft, S., et al. 2025, A&A, 695, A20, doi: 10.1051/0004-6361/202452570 Smith, M. C., Fielding, D. B., Bryan, G. L., et al. 2024a, MNRAS, 535, 3550, doi: 10.1093/mnras/stae2589 —. 2024b, MNRAS, 527, 1216, doi: 10.1093/mnras/stad3168 Somerville, R. S. 2002, ApJL, 572, L23, doi: 10.1086/341444 Somerville, R. S., & Dav´ e, R. 2015, ARA&A, 53, 51, doi: 10.1146/annurev-astro-082812-140951 Somerville, R. S., Hopkins, P. F., Cox, T. J., Robertson, B. E., & Hernquist, L. 2008, MNRAS, 391, 481, doi: 10.1111/j.1365-2966.2008.13805.x Somerville, R. S., Popping, G., & Trager, S. C. 2015, MNRAS, 453, 4337, doi: 10.1093/mnras/stv1877 Somerville, R. S., & Primack, J. R. 1999, MNRAS, 310, 1087, doi: 10.1046/j.1365-8711.1999.03032.x Speagle, J. S., Steinhardt, C. L., Capak, P. L., & Silverman, J. D. 2014, ApJS, 214, 15, doi: 10.1088/0067-0049/214/2/15 Stark, D. V., Masters, K. L., Avila-Reese, V., et al. 2021, MNRAS, 503, 1345, doi: 10.1093/mnras/stab566 Stevens, A. R. H., Sinha, M., Rohl, A., et al. 2024, PASA, 41, e053, doi: 10.1017/pasa.2024.14 Stringer, M. J., Brooks, A. M., Benson, A. J., & Governato, F. 2010, MNRAS, 407, 632, doi: 10.1111/j.1365-2966.2010.16944.x Tacconi, L. J., Genzel, R., & Sternberg, A. 2020, ARA&A, 58, 157, doi: 10.1146/annurev-astro-082812-141034 Thorp, S., Peiris, H. V., Jagwani, G., et al. 2025, ApJ, 993, 240, doi: 10.3847/1538-4357/ae0936 Tinker, J., Kravtsov, A. V., Klypin, A., et al. 2008, ApJ, 688, 709, doi: 10.1086/591439 Tinsley, B. M. 1968, ApJ, 151, 547, doi: 10.1086/149455 Tsitouras, C. 2011, Computers & Mathematics with Applications, 62, 770, doi: https://doi.org/10.1016/j.camwa.2011.06.002 Tully, R. B., & Fisher, J. R. 1977, A&A, 54, 661 Turner, M. S. 2022, Annual Review of Nuclear and Particle Science, 72, 1, doi: 10.1146/annurev-nucl-111119-041046 Vale, A., & Ostriker, J. P. 2006, MNRAS, 371, 1173, doi: 10.1111/j.1365-2966.2006.10605.x van Buuren, S. 2018, Flexible Imputation of Missing Data (Chapman and Hall/CRC), doi: 10.1201/9780429492259 Villaescusa-Navarro, F., Angl´ es-Alc´ azar, D., Genel, S., et al. 2021, ApJ, 915, 71, doi: 10.3847/1538-4357/abf7ba Villasenor, B., Robertson, B., Madau, P., & Schneider, E. 2021, ApJ, 912, 138, doi: 10.3847/1538-4357/abed5a Vogelsberger, M., Marinacci, F., Torrey, P., & Puchwein, E. 2020, Nature Reviews Physics, 2, 42, doi: 10.1038/s42254-019-0127-2 Voit, G. M., Carr, C., Fielding, D. B., et al. 2024a, ApJ, 976, 151, doi: 10.3847/1538-4357/ad81d5 Voit, G. M., Pandya, V., Fielding, D. B., et al. 2024b, ApJ, 976, 150, doi: 10.3847/1538-4357/ad81d6 Wang, H., Mo, H. J., Yang, X., Jing, Y. P., & Lin, W. P. 2014, ApJ, 794, 94, doi: 10.1088/0004-637X/794/1/94 Watson, G. S. 1964, Sankhy¯ a Ser., 26, 359 Wechsler, R. H., & Tinker, J. L. 2018, ARA&A, 56, 435, doi: 10.1146/annurev-astro-081817-051756 Westfall, K. B., Cappellari, M., Bershady, M. A., et al. 2019, AJ, 158, 231, doi: 10.3847/1538-3881/ab44a2 Whitaker, K. E., Franx, M., Leja, J., et al. 2014, ApJ, 795, 104, doi: 10.1088/0004-637X/795/2/104 White, C. E., Somerville, R. S., & Ferguson, H. C. 2015, ApJ, 799, 201, doi: 10.1088/0004-637X/799/2/201 White, M., Scott, D., & Silk, J. 1994, ARA&A, 32, 319, doi: 10.1146/annurev.astro.32.1.319 White, S. D. M., & Frenk, C. S. 1991, ApJ, 379, 52, doi: 10.1086/170483 White, S. D. M., & Rees, M. J. 1978, MNRAS, 183, 341, doi: 10.1093/mnras/183.3.341 Wibking, B. D., & Krumholz, M. R. 2022, MNRAS, 512, 1430, doi: 10.1093/mnras/stac439 Wright, R. J., Somerville, R. S., Lagos, C. d. P., et al. 2024, MNRAS, 532, 3417, doi: 10.1093/mnras/stae1688 Yates, R. M., Henriques, B., Thomas, P. A., et al. 2013, MNRAS, 435, 3500, doi: 10.1093/mnras/stt1542 Yoshida, N., Stoehr, F., Springel, V., & White, S. D. M. 2002, MNRAS, 335, 762, doi: 10.1046/j.1365-8711.2002.05661.x Zentner, A. R., Hearin, A. P., & van den Bosch, F. C. 2014, MNRAS, 443, 3044, doi: 10.1093/mnras/stu1383 sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 37 
+
+Zhang, H., Behroozi, P., Volonteri, M., et al. 2023, MNRAS, 518, 2123, doi: 10.1093/mnras/stac2633 Zhao, D. H., Jing, Y. P., Mo, H. J., & B¨ orner, G. 2009, ApJ, 707, 354, doi: 10.1088/0004-637X/707/1/354 38 Viraj Pandya et al. 
+
+APPENDIX  
+
+> A.
+
+MANGA SUMMARY STATISTICS Here we describe our analysis of star-forming galaxies in the final Data Release 17 (DR17) of the MaNGA survey (Bundy et al. 2015), which is part of the Sloan Digital Sky Survey IV (SDSS-IV; Blanton et al. 2017). We begin with a description of the sample selection and then describe each of our three summary statistics in order of increasing complexity. The sapphire github repository contains a Jupyter notebook to reproduce our calculations. A.1. Sample selection 
+
+MaNGA obtained integral field unit (IFU) spectroscopy of ∼ 10 , 000 galaxies. These were selected from the NASA Sloan Atlas (NSA; Blanton et al. 2011) using simple cuts on redshift, i-band luminosity and color designed to mitigate selection biases. Here we combine the Primary, Secondary and Color-Enhanced Samples. The Primary Sample selects galaxies at z ∼ 0.03 for IFU coverage out to 1 .5 times the half-light radius. The Secondary Sample includes more distant galaxies at z ∼ 0.06 to enable IFU coverage out to 2 .5 times the half-light radius. Finally, the Color-Enhanced Sample includes rarer classes of galaxies. We will refer to this combination of Primary, Secondary and Color-Enhanced Samples as our Main Galaxy Sample. Figure 16 illustrates how our sequence of selection cuts affects the MaNGA galaxy stellar mass distribution. First, we start with the 9853 objects in the Main Galaxy Sample using standard flags provided by the Data Reduction Pipeline (DRP; Westfall et al. 2019). We cross-match these to the Pipe3D value-added catalog of gas and stellar population properties (S´ anchez et al. 2022). In this paper, we only require stellar masses, gas-phase metallicities, star formation rates and their measurement uncertainties. These are available for 9833 galaxies. Although this is essentially the full Main Galaxy Sample, the left panel of Figure 16 shows a deficit of low-mass and excess of high-mass galaxies relative to the parent NSA catalog used for original target selection, with the NSA catalog being roughly uniform between log M∗/M ⊙ = 9 − 11 as is often claimed for MaNGA. Since the version of sapphire we use is only appropriate for star-forming galaxies, we follow Pandya et al. (2017) and impose a specific SFR cut of SFR /M∗ > 10 −11 yr −1 to keep only star-forming galaxies. The SFR comes from integrating H α emission over all spaxels using the Kennicutt (1998) calibration. As explained by S´ anchez et al. (2022), the Balmer decrement was used to correct for dust attenuation using a MW-like Cardelli et al. (1989) curve. This cut preferentially removes higher mass galaxies, leaving 4943 objects. We also require ZISM measurements and uncertainties from Pipe3D, which drops our sample slightly to 4665 galaxies. Next, we merge with Data Release 3 of the HI-MaNGA value-added catalog (Stark et al. 2021). As detailed in Masters et al. (2019), HI-MaNGA targets a subset of MaNGA galaxies with the Green Bank Telescope down to comparable sensitivity limits as the ALFALFA survey (Haynes et al. 2011) while avoiding overlapping targets. They imposed a maximum distance cut which preferentially removed high-mass galaxies as confirmed by our Figure 16. We are able to cross-match our star-forming sample above to 3567 galaxies in the HI-MaNGA survey. Of these, only 2393 galaxies have HI detections. Lastly, because we only model halos up to log Mvir /M ⊙ ∼ 12, we cut off the sample at log M∗/M ⊙ = 9 − 10 .5, leaving 1787 galaxies in our final sample. A.2. ISM mass-metallicity relation 
+
+Figure 17 shows our fit to the ISM MZR, which is arguably the least complicated of our three summary statistics. The gas-phase metallicities come from Pipe3D fits to various emission lines, which are then combined for multiple oxygen abundance (12 + log( O/H )) indicators as detailed in S´ anchez et al. (2022). For simplicity, here we use the common R23 indicator involving the [O II] 3727˚ A, [O III] 4959,5007˚ A and H β emission lines in a central 2.5 arcsec diameter aperture, based on the Kobulnicky & Kewley (2004) calibration. We convert these oxygen abundances to overall ZISM assuming solar abundances from Asplund et al. (2009). We use the approach of “multiple imputations” (e.g., Little & Rubin 2002; van Buuren 2018) to generate 100 realizations of the data, drawing each galaxy’s stellar mass and ISM metallicity from two independent Gaussians with means equal to the measured values and standard deviations set to the measurement uncertainties. For each realization of points, we perform Nadaraya-Watson regression as detailed in Subsection 4.3. Then, we interpolate all regressions onto a common stellar mass grid and use Rubin’s rules (Rubin 1987) to compute the average regression sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 39                  
+
+> Figure 16. Effect of our selection cuts on the stellar mass distribution of the MaNGA sample. The left panel shows the number of galaxies whereas the right panel shows the fraction relative to the Pipe3D catalog. We use 0.2 dex wide bins between log M∗/M ⊙= 9 −12. Note how the Pipe3D catalog (solid black line) has fewer low-mass and more high-mass galaxies than the parent NSA catalog (dotted black line), which was originally used for MaNGA target selection and has a flat stellar mass distribution. The blue curves show the effect of limiting to star-forming galaxies only. The orange curves show the impact of requiring ZISM measurements and uncertainties. The green curves shows the drop after cross-matching to the HI-MaNGA catalog. Finally, the red curves denote the effect of requiring HI detections. The vertical gray lines mark our upper stellar mass limit (log M∗/M ⊙= 10 .5) corresponding roughly to the maximum halo masses we model (log Mvir /M ⊙∼12).
+
+and its standard error. The typical uncertainty on individual ISM metallicities is of order 0.05 dex, but this is likely too small and neglects systematics from, e.g., using different indicators. Thus we add, in quadrature, an arbitrary systematic uncertainty of 0.2 dex to the baseline standard errors. This reflects our ignorance on the exact normalization shift of the ISM MZR. Our regression is relatively consistent with others in the literature (e.g., Andrews & Martini 2013) and in Subsection 6.4 we assess the impact of systematic shifts in the ISM MZR on model parameter posteriors. A.3. ISM gas fractions 
+
+Figure 17 also shows our regression of the ISM gas fraction, which is more involved since we start with only HI masses from HI-MaNGA (Masters et al. 2019; Stark et al. 2021). We assign every MaNGA galaxy a value of Rmol ≡ MH2 /M HI 
+
+based on the average M∗-dependent relation given in Table 3 of Catinella et al. (2018) and their constant reported Gaussian scatter of 0.41 dex. Summing the random assigned H 2 mass with the observed MHI and multiplying by 1 .3to account for helium gives us an estimate of the total ISM mass which we can use to compute our gas “fraction” (ratio) fISM ≡ MISM /M ∗. Then we use the same multiple imputation approach as described above for the MZR to derive an average regression and its standard error. The measurement uncertainties on MHI are typically very small, and although the uncertainty on MH2 is much higher at ∼ 0.3 dex (Saintonge et al. 2011), since H I dominates over H2, the formal standard errors on our average fISM are ≲ 0.1 dex. We add 0.1 dex in quadrature to account for any extra systematics. Our average fISM − M∗ regression is significantly higher than Catinella et al. (2018), by up to ∼ 1dex at high mass. This is likely because Catinella et al. (2018) included HI non-detections in their average. Indeed, we are in relatively good agreement with Peeples et al. (2014) who restricted their analysis to star-forming galaxies. A.4. Stellar-mass-halo-mass relation 
+
+We investigated the possibility of assigning halo mass posteriors to individual MaNGA galaxies using the Behroozi et al. (2019) SMHM relation. We built a simple hierarchical Bayesian model that accounts for the scatter in the assumed relation and measurement uncertainty on stellar mass: 
+
+P(Mhalo |M∗) ∝ P (M∗|Mhalo )P(Mhalo ) (A1) where the left-hand side is the posterior, the first-term on the right-hand side is the likelihood, and the second term is the prior. The likelihood is our assumed SMHM relation from Behroozi et al. (2019) and the prior is the halo mass function, for which we assume the Tinker et al. (2008) function implemented in the colossus package (Diemer 40 Viraj Pandya et al.         
+
+> Figure 17. ISM MZR (left) and ISM gas fractions (right) as a function of stellar mass for our star-forming, HI-detected MaNGA sample. In both panels, black points show individual galaxies with their measurement uncertainties. Yellow lines are from our Gaussian kernel regression and denote purely statistical uncertainties. Red lines add our assumed systematic uncertainty in quadrature: 0.2 dex for the MZR and 0.1 dex for the gas fractions. Cyan and magenta lines show relations from the literature but for these the errorbars reflect the dispersion, not standard error on the mean like for our regression. Our MZR is ∼0.1 dex lower than Andrews & Martini (2013) but consistent within systematics. Our fISM −M∗relation roughly agrees with Peeples et al. (2014) whereas Catinella et al. (2018) is lower since they included non-detections in their averaging. In Subsection 6.4 we show how systematic shifts affects our parameter posteriors.
+
+2018). In practice, the likelihood dominates over the prior. Since the Behroozi et al. (2019) SMHM relation has asymmetric uncertainties on the mean and scatter, we assume a split-normal distribution to draw 100 random values for both. For each of those SMHM realizations, we evaluate a Gaussian likelihood on a halo mass grid spanning log Mhalo /M ⊙ = 10 − 13 for each galaxy using its measured stellar mass. The measurement uncertainty on stellar mass is convolved with the SMHM relation scatter for the Gaussian likelihood calculation. For every SMHM realization, we also compute the fraction of galaxies that would satisfy our MaNGA selection of log M∗/M ⊙ = 9 − 10 .5, assuming a Gaussian distribution for stellar mass at a given halo mass. This provides a way to estimate the completeness. Figure 18 shows the resulting SMHM relation for MaNGA. Our Bayesian procedure works well for individual galaxies: their posteriors for halo mass place them squarely on the assumed Behroozi et al. (2019) relation. However, the hard selection window of log M∗/M ⊙ = 9 − 10 .5 results in a biased SMHM relation for MaNGA. The average SMHM ratio for log Mvir ∼ 11 .5 is biased high since only galaxies with log M∗/M ⊙ > 9 are in our sample and lower-M∗ galaxies are missing. Similarly, at log Mvir /M ⊙ ∼ 12, the average is biased low since we are missing log M∗/M ⊙ > 10 .5 galaxies that would be assigned to that halo mass. This is immediately apparent from the right-most panel which shows that we reach > 80% completeness only in a small log Mvir /M ⊙ ≈ 11 .4 − 12 window where mostly only log M∗/M ⊙ = 9 − 10 .5galaxies live. Since the shape of the MaNGA SMHM relation is biased relative to the underlying population one from Behroozi et al. (2019), it would be hard to trust any inference with it which is why we opted to “mix and match” the MaNGA 
+
+fISM and ISM MZR data with the full SMHM relation from Behroozi et al. (2019). Nevertheless, Figure 19 illustrates the impact of limiting the Behroozi et al. (2019) halo mass range to log Mvir /M ⊙ ∼ 11 .4 − 12 where MaNGA is complete, or using the biased, flatter MaNGA SMHM relation. We are able to still fit either of those along with the ISM gas fractions and ISM MZR. Most parameter posteriors remain relatively unchanged except both degraded SMHM relations prefer an opposite, shallower ηM slope and higher AZ . The flattening of the biased MaNGA SMHM relation also leads to a preference for a flatter tdep slope. This example demonstrates the potential power of sapphire 
+
+for disentangling astrophysics from observational selection effects and should remind the reader of similar systematic normalization shifts we did for the other two relations in Figures 12, 13 and 14. sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 41 
+
+Figure 18. Simple hierarchical Bayesian model for SMHM relation of MaNGA galaxies. Left: the SMHM ratio and halo mass for three example galaxies (blue, green and magenta errorbars) follow the assumed Behroozi et al. (2019) relation. However, the posterior density from pooling all random realizations together reveals a bias in the average SMHM relation. The negative diagonal striping pattern is due to the hard log M∗/M ⊙ = 9 − 10 .5 selection cut. Since low-M∗ galaxies are missing, the average SMHM ratio is biased high at low-Mhalo , and vice versa at high halo mass. Middle: halo mass posteriors for the same example low-mass, intermediate-mass and high-mass galaxies marked in the left panel. These individual posteriors look reasonable, suggesting that it is the hard stellar mass cut that is biasing the shape of the MaNGA SMHM relation. Right: the fraction of galaxies at each halo mass that would fall within the MaNGA log M∗/M ⊙ = 9 − 10 .5 window. Only for a small halo mass range of log Mhalo /M ⊙ ≈ 11 .4 − 12 do we surpass 80% completeness. B. NUMERICS Here we briefly describe numerical details which provide the foundation for this paper. Note that many of the tests in this Appendix would be borderline impossible if we did not use multiple GPUs given the large numbers of ODEs that we need to evolve for different solver settings. B.1. Adaptive ODE solver 
+
+This paper deals with first- and second-order gradients of dynamical systems so first we need to establish that we can actually solve our nonlinear galaxy formation ODEs accurately and efficiently. We use the diffrax Python package which provides a suite of adaptive ODE solvers compatible with JAX (Kidger 2022). 17 To ensure numerically stable adaptive timestepping, we solve our ODEs using (base-10) logarithmic state variables since they otherwise evolve over orders of magnitude (both for a single galaxy and across different systems). Next we justify our choice of adaptive timestepping algorithm, and absolute and relative error tolerances ( atol and rtol , respectively; see Corless & Fillion 2013, for more details). Figure 20 compares the convergence and global error rates of a low 2/3-order (Bogacki & Shampine 1989, hereafter 
+
+Bosh3 ) and high 4/5-order (Tsitouras 2011, hereafter Tsit5 ) adaptive ODE solver. We evolve 1000 random halos at 1000 points in parameter space uniformly sampled from a latin hypercube (McKay et al. 1979, as described in Subsection 4.1). We solve each galaxy ODE system 12 times on a grid of atol = rtol = (10 −6, 10 −8, 10 −10 , 10 −12 ) and 
+
+N max steps = (16 2, 16 3, 16 4). The latter is required since JAX pre-allocates memory so array shapes must be known at runtime. This means we have 12 million ODE solves which we vectorize over four Nvidia A100-80GB GPUs in parallel (following Subsection B.2 below). As we decrease the tolerances, both solvers require more steps to reach z = 0 which makes sense because smaller timesteps are needed to control local errors. Clearly, Tsit5 is more efficient than Bosh3 
+
+and less likely to hit the N max steps limit. Our galaxy formation ODEs do not have analytic solutions so we must resort to numerical tests to assess convergence. We define the global relative error for a given solver and tolerance by computing the norm of the residuals of the z = 0 state vector ⃗x tol relative to the 10 −12 “best” tolerance setting state vector ⃗x 12 :∆( ⃗x tol ,⃗ x 12 ) = ⃗ x tol −⃗x 12 
+
+|⃗x 12 | . (B2)      
+
+> 17 We originally wrote our own adaptive 2/3-order Runge-Kutta solver from Bogacki & Shampine (1989) in JAX using the Butcher tableau approach described in Hairer et al. (2008), but the extra features of diffrax made it the natural choice for our work.
+
+42 Viraj Pandya et al.        
+
+> Figure 19. Analogous to Figure 12 but now trimming the Behroozi et al. (2019) SMHM relation to the limited halo mass range where MaNGA is complete (pink) or using our biased MaNGA SMHM relation (green). In both cases we are still able to fit the SMHM relation while simultaneously matching the ISM gas fractions and ISM MZR. The bottom panels compare the two resulting parameter posteriors to the fiducial case (orange). The main change is that the “degraded” SMHM relations both lead to a shallower mass loading slope and higher AZpreference. The flatter biased MaNGA SMHM relation leads to a systematically shallower preferred ISM depletion time slope. This is a simple precursor to using sapphire to disentangle astrophysics and cosmology from observational selection effects.
+
+Similarly, for each tolerance setting, we compare Bosh3 to Tsit5 assuming the latter is the “truth” since it is a higher order method. We mask failed ODE solves (i.e., those where Nsteps hit the N max steps limit). We find that this global relative error falls as the local tolerance decreases which is encouraging because it means both solvers are internally self-consistent. The global error is ∼ 10 − 100 × larger than the requested local tolerance because local errors accumulate over the numerical integration history depending on the stability properties of our particular ODE system. This global-local error discrepancy is lower for Bosh3 likely because it is a lower order method so the solution may not change as much when varying the local tolerance. Crucially, Bosh3 agrees with Tsit5 for a given tolerance with the same global relative error that Tsit5 has compared to its own 10 −12 tolerance solution. The combined better efficiency (fewer total steps) and adequate numerical accuracy of Tsit5 makes it our fiducial solver choice with atol = rtol = 10 −8 and N max steps = 16 4 by default. We will show below in Subsection B.3 that these tolerances are also sufficient for accurately computing Jacobian and Hessian sensitivity matrices. B.2. Automatic compilation, vectorization, parallelization 
+
+One of the benefits of JAX is that it provides just-in-time ( jit ) compilation for Python code. This allows the same code to be run on CPUs, GPUs and other accelerators without major restructuring. We have written our entire model to be jit -compatible. On modern CPUs, we find a ∼ 10 × speed-up for single evaluations of our integrator function that returns ODE values given the current time, state variables and free parameters. In addition, JAX provides function transformations for vectorization ( vmap ) and parallelization ( shmap ). Combined with jit , these can provide orders sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 43                                           
+
+> Figure 20. Numerical convergence rate (left) and global relative errors (right) for different ODE solvers (solid lines for Tsit5 ,dashed lines for Bosh3 ) as a function of local tolerance and maximum allowed steps (blue/orange/green). Errorbars reflect the 16/50/84 percentiles of the distribution for 1000 random halos each evaluated at 1000 parameter sets uniformly sampled over a latin hypercube. Left: Both solvers require more steps for lower tolerance settings but Tsit5 is more efficient and less likely to hit the pre-allocated Nmax steps limit. Note that Tsit5 5 finishes in <16 3steps so increasing the max step limit to 16 4has no effect whereas Bosh3 would take >10 ×as many steps at aatol =rtol = 10 −12 .Right: For a given solver, the global error in the z= 0 state vector goes down as the local tolerance is decreased reflecting the internal consistency of the solution. The lower order
+> Bosh3 solution also agrees with the higher order Tsit5 solution at a given local tolerance but uses more steps. This justifies our choice to use Tsit5 with atol =rtol = 10 −8and Nmax step = 16 4.
+
+of magnitude speed gains by solving large batches of ODE systems in parallel using vectorized inputs such as our interpolated merger tree matrices. Figure 21 compares the runtime for solving the ODE systems of different numbers of halos on CPUs and GPUs. All runtimes exclude the initial jit compilation time. For small batch sizes, GPUs are ∼ 10 × slower than CPUs. However, with vectorization alone, a single Nvidia A100-80GB GPU out-performs a single state-of-the-art Intel Ice Lake 64-core CPU node for batch sizes of ≳ 5 × 10 4 halos. On average, we can evolve 1000 independent galaxy ODE systems in ∼ 1 sec on a 64-core CPU and ∼ 10 sec on an A100-80GB GPU. For even larger batch sizes, multi-GPU parallelization becomes essential, with runtime often dropping as 1 /N GPU. For example, at 10 5 galaxies, CPU takes 
+
+∼ 100 sec, a single A100-80GB GPU is slightly quicker, and four A100-80GB GPUs are ∼ 4× faster still. At 10 6
+
+galaxies, four A100-80GB GPUs are 4 × faster than a single A100-80GB GPU, and we get another factor of ∼ 4 speed gain from parallelizing over eight H100-80GB GPUs. Finally, for 10 7 galaxies, which is the largest batch size we test here, we can evolve these in ∼ 420 sec ( ∼ 7 min) with eight H100-80GB GPUs. For the batch sizes tested here, we do not encounter GPU memory issues but that can be addressed with more sophisticated parallelization and batching strategies, including splitting work across multiple nodes. For the purposes of explicit inference with adam or HMC, solving ODEs and computing their gradients becomes too slow for more than a couple thousand halos. But at very large batch sizes, we can utilize multi-GPU parallelization for lightning-fast training set generation. Our computational efficiency will be key for future cosmological survey science with Roman, Rubin and Euclid, which will catalog ∼ 10 9 galaxies and which is motivating ever larger ∼Gpc-scale simulations (e.g., Heitmann et al. 2021; Ishiyama et al. 2021). For context, the flagship, highest resolution MillenniumTNG simulation provides ∼ 10 8 trees (Barrera et al. 2023). Despite the speed-up from JAX with jit , it will still be desirable to train emulators, but now with the added benefit of also having physically interpretable gradients from sapphire .44 Viraj Pandya et al.       
+
+> Figure 21. Runtime for solving and auto-diffing through the ODE systems of different numbers of halos on a single 64-core Intel Ice Lake CPU node (black), single Nvidia A100-80GB GPU (teal), four A100-80GB GPUs (dark blue), and eight H100-80GB GPUs (light blue). Solid lines are for solving the ODE system whereas dashed lines are for computing the gradients (Jacobians) with respect to 9 parameters. For small batch sizes, GPUs are up to an order of magnitude slower than CPUs, so the latter are desirable for explicit inference with adam or HMC. For ≳10 5galaxies, GPUs out-perform CPUs, with runtime often dropping as 1 /N GPU . Gradients are at most only a factor of a few more expensive than solving the ODEs themselves.
+
+B.3. Automatic differentiation 
+
+Perhaps most importantly, JAX gives us the ability to rapidly compute exact derivatives of our numerical ODE solutions with respect to input parameters, including through the internals of the adaptive ODE solver and some of its settings, via automatic differentiation (auto-diff). Briefly, auto-diff transforms a function into its derivative by “tracing” the inputs through the computation, accumulating partial derivatives with the chain rule (see the review by Baydin et al. 2018, for more details). The tracing can be run in “forward-mode” (perturbing the inputs) or “reverse-mode” (perturbing the outputs). There is no analytic solution for our ODE system so these derivatives are not computable symbolically. However, our code itself is still composed of a sequence of elementary mathematical operations, and auto-diff libraries like JAX know how to compute their partial derivatives. Alternatively, finite differentiation (finite-diff) can be applied to highly non-linear ODEs like ours but it will be both numerically error-prone and more expensive given that each parameter needs to be perturbed separately once or twice. In contrast, auto-diff is exact to machine precision and typically requires fewer function evaluations, of order the number of inputs (outputs) for forward-mode (reverse-mode) autodiff. However, care must be taken for control flow (if/else statements, hard-binning, nondifferentiable operations like absolute values). We will show below that comparing auto-diff to finite-diff is a useful consistency check. For both methods, accurately preserving gradient flow requires tightly controlling local ODE errors since they will otherwise accumulate. But the atol /r tol tolerance requirements are less stringent for auto-diff than finite-diff, further increasing the attractiveness of auto-diff. Figure 21 shows that the runtime of auto-diff is at most only a few times higher than that of solving the ODE system itself. The combined runtime of a batched ODE solve and gradient calculation determines the regime where inference sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 45 is possible without emulators. For gradient descent and especially HMC, we generally want ≲ 1 sec total runtime per iteration and therefore prefer minibatches of size ≲ 1000 halos where CPUs win over GPUs. Note that calculating our likelihood function (i.e., loss; Subsection 4.4) requires solving the full ODE system for a batch of halos, but the gradient may only be required for one or a few state variables (e.g., if SMHM is the only constraint, only ∂ log M∗/∂⃗θ is needed). We find that the gradient of the loss alone is ∼ 2 − 10 × faster than the full Jacobian depending on which constraints we use. In this paper, when trying to interpret the dynamics and sensitivities of our model, we calculate full Jacobians, whereas for inference purposes, we use only the gradient of the simpler scalar loss function. In Subsection 4.5, we will compute second-order gradients (Hessian matrix), which take at least ∼ 10 × longer than Jacobians and scale with the square of the number of free parameters and/or state variables. Hessians are both computationally and memory-wise prohibitive to compute for large batches so we typically only calculate them once at the end of an inference loop for Fisher/Laplace forecasts. In Section 5, we show that our Jacobian and Hessian matrices have interpretable, non-random structure that encodes the astrophysics of our dynamical model. This was surprising because we did not know a priori whether numerical errors would accumulate while solving our highly non-linear ODEs, resulting in statistically noisy matrices. To convince the reader (and ourselves) of the robustness of the trends we will show, we now compare the Jacobians from auto-diff to those from finite diff. The latter is generally more expensive because we require 2 × Nfree ODE system evaluations to fill out a single column of the Jacobian, and less reliable because finite differencing is prone to numerical errors that depend on an arbitrary parameter step size ϵ. Nevertheless, auto-diff and finite-diff gradients should agree, though the latter may require much tighter ODE solver tolerances to reach the same accuracy. To test this, we generated 2000 parameter sets over a uniformly sampled latin hypercube (as described in Subsection 4.1). For a single random MW halo, we computed its auto-diff Jacobian for four different values of ODE solver tolerances 
+
+atol = rtol = (10 −6, 10 −8, 10 −10 , 10 −12 ). We also computed finite-diff Jacobians using six different step sizes ϵ =(10 −1, 10 −2, 10 −3, 10 −4, 10 −5, 10 −6) for each of the same four ODE tolerances. We use central finite differences: 
+
+J (Xk, θ j ) = f (⃗θj + ϵ⃗ e j )z=0  
+
+> k
+
+− f (⃗θj − ϵ⃗ e j )z=0 
+
+> k
+
+2ϵ (B3) where Xk is the kth state variable, θj is the jth astrophysical parameter, f represents our system of k nonlinearly coupled ODEs, f (. . . )z=0  
+
+> k
+
+denotes that we only take the kth state variable at z = 0, and ⃗e j is a “one-hot” vector (all zeros except for index j). Next we define and compute the “relative symmetric error” between any two Jacobians as: ∆( J1, J2) ≡ J1 − J 2
+
+0.5( |J 1| + |J 2|) . (B4) The numerator is the residual matrix between any two Jacobians. The denominator is the average value of each Jacobian cell given that we do not consider either Jacobian as the ground truth. The closer these normalized errors are to one (or higher), the closer (or worse) the discrepancies are to the average magnitude of the gradient itself and thus more unreliable. As a simple summary statistic, we take the norm of this normalized residual matrix. Figure 22 summarizes how ∆( J1, J2) depends on atol = rtol and ϵ. As a baseline, the black line compares each autodiff Jacobian to the “true” autodiff Jacobian with the tightest atol = rtol = 10 −12 . Since autodiff Jacobians are not subject to finite-diff noise from an arbitrary ϵ, this is a self-consistency check of the dependence of the numerical ODE solution on solver error tolerances alone. As expected, the autodiff residuals decrease as we decrease ODE solver tolerances. For our fiducial choice of atol = rtol = 10 −8 (chosen to balance accuracy and speed), the average autodiff Jacobian varies by ≲ 10 −2 compared to the lowest tolerance (most accurate) auto-diff Jacobian. The finite-difference residuals relative to auto-diff at a fixed ODE solver tolerance also decrease as we lower the tolerances. These finite-difference residuals also decrease as ϵ is increased which avoids numerical round-off error, but show a turn-around with larger residuals when ϵ ≳ 10 −2, which is likely too large of a step size and leads to non-linear extrapolation errors. Figure 23 expands the above to simultaneously consider variations across halo mass and parameter space. This is very expensive even with multiple GPUs, so we restrict ourselves to three illustrative cases. First, the average relative symmetric error between finite-diff and auto-diff Jacobians with atol = rtol = 10 −8 and ϵ = 10 −4 is of order the average Jacobian norm itself. This is mainly driven by numerical errors in the finite-diff Jacobian since dropping the ODE tolerances to 10 −12 leads to much better agreement with the auto-diff Jacobians across parameter space for a range of halo masses (and formation histories at fixed halo mass). The autodiff Jacobians themselves are self-consistent as evidenced by the low errors between the 10 −8 and 10 −12 tolerance versions. 46 Viraj Pandya et al. 
+
+Figure 22. Dependence of the relative symmetric error between autodiff and finite-difference Jacobians on ODE solver tolerances and the ϵ used for finite differencing. This is for a single random representative MW halo averaged over 2000 latin hypercube parameters with errorbars denoting 16-50-84 percentiles of the distribution of Jacobian residual norms. The black curve is a baseline from comparing autodiff Jacobians with various ODE tolerances to the autodiff Jacobian with our tightest and thus most accurate tolerances ( atol = rtol = 10 −12 ). As expected, the autodiff Jacobian error decreases as we lower the ODE solver tolerances. The colored lines show that residuals between the finite-difference and autodiff Jacobians also decrease as we lower ODE solver tolerance (for a fixed ϵ). Naturally, the finite difference residuals also decrease as we increase ϵ due to avoiding numerical round-off error except when ϵ ≳ 10 −2 where the step size becomes large enough to cause formula (extrapolation) errors. The horizontal gray band roughly marks where the residuals become of order the gradient magnitude itself. The vertical gray band denotes our fiducial choice of ODE solver tolerances to balance autodiff accuracy and speed. 
+
+Lastly, we compute Hessians H in this paper using auto-diff for Fisher/Laplace analysis. It is useful to benchmark against finite-diff Hessians just as we did for Jacobians earlier. For finite-diff Hessians, we use the two-point central finite-difference scheme (e.g., Nocedal & Wright 2006; Press et al. 2007) involving the log-likelihood so that the diagonals of the Hessian are given by 
+
+Hii = L(⃗θ + ϵ⃗ e i) − 2L(⃗ θ) + L(⃗ θ − ϵ⃗ e i)
+
+ϵ2 (B5) and the off-diagonals are given by 
+
+Hij =
+
+L(⃗θ + ϵ⃗ e i + ϵ⃗ e j ) − L (⃗ θ + ϵ⃗ e i − ϵ⃗ e j )
+
+−L (⃗θ − ϵ⃗ e i + ϵ⃗ e j ) + L(⃗ θ − ϵ⃗ e i − ϵ⃗ e j )4ϵ2 (B6) where ⃗e i and ⃗e j are “one-hot” vectors (all zeros except for index i and j, respectively). The Hessian is extremely expensive to evaluate with finite-diff since it requires 1 + N + N (N − 1) /2 evaluations, which partly explains why this has not been done before for SAMs. For simplicity, we fix the finite-diff stepsize to ϵ = 10 −4 and ODE solver tolerances atol = rtol to either 10 −8 (fiducial) or 10 −12 (reference). Note that we only use 10 −8 for auto-diff Hessians since we showed above that 10 −8 auto-diff gradients generally agree with 10 −12 auto-diff gradients. Finite-diff Hessians can be numerically unstable but in practice we find that most of our Hessians are well behaved (likely because we are considering ensemble sensitivity which is more robust than single-halo sensitivity) and thus do not require regularization (addition of a very small diagonal offset). sapphire : Towards Hybrid Physics-Informed, Data-Driven Modeling of Galaxy Formation 47                  
+
+> Figure 23. Similar to Figure 22 but now across our latin hypercube parameter space as a function of halo mass. Brighter colors correspond to worse discrepancies. The top row shows the average relative symmetric error between finite-diff and auto-diff Jacobians evaluated with atol =rtol = 10 −8and ϵ= 10 −4. These errors are typically of order the average gradient magnitude itself. The middle row is the same except we dropped the tolerances to 10 −12 which improves agreement. The AZand αZ
+> columns show large errors but only because auto-diff gives zero gradient for many halos whereas finite-difference is near but not exactly zero, causing the relative symmetric error to be large. The bottom row is a self-consistency check comparing the auto-diff Jacobian with 10 −8tolerances against 10 −12 tolerances, revealing tight agreement. This demonstrates consistency with Figure 22 across parameter space for a range of halo masses (and formation histories at fixed mass).
+
+Figure 24 illustrates auto-diff and finite-diff Hessians in a two-parameter subspace of our model for a handful of representative mocks, using SMHM as the only constraint for the loss function (without measurement errors). Our finite-diff and auto-diff Fisher contours agree remarkably well for these few random points in parameter space. In cases where the 10 −8 finite-diff Fisher contours disagree with auto-diff Fisher contours, decreasing atol = rtol = 10 −12 
+
+improves agreement albeit at ∼ 5× the computational cost. This validates our use of auto-diff Fisher matrices which are ∼ 35 × faster than finite-diff Hessians to compute while also being more numerically stable without any arbitrary dependence on ϵ. In general, the Fisher contours are large and it is not clear that the local Gaussian approximation ap-plies to the posterior globally. This motivates our usage of HMC to test the Fisher/Laplace approximation (subsection 4.7). The top-right panel of Figure 24 shows four example SMHM relations estimated using this Gaussian kernel regression approach. This illustrates how we go from a discrete collection of individual properties predicted by our ODEs for an ensemble of galaxies to a smooth, differentiable summary statistic. The regression procedure is similar for log fISM (log M∗/M ⊙) and log Z∗/Z ⊙(log M∗/M ⊙). One advantage of our approach is that it is straightforward to account for observational uncertainties by adding them in quadrature to the intrinsic standard error σ¯y produced by the model itself. As described in Section 2, we use pre-tabulated scaling relations of quasi-observables taken from the literature so that determines our kernel centers and bandwidths. It is not always clear from these compiled relations whether the reported scatter includes systematic uncertainties and/or division by √N . Here we assume the measurement errors as given, and in future work we will attempt to estimate the covariances in the data itself at the catalog level. There exist natural extensions of our baseline approach to kernel density estimates and Gaussian processes for interpretable multivariate regression that we discuss in Subsection 7. The numerical exercises of this subsection increase our confidence in the auto-diff gradients used throughout this paper. Surprisingly, we are unable to find any other study in the ≳ 50 year history of SAMs that attempted this kind of sensitivity analysis using finite-differences, likely because it is very expensive and requires multi-GPU parallelization. Nevertheless, even in the auto-diff era, we have found it tremendously useful to compute finite-diff gradients since they can help reveal where and how auto-diff gradients may not be flowing properly. The unprecedented speed and accuracy of our auto-diff Jacobians and Hessians will be very useful for unlocking previously inaccessible techniques for both global and local sensitivity analysis, parameter optimization and inference (and for studying the equilibrium 48 Viraj Pandya et al. 
+
+Figure 24. Fisher contours from auto-diff (color-filled) and finite-diff (unfilled with dashed black lines) at four different points in a two-parameter subspace of our model. The different points correspond to different true mock parameter values. The auto-diff and finite-diff contours agree remarkably well, but finite-diff is much more expensive and requires tighter ODE tolerances to prevent numerical instabilities ( atol = rtol = 10 −12 here). The top-right panel illustrates mock noise-free SMHM relations corresponding to each point in parameter space. Our kernel regression approach yields differentiable scaling relations (lines) that summarize the distribution of discrete model galaxy properties (points) using Gaussian bandpasses (thin bottom curves). 
+
+behavior of galaxies as prototyped by Figure 14 of Pandya et al. 2023). Indeed, the mock parameter recovery tests we present in Section 5 are the ultimate arbiter of the correctness and practical utility of our gradients.
