@@ -1,0 +1,280 @@
+Title: When Equality Fails as a Rewrite Principle: Provenance and Definedness for Measurement-Bearing Expressions
+
+URL Source: https://arxiv.org/pdf/2604.07626v1
+
+Published Time: Fri, 10 Apr 2026 00:16:42 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+WHEN EQUALITY FAILS AS A REWRITE PRINCIPLE PROVENANCE AND DEFINEDNESS FOR MEASUREMENT-BEARING EXPRESSIONS 
+
+DAVID B. HULAK a, ARTHUR F. RAMOS b, AND RUY J. G. B. DE QUEIROZ ca Independent Researcher 
+
+e-mail address : dbhulak@gmail.com  
+
+> b
+
+Microsoft 
+
+e-mail address : arfreita@microsoft.com  
+
+> c
+
+Centro de Inform´ atica, Universidade Federal de Pernambuco 
+
+e-mail address : ruy@cin.ufpe.br 
+
+Abstract. Ordinary algebraic equality is not a sound rewrite principle for measurement-bearing expressions. Reuse of the same observation matters, and division can make algebraically equal forms differ on where they are defined. We present a unified semantics that tracks both provenance and definedness. Token-sensitive enclosure semantics yields judgments for one-way rewriting and interchangeability. An admissible-domain refinement yields a domain-safe rewrite judgment, and support-relative variants connect local and global admissibility. Reduction theorems recover the enclosure-based theory on universally admissible supports. Recovery theorems internalize cancellation, background subtraction, and positive-interval self-division. Strictness theorems show that reachable singularities make simplification one-way and make common-domain equality too weak for licensed replacement. An insufficiency theorem shows that erasing token identity collapses distinc-tions that definedness alone cannot recover. All definitions and theorems are formalized in sorry-free Lean 4. 
+
+1. Introduction 
+
+When is it safe to replace one measurement-bearing expression with another? Two failure modes, often studied independently, make the question non-trivial. The first failure mode is provenance . A concrete act of observation produces a value that enters a calculation together with a record of its origin. When the same reading is reused twice in a formula, both occurrences refer to one hidden exact value; when two separate 
+
+readings are taken, even with identical instruments and uncertainty bounds, the underlying exact values need not agree. Simplifying x − x to 0 is sound when x denotes a single measurement token. By contrast, replacing two independently measured values x1 − x2 by 0 is not warranted in general. Standard formal treatments of measurement-bearing quantities, such as dimensional analysis and classical interval arithmetic, are provenance-blind: they 
+
+2012 ACM CCS: Theory of computation Logic and verification; Theory of computation Rewrite systems; Software and its engineering Formal methods. 
+
+Key words and phrases: measurement semantics, provenance, definedness, rewrite classification, Lean 4.    
+
+> Public preprint Prepared for submission to Logical Methods in Computer Science ©D. B. Hulak, A. F. Ramos, and R. J. G. B. de Queiroz
+> CC ⃝Creative Commons
+> arXiv:2604.07626v1 [cs.LO] 8 Apr 2026 2D. B. HULAK, A. F. RAMOS, AND R. J. G. B. DE QUEIROZ
+
+lack the vocabulary to distinguish reuse of the same measurement from use of two merely similar measurements. The second failure mode is definedness . Division introduces singularities, so algebraic forms that agree wherever both are defined can differ on where they are defined. The self-quotient x/x evaluates to 1 wherever the denominator is nonzero, and the constant 1 is defined everywhere; yet replacing the constant 1 with x/x introduces a singularity. The direction of simplification matters: removing a singularity is safe, but introducing one is not. More subtly, two expressions can be “the same function” on their common domain yet have incomparable singularity structures, blocking replacement in either direction. A symbolic simplifier for scientific formulas encounters both failures at once. Consider a small measurement workflow with signal s, background b, and reference r:(( s + b) − b) / (r/r ).
+
+If the background token in the numerator is genuinely reused and the reference interval stays away from zero, the local simplifications are licensed by our positive families. If the two background terms come from separate observations, or if the reference interval crosses zero, the same local algebraic moves become unsound or only one-way. The point is not that such rewrites compose automatically—Section 3.2 explains why domain-safe rewriting is not transitive—but that realistic symbolic optimization already needs provenance annotations and admissibility checks at each step. This paper develops a unified framework that makes both failure modes precise and shows that they are jointly necessary for sound rewrite classification. The main contributions are: (1) Token-sensitive enclosure semantics (Section 2). A denotational semantics as-signs each expression its warranted enclosure—the set of values realizable by all token-consistent environments—and two enclosure-based rewrite judgments: e ⇝ e′ for one-way claim tightening and e ⇌ e′ for full equivalence. (2) Domain-aware rewrite judgments (Section 3). An admissible-domain refinement restricts evaluation to scientifically warranted environments. A domain-safe rewrite judgment requires the target to be admissible everywhere the source is. Support-relative variants relativize admissibility to an arbitrary set of environments, recovering enclosure-based results as contextual theorems. (3) Reduction and recovery theorems (Section 4). When all expressions are universally admissible, the domain-aware layer collapses to the enclosure-based layer: the provenance-only results are the total-fragment special case of the unified theory. Recovery theorems internalize cancellation, background subtraction, and positive-interval self-division inside the support-relative layer. (4) Strictness results (Sections 6 and 3.2). Once singularities are reachable, simplification that removes a singularity is one-way-only, and expressions with incomparable singularity structures block rewriting in either direction. Domain-safe rewriting is not transitive: a mechanized witness demonstrates that sound simplification chains must be re-verified stepwise. (5) Insufficiency theorem (Section 6.3). Erasing token identity collapses domain-inter-changeable and domain-non-collapsing pairs: neither provenance nor definedness alone suffices for sound rewrite classification. (6) Lean mechanization (Section 7). All definitions and theorems—143 theorems and 45 definitions across roughly 2,700 lines of Lean 4—are formalized without sorry .WHEN EQUALITY FAILS AS A REWRITE PRINCIPLE 3
+
+Scope. The theory addresses rewrite classification —when replacement is sound—rather than confluence, completion, or decidability. Only division-induced singularities are treated; overflow, underflow, and type errors are out of scope. The formalization uses Q, not R,as a deliberate semantic isolation: every result is decidable and computation-friendly, and extension to R would require analytic interval lemmas not yet needed. Lean’s totalized division ( x/ 0 = 0) is an implementation convention only; scientific meaning is enforced by the AdmDom predicate, which restricts evaluation to environments where every denominator is nonzero. The dimension system is a carried syntactic tag; it does not drive any theorem, and a richer units-of-measure discipline would be a natural extension. 
+
+Outline. Section 2 develops the unified semantic framework. Section 3 defines the rewrite judgments at both layers. Section 4 proves conservativity and reduction theorems. Section 5 presents the positive classification families witnessing the two semantic axes. Section 6 establishes the strict negative results. Sections 7–10 cover mechanization, related work, and conclusions. 2. Unified Semantic Framework 
+
+This section develops the semantic apparatus in one unified pass. We begin with the expression language and token-sensitive evaluation, then introduce admissible domains as a refinement of the same framework, and conclude with the provenance-blind forgetful view that serves as the comparison baseline for insufficiency results. 2.1. Syntax and measured leaves. We work with a minimal expression language whose leaves are either exact rational constants or measured quantities. Each measured leaf 
+
+Meas (t, I, d ) carries three components: (1) an opaque token t naming the observation event, (2) a rational interval I = [ ℓ, u ] with ℓ ≤ u bounding the hidden exact value, and (3) a dimension d recording physical kind. Internal nodes are standard arithmetic: addition, subtraction, multiplication, division, and negation. The language is deliberately minimal—large enough for the theorem package, small enough that the semantic roles of token identity and domain structure are exposed without metatheoretic noise. In the present formal core, Dimension is a carried syntactic tag with a single placeholder constructor; the arithmetic syntax does not compute or constrain dimensions internally. We use the tag to keep measurement examples notationally sorted, not to claim a developed units-of-measure discipline. A richer dimension algebra would be a natural future extension but is not required by the present results. 2.2. Token environments, evaluation, and warranted enclosure. A token environment 
+
+σ : Token → Q assigns one exact rational to each token. It is token-consistent with an expression e when every measured leaf Meas (t, I, d ) in e satisfies σ(t) ∈ I. Because consistency is indexed by tokens, not syntactic positions, repeated occurrences of the same token automatically share the same hidden value—this is the semantic mechanism that makes provenance visible. 4 D. B. HULAK, A. F. RAMOS, AND R. J. G. B. DE QUEIROZ 
+
+Evaluation eval (σ, e ) proceeds by structural recursion. Exact leaves return their constant; measured leaves return σ(t); arithmetic nodes combine subresults in the expected way. The 
+
+warranted enclosure of e is: Encl( e) =  v ∃ σ. TokenConsistent( σ, e ) ∧ eval (σ, e ) = v .
+
+This definition isolates the central semantic distinction of the provenance layer: the enclosure is determined not solely by visible syntax, dimension tags, or interval bounds, but also by which leaves share a token. The warranted enclosure ranges over all token-consistent environments regardless of whether division subexpressions have nonzero denominators. The Lean formalization inherits the totalized convention x/ 0 = 0 from Q, so the enclosure is always well-defined—but it may include values produced by divisions at zero, which have no scientific warrant. The admissible-domain refinement below addresses precisely this gap. 2.3. Well-definedness, admissible domains, and defined enclosure. An expression e
+
+is well-defined at environment σ, written WellDefined (σ, e ), when every division subexpression of e has a nonzero denominator under σ. The definition proceeds by structural recursion: 
+
+• Exact and measured leaves are always well-defined. 
+
+• Addition, subtraction, multiplication, and negation are well-defined when their operands are. 
+
+• Division e1/e 2 is well-defined when both operands are well-defined and eval (σ, e 2)̸ = 0. An environment σ is admissible for e when it is both token-consistent with e and e is well-defined at σ:AdmDom( e) =  σ TokenConsistent( σ, e ) ∧ WellDefined (σ, e ) .
+
+Two properties are immediate. First, for expressions containing no division, well-definedness is vacuously true, so AdmDom (e) coincides with the set of all token-consistent environments; the machinery is inert on the provenance-only case studies. Second, AdmDom (e) is always a subset of the token-consistent environments, so it refines rather than replaces the enclosure-based semantics. The defined enclosure restricts evaluation to the admissible domain: DefinedEncl( e) =  v ∃ σ ∈ AdmDom( e). eval (σ, e ) = v .
+
+On the universally admissible fragment (Section 4.2), DefinedEncl (e) = Encl (e)—this equality is the bridge that unifies the two semantic layers. 2.4. Provenance-blind forgetful view. To establish that provenance is necessary for sound classification, we define a comparison baseline that is maximally informative among provenance-blind candidates. A provenance-blind expression language BlindExpr mirrors the original syntax but erases the token field from measured leaves, retaining only intervals, dimensions, and expression structure. A forgetful map forgetTokens projects token-sensitive expressions into BlindExpr .The blind enclosure BlindEncl interprets blind expressions compositionally, treating each measured leaf independently through its interval. This comparator preserves every syntactic and metric feature except token identity itself. Its role is not to propose an alternative semantics but to serve as the foil for the insufficiency WHEN EQUALITY FAILS AS A REWRITE PRINCIPLE 5
+
+theorems in Section 6.3: whenever a provenance-blind summary fails to distinguish two rewrite classes, the failure is attributable to token erasure and to nothing else. 3. Unified Rewrite Judgments 
+
+Over the unified semantic framework we now define rewrite judgments at three levels: enclosure-based, domain-aware, and support-relative. The enclosure-based judgments operate on the provenance layer alone; the domain-aware judgments incorporate definedness; the support-relative variants provide the principled integration device connecting the two. 3.1. Enclosure-based judgments. RewritesTo.: e ⇝ e′ iff Encl (e′) ⊆ Encl (e). Replacing e with e′ only tightens the claim: every exact outcome warranted by the target is already warranted by the source. 
+
+Interchangeable.: e ⇌ e′ iff Encl (e) = Encl (e′). This is mutual rewriting: e ⇝ e′ and 
+
+e′ ⇝ e.
+
+OneWayOnly.: e rewrites to e′ one-way-only when e ⇝ e′ but ¬(e′ ⇝ e). The Lean development verifies standard structural properties: RewritesTo is reflexive and transitive; Interchangeable is an equivalence relation. Two classification lemmas are used throughout: rewriting to an exact target Exact (q, d ) is equivalent to q ∈ Encl (e), and interchangeability with Exact (q, d ) is equivalent to Encl (e) = {q}. Case studies can therefore be read as singleton-enclosure theorems in rewrite-theoretic form. 3.2. Domain-aware judgments. The domain-aware layer introduces three notions that incorporate definedness alongside provenance. 
+
+DomainSafeRewrite.: e ⇝d e′ iff (i) AdmDom (e) ⊆ AdmDom (e′), and (ii) for every 
+
+σ ∈ AdmDom (e), eval (σ, e ′) ∈ DefinedEncl (e). The first clause requires the target to be admissible everywhere the source is; the second requires target values on the source’s domain to lie within the source’s defined enclosure. 
+
+DomainEqual.: 
+
+DomainEqual( e, e ′) ⇐⇒ ∀ σ ∈ AdmDom( e) ∩ AdmDom( e′),
+
+eval (σ, e ) = eval (σ, e ′).
+
+The two expressions are “the same function” wherever both are defined. 
+
+DomainOneWayOnly.: 
+
+DomainOneWayOnly( e, e ′) ⇐⇒ e ⇝d e′
+
+∧ ¬ (e′ ⇝d e).
+
+The forward domain-safe rewrite holds, but the reverse one does not. 
+
+DomainInterchangeable.: 
+
+DomainInterchangeable( e, e ′) ⇐⇒ AdmDom( e) = AdmDom( e′)
+
+∧ DefinedEncl( e) = DefinedEncl( e′).
+
+The two expressions have the same admissible domain and warrant the same defined exact outcomes there. In the Lean development this is equivalent to mutual domain-safe rewriting. 6 D. B. HULAK, A. F. RAMOS, AND R. J. G. B. DE QUEIROZ 
+
+DomainNonCollapse.: 
+
+DomainNonCollapse( e, e ′) ⇐⇒ DomainEqual( e, e ′)
+
+∧ ¬ (e ⇝d e′)
+
+∧ ¬ (e′ ⇝d e).
+
+The expressions agree wherever both are admissible, yet neither can replace the other. Three structural observations connect these definitions to the enclosure-based layer: (1) Directionality. Domain-safe rewriting is directional: the domain-containment guard AdmDom (e) ⊆ AdmDom (e′) is not symmetric. Simplification that removes a singularity widens the admissible domain, satisfying the guard; the reverse narrows it, violating the guard. (2) Non-transitivity. Unlike ⇝, domain-safe rewriting is not transitive in general. The Lean development exhibits the concrete witness chain 
+
+Meas (t, [0 , 1] , d ) ⇝d Meas (t, [0 , 2] , d ),
+
+Meas (t, [0 , 2] , d ) ⇝d (Exact (2 , d ) − Meas (t, [0 , 2] , d )) ,
+
+while the composite rewrite fails because the first source domain is too small to control the reflected target’s value at 0. Sound local simplifications do not automatically compose; each step must be checked against its current source expression. (3) Domain equality is weaker. DomainEqual (e, e ′) is symmetric but does not require either admissible domain to contain the other. Section 6.2 shows this makes domain equality strictly weaker than domain-safe rewriting. (4) Reduction. On total expressions (no division), the admissible domain is the full set of token-consistent environments, the domain-containment guard is vacuous, and DefinedEncl (e) = Encl (e). In this regime, e ⇝d e′ reduces to e ⇝ e′. This reduction is made precise in Section 4. 3.3. Support-relative judgments. The definitions above are global : they quantify over all token-consistent (or admissible) environments. To integrate positive classification results that hold on a restricted domain—such as positive-interval self-division—we relativize admissibility and enclosure to an arbitrary support set S.
+
+AdmissibleDomainOn.: 
+
+AdmDom S (e) = S ∩ AdmDom( e).
+
+DefinedEnclosureOn.: 
+
+DefinedEncl S (e) = { v | ∃ σ ∈ AdmDom S (e). eval (σ, e ) = v }.
+
+ContextualInterchangeableOn.: 
+
+CtxInterch S (e, e ′) ⇐⇒ AdmDom S (e) = AdmDom S (e′)
+
+∧ DefinedEncl S (e) = DefinedEncl S (e′).
+
+The bridge to the global notion is immediate: CtxInterch S (e, e ′) ⇐⇒ DomainInterchangeable( e, e ′) when S = Set .univ .
+
+Taking S to be the source expression’s token-consistent domain yields a useful intermediate: positive-interval results hold as contextual theorems on that domain, while the universal instantiation recovers the strict global classification. The support-relative layer is not an WHEN EQUALITY FAILS AS A REWRITE PRINCIPLE 7
+
+appendix rescue patch: it is the principled mediator between local and global admissibility, and it appears at the same definitional level as the global notions. 4. Conservativity and Reduction 
+
+A natural sanity condition for any enriched rewrite layer is that it should not invent distinctions where the enrichment is inert. We prove three progressively stronger results establishing that the domain-aware layer is a conservative extension of the enclosure-based layer. 4.1. Exact-defined fragment. We define the exact-defined fragment by the condition 
+
+e. isExact = true ∧ WellDefined (( 7 → 0) , e ). Because exact expressions ignore token environ-ments, this single canonical-environment check implies well-definedness at every environment. On the exact-defined fragment, domain-safe rewriting coincides with enclosure-based licensing: 
+
+e ⇝d e′ ⇐⇒ e ⇝ e′ (for exact-defined e, e ′). In fact, both judgments reduce to ordinary equality of exact denotations. The proof passes through a singleton-enclosure lemma: if e is exact, then Encl (e) = {exactValue (e)}, and the bridge lemma DefinedEncl (e) = Encl (e) closes the gap. There are no genuinely one-way-only rewrites between exact-defined expressions. 4.2. Universally admissible fragment. The exact-defined conservativity result generalizes to the broader class of expression pairs that are universally admissible on their token-consistent environments : every token-consistent environment is also admissible. When both 
+
+e and e′ satisfy this condition and have equal token-consistent domains: 
+
+e ⇝d e′ ⇐⇒ e ⇝ e′, DomainInterchangeable( e, e ′) ⇐⇒ e ⇌ e′.
+
+This bridge covers all division-free expressions and all expressions whose denominators are bounded away from zero. It establishes the precise sense in which the enclosure-based provenance theory is the universally admissible regime of the unified theory: the special case that arises when the definedness axis is vacuous. The bridge is narrower than the contextual recovery results discussed next. It requires equal token-consistent domains, so it applies only to pairs with the same token structure. In particular, it does not compare a measured expression against an exact constant, or against a target that mentions fewer measurement tokens. Those cross-structure recoveries use the support-relative layer. 
+
+Proof sketch. Universal admissibility makes AdmDom (e) equal to the token-consistent domain. The domain-containment guard AdmDom (e) ⊆ AdmDom (e′) becomes the token-consistency-domain hypothesis, and value containment reduces to Encl (e′) ⊆ Encl (e) via DefinedEncl( e) = Encl( e). 8 D. B. HULAK, A. F. RAMOS, AND R. J. G. B. DE QUEIROZ 
+
+4.3. Contextual recovery of the positive families. The positive families enter the unified theory through the support-relative layer. For each of the three core provenance families, the Lean development proves contextual interchangeability on the source expression’s token-consistent domain: 
+
+• same-token cancellation is contextually interchangeable with Exact (0 , d ) on the source support; 
+
+• shared-background subtraction is contextually interchangeable with the signal on the source support; 
+
+• positive-interval same-token self-division is contextually interchangeable with Exact (1 , d )on the source support. These are not direct applications of the universally admissible bridge. In each case the target mentions fewer tokens than the source, so the token-consistent domains differ and the bridge hypotheses do not hold. The bridge governs same-support pairs; the support-relative layer is the mechanism that integrates the enclosure-based families into the unified theory. Section 5 states the positive classification families once, in full. The point of the present subsection is structural: the enclosure-based provenance results are internal to the unified theory, but their integration proceeds through contextual interchangeability rather than by erasing the support mismatch. 5. Positive Classification Families 
+
+Section 4.3 explained how the positive families are recovered inside the unified theory. We now state those families once, in full, organized around the two orthogonal sources of rewrite asymmetry. These are not isolated algebra puzzles. They correspond to recurring local moves in symbolic manipulation of measured data: cancel duplicated readings, subtract a reused baseline, or normalize by a measured reference. The point of the classification is to say exactly which semantic information licenses each move. 5.1. Provenance-driven classification. The provenance axis separates expressions that share a measurement token from those that use distinct tokens with identical bounds. 
+
+Cancellation. Fix a nondegenerate interval I (I. lo < I. hi ), a dimension d, and tokens 
+
+t, t 1, t 2 with t1̸ = t2.
+
+• Same-token: Meas (t, I, d )−Meas (t, I, d ) ⇌ Exact (0 , d ). Both occurrences share a token, so every token-consistent evaluation yields σ(t) − σ(t) = 0. 
+
+• Distinct-token: For Meas (t1, I, d ) − Meas (t2, I, d ), rewriting to Exact (0 , d ) is one-way-only . Zero is realizable (assign both tokens I. lo ), but the difference I. hi − I. lo is also realizable and nonzero. The same visible algebraic pattern—a subtraction of two same-interval leaves—lands in different rewrite classes depending on whether the two occurrences share a measurement token. WHEN EQUALITY FAILS AS A REWRITE PRINCIPLE 9
+
+Background subtraction. Let s = Meas (ts, I s, d ) be a signal measurement and let b range over background measurements. 
+
+• Shared background: When the same background token tb̸ = ts is reused, the expression (s + b) − b ⇌ s. The background contribution cancels because both occurrences see the same hidden value. 
+
+• Distinct background: When two background tokens tb1̸ = tb2 , both distinct from ts,are used with a nondegenerate background interval, ( s + b1) − b2 is one-way-only to s.This upgrades the cancellation witness into a scientifically recognizable template: background subtraction is warranted only when the background is genuinely reused, not merely re-measured. 
+
+5.2. Definedness-driven classification. The definedness axis separates expressions whose measurement intervals exclude singularities from those whose intervals include them. The self-division family is the canonical witness. 
+
+Positive-interval self-division. Fix a positive nondegenerate interval I with 0 < I. lo <I. hi , a dimension d, and tokens t, t 1, t 2 with t1̸ = t2.
+
+• Same-token: Meas (t, I, d )/Meas (t, I, d ) ⇌ Exact (1 , d ). The positive lower bound ensures the denominator is nonzero on every token-consistent environment, and the shared token forces σ(t)/σ (t) = 1. 
+
+• Distinct-token: For Meas (t1, I, d )/Meas (t2, I, d ), rewriting to Exact (1 , d ) is one-way-only. The value 1 is realizable, but so is the endpoint ratio I. hi /I. lo ̸ = 1. 
+
+Zero-crossing self-division. When the interval includes zero ( I = [0 , 1]), the same-token self-quotient is no longer interchangeable with 1 in the global sense: the singularity at 
+
+σ(t) = 0 lies inside the measurement range. Section 6.1 shows that the relationship becomes strictly one-way—simplification is domain-safe, but its reverse is not. The two classification families illustrate orthogonal sources of rewrite asymmetry. Provenance splits same-token from distinct-token variants on any nondegenerate interval. Definedness splits positive-interval from zero-crossing variants for the self-division family. Neither axis subsumes the other, and neither is dispensable. 6. Strict Negative Results 
+
+The conservativity and recovery results show what the unified theory preserves . We now show what it exposes : definedness structure creates rewrite-class distinctions invisible to any value-only, provenance-only, or common-domain semantics. 6.1. Separation. Fix a token t, the interval I = [0 , 1], and a dimension d. Let 
+
+e1 = selfDivision (t, I, d ) = Meas (t, I, d ) / Meas (t, I, d ), e2 = Exact (1 , d ).
+
+(1) DomainEqual (e1, e 2): on every admissible environment for e1 (where σ(t)̸ = 0), the self-quotient evaluates to σ(t)/σ (t) = 1 = eval (σ, e 2). (2) e1 ⇝d e2: the constant 1 is admissible everywhere (no division), so AdmDom (e1) ⊆
+
+AdmDom (e2). On every admissible environment for e1, the target evaluates to 1 ∈
+
+DefinedEncl( e1). 10 D. B. HULAK, A. F. RAMOS, AND R. J. G. B. DE QUEIROZ 
+
+(3) ¬(e2 ⇝d e1): the environment σ = ( 7 → 0) is admissible for e2 but not for e1 because 
+
+σ(t) = 0 makes the denominator zero. The domain-containment guard fails in the reverse direction. The Lean development packages these three facts as a single separation witness theorem. 
+
+Removable-singularity variant. The pattern extends beyond self-quotients. Let 
+
+e3 = ( Meas (t, I, d ) · Meas (t, I, d )) / Meas (t, I, d ), e4 = Meas (t, I, d ).
+
+On every admissible environment for e3, the expression evaluates to σ(t)2/σ (t) = σ(t) = 
+
+eval (σ, e 4). The simplification e3 ⇝d e4 is domain-safe because the measured leaf has a strictly larger admissible domain, but the reverse e4 ⇝d e3 is not. Simplification that removes a singularity is sound; the reverse introduction of a singularity is not. Over positive intervals (0 < I. lo ), x/x is interchangeable with 1 because the singularity lies outside the measurement range—the universally admissible regime. Over [0 , 1], the singularity is reachable, and the relationship becomes strictly one-way. This shift from interchangeability to one-way-only is the precise sense in which mathematical equality fails as a rewrite principle. 
+
+Contextual bridge for the positive-interval case. The support-relative integration (Section 3.3) connects the two regimes. For any positive interval (0 < I. lo ), the self-quotient 
+
+x/x and the constant 1 satisfy CtxInterch S (x/x, 1) where S is the source’s token-consistent domain. The positive lower bound ensures this support is already the admissible domain, explaining the global singleton-enclosure result. Over [0 , 1], the token-consistent domain includes the zero-denominator environment, so the global relation is one-way-only, exactly as the separation witness demonstrates. 6.2. Non-collapse. The separation witness shows that domain-safe rewriting can be strictly one-way. We now present a stronger negative result: two expressions can be “the same function” on their common domain yet neither can serve as a licensed replacement for the other. Fix a token t, the interval I = [0 , 1], and a dimension d. Let 
+
+e1 = Meas (t, I, d ) / Meas (t, I, d ),e2 = ( Meas (t, I, d ) − Exact (1 , d )) / (Meas (t, I, d ) − Exact (1 , d )) .
+
+Here e1 is singular at σ(t) = 0, while e2 is singular at σ(t) = 1. (1) DomainEqual (e1, e 2): on every environment where both are admissible ( σ(t)̸ = 0 and 
+
+σ(t)̸ = 1), both evaluate to 1. (2) ¬(e1 ⇝d e2): the environment σ = ( 7 → 1) is admissible for e1 but not for e2.(3) ¬(e2 ⇝d e1): the environment σ = ( 7 → 0) is admissible for e2 but not for e1.Domain containment fails in both directions because each admissible domain excludes a point the other includes: AdmDom (e1) excludes σ(t) = 0 but includes σ(t) = 1, while AdmDom (e2) excludes σ(t) = 1 but includes σ(t) = 0. No value-containment argument is needed—the domain guard alone blocks both rewrites. WHEN EQUALITY FAILS AS A REWRITE PRINCIPLE 11 
+
+The negative lesson. Combined with the separation witness, the non-collapse result yields a complete picture: 
+
+• One-way failure: AdmDom (x/x ) ⊊ AdmDom (1), so simplification is sound but its reverse is not. 
+
+• Mutual failure: AdmDom (x/x ) and AdmDom (( x−1) /(x−1)) are incomparable, so neither direction is sound despite pointwise agreement. Domain equality never suffices for rewrite soundness once singularity structure is in play. Any sound rewrite theory for measured expressions with division must track definedness, not merely functional agreement. 6.3. Provenance-blind insufficiency. The separation and non-collapse results show that definedness is necessary. We now show that provenance is equally indispensable—even in the presence of the domain-aware layer. The Lean development constructs expressions e1, e 2, e 3, e 4 with BlindEncl( forgetTokens (e1)) = BlindEncl( forgetTokens (e3)) .
+
+BlindEncl( forgetTokens (e2)) = BlindEncl( forgetTokens (e4)) .
+
+The pair ( e1, e 2) is domain-interchangeable, while ( e3, e 4) witnesses domain-aware non-collapse. A provenance-blind comparator sees identical enclosures in both cases and cannot distinguish the two rewrite classes. This result lifts the enclosure-based provenance-blind insufficiency theorems into the domain-aware setting. Three witness families—for cancellation, background subtraction, and self-division—each exhibit the same pattern: token erasure produces definitionally equal blind expressions whose blind enclosures coincide, yet the token-sensitive rewrite classifications differ. The domain-aware layer inherits and sharpens these distinctions rather than resolving them. The conclusion is that provenance and definedness are jointly necessary for sound rewrite classification. Erasing either axis collapses rewrite-class distinctions that the other axis alone cannot recover. 7. Lean Mechanization 
+
+All definitions and theorems are formalized in Lean 4 [ dMU21 ] and build without sorry 
+
+under the repository’s local toolchain [ HR26 ]. The development comprises 143 theorems and 45 definitions across roughly 2,700 lines of Lean organized in two layers (nine source files). 
+
+Theorem coverage. The mechanization covers every definition and result stated in this paper: token-sensitive enclosure semantics and the warranted-enclosure denotation (Sec-tion 2); the five domain-aware judgments and the non-transitivity witness (Section 3.2); exact-defined and universally admissible reduction bridges and the three contextual recovery theorems (Section 4); all six provenance-driven and definedness-driven classification families (Section 5); and the separation, non-collapse, and provenance-blind insufficiency witnesses (Section 6). The definedness layer extends the provenance layer without altering any prior definitions. The no-sorry invariant holds across the entire development: every stated theorem is fully proved. 12 D. B. HULAK, A. F. RAMOS, AND R. J. G. B. DE QUEIROZ 
+
+Verification methodology. The formalization is intended as a semantic certification : the Lean proofs establish that the classification results hold as stated, not that the framework is the unique or best possible one. The mechanization catches errors in domain reasoning (particularly in the asymmetric domain-containment guards) that would be easy to overlook in a purely informal treatment. 8. Related Work 
+
+Interval arithmetic and the dependency problem. Classical interval arithmetic [ Moo66 ,MKC09 ] propagates enclosures compositionally but treats each leaf independently. The 
+
+dependency problem —overestimation caused by multiple occurrences of the same variable—is well known; affine arithmetic [ dFS04 ] addresses part of it by tracking first-order correlations. Token-sensitive enclosure semantics addresses a different axis of the dependency problem: not tightness of enclosure bounds, but the rewrite-class consequences of shared versus independent observations. The admissible-domain refinement addresses a further axis: not enclosure tightness, but definedness of enclosure. Mechanized interval developments such as Bohrer’s AFP formalization of interval arithmetic on 32-bit words [ Boh19 ] focus on certified numerical reasoning; our concern is different, namely rewrite classification sensitive to provenance and admissibility. 
+
+Provenance. Token identity is a minimal form of provenance tracking [ BKT01 , GKT07 ]. Provenance semirings annotate query results with algebraic certificates of derivation; our tokens serve a structurally similar but more modest purpose: they determine which leaves share a hidden value and thereby control rewrite soundness. 
+
+Dimensional analysis and partial functions. Dimensional type systems [ Ken97 ] ensure unit consistency but do not model observation identity or definedness. Partial-function semantics in proof assistants (Isabelle/HOL’s undefined [ NPW02 ], Lean’s totalized division) is related: our contribution is showing that totalized semantics masks a definedness distinction that is rewrite-relevant. The admissible-domain layer makes that distinction explicit without abandoning totalization at the implementation level. 
+
+Partiality in rewriting and equational specification. Work on partial operations in algebraic specification and rewriting is closer in spirit than standard total-algebra term rewriting. Order-sorted algebra studies equational deduction in the presence of exceptions and partial operations [ GM92 ], while membership algebra develops a logical framework for equational specification over predicates describing where terms belong, with equational reasoning parameterized by those membership judgments [ Mes98 ]. Conditional rewriting makes replacement depend on explicit side conditions [ BK86 ], and standard rewriting surveys treat such guarded systems as part of the broader rewrite-theoretic landscape [DJ90]. Our domain-containment guard plays a related role, but its condition is semantic rather than external: admissibility is induced by measurement provenance, interval constraints, and division-induced singularities. WHEN EQUALITY FAILS AS A REWRITE PRINCIPLE 13 
+
+Term rewriting. Standard term rewriting [ BN98 ] assumes total algebras and studies confluence, termination, and completion. We show that even before those questions arise, definedness structure creates rewrite-class distinctions that a total-algebra framework cannot express. Our framework classifies when replacement is sound; it does not address strategy, confluence, or termination. 
+
+Summary of contrast. Interval and affine arithmetic address enclosure tightness [ Moo66 ,dFS04 ]; provenance semirings track algebraic certificates of derivation [ GKT07 ]; conditional and order-sorted rewriting guard replacement by external side conditions [ BK86 , GM92 ]. The present framework occupies a distinct point: rewrite classification for measurement-bearing expressions using both token provenance and admissible-domain definedness, with mechanized proofs that neither axis alone suffices. 9. Limitations and Future Work 
+
+The contextual-support integration recovers three interchangeability witness families as contextual theorems, not a general parametric theory; extending it to a systematic support-indexed classification remains future work. Only division-induced singularities are treated; overflow, underflow, and type errors are out of scope. No confluence, completion, or decidability results are claimed. The formalization uses Q; extending to R would require analytic interval lemmas not yet needed. The dimension system is skeletal: a richer units-of-measure discipline would be a natural extension but is not required by the present results. Finally, the theorems are existence results exhibiting specific separating families; empirical validation against real scientific pipelines is left to future work. 10. Conclusion 
+
+We isolated a minimal semantic package for sound rewriting of measurement-bearing expres-sions: token provenance to track dependence between reused observations, and admissible domains to track where partial expressions are scientifically warranted. The enclosure-based and domain-aware judgments are not competing formalisms but two regimes of one theory: reduction theorems recover the former on universally admissible supports, and support-relative recovery theorems internalize the positive provenance families inside the unified setting. The theory also has genuine negative content. Reachable singularities make simplification strictly directional, common-domain equality is too weak for licensed replacement, and provenance-blind summaries collapse distinctions that the definedness layer cannot repair. Together these results show that no semantics based only on values, only on provenance, or only on common-domain agreement can support sound rewrite classification for measurement-bearing expressions. The upshot is a compact theorem package rather than a full rewrite engine: reduction, recovery, strictness, and insufficiency, all mechanized in sorry-free Lean 4. Any future certified simplifier or rewrite calculus for measurement pipelines must build on both axes. 14 D. B. HULAK, A. F. RAMOS, AND R. J. G. B. DE QUEIROZ 
+
+References 
+
+[BK86] Jan A. Bergstra and Jan Willem Klop. Conditional rewrite rules: confluence and termination. 
+
+Journal of Computer and System Sciences , 32(3):323–362, 1986. doi:10.1016/0022-0000(86) 90033-4 .[BKT01] Peter Buneman, Sanjeev Khanna, and Wang-Chiew Tan. Why and where: a characterization of data provenance. In Database Theory — ICDT 2001 , volume 1973 of Lecture Notes in Computer Science , pages 316–330. Springer, 2001. doi:10.1007/3-540-44503-X_20 .[BN98] Franz Baader and Tobias Nipkow. Term Rewriting and All That . Cambridge University Press, 1998. doi:10.1017/CBO9781139172752 .[Boh19] Rose Bohrer. Interval arithmetic on 32-bit words, November 2019. Archive of Formal Proofs. URL: 
+
+https://isa-afp.org/entries/Interval_Arithmetic_Word32.html .[dFS04] Luiz Henrique de Figueiredo and Jorge Stolfi. Affine arithmetic: concepts and applications. 
+
+Numerical Algorithms , 37:147–158, 2004. doi:10.1023/B:NUMA.0000049462.70970.b6 .[DJ90] Nachum Dershowitz and Jean-Pierre Jouannaud. Rewrite systems. In Jan van Leeuwen, editor, 
+
+Handbook of Theoretical Computer Science, Volume B: Formal Models and Semantics , pages 243–320. Elsevier and MIT Press, 1990. [dMU21] Leonardo de Moura and Sebastian Ullrich. The Lean 4 theorem prover and programming language. In Automated Deduction — CADE 28 , volume 12699 of Lecture Notes in Computer Science , pages 625–635. Springer, 2021. doi:10.1007/978-3-030-79876-5_37 .[GKT07] Todd J. Green, Grigoris Karvounarakis, and Val Tannen. Provenance semirings. In Proceedings of the 26th ACM SIGMOD-SIGACT-SIGART Symposium on Principles of Database Systems , pages 31–40. ACM, 2007. doi:10.1145/1265530.1265535 .[GM92] Joseph A. Goguen and Jos´ e Meseguer. Order-sorted algebra I: equational deduction for multi-ple inheritance, overloading, exceptions and partial operations. Theoretical Computer Science ,105(2):217–273, 1992. doi:10.1016/0304-3975(92)90302-V .[HR26] David B. Hulak and Arthur F. Ramos. domain-aware-measurement-rewrites, 2026. GitHub repository, accessed 2026-04-08. URL: https://github.com/d0d1/ domain-aware-measurement-rewrites .[Ken97] Andrew Kennedy. Relational parametricity and units of measure. In Proceedings of the 24th ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages , pages 442–455. ACM, 1997. doi:10.1145/263699.263761 .[Mes98] Jos´ e Meseguer. Membership algebra as a logical framework for equational specification. In Francesco Parisi-Presicce, editor, Recent Trends in Algebraic Development Techniques , volume 1376 of Lecture Notes in Computer Science , pages 18–61. Springer, 1998. doi:10.1007/3-540-64299-4_26 .[MKC09] Ramon E. Moore, R. Baker Kearfott, and Michael J. Cloud. Introduction to Interval Analysis .Society for Industrial and Applied Mathematics, 2009. doi:10.1137/1.9780898717716 .[Moo66] Ramon E. Moore. Interval Analysis . Prentice-Hall, Englewood Cliffs, NJ, 1966. [NPW02] Tobias Nipkow, Lawrence C. Paulson, and Markus Wenzel. Isabelle/HOL: A Proof Assistant for Higher-Order Logic , volume 2283 of Lecture Notes in Computer Science . Springer, 2002. 
+
+doi:10.1007/3-540-45949-9 .

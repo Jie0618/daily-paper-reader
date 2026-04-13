@@ -1,0 +1,3929 @@
+Title: Universal, sample-optimal algorithms for recovery of anisotropic functions from i.i.d. samples
+
+URL Source: https://arxiv.org/pdf/2604.07660v1
+
+Published Time: Fri, 10 Apr 2026 00:20:09 GMT
+
+Number of Pages: 38
+
+Markdown Content:
+# Universal, sample-optimal algorithms for recovery of anisotropic functions from i.i.d. samples 
+
+Ben Adcock Avi Gupta ∗∗
+
+April 10, 2026 
+
+Abstract 
+
+A key problem in approximation theory is the recovery of high-dimensional functions from samples. In many cases, the functions of interest exhibit anisotropic smoothness, and, in many practical settings, the nature of this anisotropy may be unknown a priori. Therefore, an important question involves the development of universal algorithms , namely, algorithms that simultaneously achieve optimal or near-optimal rates of convergence across a range of different anisotropic smoothness classes. In this work, we consider universal approximation of periodic functions that belong to anisotropic Sobolev spaces and anisotropic dominating mixed smoothness Sobolev spaces. Our first result is the construction of a universal algorithm. This recasts function recovery as a sparse recovery problem for Fourier coefficients and then exploits compressed sensing to yield the desired approximation rates. Note that this algorithm is nonadaptive , as it does not seek to learn the anisotropic smoothness of the target function. We then demonstrate optimality of this algorithm up to a dimension-independent polylogarithmic factor. We do this by presenting a lower bound for the adaptive m-width for the unit balls of such function classes. Finally, we demonstrate the necessity of nonlinear algorithms. We show that universal linear algorithms can achieve rates that are at best suboptimal by a dimension-dependent polylogarithmic factor. In other words, they suffer from a curse of dimensionality in the rate – a phenomenon which justifies the necessity of nonlinear algorithms for universal recovery. 
+
+Keywords and phrases: High-dimensional approximation, Anisotropic sobolev spaces, Nonlinear approximation, Universal algorithms 
+
+MSC 2020: 65D15, 65Y20, 65D40, 41A25, 65T40 
+
+# 1 Introduction 
+
+Many problems require the approximation of functions of d ≫ 1 that are anisotropic , i.e., they exhibit differing degrees of smoothness with respect to different variables. Approximation of high-dimensional, anisotropic functions has been intensively studied over the last several decades. However, the vast majority of existing results consider situations where the anisotropic smoothness is known and strive to design algorithms using this information. This assumption may be unreasonable in practice, particularly in simulation settings where the underlying function is accessible only via a black-box numerical routine. In this paper, we study the significantly more challenging unknown anisotropy 
+
+setting, where algorithms are required to be performant for all possible anisotropic behaviours. We refer to such algorithms as universal . Our main contributions are concrete algorithms that achieve near-optimal rates for universal recovery of anisotropic functions. Furthermore, we establish the necessity of nonlinear approximation for universal recovery, by showing that the best rates that can be achieved by linear algorithms are necessarily suboptimal.  
+
+> ∗Department of Mathematics, Simon Fraser University, Canada, avi_gupta@sfu.ca
+
+1
+
+> arXiv:2604.07660v1 [math.NA] 8 Apr 2026
+
+1.1 Problem setting 
+
+We consider d-variate functions f : Td → C defined on the d-dimensional torus Td := [ −π, π )d. Let 
+
+ϕn(x) = 1(2 π)d/ 2 ein·x, n ∈ Zd (1.1) denote the L2(Td)-orthonormal Fourier basis and ˆfn =
+
+Z
+
+> Td
+
+f (x)ϕ−n(x) d x, n ∈ Zd, (1.2) denote the Fourier coefficients of f ∈ L1(Td). Motivated by the settings studied in [16, 17, 24, 26, 36, 40, 51] and many others, we consider the following two types of anisotropic Sobolev spaces: 
+
+Definition 1.1 (Dominating Mixed Smoothness Sobolev Spaces) . Let α = ( α1, . . . , α d) ∈ [0 , ∞)d.We define the anisotropic dominating mixed smoothness Sobolev space Hα
+
+> mix
+
+(Td) as 
+
+Hα
+
+> mix
+
+(Td) = 
+
+f ∈ L2(Td) : ∥f ∥2 
+
+> Hα
+> mix
+
+:= X
+
+> n∈Zd
+> d
+
+Y
+
+> j=1
+
+(1 + |nj |)2αj | ˆfn|2 < ∞
+
+ .
+
+Definition 1.2 (Anisotropic Sobolev Spaces) . Let β = ( β1, . . . , β d) ∈ [0 , ∞)d. We define the 
+
+anisotropic Sobolev space Hβ (Td) as 
+
+Hβ (Td) = 
+
+f ∈ L2(Td) : ∥f ∥2 
+
+> Hβ
+
+:= X
+
+> n∈Zd
+
+1 + 
+
+> d
+
+X
+
+> j=1
+
+|nj |βj
+
+
+
+> 2
+
+| ˆfn|2 < ∞
+
+ .
+
+These two constructions represent two distinct naturally-arising anisotropic behaviors. We refer to α and β as anisotropy parameters , as they control the amount of smoothness in each coordinate. For convenience, we also define 
+
+h(α) = min  
+
+> i∈[d]
+
+αi, p(α) = |{ j ∈ [d] : αj = h(α)}| , α ∈ [0 , ∞)d, (1.3) and 
+
+g(β) = 
+
+
+
+> d
+
+X
+
+> j=1
+
+1
+
+βj
+
+
+
+> −1
+
+, β ∈ (0 , ∞)d. (1.4) As we shall see, these quantities play a key role in the approximation rates. For either class of spaces, our aim is to design algorithms that achieve optimal approximation rates for any value of the anisotropy parameters α or β. Throughout, our data is in the form of m
+
+pointwise samples of an unknown function f , i.e., (x1, f (x1)) , . . . , (xm, f (xm)) . (1.5) We generally consider i.i.d. samples , where the xi are drawn independently and identically from the uniform probability measure on Td. Therefore, a consequence of this paper is showing that i.i.d. samples constitute near-optimal information for recovery in this setting. 21.2 Contributions 
+
+We now summarize our main contributions. 
+
+(A) Existence of universal algorithms (Theorems 3.1–3.5,3.6–3.8). We show the existence of a reconstruction map R : ( Td × C)m → L2(Td) that takes the samples (1.5) and produces an approximation whose L2-norm error behaves, up to constants depending on α and d, like 
+
+log p(α)−1( em)
+
+em
+
+!h(α)
+
+, where em = m
+
+log 3(m) log(log( m)) (1.6) for all f ∈ Hα
+
+> mix
+
+(Td) and all α > 1/2. For i.i.d. samples, this statement holds with high probability for all α > 1/2 (Theorem 3.1) or in expectation for all α ∈ A (Theorem 3.2), where A is a bounded, but arbitrary subset of (1 /2, ∞)d and R is independent of A. In Theorem 3.5, we also show a deterministic result that asserts the existence of sample points x⋆
+
+> 1
+
+, . . . , x ⋆m so that this approximation rate holds deterministically for all f ∈ Hα
+
+> mix
+
+(Td) and all α > 1/2. In Theorems 3.6–3.8 we show identical results for the spaces Hβ (Td). Specifically, the error behaves, up to constants depending on β and d, like 
+
+ 1
+
+em
+
+g(β)
+
+, where em = m
+
+log 3(m) log(log( m)) (1.7) for all f ∈ Hβ (Td) and all β for which g(β) > 1/2. 
+
+(B) Optimality of the rates (Theorems 4.1,4.2). Our second contribution is to show that the rates (1.6) and (1.7) are optimal up to the polylogarithmic factor appearing in the definition of em.We do this by lower bounding suitable widths for the unit balls of these classes. In general, given 1 ≤ p ≤ ∞ and F ⊆ C(Td), we define the adaptive m-width of F in Lp as 
+
+εm(F, L p) = inf 
+
+> R∈R nonlin
+> S∈S ada
+
+sup  
+
+> f∈F
+
+∥f − R(S(f )) ∥Lp , (1.8) where Rnonlin is the set of all maps (linear or nonlinear) Cm → Lp(Td) and Sada is the set of adaptive 
+
+linear maps C(Td) → Cm. These maps take the form 
+
+S(f ) = ( S1(f ), S 2(f, S 1(f )) , . . . , S m(f, S 1(f ), . . . , S m−1(f ))) ,
+
+where S1 : C(Td) → C is linear and, for i ≥ 2, Si : C(Td) × Ci−1 is linear in its first argument. There are many other types of widths, but these two will suffice for our purposes. Specializing to the above spaces, one has the following estimates: 
+
+εm(B(Hα
+
+> mix
+
+), L 2) ≍α,d 
+
+log p(α)−1(m)
+
+m
+
+!h(α)
+
+, εm(B(Hβ , L 2)) ≍β,d 
+
+ 1
+
+m
+
+g(β)
+
+. (1.9) Note that these estimates are closely related to those found in [14], although our proof is different – see §4 for further discussion. The lower bounds confirm near-optimality of the algorithms constructed in (A). However, these algorithms are fundamentally stronger than those associated with the lower bounds. First, they are universal, meaning that they are independent of α or β, whereas (1.9) allows the associated algorithms to depend on α or β. Second, our results use i.i.d. sampling from the 3uniform measure, whereas εm allows arbitrary linear (and adaptive) information, which may not be pointwise samples (standard information) and may also depend on both m and α or β.
+
+(C) Necessity of nonlinear algorithms (Theorem 5.1, Corollaries 5.2 and 5.3). As noted, the reconstruction maps established in (A) are nonlinear. In our final contribution, we confirm that nonlinearity is necessary. Specifically, in Corollary 5.3 we show the following. Let A be any arbitrary subset of (1 /2, ∞)d with nonempty interior and for which ( α0, . . . , α 0) ∈ int (A) for some 
+
+α0 > 0. Now let G : C(Td) → L2(Td) be a linear operator of rank at most m for which sup  
+
+> f∈B(Hα
+> mix )
+
+∥f − G(f )∥L2 ≲A,d n−h(α)(log( n)) h(α)( p(α)−1) , ∀α ∈ A , (1.10) for some n ∈ N. In other words, using m linear (but otherwise arbitrary) samples G achieves the optimal error rate based on n samples over B(Hα
+
+> mix
+
+), uniformly in α ∈ A . Then, necessarily, 
+
+n ≲A,d 
+
+m
+
+(log m)d−1 .
+
+Conversely, picking one of the nonlinear algorithms H : C(Td) → L2(Td) from Contribution (A), we see that sup  
+
+> f∈B(Hα
+> mix )
+
+∥f − H(f )∥L2 ≲α,d n−h(α)(log( n)) h(α)( p(α)−1) , ∀α ∈ A ,
+
+where n ∈ N satisfies 
+
+n ≥ m
+
+log 3(m) log(log( m)) .
+
+Thus, universal linear algorithms incur a curse of dimensionality in the factor ( log m)d−1, and nonlinear algorithms are superior to linear algorithms whenever d > 4. In Corollary 5.2 we show the analogous result for the Hβ spaces, with an identical conclusion. 
+
+1.3 Related literature and discussion 
+
+Isotropic and anisotropic spaces have been studied extensively in approximation theory and numerical analysis. Anisotropic Sobolev spaces arise in various applications, including stochastic and parametric PDEs arising in uncertainty quantification, high-dimensional PDEs arising in quantum mechanics, kinetic theory, finance, fluid dynamics and beyond, operator learning and numerous other fields. Many works have analyzed various widths corresponding to isotropic and anisotropic Sobolev spaces. See [17,21,31,40,51] for a modern overview, and, e.g., [15,16,35,36] for related results on tractability. The more classical results on sampling widths and linear widths in the periodic setting concern the widths of classical isotropic and anisotropic Sobolev spaces. Extending the isotropic results of H¨ ollig [25] to the anisotropic setting, Temlyakov [51] established sharp asymptotic decay rates for the linear widths of anisotropic Sobolev classes. Temlyakov [51] also derives sharp asymptotic decay rates for the linear sampling widths of anisotropic Sobolev classes for all 1 ≤ p, q ≤ ∞ , showing that under appropriate smoothness assumptions they decay at the same order as the corresponding linear widths. Here, q characterizes the integrability of the partial derivatives (or, in the case of fractional smoothness, the summability of the Fourier coefficients) and p characterizes the error norm ( Lp). It is well known (see [45, Remark 4.21(c)]) that for classical isotropic Sobolev spaces, nonlinear sampling algorithms do not improve the asymptotic rate compared to linear ones. The asymptotic rates they achieve are listed in [45, Remark 4.21(c)]. We now turn to anisotropic Sobolev spaces of mixed smoothness. For the case p = q = 2, [50] and [38] established matching asymptotic upper and lower bounds for the L2 linear widths of 4these classes, yielding sharp asymptotic estimates. Further tractability results in this setting were obtained in [36]. More generally, for 1 ≤ q < p < ∞ with p ≥ 2, Byrenheid et al. [14] established sharp asymptotic estimates for the linear widths, sampling widths, and linear sampling widths of anisotropic Sobolev classes of mixed smoothness. Specific attention has been given to L2 linear sampling widths of functions from Hilbert spaces ( p = q = 2). A breakthrough result by Krieg and M. Ullrich [34] showed that sampling recovery for reproducing kernel Hilbert spaces in L2 is asymptotically as powerful as linear approximation. Building on their idea, Dolbeault et al. [23] provided further refinements that can be applied to obtain sharp upper bounds for linear sampling widths of isotropic mixed smoothness Sobolev spaces in L2 (see [26, section 4.2]). Moeller et al. [40] provide upper bounds for nonlinear sampling rates for many regimes of p and q, which are shown to be nearly sharp in the case 1 < p < 2 < q < ∞ with 1 
+
+> p
+
++ 1 
+
+> q
+
+> 1. Jahn et al. [26] provide upper bounds for L2 nonlinear sampling widths of Sobolev spaces with mixed smoothness for several regimes of q.In the Hilbert space case p = 2, corresponding to L2 recovery, no improvement in recovery rates can be achieved by nonlinear sampling algorithms over linear ones, in view of [45, Theorem 4.8]. In contrast, for 1 < q < 2, they establish that nonlinear sampling methods yield strictly improved decay rates, and they prove that these rates are sharp in this regime. Dai and Temlyakov [19] investigated sampling recovery for anisotropic Sobolev classes in the L2 norm. In the regime 1 < q < 2 (with p = 2), they derived upper bounds for the sampling widths. More generally, Kosov and Temlyakov [28] extended these results to the Lp setting. For 1 < q ≤ 2 ≤ p < ∞, they established corresponding upper bounds for the sampling widths in Lp.Many other kinds of widths such as Kolmogorov widths, orthowidths and Gelfand widths have been analyzed (see [17, 51] for an overview). Many of these widths lower bound sampling widths and linear widths and are hence useful tools to show sharpness of the asymptotic upper bounds for linear widths and sampling widths. Our work differs from this literature in that we consider universal algorithms, delivering near-optimal rates for arbitrary values of the anisotropy parameters. As noted, our algorithms employ compressed sensing. This has been used for over a decade to develop efficient algorithms for high-dimensional function approximation [3, 4, 46, 47]. More recently, ideas from sparse recovery and the related concepts such as universal discretization [18] have been used to derive new results on widths of certain spaces of multivariate functions [5, 7, 18 –20, 26, 28, 41 – 43]. The majority of results focus on isotropic spaces, such as isotropic mixed smoothness Sobolev spaces and mixed Wiener spaces [26, 27, 29, 31, 39 – 44]. See also [5 –7] for results on anisotropic spaces of infinite-dimensional holomorphic functions. Some works have applied an iterative perspective to approximating functions from high-dimensional periodic Sobolev spaces with unknown anisotropy, where they learn the unknown anisotropy of the function and adapt their approximation procedure accordingly. Bartel and Schr¨ oter [9] develop one such approach. Their algorithm alternates between approximating the function and estimating its smoothness from the current approximation and sampling information, with each step feeding into the next to progressively improve both. Our algorithm is, by contrast, 
+
+nonadaptive . It does not strive to estimate the smoothness of the target function, yet it still achieves near-optimal approximations universally without this step. The notion of universality that we use has also appeared in statistical learning theory, where it refers to algorithms that achieve optimal rates without a priori knowledge of the smoothness of the target function. Binev et al. [11, 12] construct such estimators for regression functions from i.i.d. samples, achieving minimax-optimal rates over the isotropic approximation classes As and Bs,which in the Lebesgue measure setting correspond to isotropic Besov spaces Bs
+
+> ∞
+
+(L2) and Bsq (Lτ ). In contrast to our noiseless setting, this line of work operates in the noisy regression setting, where 5recovery rates typically take a much slower form than the noiseless case (see, e.g., [22]). Their setting differs from ours in two other ways. First, their algorithm constructs the approximation space adaptively from the data, selecting a partition for the domain by thresholding empirically estimated Haar-like coefficients and approximating by piecewise constant [12] or piecewise polynomial [11] functions. Our algorithm is nonadaptive by comparison, in that it fixes its structure in advance and does not iteratively adapt to the data. Second, their results concern universal recovery in isotropic smoothness classes, whereas we consider anisotropic smoothness classes. Our focus on unknown anisotropy continues a line of work initiated in [5 – 7] on infinite-dimensional holomorphic functions that arise frequently in parametric PDEs and operator learning. We pursue a similar approach in this paper – notably the use of compressed sensing tools – however, both the setting (Sobolev regularity versus holomorphic regularity) and the techniques employed are quite different. Similar to past works [3, 4, 7, 40, 41, 43], our reconstruction map solves a ℓ1-minimization based on the so-called Square-Root LASSO [10]. One could also consider greedy algorithms, such as Orthogonal Matching Pursuit (OMP) or weak OMP, as considered in [19, 20, 28, 40]. We focus on i.i.d. sampling from the uniform measure – a situation that is often encountered in practice [2]. Our work therefore contributes to another recent line of research [5,7,19,19,30,32,33,48] that determines scenarios where i.i.d. sampling is near optimal. As demonstrated by the lower bounds, our results are optimal up to the polylogarithmic term log 3(m) log (log (m)) appearing in (1.6)-(1.7). See Remark 3.4 for further discussion on this factor. Contribution (C) of our paper is based on Temlyakov’s work in [51, §5.4] and [52], which considered the spaces Hβ only. We extend these results to the Hα 
+
+> mix
+
+spaces. Note that [26] compares linear and nonlinear widths for a variety of Wiener type spaces, as well as mixed smoothness Sobolev spaces, and also shows the superiority of nonlinear algorithms in various settings. Jahn et al. [26] show that for mixed Wiener spaces nonlinear recovery strictly outperforms linear recovery in L2
+
+(see [26, Remark 4.5(i)]). In contrast, for L2 recovery in mixed smoothness Sobolev spaces (the Hilbert case q = 2) no such improvement occurs (see [45, Theorem 4.8]), whereas for general mixed smoothness Sobolev spaces, nonlinear recovery decays faster than linear widths for L2 recovery (see [26, Remark 4.17]). Moeller et al. [40] extend the conclusion in [26, Remark 4.5(i)], that we stated above, to the case of mixed Wiener spaces with 2 ≤ p < ∞; that is, they show that nonlinear sampling achieves a strictly faster main rate than linear methods in this setting (see [40, Remark 4.6]). However, they do not consider universality across ranges of parameters and the necessity of nonlinear algorithms for universal recovery. Many of the aforementioned works consider approximation in Lp spaces for general p ∈ [1 , ∞]. For clarity of exposition, we have chosen to consider p = 2 only. However, we anticipate that many of our main results could be extended. This is a question for future work. 
+
+1.4 Outline 
+
+The outline of the remainder of this paper is as follows. We commence in §2 by deriving best s-term approximation rates in the Fourier basis for the Hα 
+
+> mix
+
+and Hβ , estimates that will be crucial later. In §3-5 we address contributions (A), (B) and (C) of §1.2, respectively. 
+
+# 2 Best s-term approximation in Hα 
+
+> mix
+
+# and Hβ
+
+The main results in this paper exploit the concept of best s-term approximation in the Fourier basis. Therefore, in this section, we establish a series of estimates for the best s-term approximation of functions in Hα 
+
+> mix
+
+and Hβ . Let f ∈ L2(Td), and let {ϕn}n∈Zd and ˆfn (n ∈ Zd) be as in (1.1) and 6(1.2), respectively. We write the Fourier series of f as 
+
+f = X
+
+> n∈Zd
+
+ˆfnϕn
+
+(with convergence in L2) and recall that Parseval’s identity holds, i.e., R 
+
+> Td
+
+|f (x)|2 dx = P 
+
+> n∈Zd
+
+| ˆfn|2.
+
+2.1 Sequence spaces and best s-term approximation 
+
+We first require a series of definitions. 
+
+Definition 2.1 (ℓp space) . Let Λ be countable and p > 0. The ℓp(Λ) space is the set 
+
+ℓp(Λ) = 
+
+(
+
+c = ( cλ)λ∈Λ : ∥c∥p := 
+
+( P  
+
+> λ∈Λ
+
+|cλ|p1/p , 0 < p < ∞,
+
+sup λ∈Λ |cλ|, p = ∞ < ∞
+
+)
+
+.
+
+Definition 2.2 (Weak ℓp space) . Let N := |Λ| ∈ N ∪ {∞} and ( c∗ 
+
+> i
+
+)Ni=1 denote a non-increasing rearrangement (by absolute value) of c = ( cλ)λ∈Λ, i.e., |c∗ 
+
+> i
+
+| ≥ | c∗
+
+> i+1
+
+| for all i = 1 , . . . , N . For p > 0, the weak ℓp(Λ) space (w ℓp) is the set wℓp(Λ) = 
+
+(
+
+c ∈ CΛ : ∥c∥p, ∞ := 
+
+(
+
+sup 1≤i≤N |c∗ 
+
+> i
+
+|i1/p , 0 < p < ∞,
+
+sup 1≤i≤N |c∗ 
+
+> i
+
+|, p = ∞ < ∞
+
+)
+
+.
+
+Definition 2.3 (Weak Lorentz ℓp,a space) . Let N and ( c∗ 
+
+> i
+
+)Ni=1 be as in the previous definition. For constants p > 0 and a ≥ 0, the weak Lorentz ℓp,a (Λ) space (w ℓp,a ) is wℓp,a (Λ) = 
+
+(
+
+c ∈ CΛ : ∥c∥p,a, ∞ := 
+
+(
+
+sup 1≤i≤N |c∗ 
+
+> i
+
+| i1/p  max {1, log i}−a/p , 0 < p < ∞,
+
+sup 1≤i≤N |c∗ 
+
+> i
+
+|, p = ∞ < ∞
+
+)
+
+.
+
+Note that these spaces satisfy the relations ℓp ⊊ wℓ p = wℓ p, 0 ⊊ wℓ p,a for all a > 0. 
+
+Definition 2.4 (Best s-term approximation error) . Let q > 0, Λ be countable and z ∈ ℓq(Λ). The 
+
+ℓq-norm best s-term approximation error of z is defined as 
+
+σs(z)q = inf  
+
+> w∈ℓq(Λ)
+> |supp( w)|≤ s
+
+∥z − w∥q.
+
+Here and elsewhere, supp (w) = {λ ∈ Λ : wλ̸ = 0 }. If z∗ = ( z∗ 
+
+> i
+
+)Ni=1 denotes a non-increasing rearrangement of z, then we can write this as 
+
+σs(z)q = X
+
+> i>s
+
+|z∗ 
+
+> i
+
+|q
+
+!1/q 
+
+.
+
+2.2 Stechkin’s inequalities 
+
+The following result is standard in the case a = 0 and q < ∞. See, e.g., [2, Lem. SM2.1]. Our lemma below is inspired by this reference. It extends the case a = 0 to general a ≥ 0, and we also include the case q = ∞. We also allow s = 0. It should be noted that results such as the one below were never published in this form by Stechkin. See [17, §7.4] for further details. Nevertheless, we continue to refer to it as Stechkin’s inequality , as this terminology is widely used in the high-dimensional approximation and compressed sensing communities. 7Lemma 2.5 (Stechkin’s inequality in wℓ p,a ). Let 0 < p < q ≤ ∞ , a ≥ 0 and c = ( ci)i∈Λ ∈ C|Λ|,where Λ ⊂ N is an index set and N = |Λ| ∈ N ∪ {∞} . Then c ∈ wℓ p,a (Λ) if and only if there exists a constant C > 0 depending only on p, q, a, and c such that 
+
+σs(c)q ≤ C max {1, s } 1   
+
+> q−1
+> p
+
+ max {1, log(max {1, s })} ap
+
+for all s ∈ N ∪ { 0} with s < N when N < ∞. Specifically, if c ∈ wℓ p,a (Λ) and q < ∞, then 
+
+σs(c)q ≲p,q,a ∥c∥p,a, ∞
+
+ max {1, s } 1   
+
+> q−1
+> p
+
+ max {1, log(max {1, s })} ap
+
+for all s ∈ N ∪ { 0} with s < N when N < ∞. If c ∈ wℓ p,a (Λ) and q = ∞, then 
+
+σs(c)∞ ≲p,a ∥c∥p,a, ∞
+
+ max {1, s }−1/p  max {1, log(max {1, s })}a/p 
+
+for all s ∈ N ∪ { 0} with s < N when N < ∞. Conversely, if q < ∞ and 
+
+σs(c)q ≤ C max {1, s } 1   
+
+> q−1
+> p
+
+ max {1, log(max {1, s })} ap
+
+for all s ∈ N ∪ { 0} with s < N when N < ∞, then ∥c∥p,a, ∞ ≤ 2 1   
+
+> p+1
+> q
+
+C. If q = ∞ and 
+
+σs(c)∞ ≤ C max {1, s }−1/p  max {1, log(max {1, s })}a/p 
+
+for all s ∈ N ∪ { 0} with s < N when N < ∞, then ∥c∥p,a, ∞ ≤ 21/p C. 
+
+Proof. Suppose first that c ∈ wℓ p,a (Λ) and let ( c∗ 
+
+> i
+
+)Ni=1 be a nonincreasing rearrangement of c. For 
+
+i ∈ N with i ≤ N when N < ∞, we have 
+
+|c∗ 
+
+> i
+
+| ≤ ∥ c∥p,a, ∞ i−1/p  max {1, log i}a/p .
+
+We first consider the case q < ∞. Let s ∈ N ∪ { 0} with s < N when N < ∞. We set s0 =max {3,
+
+l
+
+e 2aq q−p
+
+m
+
+}. Suppose first that s ≥ s0. Then s ≥ 3 and (σs(c)q)q = X
+
+> i>s
+
+|c∗ 
+
+> i
+
+|q ≤ ∥ c∥qp,a, ∞
+
+X
+
+> i>s
+
+i−q/p  max {1, log i}aq/p = ∥c∥qp,a, ∞
+
+X
+
+> i>s
+
+i−q/p (log i)aq/p .
+
+Since s ≥ 3 and s ≥ ea, the function x 7 → x−q/p (log x)aq/p is decreasing for x ≥ s. Hence (σs(c)q)q ≤ ∥ c∥qp,a, ∞
+
+Z ∞
+
+> s
+
+x−q/p (log x)aq/p dx. 
+
+With the changes of variables x = e t and u = q−pp t, the integral becomes 
+
+Z ∞
+
+> s
+
+x−q/p (log x)aq/p dx =
+
+Z ∞ 
+
+> log s
+
+e(p−q)t/p taq/p dt =
+
+ pq − p
+
+ aq p +1 Z ∞  
+
+> q−pplog s
+
+u aq p e−u du. 
+
+Recall that the upper incomplete Gamma function is defined as Γ( r, x ) = R ∞ 
+
+> x
+
+ur−1e−u du for r > 0, 
+
+x ≥ 0. We deduce that (σs(c)q)q ≤ ∥ c∥qp,a, ∞
+
+ pq − p
+
+ aq p +1 
+
+Γ
+
+ aq p + 1 , q − pp log s
+
+
+
+.
+
+8We shall use the bound Γ( r, x ) ≤ 2xr−1e−x for r ≥ 1 and x ≥ 2( r − 1). To see why this holds, let 
+
+r ≥ 1 and x > 0. Integration by parts gives Γ( r, x ) = xr−1e−x + ( r − 1) 
+
+Z ∞
+
+> x
+
+ur−2e−u du ≤ xr−1e−x + r − 1
+
+x
+
+Z ∞
+
+> x
+
+ur−1e−u du
+
+= xr−1e−x + r − 1
+
+x Γ( r, x ).
+
+If x ≥ 2( r − 1), then 1 − r−1 
+
+> x
+
+≥ 12 , which implies that Γ( r, x ) ≤ 2xr−1e−x, as claimed. Applying this with r = aq p + 1 and x = q−pp log s, and using the fact that s ≥ s0, we get (σs(c)q)q ≤ ∥ c∥qp,a, ∞
+
+ pq − p
+
+ aq p +1 
+
+2
+
+ q − pp log s
+
+ aq p
+
+e− q−pp log s
+
+= ∥c∥qp,a, ∞2
+
+ pq − p
+
+
+
+(log s) aq p s1− qp .
+
+Taking the qth root gives 
+
+σs(c)q ≲p,q,a ∥c∥p,a, ∞s 1   
+
+> q−1
+> p
+
+(log s) ap , ∀s ≥ s0.
+
+We now consider the case s < s 0.We have 
+
+σs(c)qq ≤ σ0(c)qq = ∥c∥qq = X
+
+> i≥1
+
+|c∗ 
+
+> i
+
+|q = X
+
+> 1≤i≤s0
+
+|c∗ 
+
+> i
+
+|q + X
+
+> i>s 0
+
+|c∗ 
+
+> i
+
+|q.
+
+For the finite sum, we use the fact that |c∗ 
+
+> i
+
+| ≤ ∥ c∥p,a, ∞i−1/p  max {1, log i}a/p to get 
+
+X
+
+> 1≤i≤s0
+
+|c∗ 
+
+> i
+
+|q ≤ ∥ c∥qp,a, ∞
+
+X
+
+> 1≤i≤s0
+
+i−q/p  max {1, log i}aq/p ≲p,q,a ∥c∥qp,a, ∞.
+
+Here, we also used the fact that s0 depends on p, q and a only. For the tail, we have P 
+
+> i>s 0
+
+|c∗ 
+
+> i
+
+|q =(σs0 (c)q)q. The bound proved above for s ≥ s0 applies when s = s0. This gives ( σs0 (c)q)q ≲p,q,a 
+
+∥c∥qp,a, ∞. Combining these estimates yields ∥c∥q ≲p,q,a ∥c∥p,a, ∞. Hence 
+
+σs(c)q ≤ ∥ c∥q ≲p,q,a ∥c∥p,a, ∞, ∀s < s 0.
+
+Moreover, for s < s 0 we have 1 ≤ max {1, s } ≤ s0 and 1 ≤ max {1, log (max {1, s })} ≤ max {1, log s0}.Since 1 
+
+> q
+
+− 1 
+
+> p
+
+< 0, it follows that (max {1, s }) 1   
+
+> q−1
+> p
+
+≥ s   
+
+> 1
+> q−1
+> p
+> 0
+
+, and therefore 
+
+s  
+
+> 1
+> p−1
+> q
+> 0
+
+ max {1, s } 1   
+
+> q−1
+> p
+
+ max {1, log(max {1, s })}a/p ≥ 1.
+
+And since s0 only depends on p, q and a, after adjusting constants, we may write 
+
+σs(c)q ≲p,q,a ∥c∥p,a, ∞
+
+ max {1, s } 1   
+
+> q−1
+> p
+
+ max {1, log(max {1, s })}a/p , ∀s < s 0.
+
+Combining this with the case s ≥ s0 gives 
+
+σs(c)q ≲p,q,a ∥c∥p,a, ∞
+
+ max {1, s } 1   
+
+> q−1
+> p
+
+ max {1, log(max {1, s })} ap , ∀s ∈ N ∪ { 0},
+
+9as required. We now consider the case q = ∞. Let s ∈ N ∪ { 0} with s < N when N < ∞ and set 
+
+t = max {1, s }. Then 
+
+σs(c)∞ = sup 
+
+> i>s
+
+|c∗ 
+
+> i
+
+| = |c∗
+
+> s+1
+
+| ≤ ∥ c∥p,a, ∞(s + 1) −1/p  max {1, log( s + 1) }a/p .
+
+Since ( s + 1) −1/p ≤ t−1/p and max {1, log( s + 1) } ≤ 2 max {1, log t}, we get 
+
+σs(c)∞ ≤ 2a/p ∥c∥p,a, ∞t−1/p  max {1, log t}a/p ,
+
+as required. We now prove the converse. Assume first that q < ∞ and that there exists C > 0 such that for all s ∈ N ∪ { 0} with s < N when N < ∞,
+
+σs(c)q ≤ C max {1, s } 1   
+
+> q−1
+> p
+
+ max {1, log(max {1, s })} ap .
+
+Taking s = 0 gives σ0(c)q = ∥c∥q ≤ C. Hence |c∗
+
+> 1
+
+| ≤ C. Let n ∈ N with 2 n ≤ N when N < ∞.Since ( c∗ 
+
+> i
+
+) is nonincreasing, we have |c∗ 
+
+> i
+
+| ≥ | c∗
+
+> 2n
+
+| for n + 1 ≤ i ≤ 2n. Therefore 
+
+n|c∗
+
+> 2n
+
+|q ≤
+
+> 2n
+
+X
+
+> i=n+1
+
+|c∗ 
+
+> i
+
+|q ≤ X
+
+> i>n
+
+|c∗ 
+
+> i
+
+|q = ( σn(c)q)q.
+
+Using the assumed bound for s = n, we get 
+
+|c∗
+
+> 2n
+
+| ≤ C n −1/p  max {1, log n}a/p .
+
+Now let n ∈ N with 2 n + 1 ≤ N when N < ∞. Since |c∗ 
+
+> i
+
+| ≥ | c∗
+
+> 2n+1
+
+| for n + 2 ≤ i ≤ 2n + 1, we have 
+
+n|c∗
+
+> 2n+1
+
+|q ≤
+
+> 2n+1
+
+X
+
+> i=n+2
+
+|c∗ 
+
+> i
+
+|q ≤ X
+
+> i>n +1
+
+|c∗ 
+
+> i
+
+|q = ( σn+1 (c)q)q.
+
+Using the assumed bound for s = n + 1 and the fact that ( n + 1) /n ≤ 2, we obtain 
+
+|c∗
+
+> 2n+1
+
+| ≤ 21/q C (n + 1) −1/p  max {1, log( n + 1) }a/p .
+
+Combining these bounds and using the fact that (2 n)1/p ≤ 21/p n1/p and (2 n + 1) 1/p ≤ 21/p (n + 1) 1/p 
+
+gives 
+
+∥c∥p,a, ∞ ≤ sup 
+
+> n≥1
+
+(2 n)1/p  max {1, log(2 n)}−a/p |c∗
+
+> 2n
+
+|, (2 n + 1) 1/p  max {1, log(2 n + 1) }−a/p |c∗
+
+> 2n+1
+
+|
+
+≤ 2 1   
+
+> p+1
+> q
+
+C. 
+
+Finally, assume that q = ∞ and that there exists C > 0 such that for all s ∈ N ∪ { 0} with s < N 
+
+when N < ∞,
+
+σs(c)∞ ≤ C max {1, s }−1/p  max {1, log(max {1, s })}a/p .
+
+Taking s = 0 gives |c∗
+
+> 1
+
+| ≤ C. Let i ∈ N with 2 ≤ i ≤ N when N < ∞ and take s = i − 1. Then 
+
+σi−1(c)∞ = sup j≥i |c∗ 
+
+> j
+
+| = |c∗ 
+
+> i
+
+|, so 
+
+|c∗ 
+
+> i
+
+| ≤ C(i − 1) −1/p  max {1, log( i − 1) }a/p .
+
+Since ( i − 1) −1/p ≤ 21/p i−1/p and max {1, log( i − 1) } ≤ max {1, log i} for i ≥ 2, we get 
+
+|c∗ 
+
+> i
+
+| ≤ 21/p Ci −1/p  max {1, log i}a/p .
+
+Therefore ∥c∥p,a, ∞ ≤ 21/p C, as required. 10 2.3 Best s-term approximation rates in Hα
+
+> mix
+
+We now introduce some notation that will be used in the subsequent results. Given r > 1 and 
+
+α = ( α1, α 2, . . . , α d) ∈ (0 , ∞)d, let 
+
+A(d, r, α ) = 
+
+n ∈ Zd :
+
+> d
+
+Y
+
+> j=1
+
+(1 + |nj |)αj < r 
+
+ , a(d, r, α ) = 
+
+n ∈ Zd 
+
+> +
+
+:
+
+> d
+
+Y
+
+> j=1
+
+(1 + nj )αj < r 
+
+ .
+
+Observe that 
+
+a(d, r, α ) ≤ A(d, r, α ) ≤ 2d × a(d, r, α ). (2.1) This lemma, as well as Lemma 2.8 later, is well-established in the literature. See, for example, [15,36]. We offer short proofs for completeness. 
+
+Lemma 2.6. Let α = ( α1, α 2, . . . , α d) ∈ (0 , ∞)d and h(α) and p(α) be as in (1.3) . Then 
+
+a(d, r, α ) ≍d,α r 1 
+
+> h(α)
+
+(log r)p(α)−1, (2.2) 
+
+and 
+
+A(d, r, α ) ≍d,α r 1 
+
+> h(α)
+
+(log r)p(α)−1. (2.3) 
+
+Proof. Notice that (2.3) follows immediately from (2.2) and (2.1) . Hence, we only need to show (2.2) . To do this, we fix p(α) = p ∈ N for arbitrary α ∈ (0 , ∞)d, where d ∈ N is unspecified and proceed by induction on d ≥ p(α). First, for the base case d = p(α), we use the fact that 
+
+a(d, r, α ) = a(d, r 1 
+
+> h(α)
+
+, 1d), where 1 d is the vector of ones of length d. [4, Lemma B.3] gives that 1(d − 1)! (⌈r⌉ − 1)(log( ⌈r⌉ − 1)) d
+
+log( ⌈r⌉ − 1) + d < a (d, r, 1d) < (⌈r⌉ − 1) (log( ⌈r⌉ − 1) + d log 2) d−1
+
+(d − 1)! where the lower bound holds for r > 1 and the upper bound holds for r ≥ r∗, where r∗ depends on 
+
+d only. Thus a(d, r, 1d) ≍d r(log r)d−1, and hence 
+
+a(d, r, α ) = a(d, r 1 
+
+> h(α)
+
+, 1d) ≍d r 1 
+
+> h(α)
+
+(log r)p(α)−1, d = p(α),
+
+as required. Now assume that a(d − 1, r, α ) ≍d,α 1(p−1)! r 1 
+
+> h(α)
+
+( log r)p−1 for some d > p (α). Without loss of generality, we may assume that α is nondecreasing. Now observe that 
+
+a(d, r, α ) =  
+
+> ⌊r1/α d⌋
+
+X
+
+> j=1
+
+a(d − 1, r/j αd , α ′), where α′ = ( α1, . . . , α d−1).
+
+This implies that 
+
+a(d, r, α ) ≍d,α  
+
+> ⌊r1/α d⌋
+
+X
+
+> j=1
+
+(r/j αd )1/h (α)(log( r/j αd )) p−1.
+
+We now establish upper and lower bounds separately. For the former, observe that, by assumption, 
+
+p(α) < d , and hence αd > h (α). Therefore 
+
+a(d, r, α ) ≲d,α r1/h (α)(log r)p(α)−1 
+
+> ⌊r1/α d⌋
+
+X
+
+> j=1
+
+j−αd/h (α) ≲d,α r1/h (α)(log r)p(α)−1,
+
+11 since the series P∞ 
+
+> j=1
+
+j−αd/h (α) converges for αd > h (α). Hence the upper bound in (2.2) holds for the given d > p (α). For the lower bound, we consider the j = 1 term only, which gives 
+
+a(d, r, α ) ≳d,α (r/ 1αd )1/h (α)(log( r/ 1αd )) p(α)−1 ≳d,α r1/h (α)(log r)p(α)−1,
+
+as required. We are now ready to present a result on best s-term approximation in Hα
+
+> mix
+
+.
+
+Theorem 2.7 (Best s-term approximation rate in Hα
+
+> mix
+
+). Let α = ( α1, α 2, . . . , α d) and h(α) and 
+
+p(α) be as in (1.3) . Let f ∈ Hα 
+
+> mix
+
+and write c = ( ˆfn)n∈Zd , where ˆfn is as in (1.2) . Then 
+
+σs(c)q ≲α,q s 1   
+
+> q−h(α)−12
+
+(log s)h(α)( p(α)−1) ∥f ∥Hα 
+
+> mix
+
+, ∀s ∈ N,
+
+for all q > 1 
+
+> h(α)+1 /2
+
+. Moreover, for q = ∞,
+
+σs(c)∞ ≲α s−h(α)− 12 (log s)h(α)( p(α)−1) ∥f ∥Hα 
+
+> mix
+
+, ∀s ∈ N.
+
+Proof. We first prove the result for q = 2. Given s ∈ N, let ε > 0 be such that A(d, 1/ε, α ) ≤ s,where A(d, 1/ε, α ) is as in (2.3) with r = 1 /ε . Then 
+
+σs(c)22 ≤ X  
+
+> n:Qdj=1 (1+ |nj|)αj≥1/ε
+
+| ˆfn|2 ≤ ε2 X
+
+> n∈Zd
+> d
+
+Y
+
+> j=1
+
+(1 + |nj |)2αj | ˆfn|2 = ε2∥f ∥2
+
+> Hα
+> mix
+
+. (2.4) By Lemma 2.6, there are constants c1 = c1(d, α ), c 2 = c2(d, α ) > 0 with c2 > (p(α) − 1)! such that 
+
+c1
+
+(p(α) − 1)! r1/h (α)(log( r)) p(α)−1 ≤ A(d, r, α ) ≤ c2
+
+(p(α) − 1)! r1/h (α)(log( r)) p(α)−1.
+
+There exists, for a large enough s, a positive real number ε < 1/e such that 
+
+s ≤ c2
+
+(p(α) − 1)! ε−1/h (α)(log(1 /ε )) p(α)−1 < s + 1 , (2.5) which immediately implies that A(d, 1/ε, α ) ≤ s, and therefore (2.4) holds. We now upper bound ε.Taking natural logarithms on both sides of (2.5) gives log 
+
+ c2
+
+(p(α) − 1)! 
+
+
+
++ 1
+
+h(α) log 
+
+ 1
+
+ε
+
+
+
++ ( p(α) − 1) log log 
+
+ 1
+
+ε
+
+
+
+< log( s + 1) .
+
+Since log 
+
+ c2
+
+> (p(α)−1)!
+
+
+
+≥ 0 and ( p(α)−1) log log   1
+
+> ε
+
+ ≥ 0, we get 1 
+
+> h(α)
+
+log   1
+
+> ε
+
+ < log (s+1). Substituting this bound into (2.5) leads to 
+
+s ≤ c2
+
+(p(α) − 1)! ε−1/h (α)h(α)p(α)−1  log( s + 1) p(α)−1.
+
+Rearranging, we obtain 
+
+ε ≤
+
+
+
+h(α)p(α)−1 c2
+
+(p(α) − 1)! 
+
+h(α)
+
+s−h(α)  log( s + 1) h(α)( p(α)−1) . (2.6) 12 Combining this with (2.4), we deduce that 
+
+σs(c)2 ≲α s−h(α)(log s)h(α)( p(α)−1) ∥f ∥Hα 
+
+> mix
+
+,
+
+which gives the result for q = 2. Next we consider q ≥ 2. The previous result and Theorem 2.5 imply that c ∈ wℓ 1   
+
+> h(α)+1 /2,h(α)( p(α)−1)
+> h(α)+1 /2
+
+.Reapplying Theorem 2.5 for q > 1 
+
+> h(α)+1 /2
+
+now gives 
+
+σs(c)q ≲α,q s 1   
+
+> q−h(α)−12
+
+(log s)h(α)( p(α)−1) ∥f ∥Hα 
+
+> mix
+
+,
+
+as required. For q = ∞, we apply Theorem 2.5 with q = ∞ and obtain 
+
+σs(c)∞ ≲α s−h(α)− 12 (log s)h(α)( p(α)−1) ∥f ∥Hα 
+
+> mix
+
+,
+
+which completes the proof. 
+
+2.4 Best s-term approximation rates in Hβ
+
+We once more introduce some notation that will be used later. Given β = ( β1, β 2, . . . , β d) ∈ (0 , ∞)d
+
+and r > 0, let 
+
+C(d, r, β ) = 
+
+n ∈ Zd :
+
+> d
+
+X
+
+> j=1
+
+|nj |βj < r 
+
+ .
+
+Lemma 2.8. Let β = ( β1, β 2, . . . , β d) ∈ (0 , ∞)d and r > 0. Then 
+
+C(d, r, β ) ≍d,β r 1 
+
+> g(β)
+
+, (2.7) 
+
+where g(β) is as in (1.4) .Proof. Let w = ( w1, . . . , w d) ∈ [0 , ∞)d, β = ( β1, β 2, . . . , β d) ∈ (0 , ∞)d and r > 0. Let 
+
+C>(d, r, β ) = 
+
+n ∈ Zd> :
+
+> d
+
+X
+
+> j=1
+
+|nj |βj < r 
+
+ ,c(d, r, β ) = Vol d
+
+n ∈ Rd :
+
+> d
+
+X
+
+> j=1
+
+|nj |βj < r 
+
+ ,c+(d, r, β, w ) = Vol d
+
+n ∈ Rd : nj > w j , ∀j ∈ [d],
+
+> d
+
+X
+
+> j=1
+
+|nj |βj < r 
+
+ ,
+
+where Vol d(·) is the d-dimensional Lebesgue measure. Finally, we let S(d, s ) denote the set of all subsets of [ d] of size s. Using [53], we have 
+
+c(d, 1, β ) = 2 d Γ(1 + 1 /β 1) · · · Γ(1 + 1 /β d)Γ(1 /β 1 + 1 /β 2 + · · · + 1 /β d + 1) ,
+
+and consequently, 
+
+c(d, r, β ) = r 1 
+
+> g(β)
+
+2d Γ(1 + 1 /β 1) · · · Γ(1 + 1 /β d)Γ(1 /β 1 + 1 /β 2 + · · · + 1 /β d + 1) (2.8) after a routine calculation. We now make the following observations: 13 (a) C(d, r, β ) = 1 + Pdj=1 2j
+
+P 
+
+> S∈S (d,j )
+
+C>(j, r, β S )
+
+
+
+, where the 1 accounts for the multi-index 0. (b) c(d, r, β ) = 2 d × c+(d, r, β, 0). (c) C>(d, r, β ) ≤ c+(d, r, β, 0). (d) c+(d, r, β, 1) ≤ C>(d, r, β ). (e) c+(d, r, β, 0) ≤ 1+ Pd−1
+
+> j=1
+
+P 
+
+> S∈S (d,j )
+
+c+(j, r, β S , 1) 
+
+
+
++c+(d, r, β, 1), where the 1 accounts for the volume of the d-dimensional unit cube [0 , 1] d, and each c+(j, r, β S , 1) (for S = {s1, s 2, . . . , s j } ∈ S(d, j )) accounts for the volume Vol d
+
+(
+
+n ∈ Rd : nsi > 1, ∀i ∈ [j],
+
+> j
+
+X
+
+> i=1
+
+|nsi |βsi < r, n s ∈ [0 , 1] , ∀s / ∈ S
+
+)
+
+.
+
+We now proceed in two parts, corresponding to the upper bound and lower bound. For the former, we combine (a) and (c), followed by (b), to get 
+
+C(d, r, β ) ≤ 1 + 
+
+> d
+
+X
+
+> j=1
+
+2j
+
+ X
+
+> S∈S (d,j )
+
+c+(j, r, β S , 0) 
+
+ = 1 + 
+
+> d
+
+X
+
+> j=1
+
+ X
+
+> S∈S (d,j )
+
+c(j, r, β S )
+
+ .
+
+Using (2.8), it follows that C(d, r, β ) ≲β r 1 
+
+> g(β)
+
+, as required. For the lower bound, we combine (e) and (d), and then apply (c), to get 
+
+c+(d, r, β, 0) ≤ 1 + 
+
+> d−1
+
+X
+
+> j=1
+
+ X
+
+> S∈S (d,j )
+
+C>(j, r, β S )
+
+ + C>(d, r, β )
+
+≤ 1 + 
+
+> d−1
+
+X
+
+> j=1
+
+ X
+
+> S∈S (d,j )
+
+c+(j, r, β S , 0) 
+
+ + C>(d, r, β )Using (b) we get 2−dc(d, r, β ) ≤ 1 + 
+
+> d−1
+
+X
+
+> j=1
+
+ X
+
+> S∈S (d,j )
+
+2−j c(j, r, β S )
+
+ + C>(d, r, β )With this and (2.8) , we have C>(d, r, β ) ≳β r 1 
+
+> g(β)
+
+. Finally, we apply (a) to obtain C(d, r, β ) ≳β r 1 
+
+> g(β)
+
+,as required. We may now present a result on best s-term approximation in Hβ .
+
+Theorem 2.9 (Best s-term approximation rate in Hβ ). Let β = ( β1, β 2, . . . , β d) ∈ [0 , ∞)d and g(β)
+
+be as in (1.4) . Let f ∈ Hβ and write c = ( ˆfn)n∈Zd , where ˆfn is as in (1.2) . Then 
+
+σs(c)q ≲β,q s 1   
+
+> q−g(β)−12
+
+∥f ∥Hβ , ∀s ∈ N,
+
+for all q > 22g(β)+1 . Moreover, for q = ∞,
+
+σs(c)∞ ≲β s−g(β)− 12 ∥f ∥Hβ , ∀s ∈ N.
+
+14 Proof. We follow a similar proof to that of Theorem 2.7. Let q = 2, s ∈ N, and ε > 0 be such that 
+
+C(d, 1/ε, β ) ≤ s, where C(d, 1/ε, β ) is as in (2.7). Then 
+
+σs(c)22 ≤ X   
+
+> n:1+ Pdj=1 |nj|βj≥ε−1
+
+| ˆfn|2 ≤ ε2 X
+
+> n∈Zd
+
+1 + 
+
+> d
+
+X
+
+> j=1
+
+|nj |βj
+
+
+
+> 2
+
+| ˆfn|2 = ε2∥f ∥2 
+
+> Hβ
+
+. (2.9) Recall (2.7). Lemma 2.8 implies that there are constants c1 = c1(d, β ), c 2 = c2(d, β ) > 0 such that 
+
+c1r 1 
+
+> g(β)
+
+≤ C(d, r, β ) ≤ c2r 1 
+
+> g(β)
+
+. (2.10) Let ε be such that 
+
+s ≤ c2
+
+ 1
+
+ε − 1
+
+ 1
+
+> g(β)
+
+< s + 1 (2.11) and therefore C(d, 1/ε, β ) ≤ s. Notice that ε satisfies ε ≤
+
+ sg(β) 
+
+> c2
+
++ 1 
+
+−1
+
+. Combining this with (2.9) yields σs(c)2 ≲β s−g(β)∥f ∥Hβ , which gives the result for q = 2. Next, we apply Stechkin’s inequality. By Theorem 2.5 with a = 0, the above bound implies that 
+
+c ∈ wℓ 22g(β)+1 ,0. Hence, for q > 22g(β)+1 , reapplying Theorem 2.5 with a = 0 gives 
+
+σs(c)q ≲β,q s 1   
+
+> q−g(β)−12
+
+∥f ∥Hβ .
+
+For q = ∞, we apply Theorem 2.5 with a = 0 and q = ∞ and obtain 
+
+σs(c)∞ ≲β s−g(β)− 12 ∥f ∥Hβ ,
+
+which completes the proof. 
+
+# 3 Universal algorithms for unknown anisotropy 
+
+We now construct universal algorithms for recovering functions in the setting of unknown anisotropy, thus establishing contribution (A) of §1.2. In this section, u : N → (0 , ∞) is an arbitrary nondecreas-ing function with u(m) → ∞ as m → ∞ . It is informative to think of this function as growing slowly in m, e.g., logarithmically ( u(m) = log (m + 1)) or double-logarithmically ( u(m) = log (log (m + 1))). 
+
+3.1 Dominating mixed smoothness spaces Hα
+
+> mix
+
+Consider the spaces introduced in Definition 1.1. Our first two results assert the existence of maps with guaranteed universal approximation properties in probability and in expectation, respectively. 
+
+Theorem 3.1 (Probability bound) . Let 0 < ε < 1, m ≥ 2 and x1, . . . , x m be drawn i.i.d. from the uniform measure on Td. Then there are constants C(α, d, u ), ∀α > 1/2, and a reconstruction map 
+
+R : ( Td × C)m → L2(Td) depending on u and ε only such that, if 
+
+em = em(ε, u ) =: m
+
+log 3(m)u(m) + log(1 /ε ) ≥ 2,
+
+then 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≤ C(α, d, u ) log p(α)−1( em)
+
+em
+
+!h(α)
+
+∥f ∥Hα
+
+> mix
+
+, ∀f ∈ Hα
+
+> mix
+
+(Td), α > 1/2
+
+with probability at least 1 − ε, where h and p are as in (1.3) .
+
+15 Theorem 3.2 (Expectation bound) . Let m ≥ 2 and x1, . . . , x m be drawn i.i.d. from the uniform measure on Td. Then there are constants C(α, d, u ), ∀α > 1/2, and a reconstruction map R :(Td × C)m → L2(Td) depending on u only such that, for any bounded set A ⊂ (1 /2, ∞)d, there exists a constant C(A) with the property that, if 
+
+em = em(u) = m
+
+log 3(m)u(m) + log 2(m) ≥ 2,
+
+then 
+
+E
+
+sup 
+
+> α∈A
+
+sup   
+
+> f∈Hα
+> mix
+> f̸=0
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2
+
+C(α, d, u )
+
+ log p(α)−1( em)
+
+> em
+
+h(α)
+
+∥f ∥Hα
+
+> mix
+
+ ≤ C(A),
+
+where h and p are as in (1.3) .
+
+These results establish the existence of a reconstruction map that achieves an approximation rate over Hα 
+
+> mix
+
+depending on h(α) and p(α) defined in (1.3) and the quantity em. Notice that em is given by m scaled by a term that can be made arbitrarily close (by choosing u) to log 3(m). Later, in §4, we will show that this rate is optimal up to this polylogarithmic factor. The map R asserted by Theorem 3.1 is universal, since it yields, with high probability, the stipulated rate for any value of the anisotropy parameter α > 1/2 (see Remark 3.3 below for why this condition is needed). The slowly-growing function u(m) is critical in guaranteeing this property. The map in Theorem 3.2 is universal, but in a slightly weaker sense, since the stipulated rate is only guaranteed for α belonging to some bounded set A. This arises for technical reasons when the probability bound of Theorem 3.1 is used to establish the expectation bound in Theorem 3.2. However, note that A can be arbitrary and the map R is independent of A.
+
+Remark 3.3 The condition α > 1/2 ensures a continuous embedding C(Td) ,→ Hα
+
+> mix
+
+(Td) and, consequently, the argument of R is well defined for any f . Indeed, for any f ∈ Hα
+
+> mix
+
+(Td), we have 
+
+∥f ∥L∞(Td) ≤ X
+
+> n∈Zd
+
+| ˆfn| ≤ 
+
+ X 
+
+> n∈Zd
+> d
+
+Y
+
+> j=1
+
+(1 + |nj |)−2αj
+
+1/2
+
+∥f ∥Hα 
+
+> mix
+
+.
+
+The claimed embedding now follows from the fact that 
+
+X
+
+> n∈Zd
+> d
+
+Y
+
+> j=1
+
+(1 + |nj |)−2αj =
+
+> d
+
+Y
+
+> j=1
+
+X
+
+> k∈Z
+
+(1 + |k|)−2αj < ∞ ⇔ αj > 1/2, ∀j ∈ [d].
+
+Remark 3.4 As we shall see, Theorem 3.1 (also Theorem 3.2) yields a rate that is only possibly suboptimal in the factor log 3(m)u(m) + log (1 /ε ). The term u(m), as discussed above, arises from the requirement that the algorithm be universal and can be chosen to grow arbitrarily slowly. As shown in the proof, the log 3(m) term arises from requiring the Restricted Isometry Property (RIP) for a certain Fourier matrix of size m × N , where log (N ) = O( log (m)). Reducing the logarithmic term in the RIP for a Fourier matrix is a long-standing open problem [13]. Any future reduction would immediately yield a better logarithmic term in our bounds. While our main focus in this paper is on i.i.d. samples, in the next result we show the existence of a set of samples that yields truly universal recovery (with no restrictions on α) in a non-probabilistic sense. While the rate is unchanged over that of i.i.d. sampling, the use of these sample points notably strengthens Theorem 3.2 by removing the need to consider a bounded set A.16 Theorem 3.5 (Non-i.i.d. sampling) . Let m ≥ 2. Then there exists a set of points (x⋆
+
+> 1
+
+, . . . , x ⋆m)
+
+such that the following holds. There are constants C(α, d, u ), ∀α > 1/2, and a reconstruction map 
+
+R : ( Td × C)m → L2(Td) depending on u only such that, if 
+
+em = em(u) = m
+
+log 3(m)u(m) + log(2) ≥ 2,
+
+then 
+
+sup 
+
+> α> 1/2
+
+sup   
+
+> f∈Hα
+> mix
+> f̸=0
+
+∥f − R(( x⋆i , f (x⋆i )) mi=1 )∥L2
+
+C(α, d, u )
+
+ log p(α)−1( em)
+
+> em
+
+h(α)
+
+∥f ∥Hα
+
+> mix
+
+≤ 1,
+
+where h and p are as in (1.3) .
+
+3.2 Anisotropic spaces Hβ
+
+We now present analogous versions of Theorems 3.1–3.5 for the spaces introduced in Definition 1.2. 
+
+Theorem 3.6 (Probability bound) . Let 0 < ε < 1, m ≥ 2 and x1, . . . , x m be drawn i.i.d. from the uniform measure on Td. Then there exist constants C(β, d, u ) for all β with g(β) > 1/2, where g is as in (1.4) , and a reconstruction map R : ( Td × C)m → L2(Td), depending only on u and ε, such that if 
+
+em = em(ε, u ) = m
+
+log 3(m)u(m) + log(1 /ε ) ≥ 2,
+
+then 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≤ C(β, d, u ) em−g(β)∥f ∥Hβ , ∀f ∈ Hβ (Td), β : g(β) > 1/2,
+
+with probability at least 1 − ε.
+
+Theorem 3.7 (Expectation bound) . Let m ≥ 2 and x1, . . . , x m be drawn i.i.d. from the uniform measure on Td. Then there are constants C(β, d, u ) for all β with g(β) > 1/2, where g is as in (1.4) ,and a reconstruction map R : ( Td × C)m → L2(Td) depending on u only such that, for any bounded set B ⊂ β ∈ (1 /2, ∞)d : g(β) > 1/2 , there exists a constant C(B) with the property that, if 
+
+em = em(u) = m
+
+log 3(m)u(m) + log 2(m) ≥ 2,
+
+then 
+
+E
+
+sup 
+
+> β∈B
+
+sup   
+
+> f∈Hβ
+> f̸=0
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2
+
+C(β, d, u )   1
+
+> em
+
+g(β) ∥f ∥Hβ
+
+ ≤ C(B).
+
+Theorem 3.8 (Non-i.i.d. sampling) . Let m ≥ 2. Then there exists a set of points (x⋆
+
+> 1
+
+, . . . , x ⋆m) such that the following holds. There are constants C(β, d, u ), for all β with g(β) > 1/2, where g is as in 
+
+(1.4) , and a reconstruction map R : ( Td × C)m → L2(Td) depending on u only such that, if 
+
+em = em(u) = m
+
+log 3(m)u(m) + log(2) ≥ 2,
+
+then 
+
+sup 
+
+> β∈(1 /2,∞)d
+> g(β)>1/2
+
+sup   
+
+> f∈Hβ
+> f̸=0
+
+∥f − R(( x⋆i , f (x⋆i )) mi=1 )∥L2
+
+C(β, d, u )
+
+ 1
+
+> em
+
+g(β)
+
+∥f ∥Hβ
+
+≤ 1.
+
+17 As in the previous case, the rates exhibited in these theorems are optimal up to the distinction between m and em, which is once more polylogarithmic (for a suitable choice of u). 
+
+Remark 3.9 Just as in the mixed smoothness case, the condition g(β) > 1/2 guarantees the continuous embedding Hβ (Td) ,→ C(Td). For succinctness, we omit the details. 
+
+3.3 Reduction to a sparse recovery problem 
+
+We now turn our attention to the proofs of Theorems 3.1–3.5,3.6–3.8, commencing with the construction of the algorithms. The main results in the previous section, Theorems 2.7 and 2.9, show that the best s-term approximation achieves the desired convergence rates in terms of s. Motivated by this, we pursue an approach based on compressed sensing, where we first convert the problem of approximating an unknown f from its samples (1.5) to a finite-dimensional sparse recovery problem. Given an unknown function f and sample points x1, . . . , x m drawn i.i.d. from the uniform distribution on Td, we define the normalized sample vector 
+
+b = 1
+
+√m
+
+ f (xi)mi=1 . (3.1) We seek to approximate f by recovering its Fourier coefficients ˆfΛ = ( ˆfn)n∈Λ corresponding to an index set Λ ⊆ Zd that will be chosen later. Write N = |Λ| and let A ∈ Cm×N denote the matrix formed by evaluating the truncated Fourier basis ( ϕn)n∈Λ at the sample points, divided by √m to normalize: 
+
+A = 1
+
+√m (ϕn(xi)) i∈[m],n ∈Λ . (3.2) In addition, we define the truncation error v ∈ Cm as 
+
+v = 1
+
+√m f (xi) − X
+
+> n∈Λ
+
+ˆfnϕn(xi)
+
+!
+
+> i∈[m]
+
+. (3.3) Substituting ˆfΛ, A and v into (3.1), we arrive at the following: 
+
+b = A ˆfΛ + v. (3.4) Since ˆfΛ is approximately sparse, this is a sparse recovery problem. Following [3, 4, 7, 40, 41, 43], we solve it using the SR-LASSO decoder [10]. 
+
+Definition 3.10 (SR-LASSO) . Given a regularization parameter λ > 0, a matrix A ∈ Cm×N and vector b ∈ Cm, the (unconstrained) Square Root (SR)-LASSO problem is the optimization problem min  
+
+> z∈CN
+
+λ∥z∥1 + ∥Az − b∥2. (3.5) 
+
+3.4 Compressed sensing tools 
+
+We now present several key compressed sensing tools. See, e.g., [4, Chpt. 6]. 
+
+Definition 3.11 (ℓ2-rNSP) . Given s ∈ N, a matrix A ∈ Cm×N satisfies the ℓ2-robust Null Space Property ( ℓ2-rNSP) of order s with constants ρ ∈ (0 , 1) and τ > 0 if, for all z ∈ CN and all index sets S ⊆ [N ] with |S| = s,
+
+∥zS ∥2 ≤ ρ
+
+√s ∥zSc ∥1 + τ ∥Az ∥2. (3.6) 18 Lemma 3.12 (rNSP implies stable and accurate recovery for the SR-LASSO problem) . Let 
+
+A ∈ Cm×N satisfy the rNSP of order s with constants 0 < ρ < 1 and τ > 0. Let z∗ ∈ CN , h ∈ Cm,and b = Az ∗ + h ∈ Cm. Then, for any λ satisfying λ ∈
+
+
+
+0, D√s
+
+i
+
+where D = (1+ ρ)(3+ ρ)τ , and any z♯ such that 
+
+z♯ ∈ argmin 
+
+> z∈CN
+
+λ∥z∥1 + ∥Az − b∥2,
+
+we have 
+
+∥z∗ − z♯∥1 ≤ C1σs(z∗)1 + 12
+
+ C1
+
+λ + C2
+
+√s
+
+
+
+∥h∥2,
+
+∥z∗ − z♯∥2 ≤ C3
+
+σs(z∗)1
+
+√s + 12
+
+ C3
+
+√sλ + C4
+
+
+
+∥h∥2,
+
+where the constants C1, C 2, C 3, C 4 are given by 
+
+C1 = 2 
+
+ 1 + ρ
+
+1 − ρ
+
+
+
+, C2 = 4τ
+
+1 − ρ , C3 = 2(1 + ρ)2
+
+(1 − ρ) , C4 = 2 τ (3 + ρ)(1 − ρ) .
+
+Lemma 3.13 (The Fourier matrix satisfies the ℓ2-rNSP) . Let 0 < ε < 1, x1, . . . , x m be drawn i.i.d. from the uniform distribution on Td and A be as in (3.2) . Then there is numerical constant c > 0
+
+such that, if 
+
+m ≥ c · s ·  log 2(2 s) · log(2 N ) + log(1 /ε ) (3.7) 
+
+then the matrix eA = (2 π)d/ 2A satisfies the ℓ2-rNSP with constants ρ = √2/3 and τ = 2 √5/3 with probability at least 1 − ε.Proof. The matrix eA is the matrix of a so-called bounded orthonormal system [4, Def. 6.14] with constant K = 1. Using [13, Theorem 2.3] with cψ = Cψ = 1, we see that the condition 
+
+m ≥ c1 · s · log 2(2 s) · log(2 N ) (3.8) implies that eA satisfies the Restricted Isometry Property (RIP) [4, Definition 6.10] with constant 
+
+δ = 1 /4, with probability at least 1 − 2 exp (−c2m/s ), where c1, c 2 > 0 are numerical constants. Notice that (3.8) holds, due to (3.7) , provided c is sufficiently large. Moreover, (3.7) also implies that 1 − 2 exp (−c2m/s ) ≥ 1 − ε, for sufficiently large c. We conclude that eA has the RIP with probability at least 1 − ε and constant δ = 1 /4. Finally, a standard result [4, Thm. 6.11] now implies that eA has the rNSP with constants ρ = √2/3 and τ = 2 √5/3, as required. 
+
+3.5 Recovery of Hα 
+
+> mix
+
+and Hβ functions via the SR-LASSO decoder 
+
+We now establish two theorems that provide error bounds for the recovery of Hα 
+
+> mix
+
+and Hβ functions, respectively, from sample values via the SR-LASSO decoder. At this stage, we also specify the truncation set Λ. For reasons that will become clear later, we now let Λ = Λ r
+
+> HC
+
+, where Λr 
+
+> HC
+
+=
+
+n = ( n1, . . . , n d) ∈ Zd :
+
+> d
+
+Y
+
+> j=1
+
+(1 + |nj |) ≤ r
+
+
+
+is the hyperbolic cross index set of order r ≥ 0. 19 Theorem 3.14 (Error bound for the reconstruction map for anisotropic mixed smoothness Sobolev spaces) . Let s ∈ N with s ≥ 2, r ≥ 1, 0 < ε < 1, Λ = Λ r
+
+> HC
+
+, N = |Λ| and consider x1, . . . , x m drawn i.i.d. from the uniform distribution on Td, where m satisfies 
+
+m ≥ c · s ·  log 2(2 s) · (log(2 r) + ( d − 1) log(log(e r))) + log(1 /ε ) (3.9) 
+
+for some universal constant c > 0. Then the following holds with probability at least 1 − ε. Let 
+
+α = ( α1, . . . , α d) ∈ (0 , ∞)d and h(α) and p(α) be as in (1.3) , where h(α) > 1/2, f ∈ Hα 
+
+> mix
+
+and suppose that A and b are as in (3.1) and (3.2) , respectively. Define eA = (2 π)d/ 2A and suppose that 
+
+λ ∈ 0, 3( √2 + 3) 2√5( √2 + 9) √s
+
+#
+
+. (3.10) 
+
+Then the approximation f ♯ given by 
+
+f ♯ = X
+
+> n∈Λ
+
+(2 π)d/ 2z♯nϕn, where z♯ ∈ argmin 
+
+> z∈CN
+
+λ∥z∥1 + ∥ eAz − b∥2
+
+is well-defined and satisfies 
+
+∥f − f ♯∥L2 ≲d,α s−h(α)(log s)h(α)( p(α)−1) ∥f ∥Hα 
+
+> mix
+
++
+
+ 1
+
+√sλ + 1 
+
+ 
+
+r−h(α)+1 /2 log( r) d−12 ∥f ∥Hα
+
+> mix
+
+
+
+.
+
+Proof. Theorem 3.13 states that if 
+
+m ≥ c · s ·  log 2(2 s) · log(2 N ) + log(1 /ε ) , (3.11) then, with probability at least 1 − ε, the matrix eA satisfies the ℓ2-rNSP of order s with constants 
+
+ρ = 
+
+> √23
+
+and τ = 2√53 . The hyperbolic cross index set satisfies the bound 
+
+N = |ΛHC  
+
+> r
+
+| ≤ r(1 + log( r)) d−1 ≤ r log d−1(e r)for any r ∈ N and d ∈ N (see, e.g., [37, Prop. A.1]). Therefore, the right-hand side of (3.11) satisfies 
+
+c · s ·  log 2(2 s) · log(2 N ) + log(1 /ε ) ≤ c · s ·  log 2(2 s) · (log(2 r) + ( d − 1) log(log(e r))) + log(1 /ε ) .
+
+Hence (3.11) is implied by (3.9). We deduce that eA has the desired rNSP with probability 1 − ε.Now let α ∈ (0 , ∞)d with h(α) > 1/2 and f ∈ Hα 
+
+> mix
+
+be given. Let v be as in (3.3) , c = ( ˆfn)n∈Zd ,
+
+z = (2 π)−d/ 2( ˆfn)n∈Λ and let cΛ ∈ CZd
+
+have the nth entry equal to ˆfn if n ∈ Λ and zero otherwise. The approximation f ♯ is well-defined, since the optimization problem for z♯ always has a minimizer. Applying Theorem 3.12 and recalling that λ satisfies (3.10), we get that 
+
+∥z − z♯∥2 ≲ σs(z)1
+
+√s +
+
+ 1
+
+√sλ + 1 
+
+
+
+∥v∥2. (3.12) Additionally, note that 
+
+∥f − f ♯∥L2 ≤ (2 π)d/ 2∥z − z♯∥2 + ∥f − X
+
+> n∈Λ
+
+ˆfnϕn∥L2 ≤ (2 π)d/ 2∥z − z♯∥2 + ∥c − cΛ∥1
+
+and 
+
+∥v∥2 ≤ ∥ f − X
+
+> j∈Λ
+
+ˆfj ϕj ∥L∞ ≤ ∥ c − cΛ∥1.
+
+20 Combining this with the previous expression we deduce that 
+
+∥f − f ♯∥L2 ≲d
+
+σs(z)1
+
+√s +
+
+ 1
+
+√sλ + 1 
+
+
+
+∥c − cΛ∥1. (3.13) To conclude, we bound the two terms on the right-hand side. For the first term, we invoke Theorem 2.7 with q = 1. Since h(α) > 1/2, we have 
+
+σs(z)1
+
+√s = (2 π)−d/ 2 σs(c)1
+
+√s ≲d,α s−h(α)(log s)h(α)( p(α)−1) ∥f ∥Hα 
+
+> mix
+
+. (3.14) For the second term of (3.13), we proceed as follows. Writing 
+
+∥c − cΛ∥1 = X
+
+> n / ∈Λ
+
+|cn| = X
+
+> n / ∈Λ
+
+|cn|
+
+Qdj=1 max {1, |nj |} h(α)
+
+Qdj=1 max {1, |nj |} h(α) .
+
+and applying the Cauchy–Schwarz inequality gives 
+
+∥c − cΛ∥1 ≤ X
+
+> n / ∈Λ
+
+|cn|2
+
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} 2h(α)
+
+!1/2 X
+
+> n / ∈Λ
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} −2h(α)
+
+!1/2
+
+. (3.15) For the first factor, note that h(α) ≤ αj for each j ∈ [d] and that max {1, |nj |} ≤ 1 + |nj |. Hence 
+
+X
+
+> n / ∈Λ
+
+|cn|2
+
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} 2h(α) ≤ X
+
+> n∈Zd
+
+|cn|2
+
+> d
+
+Y
+
+> j=1
+
+(1 + |nj |)2αj = ∥f ∥2 
+
+> Hα
+> mix
+
+.
+
+For the second factor, we have 
+
+n
+
+n ∈ Zd : Qdj=1 max {1, |nj |} ≤ r
+
+> 2d
+
+o
+
+⊆ Λ. Thus, 
+
+X
+
+> n / ∈Λ
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} −2h(α) ≤ X   
+
+> n∈Zd:Qdj=1 max {1,|nj|} >r
+> 2d
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} −2h(α).
+
+By [1, Theorem 2.30], for 2 h(α) > 1, 
+
+X   
+
+> n∈Zd:Qdj=1 max {1,|nj|} >r
+> 2d
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} −2h(α) ≲d,α r−2h(α)+1 log( r)d−1.
+
+Combining the above estimates gives ∥c − cΛ∥1 ≲d,α r−h(α)+ 12 log (r) d−12 ∥f ∥Hα 
+
+> mix
+
+. Substituting this and (3.14) into (3.13) now completes the proof. 
+
+Theorem 3.15 (Error bound for the reconstruction map for anisotropic Sobolev spaces) . Let s ∈ N
+
+with s ≥ 2, r ≥ 1, 0 < ε < 1, Λ = Λ r
+
+> HC
+
+, N = |Λ| and consider x1, . . . , x m drawn i.i.d. from the uniform distribution on Td, where m satisfies 
+
+m ≥ cs 
+
+
+
+log 2(2 s) log r + ( d − 1) log 2(2 s) log log r + log 2(2 s) log 2(d − 1)! + log 2(2 s) + log 1
+
+ε
+
+
+
+21 for some absolute constant c > 0. Then the following holds with probability at least 1 − ε. Let 
+
+β = ( β1, . . . , β d) ∈ (0 , ∞)d and g(β) > 1/2 be as in (1.4) , f ∈ Hβ and suppose that A and b are as in (3.1) and (3.2) , respectively. Define eA = (2 π)d/ 2A and suppose that 
+
+λ ∈ 0, 3( √2 + 3) 2√5( √2 + 9) √s
+
+#
+
+. (3.16) 
+
+Then the approximation f ♯ given by 
+
+f ♯ = X
+
+> n∈Λ
+
+(2 π)d/ 2z♯nϕn, z♯ ∈ argmin 
+
+> z∈CN
+
+λ∥z∥1 + ∥ eAz − b∥2
+
+is well-defined and satisfies 
+
+∥f − f ♯∥L2 ≲d,β s−g(β)∥f ∥Hβ +
+
+ 1
+
+√sλ + 1 
+
+ 
+
+r−g(β)+1 /2 log( r) d−12 ∥f ∥Hβ
+
+
+
+.
+
+Proof. The proof follows the same structure as that of Theorem 3.14. Recall from (3.13) that 
+
+∥f − f ♯∥L2 ≲d
+
+σs(z)1
+
+√s +
+
+ 1
+
+√sλ + 1 
+
+
+
+∥c − cΛ∥1. (3.17) with probability at least 1 − ε for λ satisfying (3.10) whenever m satisfies (3.9) . We first estimate the term σs(z)1/√s using Theorem 2.9 with q = 1. Since g(β) > 12 , this gives 
+
+σs(z)1
+
+√s = (2 π)−d/ 2 σs(c)1
+
+√s ≲d,β s−g(β)∥f ∥Hβ . (3.18) We now estimate the term ∥c − cΛ∥1. As in the proof of Theorem 3.14, we write 
+
+∥c − cΛ∥1 = X
+
+> n / ∈Λ
+
+|cn| = X
+
+> n / ∈Λ
+
+|cn|
+
+Qdj=1 max {1, |nj |} g(β)
+
+Qdj=1 max {1, |nj |} g(β) ,
+
+and apply the Cauchy–Schwarz inequality to obtain 
+
+∥c − cΛ∥1 ≤ X
+
+> n / ∈Λ
+
+|cn|2
+
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} 2g(β)
+
+!1/2 X
+
+> n / ∈Λ
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} −2g(β)
+
+!1/2
+
+. (3.19) For the first factor, we use the bound max {1, |nj |} ≤ 1 + |nj | to get 
+
+X
+
+> n / ∈Λ
+
+|cn|2
+
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} 2g(β) ≤ X
+
+> n∈Zd
+
+|cn|2
+
+> d
+
+Y
+
+> j=1
+
+(1 + |nj |)2g(β)
+
+≲d,β 
+
+X
+
+> n∈Zd
+
+1 + 
+
+> d
+
+X
+
+> j=1
+
+|nj |βj
+
+
+
+> 2
+
+|cn|2 = ∥f ∥2 
+
+> Hβ
+
+.
+
+Here we used that Qdj=1 (1 + |nj |)g(β) ≲d,β 1 + Pdj=1 |nj |βj for all n ∈ Zd, which follows from the weighted AM-GM inequality. Indeed, let wj = g(β)/β j for j ∈ [d] so that wj > 0 and Pdj=1 wj = 1. For n ∈ Zd, we apply the weighted AM-GM inequality with aj = (1 + |nj |)βj to get 
+
+> d
+
+Y
+
+> j=1
+
+(1 + |nj |)g(β) =
+
+> d
+
+Y
+
+> j=1
+
+awj 
+
+> j
+
+≤
+
+> d
+
+X
+
+> j=1
+
+wj aj =
+
+> d
+
+X
+
+> j=1
+
+wj (1 + |nj |)βj .
+
+22 Since 1 + |t| ≤ 2 max {1, |t|} for t ≥ 0, we have (1 + |t|)β ≤ 2β (1 + |t|β ) for all β > 0. Therefore, 
+
+> d
+
+X
+
+> j=1
+
+wj (1 + |nj |)βj ≤ 2max k∈[d] βk
+
+> d
+
+X
+
+> j=1
+
+wj (1 + |nj |βj ) ≤ 2max k∈[d] βk
+
+1 + 
+
+> d
+
+X
+
+> j=1
+
+|nj |βj
+
+ .
+
+This gives Qdj=1 (1 + |nj |)g(β) ≲d,β 1 + Pdj=1 |nj |βj , as claimed. For the second factor in (3.19) , note that 
+
+n
+
+n ∈ Zd : Qdj=1 max {1, |nj |} ≤ r
+
+> 2d
+
+o
+
+⊆ Λ, which implies that X
+
+> n / ∈Λ
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} −2g(β) ≤ X   
+
+> n∈Zd:Qdj=1 max {1,|nj|} >r
+> 2d
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} −2g(β).
+
+By [1, Theorem 2.30], for 2 g(β) > 1, 
+
+X   
+
+> n∈Zd:Qdj=1 max {1,|nj|} >r
+> 2d
+> d
+
+Y
+
+> j=1
+
+max {1, |nj |} −2g(β) ≲d,β r−2g(β)+1 log( r)d−1.
+
+Combining the above estimates yields ∥c − cΛ∥1 ≲d,β r−g(β)+ 12 log (r) d−12 ∥f ∥Hβ . Substituting this and (3.18) into (3.17) now gives the result. 
+
+3.6 Proofs of Theorems 3.1–3.5,3.6–3.8 
+
+We are now ready to prove the main results of this section. In all cases, we build a reconstruction map based on the SR-LASSO decoder, while making judicious choices for the various parameters ( r,
+
+λ and so forth) so as to guarantee the desired approximation rates. 
+
+Proof of Theorem 3.1. We begin by invoking Theorem 3.14. We introduce positive integers r =
+
+r(m, ε, u ) and s = s(m, ε, u ), whose dependence on m, ε and u will be specified later. Let Λ = Λ r
+
+> HC
+
+and x1, . . . , x m be drawn i.i.d. from the uniform measure on Td. Let b and A be as in (3.1) and (3.2), respectively, and set eA = (2 π)d/ 2A and λ = 3( √2+3) 2√5( √2+9) √s . We then define the map 
+
+R (xi, f (xi)) mi=1 
+
+ = f ♯ = X
+
+> n∈Λ
+
+(2 π)d/ 2z♯nϕn,
+
+where z♯ is the minimal 2-norm solution of the SR-LASSO problem based on eA, b and λ: namely, 
+
+z♯ = argmin 
+
+(
+
+∥z∗∥2 : z∗ ∈ argmin 
+
+> z∈CN
+
+λ∥z∥1 + ∥ eAz − b∥2
+
+)
+
+.
+
+Note that z♯ exists (since the SR-LASSO problem has a minimizer) and is unique, since the set of minimizers is a convex set and ∥ · ∥ 2 is strictly convex. Hence R is well defined. Theorem 3.14 and the above choice of λ implies that if 
+
+m ≥ c · s ·  log 2(2 s) · (log(2 r) + ( d − 1) log(log(e r))) + log(1 /ε ) (3.20) for some universal constant c > 0, then 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,α 
+
+
+
+s−h(α)(log s)h(α)( p(α)−1) + r−h(α)+1 /2 log( r) d−12
+
+
+
+∥f ∥Hα 
+
+> mix
+
+. (3.21) 23 Let r = ⌈su(m)⌉ and 
+
+s = max 
+
+($ 
+
+mc′  log 2(2 m) · (log(2) + u(m) log( m) + ( d − 1) log(1 + u(m) log( m))) + log(1 /ε )%
+
+, 1
+
+)
+
+,
+
+where c′ > 0 is a universal constant which is chosen sufficiently large so that c′ ≥ c (the constant in (3.20)) and s ≤ m.We now consider two cases: s ≥ 2 and s = 1. Suppose first that s ≥ 2. Then (3.20) holds for this choice of s and r. Since s ≥ 2 by assumption, we have 
+
+r−h(α)+1 /2 log( r) d−12 ≤ s−u(m)( h(α)−1/2) log(2 su(m)) d−12 ≤ s−u(m)( h(α)−1/2) (u(m) + 1) d−12 log( s) d−12
+
+≤ s d−12 −u(m)( h(α)−1/2)+ d−12 log( u(m)+1) / log(2) 
+
+and since u(m) → ∞ , we see that there exists an m = m1(d, α, u ) such that 
+
+r−h(α)+1 /2 log( r) d−12 ≤ s−h(α)(log( s)) h(α)( p(α)−1) 
+
+for all m ≥ m1(d, α, u ). Hence, this and (3.21) give that 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,α s−h(α)(log( s)) h(α)( p(α)−1) ∥f ∥Hα
+
+> mix
+
+if m ≥ m1(d, α, u ). Moreover, when s ≥ 2, we also have that s ≍d em. Hence 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,α 
+
+log p(α)−1( em)
+
+em
+
+!h(α)
+
+∥f ∥Hα 
+
+> mix
+
+.
+
+Conversely, if s ≥ 2 but m < m 1(d, α, u ) then, since r ≥ 1, we have 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,α ∥f ∥Hα
+
+> mix
+
+We deduce that, for s ≥ 2, 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,α ∥f ∥Hα
+
+> mix
+
+≲d,α 
+
+
+
+∥f ∥Hα
+
+> mix
+
+m < m 1(d, α, u )
+
+ log p(α)−1( em)
+
+> em
+
+h(α)
+
+∥f ∥Hα 
+
+> mix
+
+m ≥ m1(d, α, u ).
+
+However, since em ≥ 2 by assumption, this immediately implies that 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,α,u 
+
+log p(α)−1( em)
+
+em
+
+!h(α)
+
+∥f ∥Hα 
+
+> mix
+
+.
+
+Now suppose that s = 1. By virtue of the fact that z♯ is a minimizer of the SR-LASSO problem, we have 
+
+∥f ♯∥L2 ≲d ∥z♯∥1 ≤ 1
+
+λ
+
+
+
+λ∥0∥1 + ∥ eA0 − b∥2
+
+
+
+≲ √s∥b∥2 ≤ ∥ f ∥L∞ ≲d,α ∥f ∥Hα
+
+> mix
+
+.
+
+Here, in the penultimate step, we used the continuous embedding Hα
+
+> mix
+
+(Td) ,→ C(Td). Therefore 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≤ ∥ f ∥L2 + ∥f ♯∥L2 ≲d,α ∥f ∥Hα
+
+> mix
+
+.
+
+24 But, when s = 1 we have 
+
+mc′ ·  log 2(2 m) · (log(2) + u(m) log( m) + ( d − 1) log(1 + u(m) log( m))) + log(1 /ε ) < 1and therefore em ≲d 1. Since em ≥ 2 by assumption, we deduce that 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,α 
+
+log p(α)−1( em)
+
+em
+
+!h(α)
+
+∥f ∥Hα 
+
+> mix
+
+,
+
+in this case as well. This completes the proof. 
+
+Proof of Theorem 3.2. Let ε = m− log( m) < 1 and consider the reconstruction map R from Theorem 3.1 with associated constants C(α, d, u ). We may assume that C(α, d, u ) ≥ 1. Let X denote the random variable 
+
+X = sup 
+
+> α∈A
+
+sup   
+
+> f∈Hα
+> mix
+> f̸=0
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2
+
+C(α, d, u )
+
+ log p(α)−1( em)
+
+> em
+
+h(α)
+
+∥f ∥Hα
+
+> mix
+
+.
+
+We want to show that E[X] ≤ 1. By Theorem 3.1, we have P(X > 1) ≤ ε. Hence, by the law of total expectation, we have 
+
+E [X] = E [X|X > 1] P(X > 1) + E [X|X ≤ 1] P(X ≤ 1) ≤ E[X|X > 1] ε + 1 .
+
+Now, from arguments given in the previous proof, we know that 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲α,d ∥f ∥Hα
+
+> mix
+
+.
+
+Therefore 
+
+X ≤ sup 
+
+> α∈A
+
+1
+
+C(α, d, u )
+
+ log p(α)−1( em)
+
+> em
+
+h(α) ≲ sup 
+
+> α∈A
+
+emh(α)
+
+2h(α)( p(α)−1) ≤ c1(A) · emc2(A)
+
+Using the definition of ε, we deduce that 
+
+E[X] ≤ c1(A) emc2(A)m− log( m) + 1 ≲ c1(A)mc2(A)−log( m) + 1 ≤ C(A).
+
+This gives the result. 
+
+Proof of Theorem 3.5. Consider the reconstruction map from Theorem 3.1 with ε = 1 /2. We now proceed similarly, working through the two cases s ≥ 2 and s = 1 separately. Suppose first that 
+
+s ≥ 2. Then 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,α,u 
+
+log p(α)−1( em)
+
+em
+
+!h(α)
+
+∥f ∥Hα
+
+> mix
+
+∀f ∈ Hα
+
+> mix
+
+(Td), α > 1/2 (3.22) with probability at least 1 /2. This implies the existence of points ( x⋆
+
+> 1
+
+, . . . , x ⋆m) such that (3.22) holds for xi = x⋆i .Now suppose that s = 1. In this case, we pick any points ( x⋆
+
+> 1
+
+, . . . , x ⋆m) ⊂ Td. The argument given in the proof of Theorem 3.1 for this case makes no assumption on the sample points and leads to the same bound (3.22). This completes the proof. 25 Proof of Theorem 3.6. We argue along the same lines as in the proof of Theorem 3.1 and invoke Theorem 3.15. Let r = r(m, ε, u ) and s = s(m, ε, u ) be positive integers to be specified below, and set Λ = Λ r
+
+> HC
+
+. Let x1, . . . , x m be drawn i.i.d. from the uniform measure on Td. Let A and b be as in (3.1) and (3.2), respectively, and set eA = (2 π)d/ 2A and λ = 3( √2+3) 2√5( √2+9) √s . We then define the map 
+
+R(( xi, f (xi)) mi=1 ) = f ♯ = X
+
+> n∈Λ
+
+(2 π)d/ 2z♯nϕn,
+
+where z♯ is chosen to be the minimal 2-norm minimizer of the SR-LASSO problem based on eA, b
+
+and λ, i.e., 
+
+z♯ = arg min 
+
+n
+
+∥z∗∥2 : z∗ ∈ argmin 
+
+> z∈CN
+
+λ∥z∥1 + ∥ eAz − b∥2
+
+o
+
+.
+
+As in the proof of Theorem 3.1, this choice is well defined and unique, and hence R is well defined. By Theorem 3.15 and the above choice of λ, there exists a constant c > 0 such that if 
+
+m ≥ cs 
+
+
+
+log 2(2 s)(log(2 r) + ( d − 1) log(log( er ))) + log(1 /ε )
+
+
+
+, (3.23) then, with probability at least 1 − ε,
+
+∥f − f ♯∥L2 ≲d,β 
+
+
+
+s−g(β) + r−g(β)+1 /2 log( r)(d−1) /2
+
+∥f ∥Hβ . (3.24) Let r = ⌈su(m)⌉ and 
+
+s = max 
+
+($ 
+
+mc′
+
+
+
+log 2(2 m) log 2 + u(m) log m + ( d − 1) log(1 + u(m) log m) + log(1 /ε )
+
+%
+
+, 1
+
+)
+
+,
+
+where c′ > 0 is chosen so that c′ ≥ c, where c is as in (3.23) , and s ≤ m. Now, following along the proof of Theorem 3.1, we consider the cases s ≥ 2 and s = 1. Suppose first that s ≥ 2. Then (3.23) holds for this choice of s and r. Using that u(m) → ∞ and that s ≥ 2, we argue as in the proof of Theorem 3.1 to conclude that there exists m1 = m1(d, β, u ) such that r−g(β)+1 /2 log (r)(d−1) /2 ≤ s−g(β)
+
+for all m ≥ m1. Combining this with (3.24) , we obtain ∥f − f ♯∥L2 ≲d,β s−g(β)∥f ∥Hβ for all m ≥ m1.The remainder of the argument for s ≥ 2 follows along the lines of the proof of Theorem 3.1, and we ultimately conclude that 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,β,u em−g(β)∥f ∥Hβ
+
+whenever s ≥ 2. Now suppose that s = 1. The same calculation as in the proof of Theorem 3.1 shows that ∥f ♯∥L2 ≲d,β ∥f ∥Hβ . Moreover, when s = 1 we have em ≲d 1. Since em ≥ 2 by assumption, we deduce that 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,β,u em−g(β)∥f ∥Hβ .
+
+This completes the proof. 
+
+Proof of Theorem 3.7. The proof follows along the lines of the proof of Theorem 3.2, with Theorem 3.6 in place of Theorem 3.1. Let ε = m− log( m) < 1 and take the reconstruction map R from Theorem 3.6 with constants C(β, d, u ). We may assume C(β, d, u ) ≥ 1. Define 
+
+X = sup 
+
+> β∈B
+
+sup   
+
+> f∈Hβ
+> f̸=0
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2
+
+C(β, d, u )
+
+ 1
+
+> em
+
+g(β)
+
+∥f ∥Hβ
+
+.
+
+26 By Theorem 3.6, P(X > 1) ≤ ε. Applying the law of total expectation yields 
+
+E[X] ≤ E[X | X > 1] ε + 1 .
+
+Next, as in the proof of Theorem 3.2, we rely on a crude upper bound. Since z♯ is a minimizer of the SR-LASSO problem, we can compare it with the zero vector to get 
+
+∥f ♯∥L2 ≲d ∥z♯∥1 ≤ 1
+
+λ
+
+
+
+λ∥0∥1 + ∥ eA0 − b∥2
+
+
+
+≲ √s ∥b∥2 ≤ ∥ f ∥L∞ ≲d,β ∥f ∥Hβ .
+
+Here, in the penultimate step, we used the continuous embedding Hβ (Td) ,→ C(Td). Consequently, 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≤ ∥ f ∥L2 + ∥f ♯∥L2 ≲d,β ∥f ∥Hβ .
+
+Therefore, 
+
+X ≤ sup 
+
+> β∈B
+
+1
+
+C(β, d, u ) emg(β) ≲ c1(B) emc2(B).
+
+Substituting in our fixed value for ε, we obtain 
+
+E[X] ≤ c1(B) emc2(B)m− log( m) + 1 ≲ c1(B)mc2(B)−log( m) + 1 ≤ C(B),
+
+which proves the claim. 
+
+Proof of Theorem 3.8. We follow the proof of Theorem 3.5, replacing Theorem 3.1 by Theorem 3.6 and using ε = 1 /2. As there, we split into the cases s ≥ 2 and s = 1. Assume first that s ≥ 2. Then Theorem 3.6 gives that, with probability at least 1 /2, 
+
+∥f − R(( xi, f (xi)) mi=1 )∥L2 ≲d,β,u 
+
+ 1
+
+em
+
+g(β)
+
+∥f ∥Hβ ∀f ∈ Hβ (Td), g (β) > 1/2. (3.25) This implies that there exists a choice of points ( x⋆
+
+> 1
+
+, . . . , x ⋆m) for which (3.25) holds with xi = x⋆i .Now consider s = 1. In this case we may select any points ( x⋆
+
+> 1
+
+, . . . , x ⋆m) ⊂ Td. The argument in the proof of Theorem 3.6 for s = 1 does not use any condition on the sampling points and leads to the same bound (3.25). This finishes the proof. 
+
+# 4 Lower bounds on nonlinear recovery widths 
+
+In this section, we present lower bounds for approximation in the spaces Hα 
+
+> mix
+
+and Hβ . The main purpose of these results is to confirm that the algorithms established in Theorems 3.1–3.5,3.6–3.8 are optimal, up to the polylogarithmic factor arising in em. The following two theorems estimate the adaptive m-width (1.8) 
+
+Theorem 4.1. Let α = ( α1, . . . , α d) with α > 1/2 and B(Hα
+
+> mix
+
+) be the unit ball of Hα
+
+> mix
+
+(Td). Then, for every m ∈ N, the width εm of B(Hα
+
+> mix
+
+) in L2 satisfies 
+
+εm(B(Hα
+
+> mix
+
+), L 2) ≍α,d 
+
+(log m)p(α)−1
+
+m
+
+!h(α)
+
+.
+
+Theorem 4.2. Let β = ( β1, . . . , β d) with g(β) > 1/2 and B(Hβ ) be the unit ball in Hβ (Td). Then, for every m ∈ N, the width εm of B(Hβ ) in L2 satisfies 
+
+εm(B(Hβ ), L 2) ≍β,d 
+
+ 1
+
+m
+
+g(β)
+
+.
+
+27 Overall, these results confirm optimality of the algorithms developed in §3, up to a polylogarithmic factor. Furthermore, by establishing a lower bound on εm, which allows for arbitrary adaptive linear measurements, they confirm that not only do pointwise samples constitute near-optimal information for recovery in Hα 
+
+> mix
+
+and Hβ , but also that i.i.d. sampling from the underlying uniform measure is also near-optimal. In particular, adaptive sampling, or even a change of the probability measure employed for i.i.d. sampling, is unnecessary to achieve near-optimal rates. We remark in passing that the lower bound in Theorem 4.1 was shown in [14, Cor. 8.2] for general Lp and Lq-spaces (our result corresponds to p = q = 2). However, the upper bound found in [14, Thm. 8.4] only holds for 
+
+p̸ = q. Our proof is specific to p = q = 2 and follows different arguments. As commented, the algorithms developed in §3 are universal, in that they achieve near-optimal rates simultaneously for different values of α and β. It is notable that the algorithms implied in these theorems only need work for a fixed value of α or β. It is an open problem whether a tighter lower bound can be established for universal algorithms, thereby narrowing the polylogarithmic gap between the current upper and lower bounds. The remainder of this section establishes these results. We commence with the following, which demonstrates in an abstract sense that the adaptive m-width of an ellipse in L2(Td) is lower bounded by the worst-case best s-term approximation error. 
+
+Lemma 4.3. Let w = ( wn)n∈Zd ∈ ℓ2(Zd) be a sequence of positive weights, and let 
+
+F =
+
+f ∈ L2(Td) : X
+
+> n∈Zd
+
+w−2 
+
+> n
+
+| ˆfn|2 ≤ 1
+
+ .
+
+Then, for every m ∈ N, the width εm(F, L 2) satisfies 
+
+w∗ 
+
+> 2m+1
+
+≤ εm(F, L 2) ≤ w∗
+
+> m+1
+
+,
+
+where (w∗ 
+
+> i
+
+)∞ 
+
+> i=1
+
+is a non-increasing rearrangement of w.Proof. The proof follows along the lines of the proof of [8, Theorem 5.4]. We first require some notation. For an index set I, sequence of positive weights w = ( wi)i∈I and p such that 1 ≤ p ≤ ∞ ,we write ℓpw(I) for the set of real valued sequences c = ( ci)i∈I ∈ R|I| such that 
+
+∥c∥p,w := 
+
+P 
+
+> n∈I
+
+w−pn |cn|p
+
+1/p 
+
+1 ≤ p < ∞
+
+sup n∈I w−1 
+
+> n
+
+|cn| p = ∞
+
+< ∞.
+
+Let B(ℓpw(I)) denote the unit ball in ℓpw(I). Now let S : C(Td) → Cm be an adaptive linear operator and R : Cm → L2(Td) be a reconstruction map. Define J : Cm → R2m and K : R2m → Cm by J(z) = ( Re z1, Im z1, . . . , Re zm, Im zm) and 
+
+K(a1, b 1, . . . , a m, b m) = ( a1 + i b1, . . . , a m + i bm). For a finite index set I ⊂ Zd, define the adaptive linear operator MI : R|I| → R2m by 
+
+MI (c) = J S
+
+X 
+
+> n∈I
+
+cnϕn
+
+!
+
+, ∀c = ( cn)n∈I ∈ R|I|.
+
+28 Fix c = ( cn)n∈I ∈ B(ℓ2
+
+> w
+
+(I)) and let f = P 
+
+> n∈I
+
+cnϕn. Then 
+
+∥f − R(S(f )) ∥2 
+
+> L2
+
+= X
+
+> n∈Zd
+
+1(2 π)d/ 2
+
+Z
+
+> Td
+
+ f − R(S(f )) (x)ϕ−n(x)dx 
+
+> 2
+
+≥ X
+
+> n∈I
+
+cn − 1(2 π)d/ 2
+
+Z
+
+> Td
+
+R(K(J(S(f ))))( x)ϕ−n(x)dx 
+
+> 2
+
+= X
+
+> n∈I
+
+cn − 1(2 π)d/ 2
+
+Z
+
+> Td
+
+R(K(MI (c)))( x)ϕ−n(x)dx 
+
+> 2
+
+Thus, defining L : R2m → R|I| as 
+
+L(z) = Re 
+
+ 1(2 π)d/ 2
+
+Z
+
+> Td
+
+R(K(z))( x)ϕ−n(x) d x
+
+
+
+> n∈I
+
+,
+
+we obtain 
+
+∥f − R(S(f )) ∥2 
+
+> L2
+
+≥ X
+
+> n∈I
+
+cn − 1(2 π)d/ 2
+
+Z
+
+> Td
+
+R(K(MI (c)))( x)ϕ−n(x)dx 
+
+> 2
+
+≥ ∥ c − L(MI (c)) ∥22.
+
+We deduce that sup f ∈F ∥f − R(S(f )) ∥2 
+
+> L2
+
+≥ sup c∈B(ℓ2  
+
+> w(I))
+
+∥c − L(MI (c)) ∥22. Since MI is an adaptive linear operator, it follows that 
+
+εm(F, L 2) = inf 
+
+n
+
+sup  
+
+> f∈F
+
+∥f − R(S(f )) ∥L2 : S : F → Cm adaptive , R : Cm → L2o
+
+≥ inf 
+
+n
+
+sup  
+
+> c∈B(ℓ2
+> w(I))
+
+∥c − L(MI (c)) ∥2 : MI : R|I| → R2m adaptive , L : R2m → R|I|o
+
+=: E2m(B(ℓ2
+
+> w
+
+(I)) , ℓ 2(I)) .
+
+In the next step we invoke a standard result, which states that if F , subset of a normed space (Z, ∥ · ∥ Z ), is symmetric with respect to the origin, i.e., F = −F , then Em(F, Z ) ≥ dm(F, Z ), where 
+
+dm(F, Z ) = inf 
+
+n
+
+sup  
+
+> z∈F∩S
+
+∥z∥Z : S ⊂ Z with codim( S) ≤ m
+
+o
+
+is the Gelfand width. With this, and the fact that B(ℓ2
+
+> w
+
+(I)) is symmetric, we have 
+
+ε2m(F, L 2) ≥ E2m(B(ℓ2
+
+> w
+
+(I)) , ℓ 2(I)) ≥ d2m(B(ℓ2
+
+> w
+
+(I)) , ℓ 2(I)) . (4.1) For the next step of our proof, we make use of a duality result. Consider the Kolmogorov width of a subset F of a normed space ( Z, ∥ · ∥ Z ): 
+
+dm(F, Z ) = inf 
+
+n
+
+sup  
+
+> f∈F
+
+inf 
+
+> z∈Zm
+
+∥f − z∥Z : Zm ⊂ Z with dim( Zm) ≤ m
+
+o
+
+.
+
+Then [5, Theorem B.3] says that, given real numbers p and q such that 1 ≤ p, q ≤ ∞ and a finite sequence of positive weights w = ( wn)n∈I , we have 
+
+dm(B(ℓq∗ 
+
+> w
+
+(I)) , ℓ p∗
+
+(I)) = dm(B(ℓp(I)) , ℓ q
+
+> 1/w
+
+(I)) .
+
+29 where p∗ and q∗ satisfy 1 /p ∗ + 1 /p = 1 and 1 /q ∗ + 1 /q = 1 respectively. With this, we have 
+
+d2m(B(ℓ2
+
+> w
+
+(I)) , ℓ 2(I)) = d2m(B(ℓ2(I)) , ℓ 21/w (I)) . (4.2) We combine this with another technical result. [5, Lemma B.4] states that given a finite sequence of positive weights w = ( wn)n∈I and p, q such that 1 ≤ p, q ≤ ∞ , we have 
+
+dm(B(ℓp(I)) , ℓ q
+
+> 1/w
+
+(I)) = dm(B(ℓpw(I)) , ℓ q(I)) .
+
+With this, we have 
+
+d2m(B(ℓ2(I)) , ℓ 21/w (I)) = d2m(B(ℓ2
+
+> w
+
+(I)) , ℓ 2(I)) . (4.3) Combining (4.1) , (4.2) and (4.3) we deduce that E2m(F, L 2) ≥ d2m(B(ℓ2
+
+> w
+
+(I)) , ℓ 2(I)). This holds for any I ⊂ Zd. Now, we make an explicit choice for I. Choose N > 2m and let I = {n1, . . . , n N },where for j ∈ N, nj ∈ Zd is the index of the jth largest entry of the sequence w. Fix p > 2. By H¨ older’s inequality, N − p−22p B(ℓpw(I)) ⊂ B(ℓ2
+
+> w
+
+(I)) , which implies that 
+
+d2m(B(ℓ2
+
+> w
+
+(I)) , ℓ 2(I)) ≥ N − p−22p d2m(B(ℓpw(I)) , ℓ 2(I)) . (4.4) In this next step, we invoke [49, Theorem 3], which states that for N ∈ N with N > 2m, a finite sequence w = ( wi)i∈I of positive weights such that |I| = N and p, q such that 1 ≤ q < p ≤ ∞ , we have 
+
+dm(B(ℓpw(I)) , ℓ q(I)) = 
+
+ min  
+
+> S⊂I
+> |S|=N−m
+
+X
+
+> n∈S
+
+(wn) qp p−q
+
+
+
+> p−qqp
+
+.
+
+Combining this with (4.4), we have 
+
+d2m(B(ℓ2
+
+> w
+
+(I)) , ℓ 2(I)) ≥ N − p−22p
+
+ min  
+
+> S⊂I
+> |S|=N−2m
+
+X
+
+> n∈S
+
+(wn) 2pp−2
+
+
+
+> p−22p
+
+≥ N − p−22p w∗
+
+> 2m+1
+
+.
+
+Letting p → 2+ gives εm(F, L 2) ≥ w∗
+
+> 2m+1
+
+.To complete the proof, it remains to show the upper bound. For i = 1 , 2 . . . , let ni ∈ Zd be such that w∗ 
+
+> i
+
+= |wni |. Define the sampling-recovery pair ( S, R ) by S(f ) = ( ˆfni )mi=1 and R(c) = Pmi=1 ciϕni .Then, for any f ∈ F ,
+
+∥f − R(S(f )) ∥2 
+
+> L2
+
+= X
+
+> i>m
+
+| ˆfni |2 ≤ (w∗
+
+> m+1
+
+)2 X
+
+> i>m
+
+(w∗ 
+
+> i
+
+)−2| ˆfni |2 ≤ (w∗
+
+> m+1
+
+)2.
+
+We deduce that εm(F, L 2) ≤ w∗
+
+> m+1
+
+, as required. 
+
+Proof of Theorem 4.1. We invoke Lemma 4.3 with weights wn = 1Q  
+
+> j∈[d](1+ |nj|)αj
+
+. Let ε > 0 and define S(ε) = {n ∈ Zd : wn > ε }. First choose ε1 such that ε1 > 0 and |S(ε1)| ≤ m. Then 
+
+w∗ 
+
+> m+1
+
+≤ ε1 and Lemma 4.3 gives εm(B(Hα
+
+> mix
+
+), L 2) ≤ w∗ 
+
+> m+1
+
+≤ ε1. Next choose ε2 > 0 such that 
+
+|S(ε2)| ≥ 2m + 1. Then w∗ 
+
+> 2m+1
+
+≥ ε2 and Lemma 4.3 gives εm(B(Hα
+
+> mix
+
+), L 2) ≥ w∗ 
+
+> 2m+1
+
+≥ ε2. By Lemma 2.6 we have |S(ε)| = |A(d, 1/ε, α )| ≍ d,α ε− 1 
+
+> h(α)
+
+(log (1 /ε )) p(α)−1. Therefore, there are constant 
+
+c1 = c1(d, α ), c 2 = c2(d, α ) such that setting 
+
+ε1 = c1
+
+log( m)p(α)−1
+
+m
+
+!h(α)
+
+, ε2 = c2
+
+log(2 m)p(α)−1
+
+2m
+
+!h(α)
+
+implies |S(ε1)| ≤ m and |S(ε2)| ≥ 2m + 1. The result now follows. 30 Proof of Theorem 4.2. We invoke Lemma 4.3 with weights given by wn = 11+ P   
+
+> j∈[d]|nj|βj
+
+. We argue in the same way as in the previous proof, using Lemma 2.8 instead. 
+
+# 5 Lower bounds for universal linear recovery 
+
+We now expose the gap between the performance of linear algorithms for universal recovery of anisotropic Sobolev functions and the nonlinear algorithms constructed in this work. We do this by following and modifying arguments found in [51, §5.4], which are based on [52]. These works consider the spaces Hβ , and therefore part of our effort is to extend them to the spaces Hα
+
+> mix
+
+. For simplicity, we only consider the case p = q = 2, while [52] considers arbitrary 1 ≤ p, q ≤ ∞ .
+
+5.1 Lower bounds for universal linear recovery 
+
+We present the main results of this section. In the theorem below, we use the notation Lm(B) to denote the set of linear operators G whose domain contains all trigonometric polynomials, whose range is an m-dimensional subspace of L2(Td) and for which ∥G(e in·x)∥L2 ≤ B, ∀n ∈ Zd.
+
+Theorem 5.1 (Lower bounds for universal linear recovery) . Let B ⊂ (0 , ∞)d have nonempty interior, and let G ∈ L m(B), for m > m ∗ for some fixed natural number m∗ depending on B and d only, satisfy 
+
+sup   
+
+> f∈B(Hβ)
+
+∥f − G(f )∥L2 ≤ Cn −g(β), ∀β ∈ B , (5.1) 
+
+where C does not depend on β or n. Then 
+
+m ≳d, B,B,C n(log( n)) d−1. (5.2) 
+
+Similarly, let A ⊂ (0 , ∞)d have nonempty interior. If G ∈ L m(B), for m > m ∗ for some fixed natural number m∗ depending on A and d only, satisfies 
+
+sup  
+
+> f∈B(Hα
+> mix )
+
+∥f − G(f )∥L2 ≤ Cn −h(α)(log( n)) h(α)( p(α)−1) , ∀α ∈ A , (5.3) 
+
+where C does not depend on α or n, then 
+
+m ≳d, A,B,C n(log( n)) p(A)−1, where p(A) = max  
+
+> α∈int( A)
+
+p(α). (5.4) The result above states that the loss of efficiency of the rate of universal linear recovery for either the Hβ or Hα 
+
+> mix
+
+spaces is always logarithmic in n. In particular, for the former, it behaves like ( log (n)) d−1 whenever the parameter set B has nonempty interior. For the latter, it depends on p(A). In particular, it also behaves like ( log (n)) d−1 whenever int (A) contains an element of the form α = ( α0, . . . , α 0) for some α0 > 0. This loss of efficiency of the universal recovery rate is connected to the concept of index of universality from [51, §5.4]. 
+
+Corollary 5.2 (Necessity of nonlinear algorithms for Hβ ). Let B ⊂ (0 , ∞)d have nonempty interior and let G ∈ L m(B) for m > m ∗ for some fixed natural number m∗ depending on B and d only,. Suppose that 
+
+sup   
+
+> f∈B(Hβ)
+
+∥f − G(f )∥L2 ≲B,d n−g(β), ∀β ∈ B . (5.5) 
+
+Then 
+
+n ≲B,B,d 
+
+m
+
+(log m)d−1 .
+
+31 Conversely, let H : C(Td) → L2(Td) be the algorithm from Theorem 3.8. Then 
+
+sup   
+
+> f∈B(Hβ)
+
+∥f − H(f )∥L2 ≲β,d n−g(β), ∀β ∈ B ,
+
+where n ∈ N satisfies 
+
+n ≥ m
+
+log 3(m) log(log( m)) .
+
+Corollary 5.3 (Necessity of nonlinear algorithms for Hα
+
+> mix
+
+). Let A ⊂ (0 , ∞)d have nonempty interior and let G ∈ L m(B) for m > m ∗ for some fixed natural number m∗ depending on A and d
+
+only. Suppose that 
+
+sup  
+
+> f∈B(Hα
+> mix )
+
+∥f − G(f )∥L2 ≲A,d n−h(α)(log( n)) h(α)( p(α)−1) , ∀α ∈ A . (5.6) 
+
+Then 
+
+n ≲A,B,d 
+
+m
+
+(log m)p(A)−1 ,
+
+where p(A) is as in (5.4) . Conversely, let H : C(Td) → L2(Td) be the algorithm from Theorem 3.5. Then 
+
+sup  
+
+> f∈B(Hα
+> mix )
+
+∥f − H(f )∥L2 ≲α,d n−h(α)(log( n)) h(α)( p(α)−1) , ∀α ∈ A ,
+
+where n ∈ N satisfies 
+
+n ≥ m
+
+log 3(m) log(log( m)) .
+
+Proof of Corollaries 5.2 and 5.3. The first part follows directly from Theorem 5.1 by rearranging the bound on m. The second part follows from Theorem 3.8 or Theorem 3.5. Note that we could also use Theorems 3.1, 3.6 or 3.2, 3.7 mutatis mutandis. Overall, these results confirm the necessity of nonlinear algorithms. In particular, linear algorithms incur a curse of dimensionality in the term ( log m)d−1, while for nonlinear algorithms the corresponding term is independent of dimension and at most log 3(m) log ( log (m)). Note that for the Hα 
+
+> mix
+
+spaces, this holds whenever p(A) = d, i.e., when int( A) contains an element of the form α = ( α0, . . . , α 0). 
+
+5.2 Proof of Theorem 5.1 
+
+The proof follows from the following lemma, which is a modification of [51, Thm. 5.4.3]. 
+
+Lemma 5.4. Let 0 < A j < B j , j = 1 , . . . , d , P = Qdj=1 [Aj , B j ] and suppose that G ∈ L m(B), for 
+
+m > m ∗ for some fixed natural number m∗ depending on P and d only, satisfies either 
+
+sup   
+
+> f∈B(Hβ)
+
+∥f − G(f )∥L2 ≤ Cn −g(β), ∀β ∈ P, (5.7) 
+
+or 
+
+sup  
+
+> f∈B(Hα
+> mix )
+
+∥f − G(f )∥L2 ≤ Cn −h(α)(log( n)) h(α)( p(α)−1) , ∀α ∈ P, (5.8) 
+
+where C does not depend on β (respectively, α) or n. In the latter case, suppose also that 
+
+∩dj=1 [Aj , B j )̸ = ∅. Then 
+
+m ≳d,P,B,C n(log( n)) d−1.
+
+32 Note that (5.7) is precisely the case studied in [51, Thm. 5.4.3]. That the result also holds under condition (5.8) is, to the best of our knowledge, new. 
+
+Proof. We follow the construction in the proof of [51, Thm. 5.4.3]. This asserts the existence of a 
+
+β ∈ P (determined explicitly from P ), natural numbers k, s ∗
+
+> 1
+
+, . . . , s ∗ 
+
+> d
+
+and trigonometric polynomial 
+
+ν with the following properties: (i) 2 kkd−1 ≲d,P,B m;(ii) ∥ν∥L1 = 1; (iii) ˆ νn = 0 if |nj | ≥ 2s∗ 
+
+> j
+
+for some j, where s∗ 
+
+> j
+
+∈ N with Pdj=1 s∗ 
+
+> j
+
+= k;(iv) ∥ν − G(ν)∥L2 ≳d,P,B 2k/ 2.(v) The vector β∗, defined explicitly by setting β∗ 
+
+> j
+
+= g(β)ks∗
+
+> j
+
+, j = 1 , . . . , d belongs to P .Consider the anisotropic Sobolev spaces. By construction g(β∗) = g(β). Define the function 
+
+f (x) = 2 −k(g(β∗)+1 /2) ν(x).
+
+Then (iii) implies that ∥f ∥Hβ⋆ ≲d,β ∗ 2−k/ 2∥ν∥L2 ≲d,P 2−k/ 2∥ν∥L2 , where the last inequality follows from the fact that β is explicitly constructed from P . Further, Nikolskii’s inequality (see, e.g., [51, Thm. 3.3.2]), (ii) and (iii) imply that 
+
+∥f ∥Hβ⋆ ≲d,P 2−k/ 2
+
+> d
+
+Y
+
+> j=1
+
+(2 s∗ 
+
+> j
+
+)1/2∥ν∥L1 = 1 .
+
+Hence ∥f ∥Hβ∗ ≲d,P 1. Using (iv) and (5.7), we see that 2−kg (β∗) ≲d,P,B ∥f − G(f )∥L2 ≲d,P Cn −g(β∗)
+
+Thus n ≲d,P,B,C 2k, which implies that n( log (n)) d−1 ≲d,P,B 2kkd−1. The result for the anisotropic Sobolev spaces now follows from (i). Now consider the dominating mixed smoothness spaces. Since ∩dj=1 [Aj , B j )̸ = ∅ by assumption, there exists a point α0 such that ( α0, α 0, . . . , α 0) ∈ P with α0 < B j , ∀j. Now let 
+
+αδ = ( α0, α 0 + δ, . . . , α 0 + δ).
+
+For all sufficiently small δ, we have αδ ∈ P . Now define 
+
+f (x) = 2 −s∗   
+
+> 1α0−Pdj=2 s∗
+> j(α0+δ)−k/ 2
+
+ν(x).
+
+Then (ii), (iii) and Nikolskii’s inequality once more imply that 
+
+∥f ∥Hαδ
+
+> mix
+
+≲d,P 2−k/ 2∥ν∥L2 ≲ 1.
+
+We deduce from (iv) and (5.8) and the fact that p(αδ) = 1, h(αδ) = α0 that 2−s∗    
+
+> 1α0−Pdj=1 s∗
+> j(α0+δ)
+
+≲d,P,B ∥f − G(f )∥L2 ≲d,P Cn −α0 .
+
+Letting δ → 0+ and applying (iii) once more, we get n ≲d,P,B,C 2k. The result follows from (i). 33 Proof of Theorem 5.1. Since it has nonempty interior by assumption, B must contain a rectangle 
+
+P = Qdj=1 [Aj , B j ] with 0 < A j < B j , ∀j. Further, since G satisfies (5.5) by assumption, we have that G satisfies (5.7) for the rectangle P and with constant C = Cd, B. Consequently, we deduce from Lemma 5.4 that m ≳d,B, B n(log( n)) d−1. The result now follows immediately. The argument for the anisotropic dominating mixed smoothness Sobolev spaces proceeds by following a dimension-reduction argument. Let p = p(A) and choose α′ ∈ int (A) such that 
+
+p(α′) = p. Let J = {j1, . . . , j p} ⊂ { 1, . . . , d } be the set of indices where α′ attains its minimum, i.e., 
+
+α′ 
+
+> j1
+
+= · · · = α′ 
+
+> jp
+
+= h(α′) = min 1≤j≤d α′ 
+
+> j
+
+, and define the parameter set AJ = {αtrunc = ( αj1 , . . . , α jp ) : 
+
+α ∈ A} ⊂ (0 , ∞)p. Because α′ ∈ int (A), A must contain a rectangle P = Qdj=1 [Aj , B j ) with 0 < A j < B j for all j and ∩pi=1 [Aji , B ji )̸ = ∅ , the point ( α′ 
+
+> j1
+
+, . . . , α ′ 
+
+> jp
+
+) = ( h(α′), . . . , h (α′)) must belong to int( AJ ) and AJ as well must contain a rectangle 
+
+PJ = {αtrunc = ( αj1 , . . . , α jp ) : α ∈ P } ⊂ (0 , ∞)p.
+
+We now work in dimension p using three linear maps H, Q, R . Define H : L2(Td) → L2(Td) by 
+
+Hf = X   
+
+> k∈Zd:kj=0 ,∀j / ∈J
+
+⟨f, ϕ k⟩ϕk.
+
+Define Q : L2(Tp) → L2(Td) by ( Qf )( x1, . . . , x d) = f (xj1 , . . . , x jp ). Let VJ ⊂ L2(Td) be the span of {ϕk : kj = 0 , ∀j / ∈ J}. Define R : VJ → L2(Tp) by ( Rf )( x1, . . . , x p) = f (y1, . . . , y d), where 
+
+yji = xi for i = 1 , . . . , p and yj ∈ T is some arbitrary fixed value for j / ∈ J. Since f ∈ VJ , the value of f (y1, . . . , y d) does not depend on yj for j /∈ J. Now define G′ : L2(Tp) → L2(Tp) by 
+
+G′ = R ◦ H ◦ G ◦ Q. We next observe that ∥Hf ∥L2(Td) ≤ ∥ f ∥L2(Td) for all f ∈ L2(Td), QRf = f for all f ∈ VJ ,
+
+∥Qf ∥L2(Td) = (2 π) d−p 
+
+> 2
+
+∥f ∥L2(Tp), f ∈ L2(Tp),
+
+and 
+
+∥g∥L2(Td) = (2 π) d−p 
+
+> 2
+
+∥Rg ∥L2(Tp), g ∈ VJ .
+
+Finally, we notice that 
+
+cQf k =
+
+(
+
+(2 π)(d−p)/2 bfkJ , kj = 0 , ∀j / ∈ J, 
+
+0, otherwise , ∀k ∈ Zd, (5.9) where, for k ∈ Zd, kJ represents the vector ( kj1 , . . . , k jp ) ∈ Zp.Now, since the range of G has dimension at most m, the range of G′ also has dimension at most 
+
+m. Moreover, for n ∈ Zp we have 
+
+∥G′(e in·x)∥L2(Tp) = (2 π) p−d 
+
+> 2
+
+∥HGQ (e in·x)∥L2(Td) ≤ (2 π) p−d 
+
+> 2
+
+∥GQ (e in·x)∥L2(Td) ≤ (2 π) p−d 
+
+> 2
+
+B, 
+
+where we used the fact that ∥Hf ∥L2 ≤ ∥ f ∥L2 for the second last inequality and the facts G ∈ L m(B)and Q(e in·x) = e in·x for the last inequality. Thus, we conclude that G′ ∈ L m(B) in dimension p.Next we bound sup f ∈B(Hαtrunc mix )( Tp) ∥f − G′(f )∥L2(Tp) over all αtrunc ∈ PJ . Specifically, we show that there exists a constant C, independent of αtrunc and n, such that sup   
+
+> f∈B(Hαtrunc mix )( Tp)
+
+∥f − G′(f )∥L2(Tp) ≤ Cn −h(αtrunc )(log( n)) h(αtrunc )( p(αtrunc )−1) , ∀αtrunc ∈ PJ .
+
+34 Pick any α ∈ P and consider αtrunc ∈ PJ . What follows will be true for all α ∈ P as α was picked arbitrarily. Let f ∈ B(Hαtrunc  
+
+> mix
+
+)( Tp) and set g = (2 π) p−d 
+
+> 2
+
+Qf . By definition of B(Hαtrunc  
+
+> mix
+
+)( Tp), we have 
+
+X
+
+> k∈Zp
+> p
+
+Y
+
+> i=1
+
+(1 + |kji |)2αji | ˆfk|2 ≤ 1.
+
+Applying (5.9), this is equivalent to 
+
+X
+
+> k∈Zd
+> d
+
+Y
+
+> j=1
+
+(1 + |kj |)2αj |ˆgk|2 ≤ 1.
+
+Now, looking at the term ∥f − G′(f )∥L2(Tp), we obtain 
+
+∥f − G′(f )∥L2(Tp) = ∥f − RHGQ (f )∥L2(Tp) = (2 π) p−d 
+
+> 2
+
+∥Qf − QRHGQ (f )∥L2(Tp) = ∥g − HG (g)∥L2(Td)
+
+where we used the identity QRf = f for all f ∈ VJ in the last equality. Since g ∈ VJ , we have 
+
+g = Hg , and hence 
+
+∥g − HGg ∥L2(Td) = ∥Hg − HGg ∥L2(Td) ≤ ∥ g − Gg ∥L2(Td).
+
+Combining the above bounds, we obtain sup   
+
+> f∈B(Hαtrunc mix )( Tp)
+
+∥f − G′(f )∥L2(Tp) ≤ sup 
+
+> g∈B(Hα
+> mix (Td))
+
+∥g − G(g)∥L2(Td).
+
+The claimed bound now follows from the corresponding estimate for G on Td:sup   
+
+> f∈B(Hαtrunc mix )( Tp)
+
+∥f − G′(f )∥L2(Tp) ≲d, A n−h(α)(log( n)) h(α)( p(α)−1) , ∀α ∈ P. 
+
+For a small enough rectangle P , we have h(αtrunc ) = h(α) and p(αtrunc ) = p(α) for all α ∈ P . Hence, we have sup   
+
+> f∈B(Hαtrunc mix )( Tp)
+
+∥f − G′(f )∥L2(Tp) ≲d, A n−h(αtrunc )(log( n)) h(αtrunc )( p(αtrunc )−1) , ∀αtrunc ∈ PJ .
+
+Hence, we deduce from Lemma 5.4 that m ≳d,B, A n(log( n)) p−1. The result now follows. 
+
+# Acknowledgements 
+
+BA acknowledges support from the Natural Sciences and Engineering Research Council of Canada (NSERC) through grant RGPIN/2470-2021. BA & AG acknowledge the support of FRQ (Fonds de recherche du Qu´ ebec) – Nature et Technologies through grant 359708. 
+
+# References 
+
+[1] B. Adcock. Modified Fourier expansions: theory, construction and applications . PhD thesis, University of Cambridge, 2010. [2] B. Adcock and S. Brugiapaglia. Monte Carlo is a good sampling strategy for polynomial approximation in high dimensions. arXiv:2208.09045 , 2023. 
+
+35 [3] B. Adcock, S. Brugiapaglia, N. Dexter, and S. Moraga. On efficient algorithms for computing near-best polynomial approximations to high-dimensional, Hilbert-valued functions from limited samples , volume 13 of Mem. Eur. Math. Soc. EMS Press, 2024. [4] B. Adcock, S. Brugiapaglia, and C. G. Webster. Sparse Polynomial Approximation of High-Dimensional Functions . Comput. Sci. Eng. Society for Industrial and Applied Mathematics, Philadelphia, PA, 2022. [5] B. Adcock, N. Dexter, and S. Moraga. Optimal approximation of infinite-dimensional holomorphic functions. Calcolo , 61(1):12, 2024. [6] B. Adcock, N. Dexter, and S. Moraga. Optimal deep learning of holomorphic operators between Banach spaces. In A. Globerson, L. Mackey, D. Belgrave, A. Fan, U. Paquet, J. Tomczak, and C. Zhang, editors, 
+
+Advances in Neural Information Processing Systems , volume 37, pages 27725–27789. Curran Associates, Inc., 2024. [7] B. Adcock, N. Dexter, and S. Moraga. Optimal approximation of infinite-dimensional holomorphic functions II: recovery from iid pointwise samples. J. Complexity , 89:101933, 2025. [8] B. Adcock, M. Griebel, and G. Maier. The sample complexity of learning Lipschitz operators with respect to Gaussian measures. arXiv:2410.23440 , 2025. [9] F. Bartel and P. Schr¨ oter. Learning and leveraging anisotropy parameters in ANOVA approximation. 
+
+arXiv:2511.00251 , 2025. [10] A. Belloni, V. Chernozhukov, and L. Wang. Square-root lasso: pivotal recovery of sparse signals via conic programming. Biometrika , 98(4):791–806, 2011. [11] P. Binev, A. Cohen, W. Dahmen, and R. DeVore. Universal algorithms for learning theory. Part II: Piecewise polynomial functions. Constr. Approx. , 26(2):127–152, 2007. [12] P. Binev, A. Cohen, W. Dahmen, R. DeVore, V. Temlyakov, and P. Bartlett. Universal algorithms for learning theory. Part I: Piecewise constant functions. J. Mach. Learn. Res. , 6(9), 2005. [13] S. Brugiapaglia, S. Dirksen, H. C. Jung, and H. Rauhut. Sparse recovery in bounded Riesz systems with applications to numerical methods for PDEs. Appl. Comput. Harmon. Anal. , 53:231–269, 2021. [14] G. Byrenheid and T. Ullrich. Optimal sampling recovery of mixed order Sobolev embeddings via discrete Littlewood–Paley type characterizations. Anal. Math. , 43(2):133–191, 2017. [15] J. Chen and H. Wang. Preasymptotics and asymptotics of approximation numbers of anisotropic Sobolev embeddings. J. Complexity , 39:94–110, 2017. [16] F. Cobos, T. K¨ uhn, and W. Sickel. Optimal approximation of multivariate periodic Sobolev functions in the sup-norm. J. Funct. Anal. , 270(11):4196–4212, 2016. [17] D. D˜ ung, V. Temlyakov, and T. Ullrich. Hyperbolic Cross Approximation . Adv. Courses Math. CRM Barcelona. Birkh¨ auser, Basel, Switzerland, 2018. [18] F. Dai and V. Temlyakov. Universal sampling discretization. Constr. Approx. , 58:589–613, 2023. [19] F. Dai and V. Temlyakov. Random points are good for universal discretization. J. Math. Anal. Appl. ,529(1):127570, 2024. [20] F. Dai and V. N. Temlyakov. Universal discretization and sparse recovery. J. Approx. Theory , 311:106199, 2025. [21] F. Dai and V. N. Temlyakov. A survey on sampling recovery. arXiv:2601.08787 , 2026. [22] R. DeVore, R. D. Nowak, R. Parhi, G. Petrova, and J. W. Siegel. Optimal recovery meets minimax estimation. arXiv:2502.17671 , 2025. [23] M. Dolbeault, D. Krieg, and M. Ullrich. A sharp upper bound for sampling numbers in L2. Appl. Comput. Harmon. Anal. , 63:113–134, 2023. 
+
+36 [24] M. Griebel and J. Hamaekers. Fast discrete Fourier transform on generalized sparse grids. In J. Garcke and D. Pfl¨ uger, editors, Sparse Grids and Applications – Munich 2012 , pages 75–107. Springer, Cham, 2014. [25] K. H¨ ollig. Diameters of classes of smooth functions. In Quantitative Approximation , pages 163–175. Academic Press, New York, 1980. [26] T. Jahn, T. Ullrich, and F. Voigtlaender. Sampling numbers of smoothness classes via ℓ1-minimization. 
+
+J. Complexity , 79:101786, 2023. [27] Y. Kolomoitsev, T. Lomako, and S. Tikhonov. Sparse grid approximation in weighted Wiener spaces. J. Fourier Anal. Appl. , 29(2):19, 2023. [28] E. D. Kosov and V. N. Temlyakov. Sampling recovery of functions with mixed smoothness. Adv. Oper. Theory , 10(2):49, 2025. [29] D. Krieg. Tractability of sampling recovery on unweighted function classes. Proc. Amer. Math. Soc. Ser. B, 11(12):115–125, 2024. [30] D. Krieg, E. Novak, and M. Sonnleitner. Recovery of Sobolev functions restricted to iid sampling. Math. Comp. , 91(338):2715–2738, 2022. [31] D. Krieg, K. Pozharska, M. Ullrich, and T. Ullrich. Sampling recovery in L2 and other norms. Math. Comp. , 2025. [32] D. Krieg and M. Sonnleitner. Random points are optimal for the approximation of Sobolev functions. 
+
+IMA J. Numer. Anal. , 44(3):1346–1371, 2024. [33] D. Krieg and M. Sonnleitner. Function recovery on manifolds using scattered data. J. Approx. Theory ,305:106098, 2025. [34] D. Krieg and M. Ullrich. Function values are enough for L2-approximation. Found. Comput. Math. ,21(4):1141–1151, 2021. [35] T. K¨ uhn, W. Sickel, and T. Ullrich. Approximation of mixed order Sobolev functions on the d-torus: asymptotics, preasymptotics, and d-dependence. Constr. Approx. , 42:353–398, 2015. [36] T. K¨ uhn, W. Sickel, and T. Ullrich. How anisotropic mixed smoothness affects the decay of singular numbers for Sobolev embeddings. J. Complexity , 63:101523, 2021. [37] G. Migliorati. Polynomial approximation by means of the random discrete L2 projection and application to inverse problems for PDEs with stochastic data . PhD thesis, Politecnico di Milano, 2013. [38] B. S. Mitjagin. Approximation of functions of Lp and C spaces on the torus. Mat. Sb. , 58(100):397–414, 1962. [39] M. Moeller. Gelfand numbers and best m-term trigonometric approximation for weighted mixed Wiener classes in L2. Master’s thesis, TU Chemnitz, Germany, 2023. [40] M. Moeller, K. Pozharska, and T. Ullrich. Instance optimal function recovery – samples, decoders and asymptotic performance. arXiv:2503.16209 , 2025. [41] M. Moeller, K. Pozharska, and T. Ullrich. Sampling designs for function recovery – theoretical guarantees, comparison and optimality. MCQMC 2024 Proceedings , 2025. to appear. [42] M. Moeller, S. Stasyuk, and T. Ullrich. High-dimensional sparse trigonometric approximation in the uniform norm and consequences for sampling recovery. arXiv:2407.15965 , 2024. [43] M. Moeller, S. Stasyuk, and T. Ullrich. Best m-term trigonometric approximation in weighted Wiener spaces and applications. Adv. Oper. Theory , 11(2):18, 2026. [44] V. D. Nguyen, V. K. Nguyen, and W. Sickel. s-numbers of embeddings of weighted Wiener algebras. J. Approx. Theory , 279:105745, 2022. 
+
+37 [45] E. Novak and H. Wo´ zniakowski. Tractability of Multivariate Problems, Volume I: Linear Information .Number 6 in EMS Tracts in Mathematics. European Mathematical Society Publishing House, Z¨ urich, Switzerland, 2008. [46] H. Rauhut and R. Ward. Sparse Legendre expansions via ℓ1-minimization. J. Approx. Theory , 164(5):517– 533, 2012. [47] H. Rauhut and R. Ward. Interpolation via weighted ℓ1 minimization. Appl. Comput. Harmon. Anal. ,40(2):321–351, 2016. [48] M. Sonnleitner and M. Ullrich. On the power of iid information for linear approximation. 
+
+arXiv:2310.12740 , 2023. [49] M. I. Stesin. Aleksandrov diameters of finite-dimensional sets and classes of smooth functions. Dokl. Akad. Nauk SSSR , 220(6):1278–1281, 1975. In Russian. [50] S. A. Telyakovskii. Some bounds for trigonometric series with quasi-convex coefficients. Mat. Sb. ,105(3):426–444, 1964. [51] V. Temlyakov. Multivariate Approximation . Cambridge University Press, 2018. [52] V. N. Temlyakov. Approximation by elements of a finite-dimensional subspace of functions from various Sobolev or Nikol’skii spaces. Math. Notes , 43(6):444–454, 1988. [53] X. Wang. Volumes of generalized unit balls. Math. Mag. , 78(5):390–395, 2005. 
+
+38

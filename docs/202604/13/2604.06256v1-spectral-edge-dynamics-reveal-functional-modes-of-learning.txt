@@ -1,0 +1,418 @@
+Title: Spectral Edge Dynamics Reveal Functional Modes of Learning
+
+URL Source: https://arxiv.org/pdf/2604.06256v1
+
+Published Time: Thu, 09 Apr 2026 00:02:55 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+# Spectral Edge Dynamics Reveal Functional Modes of Learning 
+
+Yongzhong Xu ∗
+
+Abstract 
+
+We study the geometry of training dynamics during grokking through spectral analysis of weight updates in transformer models trained on modular arithmetic. We confirm the existence of a spectral edge—a small block of leading directions separating from the bulk—which reliably distinguishes grokking from non-grokking regimes across multiple tasks and seeds. We then investigate the functional content of these directions. Standard mechanistic inter-pretability decompositions—including head attribution, activation-space analysis, and sparse autoencoders—fail to capture the spectral edge, indicating that its structure is not localized in parameter or feature space. Instead, when viewed as perturbations of the model’s input-output function, the leading directions exhibit structured behavior in appropriately chosen bases over the input domain. For symmetry-aligned tasks such as addition and multiplication, the spectral edge collapses to a single dominant Fourier mode when expressed in the correct group-theoretic basis (additive or multiplicative via discrete log). For subtraction, the edge spans a small family of Fourier modes, while for the quadratic task x2 + y2, no simple one-dimensional harmonic basis suffices. Instead, its structure is partially explained by cross-terms of additive and multiplicative features, consistent with its compositional form. Finally, we show that multitask training with a shared trunk amplifies this compositional structure: the spectral edge of the x2 + y2 head becomes more aligned with additive modes characteristic of the addition circuit, providing evidence of functional reuse across tasks. These results suggest that spectral edge dynamics identify low-dimensional functional sub-spaces governing learning, whose representation depends on the algebraic structure of the task. In particular, simple harmonic structure emerges only when the task admits an appropriate symmetry-adapted basis, while more complex tasks require richer functional descriptions. 
+
+# 1 Introduction 
+
+Training trajectories of neural networks are highly structured, despite the enormous dimensionality of parameter space. A growing body of work suggests that optimization dynamics concentrate along a small number of dominant directions, particularly near phase transitions such as grokking [Xu, 2026a,c, Li et al., 2018]. However, the nature of these directions remains unclear: are they localized circuits, interpretable features, or something else entirely? In this work, we show that these dominant directions—identified by a spectral edge in the singular value decomposition of parameter updates—do not correspond to localized structures in parameter or activation space. Instead, they define functional modes : structured perturbations of the model’s input-output behavior. Concretely, each leading singular direction induces a function over the input domain, capturing how the model’s internal representations change across inputs. These functions reveal low-dimensional structure that is invisible to standard interpretability methods.  
+
+> ∗abbyxu@gmail.com; code at https://github.com/skydancerosel/grokking-integrability
+
+1
+
+> arXiv:2604.06256v1 [cs.LG] 6 Apr 2026
+
+We demonstrate that conventional approaches fail to capture this structure. Parameter-space attribution is diffuse across heads and layers, activation perturbations are high-rank, and sparse autoencoder features show no meaningful co-specialization. This failure is not incidental: it reflects a mismatch between the object of interest and the analysis tools. The spectral edge identifies directions in parameter space that are coherent at the level of functions , not representations. A key motivation comes from Olah et al.’s analysis of interference weights [Olah et al., 2025]: weights that exist in a network not because they serve any single computation, but as a compromise that allows multiple features to coexist. Their distinction between “virtual weights” (raw magnitudes) and “effective weights” (corrected for coactivation) raises a natural question for the spectral edge: are these leading directions genuine functional modes, or interference artifacts? Our co-usage analysis (Section 7) shows that above-edge directions behave as effective weights—coherent functional modes—while below-edge directions carry interference. When analyzed in input space, these functional modes exhibit striking regularities. For modular addition, all dominant directions collapse to a single Fourier frequency, revealing a one-dimensional harmonic structure. For modular multiplication, the same collapse appears only after transforming to the discrete logarithm basis, aligning the analysis with the multiplicative group structure. In contrast, subtraction spans a small multi-frequency subspace, while x2 + y2 exhibits no single dominant harmonic, instead occupying a structured but non-Fourier subspace. Crucially, these functional modes are not task-specific artifacts. In a multitask setting, we find that models reuse functional structure across tasks: the dominant modes of a composite task align with those of simpler constituent tasks. This provides direct evidence that neural networks learn reusable functional primitives, and that compositional structure emerges through shared training dynamics. Together, these results suggest a shift in perspective. Rather than viewing learning in terms of localized circuits or features, we propose that training discovers low-dimensional functional subspaces over the input domain. Spectral edge dynamics provide a direct probe of these subspaces, revealing the algebraic and compositional structure underlying learned computations. 
+
+Main contributions. 
+
+1. Robust spectral edge detection. We confirm that a spectral edge—a small set of leading update directions—emerges consistently during grokking and distinguishes grokking from non-grokking conditions across multiple tasks, seeds, and spectral decompositions. 2. Negative results for representation-level interpretability. We show that standard mechanistic interpretability tools (head attribution, activation-space analysis, sparse autoen-coders) fail to capture the spectral edge, indicating that its structure is not localized in parameter or feature space. 3. Functional structure in symmetry-adapted bases. When analyzed as perturbations over the input domain, spectral edge directions exhibit structured behavior. For addition and multiplication, this structure collapses to a single Fourier mode in the appropriate group-theoretic basis; for subtraction, it spans a small multi-mode family. 4. Non-harmonic functional structure in composed tasks. For x2 + y2, no simple one-dimensional Fourier basis captures the spectral edge. Instead, the structure is partially explained by cross-terms of additive and multiplicative features, indicating a low-dimensional but nontrivially structured functional subspace. 25. Evidence of compositional reuse under multitask training. In shared-trunk models, the spectral edge of the x2 + y2 head becomes more aligned with additive functional modes characteristic of the addition task, providing direct evidence that multitask training promotes reuse of functional structure. 
+
+# 2 Experimental Setup 
+
+2.1 Model and Tasks 
+
+We use a 2-layer Transformer with dmodel = 128, 4 attention heads, dff = 256, pre-norm, GELU activation, and ∼290k parameters. Single-task models are trained with AdamW ( lr = 10 −3, wd = 1 .0, 
+
+β2 = 0 .98) on modular arithmetic tasks mod p = 97 with a 50/50 train-test split. We study six binary operations: ( a + b), ( a − b), ( a · b), ( a2 + b2), ( a2 + ab + b2), and ( a3 + ab ) mod p. The first four grok (achieve >95% test accuracy within 5000 steps); the last two do not, and serve as non-grokking controls. Each configuration is run with three random seeds ( s ∈ { 42 , 137 , 2024 }). The functional analysis in Sections 6–6.6 focuses on the four grokking operations, since the spectral edge is well-defined only when grokking occurs. The non-grokking operations are used primarily in Section 4 as controls. 
+
+2.2 Multitask Models 
+
+We also train shared-trunk models with task-specific classification heads: a dual-task model (add + mul) and a tri-task model (add + mul + x2 + y2), using the same trunk architecture. The tri-task model groks on all three operations (at steps 17,900, 24,800, and 30,500 respectively), with the staggered ordering providing a natural testbed for compositional reuse [Xu, 2026b]. 
+
+2.3 Spectral Edge Definition 
+
+At each training step t, we compute the weight update δθ t = θt − θt−1 restricted to attention parameters (4 matrices × 2 layers, flattened dimension D = 131 ,072). Over a sliding window of 
+
+W = 20 consecutive updates, we form the Gram matrix 
+
+Gij = ⟨δθ i, δθ j ⟩, i, j ∈ { t − W + 1 , . . . , t },
+
+and compute its eigenvalues σ1 ≥ σ2 ≥ · · · ≥ σW . The spectral gaps gk,k +1 = σk − σk+1 measure how sharply each eigenvalue separates from the next. In the BBP (Baik–Ben Arous–P´ ech´ e) framework [Xu, 2026c], a declining g23 = σ2 − σ3 indicates that the top-2 block is consolidating: a small number of directions absorb an increasing fraction of update variance while the remaining spectrum compresses. The spectral edge position k∗ is defined as the index maximizing the gap ratio σk/σ k+1 , weighted by cumulative signal mass. The right singular vectors v1, . . . , v k∗ of the update matrix constitute the spectral edge directions. 
+
+2.4 Perturbation Response 
+
+Given a spectral edge direction vk, we define the perturbation response as the change in the model’s residual stream under a small displacement along vk:∆hk(a, b ) = h(a, b ; θ + εv k) − h(a, b ; θ),
+
+3where h(a, b ; θ) denotes the residual stream at position 0 after all encoder layers, and ε = 0 .005 ·∥ θattn ∥.The scalar field 
+
+fk(a, b ) = ∥∆hk(a, b )∥2
+
+captures how sensitive each input pair ( a, b ) is to perturbation along vk. This is the central object of our analysis. We define a functional mode as a spectral edge direction vk whose induced perturbation field fk(a, b ) exhibits structured variation over the input domain—variation that is organized by the algebraic properties of the task rather than by the architecture of the network. The direction vk
+
+lives in parameter space, but the functional mode is characterized by fk: a function on the input domain. The bridge from geometry (singular vectors of weight updates) to function (structured perturbation patterns over inputs) is the main conceptual move of this paper. 
+
+2.5 Fourier Analysis of the Perturbation Response 
+
+For a given grouping variable q(a, b ) ∈ { 0, . . . , M − 1}, we compute the group-averaged perturbation signal ¯fk[q] = 1
+
+|{ (a, b ) : q(a, b ) = q}| 
+
+X
+
+> q(a,b )= q
+
+fk(a, b ),
+
+an M -point signal indexed by the group elements. We then compute its discrete Fourier transform. The Fourier concentration Fk is the fraction of total power at the peak frequency: 
+
+Fk = max 
+
+> ω
+
+| ˆ¯fk[ω]|2
+
+P 
+
+> ω′
+
+| ˆ¯fk[ω′]|2 .
+
+The uniform baseline is F = 2 /M (one cosine–sine pair out of M/ 2). A high Fk indicates that the perturbation pattern is dominated by a single Fourier mode of the grouping variable. The choice of grouping variable—and hence the Fourier basis—is the key degree of freedom. Different choices correspond to different group-theoretic decompositions of the input domain. 
+
+# 3 Functional Subspaces: Definitions and Framework 
+
+Before presenting empirical results, we formalize the key concepts. This section separates what is definitional (the mapping from parameter directions to functions), what is empirically observed (the low-dimensional structure), and what is conjectured (the relationship to group representations). 
+
+3.1 Definitions 
+
+Let θ ∈ RD denote model parameters and h(x; θ) ∈ Rdmodel the residual stream at position 0 for input x = ( a, b ). Let vk ∈ RD be a spectral edge direction. 
+
+Definition 1 (Functional mode). The induced activation perturbation along vk is ∆hk(x) := ddε h(x; θ + εv k) ε=0 
+
+,
+
+and the corresponding scalar functional mode is 
+
+fk(x) := ∥∆hk(x)∥2 .
+
+Although vk is a direction in parameter space RD, the induced function fk lives in input space X = {0, . . . , p − 1}2. In practice, we approximate the derivative with a finite difference at ε = 0 .005 · ∥ θattn ∥ (Section 2.4). 4Definition 2 (Functional subspace). Let v1, . . . , v k∗ be the spectral edge directions. The functional subspace induced by spectral edge dynamics is 
+
+F := span {f1, . . . , f k∗ } ⊂ L2(X ).
+
+These definitions are exact: they introduce a mapping from parameter-space geometry to function space. The content of the paper is what this mapping reveals empirically. 
+
+3.2 Empirical Observation 
+
+We observe a consistent separation of structure across spaces: 
+
+Empirical Observation (Functional structure of the spectral edge). During grokking, weight updates concentrate onto a parameter subspace whose induced functional subspace 
+
+F is low-dimensional and structured. Specifically: 
+
+• ∆hk(x) is high-rank in activation space (effective rank ≈ 40 out of dmodel = 128); 
+
+• but fk(x) exhibits low-dimensional structure over inputs, concentrated on a small number of Fourier modes when expressed in the correct group-theoretic basis. The structure of learning is not in how the perturbation is distributed across neurons, but in which inputs are most affected. This observation is documented across four grokking operations, three seeds, and three independent spectral decompositions (Sections 4–6). 
+
+3.3 Conjecture 
+
+The empirical observations suggest two conjectures of different strength. 
+
+Conjecture 1 (Dynamical selection of task-relevant eigenmodes). The spectral edge of the weight-update trajectory preferentially selects directions whose functional modes 
+
+fk align with the natural eigenmodes of the task. For tasks that factor through a group homomorphism ϕ : X → G, these eigenmodes are the irreducible representations (characters) of G. Among all possible update directions, those with the largest singular values induce perturbation patterns concentrated on the same characters that the model uses to solve the task. The non-trivial content here is not that the model uses group characters—that is expected from prior work [Nanda et al., 2023] and follows from the task structure. The conjecture is about the 
+
+training dynamics : that SGD concentrates its updates along directions aligned with the task-relevant eigenmodes, rather than distributing updates uniformly across all possible functional directions. This is a statement about loss landscape geometry, not representation theory. 
+
+Why Fourier, specifically? The Fourier basis is not claimed to be universal. It is the specific realization of the task’s eigenmodes for finite abelian groups: characters diagonalize convolution on these groups, and are the natural basis in which group-theoretic computations decompose. For tasks with different structure—non-abelian groups, continuous symmetries, or no obvious algebraic structure—the relevant eigenmodes would be different (irreducible representations, spherical harmonics, or eigenfunctions of some task-dependent operator). What may be general is not “Fourier” 5but the principle that training dynamics align with whatever eigenmodes govern the task. Weight decay likely plays a role in this selection: Fourier representations are parameter-efficient for group-theoretic tasks (they exploit symmetry), so regularization biases the optimizer toward these solutions. This is consistent with the observation that the spectral edge forms only under weight decay (wd = 1 .0), not without it. 
+
+Conjecture 2 (Compositional inheritance under shared training). Let T be a task whose computation can be decomposed into simpler operations T2, T 3 (e.g., a2 + b2 =(a + b)2 − 2ab decomposes into addition and multiplication). Denote by Fshared  
+
+> T
+
+the functional subspace of T when trained jointly with T2 and T3 in a shared-trunk model, and by Fsingle  
+
+> T
+
+the subspace when trained alone. Then shared training promotes inheritance of component modes: 
+
+Fshared  
+
+> T
+
+∩ (FT2 + FT3 ) ⊋ Fsingle  
+
+> T
+
+∩ (FT2 + FT3 ).
+
+That is, shared training increases the overlap between the composite task’s functional modes and those of its components. Under single-task training, the model is free to learn an opaque representation with little or no overlap; under shared-trunk training, functional modes are reused. Note that this conjecture addresses only whether the component modes FT2 , FT3 are inherited—it does not characterize the full functional subspace FT , which may also contain modes arising from how the components are combined (e.g., the squaring step in ( a + b)2 − 2ab ). Our cross-term probing captures some of this interaction but does not fully explain it ( R2 = 0 .16). We do not prove either conjecture. The remainder of the paper provides evidence for Conjecture 1 across four tasks (two clean cases, one partial, one negative) and for Conjecture 2 via single-task vs. multitask comparison on x2 + y2. We are explicit about where the evidence is strong, where it is weak, and where it breaks down. 
+
+What the conjectures do not predict. Neither conjecture predicts which irreps are selected or 
+
+how many . For modular addition and multiplication, we observe m = 1 (a single dominant character); for subtraction, m ≈ 3; these tasks all factor through the same group Z/97 Z. A stronger theory would predict m from properties of the target function (e.g., the number of Fourier components needed for ε-approximation of the loss landscape). We leave this as an open problem. 
+
+# 4 The Spectral Edge Exists and Discriminates Grokking 
+
+4.1 Gram Matrix Gap Dynamics 
+
+We track the spectral gap g23 = σ2 − σ3 of the Gram matrix over training. A declining g23 indicates that the top-2 eigenvalues are separating from the rest: the update trajectory is concentrating onto a lower-dimensional subspace. Across 36 single-task conditions (6 operations × 2 weight-decay settings × 3 seeds), the g23 gap cleanly separates grokking from non-grokking regimes (Table 1). All 12 grokking runs show g23 
+
+decline with magnitude 15–110 ×. Only 1 of 24 control conditions shows comparable decline (a late anomalous event at step 41,700 in a non-grokking operation). 6Table 1: Spectral edge discrimination: g23 decline magnitude (ratio of early-training to post-grok values) across 36 single-task conditions. Grokking runs show 15–110 × decline; non-grokking conditions show < 2×.
+
+Condition Runs g23 decline detected Mean magnitude 
+
+Grokking (wd = 1 .0, 4 ops) 12 12/12 (100%) 40 ×
+
+Control (wd = 0, 4 ops) 12 0/12 (0%) 1.2×
+
+Non-grokking ops (wd = 1 .0) 6 1/6 (17%) 1.5×
+
+Non-grokking ops (wd = 0) 6 0/6 (0%) 1.1×
+
+4.2 Three Independent Decompositions Agree 
+
+To verify that the spectral edge is not an artifact of the Gram matrix construction, we compare three independent spectral analyses on the same training trajectories: 1. Gram matrix (sliding-window update SVD): eigenvalues of Gij as defined above. 2. Displacement PCA (expanding-window from initialization): eigenvalues of the covariance of θt − θ0.3. Weight-matrix SVD : singular values σ1 ≥ σ2 ≥ · · · of the individual attention matrices 
+
+WQ, WK .All three yield consistent temporal signatures: the spectral edge forms during the memorization phase, sharpens at the grokking transition, and stabilizes post-grok. The weight-matrix SVD additionally reveals a mechanism: grokking is preceded by a transient near-degeneracy of the leading singular values ( σ1 ≈ σ2), followed by symmetry breaking ( σ1 ≫ σ2) at generalization. This near-degeneracy creates an orientation instability in the top singular subspace, consistent with the sharp rise in commutator defects observed in prior work [Xu, 2026a]. 
+
+# 5 The Spectral Edge Lives in Function Space, Not Representation Space 
+
+Standard mechanistic interpretability operates in representation space : it decomposes networks into structural units (heads, neurons) or learned features (SAE dictionary elements). We test whether the spectral edge can be understood in these terms. Each test targets a natural hypothesis; each fails—not because the edge lacks structure, but because these tools operate in the wrong space. 
+
+Hypothesis 1: Head localization. If vk corresponded to a single attention head, its parameter mass would concentrate in one (layer, head, matrix-type) block. We compute the head purity :max ℓ,h,m ∥vk[block ℓ,h,m ]∥2/∥vk∥2, where the maximum runs over 2 layers × 4 heads × 4 matrix types. Across all four grokking operations, head purity ≈ 0.14 for all top-3 directions—barely above the uniform baseline 1 /8 = 0 .125 for the 8 layer ×head combinations (marginalizing over matrix type). The spectral edge is globally distributed across all heads. Hypothesis 2: Low-rank activation feature. Even if vk is diffuse in parameter space, it might produce a low-rank perturbation in activation space. We compute the effective rank of the displacement matrix [∆ hk(x1), . . . , ∆hk(xN )] ⊤ ∈ RN ×dmodel , defined as exp (H(p)) where H(p) = 7− P 
+
+> j
+
+pj log pj is the entropy of the normalized squared singular values. Result: effective rank ≈ 40 for all vk and all operations, out of dmodel = 128. The perturbation is diffuse in activation space. 
+
+However, the Fourier peakedness of the scalar field fk(a, b ) = ∥∆hk∥2 reaches 32 .8× uniform for 
+
+v1 at the grokking transition (addition, ω = 25). This indicates that while ∆ hk is high-dimensional as a vector in Rdmodel , the pattern of where the perturbation is large across inputs has sharp structure. 
+
+Hypothesis 3: Shared sparse features. We train a TopK sparse autoencoder ( dSAE = 512, 
+
+k = 32) on the post-grok residual stream and compute the Jaccard overlap of the top-20 most-affected SAE features between pairs of top-3 directions. Observed Jaccard ranges from 0.25 (addition) to 0.60 (subtraction). We test against three null models: 
+
+• Combinatorial null : expected Jaccard ≈ 0.02 for random draws of 20 from 512. 
+
+• Random-direction null (50 random unit vectors in parameter space): mean Jaccard ranges from 0.30 to 0.83, depending on operation. 
+
+• Angle-matched null (synthetic direction pairs with the same 45 ◦ subspace angle as the observed top-3): p ≥ 0.97 for all operations. The observed Jaccard values fall at or below the random-direction mean in all cases. The apparent SAE overlap is an artifact of representation density at this sparsity level, not a property of the spectral edge. Diagnosis: category mismatch, not absence of structure. These three null results do not mean the spectral edge is unstructured. They mean that its structure is invisible to tools that operate in representation space—heads, activation features, and sparse dictionaries. The Fourier peakedness result (32 .8× uniform) already reveals that the structure exists, but in a different space: the pattern of how fk(a, b ) varies across inputs . The spectral edge is a functional object. The next section shows what it looks like when analyzed in the correct functional coordinates. 
+
+# 6 Functional Structure in Symmetry-Adapted Bases 
+
+6.1 From Single Modes to Functional Subspaces 
+
+We initially hypothesized that the leading update directions {v1, v 2, v 3} would align with a single dominant Fourier mode. While this holds for some tasks, the full picture is more nuanced. Across all operations, the spectral edge consistently identifies a low-dimensional functional structure . In some cases this collapses to a single dominant mode; in others it spans a small family of modes. This leads to a refined view: spectral edge dynamics select a functional subspace , not necessarily a single frequency. 
+
+6.2 Addition: Collapse to a Single Mode 
+
+For modular addition, we set the grouping variable to q = ( a + b) mod p, so the Fourier basis consists of additive characters χω(a, b ) = e2πiω (a+b)/p with ω ∈ { 1, . . . , 48 }.The result is maximally simple (Table 2): 
+
+• All three leading directions concentrate on the same frequency ω ≈ 25–26, 8Table 2: Fourier profiles of spectral edge directions for modular addition. All three top directions concentrate on ω ≈ 25–26. Bulk directions (below the spectral edge) show lower and less consistent concentration. 
+
+Direction Peak ω Concentration F Top-3 ωv1 (edge) 26 0.33 {26 , 12 , 25 }
+
+v2 (edge) 26 0.16 {26 , 8, 14 }
+
+v3 (edge) 25 0.40 {25 , 26 , 3}
+
+v4 (bulk) 8 0.18 {8, 26 , 11 }
+
+v5 (bulk) 26 0.12 {26 , 8, 15 }
+
+uniform baseline — 0.021 —
+
+• Fourier concentration reaches F = 0 .40 (baseline 0 .021, a 19 × elevation), 
+
+• The top-3 mean F = 0 .29 exceeds the bulk mean F = 0 .18 by 1 .6×.Per-PC analysis of the displacement vector ∆ h1 reveals even sharper concentration: the first principal component reaches F = 0 .67 at ω = 26. 2D Fourier analysis (computing P (ωa, ω b) over individual inputs a and b) shows power concentrated on the diagonal (ωa, ω b) = (26 , 26), consistent with the additive structure e2πiω (a+b)/p = e2πiωa/p · e2πiωb/p .The top block effectively collapses to a one-dimensional functional subspace: span {g1, g 2, g 3} ≈ 
+
+span {χ25–26 }.
+
+A note on signal strength. We do not claim exact decomposition. F = 0 .40 means 60% of the power is distributed across other frequencies; the perturbation response is a noisy, distributed object. The key signal is not purity but basis alignment : consistent frequency selection across all top-3 directions, and the 19 × elevation over the uniform baseline. The strongest evidence comes from relative comparisons—the 5 .9× improvement for multiplication under discrete-log (Section 6.3), and the fact that applying the wrong basis actively destroys structure. 
+
+6.3 Multiplication: Collapse in a Symmetry-Adapted Basis 
+
+For multiplication, the same collapse appears—but only after transforming to the appropriate group-theoretic basis. In the additive Fourier basis (grouping by ( a · b) mod p), the signal is weak and diffuse: peak 
+
+F ≤ 0.11 for all top-3 directions, with scattered frequencies ( ω ∈ { 5, 19 , 38 }). The multiplicative group ( Z/p Z)∗ has a different character theory. Given a primitive root g (here g = 5 for p = 97), the natural grouping variable is q = (dlog g(a) + dlog g(b)) mod ( p − 1), with period p − 1 = 96. Under this discrete-log basis: 
+
+• All three leading directions collapse onto ω = 29, 
+
+• Concentration increases by up to 5 .9× (v1: F = 0 .054 → 0.32), 
+
+• Mean top-3 improvement: 2 .7×.As a control, addition’s Fourier concentration decreases under the discrete-log basis (0 .2–0 .3× of its additive-basis value), confirming that the improvement is basis-specific. 9Figure 1: The spectral edge consistently identifies low-dimensional functional structure, but its simplicity depends on the basis. (a) Addition collapses to a single Fourier mode ( ω ≈ 25–26) under the additive basis. (b) Multiplication shows no structure in the additive basis. (c) The same multiplication data collapses to ω = 29 under the discrete-log basis (5 .9× concentration improvement for v1). (d) Subtraction spans a small set of modes ( ω ∈ { 6, 16 , 32 }). (e) x2 + y2 exhibits distributed structure not captured by any single one-dimensional harmonic basis. Dashed line: uniform baseline. All spectra computed on post-grok checkpoints, seed 42. This demonstrates that the collapse to a single mode depends on using a symmetry-adapted basis 
+
+matched to the algebraic structure of the task. The simplicity of the spectral edge is not intrinsic to parameter space; it depends on expressing the perturbation response in the correct functional coordinates. 
+
+6.4 Subtraction: A Small Family of Modes 
+
+For subtraction, the additive Fourier basis (grouping by ( a − b) mod p) remains group-theoretically appropriate, but the structure does not collapse to a single frequency. Instead: 
+
+• Each leading direction aligns with a distinct frequency: v1 → ω = 16, v2 → ω = 6, v3 → ω =32, 
+
+• The union of their top-3 frequency sets spans five modes {6, 10 , 16 , 32 , 41 }.The spectral edge spans a small multi-mode subspace: span {g1, g 2, g 3} ⊂ span {χ6, χ 16 , χ 32 }.However, the top-3 concentration ( F ≈ 0.16) does not separate from the bulk ( F ≈ 0.16): unlike addition and multiplication, the spectral edge directions are not more Fourier-concentrated than bulk 10 Table 3: Multivariate probe R2 (predicting the full displacement ∆ hk from Fourier features). For addition and multiplication, the corresponding single-basis features explain substantial variance. For x2 + y2, neither alone suffices, but cross-terms provide a 4 × boost. 
+
+Task Add features Mul features Combined +Cross-terms 
+
+Addition 0.17–0.29 0.02 0.18–0.31 0.29–0.40 Multiplication 0.02 0.11–0.26 0.12–0.27 0.23–0.37 
+
+x2 + y2 0.01 0.02 0.03–0.04 0.15–0.16 
+
+directions below the edge. This suggests either that the functional subspace is not well-aligned with a single harmonic basis, or that our analysis fails to identify the appropriate basis for subtraction. We report this as an honest negative: the multi-mode description is a plausible interpretation but is not supported by a clean separation from the null. 
+
+6.5 x2 + y2: Low-Dimensional Structure Is Not the Same as Harmonic Structure 
+
+The quadratic task provides the deepest conceptual test. Addition and multiplication show that the spectral edge can collapse to a single Fourier mode; one might conclude that spectral edge = Fourier mode. The x2 + y2 case refutes this identification: the spectral edge remains low-dimensional and meaningful, but no simple harmonic basis captures it. This is the case that forces us beyond Fourier modes to the broader concept of low-dimensional functional subspaces. We test five distinct Fourier bases: (a) Additive : group by ( a2 + b2) mod p, period p = 97. (b) Multiplicative : dlog of the output, period p − 1 = 96. (c) Gaussian integer : exploiting a2 + b2 ≡ uv (mod p) where u = a + ipb, v = a − ipb,and ip = √−1 mod p (here ip = 22, since 22 2 ≡ − 1 ( mod 97)). Grouping by ( dlog (u) + dlog( v)) mod ( p − 1). (d) Angular : ( dlog (u) − dlog (v)) mod (p − 1), corresponding to the phase of the Gaussian integer 
+
+z = a + ipb.(e) 2D Fourier : P (ωa, ω b) in both standard and squared-input coordinates. None yields a dominant mode. Peak concentration remains F ≈ 0.10–0 .15 across all bases, compa-rable to bulk directions below the spectral edge. The 2D Gaussian Fourier analysis is informative in a different way: it reveals 97% off-diagonal power in the ( dlog (u), dlog (v)) plane, indicating that the perturbation is sensitive to the angular 
+
+coordinate (which pair ( a, b ) maps to a given output) rather than the radial coordinate (the output value itself). But even the angular variable does not concentrate on a single frequency. 
+
+Composition test. The algebraic identity a2 + b2 = ( a + b)2 − 2ab suggests that the model may 
+
+compose addition and multiplication. We test this by probing the perturbation with three feature sets via ridge regression: (A) additive Fourier features ( cos (2 πω (a + b)/p ) for all ω), (B) multiplicative (discrete-log) features, and (C) their cross-terms (products of additive and multiplicative features). The results (Table 3) are consistent with the composition hypothesis: addition is explained by additive features alone; multiplication by dlog features alone. For x2 + y2, neither suffices (R2 ≤ 0.02), but cross-terms raise R2 from 0.04 to 0.16—a 4 × increase. 11 Table 4: Single-task vs. tritask comparison for x2 + y2. The tritask model shows stronger alignment with additive modes and larger composition synergy. 
+
+Metric Single-task Tritask Ratio 
+
+Additive concentration at ω = 26 F = 0 .09 F = 0 .20 2.3×
+
+Composition synergy ( v1) +0 .024 +0 .043 1.7×
+
+Peak additive frequency ω = 17 (scattered) ω = 26 (= addition mode) —Table 5: Hierarchy of functional structure at the spectral edge. The correct basis and the nature of the functional subspace depend on the algebraic structure of the task. 
+
+Task Basis Structure Peak F
+
+(a + b) mod p Additive characters Single mode ( ω ≈ 25–26) 0.40 (a · b) mod p Discrete-log characters Single mode ( ω = 29) 0.32 (a − b) mod p Additive characters Multi-mode ( ω ∈ { 6, 16 , 32 }) 0.19 (a2 +b2) mod p Cross (add × mul) Compositional 0.16 †    
+
+> †No single-basis F; value is multivariate probe R2from Table 3.
+
+This R2 = 0 .16 accounts for only a fraction of the total variance, indicating that the composition is not the whole story. But the qualitative pattern—that cross-terms help specifically for x2 + y2
+
+and not for the simpler operations—supports the compositional interpretation. 
+
+6.6 Functional Modes Are Reusable: Multitask Evidence 
+
+The composition test above shows that x2 + y2 involves both additive and multiplicative structure. A stronger test asks: if the model is forced to share parameters with addition and multiplication (via a shared trunk), does the x2 + y2 spectral edge inherit their functional modes? If so, this would be evidence that functional modes are not just descriptive labels but reusable building blocks of learned computation. The results (Table 4) support the composition hypothesis: 
+
+• Additive Fourier concentration at ω = 26 increases 2 .3× (from F = 0 .09 to F = 0 .20). 
+
+• Composition synergy (combined R2 minus max(add , mul) individually) increases 1 .7×.
+
+• Crucially, the tritask spectral edge inherits the addition circuit’s characteristic frequency 
+
+ω = 26, which is absent in the single-task model. The shared trunk forces the x2 + y2 computation to partially reuse the addition and multiplication functional modes, and the spectral edge makes this reuse visible. This result elevates functional modes from a descriptive tool to a potentially causal one: the same modes that organize simple tasks can be recruited by more complex tasks, suggesting that functional modes are reusable primitives of learned computation. 
+
+6.7 Unified Picture 
+
+These results (Table 5) suggest the following interpretation: 12 Spectral edge dynamics identify a low-dimensional functional subspace. In some tasks, this subspace collapses to a single harmonic mode; in others, it spans a small set of modes or requires richer bases to describe. 
+
+Fourier simplicity is not universal, but low-dimensional functional structure appears to be. 
+
+# 7 Connection to Interference Weights 
+
+The interference weight framework of Olah et al. [2025] provides a complementary lens on the spectral edge. For each test input x and direction vk, we compute the per-example activation 
+
+ak(x) = ⟨∇ θℓ(x), v k⟩, measuring how much the gradient for input x aligns with vk.Post-grok, above-edge directions ( k ≤ k∗) are activated by coherent, non-overlapping subsets of inputs, while below-edge directions are activated diffusely with high inter-direction correlation. In Olah et al.’s terminology, above-edge directions behave as effective weights (virtual weight ≈ effective weight after coactivation correction), while below-edge directions carry interference —parameter mass that exists as a compromise between competing computations. In multitask models, above-edge directions also show high cross-task sharedness ( S ≈ 0.8–0 .9), while below-edge directions are more task-specific ( S ≈ 0.3–0 .5). This is consistent with the Fourier picture: shared functional modes (such as ω = 26, used by both addition and the addition subcircuit of x2 + y2) appear as above-edge directions, while task-specific refinements concentrate in the bulk. Full details of the co-usage analysis are in Section A. 
+
+# 8 Discussion 
+
+8.1 A Different Level of Description 
+
+Our results suggest that the spectral edge occupies a different level of description from standard mechanistic interpretability: 
+
+Approach Objects 
+
+Mechanistic interpretability neurons, heads, circuits, features This work functional modes over the input domain 
+
+The category mismatch between representation-level tools and function-level objects is not incidental. It reflects a genuine difference in what is being described: the spectral edge does not say “which neuron fires,” but “which function over inputs is being learned.” This is closer to harmonic analysis or operator theory than to circuit-level decomposition. Prior work [Nanda et al., 2023] identifies Fourier structure in the final trained representations. Our results show that the same structure appears in the training dynamics, via spectral edge directions. Circuit analysis describes the destination; spectral edge analysis describes the trajectory. That the same frequencies appear in both views suggests that Fourier modes are not merely properties of the final representation, but are selected during optimization .
+
+8.2 What We Claim and What We Do Not 
+
+We claim: 
+
+• Training dynamics select low-dimensional functional modes over the input domain. 13 • These modes align with Fourier bases when the task admits appropriate group structure. 
+
+• They are reusable across tasks under shared training. 
+
+• Standard representation-level tools cannot see them (category mismatch). We do not claim: 
+
+• Exact decomposition (our Fourier concentrations are moderate: F ≤ 0.40; our probe R2 ≤ 0.16 for x2 + y2). 
+
+• Universality beyond modular arithmetic. 
+
+• A complete theory (the conjecture in Section 3 is not proven). 
+
+• That subtraction’s functional subspace is well-characterized (our analysis does not achieve edge-bulk separation for this task). 
+
+8.3 Limitations 
+
+Our analysis is restricted to modular arithmetic tasks in small transformer models, where the underlying algebraic structure is relatively transparent. Extending this framework to domains such as language, where the appropriate functional basis is not obvious a priori , remains an open challenge. In symmetry-rich tasks, the correct character basis can reveal functional structure; more complex tasks may require discovering an appropriate functional basis rather than assuming one. Two specific extensions are immediate: a systematic multitask ablation (training x2 + y2 with only addition, only multiplication, or both) to isolate which subcircuit donates which functional mode, and an investigation of whether the spectral edge structure persists in deeper models or different task families. 
+
+The critical test. The value of the functional-mode framework depends on whether it extends beyond settings where the algebraic structure is known a priori . In modular arithmetic, we can identify the correct Fourier basis because we know the symmetry group. In language, vision, or reasoning tasks, the relevant “eigenmodes” are unknown—and discovering them is the hard problem. The most impactful next step would be to show that the spectral edge of a language model’s training trajectory aligns with some interpretable functional basis—syntactic structures, semantic roles, or task-relevant features—even without knowing the basis in advance. If functional modes exist in realistic settings, they could provide a new handle on questions that the field currently approaches through scaling laws and probing classifiers: what is being learned at each stage of training, not just how much . If they do not, then this work characterizes an interesting property of group-theoretic tasks that does not generalize. We consider this an open empirical question. 
+
+# 9 Related Work 
+
+Grokking and Fourier representations. Power et al. [2022] first observed delayed generalization in modular arithmetic. Nanda et al. [2023] identified Fourier-basis representations (“grokking circuits”) in 1-layer models trained on modular addition, showing that the trained network uses specific Fourier frequencies (e.g., ω = 25 for mod-97 addition) in its internal computation. Zhong et al. [2024] described clock and pizza representations in this setting. Chughtai et al. [2023] and Stander et al. [2024] studied group-theoretic structure in grokked models. 14 Our work is complementary to this line of research. Circuit analysis identifies Fourier structure in the final trained weights —describing the destination. Spectral edge analysis identifies the same Fourier structure in the training dynamics —describing the trajectory. That the same frequencies (ω ≈ 25–26 for addition, ω = 29 in the dlog basis for multiplication) appear in both views suggests that Fourier modes are not merely properties of the final representation, but are selected during optimization . The spectral edge provides a dynamical lens on what circuit analysis observes statically. 
+
+Spectral edge and training dynamics. Xu [2026a] showed that weight trajectories during grokking lie on low-dimensional execution manifolds, and that commutator defects in the normal bundle predict the generalization transition. Xu [2026b] extended this to multitask settings, analyzing transverse instability and superposition in shared-trunk models. Xu [2026c] formalized the spectral edge via Gram matrix analysis and BBP theory. We extend these geometric results by characterizing the functional content of the spectral edge directions. 
+
+Mechanistic interpretability. Sparse autoencoders [Bricken et al., 2023, Cunningham et al., 2024] and head/circuit attribution [Elhage et al., 2021] provide structural decompositions of neural network internals. The superposition framework [Elhage et al., 2022] describes how models represent more features than they have dimensions. Olah et al. [2025] extend this by distinguishing virtual weights (raw magnitudes) from effective weights (corrected for coactivation), showing that much of the apparent structure in weight matrices is interference rather than computation. This distinction directly inspired our co-usage analysis: the spectral edge position k∗ marks the boundary where virtual weights transition from effective (above-edge) to interference-dominated (below-edge). Our negative results for SAE and head attribution highlight a limitation of structural interpretability tools when applied to distributed, parameter-space objects; our Fourier analysis provides the functional basis that these tools lack. 
+
+Intrinsic dimensionality. Li et al. [2018] showed that neural network optimization occurs in low-dimensional subspaces. Our Fourier analysis characterizes the functional content of these subspaces, moving beyond dimensionality counting to identify what the low-dimensional structure computes. 
+
+# 10 Conclusion 
+
+We introduced a functional perspective on training dynamics, showing that spectral edge directions correspond to low-dimensional modes in input space rather than localized structures in parameter or activation space. This resolves a persistent mismatch in interpretability: while standard methods seek structure in representations, the dominant objects of learning may instead live at the level of functions. Our experiments reveal a clear hierarchy. When the task aligns with a group structure, functional modes collapse to single Fourier components in the appropriate basis. When such alignment is absent, the learned structure remains low-dimensional but spreads across multiple modes or compositional subspaces. Multitask training further demonstrates that these modes are reusable, supporting the view that neural networks build complex computations by composing simpler functional primitives. This perspective suggests several directions for future work. First, extending the analysis to language models may reveal whether similar functional subspaces underlie natural language processing. Second, identifying the symmetry groups or algebraic structures of more complex tasks could provide predictive insight into the structure of learned representations. Third, a systematic 15 multitask ablation—training x2 + y2 with only addition, only multiplication, or both—would isolate which subcircuit donates which functional mode. Finally, developing tools that directly operate in function space may bridge the gap between training dynamics and interpretability. More broadly, our results indicate that understanding neural networks may require moving beyond representation-level descriptions toward a theory of functional modes of learning. 
+
+# References 
+
+T. Bricken et al. Towards monosemanticity: Decomposing language models with dictionary learning. 
+
+Transformer Circuits Thread , 2023. B. Chughtai, L. Chan, and N. Nanda. A toy model of universality: Reverse engineering how networks learn group operations. In ICML , 2023. H. Cunningham, A. Ewart, L. Riggs, R. Huben, and L. Sharkey. Sparse autoencoders find highly interpretable features in language models. In ICLR , 2024. N. Elhage et al. A mathematical framework for transformer circuits. Transformer Circuits Thread ,2021. N. Elhage et al. Toy models of superposition. Transformer Circuits Thread , 2022. C. Olah, N. Elhage, T. Henighan, and others. A toy model of interference weights. Transformer Circuits Thread , 2025. https://transformer-circuits.pub/2025/interference-weights/ index.html .C. Li, H. Farkhoor, R. Liu, and J. Yosinski. Measuring the intrinsic dimension of objective landscapes. In ICLR , 2018. N. Nanda, L. Chan, T. Lieberum, J. Smith, and J. Steinhardt. Progress measures for grokking via mechanistic interpretability. In ICLR , 2023. A. Power, Y. Burda, H. Edwards, I. Babuschkin, and V. Misra. Grokking: Generalization beyond overfitting on small algorithmic datasets. arXiv:2201.02177 , 2022. D. Stander, Q. Yu, H. Fan, and E. Vonosek. Grokking group multiplication with cosets. 
+
+arXiv:2312.06581 , 2024. Y. Xu. Low-dimensional and transversely curved optimization dynamics in grokking. 
+
+arXiv:2602.16746 , 2026. Y. Xu. The geometry of multi-task grokking: Transverse instability, superposition, and weight decay phase structure. arXiv:2602.18523 , 2026. Y. Xu. The spectral edge thesis: A mathematical framework for intra-signal phase transitions in neural network training. arXiv:2603.28964 , 2026. Z. Zhong, Z. Liu, M. Tegmark, and J. Andreas. The clock and the pizza: Two stories in mechanistic explanation of neural networks. In NeurIPS , 2024. 16 A Co-Usage Analysis Details 
+
+For each test input x = ( a, b ) and spectral direction vk, we define the per-example activation 
+
+ak(x) = ⟨∇ θℓ(x), v k⟩. The co-usage matrix Mij = corr (ai, a j ) captures whether two directions are activated by the same inputs. In Olah et al.’s framework [Olah et al., 2025], the raw singular value σk is analogous to a “virtual weight”—its magnitude in parameter space. The coactivation-corrected importance σk × dk (where 
+
+dk measures diagonal dominance of the co-usage matrix in the neighborhood of vk) is analogous to the “effective weight” after accounting for interference. In multitask models, we additionally compute the task-conditioned usage Uo,k = Ex∼task o[ak(x)2]and the sharedness score 
+
+Sk =
+
+ P  
+
+> o
+
+Uo,k 
+
+2
+
+T · P 
+
+> o
+
+U 2
+
+> o,k
+
+,
+
+ranging from 1 /T (task-specific) to 1 (equally shared across T tasks). Above-edge directions show high sharedness ( S ≈ 0.8–0 .9); below-edge directions are more task-specific ( S ≈ 0.3–0 .5). We deliberately avoid the term “circuits” for spectral edge directions. Section 5 established that these directions are not localized in any standard structural sense. The distinction is between functionally resolved and functionally unresolved modes, not between identified and unidentified circuits. 17

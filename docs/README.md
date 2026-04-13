@@ -6,38 +6,58 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-12
-- 运行时间：2026-04-12 19:52:39 UTC
+- 最新运行日期：2026-04-13
+- 运行时间：2026-04-13 20:01:32 UTC
 - 运行状态：成功
-- 本次总论文数：6
-- 精读区：1
-- 速读区：5
+- 本次总论文数：12
+- 精读区：2
+- 速读区：10
 
 ### 今日简报（AI）
-今日见证 AI 物理架构从“现象拟合”向“内生演绎”的范式跃迁，并同步探索小
-- 详情：[/202604/12/README](/202604/12/README)
+今日精选 12 篇前沿论文，深度解析了 Lambert 级数的数学变换与从物理场可视化中直接推导符号解的创新方法。
+重点关注如何利用视觉信息推断物理解析解，以及双 Lambert 级数在数论恒等式上的最新突破。
+建议优先研读两篇 9 分高分论文，探索数学纯理论与 AI 物理推理的跨界融合。
+- 详情：[/202604/13/README](/202604/13/README)
 
 ### 精读区论文标签
-1. [From Phenomenological Fitting to Endogenous Deduction: A Paradigm Leap via Meta-Principle Physics Architecture](/202604/12/2604.08245v1-from-phenomenological-fitting-to-endogenous-deduction-a-paradigm-leap-via-meta-principle-physics-architecture)  
-   标签：评分：8.0/10、query:sr-alg
-   evidence：将物理元原理嵌入神经网络架构
+1. [Identities and transformations for Lambert series and double Lambert series](/202604/13/2604.08839v1-identities-and-transformations-for-lambert-series-and-double-lambert-series)  
+   标签：评分：9.0/10、query:math-ai
+   evidence：无穷级数的恒等式与变换
+2. [Hidden in Plain Sight: Visual-to-Symbolic Analytical Solution Inference from Field Visualizations](/202604/13/2604.08863v1-hidden-in-plain-sight-visual-to-symbolic-analytical-solution-inference-from-field-visualizations)  
+   标签：评分：9.0/10、query:sr-alg
+   evidence：物理场的视觉到符号解析解推断
 
 ### 速读区论文标签
-1. [QED-Nano: Teaching a Tiny Model to Prove Hard Theorems](/202604/12/2604.04898v1-qed-nano-teaching-a-tiny-model-to-prove-hard-theorems)  
+1. [Automatically Generating Hard Math Problems from Hypothesis-Driven Error Analysis](/202604/13/2604.04386v1-automatically-generating-hard-math-problems-from-hypothesis-driven-error-analysis)  
    标签：评分：6.0/10、query:math-ai
-   evidence：针对奥数级别证明进行后期训练
-2. [CausalVAE as a Plug-in for World Models: Towards Reliable Counterfactual Dynamics](/202604/12/2604.07712v1-causalvae-as-a-plug-in-for-world-models-towards-reliable-counterfactual-dynamics)  
+   evidence：自动生成数学问题以评估大语言模型
+2. [The Thue-Morse Transform](/202604/13/2604.06243v1-the-thue-morse-transform)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：发现二进制序列以及邪恶数和可恶数的函数方程
+3. [Spectral Edge Dynamics Reveal Functional Modes of Learning](/202604/13/2604.06256v1-spectral-edge-dynamics-reveal-functional-modes-of-learning)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：模加法和乘法的机械可解释性
+4. [MENO: MeanFlow-Enhanced Neural Operators for Dynamical Systems](/202604/13/2604.06881v1-meno-meanflow-enhanced-neural-operators-for-dynamical-systems)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：从数据中恢复有意义的物理交互趋势
-3. [$φ-$DeepONet: A Discontinuity Capturing Neural Operator](/202604/12/2604.08076v1--deeponet-a-discontinuity-capturing-neural-operator)  
+   evidence：动力系统的神经算子作为物理定律的代理
+5. [When Equality Fails as a Rewrite Principle: Provenance and Definedness for Measurement-Bearing Expressions](/202604/13/2604.07626v1-when-equality-fails-as-a-rewrite-principle-provenance-and-definedness-for-measurement-bearing-expressions)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：含测量代数表达式的重写原理
+6. [Universal, sample-optimal algorithms for recovery of anisotropic functions from i.i.d. samples](/202604/13/2604.07660v1-universal-sample-optimal-algorithms-for-recovery-of-anisotropic-functions-from-iid-samples)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：用于不连续场的物理信息神经算子
-4. [Neural-Symbolic Knowledge Tracing: Injecting Educational Knowledge into Deep Learning for Responsible Learner Modelling](/202604/12/2604.08263v1-neural-symbolic-knowledge-tracing-injecting-educational-knowledge-into-deep-learning-for-responsible-learner-modelling)  
+   evidence：从样本中恢复高维函数
+7. [Loop, Think, & Generalize: Implicit Reasoning in Recurrent-Depth Transformers](/202604/13/2604.07822v1-loop-think--generalize-implicit-reasoning-in-recurrent-depth-transformers)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：用于隐式推理的循环深度Transformer
+8. [Towards Generalizable Representations of Mathematical Strategies](/202604/13/2604.08693v1-towards-generalizable-representations-of-mathematical-strategies)  
    标签：评分：6.0/10、query:math-ai
-   evidence：知识追踪中的神经符号集成
-5. [Distributed Multi-Layer Editing for Rule-Level Knowledge in Large Language Models](/202604/12/2604.08284v1-distributed-multi-layer-editing-for-rule-level-knowledge-in-large-language-models)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：跨越数学和物理符号表达式的规则
+   evidence：学习代数解题路径的问题不变表示
+9. [Meta-Learned Basis Adaptation for Parametric Linear PDEs](/202604/13/2604.09289v1-meta-learned-basis-adaptation-for-parametric-linear-pdes)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：用于求解参数化偏微分方程的可解释任务自适应高斯基底
+10. [PhysInOne: Visual Physics Learning and Reasoning in One Suite](/202604/13/2604.09415v1-physinone-visual-physics-learning-and-reasoning-in-one-suite)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：用于物理现象和属性推理的大规模数据集
 
 
 <div class="dpr-home-promo-card">
