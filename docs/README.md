@@ -6,58 +6,79 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-13
-- 运行时间：2026-04-13 20:01:32 UTC
+- 最新运行日期：2026-04-14
+- 运行时间：2026-04-14 20:12:35 UTC
 - 运行状态：成功
-- 本次总论文数：12
-- 精读区：2
-- 速读区：10
+- 本次总论文数：19
+- 精读区：7
+- 速读区：12
 
 ### 今日简报（AI）
-今日精选 12 篇前沿论文，深度解析了 Lambert 级数的数学变换与从物理场可视化中直接推导符号解的创新方法。
-重点关注如何利用视觉信息推断物理解析解，以及双 Lambert 级数在数论恒等式上的最新突破。
-建议优先研读两篇 9 分高分论文，探索数学纯理论与 AI 物理推理的跨界融合。
-- 详情：[/202604/13/README](/202604/13/README)
+今日聚焦19篇前沿成果，深度剖析多模态遗传编程与AI数学讲义两大满分神作。
+核心揭示了潜空间优化中的对齐机制，并展示了Transformer在哈达玛矩阵生成及GPU线程映射上的惊人潜力。
+建议优先研读AI for Math系统讲义，探索大模型如何重塑数学推理与底层算力优化。
+- 详情：[/202604/14/README](/202604/14/README)
 
 ### 精读区论文标签
-1. [Identities and transformations for Lambert series and double Lambert series](/202604/13/2604.08839v1-identities-and-transformations-for-lambert-series-and-double-lambert-series)  
+1. [Multi-Modal Learning meets Genetic Programming: Analyzing Alignment in Latent Space Optimization](/202604/14/2604.08324v2-multi-modal-learning-meets-genetic-programming-analyzing-alignment-in-latent-space-optimization)  
+   标签：评分：10.0/10、query:sr-alg
+   evidence：结合神经编码器与遗传算法的符号回归潜空间优化
+2. [Lectures on AI for Mathematics](/202604/14/2604.11504v1-lectures-on-ai-for-mathematics)  
+   标签：评分：10.0/10、query:math-ai
+   evidence：人工智能用于发现数学模式和定理的全面介绍
+3. [Order-3 pi-formulas, Apery-like kernels, and Clausen functoriality for Conservative Matrix Fields](/202604/14/2604.09723v1-order-3-pi-formulas-apery-like-kernels-and-clausen-functoriality-for-conservative-matrix-fields)  
    标签：评分：9.0/10、query:math-ai
-   evidence：无穷级数的恒等式与变换
-2. [Hidden in Plain Sight: Visual-to-Symbolic Analytical Solution Inference from Field Visualizations](/202604/13/2604.08863v1-hidden-in-plain-sight-visual-to-symbolic-analytical-solution-inference-from-field-visualizations)  
+   evidence：圆周率公式与规范多项式递归
+4. [Uncertainty-Aware Sparse Identification of Dynamical Systems via Bayesian Model Averaging](/202604/14/2604.10854v1-uncertainty-aware-sparse-identification-of-dynamical-systems-via-bayesian-model-averaging)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：物理场的视觉到符号解析解推断
+   evidence：动力系统控制方程的贝叶斯稀疏识别
+5. [A unified descriptor framework for hydrogen storage capacity and equilibrium pressure in interstitial hydrides](/202604/14/2604.11660v1-a-unified-descriptor-framework-for-hydrogen-storage-capacity-and-equilibrium-pressure-in-interstitial-hydrides)  
+   标签：评分：9.0/10、query:sr-alg
+   evidence：使用白盒符号回归揭示氢化物中的描述符-性质关系
+6. [Error terms for continued fractions of $e^{1/s}$ and $\sqrt{\frac{v}{u}}\tanh\!\Bigl(\frac{1}{\sqrt{uv}}\Bigr)$](/202604/14/2604.09726v1-error-terms-for-continued-fractions-of-e1s-and-sqrtfracvutanhbiglfrac1sqrtuvbigr)  
+   标签：评分：8.0/10、query:math-ai
+   evidence：分析数学常数和恒等式的连分数表示
+7. [Continued fractions, determinant expressions, and identities](/202604/14/2604.09727v1-continued-fractions-determinant-expressions-and-identities)  
+   标签：评分：8.0/10、query:math-ai
+   evidence：连分数和恒等式的系统推导
 
 ### 速读区论文标签
-1. [Automatically Generating Hard Math Problems from Hypothesis-Driven Error Analysis](/202604/13/2604.04386v1-automatically-generating-hard-math-problems-from-hypothesis-driven-error-analysis)  
+1. [Leveraging Mathematical Reasoning of LLMs for Efficient GPU Thread Mapping](/202604/14/2604.10387v1-leveraging-mathematical-reasoning-of-llms-for-efficient-gpu-thread-mapping)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：通过上下文学习实现自动数学推导过程
+2. [Geometric structure of ideal data-driven dynamical model using RfR method](/202604/14/2604.10550v1-geometric-structure-of-ideal-data-driven-dynamical-model-using-rfr-method)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：使用径向基函数的动力结构数据驱动建模
+3. [Generating Hadamard matrices with transformers](/202604/14/2604.11101v1-generating-hadamard-matrices-with-transformers)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：用于构造数学矩阵和组合搜索的 Transformer
+4. [MathAgent: Adversarial Evolution of Constraint Graphs for Mathematical Reasoning Data Synthesis](/202604/14/2604.11188v1-mathagent-adversarial-evolution-of-constraint-graphs-for-mathematical-reasoning-data-synthesis)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：数学数据合成的约束图无监督优化
+5. [THEIA: Learning Complete Kleene Three-Valued Logic in a Pure-Neural Modular Architecture](/202604/14/2604.11284v1-theia-learning-complete-kleene-three-valued-logic-in-a-pure-neural-modular-architecture)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：学习数学逻辑和算术的神经架构
+6. [Extraction of linearized models from pre-trained networks via knowledge distillation](/202604/14/2604.06732v1-extraction-of-linearized-models-from-pre-trained-networks-via-knowledge-distillation)  
    标签：评分：6.0/10、query:math-ai
-   evidence：自动生成数学问题以评估大语言模型
-2. [The Thue-Morse Transform](/202604/13/2604.06243v1-the-thue-morse-transform)  
+   evidence：利用Koopman理论从神经网络中提取线性化模型
+7. [CircuitSynth: Reliable Synthetic Data Generation](/202604/14/2604.10114v1-circuitsynth-reliable-synthetic-data-generation)  
    标签：评分：6.0/10、query:math-ai
-   evidence：发现二进制序列以及邪恶数和可恶数的函数方程
-3. [Spectral Edge Dynamics Reveal Functional Modes of Learning](/202604/13/2604.06256v1-spectral-edge-dynamics-reveal-functional-modes-of-learning)  
+   evidence：用于结构化生成和逻辑约束的神经符号框架
+8. [Adaptive Multi-Expert Reasoning via Difficulty-Aware Routing and Uncertainty-Guided Aggregation](/202604/14/2604.10335v1-adaptive-multi-expert-reasoning-via-difficulty-aware-routing-and-uncertainty-guided-aggregation)  
    标签：评分：6.0/10、query:math-ai
-   evidence：模加法和乘法的机械可解释性
-4. [MENO: MeanFlow-Enhanced Neural Operators for Dynamical Systems](/202604/13/2604.06881v1-meno-meanflow-enhanced-neural-operators-for-dynamical-systems)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：动力系统的神经算子作为物理定律的代理
-5. [When Equality Fails as a Rewrite Principle: Provenance and Definedness for Measurement-Bearing Expressions](/202604/13/2604.07626v1-when-equality-fails-as-a-rewrite-principle-provenance-and-definedness-for-measurement-bearing-expressions)  
+   evidence：针对数学问题复杂性的自适应多专家推理
+9. [VeriTrans: Fine-Tuned LLM-Assisted NL-to-PL Translation via a Deterministic Neuro-Symbolic Pipeline](/202604/14/2604.10341v1-veritrans-fine-tuned-llm-assisted-nl-to-pl-translation-via-a-deterministic-neuro-symbolic-pipeline)  
    标签：评分：6.0/10、query:math-ai
-   evidence：含测量代数表达式的重写原理
-6. [Universal, sample-optimal algorithms for recovery of anisotropic functions from i.i.d. samples](/202604/13/2604.07660v1-universal-sample-optimal-algorithms-for-recovery-of-anisotropic-functions-from-iid-samples)  
+   evidence：将自然语言转换为逻辑的神经符号流水线
+10. [Tensor-based Multi-layer Decoupling](/202604/14/2604.10858v1-tensor-based-multi-layer-decoupling)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：从样本中恢复高维函数
-7. [Loop, Think, & Generalize: Implicit Reasoning in Recurrent-Depth Transformers](/202604/13/2604.07822v1-loop-think--generalize-implicit-reasoning-in-recurrent-depth-transformers)  
+   evidence：从数据中学习多元输入输出关系
+11. [Emulating Non-Differentiable Metrics via Knowledge-Guided Learning: Introducing the Minkowski Image Loss](/202604/14/2604.11422v1-emulating-non-differentiable-metrics-via-knowledge-guided-learning-introducing-the-minkowski-image-loss)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：用于隐式推理的循环深度Transformer
-8. [Towards Generalizable Representations of Mathematical Strategies](/202604/13/2604.08693v1-towards-generalizable-representations-of-mathematical-strategies)  
+   evidence：为不可微科学指标学习可微代理模型
+12. [Triviality Corrected Endogenous Reward](/202604/14/2604.11522v1-triviality-corrected-endogenous-reward)  
    标签：评分：6.0/10、query:math-ai
-   evidence：学习代数解题路径的问题不变表示
-9. [Meta-Learned Basis Adaptation for Parametric Linear PDEs](/202604/13/2604.09289v1-meta-learned-basis-adaptation-for-parametric-linear-pdes)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于求解参数化偏微分方程的可解释任务自适应高斯基底
-10. [PhysInOne: Visual Physics Learning and Reasoning in One Suite](/202604/13/2604.09415v1-physinone-visual-physics-learning-and-reasoning-in-one-suite)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于物理现象和属性推理的大规模数据集
+   evidence：数学推理的无监督强化学习
 
 
 <div class="dpr-home-promo-card">

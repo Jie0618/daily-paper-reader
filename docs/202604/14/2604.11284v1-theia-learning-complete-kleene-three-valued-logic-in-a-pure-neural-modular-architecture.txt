@@ -1,0 +1,443 @@
+Title: THEIA: Learning Complete Kleene Three-Valued Logic in a Pure-Neural Modular Architecture
+
+URL Source: https://arxiv.org/pdf/2604.11284v1
+
+Published Time: Tue, 14 Apr 2026 02:04:31 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# THEIA: Learning Complete Kleene Three-Valued Logic in a Pure-Neural Modular Architecture 
+
+Augustus Haoyang Li 1
+
+# Abstract 
+
+We present THEIA, a modular neural architec-ture that learns complete Kleene three-valued logic (K3) end-to-end without any external sym-bolic solver, and investigate what architectural prior enables compositional generalization un-der uncertainty. THEIA processes four math-ematical domains (arithmetic, order, set mem-bership, propositional logic) through dedicated engines that converge in a final logic module. Trained on a 2M-sample dataset with input space 
+
+∼3.4×10 13 , it achieves 12/12 Kleene K3 rule cov-erage across 5 seeds in 9.2 ± 3.5 minutes ( 5.6×
+
+faster than a parameter-comparable Transformer under matched settings). A mod-3 sequential com-position experiment generalizes from 5-step train-ing to 500-step evaluation at 99 .97% ± 0.02% —a result that critically depends on structured in-ductive bias: replacing the four-engine back-bone with a flat MLP collapses length gener-alization to chance by 50 steps regardless of capacity (both 0.80M and parameter-matched 2.75M variants fail), while a pre-LN TF8LTuned Transformer baseline (3,582,147 params) trained under the identical protocol reaches 99 .24% at 500 steps (Appendix D). Mechanistic probing re-veals that modularity induces a delayed verdict :upstream engines encode domain-specific vari-ables without committing to the final truth value (probe accuracy ≤ 74% uncertainty-only ceiling), with the verdict emerging only at the Logic En-gine boundary—causally confirmed by activation patching ( 100% flip rate on 986 matched pairs, replicated across n = 5 seeds; 100.0% aggregate). The Transformer baseline reaches equivalent cor-rectness through a qualitatively different represen-tational trajectory (contraction then expansion), suggesting that modular and monolithic architec-
+
+Preprint. Submitted to the 2nd Workshop on Compositional Learning (CompLearn) at ICML 2026. 1Irvine Valley College, Irvine, CA, USA. Correspondence to: Augustus Haoyang Li <au-gustus@gus.li >.
+
+tures implement distinct compositional strategies. 
+
+# 1. Introduction 
+
+Compositional reasoning—combining sub-results from in-dependent domains into a coherent conclusion—is a hall-mark of systematic generalization. Symbolic solvers such as Z3 [ 1] achieve formal correctness but require hand-crafted rules and cannot gracefully handle incomplete information. Neuro-symbolic systems (DeepProbLog [ 2 ], NeurASP [ 3], Scallop [ 4 ]) bridge symbolic and neural paradigms, but in every case the actual three-valued or probabilistic inference is delegated to an external symbolic component—a proba-bilistic logic solver, an Answer Set Programming layer, or a Datalog engine. The neural component provides perception or differentiable scoring; the symbolic component provides the inference. We ask two questions: can a pure neural network learn complete Kleene three-valued logic—including the non-trivial absorption rules where a definite value overrides an Unknown—without any external symbolic inference engine? 
+
+And if so, what architectural prior enables the resulting compositional computation to generalize to chains 100 ×
+
+longer than training? 
+
+Three-valued logic with formal Unknown handling arises naturally in database query optimization (SQL NULL se-mantics), medical diagnosis with missing test results, and legal reasoning with undetermined facts. In all these settings, correctly propagating “I don’t know” through a reasoning chain—and knowing when a definite value overrides that uncertainty—is essential for safe decision-making. We present THEIA 1, a modular neural reasoning engine op-erating in 128-dimensional vector space. THEIA processes four mathematical domains—arithmetic, order relations, set membership, and propositional logic—through dedicated neural engines. Inputs may be marked as Unknown with probability P = 0 .15 , and the system must propagate uncer-tainty according to Kleene’s strong three-valued logic [ 5]— including the non-trivial short-circuit rules where a definite value absorbs an uncertain one. All inference, including 
+
+> 1
+
+Three-valued Hybrid Engine for Inference Architecture. 
+
+1
+
+> arXiv:2604.11284v1 [cs.LG] 13 Apr 2026 THEIA: Learning Complete Kleene Three-Valued Logic
+
+Unknown propagation, happens inside the network; there is no external solver. 
+
+Contributions. 
+
+1. Structured inductive bias is required for composi-tional generalization; flat MLPs collapse regardless of capacity : A mod-3 chain experiment with Gumbel-softmax discretization generalizes from 5-step training to 500-step evaluation at 99.97% ± 0.02% accuracy across 5 seeds (§4.5). Controlled ablations (Appendix D) show that replacing THEIA’s four-engine backbone with flat MLPs—both a 3.4× smaller (0.80M) and a parameter-matched (2.75M) variant—collapses compositional gen-eralization to chance level by 50 steps, despite matching local Kleene accuracy to within 0.04% . A pre-LN Trans-former baseline (TF8LTuned, 3,582,147 params) trained under the identical three-phase protocol reaches 99.24% at 500 steps, confirming that structured architectures (modular or attention-based) sustain compositional gen-eralization where flat representations fail. THEIA retains a 0.73pp accuracy advantage at 500 steps alongside its convergence-speed and interpretability benefits. 2. Delayed verdict and causal localization : Both linear and a 2-hidden-layer MLP probe with best-test-epoch selection (Appendix C) place upstream verdict decodabil-ity at or below the 74% uncertainty-only ceiling ( 60 .9% 
+
+linear / 61 .1% MLP at the Arithmetic boundary, a 0.2pp gap that rules out the “linearly inaccessible” explana-tion); the logic operator is undecodable (chance) before the Logic Engine. We further causally verify this com-mitment structure: activation patching of vord between 
+
+1,000 matched (T ∨F, U ∨F ) pairs flips the prediction from T to U on 986 /986 = 100% of correctly-baselined pairs (replicated across n = 5 seeds, 100.0% aggregate), with zero residual shortcut. Within-architecture F–T pro-gression ratios are 1,898 × for THEIA vs. 42 × for the Transformer (§4.3). 3. Consistent wall-clock convergence advantage : Un-der matched optimizer settings, THEIA (2.75M param-eters) reaches stable 12/12 Kleene per-rule accuracy across all 5 random seeds in 9.2 ± 3.5 minutes per seed. A parameter-comparable 8-layer Transformer baseline (BigTransformer, 3,641,859 params; verified by state-dict fingerprint) under the same protocol reaches 12/12 on 7 of 8 seeds ( 51 .5 ± 11 .0 minutes; the one non-converging seed converges under Transformer-specific tuning; Appendix E). Both architectures converge reli-ably; the gap is in wall-clock cost: 5.6× under matched protocol ( n = 8 ); a Transformer-standard tuned recipe (n = 3 , Appendix E) narrows the gap to ∼3.1× on the Kleene-aware criterion. THEIA’s convergence-time ad-vantage is partly but not fully explained by hyperparam-eter choice (§4.2). 
+
+Falsifiable hypotheses. We make three concrete claims, each paired with the evidence that would falsify it. H1 (structured bias for compositional generalization): re-placing the four-engine backbone with a flat MLP (Ap-pendix D specifies both the 0.80M and parameter-matched 2.75M configurations), holding all other pipeline compo-nents fixed, collapses Phase 3 Gumbel-softmax end-to-end training; a Transformer baseline under the same protocol sustains generalization. Falsified by : a flat-MLP variant sus-taining ≥ 99% 500-step chain accuracy under any Phase 3 learning-rate setting (Appendix D). H2 (delayed verdict, descriptive & causal): (a) upstream engine outputs do not encode the True/False distinction in a form decodable by a standard 2-layer MLP probe, beyond the uncertainty-only ceiling; and (b) the Logic Engine’s absorption behavior on OR-gated inputs is causally determined by the Order-Engine output vector. Falsified by : either an MLP probe exceeding 74% verdict accuracy at the Arithmetic, Order, or Set boundary (§4.3, Appendix C); or activation patching of 
+
+vord between matched T ∨F and U ∨F pairs failing to flip the prediction on a non-trivial fraction of pairs (§4.3). H3 (compute-matched convergence speed): under matched optimizer settings and a 150-epoch budget, THEIA reaches 12/12 Kleene coverage at materially lower wall-clock cost than a parameter-comparable 8L Transformer on the same seed set. Falsified by : a Transformer baseline matching THEIA’s 9.2 ± 3.5 min Kleene-aware convergence on a majority of seeds under the matched protocol (§4.2). Ex-tended to n = 8 seeds (7/8 converge, 51 .5 ± 11 .0 min), the 
+
+5.6× wall-clock gap persists; a Transformer-standard tuned follow-up ( n = 3 , Appendix E) narrows the gap to ∼3.1×
+
+on the Kleene-aware criterion but does not close it. 
+
+# 2. Related Work 
+
+Neuro-Symbolic Systems. DeepProbLog [ 2 ] extends probabilistic logic programming with neural predicates. NeurASP [ 3] integrates neural networks with Answer Set Programming. Scallop [ 4 ] provides differentiable reasoning over Datalog. Crucially, all of these systems delegate the actual three-valued or probabilistic inference to an external symbolic component—a probabilistic logic solver, an An-swer Set Programming layer, or a Datalog engine. THEIA performs all reasoning, including Unknown propagation and short-circuit absorption, neurally. Neural module net-works [ 17 ] pioneered modular neural architectures for com-positional reasoning, inspiring THEIA’s domain-specific engine design. Marra et al. [ 23 ] survey the neurosymbolic landscape. 
+
+Three-Valued Logic in AI. Kleene’s strong three-valued logic (K3) underpins SQL’s NULL handling and logic pro-gramming semantics [ 10 ]. To our knowledge, no prior work has demonstrated neural learning of complete Kleene al-2THEIA: Learning Complete Kleene Three-Valued Logic 
+
+gebraic rules—including short-circuit absorption in both operand orders—from data alone, without an external sym-bolic inference component. We note that our “first” claim concerns learning K3 from task data via gradient descent starting from a random initialization. This is distinct from in-context demonstration of K3 rules by pretrained LLMs, which inherit substantial logical priors from natural-language training data and which we do not consider to be “learning” in the same sense. 
+
+Three-Valued Neural Networks. Earlier work explored three-valued neural networks from a circuit-synthesis per-spective. Chan and Hsu [ 19 ] proposed neural three-valued-logic networks where individual neurons were hand-designed to implement three-valued AND/OR gates. Hsu and Teh [ 20 ] generalized this to multi-valued neural logic networks with hardcoded gate semantics. The TMLNN architecture [ 21 ] introduced training algorithms for multi-valued neuron parameters but retained hand-engineered three-valued gate primitives. More recently, Logical Neural Networks [ 22 ] hardcode each neuron as a logical connec-tive and apply symbolic Upward–Downward inference at runtime. THEIA differs from all of these: its neurons are generic MLP units, and the Kleene three-valued algebra emerges as a learned representational property rather than as architecturally encoded primitives. 
+
+Why not an empirical LNN baseline? Logical Neural Networks (LNN) [ 22 ] are the closest existing system in design intent, but cannot serve as an empirical baseline for THEIA: LNN requires the logical formula structure to be hand-specified (only operand weights are learned, not the formula graph), and explicitly does not handle nu-merical functions or equality, 2 so it cannot evaluate a + b,
+
+c > d , or c ∈ S—the operations that constitute THEIA’s input pipeline. LNN addresses a complementary problem (weighted inference over hand-specified knowledge bases), not the question investigated here (whether a pure neural network can learn K3 truth tables from numerical data). 
+
+Neural Algorithmic Reasoning and Probing. The CLRS benchmark [ 6 ] and Discrete Neural Algorithmic Reasoning (DNAR) [ 7] target deterministic two-valued algorithmic reasoning; THEIA targets three-valued logic with native Unknown propagation as a learned representational prop-erty. The multi-hop and modular-arithmetic results of §4.4 additionally touch on GNN expressivity [ 8, 9] and over-smoothing [ 11 , 12 ]; our delayed-verdict analysis (§4.3) ex-tends linear-probing methodology [ 14 ] to modular reasoning architectures.  
+
+> 2See Riegel et al. [ 22 ], Supplementary Material on First-Order LNN, which defers function and equality handling to future work; the TPTP experiment filters its evaluation set accordingly.
+
+# 3. Architecture 
+
+3.1. Overview 
+
+THEIA processes a four-domain reasoning chain in a fixed sequential-parallel topology. We define domain-separated encoding as an architecture where each reasoning domain (arithmetic, order, set, logic) is processed by a dedicated engine with no shared parameters between domain en-coders and no cross-domain attention —information flows between domains only through explicit bridge layers at do-main boundaries. The forward pass is: 
+
+c = ArithEngine (a, b, ⊕) (1) 
+
+vord = OrderEngine (Bridge ao (c) + c, d, R ) (2) 
+
+vset = SetEngine (Bridge as (c) + c, S ) (3) 
+
+o = OutHead (LogicEngine (vord , vset , ⊙)) (4) where Bridge ao and Bridge as are residual MLPs (Linear →
+
+GELU → LayerNorm, 33K parameters total) that transform the arithmetic output for downstream engines. The Order and Set engines operate in parallel on the bridged arithmetic vector; their outputs converge in the Logic engine. Each input has probability Punk = 0 .15 of being Unknown, receiv-ing a learnable embedding vector. The architecture follows standard MPNN principles [15] with domain-specific mod-ules. 
+
+3.2. Domain Engines 
+
+Each engine is a small MLP stack ( ∼0.5M parameters) with domain-specific inputs. Arithmetic Engine : numerical en-coder fused with operator embedding. Order Engine and 
+
+Logic Engine : three parallel sub-MLPs with pairwise cross-fusion, corresponding respectively to (Global/Local/Event) and (Conjunctive/Disjunctive/Implicative) subspaces. Set Engine : 21-dim binary vector encoder with dedicated un-known embedding. The subspace decomposition in the Order and Logic engines is an empirical design choice that improves convergence; an ablation (§4.4) shows that replac-ing it with a single MLP of equivalent capacity also passes all 12 Kleene rules, indicating that the subspace structure aids convergence but is not necessary for correctness. 
+
+3.3. Output and Multi-Hop Extension 
+
+Three prototype vectors {pT , pF , pU } ∈ R128 are initial-ized orthogonally [ 18 ]; classification uses cosine similar-ity ˆy = arg max v cos( o, pv ) with cross-entropy loss and Unknown upweighting ( wU = 2 .0). For structural general-ization experiments, a bidirectional message-passing GNN replaces the single-step Order Engine, with shared MLPs and message-passing depth T decoupled from chain length. 3THEIA: Learning Complete Kleene Three-Valued Logic 
+
+# 4. Experiments 
+
+4.1. Setup 
+
+All experiments use an NVIDIA RTX 5080 (16GB), AdamW optimizer [ 16 ] ( lr = 10 −3), cosine annealing, and mixed precision (FP16). Four-domain experiments use 2M samples (80/20 train-test split; 400K test samples) with NUM RANGE = 20 and Punk = 0 .15 . The resulting la-bel distribution is approximately 26% False, 33% True, and 41% Unknown; class weighting ( wU = 2 .0) com-pensates for the imbalance. Kleene diagnostic tests use 10,000 independently generated samples per rule. Diagnos-tic construction requires care to avoid inadvertently making operands Unknown via cross-domain coupling and to avoid edge cases in relation construction; the correct protocol and the two specific pitfalls we encountered are documented in Appendix A. Multi-hop experiments use 1M samples with 5-hop training chains. All multi-seed experiments use seeds {42 , 123 , 256 , 777 , 999 }; Transformer baseline exper-iments are extended to 8 seeds with {31415 , 27182 , 14142 }
+
+where noted. 
+
+4.2. End-to-End Three-Valued Algebraic Learning 
+
+Under fair early-stopping (matching THEIA’s convergence criterion: overall accuracy > 99 .9% AND all 12 Kleene rules > 99% on two consecutive checkpoints), the 8L Trans-former reaches 12/12 on 7 of 8 seeds with mean wall-clock 
+
+51 .5 ± 11 .0 min (range 34–63 min, over the 8 attempted seeds {42 , 123 , 256 , 777 , 999 , 31415 , 27182 , 14142 }). On the remaining seed (123) it fails to converge within the 150-epoch budget; this seed converges under Transformer-specific tuning (Appendix E), indicating hyperparameter sensitivity rather than an architectural limitation. THEIA reaches 12/12 on 5/5 seeds in 9.2 ± 3.5 min, yielding a 5.6×
+
+speedup under matched optimizer settings. The contribu-tion we claim is therefore a consistent wall-clock advantage, not a reliability difference: both architectures converge on nearly all seeds. We use a Transformer baseline of compara-ble rather than strictly matched capacity: the 8-layer, 8-head, 
+
+d=192 configuration has 3.64M parameters compared to THEIA’s 2.75M, giving the Transformer a ∼32% parameter advantage; THEIA’s efficiency and interpretability results are therefore not explained by capacity. We return to the comparison between modular and monolithic representa-tions in §5. 
+
+Why Kleene accuracy is the primary metric. Kleene short-circuit and absorption rules occur at low natural fre-quency ( F ∨F < 0.8% of training samples), so bulk overall accuracy can be satisfied while edge-case rules remain un-reliable. We therefore treat the per-rule Kleene diagnostic (Tables 5 and 6) as the primary metric, and all convergence-time comparisons use a Kleene-aware stopping criterion. 
+
+Hyperparameter sensitivity of the convergence gap. Anatural concern is that both architectures were trained un-der a single optimizer configuration (AdamW lr= 10 −3 +cosine) to isolate the architectural variable. To bound the contribution of Transformer-specific tuning, we run the 8L Transformer baseline with a Transformer-standard recipe (peak lr = 10 −4, β = (0 .9, 0.98) , 5-epoch linear warmup followed by cosine decay, gradient clipping 1.0), keeping the architecture, data generation, class weights, Kleene diagnos-tic, and random seed identical to the matched-protocol runs; only the optimizer schedule differs (Appendix E). On n = 3 
+
+seeds {42 , 123 , 256 }, all tuned runs reach ≥99.90% overall accuracy and pass 12/12 Kleene rules ( ≥99.73% per rule on seed 123, ≥99.63% per rule on seed 256). Seed 42 reaches 12/12 Kleene coverage at epoch 60 in 28.9 minutes ; seeds 123 and 256 reach overall accuracy ≥ 99 .9% at epochs 73– 98 in ∼38.8 minutes. 3 Using the overall-accuracy milestone across all three seeds, the tuned Transformer converges in a mean of 39 .7 ± 5.0 minutes, compared to THEIA’s 5.7 ± 1.4
+
+minute overall-accuracy mean—a ratio of ∼7.0 ×. Notably, the matched-protocol seed that failed to converge (seed 123) converges readily under tuning, confirming that the failure reflects optimizer sensitivity rather than an architectural limitation. The matched-protocol ratio of 5.6× (n = 8 )therefore narrows under Transformer-specific tuning, but does not close; THEIA’s convergence-time advantage is partly but not fully explained by hyperparameter choice. 
+
+Targeted diagnostic verification. We construct samples with precisely controlled inputs to verify each Kleene rule independently (10K samples/rule; a rule passes if per-rule accuracy exceeds 99%). All 12 rules pass at > 99% across all 5 seeds (60/60 rule–seed combinations; worst single-rule mean 99.80% for U ∧ T ; minimum 99.68% for U ∨ F ). The commuted absorption rules ( U ∧ F †, U ∨ T †) are learned correctly in both operand orders (means 99.93%). Full per-rule results for all 12 targeted rules, together with the complete 39-rule Kleene K3 diagnostic, are reported in Appendix B (Tables 5 and 6). 
+
+4.3. Delayed Verdict: Probe Evidence and Information-Flow Structure 
+
+We extract hidden representations at domain boundaries —the output vector of each engine after its full internal computation—and analyze them using linear SVM probes and inter-class Euclidean distance (Table 2). All probing analyses use the same 5 trained checkpoints as Table 5, with 50K samples per checkpoint; results are mean ± std across seeds. Probing at domain boundaries rather than within engines tests whether classification information crosses do- 
+
+> 3Post-hoc Kleene diagnostic confirms 12/12 on all three tuned seeds ( ≥99.73% per rule on seed 123, ≥99.63% per rule on seed 256).
+
+4THEIA: Learning Complete Kleene Three-Valued Logic             
+
+> Table 1. Four-domain reasoning accuracy under matched optimizer settings. THEIA statistics are over 5 seeds; Transformer statistics are over 8 seeds (the initial 5 plus 3 additional seeds {31415 ,27182 ,14142 }). Both architectures pass all 12 Kleene diagnostic rules at >99% on every converged seed (Table 5); the Transformer converges on 7/8 seeds (the one failure, seed 123, converges under Transformer-specific tuning; Appendix E). A tuned follow-up ( n= 3 , Appendix E) narrows the 5.6×wall-clock ratio to ∼3.1×on the Kleene-aware criterion; all three tuned seeds also pass 12/12 Kleene rules.
+
+Model Accuracy Parameters Seeds 12/12 Time (min) THEIA (modular) 99.96% ± 0.01% 2.75M 5/5 9.2 ± 3.5 ∗
+
+Transformer (8L, 8H) 99.98% ± 0.01% 3.64M 7/8 51 .5 ± 11 .0 †
+
+THEIA speedup, matched protocol (tuned: ∼3.1×, App. E) 5.6×                  
+
+> ∗Seed 42 was trained under an earlier diagnostic harness version whose early-stopping criterion did not fire correctly (see Appendix A); the checkpoint was re-evaluated under the fixed harness, yielding the 12/12 reported throughout. The reported 9.2±3.5min mean therefore upper-bounds THEIA’s true Kleene-aware convergence time. †Transformer: 7 of 8 seeds converged within 34–63 min (mean 51.5 ±11.0 over the 7 converged seeds; the 8 attempted seeds are {42 ,123 ,256 ,777 ,999 ,31415 ,27182 ,14142 }with seed 123 failing to converge under the matched protocol; 150-epoch budget). Seed 123 failed to converge under the matched protocol but converges under Transformer-standard tuning (Appendix E), suggesting hyperparameter sensitivity rather than an architectural limitation.
+
+main transitions , not individual layer boundaries. THEIA’s upstream stages encode no final-verdict informa-tion decodable beyond the uncertainty signal, regardless of probe family. At the Arithmetic boundary, linear-probe accuracy for the 3-class verdict is 60.9%, well below the 
+
+74% theoretical ceiling for any classifier that has access only to the uncertainty signal. This ceiling is computed as 0.41 × 1.0 + 0 .59 × 0.559 = 0 .74 , where 0.41 is the empirical fraction of samples with label = Unknown under our data distribution, and 0.559 is the True-class fraction among non-Unknown samples (the optimal majority-class guess). The Order and Set boundaries reach 67.2% and 69.7%, still below this uncertainty-only baseline; classifica-tion then jumps to 99.9% at the Logic boundary. A natural alternative explanation is that information is present but lin-early inaccessible; to rule this out, we train a 2-hidden-layer MLP probe ( 128 → 256 → 256 → 3, GELU, dropout 0.1) on the same representations and 5 seeds, with best-test-epoch selection over 40 epochs—a setup deliberately biased in the probe’s favor. The nonlinear probe reaches 61.1% / 67.6% / 70.4% / 100.0% at Arith/Order/Set/Logic—a worst-case gap of +0 .7pp over the linear probe and never exceeding the 
+
+74% ceiling upstream (Appendix C, Table 8). The upstream representations do not encode the True/False distinction in any probe-accessible form we tested, not merely in a linearly-decodable one. The F–T centroid distance grows by a factor of 1,898 × from arithmetic to logic, consistent with the architecture’s design: each upstream engine com-putes its designated variable in a representation that does not yet carry the final verdict. 
+
+Transformer baseline layer-wise probing. For direct comparison, we apply the same probing protocol layer-by-layer to the (larger) 8-layer Transformer baseline of Table 1, which reaches the same final correctness as THEIA on the Kleene diagnostic. The probing analysis uses the matched-protocol Transformer configuration of §4.2; whether the contraction–expansion trajectory described below persists under the tuned configuration of Appendix E is left to future work. The trajectory (Table 3) differs qualitatively from THEIA’s; we discuss the implications in §5. 
+
+Mechanistic probing. To trace how information flows through THEIA’s pipeline, we train linear probes at each domain boundary to decode six intermediate variables: arith-metic result ( R2), order truth value, set truth value, final verdict, logic operator identity, and Has-Unknown (all clas-sification accuracy). Full results are reported in Appendix C, Table 7. Three findings stand out. (1) No downstream-task leak-age: the logic operator is undecodable before the Logic Engine (20.2% = chance for 5 classes). (2) Late-stage nu-merical collapse: arithmetic R2 stays high through Arith and Order ( ∼0.83), drops at Set (0.81), and collapses at Logic (0.16). (3) Uncertainty tracking preserved: Has-Unknown accuracy is ≥80.2% at every layer (vs. ≈ 52% 
+
+majority baseline), reaching 99.7% at the Logic output. The subspace structure documented here is unique to THEIA; Appendix D demonstrates that flat-MLP backbones collapse under the end-to-end discretized training of §4.5, while both THEIA and a Transformer baseline remain stable. 
+
+Causal verification via activation patching. The probing results above are descriptive: they show that final-verdict information is not probe-accessible at upstream boundaries. A stronger claim—that the Logic Engine’s absorption be-havior is causally driven by the Order-Engine output vector 
+
+vord rather than by a residual shortcut—requires an interven-tion. We construct 1,000 matched (T ∨F, U ∨F ) pairs on a converged seed-42 checkpoint, with shared a, b , arithmetic operator, set bits (chosen so c / ∈ S, fixing val set = F ), logic operator (OR), and definite flags, so that c, both bridge 5THEIA: Learning Complete Kleene Three-Valued Logic            
+
+> Table 2. Delayed verdict by domain boundary. Mean ±std over 5 trained checkpoints (seeds {42 ,123 ,256 ,777 ,999 }); 50K samples per checkpoint. SVM accuracy is the linear probe accuracy on a 3-class classification task; F–T distance is the Euclidean distance between class centroids in the 128-dim representation space; separation ratio is computed as the mean of per-seed (Logic/Arithmetic) F–T-distance ratios, yielding 1,898 ×. The slightly different value obtained from the ratio of aggregate means ( 272 .7/0.146 ≈1,868 ×) reflects the standard mean-of-ratios versus ratio-of-means difference and is not a discrepancy. Raw Euclidean distances are not directly comparable across architectures due to differing hidden dimensions (THEIA: 128, Transformer: 192) and activation scales (e.g., LayerNorm in the Transformer). The within-architecture progression ratio is reported as a measure of commitment dynamics rather than a cross-architecture magnitude claim.
+
+Domain Boundary SVM Accuracy F–T Distance Separation Ratio Arithmetic 0.609 ± 0.001 0.146 ± 0.015 —Order 0.672 ± 0.002 3.130 ± 0.302 —Set 0.697 ± 0.002 5.967 ± 0.643 —
+
+Logic 0.999 ± 0.000 272 .738 ± 37 .070 1,898 ×    
+
+> Table 3. Layer-wise linear probing of the 8-layer Transformer baseline (Table 1), analogous to Table 2. Mean ±std over 5 seeds; 50K samples per seed. F–T distances are Euclidean; post-LN normalization may contribute to the layer-1 contraction.
+
+Layer SVM Accuracy F–T Distance 
+
+input embed. 0.750 ± 0.001 0.381 ± 0.011 layer 1 0.781 ± 0.007 0.224 ± 0.025 layer 2 0.785 ± 0.011 0.342 ± 0.097 layer 3 0.859 ± 0.040 1.305 ± 0.514 layer 4 0.999 ± 0.000 8.322 ± 3.113 layer 5 1.000 ± 0.000 13.137 ± 0.479 layer 6 1.000 ± 0.000 14.470 ± 0.767 layer 7 1.000 ± 0.000 14.841 ± 0.694 layer 8 1.000 ± 0.000 16.036 ± 0.928 
+
+Layer 8 / input ratio 42 .1 ± 2.5×
+
+outputs, and vset are byte-identical across sides by con-struction. The two sides differ only in the Order-Engine inputs: T-side sets d = max(0 , c −1) with dunk =False un-der REL GTE (so val ord =T ); U-side sets dunk =True (so val ord =U ). Expected Kleene outputs are T ∨ F = T and 
+
+U ∨ F = U . Under data seed 12345 for pair construc-tion, baselines are correct on all 1000 /1000 T-side pairs and on 986 /1000 U-side pairs—the residual U-side error is consistent in direction with the single-checkpoint noise around the 99 .85% U∨F per-rule accuracy reported in Ap-pendix B—and we restrict the patching analysis to the 986 pairs where both baselines classify correctly. The vset byte-equality check passes on all 986/986 pairs. For each pair we then classify OutHead (LogicEngine (v(U ) 
+
+> ord
+
+, v(T ) 
+
+> set
+
+, OR )) ,feeding the U-side ord vector into the otherwise-T-side for-ward pass. The patched prediction flips from T to U on 986/986 = 100 .0% of pairs , with zero instances remain-ing at T and zero falling to F . The Logic Engine’s ab-sorption behavior on OR-gated inputs is therefore causally determined by vord , with no detectable residual shortcut. Combined with the probe-family-robust delayed-verdict ev-idence above, this localizes the verdict commitment at the Logic-Engine boundary not only descriptively but causally. We extend this analysis to all 5 trained checkpoints (seeds 
+
+{42 , 123 , 256 , 777 , 999 }) using the same data seed 12345: aggregate flip rate is 4898/4898 = 100.0%, with no per-seed flip rate below 100%. The minimum per-seed eligible count is 960 (driven by T-side baseline correctness on the corresponding pair construction), demonstrating that causal localization at the Logic-Engine boundary is robust across seeds. 
+
+4.4. Ablation Studies Subspace decomposition. Replacing the Logic Engine’s three parallel subspaces (C/D/I) with a single MLP (2.49M total parameters, fewer than the full model’s 2.75M) still achieves 99.97% overall accuracy and passes all 12 Kleene rules at > 99% (worst rule: F ∨ U at 99.73%, converges in ∼100 epochs). The C/D/I decomposition aids conver-gence but is not the source of correctness; a smaller, simpler reasoning module attains the same algebraic competence. 
+
+Bridge layers. Removing the cross-domain bridge layers (33K parameters, 1.2% of total) yields a 2.72M-parameter model that achieves 99.97% overall accuracy and passes all 12 Kleene rules at > 99% (worst rule: T ∧ U at 99.94%, converges in ∼120 epochs). The bridge layers contribute negligibly to final accuracy on the static four-domain Kleene task; whether they contribute to the end-to-end discretized training of §4.5 (where the full modular backbone is re-quired, Appendix D) is not tested here and remains open. 
+
+Unknown probability cross-distribution generalization. 
+
+A model trained at Punk = 0 .05 (only 5% of input slots marked Unknown) is evaluated on a test set generated at 
+
+Punk = 0 .50 (a 10 × shift in Unknown prevalence). It achieves 99.9975% overall accuracy with per-class accuracy 99.98% (False), 99.99% (True), 99.99% (Unknown), and passes all 12 Kleene rules at > 99% (worst rule: F → U
+
+6THEIA: Learning Complete Kleene Three-Valued Logic 
+
+at 99.98%). This result rules out the hypothesis that the model is fitting the training Unknown distribution: the net-work learns Kleene rules that are invariant to Unknown frequency. 
+
+Multi-hop chain reasoning. A GNN extension on tran-sitive order chains ( {>, <, =}) achieves 99.99% accuracy from 5 to 50 hops, but 99.6% of chains are determined by the first non-identity edge (decisive depth ≈ 0.5 hops) be-cause > and < are absorbing states; long-chain accuracy therefore reflects first-hop encoding. Modular arithmetic on graphs (addition mod 5), which requires genuine global aggregation, could not be learned. These results motivate the sequential-composition experiment in §4.5, which elimi-nates absorbing states. 
+
+Numerical range generalization. Accuracy drops sharply outside the training range ( 100% → 71 .5% →
+
+61 .3% at [0 , 20] → [0 , 50] → [0 , 100] ), consistent with known neural arithmetic limitations [ 13 ]—a deployment barrier also discussed in §4.5. 
+
+4.5. Sequential Composition Generalization 
+
+The multi-hop result (§4.4) established that transitive chain accuracy is trivially explained by absorbing states, while global computation (modular arithmetic on graphs) cannot be learned. We now ask: can THEIA generalize sequential local composition to arbitrary length when absorbing states are eliminated? 
+
+Task design. We replace Kleene chain composition (which has absorbing states: F ∧ X = F , T ∨
+
+X = T ) with modular arithmetic: state t = ( state t−1 +
+
+local verdict t) mod 3 . This has no absorbing states, a non-trivial 9-entry transition table, and approximately uniform state distribution at all chain depths. 
+
+Architecture. Each chain step uses the full THEIA pipeline for a local verdict, followed by a lightweight transi-tion MLP (4,803 params) combining previous state and cur-rent verdict. Gumbel-softmax straight-through discretizes the state at each step (hard one-hot forward, smooth back-ward), so step 500 receives input of identical quality to step 5. 
+
+Three-phase training. Phase 1: THEIAStep is trained independently on 2M single-step samples to ≥99.9% local verdict accuracy ( ∼50 epochs). A plateau-restart mecha-nism detects convergence failure (accuracy <90% after 40 epochs) and reinitializes parameters, ensuring robust con-vergence across all seeds. Phase 2: THEIAStep is frozen; the transition network is trained with teacher-forced ground-truth states for 2 epochs to 100% accuracy, learning the complete mod-3 addition table (9/9 entries correct). Phase 3: all parameters are unfrozen for end-to-end fine-tuning with Gumbel-softmax on 5-step chains ( ∼30 epochs to 100%). 
+
+Results. Table 4 summarizes generalization performance across 5 seeds.          
+
+> Table 4. Sequential composition generalization (mod-3, no ab-sorbing states). Trained on 5-step chains, tested on 10–500 steps. Results over n= 5 seeds {42 ,123 ,256 ,777 ,999 }.
+
+Chain Length Accuracy (mean ± std) All Seeds ≥99% 5 (in-dist.) 100.00% ± 0.00% ✓
+
+10 100.00% ± 0.00% ✓
+
+50 100.00% ± 0.00% ✓
+
+100 100.00% ± 0.00% ✓
+
+500 99.97% ± 0.02% ✓
+
+All 5 seeds achieve ≥99.95% accuracy at 500 steps. Three properties combine to enable length generalization: (1) high local verdict accuracy ( ≥99.9%) so each step receives correct input; (2) exact transition function (9/9 entries); (3) Gumbel-softmax discretization preventing error accu-mulation. These are necessary but not sufficient: main-taining (1) under Phase 3 end-to-end training requires a structured backbone—either THEIA’s modular factoriza-tion or a Transformer—while flat MLPs collapse regardless of capacity (Appendix D). The 500-step result is not triv-ially explained by absorbing states—the state distribution remains approximately uniform at all chain depths. 
+
+Boundary characterization. Three experiments define a boundary: transitive chains (local + absorbing) generalize trivially; mod-3 composition (local, no absorbing) gener-alizes to 500 steps; modular arithmetic on graphs (global) cannot be learned. The critical distinction is computation locality , not chain length. Appendix D reports a backbone ablation isolating the modular factorization’s contribution. 
+
+4.6. Limitations 
+
+All experiments use synthetic benchmarks for precise con-trol over task complexity and ground-truth verification [ 6, 7]; adapting THEIA to external benchmarks is future work. The sequential composition experiment uses a minimal 3-class state; scaling to richer state spaces (e.g., learned codebooks) is open. Global computation (modular arithmetic on graphs) remains out of reach for local message passing, and numer-ical range generalization fails sharply at 5× the training range—a critical deployment barrier. Kleene 12/12 capabil-ity is not unique to THEIA: sufficiently large Transformer baselines reach 12/12 on 7/8 seeds under matched-protocol fair early-stopping (§4.2). THEIA’s distinguishing proper-ties are wall-clock convergence speed, mechanistic inter-7THEIA: Learning Complete Kleene Three-Valued Logic 
+
+pretability (§4.3), and compositional generalization compat-ible with discretized training (§4.5, Appendix D). 
+
+# 5. Discussion 
+
+Structured inductive bias as a compositional-generalization prior. The backbone ablation (Ap-pendix D) provides the sharpest evidence: flat MLPs—both the original 0.80M and a parameter-matched 2.75M variant— match THEIA’s local Kleene accuracy to within 0.04%, yet collapse to chance when composed over 50+ steps under Gumbel-softmax end-to-end training. The collapse is independent of capacity, ruling out the parameter-count confound. A pre-LN TF8LTuned Transformer baseline (3,582,147 params) trained under the identical three-phase protocol reaches 99.24% at 500 steps (vs. THEIA’s 99.97%), confirming that structured architectures—whether modular or attention-based—sustain compositional generalization where flat representations fail. We hypothesize that both domain-segregated subspaces (THEIA) and self-attention (Transformer) isolate gradient pathways during discretized end-to-end training, preventing the catastrophic interference observed in entangled flat representations. THEIA’s advantage over the Transformer is quantitative ( +0.73pp at 500 steps, 5.6× convergence speed) and qualitative (mechanistic interpretability via delayed verdict). 
+
+Delayed verdict as a representational signature of com-positionality. THEIA’s domain engines compute their des-ignated variable without encoding the downstream task vari-able: the logic operator is undecodable before the Logic Engine (chance level), and upstream decodability of the 3-class verdict is capped at the uncertainty-only baseline for both linear SVM probes (60.9%) and 2-layer MLP probes (61.1%) at the Arithmetic boundary—the two families differ by at most 0.7pp through the Set boundary. Classification information is not present in any probe-accessible form we tested , not merely weakly encoded. The only signal that persists across all stages is uncertainty itself, providing a representation-level account of why uncertainty propagation works: the network learns to track uncertainty as a first-class signal, separate from the values it modifies. On the static four-domain Kleene task the bridge-layer ablation (§4.4) shows that removing cross-domain bridges leaves accuracy intact, indicating that domain-parameter separation—rather than the specific mediation pathway—is the relevant induc-tive bias for this task ; whether bridges become load-bearing under the discretized end-to-end training of §4.5 is an open question (Appendix D). 
+
+Modular vs. attention-based compositional strategies. 
+
+The layer-wise probing analysis (§4.3, Table 3) uses the matched-protocol BigTransformer (3,641,859 parameters, post-LN) of Table 1. The backbone ablation (Appendix D) reports a pre-LN TF8LTuned variant (3,582,147 parameters) for the chain pipeline because the post-LN BigTransformer fails to converge under the matched protocol learning rate in the chain setting (see Appendix D for details). The trajectory comparison below uses the matched BigTransformer, since it is the architecture for which both probing and main-result wall-clock data exist. The pre-LN TF8LTuned Transformer baseline passes the Kleene diagnostic and sustains 99.24% at 500-step chains under the identical Gumbel-softmax pro-tocol, confirming that attention provides an alternative path to compositional generalization. The two probing tables (Ta-ble 2 for THEIA, Table 3 for the Transformer) are not row-comparable—THEIA’s modular boundaries have no natural analog in the Transformer’s identical encoder blocks. We compare trajectories : THEIA exhibits monotone delayed commitment; the Transformer’s token embeddings already yield verdict probe accuracy above the uncertainty-only baseline, and F–T centroid distance contracts at layer 1 be-fore expanding from layer 3 onward. The two architectures thus arrive at comparable correctness through qualitatively different representational strategies—one compositionally structured with explicit domain boundaries, one using dis-tributed attention to discover structure implicitly. 
+
+# 6. Conclusion 
+
+THEIA demonstrates that a pure neural network can learn complete Kleene three-valued logic from data—including the non-trivial absorption rules—without any external sym-bolic inference engine. The central finding is that struc-tured inductive bias is required for compositional gener-alization under discretized training : flat MLPs collapse to chance regardless of capacity (0.80M and 2.75M both fail), while both THEIA’s modular backbone (99.97% at 500 steps) and a pre-LN TF8LTuned Transformer (99.24%) sustain length generalization. Mechanistic probing reveals a delayed verdict phenomenon—upstream modules encode domain-specific variables without committing to the fi-nal truth value—causally confirmed by activation patch-ing ( 100% flip rate on 986 matched pairs, replicated across 5 seeds). The Transformer baseline reaches comparable compositional generalization through a qualitatively differ-ent representational trajectory, suggesting that modular and attention-based architectures implement distinct but equally viable compositional strategies. THEIA’s advantages are convergence speed ( 5.6×), interpretability (delayed verdict), and a 0.73pp length-generalization margin—properties that together make modular domain-separated architectures an attractive substrate for neural reasoning under uncertainty. 
+
+Future Work. Future directions include additional non-linear probe families (e.g., deeper MLP or kernel probes); scaling the 3-class state bottleneck to learned codebooks; and extension to first-order and richer non-classical logics. 8THEIA: Learning Complete Kleene Three-Valued Logic 
+
+# Acknowledgments 
+
+AI writing assistants (Claude, Anthropic) were used for editing, formatting, and LaTeX preparation. The author is solely responsible for all scientific content, experimental design, and claims. 
+
+# A. Constructing Valid Kleene Diagnostic Tests 
+
+Targeted diagnostic tests must inject the Unknown value into one operand of the final logical connective ( val ord or val set ) while keeping the other operand definite. During the development of this work we encountered two construction pitfalls that silently corrupted earlier diagnostic runs. We document them here so that future work using similar pro-tocols can avoid the same mistakes; both fixes are applied throughout the experiments reported in this paper. 
+
+Pitfall 1: Cross-domain Unknown contamination. To make val ord = Unknown , a naive construction sets the first arithmetic operand a to Unknown. However, in our task definition the arithmetic engine produces c = arith (a, b ),and the natural Unknown propagation rule cunknown =
+
+aunknown ∨ bunknown then forces c to be Unknown as well. Because the Set Engine takes c as input, set op unknown becomes True, collapsing val set to Unknown regardless of the constructed set bits. The diagnostic then unin-tentionally tests (Unknown , Unknown ) instead of the in-tended (Unknown , definite ). The model’s response to an all-Unknown input is governed by an entirely different Kleene rule than the one the experimenter believes they are testing, and the resulting accuracy number is uninterpretable. 
+
+Fix. Inject Unknown via d (the comparison operand of the Order Engine) rather than via a or b. Setting dunknown =
+
+True makes val ord = Unknown without polluting c, so val set 
+
+remains controllable. 
+
+Pitfall 2: Edge-case relation construction. To force val ord = True under the strict-greater-than relation (REL GT, >), one might set d = max(0 , c − 1) . This works whenever c ≥ 1, but fails when c = 0 : then d = 0 ,and 0 > 0 evaluates to False. Approximately 5% of samples have c = 0 (via SUB with a = b, or MOD with a < b ). For these samples val ord = False instead of the intended True, contaminating any rule whose construction requires val ord = True . The contamination is silent: per-rule accu-racy looks plausible but is biased downward by exactly the fraction of c = 0 samples. 
+
+Fix. Use the greater-than-or-equal relation (REL GTE, ≥)with the same d = max(0 , c − 1) . This always yields val ord = True since c ≥ max(0 , c − 1) for all c ≥ 0.
+
+Validation. We adopt both fixes throughout this paper. The doubly-fixed diagnostic protocol is what produces the per-rule accuracies reported in Table 5. We verified consis-tency by re-running an existing checkpoint under the fixed diagnostic and confirming that the new per-rule numbers fall within the noise band of the multi-seed sweep. We urge future work using similar Kleene diagnostic protocols to inspect their construction for analogous coupling effects between domains and analogous edge cases in relation con-struction. 
+
+# B. Complete Kleene Diagnostic (Extended) 
+
+This appendix contains the full Kleene K3 diagnostic. Ta-ble 5 reports per-rule accuracy on the 12 targeted Unknown-involving short-circuit and absorption rules (the main result referenced throughout §4.2). Table 6 extends the diagnostic to the remaining 27 rules covering all other Kleene K3 truth-table entries (36 binary rules + 3 unary NOT rules total). Construction uses the doubly-fixed protocol of Appendix A throughout.       
+
+> Table 5. Per-rule Kleene three-valued logic diagnostic (12 targeted Unknown-involving rules). Mean ±std across 5 seeds (10,000 samples per rule per seed); “min” is the worst single seed–rule accuracy. †Unknown is the first operand. All 60 rule–seed combi-nations exceed 99%.
+
+Expression Expected Mean ± Std (%) Min (%) 
+
+F ∧ U F 99.97 ± 0.06 99.85 
+
+T ∧ U U 99.94 ± 0.04 99.89 
+
+U ∧ F † F 99.93 ± 0.06 99.84 
+
+U ∧ T † U 99.80 ± 0.11 99.69 
+
+T ∨ U T 99.93 ± 0.08 99.77 
+
+F ∨ U U 99.92 ± 0.11 99.71 
+
+U ∨ T † T 99.93 ± 0.06 99.85 
+
+U ∨ F † U 99.85 ± 0.10 99.68 
+
+F → U T 99.95 ± 0.03 99.91 
+
+T → U U 100.00 ± 0.00 99.99 
+
+T ↔ U U 100.00 ± 0.00 100.00 
+
+F ↔ U U 100.00 ± 0.00 100.00 
+
+Grand mean (12/12, 5/5 seeds) 99.94 —
+
+Across all 5 trained checkpoints, all 39 rules pass the 
+
+> 99% threshold on every seed (195/195 rule–seed combi-nations); grand mean across all 39 rules is 99.88%, and the single worst combination is F ∨ F = F at seed 999 with 99.15%, still above the 99% threshold. The lowest-accuracy entry is F ∨ F = F at 99.54%. This is below the worst Unknown-involving rule, which is ini-tially counterintuitive (classical disjunction should be “eas-ier” than Kleene short-circuits). The likely explanation is distributional: under our 4-domain training pipeline, the natural distribution of (F, F ) inputs to the final disjunction is sparse compared to the Unknown-involving cases, since 9THEIA: Learning Complete Kleene Three-Valued Logic                                                                                                                                                               
+
+> Table 6. Complete Kleene K3 diagnostic: 27 rules not in Table 5. Mean ±std across 5 seeds; 10,000 samples per rule per seed. All 27 rules pass >99% on all 5 seeds (135/135 rule–seed combinations).
+> Rule Acc (%) Rule Acc (%) Rule Acc (%)
+> Definite–definite (18 rules including NOT)
+> F∧F100 .00 ±0.01 F∨F99 .54 ±0.27 F→F99 .74 ±0.12
+> F∧T99 .84 ±0.05 F∨T99 .92 ±0.06 F→T99 .98 ±0.03
+> T∧F99 .93 ±0.08 T∨F99 .96 ±0.03 T→F99 .86 ±0.12
+> T∧T99 .83 ±0.09 T∨T100 .00 ±0.00 T→T99 .86 ±0.07
+> F↔F99 .74 ±0.12 F↔T99 .66 ±0.15 ¬F99 .72 ±0.13
+> T↔F99 .88 ±0.11 T↔T99 .81 ±0.10 ¬T99 .96 ±0.03
+> Unknown–involving (9 rules not in Table 5)
+> U∧U100 .00 ±0.00 U∨U100 .00 ±0.00 U→F99 .89 ±0.10
+> U→T99 .93 ±0.07 U→U100 .00 ±0.00 U↔F100 .00 ±0.00
+> U↔T100 .00 ±0.00 U↔U100 .00 ±0.00 ¬U100 .00 ±0.00
+
+both operands must come from independently-evaluated up-stream domains that happen to both be False. The targeted diagnostic forces this rare configuration, and the small ac-curacy gap reflects mild distribution shift between training and diagnostic, not difficulty of the underlying rule. All 5 seeds remain above the 99% threshold. The 27 new rules span all four binary operators ( ∧, ∨, →
+
+, ↔) plus unary negation, covering every truth-table entry not exercised by Table 5. Together with Table 5, they verify every entry of the complete Kleene K3 truth table, justifying the “complete Kleene K3” framing in the title and abstract. 
+
+# C. Mechanistic Probing Details 
+
+To trace how information flows through THEIA’s pipeline, we train linear probes at each domain boundary to decode six intermediate variables: arithmetic result (linear regression, 
+
+R2), order truth value, set truth value, final verdict, logic operator identity, and the presence of any Unknown flag in the input (all classification accuracy). Table 7 reports the full per-probe per-boundary results referenced from §4.3. The Has-Unknown probe is interpreted relative to its ≈ 52% 
+
+majority baseline ( 1 − 0.85 4): 80.2% at the Arithmetic boundary is 28 percentage points above the majority base-line, indicating substantial encoding of input-level uncer-tainty even at the earliest stage. Order/Set truth values show moderate upstream decodability ( ∼58% vs. chance 33%) because the arithmetic output c is an input to both engines via bridge layers, so this is shared input context rather than downstream-task leakage. The logic operator is undecod-able before the Logic Engine (20.2% = chance for 5 classes), confirming that the architectural information bottleneck on the operator variable is faithfully respected. 
+
+Nonlinear probe control for delayed verdict. The de-layed verdict claim of §4.3 rests on upstream final-verdict probe accuracy remaining at or below the 74% uncertainty-only ceiling. A natural skeptical reading is that the informa-tion is present in the upstream representations but inacces-sible to a linear classifier, in which case a more expressive probe should reveal it. To rule this out, we train a 2-hidden-layer MLP probe with architecture 128 → 256 → 256 → 3,GELU activations, and dropout 0.1 after each hidden layer, on the same 5 trained checkpoints as Table 7. Training uses AdamW (lr = 10 −3, cosine annealing), batch size 2048, 40 epochs, with an independent data seed (999) for the 50K-sample extraction and a 70/30 train/test split. We report the best test accuracy across all 40 epochs for each (seed, boundary) pair; this best-epoch selection deliberately biases the comparison in the probe’s favor (and therefore against 
+
+our delayed verdict claim). Table 8 reports the comparison against the final-verdict row of Table 7. The nonlinear probe matches the linear probe to within 
+
+0.7pp at every upstream boundary and never crosses the 
+
+74% uncertainty-only ceiling before the Logic Engine, even though we deliberately bias the comparison in the probe’s favor through best-test-epoch selection across 40 training epochs. At the Logic boundary both probes saturate, con-sistent with the final verdict being already explicitly rep-resented at that stage. We note that this does not rule out information being present in a form decodable only by much more powerful probe families (e.g., a deep network with task-specific architecture); what it rules out is the most com-mon alternative explanation in the probing literature—that the information is linearly inaccessible but sits just under the surface of a standard nonlinear probe. 
+
+# D. Backbone Ablation: Structured Bias Is Required for Compositional Generalization 
+
+To isolate the contribution of THEIA’s four-engine modular factorization from the rest of the architecture, we conduct three controlled ablations. We replace the step computer while keeping everything else identical : the input encoders, the transition network, the Gumbel-softmax straight-through discretization, the three-phase training protocol of §4.5, the 10 THEIA: Learning Complete Kleene Three-Valued Logic                 
+
+> Table 7. Mechanistic probes at domain boundaries. Linear models decode intermediate variables from 128-dim hidden vectors. Mean ±std over 5 trained checkpoints (seeds {42 ,123 ,256 ,777 ,999 }); 50K samples per checkpoint. Chance level: truth value 33%, logic op 20%. Arith result measured by R2. Standard deviations are reported to three decimal places; entries shown as 0.000 indicate std <5×10 −4,reflecting that the corresponding probe is essentially deterministic across random seeds.
+
+Probe Arith Order Set Logic Arith result ( R2) 0.837 ± 0.010 0.837 ± 0.021 0.811 ± 0.013 0.156 ± 0.062 Order TV (acc) 0.583 ± 0.002 1.000 ± 0.000 0.584 ± 0.001 0.973 ± 0.015 Set TV (acc) 0.588 ± 0.003 0.585 ± 0.003 0.981 ± 0.009 0.995 ± 0.003 Final verdict (acc) 0.609 ± 0.001 0.672 ± 0.002 0.697 ± 0.002 0.999 ± 0.000 Logic op (acc) 0.199 ± 0.002 0.198 ± 0.002 0.202 ± 0.004 0.884 ± 0.041 Has Unknown (acc) 0.802 ± 0.000 0.911 ± 0.000 0.908 ± 0.000 0.997 ± 0.003                            
+
+> Table 8. Linear vs. nonlinear probe for the final-verdict variable at each domain boundary. The nonlinear probe is a 2-hidden-layer MLP ( 128 →256 →256 →3, GELU, dropout 0.1), trained for 40 epochs with best-test-epoch selection (biased in the probe’s favor). Mean over 5 seeds; nonlinear-probe std <0.003 across seeds. “Gap” is MLP minus linear (percentage points). The uncertainty-only ceiling is 74% . Upstream stages (Arith, Order, Set) remain at or below the ceiling under both probe families despite the best-epoch bias; the largest gap is +0 .7pp at Set. Boundary Linear SVM MLP (2-hidden) Gap Arith 0.609 0.611 +0 .2pp Order 0.672 0.676 +0 .4pp Set 0.697 0.704 +0 .7pp Logic 0.999 1.000 +0 .0pp
+
+data generation, and the class weights. The three variants are: (1) a small flat MLP (hidden 512, 3 layers, ∼0.80 Mparameters); (2) a parameter-matched flat MLP (hidden 
+
+∼1024 , 3 layers, ∼2.75 M parameters, ruling out a capacity confound); and (3) an 8-layer pre-LN Transformer variant (TF8LTuned, 3,582,147 parameters; architectural identity verified via state-dict fingerprint), trained under the iden-tical three-phase Gumbel-softmax protocol. We note that the post-LN BigTransformer architecture of Table 1 fails to converge in the chain pipeline under the matched protocol learning rate ( 10 −3): Phase 1 plateaus at the class-prior level ( ∼43% ) across multiple random restarts. Establishing a fully matched-protocol post-LN baseline for the chain pipeline would require an architecture-specific learning rate schedule that we leave to future work; we therefore report the pre-LN TF8LTuned variant here as the attention-based baseline, which converges stably under the matched proto-col. The only variable across conditions is the inductive bias of the step computer. 
+
+Results. Table 9 reports per-phase training accu-racy and length-generalization eval across 5 seeds 
+
+{42 , 123 , 256 , 777 , 999 }.
+
+Interpretation. Three findings emerge.                                      
+
+> Table 9. Backbone ablation: four step-computer architectures under the identical three-phase Gumbel-softmax protocol. Both flat-MLP variants match THEIA on local accuracy (Phase 1) but collapse under end-to-end discretized training (Phase 3). The pre-LN TF8LTuned Transformer variant (TF) sustains length general-ization, confirming that structured inductive bias—not capacity—is the relevant factor. Mean ±std over 5 seeds. The Transformer column reports the 8-layer pre-LN TF8LTuned variant (3,582,147 parameters); the post-LN BigTransformer of Table 1 fails to con-verge in the chain pipeline under the matched protocol learning rate (see introductory paragraph above). THEIA MLP MLP TF8LTuned (mod.) (0.80M) (2.75M) (3,582,147) Phase 1 99.94% 99.91% 99.90% 99.92% Phase 2 100% 100% 100% 100% 5-step 99.97 80.44 76.88 99.99 10-step 99.97 66.92 61.85 99.98 50-step 99.97 35.13 34.36 99.94 100-step 99.97 33.32 33.54 99.86 500-step 99.97 33.58 33.35 99.24
+
+(1) Capacity is not the bottleneck. The parameter-matched flat MLP (2.75M) collapses to the same chance-level basin (∼33% at 500 steps) as the smaller 0.80M variant; both match Phase 1 local accuracy to within 0.04% . The collapse is therefore caused by the flat MLP’s inability to maintain local accuracy under Phase 3 Gumbel-softmax end-to-end training, not by insufficient capacity. 
+
+(2) Structured architectures survive. Both THEIA (mod-ular, 99.97%) and the pre-LN TF8LTuned Transformer (attention-based, 99.24%) sustain length generalization at 500 steps. We hypothesize that both domain-segregated sub-spaces (THEIA) and self-attention (Transformer) provide gradient isolation during discretized end-to-end training, preventing the catastrophic interference observed in entan-gled flat representations. 
+
+(3) THEIA retains a quantitative edge. THEIA’s 500-step accuracy (99.97%) exceeds the TF8LTuned Trans-former’s (99.24%) by 0.73pp, and all 5 THEIA seeds ex-ceed 99.95% vs. 5 of 5 Transformer seeds below 99.95% 11 THEIA: Learning Complete Kleene Three-Valued Logic 
+
+(TF8LTuned 500-step range: 98.85–99.66%). This comple-ments the mechanistic interpretability findings of §4.3: the modular structure provides both inspectability and a tighter compositional-generalization margin under discretized com-position. 
+
+Summary. The ablation demonstrates that structured in-ductive bias —whether modular domain separation or self-attention—is required for compositional generalization un-der Gumbel-softmax end-to-end training. Flat MLPs fail sharply and consistently across all 5 seeds and both capac-ity levels (std < 1% ), establishing a stable failure mode. THEIA’s modular design provides the strongest generaliza-tion alongside its interpretability advantage. 
+
+# E. Tuned Transformer Baseline 
+
+The main comparison in §4.2 uses a matched optimizer configuration (AdamW lr= 10 −3, cosine, batch 4096, no warmup) for both THEIA and the 8L Transformer baseline in order to isolate the architectural variable. A reviewer concern is that this matched configuration is suboptimal for Transformers: standard Transformer training typically uses a lower peak learning rate, linear warmup, Adam β2 =0.98 , and gradient clipping. To bound the contribution of Transformer-specific tuning to the convergence-time gap, we rerun seed 42 of the 8L Transformer baseline with a Transformer-standard recipe. This appendix reports the full result. 
+
+Protocol. We use the identical architecture (Big-Transformer, 3,641,859 parameters), data generation (2M samples, Punk = 0.15 , 80/20 train/test split), class weights ( wF = 1.0, wT = 1.0, wU = 2.0), gradient clipping (1.0), random seed (42), CUDA determinism (cudnn.deterministic=True ,
+
+cudnn.benchmark=False ), and Kleene diagnos-tic harness as the matched-protocol run of §4.2; the only difference is the optimizer schedule, reported as a single bundle: • Peak learning rate: 10 −4 (vs. 10 −3 matched) • AdamW β: (0 .9, 0.98) (vs. default (0 .9, 0.999) matched) • Schedule: linear warmup over 5 epochs, then cosine decay • Weight decay: 0.01 
+
+• Batch size: 2048 This bundle is treated as a single “Transformer-standard” variable; we do not claim isolation of any individual hyper-parameter. 
+
+Results. The tuned baseline runs for 42.4 wall-clock min-utes under the 150-epoch cap. Final validation per-class accuracies are 99.79% (False), 99.90% (True), 99.99% (Un-known); the final Kleene diagnostic passes 12/12 with worst rule U ∨ T at 99.53%. Table 10 reports the two convergence milestones against THEIA references. At epoch 60 all 12 Kleene rules first cross the > 99% thresh-old, with per-rule accuracies: F ∧ U 99.80, T ∧ U 100.00, 
+
+U ∧ F 99.06 (worst), U ∧ T 99.82, T ∨ U 100.00, F ∨ U
+
+99.87, U ∨ T 99.33, U ∨ F 99.78, F → U 99.81, T → U
+
+100.00, T ↔ U 100.00, F ↔ U 100.00. At final evaluation the worst rule is U ∨ T at 99.53%, still well above the 99% pass threshold; all 12 rules pass. 
+
+Multi-seed extension ( n = 3 ). We extend the tuned pro-tocol to seeds 123 and 256 using the same architecture (BigTransformer) and the same optimizer schedule as seed 42. Both reach ≥99.93% / ≥99.90% overall accuracy and pass 12/12 Kleene rules. Seed 123 reaches overall ≥99.9% at epoch 73 (34.2 min); seed 256 at epoch 98 (43.3 min). Across the three seeds, overall-99.9% convergence time is 
+
+39 .7 ± 5.0 minutes, with 12/12 Kleene coverage reached in 
+
+28 .8 ± 1.7 minutes. Notably, seed 123—the only seed that fails under the matched protocol—converges readily under tuning, confirming that its matched-protocol failure reflects optimizer sensitivity rather than an architectural limitation. 
+
+Interpretation and the overall-vs-Kleene discrepancy. 
+
+The tuned baseline (seed 42) reaches 12/12 Kleene cov-erage before it reaches overall 99.9% validation accuracy (epoch 60 vs. epoch 84, 28.9 min vs. 41.7 min). This is the opposite ordering from the matched-protocol Trans-former, which reaches overall 99.9% first and requires ad-ditional training to stabilize all 12 Kleene rules. The most plausible explanation is that the low-lr tuned recipe stabi-lizes the rare Kleene edge cases earlier (because smaller update steps are less likely to oscillate on high-variance low-frequency configurations), while the final ∼0.1% of overall accuracy—dominated by bulk distribution fitting— takes proportionally longer. A practical consequence: the overall-99.9% milestone is a misleading comparison point for tuned Transformer baselines , because the tuned recipe trades bulk-accuracy optimization speed for Kleene-rule stability. The Kleene-aware milestone of the main result (§4.2) is the meaningful operating point for this task, and the 
+
+5.6× → ∼ 3.1 × narrowing under tuning is the meaningful quantitative update. 
+
+Caveats. (1) The 5 tuned-package hyperparameters (peak lr, β, warmup schedule, weight decay, batch size) are changed jointly; we do not isolate which component is most responsible for the narrowing. (2) Exhaustive hyperparame-ter search (different warmup lengths, alternative schedules, different peak lr) was not performed; a more aggressive tuned configuration could in principle narrow the gap further. (3) The layer-wise probing analysis in §4.3 and Table 3 uses the matched-protocol Transformer; whether the contraction– 12 THEIA: Learning Complete Kleene Three-Valued Logic              
+
+> Table 10. Tuned 8L Transformer baseline, seed 42: convergence-time milestones vs. THEIA references. Kleene 12/12 is the primary comparison point (matches §4.2); the overall-99.9% row exhibits an opposite ordering discussed in the interpretation below. Seeds 123 and 256 are reported separately in the text. Milestone Tuned TF8L THEIA ref Ratio Kleene 12/12 28.9 min @ ep 60 9.2 min ∼3.1×
+> Overall ≥99 .9% 41.7 min @ ep 84 5.7 min ∼7.3×
+
+expansion trajectory persists under the tuned configuration reported here is left to future work. Despite these caveats, the qualitative conclusion is robust: Transformer-specific tuning narrows but does not eliminate the convergence-time gap, and the modular architecture retains a meaningful wall-clock advantage under both comparison regimes. 
+
+# F. Reproducibility 
+
+All experiments use PyTorch with CUDA on a single NVIDIA RTX 5080. Random seeds for multi-seed ex-periments: {42 , 123 , 256 , 777 , 999 }; Transformer baseline extended to 8 seeds with {31415 , 27182 , 14142 }; tuned pro-tocol extended to 3 seeds {42 , 123 , 256 }. Training hyperpa-rameters (matched protocol): AdamW ( lr = 10 −3, weight decay 0.01 ), cosine annealing, FP16 mixed precision. Four-domain training: 2M samples, batch size 4096, 80–200 epochs depending on early-stopping criterion ( ∼9 minutes per seed on average; seed 42 trained for the full 200 epochs without early stopping, ∼16 minutes). Multi-hop training: 1M samples, batch size 2048, ∼50 epochs ( ∼15 minutes). Sequential chain training: three-phase pipeline, 2M single-step + 500K chain samples, ∼16 minutes per seed. The Kleene diagnostic protocol used in Table 5 follows the con-struction described in Appendix A. The tuned Transformer follow-up of Appendix E uses the same RTX 5080 and the same data generation; only the optimizer schedule differs. Code, data generation scripts, and the doubly-fixed diagnos-tic harness will be made publicly available. 
+
+# References 
+
+[1] L. de Moura and N. Bjørner. Z3: An efficient SMT solver. In TACAS , 2008. [2] R. Manhaeve, S. Duman ˇci ´c, A. Kimmig, T. De-meester, and L. De Raedt. Neural probabilistic logic programming in DeepProbLog. Artificial Intelligence ,298:103504, 2021. [3] Z. Yang, A. Ishay, and J. Lee. NeurASP: Embracing neural networks into answer set programming. In IJ-CAI , 2020. [4] Z. Li, J. Huang, and M. Naik. Scallop: A language for neurosymbolic programming. In PLDI , 2023. [5] S. C. Kleene. Introduction to Metamathematics . North-Holland, 1952. [6] P. Veli ˇckovi ´c, A. Puigdom `enech Badia, D. Budden, R. Pascanu, A. Banino, M. Dashevskiy, R. Hadsell, and C. Blundell. The CLRS algorithmic reasoning benchmark. In ICML , 2022. [7] G. Rodionov and L. Prokhorenkova. Discrete neural algorithmic reasoning. In ICML , 2025. [8] K. Xu, J. Li, M. Zhang, S. S. Du, K.-i. Kawarabayashi, and S. Jegelka. What can neural networks reason about? In ICLR , 2020. [9] A. Loukas. What graph neural networks cannot learn: depth vs width. In ICLR , 2020. [10] M. Fitting. A Kripke–Kleene semantics for logic pro-grams. J. Logic Programming , 2(4), 1985. [11] Q. Li, Z. Han, and X.-M. Wu. Deeper insights into Graph Convolutional Networks for semi-supervised learning. In AAAI , 2018. [12] D. Chen, Y. Lin, W. Li, P. Li, J. Zhou, and X. Sun. Measuring and relieving the over-smoothing problem for Graph Neural Networks from the topological view. In AAAI , 2020. [13] A. Trask, F. Hill, S. Reed, J. Rae, C. Dyer, and P. Blun-som. Neural arithmetic logic units. In NeurIPS , 2018. [14] G. Alain and Y. Bengio. Understanding intermediate layers using linear classifier probes. In ICLR Workshop ,2017. [15] J. Gilmer, S. S. Schoenholz, P. F. Riley, O. Vinyals, and G. E. Dahl. Neural message passing for quantum chemistry. In ICML , 2017. [16] I. Loshchilov and F. Hutter. Decoupled weight decay regularization. In ICLR , 2019. [17] J. Andreas, M. Rohrbach, T. Darrell, and D. Klein. Neural module networks. In CVPR , 2016. [18] J. Snell, K. Swersky, and R. Zemel. Prototypical net-works for few-shot learning. In NeurIPS , 2017. 13 THEIA: Learning Complete Kleene Three-Valued Logic 
+
+[19] S. C. Chan, L.-S. Hsu, S. Brody, and H.-H. Teh. Neu-ral three-valued-logic networks. In International Joint Conference on Neural Networks (IJCNN) , 1989. [20] H.-H. Teh. Neural Logic Networks: A New Class of Neural Networks . World Scientific, Singapore, 1995. [21] G. Wang and H. Shi. TMLNN: Triple-valued or multiple-valued logic neural network. IEEE Transac-tions on Neural Networks , 9(6):1099–1117, 1998. [22] R. Riegel, A. Gray, F. Luus, N. Khan, N. Makondo, I. Y. Akhalwaya, H. Qian, R. Fagin, F. Barahona, U. Sharma, S. Ikbal, H. Karanam, S. Neelam, A. Likhyani, and S. Srivastava. Logical Neural Net-works. arXiv:2006.13155 , 2020. [23] G. Marra, S. Duman ˇci ´c, R. Manhaeve, and L. De Raedt. From statistical relational to neurosymbolic artificial intelligence: A survey. Artificial Intelligence ,328:104062, 2024. 14
