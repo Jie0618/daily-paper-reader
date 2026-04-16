@@ -6,79 +6,76 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-14
-- 运行时间：2026-04-14 20:12:35 UTC
+- 最新运行日期：2026-04-16
+- 运行时间：2026-04-16 20:38:38 UTC
 - 运行状态：成功
-- 本次总论文数：19
-- 精读区：7
+- 本次总论文数：18
+- 精读区：6
 - 速读区：12
 
 ### 今日简报（AI）
-今日聚焦19篇前沿成果，深度剖析多模态遗传编程与AI数学讲义两大满分神作。
-核心揭示了潜空间优化中的对齐机制，并展示了Transformer在哈达玛矩阵生成及GPU线程映射上的惊人潜力。
-建议优先研读AI for Math系统讲义，探索大模型如何重塑数学推理与底层算力优化。
-- 详情：[/202604/14/README](/202604/14/README)
+今日精选18篇前沿论文，重点突破从混沌系统到气候预测的方程发现难题。
+满分论文提出了一种快速且原则性的物理建模新法，同时小模型数学推理与三值逻辑架构取得关键进展。
+建议优先研读物理启发式AI在复杂系统中的应用，并关注提升轻量化模型逻辑能力的最新策略。
+- 详情：[/202604/16/README](/202604/16/README)
 
 ### 精读区论文标签
-1. [Multi-Modal Learning meets Genetic Programming: Analyzing Alignment in Latent Space Optimization](/202604/14/2604.08324v2-multi-modal-learning-meets-genetic-programming-analyzing-alignment-in-latent-space-optimization)  
+1. [Fast and principled equation discovery from chaos to climate](/202604/16/2604.11929v1-fast-and-principled-equation-discovery-from-chaos-to-climate)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：结合神经编码器与遗传算法的符号回归潜空间优化
-2. [Lectures on AI for Mathematics](/202604/14/2604.11504v1-lectures-on-ai-for-mathematics)  
-   标签：评分：10.0/10、query:math-ai
-   evidence：人工智能用于发现数学模式和定理的全面介绍
-3. [Order-3 pi-formulas, Apery-like kernels, and Clausen functoriality for Conservative Matrix Fields](/202604/14/2604.09723v1-order-3-pi-formulas-apery-like-kernels-and-clausen-functoriality-for-conservative-matrix-fields)  
-   标签：评分：9.0/10、query:math-ai
-   evidence：圆周率公式与规范多项式递归
-4. [Uncertainty-Aware Sparse Identification of Dynamical Systems via Bayesian Model Averaging](/202604/14/2604.10854v1-uncertainty-aware-sparse-identification-of-dynamical-systems-via-bayesian-model-averaging)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：动力系统控制方程的贝叶斯稀疏识别
-5. [A unified descriptor framework for hydrogen storage capacity and equilibrium pressure in interstitial hydrides](/202604/14/2604.11660v1-a-unified-descriptor-framework-for-hydrogen-storage-capacity-and-equilibrium-pressure-in-interstitial-hydrides)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：使用白盒符号回归揭示氢化物中的描述符-性质关系
-6. [Error terms for continued fractions of $e^{1/s}$ and $\sqrt{\frac{v}{u}}\tanh\!\Bigl(\frac{1}{\sqrt{uv}}\Bigr)$](/202604/14/2604.09726v1-error-terms-for-continued-fractions-of-e1s-and-sqrtfracvutanhbiglfrac1sqrtuvbigr)  
+   evidence：从噪声观测中自动发现方程
+2. [Fast and principled equation discovery from chaos to climate](/202604/16/2604.11929v2-fast-and-principled-equation-discovery-from-chaos-to-climate)  
+   标签：评分：10.0/10、query:sr-alg
+   evidence：使用Bayesian-ARGOS从噪声观测中自动发现方程
+3. [Interpretable Relational Inference with LLM-Guided Symbolic Dynamics Modeling](/202604/16/2604.12806v1-interpretable-relational-inference-with-llm-guided-symbolic-dynamics-modeling)  
+   标签：评分：10.0/10、query:sr-alg
+   evidence：稀疏符号动力学和交互图的可微框架
+4. [Leveraging Mathematical Reasoning of LLMs for Efficient GPU Thread Mapping](/202604/16/2604.10387v2-leveraging-mathematical-reasoning-of-llms-for-efficient-gpu-thread-mapping)  
+   标签：评分：8.0/10、query:sr-alg
+   evidence：LLM推断精确的映射方程并利用符号推理进行公式推导
+5. [Deferred Cyclotomic Representation for Stable and Exact Evaluation of q-Hypergeometric Series](/202604/16/2604.13196v1-deferred-cyclotomic-representation-for-stable-and-exact-evaluation-of-q-hypergeometric-series)  
    标签：评分：8.0/10、query:math-ai
-   evidence：分析数学常数和恒等式的连分数表示
-7. [Continued fractions, determinant expressions, and identities](/202604/14/2604.09727v1-continued-fractions-determinant-expressions-and-identities)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：连分数和恒等式的系统推导
+   evidence：q-超几何级数精确评估的表示方法
+6. [Evaluating the Exp-Minus-Log Sheffer Operator for Battery Characterization](/202604/16/2604.13873v1-evaluating-the-exp-minus-log-sheffer-operator-for-battery-characterization)  
+   标签：评分：8.0/10、query:sr-alg
+   evidence：使用主公式构建的基于梯度的符号回归
 
 ### 速读区论文标签
-1. [Leveraging Mathematical Reasoning of LLMs for Efficient GPU Thread Mapping](/202604/14/2604.10387v1-leveraging-mathematical-reasoning-of-llms-for-efficient-gpu-thread-mapping)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：通过上下文学习实现自动数学推导过程
-2. [Geometric structure of ideal data-driven dynamical model using RfR method](/202604/14/2604.10550v1-geometric-structure-of-ideal-data-driven-dynamical-model-using-rfr-method)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：使用径向基函数的动力结构数据驱动建模
-3. [Generating Hadamard matrices with transformers](/202604/14/2604.11101v1-generating-hadamard-matrices-with-transformers)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：用于构造数学矩阵和组合搜索的 Transformer
-4. [MathAgent: Adversarial Evolution of Constraint Graphs for Mathematical Reasoning Data Synthesis](/202604/14/2604.11188v1-mathagent-adversarial-evolution-of-constraint-graphs-for-mathematical-reasoning-data-synthesis)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：数学数据合成的约束图无监督优化
-5. [THEIA: Learning Complete Kleene Three-Valued Logic in a Pure-Neural Modular Architecture](/202604/14/2604.11284v1-theia-learning-complete-kleene-three-valued-logic-in-a-pure-neural-modular-architecture)  
+1. [THEIA: Learning Complete Kleene Three-Valued Logic in a Pure-Neural Modular Architecture](/202604/16/2604.11284v2-theia-learning-complete-kleene-three-valued-logic-in-a-pure-neural-modular-architecture)  
    标签：评分：7.0/10、query:math-ai
    evidence：学习数学逻辑和算术的神经架构
-6. [Extraction of linearized models from pre-trained networks via knowledge distillation](/202604/14/2604.06732v1-extraction-of-linearized-models-from-pre-trained-networks-via-knowledge-distillation)  
+2. [FlowBoost Reveals Phase Transitions and Spectral Structure in Finite Free Information Inequalities](/202604/16/2604.11922v1-flowboost-reveals-phase-transitions-and-spectral-structure-in-finite-free-information-inequalities)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：深度生成优化用于发现多项式和不等式中的极值结构
+3. [HintMR: Eliciting Stronger Mathematical Reasoning in Small Language Models](/202604/16/2604.12229v1-hintmr-eliciting-stronger-mathematical-reasoning-in-small-language-models)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：用于多步数学问题求解的提示辅助推理框架
+4. [Multivariable automatic arrays and transcendence](/202604/16/2604.12468v1-multivariable-automatic-arrays-and-transcendence)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：自动数组定义的级数超越性研究
+5. [ReSS: Learning Reasoning Models for Tabular Data Prediction via Symbolic Scaffold](/202604/16/2604.13392v1-ress-learning-reasoning-models-for-tabular-data-prediction-via-symbolic-scaffold)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：桥接符号与神经推理模型
+6. [Hardware-Efficient Neuro-Symbolic Networks with the Exp-Minus-Log Operator](/202604/16/2604.13871v1-hardware-efficient-neuro-symbolic-networks-with-the-exp-minus-log-operator)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：使用EML基元将初等函数表示为相同节点的二叉树
+7. [Explaining Neural Networks in Preference Learning: a Post-hoc Inductive Logic Programming Approach](/202604/16/2604.06838v1-explaining-neural-networks-in-preference-learning-a-post-hoc-inductive-logic-programming-approach)  
    标签：评分：6.0/10、query:math-ai
-   evidence：利用Koopman理论从神经网络中提取线性化模型
-7. [CircuitSynth: Reliable Synthetic Data Generation](/202604/14/2604.10114v1-circuitsynth-reliable-synthetic-data-generation)  
+   evidence：归纳逻辑程序设计用于近似神经网络
+8. [Reason in Chains, Learn in Trees: Self-Rectification and Grafting for Multi-turn Agent Policy Optimization](/202604/16/2604.07165v2-reason-in-chains-learn-in-trees-self-rectification-and-grafting-for-multi-turn-agent-policy-optimization)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于结构化生成和逻辑约束的神经符号框架
-8. [Adaptive Multi-Expert Reasoning via Difficulty-Aware Routing and Uncertainty-Guided Aggregation](/202604/14/2604.10335v1-adaptive-multi-expert-reasoning-via-difficulty-aware-routing-and-uncertainty-guided-aggregation)  
+   evidence：多步推理与潜在奖励结构的强化学习
+9. [SubSearch: Intermediate Rewards for Unsupervised Guided Reasoning in Complex Retrieval](/202604/16/2604.07415v1-subsearch-intermediate-rewards-for-unsupervised-guided-reasoning-in-complex-retrieval)  
    标签：评分：6.0/10、query:math-ai
-   evidence：针对数学问题复杂性的自适应多专家推理
-9. [VeriTrans: Fine-Tuned LLM-Assisted NL-to-PL Translation via a Deterministic Neuro-Symbolic Pipeline](/202604/14/2604.10341v1-veritrans-fine-tuned-llm-assisted-nl-to-pl-translation-via-a-deterministic-neuro-symbolic-pipeline)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：将自然语言转换为逻辑的神经符号流水线
-10. [Tensor-based Multi-layer Decoupling](/202604/14/2604.10858v1-tensor-based-multi-layer-decoupling)  
+   evidence：复杂任务中引导推理的中间奖励
+10. [Too long; didn't solve](/202604/16/2604.07593v1-too-long-didnt-solve)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：从数据中学习多元输入输出关系
-11. [Emulating Non-Differentiable Metrics via Knowledge-Guided Learning: Introducing the Minkowski Image Loss](/202604/14/2604.11422v1-emulating-non-differentiable-metrics-via-knowledge-guided-learning-introducing-the-minkowski-image-loss)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：为不可微科学指标学习可微代理模型
-12. [Triviality Corrected Endogenous Reward](/202604/14/2604.11522v1-triviality-corrected-endogenous-reward)  
+   evidence：大语言模型数学基准测试的结构特性
+11. [SEARL: Joint Optimization of Policy and Tool Graph Memory for Self-Evolving Agents](/202604/16/2604.07791v1-searl-joint-optimization-of-policy-and-tool-graph-memory-for-self-evolving-agents)  
    标签：评分：6.0/10、query:math-ai
-   evidence：数学推理的无监督强化学习
+   evidence：用于自我进化代理和工具合成的强化学习
+12. [NSFL: A Post-Training Neuro-Symbolic Fuzzy Logic Framework for Boolean Operators in Neural Embeddings](/202604/16/2604.10604v1-nsfl-a-post-training-neuro-symbolic-fuzzy-logic-framework-for-boolean-operators-in-neural-embeddings)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：神经嵌入中逻辑算子的神经符号框架
 
 
 <div class="dpr-home-promo-card">

@@ -1,0 +1,535 @@
+Title: Too long; didn't solve
+
+URL Source: https://arxiv.org/pdf/2604.07593v1
+
+Published Time: Fri, 10 Apr 2026 00:13:51 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# Too long; didn’t solve 
+
+Lucía M. Cabrera 1,2, † Isaac Saxton-Knight 2, †
+
+> 1
+
+Instituto Balseiro 2Poindexter Labs 
+
+> †
+
+Equal contributions 
+
+Abstract 
+
+Mathematical benchmarks consisting of a range of mathematics problems are widely used to evaluate the reasoning abilities of large lan-guage models, yet little is known about how their structural properties influence model be-haviour. In this work, we investigate two struc-tural length variables, prompt length and so-lution length, and analyse how they relate to model performance on a newly constructed ad-versarial dataset of expert-authored mathemat-ics problems. We find that both prompt and solution lengths correlate positively with in-creased model failure across models. We also include a secondary, exploratory analysis of cross-model disagreement. Under a difficulty-adjusted normalised analysis, both variables retain weak negative associations with realised model separation, slightly stronger for prompt length. Overall, our main robust finding is that structural length is linked to empirical difficulty in this dataset. 
+
+1 Introduction 
+
+The modern landscape of large language model (LLM) evaluation is increasingly shaped by ad-vances in reasoning-oriented models. In the context of mathematical reasoning, benchmarks such as GSM8K (Cobbe et al., 2021), MATH (Hendrycks et al., 2021), MathArena (Balunovi´ c et al., 2025), OlympiadBench (He et al., 2024), AGIEval (Zhong et al., 2023) and MathVista (Lu et al., 2023) have become standard tools for evaluating the capabili-ties of LLMs. These typically comprise problems designed to stress multi-step reasoning chains and often require a single numerical or symbolic an-swer. Sustained improvements in model perfor-mance have also recently motivated the develop-ment of more sophisticated benchmarks, such as FrontierMath (Epoch AI, 2023), BIG-Bench Extra Hard (Kazemi et al., 2025) and GSM-Symbolic (Mirzadeh et al., 2024), aimed at probing the limits of current systems across a range of metrics. Evaluation results on these benchmarks are typi-cally reported by aggregating performance across categorical variables such as topic or difficulty level. While informative, these are discrete and can be both coarse and subjective, which may obscure structural patterns in model performance (Zhou et al., 2025). Related work has also highlighted broader challenges in evaluating reasoning systems, including issues of verification and reliability in mathematical outputs (Petrov et al., 2025). Similar concerns about the limitations of static benchmark evaluation have been raised in the broader litera-ture on benchmark design (Kiela et al., 2021). In an effort to circumvent these limitations, we propose to examine continuous structural features of prob-lems, focusing in particular on the word count of the problem statement and its associated solution, both authored by the same person. The idea of studying prompt-level features ap-pears extensively in the literature (Liu et al., 2023; Zhuo et al., 2024; Mizrahi et al., 2024; Hsieh et al., 2024; Zhang et al., 2024) but has rarely been ex-ploited in the specific arena of LLM mathemati-cal reasoning. Unlike categorical labels, the struc-tural length of prompts and provided solutions is a measurable, model-agnostic quantity worthy of exploration. In this work, we analyse how these structural variables relate to model failure on an adversarially constructed dataset of original expert-authored math problems, and, secondarily, how they relate to cross-model disagreement. 
+
+2 Our dataset 
+
+Our dataset comprises a collection of 607 com-plex mathematics problems crafted by a team of Master’s degree holders, PhDs, professors, domain experts and IMO medalists, specifically designed to induce failures in SOTA large language models. The process of prompt design leveraged an innova-tive, proprietary method to achieve a high-quality 1
+
+> arXiv:2604.07593v1 [cs.AI] 8 Apr 2026
+
+standard and ensure absolute originality. Each prob-lem went through a rigorous quality control layer involving human and LLM-verifiers. None of the problems tested in this work were drawn from pub-licly available sources, nor are they accessible on-line, safeguarding the analysis from data contami-nation. Because the benchmark consists of original olympiad-style and IMO-flavoured problems writ-ten specifically for this evaluation, the structural effects we observe are unlikely to be artifacts of repeated exposure to familiar public-domain items. A sample of the style of problem-solution pair used in this evaluation can be found in Appendix A. Each problem or prompt in this collection is cat-egorised by a topic: Geometry, Combinatorics and Discrete Mathematics, Counting and Probability, Algebra, Linear Algebra, Number Theory and Cal-culus. Prompts are in turn also labelled as either high school, undergraduate or graduate level. Re-gardless of their assigned level, all problems re-quire complex multi-step reasoning. Prompts are tested against five different models: ChatGPT 5, ChatGPT 4.1, GPT OSS 120b, Gemini 2.5 Flash, and Claude Sonnet 4.5. Each model performs five independent attempts per task, and we store this information as a fail count ki,m in 
+
+{0, 1, 2, 3, 4, 5} for problem i and model m.It is worth noting that problems in this dataset were designed to have a single, ground-truth final answer in the form of an integer. Thus, each run returns a binary fail/success result depending on whether the final answer was reached. The dataset also includes full step-by-step solutions to each problem written by its original author. We define the failure fraction per problem, per model, as the average fail count, 
+
+xi,m = ki,m 
+
+5 , (1) so that xi,m ∈ {0, 0.2, 0.4, 0.6, 0.8, 1.0}. This quantity captures empirical instability and error rate of model m on problem i. To summarise the empirical difficulty of problem i, we define its mean failure fraction across models, 
+
+μi = 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+xi,m , (2) where M is the total number of models. For our dataset, M = 5 .We present a visual of the distribution of the to-tal number of problems in our dataset across their given level labels and mean failure fraction in Fig-ure 1.   
+
+> Figure 1: Number of problems, color-coded by level, producing mean failure rate μiacross all five models.
+
+As is evident from Figure 1, the dataset contains a large number of high-school- and undergraduate-labelled problems, and the histogram is skewed toward the high mean-failure region. This reflects the adversarial nature of the collection: tasks were deliberately authored by human experts to be diffi-cult for current models to solve. In other words, the benchmark is not merely a passive aggregation of existing problems, but a purpose-built evaluation set designed to expose weaknesses in contemporary mathematical reasoning systems. Statistics on datasets of this kind are often per-formed based on somewhat arbitrarily given tags, such as the aforementioned topic and level. The labelling of a given problem under a certain level is largely subjective and dependent on several factors, such as differences in education systems. Similarly, topic labels are very coarse variables. Problems that mix different topics are reduced to a single, again subjective choice among all possibilities, and information is thus lost. All in all, the discrete na-ture of these problem-level variables makes for but a limited analysis. Throughout this work, instead, we choose to focus on two objectively measurable quantities: the word count in the problem statement and in its given solution. In the following sections, we study the impact of these structural variables on model performance and cross-model disagreement. 
+
+3 Structural Length as a driver of difficulty 
+
+A preliminary analysis of our data of interest imme-diately reveals a clear visual correlation between a model’s failure fraction xi,m and both the word count in the statement of problem i, and the word 2count of its step-by-step solution. As evident from the scatter plots in Figures 2a and 2b, a clear mono-tonic trend of degrading performance exists as these two structural variables increase. This trend is visible across all models analysed, despite baseline differences in average ability. We note that, although prompt lengths vary substan-tially across problems, all tasks remain comfort-ably within the context window limits of the eval-uated models. The naturally arising question is thus whether prompt and solution length are in fact structural drivers of empirical problem difficulty, or whether they simply act as proxies for latent mathematical complexity. A secondary question is whether these struc-tural variables are also related to cross-model dis-agreement, although such analyses require care, because disagreement measures are mechanically constrained by mean failure. In what follows, we analyse prompt and solution lengths as structural drivers of empirical difficulty, and provide a more tentative, exploratory analysis of their relationship to cross-model disagreement. 
+
+Prompt Length 
+
+To validate our observations, we analyse the re-lationship between prompt length, measured as the raw word count in problem i, and mean failure per problem, as defined in (2) across all models. Spearman’s rank correlation yields 
+
+ρ(prompt length , μ ) = 0.28 , with p ≪ 0.001 ,which indicates a small but statistically significant positive association. Longer prompts are therefore more likely to produce model errors on average, which confirms the visual trend in figure 2a. This positive association is observed across all model families, suggesting that sensitivity to ver-bosity is not exclusive to a single architecture. 
+
+Solution Length 
+
+A similar relationship emerges when consider-ing the length of the provided solution. Spear-man’s rank correlation between solution length and mean failure is ρ(solution length , μ ) = 0 .32 , with 
+
+p ≪ 0.001 , indicating a small-to-moderate posi-tive association between the two. As with prompt length, longer solutions are positively correlated with higher model failure on average, consistent with the visual trend in Figure 2b. However, solution length may more directly reflect underlying mathematical complexity than prompt length does, a distinction we examine fur-ther in the following section. 
+
+3.1 Exploratory analysis of cross-model disagreement 
+
+Having established that both prompt length and so-lution length are associated with model failure, we now briefly examine whether these structural fea-tures are also related to cross-model disagreement. To quantify disagreement on a given problem, we define the variance of failure fractions across models, 
+
+Var i = 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+(xi,m − μi)2 . (3) This quantity summarises cross-model disagree-ment on problem i. A value near zero indicates universal behaviour across models, that is, all mod-els either fail, succeed, or exhibit the same failure rate on the given problem, whereas higher values indicate stronger separation in performance. How-ever, because each xi,m ∈ [0 , 1] , the attainable magnitude of Var i depends on μi and satisfies the bound 
+
+Var i ≤ μi(1 − μi) .
+
+Consequently, the cross-model variance should be interpreted as a disagreement measure whose fea-sible range depends on mean empirical difficulty. Specifically, cross-model variance is bounded from above by the parabola μi(1 − μi).Because of this mechanical mean–variance cou-pling, raw correlations between structural length and cross-model variance are difficult to interpret directly. In a dataset concentrated toward harder problems, any variable that is positively associated with mean failure will tend to exhibit a downward-biased raw correlation with variance due to the variance being geometrically constrained so that the maximum attainable cross-model variance in-creases monotonically for μi < 0.5, but then de-creases monotonically for μi > 0.5. In our partic-ular dataset, the problems are heavily weighted to have higher mean failure fractions, as it contains a number of frontier-level problems that not even the most sophisticated reasoning models were able to solve. Consequently, there are more tasks in the interval μi > 0.5 than μi < 0.5, resulting in a negative correlation between cross-model variance and mean failure fraction. As a more informative exploratory summary, we define a normalized variance score that reduces 3(a) Prompt length vs. failure fraction. (b) Solution length vs. failure fraction.     
+
+> Figure 2: Failure fraction xi,m as a function of structural length variables. Error bars show 95% bootstrap confidence intervals.
+
+the dependence of cross-model variance on mean failure fraction, and instead focuses on the variance achieved at a given difficulty level: 
+
+gVar i = Var i
+
+μi(1 − μi) . (4) This metric measures the fraction of the theoretical maximum variance achieved by problem i at its ob-served difficulty level. This quantity is only defined for tasks with 0 < μ i < 1, so the normalised anal-ysis excludes tasks that were empirically solved by all models or failed by all models. In our dataset, this leaves 517 tasks. Under this normalisation, prompt length retains a weak negative association with difficulty-adjusted cross-model disagreement: 
+
+ρ(prompt length , gVar) = −0.21 , p ≪ 0.001 .
+
+Solution length also retains a weak negative associ-ation, although the effect is somewhat smaller: 
+
+ρ(solution length , gVar) = −0.17 , p ≪ 0.001 .
+
+While the normalisation by μi(1 − μi) removes the dominant outer bound linking mean failure and variance, it does not eliminate all finite-sample and geometric structure induced by the discrete-ness of the observed failure fractions and the small number of models. Accordingly, these correlations should be understood as exploratory descriptive summaries of this benchmark rather than as evi-dence of an independent structural compression effect. 
+
+3.1.1 Hierarchical modelling of structural effects 
+
+Our previous analyses so far reveal systematic re-lationships between structural length and model            
+
+> Length Variable ρ(μ)ρ(gVar)
+> Prompt 0.28 −0.21
+> Solution 0.32 −0.17
+> Table 1: Task-level Spearman correlations between structural length variables and model behaviour. The second column reports the primary result of the paper, namely the association with mean failure. The third col-umn reports a secondary exploratory association with difficulty-adjusted cross-model disagreement, computed on the 517 tasks with 0< μ i<1.
+
+behavior. They do not, however, account for het-erogeneity across model families. Because differ-ent LLMs exhibit distinct baseline failure rates and sensitivities to problem structure, we fit a hierar-chical (mixed-effects) regression model to jointly capture global structural trends and model-specific deviations. We apply this framework separately to prompt length and solution length to determine whether the structural effects identified above per-sist when accounting for model-level variability. We model the observed failure fraction xi,m for problem i and model m as a function of a log-transformed measure of length Li,
+
+Li = log(1 + word count i) . (5) The fitted model is 
+
+xi,m = β0 + β1Li + um + vmLi + εi,m , (6) where β0 is the global intercept (measuring aver-age baseline failure fraction), β1 is the global av-erage effect of structural length, um is a model-specific random intercept which captures baseline performance differences between models, vm is a model-specific random slope for length that cap-tures model-specific length sensitivity, and εi,m is residual noise. Throughout the analysis we assume 
+
+um, vm and εi,m to be normally distributed, 4um
+
+vm
+
+
+
+∼ N 
+
+ 00
+
+
+
+,
+
+ σ2 
+
+> u
+
+σuv 
+
+σuv σ2
+
+> v
+
+ 
+
+,εi,m ∼ N (0 , σ 2) .
+
+Prompt length 
+
+The model in (6) was estimated for L(prompt ) 
+
+> i
+
+via REML with 3035 observations across the 5 LLMs under study. Table 2 presents a summary of re-sults, and figure 3a represents the fitted hierarchi-cal model by plotting the predicted failure trajecto-ries for each LLM alongside the global fixed-effect trend. 
+
+Prompt Length Model Parameter Estimate SE p-value 
+
+β1 0.118 0.037 0.001 
+
+σ2 
+
+> u
+
+0.281 – –
+
+σ2 
+
+> v
+
+0.006 – –
+
+σuv −0.042 – –
+
+σ2 0.1153 – –     
+
+> Table 2: Mixed-effects model estimates for failure fraction xi,m as a function of log-transformed prompt length, L(prompt )
+> i.
+
+Fixed effects The estimated effect of L(prompt )
+
+> i
+
+on failure fraction was β1 = 0.118 (SE =0.037 , p = 0 .001) . This means a one-unit increase in L(prompt ) 
+
+> i
+
+is associated with an average increase of approximately 0.118 in xi,m , which confirms the earlier Spearman correlation analysis, i.e. longer prompts are associated with higher failure rates. 
+
+Random effects The random intercept variance, 
+
+σ2 
+
+> u
+
+= 0 .281 , is substantial, indicating meaningful baseline differences in failure rates across models. This heterogeneity is consistent with the vertical separation between models observed in the binned scatterplots (Figure 2a) and in the fitted trajecto-ries shown in Figure 3a, and justifies the use of a hierarchical specification. In contrast, the random slope variance, σ2 
+
+> v
+
+=0.006 , is very small, indicating minimal variation across models in sensitivity to prompt length. This is visually reflected in the near-parallel fitted lines in Figure 3a, suggesting that models degrade at comparable rates as prompt length increases. Finally, the residual variance σ2 = 0.1153 
+
+remains substantial, indicating that additional problem-level factors beyond prompt length con-tribute to variation in xi,m .Overall, these results suggest that prompt length acts as a global structural stressor which affects all models similarly and does not selectively degrade weaker models. 
+
+Solution length 
+
+We estimated the same hierarchical model using 
+
+L(solution ) 
+
+> i
+
+, the log-transformed word count of the reference solution. The model was fit using 3030 
+
+observations across the five LLMs. Table 3 reports the parameter estimates, and Figure 3b visualizes the corresponding fitted trajectories. 
+
+Solution Length Model Parameter Estimate SE p-value 
+
+β1 0.137 0.026 0.001 
+
+σ2 
+
+> u
+
+0.225 – –
+
+σ2 
+
+> v
+
+0.003 – –
+
+σuv -0.025 – –
+
+σ2 0.1128 – –    
+
+> Table 3: Mixed-effects model estimates for failure frac-tion xi,m as a function of log-transformed solution length, L(solution )
+> i.
+
+Fixed effects The fixed-effect coefficient for so-lution length is positive, β1 = 0 .137 , indicating that problems with longer reference solutions tend to produce higher failure fractions. This result is consistent with the earlier correlation analysis and suggests that tasks requiring longer solutions are generally more difficult for models to solve reli-ably. 
+
+Random effects As in the prompt-length model, the random intercept variance σ2 
+
+> u
+
+= 0 .225 remains substantial, reflecting baseline differences in failure rates across models. However, variation in slopes across models is again limited ( σ2 
+
+> v
+
+= 0 .003 ), indi-cating that models respond similarly to increases in solution length. The residual variance σ2 = 0 .1128 remains non-negligible, indicating that solution length alone does not fully account for problem-level variation in failure rates. Taken together, these results suggest that solu-tion length is associated with increased task diffi-culty, but unlike prompt length, it likely reflects the intrinsic complexity of the underlying mathemat-ics rather than a structural property of the prompt itself. 5(a) Failure fraction as predicted by prompt length. (b) Failure fraction as predicted by solution length.       
+
+> Figure 3: Predicted failure fraction xi,m as a function of Li= log(1 + word count )under the fitted mixed-effects model. Solid lines show model-specific fits; the dashed line shows the global fixed effect.
+
+4 Discussion 
+
+Our work studies how two objectively measurable structural variables, prompt length and reference-solution length, relate to model failure and model separation on an adversarially constructed mathe-matics benchmark. At the prompt level, we find that prompt length is a consistent predictor of empirical difficulty across all evaluated models: longer prompts are associated with higher mean failure rates. This relationship is also reflected in the mixed-effects analysis, whose fitted trends suggest that all five models degrade in performance as prompt length increases. At the same time, the fitted slopes are broadly similar, indicating that the models do not appear to differ dramatically in their sensitivity to prompt length at the level captured by this analysis. The mixed-effects analysis provides a useful de-scriptive summary of the length–failure relation-ship across models, but it should not be over-interpreted as a fully generative account of the data. In particular, the response variable is discrete and bounded, the number of models is small, and the present specification does not explicitly model problem-level random effects. We therefore regard the fitted trends mainly as evidence that the positive association between structural length and failure is broadly shared across the evaluated models. At the level of problem–solution pairs, we like-wise find that solution length is a significant predic-tor of model failure: longer reference solutions are associated with harder problems on average. This is consistent with prior work showing that mathe-matical reasoning difficulty often scales with the number of steps needed to arrive at a correct so-lution (Wei et al., 2022). As with prompt length, the fitted slopes in the mixed-effects analysis are broadly similar across models, suggesting that so-lution length functions mainly as a shared source of difficulty rather than a model-specific weakness. The interpretation of cross-model disagreement is more delicate. Because disagreement measures based on variance are mechanically constrained by mean failure, raw variance correlations are dif-ficult to interpret, especially in a dataset skewed toward harder tasks. For that reason, we treat the disagreement analysis as exploratory and focus on a simple normalised variance measure. Under this adjustment, both prompt length and solution length retain only weak negative associations with realised model separation. The prompt-length association is somewhat stronger than the solution-length one, but we interpret this difference as a preliminary indicator, as further investigation is needed. Nevertheless, we do observe a qualitative asym-metry: while both prompt and solution length pre-dict difficulty, only prompt length retains a residual association with reduced model separation after controlling for mean failure. This suggests that longer items may be somewhat less effective at separating models at a given difficulty level in this particular benchmark. This difference may reflect the distinct roles of the two variables: prompt length is closer to a sur-face property of task presentation, whereas solution length may additionally reflect intrinsic mathemat-ical complexity, authoring style, and the granular-ity with which reasoning is written down. More broadly, these results are specific to this adversarial dataset, this model set, and this evaluation proto-col. We therefore view the disagreement analysis 6as indicative rather than definitive. All results taken together, the clearest conclusion is that there is a weak to moderate effect of struc-tural length on failure rate: both prompt length and solution length are linked to empirical hardness in this benchmark. A secondary, tentative conclusion is that structural length may also be related to re-alised model separation. However, this part of the story is markedly less clear-cut, because disagree-ment is geometrically and statistically constrained. In the context of benchmark design, this reinforces the importance of analysing not only whether tasks are difficult, but also whether they remain infor-mative for distinguishing model capabilities (Kiela et al., 2021; Singh et al., 2025). These findings naturally motivate the study of these questions across a range of benchmarks, model families, and evaluation protocols, and the further development of richer disagreement measures that better account for the geometric and finite-sample constraints inherent in repeated-evaluation settings. This is particularly relevant in light of recent work on long-context evaluation (Bai et al., 2023, 2024), where structural length and reasoning burden may interact in complex ways. 
+
+4.1 Limitations and future analytical directions 
+
+Several of the analyses in this work are best un-derstood as descriptive first-pass summaries rather than final statistical treatments of the underlying phenomena. In particular, our main response vari-able xi,m is discrete and bounded, since it is de-rived from only five attempts per model, and our disagreement measure is mechanically constrained by mean failure. For this reason, richer follow-up analyses would be valuable. A natural next step would be to replace the linear mixed-effects analysis with a hierarchical binomial model. Instead of treating xi,m as approximately continuous, one could model the fail count ki,m di-rectly as a binomial outcome with five trials, while allowing model-specific and problem-specific ran-dom effects. Such a formulation would better re-spect the discrete structure of the data, allow un-certainty to be propagated more appropriately, and provide a more principled estimate of how prompt length and solution length relate to failure proba-bility. A second improvement would be to model problem-level heterogeneity more explicitly. In the present analysis, structural length is used as a proxy for aspects of task complexity, but it is unlikely to capture all relevant variation across problems. Future work could introduce crossed random effects for both model and problem, or latent problem-difficulty parameters, in order to separate the contribution of structural length from unobserved mathematical difficulty more cleanly. The analysis of cross-model disagreement could also be refined. Because variance is bounded by mean failure, raw variance correlations are geomet-rically constrained and difficult to interpret. Our normalised variance analysis removes the dominant outer bound, but it does not eliminate all finite-sample and combinatorial structure induced by the small number of models and the discreteness of the observed failure fractions. A more informative direction would therefore be to develop disagree-ment measures derived from an explicit probabilis-tic model, or to study latent between-model disper-sion parameters jointly with mean difficulty rather than summarising disagreement through task-level variance alone. More broadly, it would be useful to test the ro-bustness of the present findings across additional datasets, model families, and evaluation protocols. Our benchmark is intentionally adversarial and the analysis is based on five contemporary models eval-uated under a fixed repeated-attempt setup. Repli-cating the structural-length analyses on other math-ematics benchmarks, as well as on future genera-tions of reasoning models, would help determine which effects are benchmark-specific and which re-flect more stable properties of LLM mathematical reasoning. Finally, our prospective lines of research include investigating structural effects at a finer level than raw word count alone. For example, one could ex-amine whether particular forms of verbosity, such as notational density, number of stated conditions, amount of irrelevant context, or solution branching depth, are more informative predictors than length itself. Such analyses may help distinguish whether the observed effects arise from surface form, in-trinsic mathematical complexity, or an interaction between the two. A final limitation is that the reported correla-tions are necessarily contingent on the benchmark and model family under study. Our dataset was intentionally curated to be adversarial and difficult, and the analysis is based on a fixed set of five con-temporary models evaluated under a specific pro-tocol. Accordingly, the quantitative relationships 7reported here should be understood as descriptive of this setting, rather than as universally stable es-timates of how structural length affects difficulty or cross-model variance across all mathematical benchmarks and all model classes. 
+
+References 
+
+Yushi Bai, Xin Lv, Jiajie Zhang, Hongchang Lyu, Jiankai Tang, Zhidian Huang, Zhengxiao Du, Xiao Liu, Aohan Zeng, Lei Hou, Yuxiao Dong, Jie Tang, and Juanzi Li. 2023. LongBench: A Bilingual, Mul-titask Benchmark for Long Context Understanding. ArXiv:2308.14508. Yushi Bai, Shangqing Tu, Jiajie Zhang, Hao Peng, Xiaozhi Wang, Xin Lv, Shulin Cao, Jiazheng Xu, Lei Hou, Yuxiao Dong, Jie Tang, and Juanzi Li. 2024. LongBench v2: Towards Deeper Understand-ing and Reasoning on Realistic Long-context Multi-tasks. ArXiv:2412.15204. Mislav Balunovi´ c, Jasper Dekoninck, Ivo Petrov, Nikola Jovanovi´ c, and Martin Vechev. 2025. MathArena: Evaluating LLMs on uncontaminated math competi-tions. ArXiv:2505.23281. Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. 2021. Training Verifiers to Solve Math Word Prob-lems. ArXiv:2110.14168. Epoch AI. 2023. FrontierMath. Chaoqun He, Renjie Luo, Yuzhuo Bai, Shengding Hu, Zhen Leng Thai, Junhao Shen, Jinyi Hu, Xu Han, Yu-jie Huang, Yuxiang Zhang, Jie Liu, Lei Qi, Zhiyuan Liu, and Maosong Sun. 2024. OlympiadBench: A Challenging Benchmark for Promoting AGI with Olympiad-Level Bilingual Multimodal Scientific Problems. ArXiv:2402.14008. Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, and Jacob Steinhardt. 2021. Measuring Mathemat-ical Problem Solving With the MATH Dataset. ArXiv:2103.03874. Cheng-Ping Hsieh, Simeng Sun, Samuel Kriman, Shan-tanu Acharya, Dima Rekesh, Fei Jia, Yang Zhang, and Boris Ginsburg. 2024. RULER: What’s the Real Context Size of Your Long-Context Language Mod-els? ArXiv:2404.06654. Mehran Kazemi, Bahare Fatemi, Hritik Bansal, John Palowitch, Chrysovalantis Anastasiou, Sanket Vaib-hav Mehta, Lalit K. Jain, Virginia Aglietti, Disha Jindal, Peter Chen, Nishanth Dikkala, Gladys Tyen, Xin Liu, Uri Shalit, Silvia Chiappa, Kate Olszewska, Yi Tay, Vinh Q. Tran, Quoc V. Le, and Orhan Firat. 2025. BIG-Bench Extra Hard. ArXiv:2502.19187. Douwe Kiela, Max Bartolo, Yixin Nie, Divyansh Kaushik, Atticus Geiger, Zhengxuan Wu, Bertie Vid-gen, Grusha Prasad, Amanpreet Singh, Pratik Ring-shia, Zhiyi Ma, Tristan Thrush, Sebastian Riedel, Zeerak Waseem, Pontus Stenetorp, Robin Jia, Mo-hit Bansal, Christopher Potts, and Adina Williams. 2021. Dynabench: Rethinking Benchmarking in NLP. ArXiv:2104.14337. Nelson F. Liu, Kevin Lin, John Hewitt, Ashwin Paran-jape, Michele Bevilacqua, Fabio Petroni, and Percy Liang. 2023. Lost in the Middle: How Language Models Use Long Contexts. ArXiv:2307.03172. Pan Lu, Hritik Bansal, Tony Xia, Jiacheng Liu, Chun-yuan Li, Hannaneh Hajishirzi, Hao Cheng, Kai-Wei Chang, Michel Galley, and Jianfeng Gao. 2023. MathVista: Evaluating Mathematical Rea-soning of Foundation Models in Visual Contexts. ArXiv:2310.02255. Iman Mirzadeh, Keivan Alizadeh, Hooman Shahrokhi, Oncel Tuzel, Samy Bengio, and Mehrdad Farajtabar. 2024. GSM-Symbolic: Understanding the Limita-tions of Mathematical Reasoning in Large Language Models. ArXiv:2410.05229. Moran Mizrahi, Guy Kaplan, Dan Malkin, Rotem Dror, Dafna Shahaf, and Gabriel Stanovsky. 2024. State of What Art? A Call for Multi-Prompt LLM Evaluation. ArXiv:2401.00595. Ivo Petrov, Jasper Dekoninck, Lyuben Baltadzhiev, Maria Drencheva, Kristian Minchev, Mislav Balunovi´ c, Nikola Jovanovi´ c, and Martin Vechev. 2025. Proof or Bluff? Evaluating LLMs on 2025 USA Math Olympiad. ArXiv:2503.21934. Shivalika Singh, Yiyang Nan, Alex Wang, Daniel D’Souza, Sayash Kapoor, Ahmet Üstün, Sanmi Koyejo, Yuntian Deng, Shayne Longpre, Noah A. Smith, Beyza Ermis, Marzieh Fadaee, and Sara Hooker. 2025. The Leaderboard Illusion. ArXiv:2504.20879. Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed Chi, Quoc Le, and Denny Zhou. 2022. Chain-of-Thought Prompt-ing Elicits Reasoning in Large Language Models. ArXiv:2201.11903. Xinrong Zhang, Yingfa Chen, Shengding Hu, Zi-hang Xu, Junhao Chen, Moo Khai Hao, Xu Han, Zhen Leng Thai, Shuo Wang, Zhiyuan Liu, and Maosong Sun. 2024. ∞Bench: Extending Long Context Evaluation Beyond 100K Tokens. ArXiv:2402.13718. Wanjun Zhong, Ruixiang Cui, Yiduo Guo, Yaobo Liang, Shuai Lu, Yanlin Wang, Amin Saied, Weizhu Chen, and Nan Duan. 2023. AGIEval: A Human-Centric Benchmark for Evaluating Foundation Mod-els. ArXiv:2304.06364. Yang Zhou, Hongyi Liu, Zhuoming Chen, Yuandong Tian, and Beidi Chen. 2025. GSM-Infinite: How 
+
+8Do Your LLMs Behave over Infinitely Increas-ing Context Length and Reasoning Complexity? ArXiv:2502.05252. Jingming Zhuo, Songyang Zhang, Xinyu Fang, Haodong Duan, Dahua Lin, and Kai Chen. 2024. ProSA: Assessing and Understanding the Prompt Sensitivity of LLMs. ArXiv:2410.12405. 
+
+A Sample problem–solution pair 
+
+To illustrate the style of the benchmark, we include one representative original problem–solution pair below. 
+
+Sample Problem 
+
+A carpenter wants a rectangle with positive integer side lengths u and v such that its area is 
+
+uv = m19 ,
+
+and its side lengths satisfy the extra constraint 
+
+v − 3u ≡ 0 (mod 14) 
+
+for some m in the set {1, 2, . . . , 30 }.For some values of m, no such rectangle exists. Find the sum of all such integers m.
+
+Sample Solution 
+
+Step 1: Rewrite the congruence condition 
+
+We seek integers m ∈ { 1, 2, . . . , 30 } for which there do 
+
+not exist positive integers u, v satisfying 
+
+uv = m19 
+
+and 
+
+v − 3u ≡ 0 (mod 14) .
+
+The latter congruence is equivalent to the system 
+
+v − 3u ≡ 0 (mod 7) ,v − 3u ≡ 0 (mod 2) .
+
+Modulo 7, this becomes 
+
+v ≡ 3u (mod 7) ,
+
+while modulo 2, since 3 ≡ 1 (mod 2) , it becomes 
+
+v ≡ u (mod 2) .
+
+Thus we seek factor pairs (u, v ) of m19 such that 
+
+uv = m19 ,
+
+and also v ≡ 3u (mod 7) ,v ≡ u (mod 2) .
+
+Equivalently, u and v must have the same parity, and their residues modulo 7 must satisfy v ≡ 3u.
+
+Step 2: Handle the case where m is a multiple of 7
+
+First consider m divisible by 7. In {1, 2, . . . , 30 }, these are 
+
+m ∈ { 7, 14 , 21 , 28 }.
+
+Since 7 | m, we also have 7 | m19 . If we choose u and v
+
+both divisible by 7, then automatically 
+
+u ≡ v ≡ 0 (mod 7) ,
+
+so 
+
+v ≡ 3u (mod 7) 
+
+holds. It remains only to match parity. If m is odd, namely 7 or 21 , then m19 is odd, so choosing 
+
+u = 7 , v = m19 
+
+7
+
+gives both u and v odd. If m is even, namely 14 or 28 , then choosing 
+
+u = 14 , v = m19 
+
+14 
+
+gives both u and v even. Hence every multiple of 7 in {1, . . . , 30 } is admissible. Therefore none of 
+
+7, 14 , 21 , 28 
+
+belongs to the set we seek. 
+
+Step 3: Assume 7 ∤ m and derive a necessary condition 
+
+Now assume 7 ∤ m. Then 7 ∤ m19 , so any admissible u
+
+and v are invertible modulo 7.From 
+
+uv = m19 
+
+and 
+
+v ≡ 3u (mod 7) ,
+
+multiplying the congruence by v gives 
+
+v2 ≡ 3uv ≡ 3m19 (mod 7) .
+
+By Fermat’s little theorem, 
+
+m6 ≡ 1 (mod 7) ,
+
+hence 
+
+m19 = m18 · m ≡ m (mod 7) .
+
+Therefore 
+
+v2 ≡ 3m (mod 7) .
+
+So a necessary condition for the existence of a valid rect-angle is that 3m be a quadratic residue modulo 7.The quadratic residues modulo 7 are 
+
+0, 1, 2, 4.
+
+Since 7 ∤ m, we have 3m̸ ≡ 0 (mod 7) , so we need 
+
+3m ≡ 1, 2, or 4 (mod 7) .
+
+The inverse of 3 modulo 7 is 5, so this is equivalent to 
+
+m ≡ 5, 3, or 6 (mod 7) .
+
+9Thus if 
+
+m ≡ 1, 2, or 4 (mod 7) ,
+
+then no valid rectangle can exist. The numbers in {1, . . . , 30 } in these residue classes are 
+
+1, 8, 15 , 22 , 29 ,
+
+2, 9, 16 , 23 , 30 ,
+
+4, 11 , 18 , 25 .
+
+So the following 14 values definitely fail: 
+
+1, 2, 4, 8, 9, 11 , 15 , 16 , 18 , 22 , 23 , 25 , 29 , 30 .
+
+Step 4: Examine the remaining residue classes 
+
+We now examine the cases 
+
+m ≡ 3, 5, or 6 (mod 7) .
+
+Case 4a: m ≡ 3 (mod 7) .These are 
+
+3, 10 , 17 , 24 .
+
+Here 
+
+3m ≡ 2 (mod 7) ,
+
+so we need 
+
+v2 ≡ 2 (mod 7) ,
+
+whose solutions are 
+
+v ≡ 3, 4 (mod 7) .
+
+For each of these values, taking v = m works: 
+
+3 ≡ 3, 10 ≡ 3, 17 ≡ 3, 24 ≡ 3 (mod 7) .
+
+Also u = m18 has the same parity as v = m. Hence all four values are admissible. 
+
+Case 4b: m ≡ 5 (mod 7) .These are 
+
+5, 12 , 19 , 26 .
+
+Now 
+
+3m ≡ 1 (mod 7) ,
+
+so we need 
+
+v2 ≡ 1 (mod 7) ,
+
+whose solutions are 
+
+v ≡ 1, 6 (mod 7) .
+
+Taking v = m3 works in each case, because 
+
+53 ≡ 6 (mod 7) ,
+
+and hence similarly 
+
+12 3 ≡ 19 3 ≡ 26 3 ≡ 6 (mod 7) .
+
+Then u = m16 , so u and v have the same parity. Thus all four values are admissible. 
+
+Case 4c: m ≡ 6 (mod 7) .These are 
+
+6, 13 , 20 , 27 .
+
+Now 
+
+3m ≡ 4 (mod 7) ,
+
+so we need 
+
+v2 ≡ 4 (mod 7) ,
+
+whose solutions are 
+
+v ≡ 2, 5 (mod 7) .
+
+For m = 6 , the divisors of 619 include 2, and 
+
+22 ≡ 4 (mod 7) .
+
+Taking v = 2 works, and then 
+
+u = 619 
+
+2
+
+is even, so parity also matches. For m = 20 , the same choice v = 2 works, since 2 | 20 19 .For m = 27 , the divisors are powers of 3, and taking 
+
+v = 3 2 = 9 
+
+gives 
+
+v ≡ 2 (mod 7) , v2 ≡ 4 (mod 7) .
+
+Also both v and 
+
+u = 27 19 
+
+9 = 3 55 
+
+are odd, so parity matches. For m = 13 , however, every divisor is a power of 13 , and 
+
+13 ≡ − 1 (mod 7) .
+
+So every divisor is congruent to either 1 or 6 modulo 7,and squaring either gives 
+
+12 ≡ 1, 62 ≡ 1 (mod 7) .
+
+Thus no divisor v of 13 19 can satisfy 
+
+v2 ≡ 4 (mod 7) .
+
+Therefore m = 13 is not admissible. 
+
+Step 5: Collect the failing values and sum them 
+
+The full set of m ∈ { 1, . . . , 30 } for which no such rectan-gle exists is 
+
+{1, 2, 4, 8, 9, 11 , 13 , 15 , 16 , 18 , 22 , 23 , 25 , 29 , 30 }.
+
+Their sum is 
+
+1 + 2 + 4 + 8 + 9 + 11 + 13 + 15 + 16 + 18 + 22 + 23 + 25 + 29 + 30 = (1 + 29) + (2 + 30) + (4 + 25) + (8 + 22) + (9 + 23) + (11 + 18) + (13 + 16) + 15 = 30 + 32 + 29 + 30 + 32 + 29 + 29 + 15 = 226 .
+
+Therefore the answer is 
+
+226 .
+
+10
