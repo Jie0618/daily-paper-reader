@@ -6,76 +6,70 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-16
-- 运行时间：2026-04-16 20:38:38 UTC
+- 最新运行日期：2026-04-17
+- 运行时间：2026-04-17 20:00:08 UTC
 - 运行状态：成功
-- 本次总论文数：18
-- 精读区：6
+- 本次总论文数：16
+- 精读区：4
 - 速读区：12
 
 ### 今日简报（AI）
-今日精选18篇前沿论文，重点突破从混沌系统到气候预测的方程发现难题。
-满分论文提出了一种快速且原则性的物理建模新法，同时小模型数学推理与三值逻辑架构取得关键进展。
-建议优先研读物理启发式AI在复杂系统中的应用，并关注提升轻量化模型逻辑能力的最新策略。
-- 详情：[/202604/16/README](/202604/16/README)
+今日深度解析 16 篇论文，见证了拉马努金机 Z1 猜想的正式证明与物理符号回归的重大突破。
+重点推荐 8 阶 Apery 极限的数学论证，以及通过嵌入式方程学习实现可解释的湍流模型修正。
+建议关注数学形式化与物理 AI 的交叉领域，探索如何利用符号推理提升复杂系统的建模精度。
+- 详情：[/202604/17/README](/202604/17/README)
 
 ### 精读区论文标签
-1. [Fast and principled equation discovery from chaos to climate](/202604/16/2604.11929v1-fast-and-principled-equation-discovery-from-chaos-to-climate)  
+1. [The level-8 Apery-limit and a proof of the Ramanujan Machine conjecture Z1](/202604/17/2604.14219v1-the-level-8-apery-limit-and-a-proof-of-the-ramanujan-machine-conjecture-z1)  
+   标签：评分：10.0/10、query:math-ai
+   evidence：证明拉马努金机连分数恒等式
+2. [Field Inversion Symbolic Regression with Embedded Equation Learner for Interpretable Turbulence Model Correction](/202604/17/2604.14569v1-field-inversion-symbolic-regression-with-embedded-equation-learner-for-interpretable-turbulence-model-correction)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：从噪声观测中自动发现方程
-2. [Fast and principled equation discovery from chaos to climate](/202604/16/2604.11929v2-fast-and-principled-equation-discovery-from-chaos-to-climate)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：使用Bayesian-ARGOS从噪声观测中自动发现方程
-3. [Interpretable Relational Inference with LLM-Guided Symbolic Dynamics Modeling](/202604/16/2604.12806v1-interpretable-relational-inference-with-llm-guided-symbolic-dynamics-modeling)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：稀疏符号动力学和交互图的可微框架
-4. [Leveraging Mathematical Reasoning of LLMs for Efficient GPU Thread Mapping](/202604/16/2604.10387v2-leveraging-mathematical-reasoning-of-llms-for-efficient-gpu-thread-mapping)  
+   evidence：将方程学习嵌入到偏微分方程约束的场反演中以获得可解释模型
+3. [SOLIS: Physics-Informed Learning of Interpretable Neural Surrogates for Nonlinear Systems](/202604/17/2604.14879v1-solis-physics-informed-learning-of-interpretable-neural-surrogates-for-nonlinear-systems)  
    标签：评分：8.0/10、query:sr-alg
-   evidence：LLM推断精确的映射方程并利用符号推理进行公式推导
-5. [Deferred Cyclotomic Representation for Stable and Exact Evaluation of q-Hypergeometric Series](/202604/16/2604.13196v1-deferred-cyclotomic-representation-for-stable-and-exact-evaluation-of-q-hypergeometric-series)  
+   evidence：物理启发式学习用于非线性系统辨识的可解释代理模型
+4. [Borel--Bernstein and Hirst-type Theorems for Nearest-Integer Complex Continued Fractions over Euclidean Imaginary Quadratic Fields](/202604/17/2604.15293v1-borel--bernstein-and-hirst-type-theorems-for-nearest-integer-complex-continued-fractions-over-euclidean-imaginary-quadratic-fields)  
    标签：评分：8.0/10、query:math-ai
-   evidence：q-超几何级数精确评估的表示方法
-6. [Evaluating the Exp-Minus-Log Sheffer Operator for Battery Characterization](/202604/16/2604.13873v1-evaluating-the-exp-minus-log-sheffer-operator-for-battery-characterization)  
-   标签：评分：8.0/10、query:sr-alg
-   evidence：使用主公式构建的基于梯度的符号回归
+   evidence：欧几里得虚二次域上最近整数复连分数的度量结果
 
 ### 速读区论文标签
-1. [THEIA: Learning Complete Kleene Three-Valued Logic in a Pure-Neural Modular Architecture](/202604/16/2604.11284v2-theia-learning-complete-kleene-three-valued-logic-in-a-pure-neural-modular-architecture)  
+1. [Deferred Cyclotomic Representation for Stable and Exact Evaluation of q-Hypergeometric Series](/202604/17/2604.13196v2-deferred-cyclotomic-representation-for-stable-and-exact-evaluation-of-q-hypergeometric-series)  
    标签：评分：7.0/10、query:math-ai
-   evidence：学习数学逻辑和算术的神经架构
-2. [FlowBoost Reveals Phase Transitions and Spectral Structure in Finite Free Information Inequalities](/202604/16/2604.11922v1-flowboost-reveals-phase-transitions-and-spectral-structure-in-finite-free-information-inequalities)  
+   evidence：q-超几何级数的代数表示
+2. [Automated Tactics for Polynomial Reasoning in Lean 4](/202604/17/2604.13514v1-automated-tactics-for-polynomial-reasoning-in-lean-4)  
    标签：评分：7.0/10、query:math-ai
-   evidence：深度生成优化用于发现多项式和不等式中的极值结构
-3. [HintMR: Eliciting Stronger Mathematical Reasoning in Small Language Models](/202604/16/2604.12229v1-hintmr-eliciting-stronger-mathematical-reasoning-in-small-language-models)  
+   evidence：自动多项式推理与符号计算
+3. [SFT-GRPO Data Overlap as a Post-Training Hyperparameter for Autoformalization](/202604/17/2604.13515v1-sft-grpo-data-overlap-as-a-post-training-hyperparameter-for-autoformalization)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于多步数学问题求解的提示辅助推理框架
-4. [Multivariable automatic arrays and transcendence](/202604/16/2604.12468v1-multivariable-automatic-arrays-and-transcendence)  
+   evidence：数学自动形式化的强化学习
+4. [Ordinary Least Squares is a Special Case of Transformer](/202604/17/2604.13656v1-ordinary-least-squares-is-a-special-case-of-transformer)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：Transformer注意力机制与最小二乘回归的数学等价性
+5. [xFODE: An Explainable Fuzzy Additive ODE Framework for System Identification](/202604/17/2604.14883v1-xfode-an-explainable-fuzzy-additive-ode-framework-for-system-identification)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：ODE模型中的可解释系统辨识与物理意义
+6. [Formalizing Wu-Ritt Method in Lean 4](/202604/17/2604.14912v1-formalizing-wu-ritt-method-in-lean-4)  
    标签：评分：7.0/10、query:math-ai
-   evidence：自动数组定义的级数超越性研究
-5. [ReSS: Learning Reasoning Models for Tabular Data Prediction via Symbolic Scaffold](/202604/16/2604.13392v1-ress-learning-reasoning-models-for-tabular-data-prediction-via-symbolic-scaffold)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：桥接符号与神经推理模型
-6. [Hardware-Efficient Neuro-Symbolic Networks with the Exp-Minus-Log Operator](/202604/16/2604.13871v1-hardware-efficient-neuro-symbolic-networks-with-the-exp-minus-log-operator)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：使用EML基元将初等函数表示为相同节点的二叉树
-7. [Explaining Neural Networks in Preference Learning: a Post-hoc Inductive Logic Programming Approach](/202604/16/2604.06838v1-explaining-neural-networks-in-preference-learning-a-post-hoc-inductive-logic-programming-approach)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：归纳逻辑程序设计用于近似神经网络
-8. [Reason in Chains, Learn in Trees: Self-Rectification and Grafting for Multi-turn Agent Policy Optimization](/202604/16/2604.07165v2-reason-in-chains-learn-in-trees-self-rectification-and-grafting-for-multi-turn-agent-policy-optimization)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：多步推理与潜在奖励结构的强化学习
-9. [SubSearch: Intermediate Rewards for Unsupervised Guided Reasoning in Complex Retrieval](/202604/16/2604.07415v1-subsearch-intermediate-rewards-for-unsupervised-guided-reasoning-in-complex-retrieval)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：复杂任务中引导推理的中间奖励
-10. [Too long; didn't solve](/202604/16/2604.07593v1-too-long-didnt-solve)  
+   evidence：形式化多项式系统的代数方法与算法
+7. [Learning to Adapt: In-Context Learning Beyond Stationarity](/202604/17/2604.10946v1-learning-to-adapt-in-context-learning-beyond-stationarity)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：大语言模型数学基准测试的结构特性
-11. [SEARL: Joint Optimization of Policy and Tool Graph Memory for Self-Evolving Agents](/202604/16/2604.07791v1-searl-joint-optimization-of-policy-and-tool-graph-memory-for-self-evolving-agents)  
+   evidence：Transformer模型在回归任务中上下文学习的理论分析
+8. [Legal2LogicICL: Improving Generalization in Transforming Legal Cases to Logical Formulas via Diverse Few-Shot Learning](/202604/17/2604.11699v1-legal2logicicl-improving-generalization-in-transforming-legal-cases-to-logical-formulas-via-diverse-few-shot-learning)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于自我进化代理和工具合成的强化学习
-12. [NSFL: A Post-Training Neuro-Symbolic Fuzzy Logic Framework for Boolean Operators in Neural Embeddings](/202604/16/2604.10604v1-nsfl-a-post-training-neuro-symbolic-fuzzy-logic-framework-for-boolean-operators-in-neural-embeddings)  
+   evidence：将案例转换为逻辑公式
+9. [How Transformers Learn to Plan via Multi-Token Prediction](/202604/17/2604.11912v1-how-transformers-learn-to-plan-via-multi-token-prediction)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：用于推理和规划任务的Transformer架构
+10. [A Bayesian Perspective on the Role of Epistemic Uncertainty for Delayed Generalization in In-Context Learning](/202604/17/2604.12434v1-a-bayesian-perspective-on-the-role-of-epistemic-uncertainty-for-delayed-generalization-in-in-context-learning)  
    标签：评分：6.0/10、query:math-ai
-   evidence：神经嵌入中逻辑算子的神经符号框架
+   evidence：Transformer从示例中推断潜在线性函数
+11. [Physics-Informed Neural Networks for Solving Derivative-Constrained PDEs](/202604/17/2604.13723v1-physics-informed-neural-networks-for-solving-derivative-constrained-pdes)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：物理信息神经网络求解偏微分方程
+12. [xFODE+: Explainable Type-2 Fuzzy Additive ODEs for Uncertainty Quantification](/202604/17/2604.14880v1-xfode-explainable-type-2-fuzzy-additive-odes-for-uncertainty-quantification)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：可解释的系统辨识与数据驱动的ODE建模
 
 
 <div class="dpr-home-promo-card">
