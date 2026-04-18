@@ -1,0 +1,965 @@
+Title: Behavioral Systems Theory Meets Machine Learning: Control-Aware Learning of the Intrinsic Behavior from Big Data
+
+URL Source: https://arxiv.org/pdf/2604.13673v1
+
+Published Time: Thu, 16 Apr 2026 00:44:43 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Behavioral Systems Theory Meets Machine Learning: Control-Aware Learning of the Intrinsic Behavior from Big Data 
+
+Yitao Yan, Yu Tong, Jie Bao and Wei Wang 
+
+Abstract — The abundance of process operating data in mod-ern industries, along with the rapid advancement of learning techniques, has led to a paradigm shift towards data-centric analysis and control. However, integrating machine learning with control theory for big data-driven control of nonlinear systems remains a challenging open problem. This is because the state-based, model-centric, and causal framework of classical control theory fundamentally contradicts the trajectory-based, set-theoretic, and causality-absent rationale of big data-based learning approaches. Using the behavioral framework, we show that dynamical systems possess an intrinsic state variable that encodes the system behavior in a bijective and causality-free manner, and control design can be carried out entirely within the state space. This approach not only resolves the aforementioned conflict but also complements machine learning techniques well, leading to a neural network architecture that is capable of learning the behavior representation well-suited for control design. 
+
+I. I NTRODUCTION 
+
+The availability of massive amounts of data that are collected and stored in modern industries has created new opportunities for direct big data-based analysis and control, particularly for systems whose first-principles models are dif-ficult or costly to obtain. This paradigm has seen remarkable developments in the context of linear time-invariant (LTI) systems. In particular, the celebrated fundamental lemma developed by Willems et al. [1] formed the basis for a wide range of data-driven approaches that bypass explicit system identification. One of the most notable developments is the data-enabled predictive control (DeePC) algorithm [2], which has been further developed to incorporate stability and ro-bustness certificates [3]. Other developments include stability design [4], [5], optimal control [6], stochastic control [7] and distributed control [8]. In contrast, the development of data-driven methods for nonlinear systems remains limited. Existing approaches ei-ther rely on linear design [9], which can be conservative, extend to specific classes of nonlinear systems (e.g., [10], [11]) or employ clustering-based techniques that typically handle weak nonlinearities [12]. With the current rapid devel-opment of artificial intelligence, machine learning methods have gained attention as a promising direction for big data-based control design due to their universal approximating capability. However, many of these approaches are centered on state-space formulations, which are often challenging due 
+
+> Y. Yan, Y. Tong and J. Bao are with the School of Chemical Engineer-ing, UNSW Sydney, NSW 2052, Australia. (e-mail: y.yan@unsw.edu.au; yu.tong6@unsw.edu.au; j.bao@unsw.edu.au). W. Wang is with the Hong Kong University of Science and Technology, Hong Kong SAR, China (e-mail: weiwcs@ust.hk).
+
+to the lack of direct state measurements [13]. Furthermore, enforcing the classic state space representation to be learned from the dataset can introduce bias through these structural constraints. Other efforts attempt to learn step-wise encoding with a dynamic linear latent variable space [14], but this step-wise construction can limit the level of nonlinearity captured. In recent years, Koopman operator-based methods have also emerged as a popular direction, particularly when machine learning developments enable efficient learning of Koopman eigenfunctions [15]. However, as a theory initially developed for analyzing autonomous systems, the Koopman technique becomes challenging in handling control inputs explicitly [13]. The above developments and challenges highlight a fundamental tension that limits the integration of classical control theory with machine learning: classical control design relies on pre-specified model structures with explicit causal-ity, focusing on how inputs determine the evolution of system states and outputs, while machine learning, being inherently data-centric, seeks to extract system characteristics directly from large datasets without imposing explicit causal assump-tions or model structures. As such, enforcing predefined structures and causality contradicts the underlying rationale of learning from data, yet discarding such structures obscures the input/output relationships, making control synthesis via classical methods difficult. In this paper, we take the perspective of behavioral sys-tems theory and demonstrate how it naturally complements machine learning. This synergy gives rise to a novel approach for big-data-driven learning of system behavior, enabling integrated control design and making behavior learning in-herently control-aware. We first show that dynamical systems are naturally equipped with an intrinsic state variable, whose state map captures the correspondence between trajectories in the system behavior and their free components. This allows the state map to serve as a bijective mapping, bridging the system behavior to an equipotent state behavior, enabling control design to be carried out entirely in the state space without input or output variables. Rather than following the classical control law construction rationale, the control design adheres to the sub-behavior selection principle from behavioral systems theory, eliminating the need for causality assumptions. This approach fits naturally with big data-based learning, making it possible to devise a Control-Aware 
+
+Learning of Intrinsic Behavior (CALIB) architecture, which calibrates the intrinsic state such that it encapsulates system behavior while also enabling control design. The rest of this paper is organized as follows: Section II introduces essential concepts in behavioral systems theory; 
+
+> arXiv:2604.13673v1 [eess.SY] 15 Apr 2026
+
+Section III introduces the intrinsic state and illustrates its properties; Section IV develops the control design approach based on the intrinsic state; Section V introduces the CALIB architecture; Section VI illustrates the results in this paper using an example; Section VII concludes the paper and points to a number of future research directions. 
+
+Notations. We use the standard notations R, Rn, Rm×n,
+
+Z, etc. For a space W, the generic variable is denoted as w,and its dimension is denoted by w. For a vector v, ‖v‖ and 
+
+‖v‖∞ denote its two norm and infinity norm, respectively. II. P RELIMINARIES 
+
+We provide a brief summary of the concepts in behavioral systems theory that are essential to this paper. The reader is referred to [16] for more details. In this paper, we consider discrete-time dynamical systems that are time-invariant and complete. Such a dynamical system can be defined as a triple Σ = ( T, W,
+
+B), where T ⊂ Z is the time axis, W is the signal space, and 
+
+B ⊂ WT is the behavior that satisfies time-invariance: 
+
+σ
+
+B ⊂
+
+B (
+
+σ is a shifting operator such that 
+
+σ wk = wk+1), and completeness: {w ∈
+
+B} ⇔ { w|[k1,k2] ∈
+
+B|[k1 ,k2], ∀k1, k2 ∈ T, k1 ≤ k2}, where 
+
+B|[k1 ,k2] denotes the behavior restricted to the interval [k1, k2], i.e., 
+
+B|[k1,k2 ] = {w | ∃ w′ ∈
+
+B, wk = w′
+
+> k
+
+, ∀k ∈ [k1, k2] ∩ Z}, (1) and w|[k1 ,k2] is similarly defined. In this paper, we focus on dynamical systems whose behavior has a manifold structure, i.e., those whose signal space W is a manifold, and behavior 
+
+B is a submanifold of WT.For time-invariant complete systems, there exists an inte-ger l such that w|[k,k+l] ∈
+
+Bl , ∀k ∈ T implies that w ∈
+
+B, and the smallest integer for which this is true is the lag of the system denoted by L (
+
+B). Such a dynamical system always admits a kernel representation of the form 
+
+r(w|[k−L,k]) = 0. (2) The time-invariance and completeness allow the dynamical feature of 
+
+B to be fully captured by the behavior restricted to an interval [0, L] with L ≥ L (
+
+B), which we denote as 
+
+BL.Trajectories of 
+
+B can be constructed from those in 
+
+BL via trajectory weaving, i.e., [17] 
+
+{w1, w2 ∈
+
+BL, w1 
+
+> |[L−l,L]
+
+= w2
+
+> |[0,l]
+
+, l ≥ L (
+
+B)}⇒ { w1 
+
+> |[0,L−l−1]
+
+∧ w2 
+
+> |[0,L]
+
+∈
+
+B2L−l }, (3) where ∧ denotes trajectory concatenation. The manifest variable of the system w admits an input/output partition 
+
+w = ( u, y), with u as the input and y as the output, if u
+
+is a free variable of the system, i.e., for all trajectories of u, there exists a corresponding trajectory of y such that 
+
+(u, y) ∈
+
+B. Furthermore, for a trajectory in a time-invariant complete system with a given initial trajectory w|[0,L] in which L ≥ L (
+
+B), the future output trajectory can be uniquely identified from its corresponding input trajectory. In many cases, the description of dynamical systems relies on the use of latent variable ℓ, leading to a latent variable dynamical system Σ f ull = ( T, W, L,
+
+Bf ull ), where 
+
+Bf ull ⊂
+
+(W × L)T is the full behavior. The corresponding manifest behavior 
+
+B can be constructed from 
+
+Bf ull as 
+
+B =
+
+πw(
+
+Bf ull ), (4) where 
+
+πw denoted the projection onto the trajectory space of w. The latent variable is additionally a state variable if it possesses the state property 
+
+{(w1, ℓ 1), (w2, ℓ 2) ∈
+
+Bf ull , ℓ 1 
+
+> k
+
+= ℓ2 
+
+> k
+
+}⇒ { (w1 
+
+> |[−∞,k−1]
+
+∧ w2
+
+> |[k,∞]
+
+, ℓ 1 
+
+> |[−∞,k−1]
+
+∧ ℓ2
+
+> |[k,∞]
+
+) ∈
+
+Bf ull }. (5) If the latent variable has the state property, the representation of full behavior is, in general, of the form 
+
+f (xk,
+
+σ xk, wk) = 0, (6) where w is the manifest variable and x is the state variable. The smallest dimension of x among all such representations with manifest behavior given by 
+
+B is the state cardinality of the system, denoted by n (
+
+B). In such a case, the state is both controllable and observable [18]. This means that the initial state and the input trajectory uniquely specify a trajectory 
+
+(w, x) ∈
+
+Bf ull , and therefore a trajectory w ∈
+
+B.A distinct feature of behavioral systems theory is that control is viewed as an interconnection between the to-be-controlled system and the controller. As such, the controlled system behavior is the set of trajectories that are admissible in both the system and the controller, and is therefore a subset 
+
+of the uncontrolled behavior. This means that control design in the behavioral framework is the search for a sub-behavior 
+
+from the to-be-controlled system that meets the control ob-jectives. This rationale transforms the control design problem into a feasibility problem, which comprises (i) Existence :whether the desired controlled behavior exists in the un-controlled system behavior, (ii) Implementability : whether this desired controlled behavior can be implemented via the manipulated variable alone, and (iii) Liveness : whether the live component in the controlled behavior can freely choose any trajectory from its behavior before control [19]. Since the controller needs to be able to determine wk from any trajectory w|[k−L,k−1] from 
+
+BL−1 to ensure effective trajectory weaving, the live component in the interval [k − L, k] is 
+
+w|[k−L,k−1] [20]. III. B RIDGING SYSTEM BEHAVIOR TO AN EQUIPOTENT 
+
+INTRINSIC STATE SPACE 
+
+As illustrated in Section II, it is sufficient to learn the behavior 
+
+BL for analysis and control design for system 
+
+Σ. However, constructing 
+
+BL simply using its measured trajectories poses challenges to both system analysis and control design. To illustrate, denote ˜wk := w|[k−L,k] (7) as the trajectory for the interval [k − L, k]. One option is to learn the system behavior as a kernel representation, i.e., 
+
+r( ˜wk) = 0. (8) While this poses no structural constraints on the possible behavior it can describe, it has the risk of learning a trivial mapping (i.e., r ≡ 0). To avoid this, structural constraints on the function r must be imposed, making it a less general approach than it appears [14]. Furthermore, liveness requires that ˜ w|[k−L,k−1] allows all trajectories from 
+
+BL−1 rather than 
+
+RLw, which is a challenging offline control design condition to develop for nonlinear systems. This is because 
+
+BL, as a submanifold of R(L+1)w, is of a lower dimension than (L +
+
+1)w; hence, the live components cannot be completely free. This means that the manifest variable alone does not provide sufficient flexibility to capture the system behavior in the most efficient way. Alternatively, one could construct a state variable of dimension n (
+
+B) and attempt to learn a traditional in-put/state/output representation 
+
+xk+1 = f (xk, uk), yk = h(xk, uk). (9) While this approach leads to a representation with a lag of 1 and alleviates the difficulty of liveness design, such a forced structural constraint not only limits the possibility of learning a more generalized representation given by (6), but it also inherently learns causality (i.e., trajectory evolution) rather than correspondence (i.e., trajectory space), the latter of which is in fact what big data represents more accurately. Much like system identification approaches, such forced input/output representation with causal structural constraints has a tendency to exhibit a larger bias error [21], which is undesirable for stabilization control design because it typically relies on unbiased future predictions. The above discussions highlight the need to construct a latent variable representation for the system using a latent variable that encodes features of the trajectory space, cap-tures the intrinsic complexity of the system behavior, and has a state property. We now show that such a latent variable indeed exists, and it possesses additional desirable features beyond the discussion above. 
+
+Theorem 1. Let Σ = ( T, W,
+
+B) be a time-invariant complete dynamical system. There exists a latent variable dynamic system Σ f ull = ( T, W, G,
+
+Bf ull ) with latent signal space G =
+
+Rg where g = ( L + 1)u + n (
+
+B), latent variable g and full behavior represented by gk =
+
+χ( ˜wk). (10) 
+
+Furthermore, (i) 
+
+χ :
+
+BL → Rg is bijective; (ii) 
+
+B and 
+
+Bg are equipotent, where 
+
+Bg =
+
+πg(
+
+Bf ull ); (11) 
+
+(iii) g is a state variable for 
+
+B.Proof. (i) Consider a mapping 
+
+χ that maps ˜wk to gk =
+
+col (xk−L, ˜uk), where ˜uk is defined similarly to ˜wk in (7). For two trajectory pairs (w1, g1), (w2, g2) ∈
+
+Bf ull , if 
+
+χ( ˜w1 
+
+> k
+
+) = χ( ˜w2 
+
+> k
+
+), then g1 
+
+> k
+
+= g2 
+
+> k
+
+, which means that ˜ u1 
+
+> k
+
+= ˜u2 
+
+> k
+
+and x1 
+
+> k−L
+
+=
+
+x2
+
+> k−L
+
+. This implies that ˜ y1 
+
+> k
+
+= ˜y2 
+
+> k
+
+, and hence ˜ w1 
+
+> k
+
+= ˜w2 
+
+> k
+
+, showing that 
+
+χ is injective. Furthermore, any choice of gk corresponds to a choice of xk−L and ˜uk. It is not difficult to see that a corresponding trajectory ˜wk ∈
+
+BL must exist. This shows that that 
+
+χ is surjective. The combination of injectivity and surjectivity of 
+
+χ makes it a bijective mapping between 
+
+BL
+
+and Rg. The above discussions also show that the manifest behavior of this full behavior is indeed 
+
+B.(ii) This follows directly from the bijectivity of 
+
+χ.(iii) Let (w1, g1), (w2, g2) ∈
+
+Bf ull . If g1 
+
+> k
+
+= g2 
+
+> k
+
+, then, by the bijectivity of 
+
+χ, it follows that ˜ w1 
+
+> k
+
+= ˜w2 
+
+> k
+
+. Following a similar argument to the proof of Theorem 3 in [5], it follows that 
+
+(w, g) = ( w1 
+
+> |[−∞,k]
+
+∧ w2
+
+> |[k+1,∞]
+
+, g1 
+
+> |[−∞,k]
+
+∧ g2
+
+> |[k+1,∞]
+
+) ∈
+
+Bf ull .
+
+(12) This proved the state property of g, making it a state variable for 
+
+B.
+
+Remark 1. While the proof of Theorem 1 uses initial state xk−L and input trajectory ˜uk as a constructed example, it is not the only valid choice. To illustrate, for any valid state g, one can choose an invertible function 
+
+γ : Rg → Rg and define an equivalent state as g ′ =
+
+γ(g) with the associated state map 
+
+χ′ =
+
+χ ◦
+
+γ−1. This flexibility is beneficial for system behavior learning because measurement of the state x is typically not available in the data driven setting, and the best chart for behavior learning is not necessarily this chosen example. 
+
+Remark 2. Although (xk−L, ˜uk) cannot be used as a can-didate for g in practice, it does reveal the rationale for why such a g exists: it implicitly encodes the information of 
+
+all and only free components in the uncontrolled behavior. This explains why (L + 1)u + n (
+
+B) is the smallest possible dimension of g. It also shows that the representation (10) always exists, making the constructions in Theorem 1 general and not restrictive to any class of nonlinear systems. 
+
+As shown in Theorem 1, 
+
+χ maps the system trajectories to the state space, and is therefore a state map for the system [22], [23]. Furthermore, the bijectivity of 
+
+χ implies the existence of an inverse mapping of 
+
+χ. For the clarity of presentation, we denote this inverse mapping as 
+
+η, i.e., ˜wk =
+
+η(gk). (13) In such a case, the vector gk can be viewed as a chart for 
+
+BL,and 
+
+η is a parameterization map . In other words, the latent variable g has chart-state dual property. This bijective nature allows the analysis of the system behavior to be carried out 
+
+completely in the state space. Using (13) and following a similar construction in [5], the full behavior can be brought to the following equivalent representation 
+
+Π−
+
+η(gk) = Π+
+
+η(gk−1) (14a) 
+
+wk = Π0
+
+η(gk) (14b) where Π− = [ILw 0Lw×w
+
+], Π+ = [0Lw×w ILw
+
+] and Π0 =[0w×Lw Iw
+
+]. This representation includes a first-order state transition that encodes manifest variable trajectory weaving and a manifest behavior parameterization using g as achart. We now show that the state behavior 
+
+Bg is precisely represented by (14a). Proposition 2. Let Σ f ull be a latent variable dynamical system with full behavior given by (10) , with the inverse mapping of 
+
+χ as 
+
+η, then (14a) is a representation of 
+
+Bg.Proof. Since (14) is a representation of 
+
+Bf ull , the behavior 
+
+Bg can be represented by (14a) because (14b) poses no restrictions on g.
+
+The combination of the results in Theorem 1 and Propo-sition 2 shows that the dynamics of w can be analyzed and controlled by treating the equipotent state behavior 
+
+Bg with a representation completely independent of w and whose variable dimension captures the intrinsic complexity of 
+
+BL.We therefore refer to g as the intrinsic state of 
+
+B.
+
+Remark 3. If Σ is an LTI system, i.e., Σ satisfies W being a vector space and 
+
+B being a linear subspace of WT, then the parameterization map can be readily obtained directly from the fundamental lemma. Specifically, let 
+
+H denote a Hankel matrix of order L + 1 constructed from one of its (T + 1)-step trajectories ˜w ∈
+
+BT . If rank (
+
+H) = ( L+ 1)u+ n (
+
+B), then 
+
+BL is equal to the column span of 
+
+H [1]. If 
+
+H has exactly 
+
+(L + 1)u + n (
+
+B) columns (e.g., processed via SVD), then a bijective map can be obtained as [5] gk =
+
+χ( ˜wk) = 
+
+H† ˜wk, ˜wk =
+
+η(gk) = 
+
+Hgk, (15) 
+
+with the state behavior 
+
+Bg represented as 
+
+Π−
+
+Hgk = Π+
+
+Hgk−1. (16) IV. S TABILIZATION DESIGN USING INTRINSIC STATE :FROM LINEAR TO NONLINEAR SYSTEMS 
+
+For control design in this paper, we focus on exponential stabilization of the origin. As illustrated in Section III, the intrinsic state allows the behavior 
+
+B to be equivalently analyzed in the behavior 
+
+Bg. Furthermore, the state prop-erty of g allows for the possibility of constructing control Lyapunov functions for stabilization design. However, since 
+
+g captures behavior space, it inherently has no presumed causality. Leveraging the bijective mapping (10) and (13), and using the behavioral framework, which is inherently non-causal, we develop a set of feasibility conditions that construct the Lyapunov function as well as the associated 
+
+controlled behavior , as opposed to the control law (e.g., approaches in [4]). The control action can be readily obtained from the state g via the parameterization map 
+
+η.We begin this section with rationale inspired by the stabilization design of LTI systems. Since the ultimate goal is to generalize to nonlinear systems, conditions for LTI systems are developed so that the representation (16) remains unprocessed. 
+
+A. An Inspiration from Data-Driven Stabilization Design for LTI Systems 
+
+The main idea for this design is to find a controlled behavior that is parameterized by the free component of the controlled system. In this case, since gk−1 in (16) captures the dynamics of ˜ wk−1, it is the live component for the controlled behavior, and is additionally free according to the discussion in Section III. Motivated by this observation, we focus on finding a controlled behavior that is also LTI, i.e., the state transition in the controlled system satisfies 
+
+gk = Ψgk−1, (17) where Ψ ∈ Rg×g is to be determined. Using the parameteri-zation map in (15), this means that the controlled behavior satisfies ˜wk =
+
+Hgk =
+
+HΨgk−1, (18) which shows that this controlled behavior is parameterized by 
+
+gk−1, whose freeness implies liveness, and that the controlled behavior is indeed a subset of the uncontrolled behavior because colspan (
+
+HΨ) ⊂ colspan (
+
+H). We are now in aposition to develop feasibility conditions for LTI systems. 
+
+Theorem 3. Let Σ be an LTI system with a latent variable dynamical system whose full behavior is given by (15) . There exists a controlled LTI behavior that is exponentially stable with convergence rate 
+
+β ∈ (0, 1] if and only if there exists a symmetric matrix W and a matrix L such that W > 0, (19a) 
+
+Π−
+
+HL − Π+
+
+HW = 0, (19b) 
+
+[(1 −
+
+β )W ∗
+
+L W
+
+]
+
+≥ 0. (19c) 
+
+In such a case, a possible implementing control action is uk = Πu
+
+HLW −1gk−1 = Πu
+
+HLW −1
+
+H† ˜wk−1. (20) 
+
+Proof. As illustrated in [5, Theorem 8], the LTI system can be asymptotically stabilized with the controlled behavior in the form (18) if and only if there exists a Lyapunov function of the form V (g) = g⊤Mg with M > 0 and a controlled state behavior of the form (17) such that V (gk) − V (gk−1) < 0for all gk−1 6 = 0. The exponential stability condition can therefore be analogously established as the existence of such a Lyapunov function such that 
+
+g⊤ 
+
+> k
+
+Mg k − (1 −
+
+β )g⊤
+
+> k−1
+
+Mg k−1 ≤ 0, (21) for all gk−1. Since the controlled state dynamics is of the form (17), we have 
+
+g⊤
+
+> k−1
+
+(( 1 −
+
+β )M − Ψ⊤MΨ)gk−1 ≥ 0 (22) for all gk−1. This means that 
+
+(1 −
+
+β )M − Ψ⊤MΨ ≥ 0. (23) Taking Schur complement, defining W = M−1 and L =
+
+ΨW gives (19c). Furthermore, to ensure the existence of the controlled behavior (17), it must be a subset of the uncontrolled behavior, which is represented by (16). This means that all gk and gk−1 satisfying (17) must also satisfy (16), i.e., 
+
+Π−
+
+HΨgk−1 = Π+
+
+Hgk−1 (24) must hold for all gk−1. This means that 
+
+Π−
+
+HΨ = Π+
+
+H. (25) Right-multiplying both sides by W and rearranging lead to (19b). Upon satisfaction of (3), the controlled behavior can be recovered as 
+
+gk = Ψgk−1 = LW −1gk−1, (26) which then leads to the control action uk using 
+
+H.
+
+As shown in the proof of Theorem 3, the key inspiration is to determine the controlled behavior, which is a subset of the uncontrolled behavior, thereby validating the existence of the controlled behavior. The bijective mapping ensures that the stabilization of g would lead to that of w because linear transformations preserve the origin. Furthermore, since g
+
+encodes the manipulated variable information, the controlled behavior is automatically implementable by the manipulated variable. Combined with the liveness analysis discussed in the beginning of this section, feasibility of the controlled behavior in 
+
+BL, and therefore in 
+
+B, is guaranteed. This means that Theorem 3 allows one to carry out control design without the need to pre-specify the controller structure, and the design in the state behavior requires no presumption of causality. The results in Theorem 3 is therefore readily generalizable to nonlinear systems. 
+
+B. Generalization to Nonlinear Systems 
+
+To generalize the above to a nonlinear system, we begin by assuming that the state map is anchored at 0, i.e., that χ(0(L+1)w×1) = 0g×1. (27) This assumption is without loss of generality because, due to the flexibility in g, one could always recenter the co-ordinates such that the mapping passes through the origin. The feasibility conditions are now immediately generalizable to nonlinear systems, which we state in the theorem below without proof. 
+
+Theorem 4. Let Σ be a time-invariant complete system with a latent variable dynamical system whose full behavior is given by (14) . There exists a controlled behavior that is exponentially stable at rate 
+
+β ∈ (0, 1] if there exist functions V : Rg → R and 
+
+ψ : Rg → Rg such that α1(‖gk−1‖) ≤ V (gk−1) ≤
+
+α2(‖gk−1‖), (28a) 
+
+Π−
+
+η ◦
+
+ψ(gk−1) = Π+
+
+η(gk−1), (28b) 
+
+V ◦
+
+ψ(gk−1) − (1 −
+
+β )V(gk−1) ≤ 0, (28c) 
+
+hold for all g k−1 ∈ Rg, where 
+
+α1 and 
+
+α2 are two class-
+
+K∞
+
+functions. In such a case, a possible implementing control action is uk = Πu
+
+η ◦
+
+ψ ◦
+
+χ( ˜wk−1). (29) Comparing Theorem 4 with Theorem 3, the controlled behavior has been generalized to an arbitrary function 
+
+ψ,making the conditions in Theorem 4 less restrictive. How-ever, the rationale is exactly the same, i.e., the existence of ψ means that the controlled behavior becomes ˜wk =
+
+η(gk) = 
+
+η ◦
+
+ψ(gk−1), (30) ˜wk−1
+
+## χ gk−1
+
+## η ˆ˜wk−1
+
+## V Vk−1
+
+## Vgck
+
+## ψ Vk
+
+˜wk
+
+## χ gk
+
+## χ
+
+## η ˆ˜wk 
+
+> Fig. 1. The CALIB Architecture
+
+which is a subset of the uncontrolled system behavior be-cause im (
+
+η ◦
+
+ψ) ⊂ im (
+
+η), (31) where im (
+
+η) denotes the image of function 
+
+η. While The-orem 4 provides conditions for the feasibility of a desired controlled behavior, determining the form of the controlled state behavior represented by 
+
+ψ is not straightforward, and the search for a control Lyapunov function V for nonlinear systems is well-known to be a challenging task. These difficulties become more pronounced in the big data setting because the system behavior is learned from data, and the learned representation may not be suitable for control design. In the next section, leveraging the flexibility of the intrinsic state variable and the powerful ability of neural networks to capture nonlinear dynamics, we will develop a neural network architecture that learns the intrinsic state map that not only captures the system dynamics, but is also suitable for control design. V. A N EURAL NETWORK ARCHITECTURE FOR INTRINSIC 
+
+STATE LEARNING WITH INTEGRATED CONTROL 
+
+The state map 
+
+χ, parameterization map 
+
+η, together with the conditions in Theorem 4, form the basis for the de-velopment of a learning architecture that is suitable for nonlinear control. In this section, we introduce the Control-
+
+Aware Learning of Intrinsic Behavior (CALIB) architecture. It trains the maps 
+
+χ and 
+
+η together with the controlled state behavior representation 
+
+ψ and the control Lyapunov function 
+
+V simultaneously in order to learn the intrinsic state best-suited for control design. A schematic diagram of the CALIB architecture is shown in Fig. 1. The state map and parameterization map naturally form an autoencoder structure that reconstructs ˜wk−1, with the latent space being the intrinsic state gk−1. A neural network representing 
+
+ψ is used to transition gk−1 to the controlled state, which is denoted by gck. Both the learned 
+
+gk−1 and the transitioned gck are sent to the same Lyapunov function network, producing Vk and Vk−1. While learning the behavior in a single (L + 1)-step interval is sufficient to capture the entire behavior in theory, the incomplete data set necessitates further guidance for effective learning. Specifically, to ensure that the learned state behavior reflects trajectory weaving, the trajectory ˜wk whose past trajectory overlaps with ˜wk−1 is also fed into the same autoencoder. The loss function 
+
+L is a combination of intrinsic behavior learning and controlled behavior learning, i.e., 
+
+L =
+
+LIB +
+
+LCB . (32) Specifically, intrinsic behavior learning loss 
+
+LIB =‖ ˜wk−1 −
+
+η ◦
+
+χ( ˜wk−1)‖MSE 
+
++
+
+λχ ‖
+
+χ(0)‖MAE +
+
+λη ‖
+
+η(0)‖MAE 
+
++
+
+λw‖Π−
+
+η ◦
+
+χ( ˜wk) − Π+
+
+η ◦
+
+χ( ˜wk−1)‖MSE 
+
++
+
+λ∞(‖ ˜wk−1 −
+
+η ◦
+
+χ( ˜wk−1)‖∞ + ‖ ˜wk −
+
+η ◦
+
+χ( ˜wk)‖∞)
+
+(33) comprises a reconstruction error training the bijectivity of 
+
+χ,two anchoring losses with weightings 
+
+λχ and 
+
+λη to ensure that the mapping passes through the origin, a weaving loss (with weight 
+
+λw) to regulate the behavior of the intrinsic state, and an infinity norm loss (with weight 
+
+λ∞) to impose an additional penalty on the worst-performing data point. The notations ‖ · ‖ MSE and ‖ · ‖ MAE denote the mean squared error and the mean absolute error, respectively. Note that gk
+
+and gck are not comparable as they likely correspond to two different future trajectories. The controlled behavior learning loss 
+
+LCB =
+
+λe‖Π−
+
+η ◦
+
+ψ ◦
+
+χ( ˜wk−1) − Π+
+
+η ◦
+
+χ( ˜wk−1)‖MSE 
+
++
+
+λV V ◦
+
+χ(0)+
+
+λ∇ max {V ◦
+
+ψ ◦
+
+χ( ˜wk−1) − (1 −
+
+β )V ◦
+
+χ( ˜wk−1), 0}
+
+(34) consists of the loss to ensure the controlled behavior is a subset of the uncontrolled behavior (with weight 
+
+λe), equilibrium point anchoring for the Lyapunov function (with weight 
+
+λV ), and exponential decay of the Lyapunov function along the controlled behavior (with weight 
+
+λ∇). To ensure that the Lyapunov function is bounded following (28a), it is preferable to construct the Lyapunov function network with additional strictures. One possibility is 
+
+V (g) = 
+
+α1(‖g‖) + ( 
+
+α2(‖g‖) −
+
+α1(‖g‖)) S ◦
+
+φ (g), (35) where 
+
+φ : Rg → R is a neural network to be trained, and S
+
+denotes the sigmoid function. The CALIB architecture is a combination of the learning of system behavior and controlled behavior, training the state map 
+
+χ, the parameterization map 
+
+η, the controlled behavior representation 
+
+ψ, and the control Lyapunov function V
+
+simultaneously. As such, the learned intrinsic state not only captures the system complexity in a generic way but is also suitable for control design. This design highlights the interplay between behavioral systems theory and machine learning: the former guarantees the feasibility of the latter, while the latter realizes the former. The combined effort leads to an architecture that imposes almost no structural constraints on the underlying system behavior or machine learning components beyond those that are inherent to the system. VI. I LLUSTRATIVE EXAMPLE 
+
+We consider a rigid-body drone in the same setting as in [24]. The discretized model of the drone is given by 
+
+xk+1 = xk +
+
+τvk cos (
+
+μk), (36a) 
+
+yk+1 = yk +
+
+τvk sin (
+
+μk), (36b) 
+
+μk+1 =
+
+μk +
+
+τω k, (36c) 
+
+zk+1 = zk +
+
+τsk, (36d) where x, y, z are the coordinates of the spatial location of the drone in meters, 
+
+μ is the yaw in radians, and 
+
+τ is the sampling period, which is chosen as 0 .1s for this example. Manipulated variables of the drone include the forward velocity v in m /s, yaw rate 
+
+ω in rad /s and vertical velocity s
+
+in m /s. Note that the model is only used for data generation purposes and is not used during offline design or online implementation. Furthermore, the measured system output 
+
+y contains only the position coordinates x, y, z and does not have access to the yaw angle information. The system manifest variable is therefore w = col (x, y, z, v,
+
+ω, s).In this example, we aim to stabilize the drone at the origin (0, 0, 0), which corresponds to the operating input 
+
+v = 0, 
+
+ω = 0, and s = 0. We begin by collecting trajectory measurements near the origin to demonstrate the validity of the linear design, and subsequently show the control outcome of CALIB with an initial position far from the origin. 
+
+A. The Linear Design Approach 
+
+Simulation has been performed with L = 5 using the design method for LTI systems described in Theorem 3 using a Hankel matrix constructed from a measured trajectory, and the control result is shown in Fig. 2. The controlled system has been stabilized to a position that is very close to the origin, and this small offset is because the behavior representation is constructed using data from the nonlinear system. The control performance is compared against the DeePC algorithm, with results shown in Fig. 3. Compared with DeePC, the approach in Theorem 3 leads to a much smoother trajectory that ends in a position much closer to the setpoint. 
+
+B. CALIB Learning and Control Performance 
+
+To train the CALIB network, 110,000 trajectories (100k/10k for training/testing) of length 201 have been collected. The input trajectories are random sequences from the ranges v ∈ [0, 5],
+
+ω ∈ [−0.5, 0.5], and uv ∈ [−5, 5] with random hold periods between 1 and 5. For this study, we choose L = 4, which means that the dimension of g is 19. The data is normalized using z-scores for training, and the hyperparameters chosen for training are 
+
+λχ =
+
+λη =
+
+λw =
+
+λe =
+
+λV = 1, 
+
+λ∞ = 10 −5 and 
+
+λ∇ = 10. This places equal importance on reconstruction, state map anchoring, trajectory 0 20 40 60 80 100 
+
+> Time (s)
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> Position (m)
+> x
+> y
+> z
+
+Fig. 2. Control performance using the linear design in Theorem 3        
+
+>   1.0   0.5 0.0 0.5 1.0 1.5 2.0 2.5
+> x (m)
+>   1.0
+>   0.5
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> y (m)
+>   0.5
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> z (m)
+> T  et
+>  t t
+>  n
+
+Fig. 3. Performance comparison between the design in Theorem 3 (blue) and DeePC (red) 
+
+weaving, and Lyapunov function anchoring, with an empha-sis on Lyapunov stability along the controlled behavior. The control performance is shown in Fig. 4, with the 3D trajectory plot shown in Fig. 5. They show that the drone is stabilized to a position that is close to the origin. The offset at steady state may be caused by the fact that, while the errors in the loss function can be trained to small quantities, their effects become significant when the position is close to the origin. As a comparison, the trajectory predicted by CALIB has also been included in the figures, showing that the predicted trajectory aligns well with the actual one. This example demonstrates the ability of CALIB to capture system behavior while carrying out effective control design simultaneously. VII. C ONCLUSION AND OUTLOOKS 
+
+In this paper, a new approach has been developed that enables the seamless integration of machine learning and control design for big data-driven learning and control of nonlinear systems. Central to this approach is the introduc-tion of the concept of the intrinsic state variable, which captures the intrinsic complexity of the system behavior,           
+
+> 050 100 150 200 250 00  50 400 450 500
+> Time (s)
+>  10
+> 5
+> 0
+> 5
+> 10
+> 15
+> Position (m)
+> xTrue
+> xPredicted
+> yTrue
+> yPredicted
+> zTrue
+> zPredicted
+
+Fig. 4. Control performance using the CALIB architecture           
+
+> 2.5 0.0 2.5 5.0 .5 10.0 12.5 15.0
+> x (m)
+> 10.0
+> .5
+> 5.0
+> 2.5
+> 0.0
+> 2.5
+> 5.0 .5
+> y (m)
+> 10
+> 8
+> 6
+> 4
+> 2
+> 0
+> z (m)
+> Tet
+>  tt
+>  n
+
+Fig. 5. Comparison between true flight trajectory (blue) and that predicted using CALIB (red) 
+
+allowing the system behavior to be represented through an equipotent state behavior. The system behavior can be characterized by an equipotential state behavior. By devel-oping a control design approach using this intrinsic state in the behavioral framework, we have developed the CALIB architecture that learns the system behavior integrated with control design. We believe that these developments offer a fresh perspective that is useful in big data-based nonlinear control. This approach also opens up several avenues for future re-search. Firstly, the current development assumes that the data are noise-free. Robustification of the framework is, therefore, necessary to handle measurement noise. Furthermore, the CALIB design can be refined to mitigate the effects of training errors on control performance. Another interesting direction is to extend the proposed approach for setpoint-independent tracking control design. This would mean that the system behavior is endowed with additional structures, which may lead to an enriched CALIB architecture. REFERENCES [1] J. C. Willems, P. Rapisarda, I. Markovsky, and B. L. M. De Moor, “A note on persistency of excitation,” Syst. Control Lett. , vol. 54, no. 4, pp. 325–329, 2005. [2] J. Coulson, J. Lygeros, and F. D¨ orfler, “Data-enabled predictive control: In the shallows of the DeePC,” in Proc. 18th Eur. Control Conf. IEEE, 2019, pp. 307–312. [3] J. Berberich, J. K¨ ohler, M. A. M¨ uller, and F. Allg¨ ower, “Data-driven model predictive control with stability and robustness guarantees,” 
+
+IEEE Trans. Autom. Control , vol. 66, no. 4, pp. 1702–1717, 2020. [4] C. De Persis and P. Tesi, “Formulas for data-driven control: Stabiliza-tion, optimality, and robustness,” IEEE Trans. Autom. Control , vol. 65, no. 3, pp. 909–924, 2020. [5] Y. Yan, J. Bao, and B. Huang, “The intrinsic state variable in fundamental lemma and its use in stability design for data-based control,” arXiv preprint arXiv:2501.12626 , 2025. [6] G. R. G. da Silva, A. S. Bazanella, C. Lorenzini, and L. Campestrini, “Data-driven LQR control design,” IEEE Control Syst. Lett. , vol. 3, no. 1, pp. 180–185, 2018. [7] G. Pan, R. Ou, and T. Faulwasser, “On data-driven stochastic output-feedback predictive control,” IEEE Trans. Autom. Control , vol. 70, no. 5, pp. 2948–2962, 2024. [8] Y. Yan, J. Bao, and B. Huang, “Distributed data-driven predictive con-trol via dissipative behavior synthesis,” IEEE Trans. Autom. Control ,vol. 69, no. 5, pp. 2899–2914, 2024. [9] J. Berberich, J. K¨ ohler, M. A. M¨ uller, and F. Allg¨ ower, “Linear tracking MPC for nonlinear systems Part II: The data-driven case,” 
+
+IEEE Trans. Autom. Control , vol. 67, no. 9, pp. 4406–4421, 2022. [10] M. Guo, C. De Persis, and P. Tesi, “Data-driven stabilization of nonlinear polynomial systems with noisy data,” IEEE Trans. Automat. Control , vol. 67, pp. 4210–4217, 2021. [11] R. Str¨ asser, J. Berberich, and F. Allg¨ ower, “Data-driven stabiliza-tion of nonlinear systems with rational dynamics,” arXiv preprint arXiv:2011.11355 , 2020. [12] S. Han, Y. Yan, J. Bao, and B. Huang, “Big data-driven predictive control for nonlinear systems—a trajectory cluster-based contraction approach,” J. of Process Control , vol. 152, p. 103474, 2025. [13] R. Str¨ asser, K. Worthmann, I. Mezi´ c, J. Berberich, M. Schaller, and F. Allg¨ ower, “An overview of koopman-based control: From error bounds to closed-loop guarantees,” Annu. Rev. Control , vol. 61, p. 101035, 2026. [14] J. W. Tang, Y. Yan, J. Bao, and B. Huang, “Big data-driven control of nonlinear processes through dynamic latent variables using an autoencoder,” IEEE Trans. Cybern. , vol. 55, pp. 2411–2423, 2025. [15] B. Lusch, J. N. Kutz, and S. L. Brunton, “Deep learning for universal linear embeddings of nonlinear dynamics,” Nat. commun. , vol. 9, no. 1, p. 4950, 2018. [16] J. C. Willems, “Paradigms and puzzles in the theory of dynamical systems,” IEEE Trans. Autom. Control , vol. 36, no. 3, pp. 259–294, 1991. [17] I. Markovsky, J. C. Willems, P. Rapisarda, and B. L. M. De Moor, “Algorithms for deterministic balanced subspace identification,” Auto-matica , vol. 41, no. 5, pp. 755–766, 2005. [18] N. Sadegh, “Minimal realization of nonlinear systems described by input-output difference equations,” IEEE Trans. on Autom. control ,vol. 46, no. 5, pp. 698–710, 2002. [19] J. C. Willems and H. L. Trentelman, “Synthesis of dissipative systems using quadratic differential forms: Part I,” IEEE Trans. Autom. Control ,vol. 47, no. 1, pp. 53–69, 2002. [20] Y. Yan, J. Bao, and B. Huang, “The behavioral approach to trajectory-based control,” in Proc. 23rd Eur. Control Conf. IEEE, 2025, pp. 2746–2751. [21] F. D¨ orfler, J. Coulson, and I. Markovsky, “Bridging direct and indirect data-driven control formulations via regularizations and relaxations,” 
+
+IEEE Trans. Autom. Control , vol. 68, no. 2, pp. 883–897, 2022. [22] P. Rapisarda and J. C. Willems, “State maps for linear systems,” SIAM J. Control Optim. , vol. 35, no. 3, pp. 1053–1091, 1997. [23] J. C. Willems and H. L. Trentelman, “On quadratic differential forms,” 
+
+SIAM J. Control Optim. , vol. 36, no. 5, pp. 1703–1749, 1998. [24] A. V. Savkin, S. C. Verma, and W. Ni, “Autonomous uav 3d trajectory optimization and transmission scheduling for sensor data collection on uneven terrains,” Def. Technol. , vol. 30, pp. 154–160, 2023.
