@@ -1,0 +1,546 @@
+Title: Learning Parameterized Nonlinear Elasticity on Curved Surfaces
+
+URL Source: https://arxiv.org/pdf/2604.12170v1
+
+Published Time: Wed, 15 Apr 2026 00:20:13 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+Published as a conference paper at ICLR 2026 
+
+# LEARNING PARAMETERIZED NONLINEAR ELASTIC -
+
+# ITY ON CURVED SURFACES 
+
+Yankang Liu 1, Ke Zhang 2, Maziar Raissi 2, Roya Zandi 11 Department of Physics and Astronomy, University of California Riverside, USA  
+
+> 2
+
+Department of Mathematics, University of California Riverside, USA 
+
+## ABSTRACT 
+
+We learn parameterized nonlinear elasticity on curved surfaces using a physics-informed neural network that enforces governing equations and boundary condi-tions directly through the loss function, enabling a single trained model to rep-resent a continuous family of elastic equilibria across geometric and material pa-rameters. Nonlinear elasticity on curved manifolds underlies the mechanics of crystalline shells, elastic membranes, and viral capsids, where curvature and topo-logical defects determine equilibrium structure and stability. Traditional exact and finite element solvers rely on symmetry reduction and must be reinitialized for each parameter choice, limiting scalability when symmetry is broken or pa-rameters vary. We validate the proposed learning-based solver on a benchmark problem from curved elasticity, namely the one-dimensional single disclination on a spheroidal surface with known exact and numerical solutions. The net-work accurately reproduces these solutions, including parameter combinations excluded from training, demonstrating generalization across geometry and ma-terial regimes. This study establishes a scalable framework for learning nonlinear elastic systems on curved manifolds and lays the groundwork for extensions to fully two-dimensional and multi-defect configurations relevant to protein shells and other curved elastic networks. 
+
+## 1 INTRODUCTION 
+
+Figure 1: Protein lattices on curved viral capsids. Icosahedral (HBV) and conical (HIV) capsids exhibit curvature-induced lattice defects that govern global shape and mechanical equilibrium. Red circles indicate pentameric defects required by curvature. Nonlinear elasticity on curved surfaces governs the mechanics of crystalline protein shells, elastic membranes, and viral capsids Li et al. (2018; 2019). During viral assembly, proteins form curved lattices whose equilibrium structures can be understood as free energy minimizing elastic networks constrained by geometry. Curvature induces geometric frustration that requires topological defects, known as disclinations, in the lattice structure. The number and arrangement of these defects deter-mine global shape and mechanical stability. Representative examples include icosahedral hepatitis B virus (HBV) capsids and the conical capsid of HIV, both of which exhibit ordered protein lattices on curved manifolds with defect-mediated geometry, see Fig. 1. 1
+
+> arXiv:2604.12170v1 [physics.bio-ph] 14 Apr 2026
+
+Published as a conference paper at ICLR 2026 Computing these equilibria requires solving nonlinear elasticity equations on curved manifolds. Ex-act and finite element methods are effective in highly symmetric configurations, such as a centered disclination on a spheroidal surface Dong et al. (2022), where symmetry reduction yields a one-dimensional boundary value problem. However, when symmetry is broken, parameters vary, or multiple interacting defects are present, the system becomes fully two dimensional and classical solvers face scaling and stability limitations Liu et al. (2025). Moreover, traditional approaches must typically be reinitialized for each new parameter choice, making exploration of continuous geometric and material regimes computationally expensive. From a machine learning perspective, this setting corresponds to learning solutions of a geometry-dependent nonlinear partial differential equation with parameter-dependent metrics. While physics-informed neural networks (PINNs) have demonstrated promise across a range of differential equa-tions Raissi et al. (2019), most benchmarks focus on flat domains or relatively simple operators. It remains unclear whether physics-constrained learning can reliably handle nonlinear elasticity on curved manifolds and generalize across continuous parameter spaces. In this work, we learn parameterized nonlinear elasticity on curved surfaces using a physics-informed neural network that enforces governing equations and boundary conditions directly through the loss function. The network is conditioned on geometric and material parameters, en-abling a single trained model to represent a continuous family of elastic equilibria rather than solving isolated instances. We validate the approach on a benchmark problem consisting of a single cen-tered disclination on a spheroidal surface with known exact and numerical solutions. Our goal is not to revisit the benchmark physics, but to establish a scalable learning-based solver that general-izes across parameter regimes and provides a foundation for extending physics-informed learning to fully two-dimensional and multi-defect configurations relevant to protein shells and other curved elastic networks. 
+
+## 2 PROBLEM SETUP 
+
+2.1 NONLINEAR ELASTICITY ON A CURVED SURFACE 
+
+We consider nonlinear elasticity of a crystalline shell constrained to a curved surface. The deforma-tion is described by a mapping between a reference configuration ¯x and the actual surface x, inducing distinct metrics on the two manifolds. Mechanical equilibrium follows from minimizing the elastic energy under geometric compatibility, leading to the covariant force balance equation Efrati et al. (2009); Moshe et al. (2015); Li et al. (2019) 
+
+∇ασαβ + ( ¯Γβγν − Γβγν )σγν = 0 , (1) where σαβ is the in-plane stress tensor and Γ, ¯Γ denote the Christoffel symbols associated with the actual and reference geometries. This equation defines a nonlinear partial differential system whose coefficients depend explicitly on surface curvature and material parameters, resulting in a geometry-dependent nonlinear operator. We solve these equations subject to the boundary condi-tions nρσρλ ¯gλν + τ n ν /r A = 0 and ¯r(r = (0 , 0)) = (0 , 0) . See Appendix A for details. In general the system is two dimensional. In this work, we focus on a symmetry-reduced benchmark consisting of a centered disclination on a spheroidal surface Dong et al. (2022). Under rotational symmetry, the problem reduces to a one-dimensional boundary value equation for the radial defor-mation ¯r(r), while retaining curvature-dependent nonlinear structure. Thus, although reduced in dimension, the governing equation remains geometrically nontrivial. The equilibria depend on geometric and material parameters (β, q, ν p), where β controls spheroidal curvature (see Appendix B), q denotes defect charge, and νp is the Poisson ratio. Varying these pa-rameters generates a continuous family of elastic equilibria forming a parameterized solution mani-fold. Explicit forms of the reduced equations and boundary conditions are provided in Appendix A. 2Published as a conference paper at ICLR 2026 2.2 PHYSICS -I NFORMED LEARNING OF PARAMETERIZED EQUILIBRIA 
+
+We approximate the radial deformation ¯r(r) (β,q,ν p) using a deep fully connected neural network 
+
+u(r; β, q, ν p) with hyperbolic tangent activations. The spatial coordinate is r ∈ [0 , r b], and (β, q, ν p)
+
+denote geometric and material parameters. Automatic differentiation is used to compute derivatives with respect to the spatial coordinate and network parameters, while the parameters (β, q, ν p) will not be differentiated. By explicitly conditioning on these parameters, a single network represents a continuous family of elastic equilibria rather than isolated parameter instances. Let F [·] denote the nonlinear differential operator defined by the reduced equilibrium equation (equation 17). The physical residual at a point ˜r ≡ (r, β, q, ν p) is denoted as R(˜ r) ≡ F [u(˜ r)] 
+
+with the analogous definition at the boundary. Given N sampled points, the loss functions are 
+
+Lphys ≡ PNi=1 |R(˜ ri)|2/N and Lbc ≡ PNi=1 |R(˜ rbc,i )|2/N . The boundary condition at the origin is nothing but a regularization, which is enforced via L0 ≡ PNi=1 |u(˜ r0,i )|2/N . A small subset of ground truth data is incorporated through Ldata ≡ PNi=1 |u(˜ ri) − ¯r(ri)|2/N . The total loss is the superposition of these contributions. 
+
+## 3 EXPERIMENTS 
+
+We evaluate whether a single parameter-conditioned PINN can learn solutions across a continuous parameter space and remain stable under variations in collocation densities and network architec-tures. Ground-truth solutions are generated using finite element method for β ∈ [1 , 3] , q ∈ [0 , 1] , νp ∈
+
+[0 .1, 0.9] (step sizes are all 0.1), and 101 spatial points per configuration, yielding approximately 
+
+2 × 10 5 solution samples. Configurations with β ∈ { 1, 2, 3}, q ∈ { 0, 1}, or νp ∈ { 0.3, 0.8} are excluded from training to evaluate interpolation across parameter space. Samples with r < 0.1 are removed to avoid numerical instability near the origin. The size of the training set after the exclusion is around 0.57 N where N is the number of the sampled points from the whole data set. Figure 2 compares neural network predictions with finite element solutions for parameter combi-nations excluded from training with N = 4000 . The model employs four hidden layers with 200 neurons per layers. Despite not being observed during optimization, the predicted deformation pro-files exactly match the true solutions, indicating that the model captures the underlying parameter-ized solution structure rather than memorizing individual configurations. See Figure 4 for additional comparisons. 0 2 4 6
+
+r
+
+> 0.0
+> 2.5
+> 5.0
+> 7.5
+> 10.0
+
+̄
+
+r
+
+(0, 0.3)    
+
+> 0246
+
+r
+
+(1, 0.8) 
+
+Spheroid ( q, νp)
+
+> β=1, GT
+> β=1, pred
+> β=2, GT
+> β=2, pred
+> β=3, GT
+> β=3, pred
+
+Figure 2: Comparison of neural network outputs (dashed lines) and ground truth solutions (light solid lines). Subplots show (q, ν p) ∈ { (0 , 0.3) , (1 , 0.8) }. Colors red, blue, and green denote β =1, 2, 3, respectively. Setup: 4 layers, 200 neurons/layer, N = 4000 .In the paper, all models are trained in a two-stage schedule: 200k optimization steps at learning rate 10 −4 followed by 100k steps at 10 −5. Training is implemented using PyTorch on two NVIDIA 3Published as a conference paper at ICLR 2026 Table 1: Total loss when varying collocation points under fixed architecture (4 layers, 200 neurons per layer). The loss value of the model in figure 2 is highlighted in bold. 
+
+N 1000 2000 3000 4000 5000 6000 7000 Loss 1.619e-3 1.813e-3 1.765e-3 1.692e-3 1.652e-3 1.735e-3 1.677e-3 Table 2: Total loss when varying network architectures at N = 4000 . High values ( ≈ 22 ) indicate failure to converge. The loss value of the model in figure 2 is highlighted in bold. Neurons Layers 2 3 4 5 6160 1.681e-3 2.251e0 2.251e0 2.252e0 1.679e-3 200 1.700e-3 1.691e-3 1.692e-3 1.660e-3 1.665e-3 240 1.690e-3 2.255e0 1.672e-3 1.670e-3 1.171e-3 RTX A6000 GPUs. For the configuration shown above (Figure 2), the computational cost is approx-imately 6.2 seconds per 500 optimization steps. The early-stage convergence behavior is reported in Table 3. We next examine sensitivity to the number of collocation points N while keeping the same archi-tecture. Table 1 reports the total loss. Even with N = 1000 , corresponding to approximately 500 effective training samples after filtering, the loss remains on the order of 10 −3, comparable to models trained with substantially larger N . This suggests that the physics-informed constraints significantly reduce the number of collocation points required to achieve high-precision solutions. Finally, we investigate the effect of the network architecture by varying both the depth and width of the hidden layers while fixing the number of collocation points at N = 4000 . Table 2 reports the corresponding loss values. While the majority of architectures converge to comparable error levels, severalconfigurations exhibit clear failure modes, characterized by large residual values ( ≈ 22 ), highlighting that appropriate architectural choices remain important for stable optimization. Overall, a single parameter-conditioned PINN reproduces finite element solutions across a three-dimensional parameter space, and remains stable under moderate changes in collocation density and architecture. 
+
+## 4 CONCLUSION 
+
+We introduced a parameter-conditioned neural network for nonlinear elasticity on curved manifolds. By enforcing curvature-dependent equilibrium equations and conditioning on geometric and mate-rial parameters, the model learns a unified representation of a continuous family of elastic equilibria. The results demonstrate accurate reconstruction of deformation profiles and stable interpolation across held-out parameter regimes within a single trained network. This parameterized learning formulation contrasts with conventional solvers, such as the finite element method, which require separate solutions for each parameter choice. The symmetry-reduced benchmark retains essential geometric structure arising from curvature and defect-mediated mechanics, providing a principled testbed for geometry-aware physics-informed learning. These findings suggest that physics-informed neural networks (PINNs) offer a promising framework for scalable learning of geometry-dependent nonlinear systems on curved surfaces. The exploration on the full two-dimensional domain where multiple defects interacting with each other is a straightforward generalization of the current work and will be presented in forthcoming studies. ACKNOWLEDGMENTS 
+
+Y.L. and R.Z. are supported by the National Science Foundation under Grant No.DMR-2131963 and MCB/PHY-2413062. 4Published as a conference paper at ICLR 2026 
+
+## REFERENCES 
+
+Yinan Dong, Roya Zandi, and Alex Travesset. Exact solution for elastic networks on curved surfaces. Phys. Rev. Lett. , 129:88001, 8 2022. doi: 10.1103/PhysRevLett.129.088001. URL 
+
+https://link.aps.org/doi/10.1103/PhysRevLett.129.088001 .E. Efrati, E. Sharon, and R. Kupferman. Elastic theory of unconstrained non-Euclidean plates. 
+
+Journal of the Mechanics and Physics of Solids , 57(4):762–775, 4 2009. ISSN 00225096. doi: 10.1016/j.jmps.2008.12.004. Siyu Li, Polly Roy, Alex Travesset, and Roya Zandi. Why large icosahedral viruses need scaffold-ing proteins. Proceedings of the National Academy of Sciences , 115:10971–10976, 2018. doi: 10.1073/pnas.1807706115. URL https://www.pnas.org/doi/abs/10.1073/pnas. 1807706115 .Siyu Li, Roya Zandi, and Alex Travesset. Elasticity in curved topographies: Exact theories and linear approximations. Physical Review E , 99:63005, 6 2019. doi: 10.1103/PhysRevE.99.063005. URL 
+
+https://link.aps.org/doi/10.1103/PhysRevE.99.063005 .Yankang Liu, Siyu Li, Roya Zandi, and Alex Travesset. General solution for elastic networks on arbitrary curved surfaces in the absence of rotational symmetry. Physical Review E , 111:15423, 1 2025. doi: 10.1103/PhysRevE.111.015423. URL https://link.aps.org/doi/10. 1103/PhysRevE.111.015423 .Alexander Yu. Morozov and Robijn F Bruinsma. Assembly of viral capsids, buckling, and the asaro-grinfeld-tiller instability. Physical Review E , 81:41925, 4 2010. doi: 10.1103/PhysRevE. 81.041925. URL https://link.aps.org/doi/10.1103/PhysRevE.81.041925 .Michael Moshe, Eran Sharon, and Raz Kupferman. Elastic interactions between two-dimensional geometric defects. Physical Review E , 92(6):062403, 12 2015. ISSN 1539-3755. doi: 10. 1103/PhysRevE.92.062403. URL http://link.aps.org/doi/10.1103/PhysRevE. 92.062403https://link.aps.org/doi/10.1103/PhysRevE.92.062403 .M Raissi, P Perdikaris, and G E Karniadakis. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equa-tions. Journal of Computational Physics , 378:686–707, 2019. ISSN 0021-9991. doi: https://doi. org/10.1016/j.jcp.2018.10.045. URL https://www.sciencedirect.com/science/ article/pii/S0021999118307125 .
+
+## A ELASTICITY THEORY 
+
+This appendix presents the covariant elasticity theory and the explicit form of the governing equa-tion 1 and the boundary condition with τ = 0 under rotational symmetry. The free energy of a partially formed elastic shell can be written as Dong et al. (2022) 
+
+F = F elastic + F bending + F abs + F line 
+
+=
+
+Z
+
+d2x√g Felastic + Fbending  + F abs + F line , (2) where the first and second terms are the stretching and bending energies, the third term represents the attractive monomer-monomer interaction promoting crystal growth, and the last term is associated with the cost of the line tension due to the presence of a boundary. The elastic term Felastic contains a quadratic term in the strain tensor uαβ (see equation 4). The second term, in terms of the two radii of curvature (Ri)i=1 ,2, is Fbending = κ[(1 /R 1 − H0)2 + (1 /R 2 − H0)2] with κ the bending rigidity and H0 the mean spontaneous curvature of the subunits. The free energy density, equation 2, has no trivial solution. The only surfaces allowing zero strains have either zero Gaussian curvature: a plane, a cylinder ( q = 0 ) or discrete delta function of Gaussian curvatures, like a cone ( q = 1 ). Surfaces with vanishing bending rigidity have a constant curvature radius R1 = R2 = 1 /H 0, forming a sphere. There is, therefore, no surface that simultaneously minimizes both the elastic and bending energies. The third term in equation 2, F abs = −Π ˆA < 0 with Π the attractive interaction per unit 5Published as a conference paper at ICLR 2026 area due to favorable hydrophobic contacts between subunits, is the driving force for crystal growth Morozov & Bruinsma (2010) and the last term is the cost of the line tension due to the presence of a boundary. The explicit form of Felastic is 
+
+Felastic = 12 Aαβγδ uαβ uγδ , (3) where 
+
+uαβ ≡ 12 [gαβ − ¯gαβ ] (4) is the strain tensor and 
+
+Aαβγδ = Y
+
+1 − ν2
+
+> p
+
+νpgαβ gγδ + (1 − νp)gαγ gβδ  , (5) with Y the Young Modulus, νp the Poisson ratio and gαβ the inverse of the actual metric such that 
+
+gμν gνγ = gνγ gμν = δμγ where δμγ is the Kronecker delta function. Since the Young’s modulus appears only as a prefactor, we choose Y = 1 throughout the paper. The stress tensor is 
+
+σαβ ≡ 1
+
+√gδF δu αβ 
+
+= Aαβγδ uγδ . (6) The Gaussian curvature is 
+
+K = det (∂i∂j f )(1 + ( ∇f )2)2 = f ′(r)f ′′ (r)
+
+r(1 + f ′(r)2)2 , (7) and the mean curvature (with the convention that Ri = R > 0, i = 1 , 2 for the sphere) is 
+
+2H = −∇ · 
+
+ ∇f
+
+(1 + ( ∇f )2)1/2
+
+
+
+(8) 
+
+= −
+
+ f ′′ (r)(1 + f ′(r)2)3/2 + f ′(r)
+
+r(1 + f ′(r)2)1/2
+
+
+
+.
+
+The two curvatures can be obtained from the equation 
+
+K = 1
+
+R1R2
+
+2H = 1
+
+R1
+
++ 1
+
+R2
+
+, (9) such that 1/R 1 = H + √H2 − K and 1/R 2 = H − √H2 − K with H and K given in Eqs. equa-tion 7 and equation 8. Next, we provide various quantities for the surfaces of revolution, defined by x = r cos( θ), y =
+
+r sin( θ), z = f (r) with actual metric 
+
+ds 2 = 1 + f ′(r)2 dr 2 + r2dθ 2 . (10) The isotropic reference metric reads 
+
+d¯s2 = ¯ r′(r)2dr 2 + α2 ¯r(r)2dθ 2 = d2 ¯r + α2 ¯r2dθ 2 . (11) Note that due to the rotational symmetry, the angular mapping is identical, ¯θ(θ) = θ
+
+The nonzero Christoffel symbols are symbol Γrrr Γrθθ Γθθr 
+
+reference ¯r′′ (r)¯r′(r) −α2 ¯r(r)¯r′(r)¯r′(r)¯r(r)
+
+actual f ′(r)f ′′ (r)1 + f ′(r)2
+
+−r
+
+1 + f ′(r)2
+
+1
+
+r
+
+(12) 6Published as a conference paper at ICLR 2026 The elastic energy given in equation 2 depends on ¯r(r),
+
+F elastic 
+
+Y π = 14  1 − ν2
+
+> p
+
+Z
+
+drr  1 + f ′(r)21/2
+
+×
+
+"
+
+1 − ¯r′(r)2
+
+1 + f ′(r)2
+
+2
+
++
+
+
+
+1 − α2 ¯r(r)2
+
+r2
+
+2
+
++2 νp
+
+
+
+1 − ¯r′(r)2
+
+1 + f ′(r)2
+
+  
+
+1 − α2 ¯r(r)2
+
+r2
+
+ 
+
+(13) The stress tensor given in equation 6 becomes 
+
+σrr = Y
+
+2  1 − ν2
+
+> p
+
+ (1 + f ′(r)2)
+
+
+
+1 − ¯r′(r)2
+
+1 + f ′(r)2
+
++νp
+
+"
+
+1 −
+
+ α¯r(r)
+
+r
+
+2#) 
+
+σrθ =σθr = 0 
+
+σθθ = Y
+
+2r2  1 − ν2
+
+> p
+
+"
+
+νp
+
+
+
+1 − ¯r′(r)2
+
+1 + f ′(r)2
+
+
+
++ 1 −
+
+ α¯r(r)
+
+r
+
+2#
+
+.
+
+(14) The general form of equation 1 for β = r becomes 
+
+∂r σrr + ¯Γrrr σrr + ¯Γrθθ σθθ + Γ rrr σrr + Γ θθr σrr = 0 . (15) The explicit form of the derivative of the stress tensor is 
+
+dσ rr 
+
+dr = −Y
+
+ 1 − v2
+
+> p
+
+ f ′(r)f ′′ (r)(1 + f ′(r)2)2
+
+
+
+1 − ¯r′(r)2
+
+1 + f ′(r)2
+
++νp
+
+"
+
+1 −
+
+ α¯r(r)
+
+r
+
+2#) 
+
++ Y
+
+ 1 − v2
+
+> p
+
+ [1 + f ′(r)2]
+
+"
+
+¯r′(r)2f ′(r)f ′′ (r)[1 + f ′(r)2]2
+
+− ¯r′(r)¯ r′′ (r)1 + f ′(r)2 + νp
+
+α2 ¯r(r)2
+
+r3 − νp
+
+α2 ¯r(r)¯ r′(r)
+
+r2
+
+
+
+.
+
+(16) The equation determining ¯r(r), equation 15, becomes 
+
+− f ′(r)f ′′ (r)[1 + f ′(r)2]2
+
+(
+
+1 − ¯r′(r)2
+
+1 + f ′(r)2 + νp
+
+"
+
+1 −
+
+ α¯r(r)
+
+r
+
+2#) 
+
++ 11 + f ′(r)2 ×
+
+"
+
+¯r′(r)2f ′(r)f ′′ (r)[1 + f ′(r)2]2 − ¯r′(r)¯ r′′ (r)1 + f ′(r)2 + νp
+
+α2 ¯r(r)2
+
+r3 −νp
+
+α2 ¯r(r)¯ r′(r)
+
+r2
+
+
+
++
+
+ ¯r′′ (r)¯r′(r) + f ′(r)f ′′ (r)1 + f ′(r)2 + 1
+
+r
+
+
+
+× 12 [1 + f ′(r)2]
+
+(
+
+1 − ¯r′(r)2
+
+1 + f ′(r)2 + νp
+
+"
+
+1 −
+
+ α¯r(r)
+
+r
+
+2#) 
+
+− α2 ¯r(r)2r2 ¯r′(r) ×
+
+"
+
+νp
+
+
+
+1 − ¯r′(r)2
+
+1 + f ′(r)2
+
+
+
++ 1 −
+
+ α¯r(r)
+
+r
+
+2#
+
+= 0 .
+
+(17) The boundary conditions can be obtained through the variations of F area = F elastic + F bending in equation 2, 
+
+nρσρλ ¯gλν + τrA
+
+nν = 0 . (18) For τ = 0 , under rotational symmetry, the above equation becomes 
+
+[¯ r′(rb)] 2
+
+(1 − ν2 
+
+> p
+
+) {(1 + [ f ′(rb)] 2}
+
+(
+
+1 − [¯ r′(rb)] 2
+
+1 + [ f ′(rb)] 2 + νp
+
+"
+
+1 −
+
+ α¯r(rb)
+
+rb
+
+2#) 
+
+= 0 , (19) 7Published as a conference paper at ICLR 2026 where rb is the radius of the circular domain. We demand the correspondence between the center of the reference and the actual space, ¯r(r = (0 , 0)) = (0 , 0) . In the reduced one-dimensional scenario, we have ¯r(r = 0) = 0 .8Published as a conference paper at ICLR 2026 
+
+## B SPHEROID 𝑅 !
+
+# 𝑓 (𝑟 )
+
+# 𝑟 "
+
+# 𝛽 𝑅 !
+
+# 𝑟 
+
+# Spheroid 
+
+# 𝑅 !
+
+# 𝑟 "
+
+# 𝑟 
+
+# 𝛽 = 1
+
+# 𝛽 = 2
+
+# 𝛽 = 3
+
+Figure 3: The figure presents the surface of revolution named spheroid, f (r) = βpR20 − r2, where 
+
+R0 is the radius of the spheroid, rb is the radius of the domain, and βR 0 is the height of the spheroid. As β increases, the center of the spheroid goes higher and sharper. Note that R0 has units of length and therefore sets the physical length scale. Throughout the paper, we fix R0 = 10 .
+
+## C ADDITIONAL EXPERIMENTS 0 2 4 6
+
+r
+
+> 0.0
+> 2.5
+> 5.0
+> 7.5
+> 10.0
+
+̄
+
+r
+
+(1, 0.3)    
+
+> 0246
+
+r
+
+(0, 0.8) 
+
+Spheroid ( q, νp)
+
+> β=1, GT
+> β=1, pred
+> β=2, GT
+> β=2, pred
+> β=3, GT
+> β=3, pred
+
+Figure 4: Comparison of neural network outputs (dashed lines) and ground truth solutions (light solid lines). Subplots show (q, ν p) ∈ { (1 , 0.3) , (0 , 0.8) }. Colors red, blue, and green denote β =1, 2, 3, respectively. Setup: 4 layers, 200 neurons/layer and N = 4000 .We also include a small excerpt of the training log in Table 3 for this configuration. 9Published as a conference paper at ICLR 2026 Table 3: Snapshot of stage 1 training log (every 500 epochs). Number of training points / N :2167/4000. The neural network has 4 hidden layers and 200 neurons/layer. Time is per 500 epochs. 
+
+Epoch Loss Data Phys BC Time (s) 500 21.981127 21.274858 0.706157 0.000111 6.53 1000 21.393473 21.134197 0.259183 0.000091 6.59 1500 21.124636 20.967300 0.157255 0.000080 6.34 2000 20.866369 20.746376 0.119921 0.000072 6.36 2500 20.547968 20.443615 0.104286 0.000066 6.20 3000 20.111891 20.014168 0.097665 0.000060 6.19 3500 19.467133 19.372320 0.094755 0.000057 6.21 4000 18.420986 18.327757 0.093162 0.000067 6.57 4500 16.492043 16.400759 0.091111 0.000173 6.22 5000 12.465515 12.379419 0.084866 0.001229 6.22 5500 5.312170 5.235003 0.066480 0.010686 6.21 6000 0.835386 0.757762 0.046624 0.031000 6.21 6500 0.467830 0.376380 0.071540 0.019910 6.20 7000 0.447981 0.352325 0.074996 0.020660 6.21 7500 0.430612 0.339458 0.069405 0.021749 6.21 
+
+10
