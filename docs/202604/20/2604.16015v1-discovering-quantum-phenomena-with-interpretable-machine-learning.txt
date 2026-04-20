@@ -1,0 +1,1223 @@
+Title: Discovering quantum phenomena with Interpretable Machine Learning
+
+URL Source: https://arxiv.org/pdf/2604.16015v1
+
+Published Time: Mon, 20 Apr 2026 00:52:08 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+## Discovering quantum phenomena with Interpretable Machine Learning 
+
+Paulin de Schoulepnikoff, ∗ Hendrik Poulsen Nautrup, Hans J. Briegel, and Gorka Mu˜ noz-Gil †
+
+University of Innsbruck, Department for Theoretical Physics, Technikerstr. 21a, A-6020 Innsbruck, Austria 
+
+(Dated: April 20, 2026) Interpretable machine learning techniques are becoming essential tools for extracting physical insights from complex quantum data. We build on recent advances in variational autoencoders to demonstrate that such models can learn physically meaningful and interpretable representations from a broad class of unlabeled quantum datasets. From raw measurement data alone, the learned representation reveals rich information about the underlying structure of quantum phase spaces. We further augment the learning pipeline with symbolic methods, enabling the discovery of compact analytical descriptors that serve as order parameters for the distinct regimes emerging in the learned representations. We demonstrate the framework on experimental Rydberg-atom snapshots, classical shadows of the cluster Ising model, and hybrid discrete-continuous fermionic data, revealing previously unreported phenomena such as a corner-ordering pattern in the Rydberg arrays. These results establish a general framework for the automated and interpretable discovery of physical laws from diverse quantum datasets. All methods are available through qdisc , an open-source Python library designed to make these tools accessible to the broader community. 
+
+I. INTRODUCTION 
+
+The use of machine learning (ML) in physics has grown into a powerful paradigm for uncovering patterns in high-dimensional data, offering new perspectives on longstand-ing problems in quantum many-body systems [ 1–6 ]. Be-yond prediction and classification, interpretable ML archi-tectures play a unique role in distilling physically meaning-ful descriptors of complex quantum data [ 7– 10 ]. Among these, variational autoencoders (VAEs) have emerged as promising tools for extracting minimal yet informative latent representations directly from raw data [ 11 , 12 ]. Re-cent work has shown that VAEs, when augmented with probabilistic generative decoders, can capture the intrin-sic stochasticity of quantum measurements and uncover latent variables that align with physical order parame-ters [13]. Despite this progress, two key challenges remain. First, most existing approaches have been developed and bench-marked primarily on simple spin configurations, and their extension to more general forms of quantum data remains largely unexplored [ 13 – 18 ]. In particular, systems with higher local Hilbert space dimension, continuous variables, or data in the form of classical shadows pose nontrivial challenges, as their correlations and statistical structure differ substantially from those of binary spin snapshots. Second, while VAEs can uncover informative latent spaces, attributing clear physical meaning to these representa-tions often relies on post hoc analysis or comparison with known observables, limiting their autonomy in discovering new physics. In this work, we address both challenges. First, we generalize the probabilistic VAE framework to handle classical shadows as well as hybrid discrete/continuous data of a fermionic system, thereby testing its ability to   
+
+> ∗paulin.de-schoulepnikoff (at) uibk (dot) ac (dot) at
+> †gorka.munoz-gil (at) uibk (dot) ac (dot) at
+
+learn meaningful representations from complex quantum data. Second, to further enhance the interpretability, we integrate symbolic regression techniques into the analysis of latent spaces, enabling the extraction of compact ana-lytic expressions that define the learned clusters. This syn-thesis of representation learning and symbolic discovery not only uncovers phase structures without prior knowl-edge but also translates them into compact interpretable physical descriptors. Our contributions demonstrate that combining proba-bilistic VAEs with symbolic methods provides a powerful, general, and interpretable framework for representation learning in quantum physics. By successfully applying it to both spin and fermionic systems, we show how such hybrid approaches pave the way toward automated ex-traction of effective theories from raw quantum data. In particular, the identification of a corner-ordering pattern from experimental Rydberg snapshots and an emergent algebraic behavior from random measurement data in the form of classical shadows of the cluster-Ising model highlights the potential of this hybrid pipeline for the automated discovery of effective descriptions and novel phenomena in complex quantum systems. 
+
+II. METHODS 
+
+We now review the main modules of the proposed pipeline, QDisc, schematically represented in Fig. 1. QDisc consists of three modules: first, data is acquired from a quantum experiment; second, a variational au-toencoder (VAE) is used to generate a phase-space repre-sentation; and third, symbolic regression (SR) is used to produce closed-form equations that identify the different regimes observed in learned representations. In the data acquisition step, we consider a quantum experiment with a certain number of controllable, exper-imental parameters θ1,...,k (see Fig. 1a), as for instance the strength of a magnetic field, the spacing between 
+
+> arXiv:2604.16015v1 [quant-ph] 17 Apr 2026
+
+2Interaction analysis               
+
+> FIG. 1. Schematic representation of the proposed pipeline. a) An experimental setup produces data xof a quantum system for different values of the kexperimental parameters θ1,...,k .b) A variational autoencoder (VAE) is trained on an ensemble of unlabeled quantum data collected from the previous experiment. It learns to reconstruct the conditional probabilities of its input and encodes the data in few latent variable z.Inspecting the values of the learned latent neurons across the parameter space will provide insight into the system’s phase space and can reveal unknown features. c) An unknown cluster appearing in the latent representation can be further explained and investigated using symbolic regression methods (SR). The latter seek for a compact analytic formula to discover an order parameter. Its structure can also provide insight into the nature of the cluster and the physics of the system.
+
+atoms in an array or the detuning of some laser. For each set of parameters, we perform a measurement pro-ducing a certain string x. The latter can in principle be of any form. In this work, we focus on cases where the subsystems of the experiment, namely the spins, atoms or qubits, can be measured individually in some form, either via discrete projective measurements in a chosen basis or through measurements along random directions, or through continuous local density measurements. In this case, x = {xi}i=1: N , where N is the number of sub-systems. We note that this same pipeline can also be extended to global measurements following [12]. By acquiring data across a wide range of the ex-perimental parameters θ1,...,k , we generate a dataset 
+
+D = {xm}m=1: M , where M is the size of the dataset. By means of this unlabelled dataset, we will train the VAE and subsequently the SR module. We now review in further depth both of these modules. We stress that at no point we consider any prior knowledge on the un-derlying physics of the experiment explored, and the only information available to us is the measurements xm. 
+
+> A. Learning phase spaces via VAE
+
+To extract interpretable representations from the quan-tum dataset D, we adopt the VAE framework introduced in Ref. [ 13 ]. The VAE architecture encodes input data into a compact, probabilistic latent space, typically mod-eled as a multivariate Gaussian distribution. The en-coder outputs the mean μi and variance σi for each la-tent dimension, from which latent variables zi are sam-pled (see Fig. 1b). The resulting latent representation 
+
+z = {zi}i=1: Z , where Z is the dimensionality of the latent space, is then used to reconstruct the original input data. To deal with the complexity of this task, and account for the rich properties of the input data, we build the encoder based on transformer layers (see Section A). Given the nature of the quantum data used for training, one must correctly formulate the reconstruction problem. While previous VAE applications in the quantum domain relied on deterministic decoders [ 14 –18 ], this formulation inherently clashes with the stochastic nature of the quan-tum data. Instead, one must aim to approximate the underlying distribution of the input data [ 11 ]. There-fore, the challenge of classically representing quantum distributions necessitates a decoder architecture capable of closely capturing the properties of quantum states. To this end, we design our decoder based on recent advances in Neural Quantum States (NQS) [ 4, 19 ], ensuring suf-ficient expressiveness to faithfully reconstruct the input quantum states. In practice, we implement the decoder as an autore-gressive neural network. Its design follows from the con-ditional factorization of the joint probability distribution, 
+
+p(x) = 
+
+> N
+
+Y
+
+> i=1
+
+p(xi | xi−1, . . . , x 1), (1) which expresses the full distribution as a product of con-ditional probabilities. Accordingly, the network predicts the conditional probability of xi given all preceding el-ements. Importantly, an ordering for these conditional probabilities must be chosen, in particular for systems of dimension greater than one. The ordering chosen for each system explored below is detailed in Section D. This probabilistic formulation ensures that the model learns the underlying distribution of the input ensemble, allowing it to capture nontrivial many-body correlations 3beyond mean-field descriptors. Moreover, as we will see in Section III A, the direct access to these probabilities represents yet another interpretable signal that we can use to further understand the properties of the data at hand. The training is performed by minimizing the loss 
+
+L = 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+Eq [log p(xm|z)] − βKL[ q(z|xm)|| p(z)] . (2) The first term encourages faithful probabilistic reconstruc-tion. The second term is a regularization term, which minimizes the Kullback-Leibler (KL) divergence between the latent space distribution q(zi|x(m)) ∼ N (μi, σ 2 
+
+> i
+
+) and the prior p(z), typically defined as standard normal dis-tribution p(z) ∼ N (0 , 1). This term acts as a regularizer, enforcing the latent representation to align with the un-informed prior distribution. The trade-off between these two terms creates a competition, such that only the mini-mum number of latent neurons required for proper input reconstruction diverge from the prior (referred to as active neurons), while the others collapse to the prior distribu-tion (referred to as passive neurons) (see Fig. 1b). The hyperparameter β is introduced to ensure that the two terms are properly balanced [ 20 ]. More details on the loss are presented in Section B. This procedure enables the latent space to encode a meaningful representation of the target phase space, as demonstrated in Ref. [ 13 ]. Specifically, plotting the val-ues of the active latent neurons against the experimental parameters θ1,...,k reveals distinct regimes in the data (see Fig. 1b). While such visualizations provide valuable in-sights into the presence of different phases, our objective is to further enhance the interpretability by deriving closed-form equations that serve as order parameters, thereby distinguishing the identified regimes.  
+
+> B. Order parameter discovery via symbolic regression
+
+Symbolic regression (SR) provides closed-form equa-tions for a specified problem, typically through a genetic-algorithm-based exploration of candidate mathematical terms [ 7]. Its ability to distill complex interactions into interpretable equations makes it a powerful tool for un-covering unknown physical phenomena [ 21 , 22 ]. Here, we leverage the insights obtained from training the VAE, combined with SR, to identify closed-form order parame-ters that distinguish the phases of interest encoded in the latent space. Order parameters are essential in quantum systems as they quantitatively identify and distinguish distinct phases by capturing symmetry breaking and emer-gent properties, while also enabling the characterization of critical behavior near phase transitions. Their measure-ment and analysis provide both theoretical insight and experimental validation for understanding the fundamen-tal organization of quantum matter. To achieve this, we first isolate the region of interest in the phase space using the VAE representation (see circled area in Fig. 1b). We then frame the task as a classification problem, where the goal of symbolic regression (SR) is to generate a function f (x), where x are samples of the dataset D, that is positive within the target region and negative outside (see Fig. 1c). For the search space, we consider a broad set of mathematical terms. Starting from a set of elementary operations (e.g., +, −, ·, exp (xi), sin (xi), ...), the underlying genetic algorithm can generate a wide variety of symbolic functions, thereby exploring a large space of mathematical expressions. Although straightforward, this objective aligns with the fundamental definition of an order parameter. While alternative objectives, such as a recent proposal lever-aging the phase boundary’s gradient [ 23 ], are also valid, the classification objective yielded both robust quanti-tative performance and highly interpretable equations (benchmark results are presented in Section C).  
+
+> C. QDisc: a python library for Quantum phenomena Discovery
+
+To facilitate the practical use of the proposed pipeline, we developed qdisc , a dedicated Python library for 
+
+Quantum phenomena Disc overy [ 25 ]. The library’s struc-ture closely follows the stages of the pipeline presented here and includes a variety of examples and tutorials that reproduce key results from this work. The library comprises three core modules. First, 
+
+qdisc.Dataset enables users to handle and preprocess their data efficiently. Next, qdisc.vae provides tools to construct, customize, and train variational autoencoders (VAEs), including predefined architectures and high-level training modules. Finally, qdisc.sr allows users to train symbolic regression (SR) models based on insights gained from the VAEs. Designed as an accessible entry point, 
+
+qdisc empowers users, even those with minimal machine learning experience, to leverage the tools developed in this study.  
+
+> III. RESULTS
+
+In the following section, we apply QDisc to a range of paradigmatic quantum experiments, demonstrating the versatility and power of our pipeline. First, we analyze ex-perimental data from a Rydberg atom array [ 26 ], revealing QDisc’s ability to uncover previously unknown regimes. Next, we assess its performance on inputs from a random measurement scenario [ 27 ] on the Cluster Ising model, revealing a novel regime within its symmetry-protected phase. Finally, we extend our method to hybrid data aris-ing from a dual-species interacting fermionic model [ 28 ], where one species is probed via discrete occupation mea-surements and the other via continuous particle density measurements. 4a) Phase space e) Conditional probabilities c) Training d) Representation f) Symbolic regression                                      
+
+> -2 024/
+> 2.0 1.5 1.0
+> R b /a
+> -2 024/
+> 201
+> 1012
+> 123456
+> 0100 200 epochs 6
+> 4
+> 2
+> 0log(  2 )
+> 1
+> 2
+> 3
+> 4
+> 5
+> 1611
+> i
+> 13 11 97531
+> j
+> 1
+> 1611
+> i
+> 2
+> 1611
+> i
+> 3
+> 1611
+> i
+> 4
+> 1611
+> i
+> 5
+> 1611
+> i
+> 6
+> 0.25 0.50 0.75
+> p(x ij  = 1)
+> 2.0 1.5 1.0
+> R b /a
+> 2.0 1.5 1.0
+> Rb /a
+> -2 024/
+> 2.0 1.5 1.0
+> Rb /a
+> out not used in
+> f(x) < 0
+> f(x) > 0
+> f(x) < 0
+> f(x) > 0 b) Data: snapshots ... rggrr
+> x= [ 1, 0, 1, 1, 0, ... ] -2 024/
+> 2.0 1.5 1.0
+> R b /a
+> 1Empty Ordered Full Striated Check. Star Edge-ordered
+
+FIG. 2. Experimental Rydberg atoms array. a) Phase diagram of the Rydberg-atom system, based on [ 24 ], together with exemplary ordered configurations on a reduced 5 × 5 lattice. White, purple, and orange circles indicate atoms in the |g⟩, |r⟩,and |+x⟩ states, respectively. b) Atoms are measured as being in the ground (g) or Rydberg (r) state, leading to a binary data stream. c) Training of the VAE seen through the log of the variances log (σ2 
+
+> i
+
+) of the latent variables output by the encoder. d) 
+
+Latent representation learned by the VAE. For the two active latent neurons, we show the mean values μi produced by the encoder for input snapshots sampled across the parameter space. e) Conditional probabilities generated by the decoder of the VAE at several locations in the latent space, indicated in panel d). f ) Top: location of the snapshots used to construct the classification dataset for SR. Middle: prediction of the discovered function f . Bottom: prediction of the order parameter ˜f
+
+constructed by subtracting correlations on the edges and the bulk. 
+
+A. QDisc identifies a corner ordered-regime in experimental Rydberg arrays 
+
+Rydberg atom arrays have emerged as one of the most promising platforms for quantum simulation and com-putation [ 29 – 32 ]. In this section, we analyze data from the experiment reported in Ref. [ 26 ], which investigates the phases arising in a square lattice of Rydberg atoms. The system is characterized by two tunable experimen-tal parameters: the lattice spacing a, which controls the effective range of the Rydberg blockade Rb relative to the lattice geometry, and the detuning ∆, which sets the energy offset between the ground state and Rydberg state, thereby acting as an effective longitudinal field. The resulting phases in the explored parameter space are schematically illustrated in Fig. 2a. More details on the system are presented in Section D 1. Binary snapshots are collected across the entire phase space, representing atoms in either the ground state or the Rydberg state (see Fig. 2b). This dataset is then used to train the VAE. During training, we observe that two neurons remain active, while all others collapse to the prior (see Fig. 2c), as evidenced by their variances 
+
+σ2 decreasing, while the inactive neurons converge to 
+
+σ2 → 1. This indicates that two latent dimensions suffice to describe the dataset. Notably, one latent neuron, z2,exhibits a significantly larger variance ( σ22 ) than the other. This behavior suggests that the neuron z1 encodes more fine-grained information, allowing for less noise injection (lower variance) to ensure accurate reconstruction by the decoder. Such an emergent hierarchy among latent vari-ables is a feature consistently observed in our experiments, and we believe is rooted in the inherent properties of VAEs and their training [ 20 ]. Inspecting the mean values μi
+
+of the neurons (see Fig. 2d), we find that z1 effectively distinguishes most of the experiment’s phases, serving as the primary information source for the decoder, which is reflected by its smaller σ21 . In contrast, μ2 captures more subtle features, particularly highlighting the stri-ated phase ( μ2 ∼ − 1). Additionally, this neuron reveals an unexpected cluster ( μ2 > 1) within the edge-ordered phase, not identified by previous ML approaches [ 24 ], un-derscoring the VAE’s ability to uncover unknown regimes directly from raw quantum data. In order to uncover the physical nature of the identi-fied regime, we first inspect the conditional probabilities (Eq. (1)) when sampling latent vectors at different parts of the phase space (Fig. 2e). Starting from the empty phase (at location 1) with all probabilities close to zero, we see that the ordering appears first at the corners (location 2) and at the edges (location 3) to then extend in the bulk (location 4). We now apply symbolic regression (SR), leveraging the insights gained from the previous analysis to guide its optimization. In particular, by analyzing the conditional probabilities, we identify a relevant ordering predomi-nantly occurring at the corners of the lattice. This differs from the expected edge-ordering. Hence, we aim to find 5an order parameter that can differentiate between the newly found regime and the edge-ordered phase. To do so, based on the previous analysis, we restrict the search space to two-body terms of the form αij xixj , where i, j 
+
+label the four corner sites (labels i, j = 1 − 4 denote the corner, adjacents and opposite atoms, respectively) and 
+
+αij are the corresponding coefficients. To define the clas-sification objective, we set as positive the points within the identified cluster (upper panel in Fig. 2f). As we are here interested in differentiating this regime from the edge-ordered phase, we consider as negative only points identified as the latter. Moreover, because the boundary is not perfectly defined in the latent space (Fig. 2d), we consider for the classification problem points sufficiently far from the boundary. SR then finds an order parameter, f (x) = x1x4 +2 x2x3,which correctly solves the classification problem (central panel in Fig. 2f). Nonetheless, the learned function is also positive within the star and checkerboard phase. Indeed, the SR was not optimized with configurations from these phases, and hence the shown outcome is the result of generalization. Nonetheless, discarding these phases is simple: as these are bulk ordered phases, we subtract from f the nearest-neighbor correlator ⟨σzi σzj ⟩ for atoms in the bulk and edges, finding an order parameter ˜f
+
+that can uniquely distinguish the newly identified regime (bottom panel in Fig. 2f). From a physical perspective, it is known that ordering in this experimental platform is largely boundary-driven. The ordered structures typically emerge from the edges and progressively extend toward the bulk of the system, enabling the access of phases that would otherwise be hidden behind a first-order transition line [ 33 ]. Given the major role of boundaries, it is therefore natural to find a regime in which the ordering is developed only at the corners, as these are the regions with the greatest boundary effect.  
+
+> B. QDisc uncovers power-law scaling in a random measurements setting
+
+In many quantum systems, a single measurement ba-sis is insufficient to fully characterize the underlying state. Randomized measurements have emerged as a resource-efficient alternative to costly full quantum to-mography [ 27 ]. Here, we leverage the classical shadow framework [ 34 ] to explore the phase space of the Clus-ter Ising spin model, a paradigmatic example exhibiting symmetry-protected topological phases [ 35 , 36 ]. To ex-plore this model, we perform random X, Y , and Z mea-surements on each spin. The resulting data, known as the classical shadow, is encoded as a 2 N -dimensional vector that records both the measurement basis and the outcome for each spin (see Fig. 3b). We generate a dataset by col-lecting shadows across the model’s phase space, which is parameterized by two variables: a transverse-like field 
+
+h1 and an Ising coupling h2 (see Section D 2 for more details). We then train the VAE on this dataset. Before analyz-ing the learned representation, we demonstrate the VAE’s ability to accurately capture the underlying physics of the model, even in this randomized measurement setting. To validate this, we compare two observables, the con-figuration’s energy and three-body stabilizer σzi−1σxi σzi+1 ,computed both on the training dataset and on the outputs generated by the VAE given some random measurement basis (see Fig. 3c and d). We then compute expectation values for both observables using the method of moments (see Section E). These results show that the VAE suc-cessfully generates shadows with the expected physical properties, even for complex observables such as the three-body stabilizer, which is only slightly underestimated in the SPT phase. We now analyze the learned latent representation. While the system’s Hamiltonian has only two tunable pa-rameters, three latent neurons remain active (see Fig. 3e). Although increasing the regularizer β in Eq. (2) reduced the number to two, this significantly degraded the recon-struction accuracy. We attribute this to the complexity of the randomized dataset, which challenges the encoder’s ability to identify a minimal representation. Nevertheless, all three neurons encode meaningful information: the first captures the boundaries between the three phases, the second reflects a gradient across the SPT phase, consistent with the expected behavior of the string order parameter in finite-size systems [ 37 ]. Because the Z2 × Z2 symme-try causes the mean of μ3 to vanish on average, we plot its average absolute value |μ3|, revealing an unexpected region at the edge of the SPT phase. To investigate this region, we employ the SR classifica-tion scheme with a search space that includes all two-body interaction terms αij xixj . To avoid the complexity of processing the random measurement scenario, we restrict this analysis to configurations obtained from a fixed mea-surement pattern. In particular, we find that configura-tions arising from X measurements allow the symbolic regression procedure to identify an expression that suc-cessfully solves the classification task (see Section F). The optimized weights show an interplay between short- and long-range interactions. To elucidate this, we apply a genetic symbolic algorithm [ 7 ] to derive a closed-form expression g(i, j ) = αij , leading to the order parameter 
+
+f (x) = X
+
+> i,j>i
+
+
+
+− 0.20 + 0.07 
+
+rij − 0.95 
+
+| {z }
+
+g(i, j )
+
+xi · xj ,
+
+where rij = j − i is the distance between spins. This symbolic expression provides interesting insights into the underlying physics of this extra cluster. Indeed, the coeffi-cients g(i, j ) are positive only for nearest neighbors (NN) and negative otherwise, with long-range dependencies on the distance r polynomially. Furthermore, competing short-range ferromagnetic and long-range antiferromagnetic interactions are known to give rise to periodic stripe patterns, as well as island 6a) Phase space                                                              
+
+> x= [2, 0, 4, 1, 3, 0, 4, 0, ...] b) Data: classical shadows e) Training f) Representation c) Energies d) Stabilizers g) Bubble size distribution h) Scaling analysis
+> 00.5 1
+> h1-1 01
+> h 2Dataset
+> 00.5 1
+> h1Reconstructed
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> z x z
+> 1357911 13 15
+> s
+> 10 4
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> P(s)
+> h2= 0.7
+> h2=0.7
+> 0500 1000 epochs 6
+> 4
+> 2
+> 0log(  2 )
+> 1
+> 2
+> 3
+> 4
+> 5
+> SPT paramagnetic anti-ferromagnetic
+> 00.5 1
+> h1-1 01
+> h 2... 0100XZYZ ...
+> 00.5 1
+> h1-1 01
+> h 2Dataset
+> 00.5 1
+> h1Reconstructed
+> 30
+> 20
+> 10
+> E
+> 00.5 1
+> h1-1 01
+> h 2
+> 00.5 1
+> h1
+> 00.5 1
+> h1
+> 101
+> 0.0 0.5 2
+> 0.6 0.8 |3|
+> 00.4
+> h1-1 01
+> h2
+> N=15
+> 00.4
+> h1
+> N=45
+> f(x)
+> 00.4
+> h1
+> N=75
+> <0 0.019 <0 0.005 <0 0.002
+
+FIG. 3. Shadows of the cluster Ising model. a) Phase diagram of the cluster Ising model, based on the values of the nearest-neighbor correlator and the string order parameter. To illustrate the gradient of the latter caused by finite-size effects, the area with high value is highlighted in light grey. b) Spins are measured in a random basis, leading to a data stream containing the basis and the measurement outcome for each spin. c) Expectation values of the energy computed from the shadows of the dataset and reconstructed by the VAE. d) Expectation values of the three-body stabilizer σzi−1σxi σzi+1 computed from the shadows of the dataset and reconstructed by the VAE. e) Training of the VAE seen through the log of the variances log (σ2 
+
+> i
+
+) of the latent variables output by the encoder. f ) Latent representation learned by the VAE. g) Distribution P (s) of 
+
+X-bubbles as a function of their size s for h1 = 0 .05 and h2 = ±0.7. h) Prediction of the normalized symbolic expression ˜f
+
+across the parameter space for chains of N = 15 , 45 and 75 spins. 
+
+or bubble-like structures in certain regimes [ 38 ]. We define an X-bubble of size s as a connected group of s
+
+consecutive spins xi, . . . , x i+s−1 ferromagnetically aligned along the X direction. This motivates the analysis of the distribution P (s) of X-bubble sizes. As shown in Fig. 3g, within the additional cluster ( h1, h 2) = (0 .05 , −0.7), the distribution P (s) exhibits a slower decay with increasing 
+
+s compared to the mirrored location ( h1, h 2) = (0 .05 , 0.7). Additional analysis, considering points throughout the entire SPT phase, are presented in Section F. To validate the order parameter, we perform a scaling analysis of the normalized ˜f (x) = f (x)/[0 .5N (N − 1)] for larger chains of length N = 45 and N = 75 using density-matrix renormalization group (DMRG) calculations [ 39 ]. The results (with a truncation error below 4 .5 × 10 −7)show that the region where ˜f (x) > 0 progressively shrinks along the h1 direction, while no comparable shrinkage is observed along h2 (see Fig. 3h). In addition, the maximal value of ˜f (x), located around h2 ≃ 0.7, decreases with in-creasing system size, indicating that this feature becomes less pronounced in the thermodynamic limit and may instead originate from finite-size effects associated with phase boundaries. Further investigation of this behavior is beyond the scope of this work and will be addressed in future studies. 
+
+C. QDisc uncovers fermion-fermion interactions from hybrid discrete-continuous quantum data 
+
+So far, we have focused on measurements with discrete outcomes. However, many quantum experiments rely on continuous measurements. While purely continuous signals, such as interference patterns or time-of-flight im-ages in quantum simulators [ 12 , 42 ], can also be analyzed, we concentrate here on onsite continuous measurements. Specifically, we consider the spinless Falicov–Kimball model (FKM) at half filling on a square lattice [ 28 ], where localized f particles interact on-site with itiner-ant d fermions via a repulsive interaction U . Crucially, the f fermions are measured using discrete occupation measurements, while the d fermions are characterized by their local densities, a continuous observable. By explor-ing the full phase space (sketched in Fig. 4a), spanned by the interaction strength U and temperature T , we observe several distinct regimes: a checkerboard ordered phase, a Fermi gas, a weak localization of the f particles, an Anderson-like insulator regime, and a strongly correlated Mott insulating phase [ 40 , 41 ]. Further details on the physical model can be found in Section D 3. From a practical perspective, the VAE must be adapted to handle this hybrid data. While the same transformer encoder used in previous sections can directly process such inputs, we design the decoder to predict both the occupations of the f particles and the local densities 7a) Phase space e) Conditional probabilities c) Training d) Representation 0 2 4 6 8 10 12                                         
+
+> U
+> 0.3 0.25 0.2 0.15 0.1 0.05
+> T
+> Ordered Phase Mott Insulator Anderson-localized insulator Fermi Gas Weak Localization
+> f) Repulsion
+> 04812
+> U
+> 0.3 0.25 0.2 0.15 0.1 0.05
+> T
+> 0.1 0.2
+> p(f= 1) d
+> f1,4 d1,4
+> 04812
+> U
+> 0.3 0.25 0.2 0.15 0.1 0.05
+> T
+> 04812
+> U
+> 0.6 0.8 1.0 |1|
+> 0.0 0.5 1.0 |2|
+> 12
+> 020 40 epochs 4
+> 2
+> 0log(  2 )
+> 1
+> 2
+> 3
+> 4
+> 5
+> 1234
+> j
+> 1234
+> i
+> 1
+> 1234
+> j
+> 2
+> 0.2 0.5
+> p(f = 1)
+> 0.2 0.5
+> d
+> x= [1, 0.18, 0, 0.72, 0, 0.51, ... ] b) Data: hybrid ... ●0.18 Ø 0.72 f0 d0 f1 d1 ... Ø 0.51 f2 d2
+
+FIG. 4. Hybrid data of the Falicov-Kimball model. a) Phase diagram of the FKM, based on [ 40 , 41 ]. b) The two fermion species are measured, leading to a binary outcome (occupied or empty) for f fermions and a continuous local density for d fermions. c) Training of the VAE seen through the variances σ2 
+
+> i
+
+of the latent variables output by the encoder. d) 
+
+Latent representation learned by the VAE seen through the average of the absolute mean |μ1,2| across the parameter space. e) 
+
+Conditional probabilities generated by the decoder of the VAE at two different locations in the ordered phase. f ) The repulsion of f –d particles across the parameter space is seen through the product of the conditional probabilities of each species. 
+
+of the d particles. Specifically, the decoder produces a sequence in which the odd components correspond to the conditional probabilities of f particle occupation, while the even components encode the parameters describing the d particle densities (see Fig. 4b). The latter are modeled through a Gaussian conditional distribution, 
+
+p(x2i | xj< 2i) = N  μd, σ 2
+
+> d
+
+, (3) where the mean μd and standard deviation σd are pre-dicted by the decoder given the preceding elements xj< 2i
+
+of the sequence. Training the VAE with hybrid configurations across the phase space leads to two active latent neurons (see Fig. 4c). Due to the symmetry imposed by half filling, the latent variable means vanish throughout the parameter space. Therefore, we plot the average of the absolute values of the latent means, shown in Fig. 4d. The ordered phase clearly emerges in the latent representation. In addition, several subregions become distinguishable, including the Fermi-gas, the Mott-insulator, and the weak-localization regimes. The value of |μ2| also gradually varies on the left side of the ordered phase. To investigate the physical origin of this variation, we leverage the conditional probabilities produced by the VAE decoder. These are shown in Fig. 4e for T = 0 .01 and interaction strengths U = 0 .1 and U = 10 (see Fig. 4d for the corresponding locations in parameter space). In this plot, the red element at position ij corresponds to the predicted occupation probability of an f particle, while blue encodes the predicted mean density μd of a d particle at the same site. To account for the Z2 symmetry, we only used input configurations in which the site (1 , 1) was occupied by an f fermion. For both particle species, the checkerboard pattern characteristic of the ordered phase is visible. In addition, an effective repulsion between f and d particles can be observed: when a lattice site exhibits a high probability of hosting an f particle, the corresponding d particle density is suppressed, and vice versa. This anti-correlation becomes more pronounced as the interaction strength U
+
+increases (location 1 versus location 2). Computing the product of probabilities of each species, p(f ij = 1) · p( μdij ),provides a visualization of the interspecies repulsion across the entire parameter space (see Fig. 4f). These observations indicate that the variation of μ2
+
+does not correspond to a distinct thermodynamic phase. Instead, it subdivides the ordered phase according to the strength of the effective f -d repulsion, i.e., how strongly an f occupation suppresses the d densities on the same lat-tice site. Again, this analysis highlights the interpretable nature of the VAE’s latent space and the output prob-abilities, showcasing their strength at capturing subtle physical phenomena. The use of symbolic methods also supports this interpretation (see Section G). 
+
+IV. DISCUSSION 
+
+In this work, we have introduced a general pipeline for the discovery and characterization of phases directly from raw quantum data. Building on the variational auto-encoder framework, the method learns a compact and 8physically meaningful latent representation that aligns with the underlying structure of the phase space. Im-portantly, the approach remains agnostic to prior physi-cal assumptions, enabling the identification of previously unknown regimes. To complement this representation learning step, we incorporated a symbolic regression mod-ule designed to extract compact and interpretable ana-lytical descriptors that characterize previously unknown structures. Although genetic-algorithm-based symbolic regression, in principle, allows for the exploration of very large functional spaces, our results suggest that incor-porating physically motivated constraints in the search space can be beneficial, both in terms of interpretability and stability of the discovered expressions. We demonstrated the versatility of the pipeline across different types of quantum data, including experimental snapshots of Rydberg atom arrays, classical shadows of the cluster Ising model, and hybrid discrete–continuous data from a fermionic system. In each case, the method suc-cessfully captured the main physical regimes and revealed additional structures. Notably, it identified a corner-ordering regime in the Rydberg platform and signatures of algebraic behavior in the cluster Ising model, high-lighting its ability to uncover and characterize unknown features. While some of these features may originate from finite-size effects, their detection already demonstrates the pipeline’s capacity to uncover subtle and unexpected phenomena. Moreover, since the models used in this work remain modest in size with significant room for scaling, the framework is well positioned to tackle the larger datasets produced by current and next-generation quantum simulators. In typical experimental workflows, parameter regimes are often explored based on prior theoretical expecta-tions. By contrast, the present framework enables a more hypothesis-free exploration. By inferring structure di-rectly from raw data, the method could facilitate the discovery of unexpected phenomena in uncharted regions of parameter spaces. Looking ahead, the pipeline could be integrated more tightly with experimental platforms. For instance, embed-ded within a reinforcement learning loop, an AI model could actively guide the exploration of the parameter space toward regions exhibiting novel or highly structured behavior [ 43 ]. Having such an embedded strategy could also improve the representation learned by the VAE [ 44 ]. Such a closed-loop approach would provide a promising route toward autonomous discovery in quantum many-body experiments.  
+
+> V. ACKNOWLEDGMENTS
+
+We sincerely thank Hannes Pichler, Sepehr Ebadi, Tout Wang, and Mikhail Lukin for providing the experimental data on the Rydberg atoms. This research was funded in part by the Austrian Science Fund (FWF) [SFB BeyondC F7102, DOI: 10.55776/F71; WIT9503323, DOI: 10.55776/WIT9503323]. For open access purposes, the author has applied a CC BY public copyright license to any author accepted manuscript version arising from this submission. This work was also supported by the European Union (ERC Advanced Grant, QuantAI, No. 101055129). The views and opinions expressed in this article are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Research Council - neither the European Union nor the granting authority can be held responsible for them.  
+
+> VI. CODE AVAILABILITY
+
+The code used to produce the results of this paper is available through the Python qdisc library [ 25 ]. On the other hand, the dataset for the cluster Ising model was created by means of NetKet [ 45 , 46 ], which is based on Jax [ 47 ] and MPI4Jax [ 48 ]. The neural networks have been implemented using Flax [ 49 ]. The genetic searches were performed using PySR [7].                                                
+
+> [1] G. Torlai, G. Mazzola, J. Carrasquilla, M. Troyer, R. Melko, and G. Carleo, Neural-network quantum state tomography, Nature Physics 14 , 447. [2] J. Carrasquilla and R. G. Melko, Machine learning phases of matter, Nature Physics 13 , 431. [3] L. Mauron, Z. Denis, J. Nys, and G. Carleo, Predicting topological entanglement entropy in a rydberg analog simulator (2024), arXiv:2406.19872 [quant-ph]. [4] G. Carleo and M. Troyer, Solving the quan-tum many-body problem with artificial neural networks, Science 355 ,602 (2017), https://www.science.org/doi/pdf/10.1126/science.aag2302. [5] A. Bohrdt, C. S. Chiu, G. Ji, M. Xu, D. Greif, M. Greiner, E. Demler, F. Grusdt, and M. Knap, Classifying snap-shots of the doped hubbard model with machine learning, Nature Physics 15 , 921 (2019). [6] M. Khosrojerdi, A. Cuccoli, P. Verrucchi, and L. Banchi, Unsupervised learning to recognize quantum phases of matter, arXiv preprint arXiv:2510.14742 (2025). [7] M. Cranmer, Interpretable machine learning for science with pysr and symbolicregression.jl (2023), arXiv:2305.01582 [astro-ph.IM]. [8] A. Suresh, H. Schl¨ omer, B. Hashemi, and A. Bohrdt, Inter-pretable correlator Transformer for image-like quantum matter data, arXiv e-prints , arXiv:2407.21502 (2024), arXiv:2407.21502 [cond-mat.quant-gas]. [9] K. Cybi´ nski, J. Enouen, A. Georges, and A. Dawid, Speak so a physicist can understand you! tetriscnn for de-
+
+9
+
+tecting phase transitions and order parameters (2024), arXiv:2411.02237 [quant-ph]. [10] Z. Patel, E. Merali, and S. J. Wetzel, Unsupervised learn-ing of rydberg atom array phase diagram with siamese neu-ral networks, New Journal of Physics 24 , 113021 (2022). [11] G. Fern´ andez-Fern´ andez, C. Manzo, M. Lewenstein, A. Dauphin, and G. Mu˜ noz Gil, Learning minimal repre-sentations of stochastic processes with variational autoen-coders, Phys. Rev. E 110 , L012102 (2024). [12] F. Møller, G. Fern´ andez-Fern´ andez, T. Schweigler, P. de Schoulepnikoff, J. Schmiedmayer, and G. Mu˜ noz-Gil, Learning minimal representations of many-body physics from snapshots of a quantum simulator, arXiv preprint arXiv:2509.13821 (2025). [13] P. de Schoulepnikoff, G. Mu˜ noz Gil, H. P. Nautrup, and H. J. Briegel, Interpretable representation learning of quantum data enabled by probabilistic variational autoen-coders, Phys. Rev. A 112 , 062423 (2025). [14] N. Walker, K.-M. Tam, and M. Jarrell, Deep learning on the 2-dimensional ising model to extract the crossover region with a variational autoencoder, Scientific Reports 
+
+10 , 13047. [15] S. J. Wetzel, Unsupervised learning of phase transitions: From principal component analysis to variational autoen-coders, Phys. Rev. E 96 , 022140 (2017). [16] I. Jang and A. Yethiraj, Unsupervised machine learning method for the phase behavior of the constant magne-tization ising model in two and three dimensions, The Journal of Physical Chemistry B 129 , 532. [17] A. Naravane and N. Mathur, Semi-supervised learning of order parameter in 2d ising and xy models using condi-tional variational autoencoders (2023), arXiv:2306.16822 [cond-mat.stat-mech]. [18] F. Frohnert and E. van Nieuwenburg, Explainable rep-resentation learning of small quantum states, Machine Learning: Science and Technology 5, 015001 (2024). [19] H. Lange, A. Van de Walle, A. Abedinnia, and A. Bohrdt, From architectures to applications: a review of neural quantum states, Quantum Science and Technology 9,040501 (2024). [20] C. P. Burgess, I. Higgins, A. Pal, L. Matthey, N. Watters, G. Desjardins, and A. Lerchner, Understanding disentan-gling in β-vae (2018), arXiv:1804.03599 [stat.ML]. [21] D. H¨ afner, J. Gemmrich, and M. Jochum, Machine-guided discovery of a real-world rogue wave model, Proceedings of the National Academy of Sciences 120 , e2306275120 (2023). [22] S. AbdusSalam, S. Abel, and M. C. Rom˜ ao, Symbolic re-gression for beyond the standard model physics, Physical Review D 111 , 015022 (2025). [23] S. J. Wetzel, Closed-form interpretation of neural network classifiers with symbolic gradients, Machine Learning: Science and Technology 6, 015035 (2025). [24] C. Miles, R. Samajdar, S. Ebadi, T. T. Wang, H. Pichler, S. Sachdev, M. D. Lukin, M. Greiner, K. Q. Weinberger, and E.-A. Kim, Machine learning discovery of new phases in programmable quantum simulator snapshots, Phys. Rev. Res. 5, 013026 (2023). [25] H. J. B. Paulin de Schoulepnikoff, Hendrik Poulsen Nautrup and G. Mu˜ noz-Gil, Code Repository - Discovering Quantum phenomena with Interpretable Machine Learning (2026). [26] S. Ebadi, T. T. Wang, H. Levine, A. Keesling, G. Semegh-ini, A. Omran, D. Bluvstein, R. Samajdar, H. Pichler, W. W. Ho, S. Choi, S. Sachdev, M. Greiner, V. Vuleti´ c, and M. D. Lukin, Quantum phases of matter on a 256-atom programmable quantum simulator, Nature 595 , 227. [27] A. Elben, S. T. Flammia, H.-Y. Huang, R. Kueng, J. Preskill, B. Vermersch, and P. Zoller, The random-ized measurement toolbox, Nature Reviews Physics 5, 9 (2023). [28] L. M. Falicov and J. C. Kimball, Simple model for semiconductor-metal transitions: Sm b 6 and transition-metal oxides, Physical Review Letters 22 , 997 (1969). [29] A. Browaeys and T. Lahaye, Many-body physics with individually controlled rydberg atoms, Nature Physics 16 ,132 (2020). [30] S. Anand, C. E. Bradley, R. White, V. Ramesh, K. Singh, and H. Bernien, A dual-species rydberg array, Nature Physics 20 , 1744 (2024). [31] A. Celi, B. Vermersch, O. Viyuela, H. Pichler, M. D. Lukin, and P. Zoller, Emerging two-dimensional gauge theories in rydberg configurable arrays, Physical Review X 10 , 021057 (2020). [32] F. Cesa and H. Pichler, Universal quantum computation in globally driven rydberg atom arrays, Physical Review Letters 131 , 170601 (2023). [33] M. Kalinowski, R. Samajdar, R. G. Melko, M. D. Lukin, S. Sachdev, and S. Choi, Bulk and boundary quantum phase transitions in a square rydberg atom array, Physical Review B 105 , 174417 (2022). [34] H.-Y. Huang, R. Kueng, and J. Preskill, Predicting many properties of a quantum system from very few measure-ments, Nature Physics 16 , 1050 (2020). [35] P. Smacchia, L. Amico, P. Facchi, R. Fazio, G. Florio, S. Pascazio, and V. Vedral, Statistical mechanics of the cluster ising model, Physical Review A—Atomic, Molecu-lar, and Optical Physics 84 , 022304 (2011). [36] R. Verresen, R. Moessner, and F. Pollmann, One-dimensional symmetry protected topological phases and their transitions, arXiv preprint arXiv:1707.05787 (2017). [37] L. C. Venuti and M. Roncaglia, Analytic relations between localizable entanglement and string correlations in spin systems, Physical review letters 94 , 207207 (2005). [38] A. Giuliani and R. Seiringer, Periodic striped ground states in ising models with competing interactions, Com-munications in Mathematical Physics 347 , 983 (2016). [39] S. R. White, Density matrix formulation for quantum renormalization groups, Physical review letters 69 , 2863 (1992). [40] A. E. Antipov, Y. Javanmard, P. Ribeiro, and S. Kirch-ner, Interaction-tuned anderson versus mott localization, Physical Review Letters 117 , 146601 (2016). [41] L. Frk, P. Bal´ aˇ z, E. Archemashvili, and M. ˇZonda, Un-supervised machine learning phase classification for the falicov-kimball model, Physical Review B 111 , 205116 (2025). [42] D. Eberz, M. Link, A. Kell, M. Breyer, K. Gao, and M. K¨ ohl, Detecting the phase transition in a strongly interacting fermi gas by unsupervised machine learning, Physical Review A 108 , 063303 (2023). [43] A. A. Melnikov, H. Poulsen Nautrup, M. Krenn, V. Dun-jko, M. Tiersch, A. Zeilinger, and H. J. Briegel, Active learning machine learns to create new quantum experi-ments, Proceedings of the National Academy of Sciences 
+
+115 , 1221 (2018). [44] G. Mu˜ noz-Gil, H. P. Nautrup, A. Majumder, P. de Schoulepnikoff, F. F¨ urrutter, M. Krumm, and H. J. 10 
+
+Briegel, Disentanglement by means of action-induced rep-resentations, arXiv preprint arXiv:2602.06741 (2026). [45] F. Vicentini, D. Hofmann, A. Szab´ o, D. Wu, C. Roth, C. Giuliani, G. Pescia, J. Nys, V. Vargas-Calder´ on, N. As-trakhantsev, and G. Carleo, NetKet 3: Machine Learning Toolbox for Many-Body Quantum Systems, SciPost Phys. Codebases , 7 (2022). [46] F. Vicentini, D. Hofmann, A. Szab´ o, D. Wu, C. Roth, C. Giuliani, G. Pescia, J. Nys, V. Vargas-Calder´ on, N. As-trakhantsev, and G. Carleo, Codebase release 3.4 for NetKet, SciPost Phys. Codebases , 7 (2022). [47] J. Bradbury, R. Frostig, P. Hawkins, M. J. Johnson, C. Leary, D. Maclaurin, G. Necula, A. Paszke, J. Van-derPlas, S. Wanderman-Milne, and Q. Zhang, JAX: com-posable transformations of Python+NumPy programs (2018). [48] H. Dion and V. Filippo, mpi4jax: Zero-copy mpi commu-nication of jax arrays, Journal of Open Source Software 
+
+6, 3419 (2021). [49] J. Heek, A. Levskaya, A. Oliver, M. Ritter, B. Rondepierre, A. Steiner, and M. van Zee, Flax: A neural network library and ecosystem for JAX (2024). [50] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. u. Kaiser, and I. Polosukhin, Attention is all you need, in Advances in Neural Information Process-ing Systems , Vol. 30, edited by I. Guyon, U. V. Luxburg, S. Bengio, H. Wallach, R. Fergus, S. Vishwanathan, and R. Garnett (Curran Associates, Inc., 2017). [51] J. Zhuang, T. Tang, Y. Ding, S. C. Tatikonda, N. Dvornek, X. Papademetris, and J. Duncan, Adabelief optimizer: Adapting stepsizes by the belief in observed gradients, in Advances in Neural Information Processing Systems ,Vol. 33, edited by H. Larochelle, M. Ranzato, R. Hadsell, M. Balcan, and H. Lin (Curran Associates, Inc., 2020) pp. 18795–18806. [52] R. T. Q. Chen, X. Li, R. B. Grosse, and D. K. Duve-naud, Isolating sources of disentanglement in variational autoencoders, in Advances in Neural Information Pro-cessing Systems , Vol. 31, edited by S. Bengio, H. Wallach, H. Larochelle, K. Grauman, N. Cesa-Bianchi, and R. Gar-nett (Curran Associates, Inc., 2018). [53] S. Jin, A. Sen, W. Guo, and A. W. Sandvik, Phase tran-sitions in the frustrated ising model on the square lattice, Physical Review B—Condensed Matter and Materials Physics 87 , 144406 (2013). [54] M. Sadrzadeh and A. Langari, Phase diagram of the frustrated j1- j2 transverse field ising model on the square lattice, in Journal of Physics: Conference Series , Vol. 969 (IOP Publishing, 2018) p. 012114. [55] G. Klambauer, T. Unterthiner, A. Mayr, and S. Hochre-iter, Self-normalizing neural networks, in Advances in Neural Information Processing Systems , Vol. 30, edited by I. Guyon, U. V. Luxburg, S. Bengio, H. Wallach, R. Fer-gus, S. Vishwanathan, and R. Garnett (Curran Associates, Inc., 2017). [56] J. A. Hanley and B. J. McNeil, The meaning and use of the area under a receiver operating characteristic (roc) curve., Radiology 143 , 29 (1982). [57] M. D. Lukin, M. Fleischhauer, R. Cote, L. Duan, D. Jaksch, J. I. Cirac, and P. Zoller, Dipole blockade and quantum information processing in mesoscopic atomic ensembles, Physical review letters 87 , 037901 (2001). [58] E. Urban, T. A. Johnson, T. Henage, L. Isenhower, D. Yavuz, T. Walker, and M. Saffman, Observation of rydberg blockade between two atoms, Nature Physics 5,110 (2009). [59] D. Fitzek, Y. H. Teoh, H. P. Fung, G. A. Dagnew, E. Mer-ali, M. S. Moss, B. MacLellan, and R. G. Melko, Ryd-berggpt (2024), arXiv:2405.21052 [quant-ph]. [60] J. Arnold, F. Sch¨ afer, A. Edelman, and C. Bruder, Map-ping out phase diagrams with generative classifiers, Phys. Rev. Lett. 132 , 207301 (2024). [61] J. Herrmann, S. M. Llima, A. Remm, P. Zapletal, N. A. McMahon, C. Scarato, F. Swiadek, C. K. Andersen, C. Hellings, S. Krinner, N. Lacroix, S. Lazar, M. Ker-schbaum, D. C. Zanuz, G. J. Norris, M. J. Hartmann, A. Wallraff, and C. Eichler, Realizing quantum convolu-tional neural networks on a superconducting quantum processor to recognize quantum phases, Nature Commu-nications 13 , 4144. [62] P. Zapletal, N. A. McMahon, and M. J. Hartmann, Error-tolerant quantum convolutional neural networks for symmetry-protected topological phases, Physical Review Research 6, 10.1103/physrevresearch.6.033111 (2024). [63] N. Sadoune, G. Giudici, K. Liu, and L. Pollet, Unsuper-vised interpretable learning of phases from many-qubit systems, Phys. Rev. Res. 5, 013082 (2023). [64] H. J. Briegel and R. Raussendorf, Persistent entanglement in arrays of interacting particles, Physical Review Letters 
+
+86 , 910 (2001). [65] H.-Y. Huang, Learning quantum states from their classical shadows, Nature Reviews Physics 4, 81 (2022). [66] M. Vojta, Quantum phase transitions, Reports on Progress in Physics 66 , 2069 (2003). 11 
+
+Appendix A: Neural network details 
+
+In this section, we provide further details on the architecture of the neural network used for the encoder and decoder of the VAE through the different scenarios presented. For all numerical simulations presented in the main text, we used a transformer architecture for the encoder and decoder [ 50 ]. Details are presented in Table I and Table II for the encoder and decoder, respectively. For the latter, context based attention is used with the context being the latent variables z. For the decoder to model the conditional probabilities, an ordering must be defined. This depends on the quantum system and is detailed in Section D. For the decoder used for the fermionic system (Section III C), instead of a single projection head (last two rows of Table II: Dense + softmax ), two independent projection heads are used for the conditional probabilities of each particle species. These consist of two dense layers with a ReLU activation function between them. Instead of the softmax activation used for the rest of the cases, we use a sigmoid activation to predict the mean densities of d particles. 
+
+Layer type Output size Input B × I
+
+Embedding B × I × dmodel 
+
+Positional Encoding (sin) B × I × dmodel 
+
+Transformer layer (3x): Normalization B × I × dmodel 
+
+Self-Attention ( Nhead = 2 /4) B × I × dmodel 
+
+Residual Connection B × I × dmodel 
+
+Dense B × I × 4 · dmodel 
+
+ReLU B × I × dmodel 
+
+Dense B × I × dmodel 
+
+Residual Connection B × I × dmodel 
+
+Normalization B × I × dmodel 
+
+Mean predictions: Dense B × dlatent 
+
+Variance predictions: Dense B × dlatent 
+
+TABLE I. Transformer encoder. Details on the encoder architecture used for the VAE. B refers to the batch size and I the input dimension. For the Rydberg experiment I = N , where N is the number of sites of the quantum system, while for the Cluster Ising model and the FKM I = 2 N . For the two latter, we set the model dimension to dmodel = 16 and the number of heads to Nhead = 2, while for the former dmodel = 8 and Nhead = 4. The latent space dimension was chosen to be 5 for all cases. Layer type Output size Input B × I
+
+Embedding B × I × dmodel 
+
+Positional Encoding (sin) B × I × dmodel 
+
+Shift B × I × dmodel 
+
+Transformer layer (3x): Normalization B × I × dmodel 
+
+Causal Self-Attention ( Nhead = 4) B × I × dmodel 
+
+Context Based Attention ( Nhead = 4) B × I × dmodel 
+
+Residual Connection B × I × dmodel 
+
+Dense B × I × 4 · dmodel 
+
+ReLU B × I × dmodel 
+
+Dense B × I × dmodel 
+
+Residual Connection B × I × dmodel 
+
+Normalization B × I × dmodel 
+
+Dense B × I × 2Log softmax B × I × 2TABLE II. Transformer decoder. Details on the decoder architecture. See Table I for definitions. As for the encoder, we consider two different architectures: one for the Rydberg experiment ( I = N and dmodel = 8) and a slight variation for the Cluster Ising model and the FKM ( I = 2 N and dmodel = 32). Every transformer layer performs cross-attention to the latent variables z, embeddeded to dimension B × I × dmodel by means of a linear layer. 
+
+The parameters of these neural networks were optimized using a gradient-based approach. To minimize the loss 12 (presented in Eq. (2)), we used the adabelief optimizer [ 51 ], with default parameters and a learning rate of 0.001 for every case except the FKM, where we used 0.0001. The strength of the KL regularization, controlled by the parameter β (see Eq. (2)), was set to 0 .45, 0 .65, and 0 .45 for the Rydberg atoms, cluster Ising model, and FKM, respectively. In practice, we observe that adopting a standard value of β = 0 .5 already enables a rapid identification of the number of active latent neurons while producing a meaningful latent representation. Subsequently, the performance can be further refined by fine-tuning this hyperparameter, guided by the evolution of log σ2 
+
+> i
+
+during training. 
+
+> Appendix B: VAE loss
+
+In this appendix, we provide additional clarifications regarding the loss function used throughout the numerical experiments. As introduced in the main text (see Eq. (2)), the parameters of the VAE are trained by minimizing the loss 
+
+L = 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+Eq [log p(xm|z)] − βKL[ q(z|xm)|| p(z)] , (B1) where M is the number of data samples, p(z) denotes the prior distribution over latent variables, and q(z|x) is the variational approximation to the true posterior. The first term corresponds to the expected reconstruction log-likelihood, while the second term introduces a regularization that penalizes deviations of q(z|x) from the normal prior.  
+
+> 1. Reconstruction loss
+
+In many quantum settings, like those considered in Section III A and Section III B, we have access to samples x
+
+consisting of the discrete outcome of a given measurement. For example, in the case of projective measurements on a spin-1 /2 system, a configuration can be written as 
+
+x = [0 , 1, 0, 0, 1, 1, . . . ],
+
+where the entry at position j (taking values 0 or 1) encodes the outcome of the measurement performed on spin j
+
+(up or down). More generally, for systems with K possible outcomes per site, we model each local variable using a categorical distribution. This is conveniently represented via a one-hot encoding xi = [ xi, 1, x i, 2, . . . , x i,K ], where 
+
+xi,k = 1 if the outcome at site i corresponds to class k, and 0 otherwise. The associated probability mass function is 
+
+p(xi,k = 1) ∈ [0 , 1] with the normalization condition PKk=1 p(xi,k = 1) = 1. Within this framework, the reconstruction term of the VAE objective takes the form 
+
+Ez∼q(z|x) [log p(x|z)] = Ez∼q(z|x)
+
+> N
+
+X
+
+> i=1
+> K
+
+X
+
+> k=1
+
+xi,k log p(xi,k = 1 |z). (B2) In all discrete datasets considered in this work, namely Rydberg atom snapshots (Section III A), the cluster Ising model (Section III B), and the f -fermion configurations of the Falicov–Kimball model (Section III C), we have K = 2. To accommodate continuous data, in our case the local d particle densities of the Falicov-Kimball model, we design the VAE decoder to output both the mean μd and the logarithm of the variance log σ2 
+
+> d
+
+of the density d, assuming a Gaussian likelihood d ∼ N (μd, σ 2
+
+> d
+
+). As in the discrete setting, the reconstruction term of the objective is derived from the negative log-likelihood of the assumed output distribution. Replacing the categorical likelihood used for discrete variables by a multivariate normal distribution yields the per-sample reconstruction loss 
+
+Ld−particles reconstr . = 12
+
+h
+
+log σd + (d − μd)2
+
+σ2
+
+> d
+
++ log(2 π)
+
+i
+
+. (B3) This formulation naturally generalizes the likelihood-based reconstruction used for discrete observables and allows the model to capture both the mean behavior and fluctuations of continuous quantum data. A hyperparameter α ∈ [0 , 1] is introduced to balance the two reconstruction terms 
+
+LFKM reconstr . = α · L f −particles reconstr . + (1 − α) · L d−particles reconstr . . (B4) where the reconstruction loss of the f particles Lf −particles reconstr . corresponds to Eq. (B2) with k = 2. To produce the results shown in Section III C, we used α = 0 .8. 13  
+
+> 2. KL Regularization Term
+
+We now provide further details on the treatment of the KL regularization term in VAE loss (see Eq. (2)). A common practice is to assume that the approximate posterior q(z|x) is Gaussian with diagonal covariance, i.e. q(z|x) ∼ N (μ, Σ)with Σi,i = σ2 
+
+> i
+
+and Σi,j ̸ =i = 0. Using a normal prior p(z) ∼ N (0 , 1), the KL divergence can be written as a closed-form expression: KL  q(z|x) ∥ p(z) = 12
+
+X
+
+> j
+
+ μ2 
+
+> j
+
++ σ2 
+
+> j
+
+− 1 − log σ2
+
+> j
+
+ , (B5) where μj and σ2 
+
+> j
+
+denote the mean and variance of the jth latent variable. This formulation is computationally efficient since it does not require estimating any terms.  
+
+> a. Comparison with other VAE objectives
+
+In this subsection, we compare the VAE’s objective used throughout the manuscript with another common objective, namely the TCVAE [ 52 ]. The latter has shown a great advantage in that it decomposes the KL divergence into interpretable contributions: a mutual information term between x and z, a total correlation term between the latent neurons (TC), and a dimension-wise KL penalty. In practice, all these terms are computed using statistical estimates, opposed to the usual VAE objective, which can be analytically computed (Eq. (B5)). This makes their training more noisy and often more challenging. In addition to their differences in computational cost, these two approaches impose different structural constraints on the latent representation. The analytic KL in Eq. (B5) encourages each posterior distribution q(z|x) to be individually close to the prior p(z), resulting in latent spaces that tend to be locally smooth and exhibit limited global balancing of values across the dataset. In contrast, the TCVAE decomposition encourages the global marginal q(z) to match the prior, while allowing individual posteriors to vary more substantially. We used the Rydberg dataset to compare the two KL regularization choices. The latent representations obtained from VAEs trained with each regularization scheme are shown in Fig. 5. As illustrated in the figure, the TCVAE approach produces latent variables whose values are globally balanced between positive and negative regions across the parameter space. In the present work, because the phase-space structures of interest are characterized by localized clusters and subtle variations, we find that the analytic KL formulation leads to latent representations better suited for resolving these features. Therefore, we adopt the closed-form KL expression in Eq. (B5) in all the numerical experiments presented. -2 0 2 4/                         
+
+> 2.0 1.5 1.0
+> R b /a
+> -2 024/
+> 10121
+> 1012
+> -2 024/
+> 2.0 1.5 1.0
+> R b /a
+> -2 024/
+> 201
+> 012
+> a) b)
+> FIG. 5. Rydberg atoms: KL regularizations. Representations learned by training the VAE using a) the analytical KL regularization employed in the main text and b) the total correlation (TC) decomposition of the KL divergence, as used in [ 13 ].
+> Appendix C: Benchmarking symbolic regression on the J1J2model
+
+In this appendix, we provide additional results on the symbolic regression (SR) method. We present an extensive benchmark of the method used throughout this work (SR1) against other existing approaches. In the context of this work, the objective of SR is to find a closed-form expression f (x) that describes the nature of an unknown cluster C appearing in the latent representation. In the following, we introduce three different strategies for defining such objectives. 14  
+
+> 1. SR objectives
+> SR1: Classification
+
+As shown in the main text, we can phrase the SR problem as a binary classification task: we look for an analytic expression f (x) that separates samples belonging to the target latent cluster C from those that do not. Each data point x is assigned a label y ∈ { 0, 1}, which allows us to form a dataset D = {(xm, y m)}Mm=1 . For a given sample xm,the predicted probability is obtained via the sigmoid ˆym = 1 /(1 + e −f (xm)). With these definitions, we optimize f by minimizing the binary cross-entropy loss 
+
+LCE (y, ˆy) = − 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+h
+
+ym log ˆ ym +  1 − ym log  1 − ˆymi
+
+. (C1) This classification-based formulation is both simple and physically intuitive, as it directly mirrors the role of an order parameter distinguishing between phases. Nevertheless, it requires the explicit definition of in and out samples, and this choice may influence the structure of the learned function f .To assess the robustness of this approach, we compare it with alternative strategies proposed in the literature, which avoid the explicit selection of in and out samples, and therefore do not rely on sharply defined cluster boundaries.  
+
+> SR2: Gradient alignment: x−space
+
+Another strategy is to frame the problem in terms of boundary geometry rather than direct classification perfor-mance [ 23 ]. The key observation is that if the goal is to reproduce the decision structure of a neural network classifier NN (x), then one may instead require a symbolic expression f (x) to match the shape of that decision boundary. Concretely, this is achieved by aligning the input-space gradients of the symbolic model, Gfi = ∂f (x)/∂x i, with those of the neural network, GNN  
+
+> i
+
+= ∂NN( x)/∂x i, evaluated near ∂C.In our setting, the encoder of the VAE naturally plays the role of such a classifier (up to constants and the final sigmoid activation), enabling a direct comparison between its gradients and those produced by candidate symbolic expressions. A simple loss function whose minimum enforces gradient alignment is the mean squared error, 
+
+LMSE (GNN , G f ) = 1
+
+N M 
+
+> M
+
+X
+
+> m=1
+> N
+
+X
+
+> i=1
+
+h
+
+Gfi (xm) − GNN  
+
+> i
+
+(xm)
+
+i2
+
+. (C2) With normalized gradients, minimizing the MSE is equivalent to minimizing the cosine loss. This formulation shifts the emphasis from label fidelity to geometric consistency, allowing symbolic regression to recover decision boundaries even when the notion of ”in” versus ”out” is not sharply defined. Another advantage of this approach is that it can be easily extended to match multiple clusters at the same time by just taking all boundaries. One drawback is that if the system exhibits two intertwined phases with similar boundary shapes (for example, a circle within a circle), this approach will not be able to distinguish them.  
+
+> SR3: Gradient alignment: θ-space
+
+Inspired by the previous approach, we explore an alternative objective tailored to our model and to the structure of the underlying physical problem. Consider a Hamiltonian H(θ1, θ 2, . . . ) depending on experimentally tunable parameters θ = ( θ1, θ 2, . . . ). The samples x are quantum data obtained from a state related to this Hamiltonian and therefore depend implicitly on these parameters, x(θ). As illustrated in Fig. 1b, the latent representation ENC (x) → μi ∼ zi is visualized as a function of θ, which implies that the cluster boundaries ∂C are also defined in 
+
+θ-space. In this setting, matching gradients in x-space (SR2) becomes ill-defined and over-constraining; instead, the objective should be to align gradient’s direction with respect to θ.To do so, one needs the gradient of the encoder with respect to θk,
+
+GENC  
+
+> k
+
+:= ∂ ENC[ x(θ)] 
+
+∂θ k
+
+.
+
+However, the latter is not directly accessible since the encoder takes as input x rather than θ. To address this, we train a small auxiliary neural network g such that g(θ) = μi on a submanifold where C is defined. This surrogate 15 model both approximates the mapping θ 7 → μi and smooths out noise originating from the finite number of quantum samples. Once trained, we simply obtain the encoder gradients as 
+
+GENC  
+
+> k
+
+= ∂g (θ)
+
+∂θ k
+
+.
+
+Similarly, the symbolic function f does not depend explicitly on θ. We therefore use the chain rule to project its gradient from x-space to θ-space, 
+
+Gfk := ∂f ∂θ k
+
+= ∂f ∂x · vk,
+
+where vk = ∂x/∂θ k acts as a projector. We consider two strategies to estimate vk.
+
+Finite-difference projector. Given a sample x(θi) = xi ∈ ∂C and a nearby point xf reached by following the gradient direction at θi, we approximate 
+
+v∆ 
+
+> k
+
+= xf − xi
+
+θfk − θik
+
+.
+
+cp-based projector. Alternatively, we leverage the conditional probabilities provided by the VAE decoder DEC (z) = cp. Since cp are continuous, we can use another application of the chain rule: 
+
+vcp  
+
+> k
+
+= ∂ cp 
+
+∂μ i
+
+· ∂μ i
+
+∂θ k
+
+.
+
+This estimator avoids finite-difference noise and imposes a more restrictive structure. In particular, it can mitigate artifacts arising from ground-state degeneracies and other non-smooth variations in the data manifold. One drawback is that, since it relies on the cp and its chosen ordering, the interpretability of the final symbolic expression may be deteriorated.  
+
+> 2. Results
+
+We now test the symbolic approaches introduced in the previous section. As a controlled setting, we study a well-known quantum spin system: the J1J2 model on a 3 × 3 square lattice with open boundary conditions [ 53 ]. Fixing 
+
+J1 = 1, the Hamiltonian reads 
+
+HJ1J2 = X
+
+> ⟨i,j ⟩
+
+σzi σzj + J2
+
+X
+
+> ⟨⟨ i,j ⟩⟩
+
+σzi σzj + h X
+
+> i
+
+σxi , (C3) where ⟨·⟩ and ⟨⟨·⟩⟩ denote nearest-neighbor (NN) and next-nearest-neighbor (NNN) pairs, respectively. We treat the two experimental tuning parameters as θ1 = J2 ∈ [0 , 1.5] and θ2 = h ∈ [0 .1, 2]. Across this parameter space, the system contains three distinct phases (see Fig. 6a). For small J2 and small h, the nearest-neighbor (NN) interactions dominate, stabilizing a N´ eel-ordered phase characterized by antiferromagnetically aligned NN spins. For large J2 and small h, the next-nearest-neighbor (NNN) couplings prevail, giving rise to a striped phase in which NN spins align while NNN spins are antiferromagnetically aligned. Finally, for sufficiently large transverse field h, the spins polarize along the x-direction, forming the polarized phase [54]. Given the simplicity of the data, we build the VAE encoder using a convolutional neural network. The details of its architecture are presented in Table III. For the decoder, a standard feedforward neural network (FFNN) was used. Autoregression is achieved by simply imposing triangular weights. For the numerical simulations, we used 3 hidden layers with 36 hidden neurons and SeLU activation functions [55]. We trained the VAE on an ensemble of unlabeled spin configurations coming from various points across the ( J2, h )parameter space. During training, we observe that a single latent neuron remains active while all others collapse to the prior (see Fig. 6b). This behavior is consistent with the full phase diagram being effectively parameterized by a single degree of freedom, such as the next–nearest-neighbor (NNN) correlator (see Fig. 6a). The active latent variable encodes a quantity related to the magnetization, and due to the Z2 degeneracy, it averages to zero. Thus in order to visualize the latent representation, we show the average of its absolute value across the parameter space in Fig. 6c. 16 a) Phase space c) Representation b) Training g) Two body weights α ij f) Néel predictions d) SR1 objective e) SR3 objective 
+
+0 0.75 1.5 
+
+J2210.1 
+
+> h
+
+0.5 0.0 0.5   
+
+> zizj
+
+, ( i, j) NNN 
+
+> Striped Polarized Néel
+
+0 0.75 1.5 
+
+J 2210.1 
+
+> h
+
+Labels 
+
+0 0.75 1.5 
+
+J2210.1 
+
+> h
+
+out in 0.7 1.3 | 1 |
+
+0 0.75 
+
+J2210.1 
+
+> h
+
+0 0.75 
+
+J 2
+
+0 0.75 
+
+J 2
+
+0 0.75 
+
+J 2
+
+2.5 0.0 SR1 
+
+3 2 1
+
+SR2 
+
+2.5 0.0 SR3 
+
+0 1SR3cp | 1 |
+
+0 0.75 1.5 
+
+J 2210.1 
+
+> h
+
+0.5 1.0 1.5 
+
+Néel 
+
+> edge scale = 5
+
+SR1 x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 2
+
+SR2 x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 5
+
+SR3 
+
+x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 5
+
+SR3cp x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 20
+
+SR1 x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 500
+
+SR2 x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 2000
+
+SR3 
+
+x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 3000
+
+with L1 SR3cp x0 x1 x2 x5 x4 x3 x6 x7 x8 Striped 
+
+> edge scale = 5
+
+SR1 x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 2
+
+SR2 x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 5
+
+SR3 
+
+x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 5
+
+SR3cp x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 20
+
+SR1 x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 2
+
+SR2 x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 50000
+
+SR3 
+
+x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+> edge scale = 4000
+
+with L1 SR3cp x0 x1 x2 x5 x4 x3 x6 x7 x8 h) Robustness 
+
+0 0.75 1.5 
+
+J2210.1 
+
+> h
+
+Dataset (1) 
+
+out in 
+
+0 0.75 1.5 
+
+J2210.1 
+
+> h
+
+Dataset (2) 
+
+out in 
+
+> ij
+
+x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+0 0.75 1.5 
+
+J 2210.1 
+
+> h
+
+1 0 1
+
+f(x)
+
+0 0.75 1.5 
+
+J 2210.1 
+
+> h
+
+Dataset (3) 
+
+out in 
+
+> ij
+
+x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+0 0.75 1.5 
+
+J 2210.1 
+
+> h
+
+f(x)
+
+1 0 1ij 
+
+x0 x1 x2 x5 x4 x3 x6 x7 x8 
+
+0 0.75 1.5 
+
+J 2210.1 
+
+> h
+
+f(x)1 0 10 10 20 30 epochs 6
+
+4
+
+2
+
+0log(  2 )
+
+> 1
+> 2
+> 3
+> 4
+> 5
+
+FIG. 6. J1J2 model. a) Phase diagram visualized using the next–nearest-neighbor (NNN) correlator. b) Training of the VAE seen through the log of the variances σ output by the encoder. c) Latent representation learned by the VAE. d) Classification objective of the first symbolic regression approach (SR1). e) Gradient alignment objective of the third symbolic regression methods (SR3). f ) Predictions of the symbolic function f (x) obtained after training with the various SR objectives to characterize the N´ eel phase. g) Learned two-body correlator weights αij of f (x). Links are colored according to the sign of αij , orange being positive and purple negative. Their thickness scales with |αij |. Results with an additional L1 regularization are presented in the bottom rows. h) Prediction f (x) and its two-body correlator weights αij learned with SR1 for different classification datasets. Results are presented with the additional L1 regularization. 17 
+
+Layer type Output size Input B × L × L × 1Circular Conv 2D ( ks = 3 × 3) B × L × L × 32 ReLu B × L × L × 32 Circular Conv 2D ( ks = 3 × 3) B × L × L × 32 ReLu B × L × L × 32 Global Average Pooling B × 32 Mean predictions: Dense B × 32 ReLu B × 32 Dense B × 5Variance predictions: Dense B × 32 ReLU B × 32 Dense B × 5TABLE III. Convolutional encoder. Details on the encoder architecture used for the J1J2 model. B is the batch size, 
+
+L = √N the size of the square lattice and ks the kernel size. The latent space dimension was chosen to be 5. 
+
+a. Quantitative benchmark 
+
+To benchmark the three symbolic regression methods (SR) under controlled and comparable conditions, we restrict the symbolic expression to the quadratic form 
+
+f (x) = X
+
+> i,j>i
+
+αi,j xixj , (C4) where ( i, j ) runs over all spin pairs and the coefficients αi,j are the trainable parameters. For each SR, the coefficients 
+
+αi,j are optimized with the L-BFGS-B routine from scipy , minimizing the corresponding loss function. In the case of characterizing the N´ eel phase, the classification objective of SR1 as well as the gradient alignment objective of SR3 can be visualized in Fig. 6d and 6e, respectively. We benchmark the different symbolic regression (SR) strategies by evaluating the learned expressions f on three tasks: characterizing the N´ eel phase, characterizing the striped phase, and characterizing the polarized phase. For each task, we compute the Spearman correlation between f and the corresponding physical order parameter: i) the nearest-neighbor (NN) correlator for the N´ eel phase; ii) the next-nearest-neighbor (NNN) correlator for the striped phase; iii) and the absolute value of the NNN correlator for the polarized phase. In addition, we report the area under the curve (AUC) to quantify how well f separates the relevant phases. Given a set of quantum data x labeled as “in-phase” or “out-of-phase,” the scalar output f can be interpreted as a ranking score. The AUC is then equal to the probability that a randomly chosen in-phase configuration receives a larger score than a randomly chosen out-of-phase configuration [56], AUC = Pr  f (xin ) > f (xout ). (C5) An AUC of 1 indicates perfect separability of the two score distributions, while an AUC of 0 .5 corresponds to random guessing. We restrict the evaluations of both metrics to the left (resp. right) half of the parameter space for the N´ eel (resp. striped) phase. 
+
+TABLE IV. Comparison of symbolic methods. Performance of the symbolic regression methods (SR) in identifying the N´ eel, striped, and polarized phases. For each task, we report the Spearman correlation between the learned symbolic function 
+
+f (x) and the corresponding order parameter as well as the classification AUC scores. Approach Variant N´ eel phase Striped phase Polarized phase                                        
+
+> rs(f(x),NN) AUC rs(f(x),NNN) AUC rs(f(x),|NNN |)AUC SR1: in vs out cls. –0.977 0.999 0.986 1.000 0.944 0.994 SR2: grad alignment (x-space) –0.868 0.980 0.912 0.985 0.003 0.531 SR3 (proposed): vk from ∆ x0.995 1.000 0.996 1.000 0.980 0.998
+> grad alignment ( θ-space) vk from cp 0.888 0.997 0.854 0.932 0.905 0.970
+
+18 For the N´ eel phase, the prediction landscape f (x) over the left half of the parameter space is shown in Fig. 6f. With the exception of SR2, all methods enable to clearly distinguish the N´ eel phase. The predictions obtained with the SR3cp objective exhibit a higher level of noise, which we attribute to the use of the decoder conditional probabilities. Since these probabilities are learned from the data, they inherit part of its noise, thereby affecting the symbolic fit. In contrast, SR1 and SR3∆ yield smoother decision landscapes. These qualitative observations are confirmed by the quantitative metrics reported in Table IV, where the best scores are highlighted in bold. Across all three tasks and both evaluation measures, SR3∆ achieves the highest overall scores, with SR1 performing comparably and, in some cases, matching its performance. The slightly lower scores of SR1 can be attributed to its reliance on a threshold criterion (e.g. |μ1| < δ ) to define phase boundaries. Modifying δ directly shifts the classification boundary and thus affects its objective. By contrast, SR3 are less sensitive to such shifts in boundary location since the gradients keep the same orientations.  
+
+> b. Interpretability benchmark
+
+Beyond predictive performance, interpretability is a key criterion. In this context, we examine whether the learned coefficients αij reveal a physically meaningful structure. The coefficients obtained for the N´ eel and striped classifiers are shown in Fig. 6g, where links are colored according to the sign of αij and their thickness is proportional to |αij |.All symbolic expressions involve many two-body couplings. However, the coefficients obtained with the SR1 objective display a more structured pattern. In contrast, those resulting from the SR2 objective are strongly localized on a small subset of spins, while the coefficients learned with SR3 do not exhibit a clear spatial pattern. In the bottom row of Fig. 6g, we also show the coefficients obtained when each objective is optimized with an additional L1 regularization term. This term corresponds to the mean absolute value of the parameters: L1 = P 
+
+> i,j>i
+
+|αi,j |. It promotes sparsity and can enhance interpretability. When applied to SR2 and SR3, the L1 penalty mainly reduces the magnitude of the coefficients without significantly sparsifying their structure. By contrast, applying L1 regularization to SR1 produces a markedly sparser set of coefficients, thereby improving interpretability. In this case, the recovered structure closely matches the true order parameter, namely the next-nearest-neighbor (NNN) correlator. Interestingly, without L1 regularization, the coefficients obtained with SR1 for the striped phase predominantly highlight nearest-neighbor (NN) links. However, NN correlations alone are insufficient to isolate the striped phase. As a result, the prediction is also driven by many weaker couplings that cannot be neglected. Introducing L1 regularization guides the optimization toward the correct sparse structure associated with the relevant NNN correlator.  
+
+> c. Robustness against misclassification
+
+As a final test, we assess the robustness of the SR classification scheme (SR1) in identifying the N´ eel phase when the ’in’ and ’out’ labels are perturbed. Specifically, we shift the boundaries of the ground-truth classification (see left panel of Fig. 6d), thereby introducing controlled mislabelling between the two classes. The resulting classification tasks are displayed in the first row of Fig. 6h and the amount of mislabelling is summarized in Table V. For each case, we also report the Spearman correlation between the learned function f (x) and the nearest-neighbor (NN) correlator, as well as the corresponding AUC score. Results are presented both without and with the additional L1 regularization term. Overall, SR1 demonstrates remarkable robustness to shifts in the location of the target cluster. Without L1 regularization, shifts even lead to slight improvements in both the Spearman correlation and AUC, which can be attributed to slightly less overfitting. Incorporating L1 regularization further enhances both performance and stability. The reported results are the mean of 10 runs with various initial weights. With standard deviations always below 0.001, this also underscores the robustness of the method against initial conditions. The predicted function f (x) consistently highlights the N´ eel phase across all perturbed datasets considered (see second row of Fig. 6h). In addition, the structure of the learned two-body coefficients remains intact, still very close to the NNN correlator.  
+
+> d. Genetic search with broader search spaces
+
+While the two-body correlator ansatz (see Eq. (C4)) provides a controlled and interpretable setting to benchmark the different objectives, such a simple ansatz may not always be adequate for more complex systems. In this case, genetic-algorithm-based symbolic regression offers a flexible alternative, enabling the exploration of large spaces of candidate expressions. To illustrate this approach, we apply it to the task of classifying N´ eel configurations. Starting 19                             
+
+> TABLE V. Robustness of SR1. Performance of the SR classification scheme (SR1) in identifying the N´ eel in the presence of a noise in the ’in’ and ’out’ labels in its dataset. For each case, we report the Spearman correlation between the learned symbolic function f(x) and the corresponding order parameter as well as the classification AUC scores. Dataset (1) Dataset (2) Dataset (3) True ’in’ 100% 54% 54% True ’out’ 87% 100% 91%
+> rs(f(x),NN) without L1 0.969 0.990 0.980 with L1 0.990 0.990 0.990 AUC without L1 0.999 1.000 0.999 with L1 1.000 1.000 1.000
+
+from the following set of elementary operations: +, −, /, ·, sin , cos , tanh , exp and log , the algorithm can construct arbitrary functions up to a prescribed level of complexity. The resulting search space includes not only two-body terms, but also one-body or higher-order contributions and complex trigonometric or exponential terms. Despite this increased search space, the symbolic regression procedure converges to the following expression, 
+
+f (x) = 0 .64 ( x0x4 + x1x3 + x1x5 + x2x4 + x3x7 + x4x6 + x4x8 + x5x7) − 2.44 ,
+
+which corresponds, up to an additive constant, to the next-nearest-neighbor correlator. This result demonstrates that genetic-algorithm-based symbolic regression can successfully recover relevant order parameters even when exploring broad and weakly constrained function spaces. Nevertheless, we note that the present setting involves only 9 spins, such that the dimensionality of the input space remains relatively small. In scenarios involving larger systems, we believe that incorporating prior knowledge, as for instance that offered by the output probabilities of the VAE (see Section III A and Section III C) to constrain the search space of candidate expressions can be beneficial, both by improving convergence and by guiding the discovery toward physically meaningful solutions. 
+
+> Appendix D: Details on the quantum systems
+
+In this appendix, we provide additional details on three quantum systems taken into account in the main text.  
+
+> 1. Rydberg atoms
+
+The experimental setup consists of a two-dimensional square lattice with N = 13 × 13 atoms, where each atom resides in either its electronic ground state |g⟩ or an excited Rydberg state |r⟩. The latter is achieved via laser-driven excitation of an outer electron to a high-lying energy level, giving rise to strong, long-range interactions between excited atoms. The Rydberg array under study is characterized by the Hamiltonian 
+
+HRydberg = X
+
+> i<j
+
+C6
+
+|| ri − rj|| 6 ˆni ˆnj − ∆ X
+
+> i
+
+ˆni − Ω2
+
+X
+
+> i
+
+σxi (D1) with ˆni = 12 (σzi + I) and C6 = Ω 
+
+ Rb
+
+a
+
+6
+
+, (D2) where σxi = |g⟩i ⟨r|i + |r⟩i ⟨g|i, σzi = |r⟩i ⟨r|i − | g⟩i ⟨g|i, ∆ is the detuning from resonance, Ω the Rabi frequency, a the lattice length scale and Rb the Rydberg blockade radius. A key feature of Rydberg atoms is that, when a given atom is in the excited state |r⟩, the van der Waals potential effectively prevents the excitation of any other atom within a radius Rb, an effect commonly referred to as the ”Rydberg blockade” [ 57 , 58 ]. During the experiment, two different parameters were tuned: Rb/a , controlling the strength of the blockade, and ∆ /Ω, encoding the relative strength of a longitudinal field. In particular, to create the snapshots, the neutral atoms went through a coherent quantum evolution 20 for different values of blockade strength Rb/a and relative field strength ∆ /Ω. Then, a projective readout is performed in order to determine which atoms were not in the excited Rydberg state |r⟩ [24, 26]. We had access to 250 snapshots taken for each set of parameters ( Rb/a, ∆/Ω). The parameters are 
+
+Rb/a ∈ { 1.01 , 1.05 , 1.13 , 1.23 , 1.3, 1.39 , 1.46 , 1.56 , 1.65 , 1.71 , 1.81 , 1.89 , 1.97 } (D3) and 31 values of ∆ /Ω ∈ [−2.33 , 4.65], linearly spaced. Various ordering choices are possible for modelling conditional probabilities in 2D systems. For this system, a snake ordering has been used [ 59 ]. Determining the optimal ordering is an interesting task that goes beyond the scope of this work.  
+
+> 2. Cluster Ising model
+
+We consider here the one-dimensional cluster–Ising Hamiltonian on an open chain of length N = 15 [35, 36], 
+
+Hcluster = −
+
+> N
+
+X
+
+> i=1
+
+σzi−1σxi σzi+1 − h1
+
+> N
+
+X
+
+> i=1
+
+σxi − h2 
+
+> N−1
+
+X
+
+> i=1
+
+σxi σxi+1 (D4) where σxi , σ yi , σ zi are Pauli operators acting on site i. We consider open boundary conditions defined by σz 
+
+> 0
+
+= σzN +1 =
+
+1. In our numerical experiments we sweep the transverse field strength h1 ∈ [0 .05 , 1.20] and the Ising coupling 
+
+h2 ∈ [−1.5, 1.5] to probe the competition between the cluster term, the transverse-field (paramagnetic) term, and nearest-neighbor Ising correlations. We used 24 (resp. 30) linearly spaced values for h1 (resp. h2). To compose the dataset, 2000 shadows were created for each set of values of h1 and h2.As displayed in Fig. 3a, the model contains three canonical regimes [ 6, 60 –63 ]. First, for high h2, the nearest-neighbor term dominates and the ground state is antiferromagnetic in the x-direction. Then, for low values of h2 and sufficiently high h1, the spins align in the x direction, leading to a paramagnetic regime. Finally, for intermediate values of h2,there is a cluster phase protected by a Z2 × Z2 symmetry and governed by the stabilizer-like three-spin interaction 
+
+σzi−1σxi σzi+1 , which on open chains yields near-degenerate edge modes and nonlocal string order [64]. On an open chain the SPT phase is most clearly identified via a nonlocal string-order parameter, 
+
+Ostring (i, j ) = σzi
+
+ j−1Y
+
+> k=i+1
+
+σxk
+
+
+
+σzj , (D5) with endpoints chosen near the chain boundaries (e.g., i = 1, j = N ) to highlight edge correlations.  
+
+> 3. Falicov-Kimball model
+
+Finally, we consider the spinless Falicov-Kimball model (FKM) at half filling on a L × L square lattice, described by the Hamiltonian 
+
+H = −t X
+
+> ⟨i,j ⟩
+
+ d† 
+
+> i
+
+dj + d† 
+
+> j
+
+di
+
+ + U X
+
+> i
+
+
+
+f † 
+
+> i
+
+fi − 12
+
+  
+
+d† 
+
+> i
+
+di − 12
+
+
+
+. (D6) Here, t denotes the nearest-neighbor hopping amplitude of the itinerant d fermions and is set to 1. The second term describes a local repulsive interaction of strength U between the localized (heavy) f fermions and the itinerant (light) d
+
+fermions occupying the same lattice site. The shifts by −1/2 enforce particle-hole symmetry and guarantee half filling. The phase diagram is organized around two broad regimes: an ordered phase (OP) and a disordered phase (DP). In the OP, both the localized f particles and the itinerant d particles develop charge-density-wave (CDW) order. Outside this region, the f -particle configurations become disordered. Nevertheless, the behavior of the d particles allows the disordered regime to be further subdivided into several distinct phases. At strong interaction strength U , the system enters a gapped regime characterized by a Mott-insulating (MI) state. In this phase, the d particles are tied to the f -particle occupation, such that ⟨nd,i ⟩ ≈ 0 when nf,i = 1 and ⟨nd,i ⟩ ≈ 1when nf,i = 0. At weaker interactions, the disordered phase becomes gapless and can be further separated into a weakly localized regime with nearly uniform d-particle densities and an Anderson-localized regime with inhomogeneity. Finally, in the non-interacting limit U = 0, the model reduces to a free Fermi gas (FG) [40, 41]. The quantum data analyzed in this section come from a system size of N = 4 × 4. One part of the data corresponds to the configuration of the localized f particles, with binary entries 0 and 1 indicating unoccupied and occupied sites, 21 respectively. The remaining part corresponds to the local densities of the itinerant d particles and takes continuous values in the interval [0 , 1]. The ordering used to model the conditional probabilities was simply done per row and per site. For each site, we first take the f particle and then the d particle. We treat the interaction strength U ∈ [0 , 12] and the temperature T ∈ [0 .005 , 0.3] as tuning parameters. We used 60 (resp. 49) linearly spaced values for U (resp. 
+
+T ). To compose the dataset, 1000 configurations were created for each set of values of T and U . The data was created from Monte Carlo simulations; further details can be found in [41]. 
+
+> Appendix E: Classical Shadows
+
+This appendix provides more details on the classical shadow formalism and explains how to calculate expectation values from them. Classical shadows are a framework developed for efficiently representing quantum states based on randomized measurements [ 65 ]. The key idea is to replace full quantum state tomography, which scales exponentially with system size, by a compact randomized data structure that retains sufficient information to estimate a wide range of physical observables. Classical shadows address a central bottleneck in quantum experiments: the difficulty of extracting useful information from large-scale quantum states. Instead of reconstructing the full state, one can directly estimate physically relevant quantities such as correlation functions, fidelities, or entanglement measures. This makes shadows particularly well suited for current quantum hardware, where repeated measurements are costly and classical post-processing must remain efficient. In this work, we treat classical shadows as a natural form of stochastic quantum data, akin to projective measurement snapshots but with a richer structure. We employ classical shadow tomography based on random local Pauli measurements [ 65 ]. Consider an N-qubit quantum state ρ. For each shot, every qubit is measured in a randomly chosen Pauli basis Pi ∈ { X, Y, Z } with equal probability. The full measurement basis is then a string P = ( P1, ..., P N ), and the corresponding projective measurement yields outcomes b = ( b1, ..., b N ), where each bi = ±1. The pair ( P, b ) constitutes a single classical shadow of the state. Repeating this process generates an ensemble of shadows distributed according to 
+
+p(P, b |ρ) = p(P )p(b|P, ρ ), (E1) 
+
+p(P ) = 3 −N , (E2) 
+
+p(b|P, ρ ) = Tr[ ρ O
+
+> i
+
+12 (1 + biPi)] (E3) Each measurement record can be inverted via a simple channel map to obtain an unbiased single-shot estimator of ρ:ˆρ(P, b ) = O
+
+> i
+
+1 + 3 biPi
+
+2 (E4) such that the ensemble average recovers the full state, 
+
+E(P,b )[ ˆρ(P, b )] = ρ (E5) While full state reconstruction remains exponentially costly, classical shadows circumvent this by allowing efficient estimation of many observables without reconstructing ρ explicitly. In particular, physical observables are extracted directly from the shadow ensemble using the method of moments (MoM). Given an observable O, one constructs an unbiased estimator ˆo(P, b ) = Tr[ O ˆρ(P, b )] . (E6) In practice, the dataset of M shadow samples is partitioned into K groups, the average within each group is computed, and the median of these group means is taken as the final estimate. This MoM procedure significantly suppresses the impact of heavy-tailed fluctuations and improves the stability of shadow-based estimators. 
+
+> Appendix F: Additional results on the cluster Ising model
+
+In this appendix, we provide complementary results for the cluster Ising model to those presented in Section III B. First, in Fig. 7a, we show the average absolute values of the first two active latent variables, |μ1| and |μ2|, across the 22 
+
+Fit form R2 (higher is better) RMSE (lower is better) Min. Max. Min. Max. Polynomial 0.989 0.999 0.004 0.015 Exponential 0.571 0.778 0.059 0.103 TABLE VI. Cluster Ising model: fits of the X-bubbles distribution. Summary of the polynomial and exponential fits to the X-bubble size distribution P (s) in the cluster Ising model. Reported are the minimum and maximum values of the coefficient of determination R2 (higher is better) and the root-mean-square error (RMSE, lower is better) across the parameter region of interest (with η > −1.5). 
+
+parameter space. This reveals complementary information encoded in the latent representation. In particular, |μ1|
+
+closely follows the behavior of the Z magnetization, shown in Fig. 7b. Then |μ2| further highlights the presence of the additional cluster. We also show the region where |μ3| > 0.86, which again highlights the presence of the additional cluster. e) a) b) c) d)                                       
+
+> 00.5 1
+> h1-1 01
+> h 2
+> 00.5 1
+> h1-1 01
+> h 2
+> 00.5 1
+> h1-1 01
+> h2
+> 0.6 0.8 1.0 |1|
+> 00.5 1
+> h1
+> 0.6 0.8 1.0 |2|
+> 00.5 1
+> h1
+> <0.86 >0.86 |3|
+> 0.55 0.60 0.65
+> z
+> out not used in SR dataset
+> 00.5 1
+> h1-1 01
+> h 2
+> 0.4 0.2 0.0 f(z)
+> 00.5 1
+> h1-1 01
+> h2
+> <-1.50 -1.25 -1.00
+
+FIG. 7. Cluster Ising model: additional results. a) Average absolute values of three active latent variables across the parameter space. b) Longitudinal Z magnetization across the parameter space. c) Dataset used for the symbolic regression (SR). d) Prediction of the two-body correlator obtained when restricting the input to Z-basis measurements. e) Exponent η
+
+extracted from a polynomial fit of the X-bubbles distribution P (s) ∼ sη .
+
+The classification dataset constructed to learn a symbolic function characterizing this previously unknown cluster is shown in Fig. 7c. The resulting symbolic prediction obtained when restricting the input to Z-basis measurements is presented in Fig. 7d. In this case, the symbolic model fails to clearly separate the data, demonstrating that Z
+
+measurements alone are insufficient to fully characterize this regime. At phase transitions, observables of quantum systems typically exhibit scale-free properties, showcased by power-laws on particular scaling factors [ 66 ]. Therefore, to further characterize the decay of the X-bubbles distribution, we fit its distribution using the form P (s) ∼ sη . The resulting exponent η, displayed in Fig. 7e, reaches its highest values within the additional cluster. We report in Table VI the quality of the fits. For comparison, we also include the results using an exponential form P (s) ∼ e−s/ξ . The reported metrics are evaluated over the relevant region of the parameter space (where η > −1.5). The exponential fits perform significantly worse, thereby justifying the use of a power-law form, which provides a good description of the distribution. It is worth noting that η reaches its maximum at the same location as f (x), which is at ( h1, h 2) = (0 .05 , −0.7). This observation supports the idea that this unknown regime is linked to the algebraic decay of the X-bubble distribution and is caused by the phase transition and finite-size effects. 
+
+Appendix G: Additional results on the Falicov-Kimball model 
+
+In this appendix, we present complementary results on the Falicov-Kimball model to those presented in Section III C. One advantage of having access to the conditional probabilities output by the decoder is the possibility of computing complex observables, sometimes inaccessible due to poor statistics on the gathered data. For instance, we use here the conditional probabilities to compute the inverse participation ratio (IPR), IPR cp (f ) = 1
+
+N
+
+X
+
+> i
+
+p(fi | fj<i , d j<i )2, (G1) shown in Fig. 8a. As a measure of localization, this quantity provides a clear signature of the weakly localized regime. Importantly, such an observable is hard to estimate from raw data alone. These results highlight that modeling 23 conditional probabilities with the VAE not only captures nontrivial inter-species correlations that can be directly visualized, but also provides access to spatial localization properties that would otherwise remain hidden in the raw data. Then, we present the symbolic regression results characterizing the variation of |μ2| on the left side of the ordered phase. Already suggested by looking at the conditional probabilities, this behavior may result from μ2 capturing the repulsion strength of the f and d particles. To further investigate the nature of this additional cluster, we employ the SR classification scheme. In particular, we use a search space that includes all two-body interaction terms αij and add a learnable constant term to allow an overall shift in prediction. The parameter regions where data are labeled as inside/outside are illustrated in Fig. 8b. The learned coefficients αij of the resulting two-body correlator are shown in Fig. 8c. For clarity, only couplings with |αij | > 0.35 are displayed. c) d) 0.25 0.15 0.05                                                   
+
+> T
+> 0246810 12
+> U
+> 0.3 0.2 0.1
+> 0.4 0.2 0.0
+> fidi
+> 024
+> U
+> <0.65 >0.65
+> fidififNN( i)b) a)
+> 0246810 12
+> U
+> 0.3 0.25 0.2 0.15 0.1 0.05
+> T
+> 0.40 0.45 IPR cp(f)
+> 0246810 12
+> U
+> 0.3 0.25 0.2 0.15 0.1 0.05
+> T
+> out not used in SR dataset
+> ij
+> f0 d0 f1 d1 f2 d2 f3 d3 f4 d4 f5 d5 f6 d6 f7 d7 f8 d8 f9 d9 f10 d10 f11 d11 f12 d12 f13 d13 f14 d14 f15 d15
+
+FIG. 8. Falicov-Kimball model: additional results. a) Inverse participation ratio (IPR) computed from the conditional probabilities output by the decoder of the VAE. b) Dataset used for the symbolic regression. c) Learned two-body correlator weights αij . Links are colored according to the sign of αij , orange being positive and purple negative, and their thickness scales with |αij | d) Per-site particle correlator ⟨fi · di⟩ across the parameter space. Subtracting the nearest-neighbor correlator 
+
+fi · fNN( i) enables us to isolate the additional cluster (right). 
+
+Remarkably, the learned structure contains exclusively on-site couplings between f and d particles. This observation naturally suggests considering the local correlator ⟨fi · di⟩. For repulsive interactions U > 0, the expected correlator 
+
+⟨fi · di⟩ is always negative, reflecting the energetic penalty associated with simultaneous occupation of a site by both particle species. Varying U effectively tunes the strength of this penalty, and correspondingly we observe that ⟨fi · di⟩
+
+decreases monotonically with increasing U (see left panel of Fig. 8d). When combined with the fi · fNN( i) correlator characterizing the ordered phase, it isolates the left side of the ordered phase, as illustrated in the right panel of Fig. 8d. As concluded in the main text, the additional cluster therefore does not correspond to a distinct thermodynamic phase, but rather subdivides the ordered phase according to the degree to which joint f –d occupancy is suppressed.
