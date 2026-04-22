@@ -1,0 +1,1812 @@
+Title: Structural interpretability in SVMs with truncated orthogonal polynomial kernels
+
+URL Source: https://arxiv.org/pdf/2604.15285v1
+
+Published Time: Fri, 17 Apr 2026 01:18:57 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+# Structural interpretability in SVMs with truncated orthogonal polynomial kernels 
+
+Víctor Soto-Larrosa 3,4 Nuria Torrado 1,2,* Edmundo J. Huertas 41 Dpto. de Matemáticas, Facultad de Ciencias, Universidad Autónoma de Madrid, C/ Francisco Tomás y Valiente, 7, 28049 Madrid, Spain.  
+
+> 2
+
+Instituto de Ciencias Matemáticas (ICMAT), Campus de Cantoblanco UAM, C/ Nicolás Cabrera, 13–15, 28049 Madrid, Spain.  
+
+> 3
+
+Dpto. de Biociencias, Facultad de Ciencias Biomédicas y de la Salud, Universidad Europea de Madrid, C/ Tajo, s/n, 28670 Villaviciosa de Odón, Madrid, Spain.  
+
+> 4
+
+Dpto. de Física y Matemáticas, Facultad de Ciencias, Universidad de Alcalá, Ctra. Madrid–Barcelona, Km. 33.600, 28805 Alcalá de Henares, Madrid, Spain. 
+
+> 3,4
+
+v.soto@uah.es , victor.soto@universidadeuropea.es 
+
+> 1,2,*
+
+nuria.torrado@uam.es , nuria.torrado@icmat.es 
+
+> 4
+
+edmundo.huertas@uah.es 
+
+> *
+
+Corresponding author 
+
+Abstract 
+
+We study post-training interpretability for Support Vector Machines (SVMs) built from truncated orthogonal polynomial kernels. Since the associated reproducing kernel Hilbert space is finite-dimensional and admits an explicit tensor-product orthonormal basis, the fitted decision function can be expanded exactly in intrinsic RKHS coordinates. This leads to Orthogonal Representation Contribution Analysis (ORCA), a diagnostic framework based on normalized Orthogonal Kernel Contribution (OKC) indices. These indices quantify how the squared RKHS norm of the classifier is distributed across interaction orders, total polynomial degrees, marginal coordinate effects, and pairwise contributions. The methodology is fully post-training and requires neither surrogate models nor retraining. We illustrate its diagnostic value on a synthetic double-spiral problem and on a real five-dimensional echocardiogram dataset. The results show that the proposed indices reveal structural aspects of model complexity that are not captured by predictive accuracy alone. 
+
+Keywords. Support Vector Machines; RKHS regularization diagnostics; orthogonal polynomials; Christoffel–Darboux kernel; SVM interpretability; explainable AI (XAI). 
+
+# 1 Introduction 
+
+Support Vector Machines (SVMs) remain one of the most established methods for binary classification because they combine a solid theoretical foundation with the practical flexibility of kernel methods [ 4 , 5, 6]. Their main strength is well known: by replacing inner products with suitable kernels, they can produce nonlinear decision boundaries while keeping the optimization problem convex. At the same time, once a kernel has been fixed and the model has been trained, the resulting classifier is often difficult to interpret beyond standard predictive metrics. This is especially the case in nonlinear settings, where the decision function is represented implicitly through kernel evaluations rather than through a small collection of directly readable coefficients. This paper studies a structured setting in which such a post-training analysis becomes possible. We consider SVM classifiers built from truncated orthogonal polynomial kernels. 1
+
+> arXiv:2604.15285v1 [stat.ML] 16 Apr 2026
+
+Kernels of this kind are not new in the SVM literature. Variants based on classical orthogonal polynomial systems have already been proposed and tested from the viewpoint of classification performance and kernel design; see, for example, [ 10 , 11 ]. Our purpose here is different. We do not introduce a new kernel family and we do not modify the SVM optimization problem. Instead, we use the finite orthogonal structure induced by a truncated orthogonal polynomial kernel to build a quantitative description of the trained classifier. The basic idea is simple. When the kernel is constructed from a truncated orthonormal polynomial family, the associated reproducing kernel Hilbert space (RKHS) is finite-dimensional and comes with an explicit orthonormal basis. Consequently, the regularized component of the trained SVM decision function can be expanded exactly in those orthogonal coordinates. Once this expansion is available, one can ask meaningful structural questions about the trained model. Is the classifier driven mainly by marginal effects or by interactions? Is most of its norm concentrated in low-degree modes or is it spread over higher degrees? Which coordinates contribute most to the purely marginal part? Which pairs of coordinates dominate the pairwise interaction component? To answer these questions, we introduce Orthogonal Representation Contribution Analysis 
+
+(ORCA), a post-training framework built around a family of normalized Orthogonal Kernel Contribution (OKC) indices. These indices summarize how the squared RKHS norm of the trained classifier is distributed across tensor-product orthogonal modes. Two structural parameters play a central role: the number of active coordinates in a tensor mode, which we call its interaction order, and its total polynomial degree. The corresponding grouped contributions provide a compact description of the internal organization of the trained classifier in the coordinate system induced by the kernel. This point of view is particularly natural when the kernel has an explicit orthogonal rep-resentation. In contrast with approaches based on perturbations, surrogate models, or local explanation schemes, our framework works directly with the trained SVM and requires no additional optimization step. Once the dual coefficients are known, the orthogonal coordinates of the regularized decision component can be computed exactly, and the OKC indices follow by simple aggregation. The contribution of the paper is therefore methodological rather than algorithmic. We do not alter the training stage. Instead, we show that truncated orthogonal polynomial kernels provide a finite-dimensional and analytically transparent setting in which the structure of a trained SVM can be described in precise quantitative terms. In this sense, the proposed framework links kernel geometry, orthogonal expansions, and post-training interpretability. The rest of the paper is organized as follows. Section 2 introduces the notation and recalls the SVM/RKHS framework. Section 3 presents the truncated orthogonal polynomial kernels used throughout the paper, first in one dimension and then in tensor-product form. Section 4 derives an exact orthogonal expansion of the trained SVM decision function and discusses its geometric meaning. Section 5 introduces ORCA and defines the family of OKC indices. The experimental section illustrates the diagnostic value of these quantities on synthetic and real datasets. 
+
+# 2 Notation and the SVM/RKHS framework 
+
+Let the input space be a subset X ⊆ Rd. Training data are 
+
+{(xi, y i)}mi=1 , xi ∈ X , yi ∈ {− 1, +1 }. (1) Kernel inputs are denoted x and z (always vectors in X ). Scalars are not bold (e.g., yi, αi, b,
+
+C). The kernel is a real-valued symmetric function 
+
+K : X × X → R, K(x, z) = K(z, x). (2) 2A kernel K is positive semidefinite in the usual sense if for every finite set {xi}mi=1 ⊂ X the Gram matrix [K(xi, xj )] mi,j =1 is positive semidefinite. The RKHS theorem (see, e.g., [ 6 , 7 ]) states that each positive semidefinite kernel corresponds to a unique RKHS H of functions f : X → R
+
+such that the reproducing property holds: 
+
+f (x) = ⟨f, K (x, ·)⟩H. (3) Equivalently, there exists a feature map Φ : X → H with 
+
+K(x, z) = ⟨Φ( x), Φ( z)⟩H. (4) While Mercer expansions motivate spectral viewpoints in general, our analysis relies on an exact, finite orthonormal expansion that is built into the kernel design. The (binary) soft-margin SVM constructs a separating function in H by minimizing a regularized empirical risk. In its standard primal form, one solves [4, 5] 
+
+min  
+
+> w, b, ξ
+
+12 ∥w∥2 
+
+> H
+
++ C
+
+> m∑
+> i=1
+
+ξi (5) subject to yi
+
+> (
+
+⟨w, Φ( xi)⟩H + b) ≥ 1 − ξi, i = 1 , . . . , m, ξi ≥ 0.
+
+Here w ∈ H , b ∈ R, and C > 0 is the regularization parameter. By the representer principle (Kimeldorf–Wahba [ 8], and its generalized form [ 9 ]), any minimizer lies in the span of kernel sections, implying 
+
+w =
+
+> m∑
+> i=1
+
+αiyi Φ( xi). (6) Consequently, the decision function is 
+
+g(x) = ⟨w, Φ( x)⟩H + b =
+
+> m∑
+> i=1
+
+αiyiK(xi, x) + b, (7) and the classifier is f (x) = sign( g(x)) .The dual problem is 
+
+max 
+
+> α
+> m∑
+> i=1
+
+αi − 12
+
+> m∑
+> i=1
+> m∑
+> j=1
+
+αiαj yiyj K(xi, xj ) (8) subject to 0 ≤ αi ≤ C, i = 1 , . . . , m, 
+
+> m∑
+> i=1
+
+αiyi = 0 .
+
+All feature-space dependencies are encapsulated within the kernel matrix. This connection implies that interpretability should be addressed at the kernel level. In other words, if K(x, z) admits an interpretable expansion, then the decision function g(x) similarly becomes interpretable. 
+
+# 3 Truncated orthogonal polynomial (OP) kernels 
+
+This section introduces the orthogonal-polynomial kernel framework used throughout the paper. The underlying ingredients are standard and are recalled only to establish the notation and the finite RKHS structure induced by kernel truncation. In particular, we summarize the one-dimensional construction, its tensor-product extension to multivariate inputs, and the resulting finite feature spaces that will be used in the sequel. 33.1 One-dimensional orthogonality 
+
+We begin by recalling the one-dimensional orthogonal-polynomial framework underlying truncated Christoffel–Darboux kernels. The material in this subsection is standard and is included only to make the paper self-contained and to fix the notation used in the sequel; see, for example, Gautschi [3], Szegő [12], and Simon [13]. In one dimension we write the inputs are scalars x, z ∈ I where I ⊂ R is an interval. Let 
+
+μ be a finite positive Borel measure supported on I such that μ has infinite support and all polynomial moments exist. Consider the real Hilbert space L2(μ) with inner product 
+
+⟨f, g ⟩L2(μ) := 
+
+> ∫
+> I
+
+f (t) g(t) dμ (t), ∥f ∥2 
+
+> L2(μ)
+
+= ⟨f, f ⟩L2(μ). (9) Let R[t] denote the space of real polynomials (in the variable t). Under the standing assumptions on μ, there exists a unique sequence of orthonormal polynomials {pn}n≥0 satisfying 
+
+> ∫
+> I
+
+pn(t) pm(t) dμ (t) = δnm , n, m ≥ 0, (10) where δnm is the Kronecker delta ( δnm = 1 if n = m and δnm = 0 otherwise), and such that 
+
+deg( pn) = n with positive leading coefficient. The next definition and its projection interpretation are classical in orthogonal polynomial theory and RKHS language (see, e.g. [12, 13]). 
+
+Definition 3.1 (Christoffel–Darboux kernel) . For n ∈ N0, the Christoffel–Darboux (CD) kernel associated with μ and the orthonormal system {pk}k≥0 is 
+
+Kn(x, z ) := 
+
+> n∑
+> k=0
+
+pk(x) pk(z), x, z ∈ I. (11) It is best understood as the integral kernel of an orthogonal projection, i.e., if Πn denotes the L2(μ)-orthogonal projection onto the subspace of polynomials of degree at most n, then 
+
+(Π nf )( x) = 
+
+> ∫
+> I
+
+Kn(x, t ) f (t) dμ (t), f ∈ L2(μ), (12) and Π2 
+
+> n
+
+= Π n.For later use, we record the following standard consequence, which identifies the truncated polynomial space with a finite-dimensional RKHS. 
+
+Proposition 3.2 (Reproducing property and induced RKHS in 1D) . Let H(1)  
+
+> n
+
+be the vector space of polynomials on I of degree at most n, endowed with the inner product inherited from 
+
+L2(μ):
+
+⟨f, g ⟩H(1) 
+
+> n
+
+:= 
+
+> ∫
+> I
+
+f (t) g(t) dμ (t).
+
+Then H(1)  
+
+> n
+
+is a RKHS with reproducing kernel Kn given by (11) . Moreover, {p0, . . . , p n} is an orthonormal basis of H(1)  
+
+> n
+
+, and dim( H(1)  
+
+> n
+
+) = n + 1 .
+
+The kernel Kn(x, z ) admits a classical closed form in terms of pn and pn+1 . Writing 
+
+pn(t) = κntn + · · · with κn > 0, one has for x̸ = zKn(x, z ) = κn
+
+κn+1 
+
+pn+1 (x)pn(z) − pn(x)pn+1 (z)
+
+x − z , x̸ = z, (13) and the diagonal value is obtained by taking the limit z → x,
+
+Kn(x, x ) = κn
+
+κn+1 
+
+> (
+
+p′
+
+> n+1
+
+(x)pn(x) − p′
+
+> n
+
+(x)pn+1 (x)). (14) 4These identities are standard; see, e.g., Szegő [12], Gautschi [3], or Simon [13]. For the purposes of this paper, the key point is not the closed-form identity itself, but the fact that the truncation level n induces an explicit finite-dimensional orthonormal coordinate system. We therefore record the corresponding degree-ordered feature map, which is a matter of notation here and will later be used to express the trained SVM separator in exact orthogonal coordinates. We therefore introduce the corresponding degree-ordered feature map 
+
+Φn(x) := (p0(x), p 1(x), . . . , p n(x))⊤ ∈ Rn+1 . (15) With this notation, the CD kernel is the Euclidean inner product of these polynomial features, 
+
+Kn(x, z ) = 
+
+> n∑
+> k=0
+
+pk(x) pk(z) = 〈Φn(x), Φn(z)〉 
+
+> Rn+1
+
+. (16) Equivalently, every function f ∈ H (1)  
+
+> n
+
+= span {p0, . . . , p n} admits a unique coordinate expansion 
+
+f (x) = 
+
+> n∑
+> k=0
+
+ck pk(x), (17) and, because {p0, . . . , p n} is orthonormal in the inner product inherited from L2(μ), its RKHS norm is just the Euclidean norm of the coefficient vector, 
+
+∥f ∥ 2
+
+> H(1)
+> n
+
+=
+
+> n∑
+> k=0
+
+c 2 
+
+> k
+
+. (18) In particular, for CD-kernel SVMs the regularization term acts directly on these degree coordi-nates. This is the basic reason why the learned separator can be opened up into a transparent, degree-by-degree description in the sections that follow. 
+
+3.2 Tensor-product extension to vector inputs 
+
+We now extend the one-dimensional construction to vector inputs. To do this, we fix an integer 
+
+d ≥ 2 and consider the input space X = Id. We write x = ( x1, . . . , x d) and z = ( z1, . . . , z d) for two inputs in X .Following common practice in orthogonal-polynomial kernels for SVM classification [ 10 , 11 ], we use a single truncation level n across all coordinates and build multivariate kernels by multiplying the corresponding one-dimensional kernels. Recall that H(1)  
+
+> n
+
+is the one-dimensional RKHS of polynomials on I of degree at most n
+
+with inner product inherited from L2(μ) and orthonormal basis {p0, . . . , p n}. We define the multivariate space as the tensor-product RKHS 
+
+H(d) 
+
+> n
+
+:= H(1)  
+
+> n
+
+⊗ · · · ⊗ H (1)    
+
+> n
+> ︸︷︷ ︸
+> dfactors
+
+= (H(1) 
+
+> n
+> )⊗d
+
+. (19) For readers less familiar with tensor products, (19) can be read concretely as follows: H(d) 
+
+> n
+
+is the space of finite linear combinations of separable products 
+
+t = ( t1, . . . , t d) 7 −→ 
+
+> d∏
+> i=1
+
+fi(ti), fi ∈ H (1)  
+
+> n
+
+, (20) equipped with the inner product determined by the factorization rule on simple tensors,  
+
+> 〈d⊗
+> i=1
+
+fi,
+
+> d⊗
+> i=1
+
+gi
+
+> 〉
+> H(d)
+> n
+
+:= 
+
+> d∏
+> i=1
+
+⟨fi, g i⟩H(1) 
+
+> n
+
+, (21) 5extended by bilinearity. These constructions are standard in RKHS theory (see, e.g., [6, 7]). To make the multivariate construction explicit, we next introduce the tensor-product trun-cated orthogonal-polynomial kernel associated with the one-dimensional kernel Kn.
+
+Definition 3.3 (Tensor-product truncated orthogonal-polynomial kernel) . Let Kn be the one-dimensional truncated orthogonal-polynomial kernel on I, defined in (11) . The associated 
+
+d-variate tensor-product truncated kernel is defined on Id × Id by 
+
+K(d) 
+
+> n
+
+(x, z) := 
+
+> d∏
+> i=1
+
+Kn(xi, z i) =  
+
+> d∏
+> i=1
+> (n∑
+> k=0
+
+pk(xi) pk(zi)
+
+> )
+
+, x, z ∈ Id. (22) In particular, K(d) 
+
+> n
+
+is symmetric and positive semidefinite on Id × Id.To express the tensor-product kernel in a form that is directly usable in the subsequent analysis, we next introduce the corresponding multi-index notation. This notation makes the coordinatewise polynomial degrees explicit and provides the natural indexing scheme for the multivariate orthonormal basis associated with the truncated feature space. We write k = ( k1, . . . , k d) ∈ { 0, 1, . . . , n }d for a multi-index, where each component ki
+
+corresponds to the degree of the orthonormal polynomial in the i-th input coordinate. The scalar 
+
+n is the fixed truncation level, which limits the maximum polynomial degree in any dimension. Given that the set {p0, . . . , p n} forms an orthonormal basis for the one-dimensional space 
+
+H(1)  
+
+> n
+
+, a canonical orthonormal basis for the d-dimensional space H(d) 
+
+> n
+
+is constructed from simple tensor products. These basis elements are defined as: 
+
+pk1 ⊗ · · · ⊗ pkd , for all k = ( k1, . . . , k d) ∈ { 0, 1, . . . , n }d.
+
+Under the natural isomorphism that identifies a simple tensor with a separable product function on the domain Id, this basis can be expressed equivalently as the set of multivariate polynomial functions: 
+
+pk(t) := 
+
+> d∏
+> i=1
+
+pki (ti), k ∈ { 0, 1, . . . , n }d, t = ( t1, . . . , t d) ∈ Id. (23) Here, pki (ti) is the univariate orthonormal polynomial of degree ki applied to the i-th coordinate 
+
+ti. Consequently, the space H(d) 
+
+> n
+
+contains exactly all multivariate polynomial features formed by taking products of these one-dimensional polynomials, with each coordinate contributing a polynomial of degree at most n.
+
+Proposition 3.4 (Multi-index representation of the tensor-product kernel) . The tensor-product truncated orthogonal-polynomial kernel defined in (22) admits the multi-index expansion 
+
+K(d) 
+
+> n
+
+(x, z) = ∑
+
+> k∈{ 0,1,...,n }d
+
+pk(x) pk(z), x, z ∈ Id, (24) 
+
+where pk is given by (23) .Proof. By (22), 
+
+K(d) 
+
+> n
+
+(x, z) = 
+
+> d∏
+> i=1
+
+Kn(xi, z i) = 
+
+> d∏
+> i=1
+> 
+> n∑
+> ki=0
+
+pki (xi) pki (zi) 
+
+> 
+
+.
+
+Expanding the product of sums yields 
+
+K(d) 
+
+> n
+
+(x, z) = 
+
+> n∑
+> k1=0
+
+· · · 
+
+> n∑
+> kd=0
+> d∏
+> i=1
+
+pki (xi) pki (zi).
+
+6Introducing the multi-index k = ( k1, . . . , k d) ∈ { 0, 1, . . . , n }d, this can be rewritten as 
+
+K(d) 
+
+> n
+
+(x, z) = ∑ 
+
+> k∈{ 0,1,...,n }d
+> (d∏
+> i=1
+
+pki (xi) 
+
+> ) ( d∏
+> i=1
+
+pki (zi)
+
+> )
+
+.
+
+Using (23), we obtain (24). Equation (24) makes the orthogonal coordinate structure of the multivariate kernel fully explicit and will be the key representation used later to define the proposed diagnostic indices. We conclude this section by recording the standard RKHS consequence of the tensor-product construction, which identifies K(d) 
+
+> n
+
+as the reproducing kernel of the finite-dimensional space H(d) 
+
+> n
+
+.
+
+Proposition 3.5 (Reproducing property and induced RKHS) . The tensor-product RKHS H(d)
+
+> n
+
+in (19) is a reproducing kernel Hilbert space of functions on Id, with reproducing kernel K(d)
+
+> n
+
+given by (22) –(24) . Equivalently, for every f ∈ H (d) 
+
+> n
+
+and every x ∈ Id,
+
+f (x) = 〈f, K (d) 
+
+> n
+
+(x, ·)〉
+
+> H(d)
+> n
+
+. (25) 
+
+Moreover, the family {pk : k ∈ { 0, . . . , n }d} in (23) is an orthonormal basis of H(d) 
+
+> n
+
+, and 
+
+dim( H(d) 
+
+> n
+
+) = ( n + 1) d.
+
+The truncation level n controls polynomial complexity per coordinate, i.e., H(d) 
+
+> n
+
+contains all coordinatewise products of one-dimensional polynomial features up to degree n. The explicit feature dimension (n + 1) d makes the dependence of model capacity on n and d transparent. In particular, an SVM using K(d) 
+
+> n
+
+constructs a linear separator in a feature space whose coordinates correspond to these tensor-product polynomial features. 
+
+# 4 Exact orthogonal expansion of the trained SVM 
+
+To derive interpretability from the SVM decision function (Eq. (7) ), a useful approach is to decompose the kernel K(x, z) into components based on a degree (or multi-degree). Kernels based on orthogonal polynomials inherently provide this structure, as they are constructed from families of orthonormal polynomials. Crucially, these kernels are typically employed with a finite truncation level n. This design directly links the complexity of the model to the number of polynomial terms used, creating a natural basis for post-training diagnostic analysis. We consider the degree-wise interpretation framework to multivariate inputs using the tensor-product truncated orthogonal polynomial (OP) kernel introduced in Section 3. Throughout this section, we fix an integer d ≥ 1 and work on the product domain Id equipped with the product measure μ⊗d. Let {pk}k≥0 be the orthonormal polynomial system in L2(μ) from Section 3. For a multi-index k = ( k1, . . . , k d) ∈ Nd 
+
+> 0
+
+and x = ( x1, . . . , x d) ∈ Id, let pn(x) denote the associated tensor-product orthonormal polynomial in L2(μ⊗d), defined as in (23). We consider a data set of binary labeled data 
+
+{(xi, y i)}mi=1 , xi ∈ Id, yi ∈ {− 1, +1 },
+
+and assume we have trained a soft-margin SVM using the tensor-product truncated OP kernel 
+
+K(d) 
+
+> n
+
+of order n defined in (22) . The resulting decision function takes the standard representer form (7), 
+
+g(x) = h(d) 
+
+> n
+
+(x) + b, with h(d) 
+
+> n
+
+(x) := 
+
+> m∑
+> i=1
+
+αiyi K(d) 
+
+> n
+
+(xi, x), (26) 7where (α1, . . . , α m) is a solution to the SVM dual problem (8) and b ∈ R is the bias. The function h(d) 
+
+> n
+
+corresponds to the RKHS component of the decision function, and its norm is penalized in the primal SVM formulation (5). From a geometric viewpoint, the classification rule is determined by the sign of the decision function ̂ y(x) = sign (g(x)). Thus, the geometry of g over Id determines the partition of the input space into decision regions. In particular, the decision boundary is the zero level set 
+
+{x ∈ Id : g(x) = 0 }, which typically forms a nonlinear hypersurface in the original input coordinates. Although visualizing this multivariate geometry is less straightforward than in the one-dimensional case, the key point remains that qualitative geometric features of g determine how the classifier partitions the input space (e.g., the number and arrangement of decision regions, and the complexity of the separating boundary). This section aims to provide an explicit representation of the internal structure of h(d) 
+
+> n
+
+in terms of tensor-product polynomial coordinates, and to show how the resulting multi-degree decomposition enables a level-wise analysis of the trained SVM decision function. To the best of our knowledge, even when tensor-product orthogonal polynomial (OP) kernels are used in SVM classification, the exact degree-wise decomposition has not been systematically employed as an intrinsic interpretability tool after training. We emphasize that this analytical capability is a direct consequence of the kernel design. In particular, the chosen truncation order induces a canonical orthonormal coordinate system in which the trained decision function can be decomposed exactly. We begin by defining the multi-index set I(d) 
+
+> n
+
+:= {0, 1, . . . , n }d, which contains card (I(d) 
+
+> n
+> )
+
+=(n + 1) d elements. Since K(d) 
+
+> n
+
+is defined as a finite orthonormal expansion in the tensor-product basis {pn : n ∈ I (d) 
+
+> n
+
+} (see Section 3), the RKHS component h(d) 
+
+> n
+
+lies in the finite-dimensional space 
+
+H(d) 
+
+> n
+
+:= span {pn : n ∈ I (d) 
+
+> n
+
+}.
+
+Moreover, h(d) 
+
+> n
+
+admits a unique expansion in this ordered orthonormal basis, with coefficients that can be expressed explicitly in terms of the SVM dual variables and the evaluations of the orthonormal polynomials at the training points. 
+
+Proposition 4.1 (Finite tensor-product OP expansion of the trained separator) . Let K(d) 
+
+> n
+
+be the tensor-product truncated OP kernel, and let h(d) 
+
+> n
+
+be defined by (26) . Then h(d) 
+
+> n
+
+∈ H (d) 
+
+> n
+
+and admits the exact expansion 
+
+h(d) 
+
+> n
+
+(x) = ∑
+
+> k∈I (d)
+> n
+
+ck pk(x), (27) 
+
+with coefficients 
+
+ck =
+
+> m∑
+> i=1
+
+αiyi pk(xi), k ∈ I (d) 
+
+> n
+
+. (28) 
+
+Equivalently, if we define the tensor-product OP design matrix P (d) ∈ Rm×Nd(n) by 
+
+P (d) 
+
+> i, k
+
+:= pk(xi), i = 1 , . . . , m, and k ∈ I (d) 
+
+> n
+
+,
+
+and the signed dual vector s ∈ Rm by si := αiyi, then the coefficient vector c ∈ RNd(n) with entries (c)k := ck satisfies 
+
+c = ( P (d))⊤s. (29) 
+
+Proof. By Proposition 3.5, the tensor-product truncated kernel K(d) 
+
+> n
+
+is the reproducing kernel of the finite-dimensional space H(d) 
+
+> n
+
+. In particular, for each training point xi ∈ Id, the kernel section 
+
+K(d) 
+
+> n
+
+(xi, ·) ∈ H (d) 
+
+> n
+
+.
+
+8Since H(d) 
+
+> n
+
+is a vector space, the finite linear combination in (26), 
+
+h(d) 
+
+> n
+
+(x) = 
+
+> m
+
+∑
+
+> i=1
+
+αiyi K(d) 
+
+> n
+
+(xi, x),
+
+also belongs to H(d) 
+
+> n
+
+. This proves the first claim. We now use the explicit orthogonal decomposition of the kernel. By the multi-index repre-sentation in (24), 
+
+K(d) 
+
+> n
+
+(xi, x) = ∑
+
+> k∈I (d)
+> n
+
+pk(xi) pk(x), i = 1 , . . . , m. 
+
+Substituting this identity into (26), we obtain 
+
+h(d) 
+
+> n
+
+(x) = 
+
+> m
+
+∑
+
+> i=1
+
+αiyi K(d) 
+
+> n
+
+(xi, x)=
+
+> m
+
+∑
+
+> i=1
+
+αiyi
+
+∑
+
+> k∈I (d)
+> n
+
+pk(xi) pk(x).
+
+Since all sums are finite, we may interchange the order of summation: 
+
+h(d) 
+
+> n
+
+(x) = ∑
+
+> k∈I (d)
+> n
+
+( m∑
+
+> i=1
+
+αiyi pk(xi)
+
+)
+
+pk(x).
+
+Therefore, 
+
+h(d) 
+
+> n
+
+(x) = ∑
+
+> k∈I (d)
+> n
+
+ck pk(x),
+
+where 
+
+ck =
+
+> m
+
+∑
+
+> i=1
+
+αiyi pk(xi), k ∈ I (d) 
+
+> n
+
+.
+
+This proves (27) and (28). Moreover, Proposition 3.5 states that the family 
+
+{pk : k ∈ I (d) 
+
+> n
+
+}
+
+is an orthonormal basis of H(d) 
+
+> n
+
+. Hence the expansion (27) is the unique orthogonal expansion of 
+
+h(d) 
+
+> n
+
+in that basis. Finally, define the tensor-product OP design matrix P (d) ∈ Rm×Nd(n) by 
+
+P (d) 
+
+> i, k
+
+:= pk(xi), i = 1 , . . . , m, k ∈ I (d) 
+
+> n
+
+,
+
+and the signed dual vector s ∈ Rm by si = αiyi. Then, for each k ∈ I (d) 
+
+> n
+
+, the k-th entry of 
+
+(P (d))⊤s is 
+
+((P (d))⊤s) 
+
+> k
+
+=
+
+> m
+
+∑
+
+> i=1
+
+P (d) 
+
+> i, k
+
+si =
+
+> m
+
+∑
+
+> i=1
+
+pk(xi) αiyi = ck,
+
+by (28). Therefore, 
+
+c = ( P (d))⊤s,
+
+which is exactly (29). 9Proposition 4.1 captures a key structural property of tensor-product kernels. In this mul-tivariate setting, the trained decision function is expressed as a finite linear combination of multi-degree basis functions indexed by k = ( k1, . . . , k d). Each kj specifies the degree of the univariate orthogonal polynomial acting on the j-th input coordinate, and the resulting tensor-product basis is orthonormal in L2(μ⊗d) by construction. To make this concrete, consider a two -dimensional setting ( d = 2 ). The multi-index k = (3 , 1) corresponds to the basis function 
+
+p(3 ,1) (x1, x 2) = p3(x1)p1(x2), which is a product of a degree - 3 polynomial in the first coordinate and a degree -1 polynomial in the second. Thus, each coefficient ck in the expansion (27) measures the contribution of the specific basis function pk in the trained RKHS component h(d) 
+
+> n
+
+.Consequently, expansion (27) provides an intrinsic coordinate system that separates different geometric effects in the Hilbert space induced by μ⊗d. Typically, low -degree basis functions capture large - scale variations of the decision function over Id, while higher-degree basis functions contribute progressively finer oscillatory components in the orthogonal polynomial coordinates. This orthonormal separation follows directly from the kernel construction given in Section 3. Moreover, the tensor - product indexing makes explicit how constant, linear, quadratic, and interaction terms appear in the multivariate decision function. In particular, the basis function associated with k = 0 (degree 0 in every dimension) contributes a constant offset. Moving beyond this term, basis functions whose multi-index has exactly one entry equal to 1 (with the remaining entries equal to 0) represent purely affine variation along a single coordinate direction. Likewise, multi-indices with one entry equal to 2 capture univariate quadratic curvature along that coordinate. Finally, mixed indices such as (1 , 1, 0, . . . , 0) represent bilinear interactions between two coordinates, expressed in the orthonormal polynomial coordinates. Taken together, the tensor-product orthogonal polynomial basis provides a structured decomposition of the learned decision function into interpretable geometric components, with main effects and interactions appear as distinct, mutually orthogonal groups of modes in the L2(μ⊗d) geometry. In addition, the constant basis function corresponding to k = 0 plays a special role. Since 
+
+p0(x) is constant, both c0p0(x) and the explicit bias term b act as constant offsets. Hence, only their sum affects the value of the decision function: 
+
+g(x) = (c0 + b) + ∑ 
+
+> k∈I (d)
+> n\{ 0}
+
+ck pk(x). (30) However, their roles in the optimization differ, b is an unregularized bias term in the primal SVM formulation (5) , whereas c0 belongs to the RKHS component h(d) 
+
+> n
+
+and is therefore penalized through the regularization term ∥h(d) 
+
+> n
+
+∥2
+
+> H(d)
+> n
+
+. Moreover, for the standard soft - margin SVM with bias, the dual feasibility constraint in (8) together with (28) for k = 0 implies 
+
+c0 = p0
+
+> m∑
+> i=1
+
+αiyi = 0 .
+
+Geometrically, any constant contribution produces a vertical translation of the decision function 
+
+g(x) over Id. In the standard setting this offset is solely b, while in variants without an explicit bias it is given by c0 + b. In both cases, the translation moves the zero -level set of g, that is, the decision boundary. 
+
+# 5 Orthogonal Representation Contribution Analysis (ORCA) 
+
+In this section we introduce Orthogonal Representation Contribution Analysis (ORCA), a methodology for quantifying how the RKHS norm of the SVM decision function is distributed across the orthogonal components induced by a truncated polynomial kernel representation. By exploiting the orthogonality of the underlying polynomial basis, ORCA provides a principled 10 decomposition of the model into contributions associated with different interaction orders and total polynomial degrees. This decomposition yields a family of normalized Orthogonal Kernel Contribution (OKC) indices, which measure the relative importance of each structural component of the kernel expansion. Consider a soft-margin SVM trained with the tensor-product truncated orthogonal polynomial (OP) kernel K(d) 
+
+> n
+
+with d ≥ 1. The resulting decision function takes the form g(x) = h(d) 
+
+> n
+
+(x) + b,where h(d) 
+
+> n
+
+is the RKHS regularized component and b is the explicit bias. Proposition 4.1 provides an exact tensor-product expansion of h(d) 
+
+> n
+
+in the ordered orthonormal basis {pk}k∈I (d)
+
+> n
+
+induced by the kernel design. Hence, orthonormality ensures that the RKHS norm penalty decomposes additively across the tensor-product basis functions. Specifically, from (27), we obtain 
+
+∥h(d) 
+
+> n
+
+∥2
+
+> H(d)
+> n
+
+= ⟨h(d) 
+
+> n
+
+, h (d) 
+
+> n
+
+⟩H(d)
+
+> n
+
+=
+
+〈 ∑
+
+> k∈I (d)
+> n
+
+ck pk, ∑
+
+> ℓ∈I (d)
+> n
+
+cℓ pℓ
+
+〉
+
+> H(d)
+> n
+
+= ∑
+
+> k∈I (d)
+> n
+
+∑
+
+> ℓ∈I (d)
+> n
+
+ckcℓ⟨pk, p ℓ⟩H(d)
+
+> n
+
+= ∑
+
+> k∈I (d)
+> n
+
+∑
+
+> ℓ∈I (d)
+> n
+
+ckcℓ δk,ℓ = ∑
+
+> k∈I (d)
+> n
+
+c2
+
+> k
+
+. (31) Equation (31) shows that the squared RKHS norm of the trained component h(d) 
+
+> n
+
+decomposes exactly as a finite sum of nonnegative elementary contributions indexed by the tensor-product multi-index k ∈ I (d) 
+
+> n
+
+. More precisely, the orthonormality of the basis {pk : k ∈ I (d) 
+
+> n
+
+} implies that no cross-terms survive in the inner product, so that each coefficient c2 
+
+> k
+
+can be interpreted as the contribution of the single tensor mode pk to the regularized squared RKHS norm. In this sense, (31) provides an exact modewise decomposition of the SVM regularization term in the orthogonal coordinates induced by the truncated tensor-product kernel. While this modewise decomposition is exact, it is often too fine-grained for direct in-terpretation in moderate or high dimension, since the number of tensor-product modes is 
+
+card (I(d)
+
+> n
+
+) = ( n + 1) d. For instance, if n = 5 and d = 6 , then card (I(d) 
+
+> n
+
+) = 6 6 = 46 ,656 , so the squared RKHS norm is distributed over tens of thousands of individual multi-index contributions. In such cases, a more informative description is obtained by grouping the elementary terms c2
+
+> k
+
+according to structural properties of the corresponding tensor mode. One such property is already available through the active-coordinate set 
+
+act( k) := { i ∈ { 1, . . . , d } : ki > 0 }, q(k) := card ( act( k)),
+
+which identifies the coordinates on which the basis function pk actually depends. Thus, q(k)
+
+measures the interaction order of the mode indexed by k. In particular, q(k) = 0 corresponds to the constant mode, q(k) = 1 to purely marginal modes, q(k) = 2 to pairwise interaction modes, and so on. To complement this interaction-based classification, we also associate with each multi-index its total polynomial degree defined as follows 
+
+N (k) := 
+
+> d
+
+∑
+
+> i=1
+
+ki.
+
+This quantity measures the overall polynomial complexity of the tensor mode pk. Since each com-ponent of k belongs to {0, . . . , n }, it follows immediately that N (k) ∈ { 0, 1, . . . , dn }. Therefore, every elementary contribution c2 
+
+> k
+
+carries two intrinsic labels: its interaction order q(k) and its total degree N (k). These two labels provide a natural way to organize the RKHS regularization term. 11 Now, for each interaction order q ∈ { 0, . . . , d } and each total degree N ∈ { 0, . . . , dn }, we define 
+
+C(q) 
+
+> N
+
+:= ∑ 
+
+> k∈I (d)
+> n
+> q(k)= q, N (k)= N
+
+c2
+
+> k
+
+.
+
+By construction, C(q) 
+
+> N
+
+is the total contribution to the RKHS regularization term coming from all tensor-product basis functions that involve exactly q active coordinates and have total polynomial degree equal to N . Thus, from (31), we obtain 
+
+∥h(d) 
+
+> n
+
+∥2
+
+> H(d)
+> n
+
+= ∑
+
+> k∈I (d)
+> n
+
+c2 
+
+> k
+
+=
+
+> d
+
+∑
+
+> q=0
+> dn
+
+∑ 
+
+> N=0
+
+∑ 
+
+> k∈I (d)
+> n
+> q(k)= q, N (k)= N
+
+c2 
+
+> k
+
+=
+
+> d
+
+∑
+
+> q=0
+> dn
+
+∑ 
+
+> N=0
+
+C(q) 
+
+> N
+
+. (32) Equation (32) is therefore an exact block decomposition of the squared RKHS norm of the trained SVM component. Its interpretation is direct: the regularization term penalized by the SVM can be read as the sum of contributions coming from constant structure, marginal structure, pairwise interactions, higher-order interactions, and, simultaneously, from low- or high-total-degree tensor modes. This two-way decomposition is the basis for the normalized OKC indices introduced next. 
+
+Definition 5.1 (Orthogonal Kernel Contribution indices) . For each interaction order q ∈{0, . . . , d } and each total degree N ∈ { 0, . . . , dn }, the Orthogonal Kernel Contribution index associated with the block (q, N ) is defined by 
+
+OKC (q) 
+
+> N
+
+:= C(q)
+
+> N
+
+∑dq=0 
+
+∑dn N =0 C(q)
+
+> N
+
+. (33) By construction, OKC (q) 
+
+> N
+
+measures the fraction of the squared RKHS norm of h(d) 
+
+> n
+
+that is attributable to tensor-product modes having interaction order q and total polynomial degree N .Since the quantities C(q) 
+
+> N
+
+form an exact decomposition of ∥h(d) 
+
+> n
+
+∥2
+
+> H(d)
+> n
+
+, the corresponding OKC indices are nonnegative and satisfy 
+
+> d
+
+∑
+
+> q=0
+> dn
+
+∑ 
+
+> N=0
+
+OKC (q) 
+
+> N
+
+= 1 . (34) Therefore, the family {OKC (q) 
+
+> N
+
+} defines a normalized two-way profile of the RKHS regularization term, jointly resolved by interaction order and total degree. Two aggregated summaries are of particular interest. First, summing over all total degrees yields the contribution of a fixed interaction order: 
+
+OKC (q) := 
+
+> dn
+
+∑ 
+
+> N=0
+
+OKC (q) 
+
+> N
+
+, q = 0 , . . . , d. (35) Thus, OKC (q) quantifies the total fraction of the RKHS norm associated with tensor modes involving exactly q active variables. Specifically, OKC (0) corresponds to the constant compo-nent, OKC (1) to purely marginal effects, OKC (2) to pairwise interactions, OKC (3) to three-way interactions, and so on up to OKC (d), which collects the contribution of modes involving all d
+
+input variables (features) simultaneously. In particular, the normalized interaction-order profile satisfies 
+
+OKC (0) + OKC (1) +
+
+> d
+
+∑
+
+> q=2
+
+OKC (q) = 1 ,
+
+12 which separates the total regularization contribution into constant, purely marginal, and higher-order interaction components. From an interpretive viewpoint, a large value of OKC (1) indicates that the regularized component of the decision function is dominated by purely marginal effects, that is, by structure aligned with individual input coordinates in the orthogonal polynomial representation. Conversely, substantial mass on OKC (q) for q ≥ 2 indicates that the classifier relies more heavily on interactions of order q. In the tensor-product setting, these interactions are represented explicitly by basis functions involving products of univariate orthonormal polynomials with positive degree in exactly q coordinates. Accordingly, the interaction-order profile (OKC (0) , OKC (1) , . . . , OKC (d))
+
+provides a concise post-training summary of how the RKHS regularization term is distributed across levels of interaction complexity. Second, summing over all interaction orders yields the contribution of a fixed total degree: 
+
+OKC N := 
+
+> d∑
+> q=0
+
+OKC (q) 
+
+> N
+
+, N = 0 , . . . , dn. (36) Hence, OKC N quantifies the total fraction of the RKHS norm carried by tensor modes of total polynomial degree N , regardless of their interaction order. Specifically, OKC 0 corresponds to the constant contribution, OKC 1 collects all linear contributions, OKC 2 all quadratic contributions, 
+
+OKC 3 all cubic contributions, and so on up to OKC dn , which captures the highest-degree modes allowed by the truncation level n in dimension d.To obtain a feature-specific resolution of the first-order interaction contribution( q(k) = 1 ), we now isolate the purely marginal effect associated with each individual feature. For every 
+
+i ∈ { 1, . . . , d }, we introduce the marginal index set 
+
+Mi := {k ∈ I (d) 
+
+> n
+
+: act( k) = {i}} = {k ∈ I (d) 
+
+> n
+
+: ki ∈ { 1, . . . , n }, k j = 0 for j̸ = i}.
+
+This set collects exactly those tensor-product modes that depend on the i-th coordinate alone, without coupling to any other variable. The marginal Orthogonal Kernel Contribution index for coordinate i is then defined by 
+
+OKC i := ∑
+
+> k∈Mi
+
+c2
+
+> k
+
+∥h(d) 
+
+> n
+
+∥2
+
+> H(d)
+> n
+
+, i = 1 , . . . , d. (37) By construction, OKC i measures the fraction of the squared RKHS norm assigned to basis functions that vary exclusively along the i-th coordinate. Hence, OKC i provides a coordinate-specific marginal profile in the orthogonal kernel representation and enables a direct comparison of the relative marginal importance of the input variables (features). Moreover, summing over all coordinates recovers the full order-1 contribution: 
+
+> d∑
+> i=1
+
+OKC i = OKC (1) . (38) To further refine the second-order interaction contribution ( q(k) = 2 ), we now isolate the pure pairwise effect associated with each pair of coordinates. For every pair 1 ≤ i < j ≤ d, define 
+
+Jij := {k ∈ I (d) 
+
+> n
+
+: act( k) = {i, j }}.
+
+This set collects exactly those tensor-product modes that depend on the coordinates i and j
+
+only, with no contribution from any other variable. The pairwise Orthogonal Kernel Contribution index for the pair (i, j ) is then defined by 
+
+OKC ij := 1
+
+∥h(d) 
+
+> n
+
+∥2
+
+> H(d)
+> n
+> ∑
+> k∈J ij
+
+c2
+
+> k
+
+, 1 ≤ i < j ≤ d. (39) 13 By construction, OKC ij measures the fraction of the squared RKHS norm assigned to basis functions that involve exactly the input variables i and j. Hence, OKC ij provides a pair-specific interaction profile in the orthogonal kernel representation and can be used to compare the relative importance of different variable pairs. Moreover, summing over all pairs recovers the full second-order interaction contribution: 
+
+> ∑
+> 1≤i<j ≤d
+
+OKC ij = OKC (2) . (40) In an entirely analogous way, one may define interaction indices for triples, quadruples, and, more generally, for any subset of variables of cardinality q = 3 , 4, . . . , d by summing the normalized contributions over the corresponding index sets with prescribed active-coordinate set. Taken together, the OKC indices provide a compact description of the internal structure of the trained classifier. A practical advantage of ORCA is that all these quantities are computed directly from the coefficients given in (28) . No surrogate fitting, re-training, or additional optimization is required. Once the SVM has been trained, the OKC indices are obtained by grouping the exact orthogonal coefficients according to the structural labels introduced above. In Section 6, we report the interaction-order indices OKC (q), the total-degree indices OKC N , and the coordinate-specific marginal indices OKC i; when relevant, we also examine pairwise indices OKC ij .
+
+# 6 Experiments 
+
+This section illustrates the diagnostic potential of ORCA through a series of experiments of increasing complexity. We begin with a synthetic two-dimensional benchmark that allows the geometry of the decision boundary to be visualised directly and related to the OKC profiles in a transparent way. Subsequent subsections consider datasets of higher dimension and greater structural complexity, where visual inspection of the boundary is no longer feasible and the OKC indices become the primary tool for understanding the internal organisation of the trained classifier. In all experiments we use Jacobi tensor-product kernels as defined in Section 3, and the regularisation parameter C is reported alongside each configuration. 
+
+6.1 Artificial two-dimensional data: double spiral 
+
+We begin with a synthetic double-spiral dataset, which provides a challenging nonlinear classifica-tion task while keeping the input dimension fixed at d = 2 . In this low-dimensional setting every multi-index k = ( k1, k 2) and every total degree N (k) = k1 + k2 can be read off and interpreted without ambiguity, making it an ideal starting point for validating the qualitative predictions of the ORCA framework before moving to higher-dimensional settings. 
+
+Dataset. The dataset consists of m = 300 points in R2 arranged along two interleaved spirals, with 150 points per class labelled yi ∈ {− 1, +1 }. The spirals complete approximately one and a half full turns, producing a classification problem whose decision boundary is genuinely nonlinear and requires high-degree polynomial structure to be captured accurately. This benchmark is a standard stress test for kernel classifiers, since the correct separator cannot be approximated well by low-degree polynomials and any method must balance approximation power against regularisation. 
+
+Preprocessing. Each input coordinate is rescaled linearly to the interval [−1, 1] , so that the rescaled inputs lie in the product domain I2 = [ −1, 1] 2. Specifically, if ˜x(i) 
+
+> j
+
+denotes the j-th 14 coordinate of the i-th raw training point, the rescaled value is 
+
+x(i) 
+
+> j
+
+= 2 ˜x(i) 
+
+> j
+
+− min i ˜x(i)
+
+> j
+
+max i ˜x(i) 
+
+> j
+
+− min i ˜x(i)
+
+> j
+
+− 1, j = 1 , 2.
+
+This step ensures that the inputs lie in the natural domain of Jacobi polynomials and that the orthonormality conditions defining the kernel are satisfied with respect to the measure μ⊗2 on 
+
+[−1, 1] 2.
+
+Jacobi tensor-product kernels. Throughout this subsection we use Jacobi polynomials as the one-dimensional orthonormal system. Recall that for parameters α, β > −1 the Jacobi measure on [−1, 1] has density 
+
+w(α,β )(x) = (1 − x)α(1 + x)β ,
+
+and the associated orthonormal polynomials {p(α,β ) 
+
+> k
+
+}k≥0 satisfy 
+
+∫ 1
+
+> −1
+
+p(α,β ) 
+
+> k
+
+(x) p(α,β ) 
+
+> j
+
+(x) w(α,β )(x) dx = δkj , k, j ≥ 0.
+
+They are obtained by normalising the classical Jacobi polynomials P (α,β ) 
+
+> k
+
+, whose squared 
+
+L2(w(α,β ))-norm is 
+
+h(α,β ) 
+
+> k
+
+= 2α+β+1 Γ( k + α + 1) Γ( k + β + 1) (2 k + α + β + 1) Γ( k + 1) Γ( k + α + β + 1) ,
+
+so that p(α,β ) 
+
+> k
+
+= P (α,β ) 
+
+> k
+
+/
+
+√
+
+h(α,β ) 
+
+> k
+
+. The special case α = β = 0 recovers the Legendre polynomials. Following the construction of Section 3, the one-dimensional truncated Christoffel–Darboux kernel of order n is 
+
+K(α,β ) 
+
+> n
+
+(x, z ) = 
+
+> n
+
+∑
+
+> k=0
+
+p(α,β ) 
+
+> k
+
+(x) p(α,β ) 
+
+> k
+
+(z), x, z ∈ [−1, 1] ,
+
+and the two-dimensional tensor-product kernel used here is 
+
+K(2) ,(α,β ) 
+
+> n
+
+(x, z) = K(α,β ) 
+
+> n
+
+(x1, z 1) · K(α,β ) 
+
+> n
+
+(x2, z 2) = ∑
+
+> k∈{ 0,...,n }2
+
+p(α,β ) 
+
+> k
+
+(x) p(α,β ) 
+
+> k
+
+(z),
+
+where p(α,β ) 
+
+> k
+
+(x) = p(α,β ) 
+
+> k1
+
+(x1) p(α,β ) 
+
+> k2
+
+(x2) for k = ( k1, k 2). The induced RKHS H(2)  
+
+> n
+
+has dimension 
+
+(n + 1) 2 and orthonormal basis {p(α,β ) 
+
+> k
+
+: k ∈ { 0, . . . , n }2}, so that the feature dimension grows quadratically with the truncation level n. The regularisation parameter is fixed at C = 1 
+
+throughout this subsection; the effects of n and (α, β ) are studied separately. 
+
+Effect of the truncation level n. Figure 1 shows the decision boundary {g(x) = 0 } of the trained SVM for n ∈ { 1, 2, 3, 5, 8, 12 , 14 , 16 } with fixed Legendre parameters α = β = 0 and 
+
+C = 1 .The progression in Figure 1 illustrates how the truncation level n controls the geometric complexity of the learned separator, in a way that is directly traceable to the dimension of the RKHS H(2)  
+
+> n
+
+.For n = 1 the feature space has dimension (1 + 1) 2 = 4 and spans only the constant and linear monomials in each coordinate; the decision boundary is accordingly a straight line, and the SVM can only produce a coarse linear separation of the two spirals. At n = 2 the 15 Figure 1: Decision boundaries {g(x) = 0 } of the Jacobi-kernel SVM on the double-spiral dataset for α = β = 0 (Legendre polynomials) and C = 1 , as the truncation level n varies from 1 to 16 .
+
+Top row, left to right : n = 1 , 2, 3, 5. Bottom row, left to right : n = 8 , 12 , 14 , 16 . The background colour map shows the decision function g(x); the bold curve is the zero level set; points are coloured by class label. dimension grows to 9 and quadratic interactions become available: the boundary curves but remains topologically simple, tracing a single smooth arc that begins to track one branch of the spiral while misclassifying most of the second. At n = 3 (dimension 16 ) a closed loop first appears, showing that the kernel now possesses sufficient representational capacity to produce a non-simply-connected decision region, though the approximation remains far from the true spiral structure. A qualitative phase transition occurs near n = 5 : the boundary develops a recognisable S-shaped geometry with two interleaved branches that match the gross topology of the spiral arms. By n = 8 (dimension 81 ) the separator traces a clean double-spiral contour that aligns closely with both classes, and the background function g(x) shows a smooth alternating sign pattern consistent with the rotational structure of the data. For n ∈ { 12 , 14 , 16 } the boundary remains spiral-shaped but becomes progressively more oscillatory: additional higher-degree modes enrich the contour with fine local detail, and the decision function develops local extrema in the interior of the domain, visible as colour saturation near the origin. This behaviour is consistent with the ORCA interpretation: as n increases, energy shifts toward tensor modes of higher total degree N (k) = k1 + k2, indicating that the fitted classifier allocates an increasing share of its RKHS norm to high-frequency oscillatory components. The diagnostic value of the OKC total-degree profile {OKC N } is precisely to make this shift quantitative, as we analyse in detail below. 
+
+Effect of the Jacobi parameters (α, β ). Figure 2 shows the decision boundary for fixed 
+
+n = 12 and C = 1 across twelve pairs (α, β ), organised to contrast symmetric cases ( α = β) with asymmetric ones ( α̸ = β). The role of the Jacobi parameters is qualitatively distinct from that of n: whereas varying n
+
+changes the dimension of H(2)  
+
+> n
+
+, varying (α, β ) with n fixed changes the inner product and hence the RKHS geometry, while keeping the feature dimension (n + 1) 2 = 169 constant. 
+
+Symmetric case (α = β). All four boundaries in the top row of Figure 2 are topologically 16 Figure 2: Decision boundaries {g(x) = 0} of the Jacobi-kernel SVM on the double-spiral dataset for fixed n = 12 and C = 1 , as the Jacobi parameters (α, β ) vary. Top row : symmetric cases (α, β ) ∈ {(0 , 0) , (0 .5, 0.5) , (1 , 1) , (2 , 2) }. Middle row : asymmetric cases (α, β ) ∈ {(0 .5, 0) , (1 , 0) , (2 , 1) , (2 , 0.5) }. Bottom row : asymmetric cases (α, β ) ∈{(1 .5, 0.3) , (3 , 0.5) , (0 , 2) , (1 , 3) }. The background colour map shows g(x) and the bold curve is the zero level set. 17 equivalent and share the same S-shaped spiral topology, confirming that the gross structure of the separator is controlled by n rather than by the specific parameter values. However, as α = β
+
+increases from 0 to 2, the boundary becomes progressively smoother: the local oscillations present in the Legendre case ( α = β = 0 ) are attenuated, and the zero level set traces a cleaner, more regular spiral arc. This regularisation effect has a natural explanation in terms of the Jacobi weight w(α,β ): for large α = β, the measure concentrates mass toward the interior of [−1, 1] 
+
+and suppresses the contribution of high-frequency polynomial components near the endpoints. In the RKHS induced by K(α,β ) 
+
+> n
+
+, this translates into a de-emphasis of high-degree modes kj
+
+large, which is precisely the effect one would expect to observe in the total-degree OKC profile 
+
+{OKC N }: an upward shift of the spectral mass toward lower values of N (k) as α = β grows. 
+
+Asymmetric case (α̸ = β). The middle and bottom rows of Figure 2 reveal a qualitatively different effect. When α̸ = β, the Jacobi weight w(α,β )(x) = (1 − x)α(1 + x)β assigns different densities to the two endpoints of [−1, 1] , breaking the symmetry of the inner product. This asymmetry propagates to both input dimensions through the tensor product, producing decision functions whose background colour maps exhibit a directional bias: cases with α > β (e.g., (2 , 0) ,
+
+(3 , 0.5) ) display a stronger gradient from left to right across the domain, while the swapped pairs 
+
+(0 , 2) and (1 , 3) produce a mirrored pattern. Despite this geometric distortion, the zero level set continues to trace a recognisable spiral, though it loses the left-right symmetry present in the symmetric cases. This behaviour illustrates a key point for ORCA diagnostics: the same truncation level n can give rise to structurally different classifiers depending on the Jacobi parameters, and the OKC profiles capture this structural difference quantitatively through the interaction-order indices OKC (q) and the coordinate-specific marginal indices OKC i.Taken together, Figures 1 and 2 establish two complementary sources of model complexity in the Jacobi-kernel SVM: the truncation level n, which governs the maximum polynomial degree and thus the representational capacity of the RKHS, and the weight parameters (α, β ), which shape the RKHS geometry and the relative importance of different polynomial modes at fixed capacity. The remainder of this section quantifies both effects through the ORCA framework. 
+
+ORCA profiles: quantities and experimental setup. We now apply the ORCA framework to quantify the internal structure of the trained classifiers. Recall from Section 5 that, for d = 2 ,the squared RKHS norm of the trained component h(2)  
+
+> n
+
+decomposes exactly as 
+
+∥h(2)  
+
+> n
+
+∥2
+
+> H(2)
+> n
+
+= ∑
+
+> k∈{ 0,...,n }2
+
+c2 
+
+> k
+
+= OKC (0) + OKC (1) + OKC (2) ,
+
+where the three blocks correspond to interaction orders q = 0 (constant mode k = 0), q = 1 
+
+(purely marginal modes, exactly one of k1, k 2 positive), and q = 2 (interaction modes, both 
+
+k1 > 0 and k2 > 0). The marginal block further splits into coordinate-specific contributions 
+
+OKC 1 := ∑
+
+> k1>0
+
+c2(k1,0) 
+
+> /
+
+∥h(2)  
+
+> n
+
+∥2, OKC 2 := ∑
+
+> k2>0
+
+c2(0 ,k 2)
+
+> /
+
+∥h(2)  
+
+> n
+
+∥2, OKC (1) = OKC 1 + OKC 2.
+
+Aggregating by total degree N (k) = k1 + k2 gives the total-degree profile 
+
+OKC N := ∑
+
+> k∈{ 0,...,n }2
+> k1+k2=N
+
+c2
+
+> k
+> /
+
+∥h(2)  
+
+> n
+
+∥2, N = 0 , 1, . . . , 2n, 
+
+from which two summary statistics are derived. The spectral peak 
+
+N ∗ := arg max N OKC N
+
+identifies the total degree carrying the most energy. The spectral threshold Tε is the smallest T
+
+such that the cumulative mass F (T ) := ∑TN =0 OKC N reaches 1−ε; together, the pair (Tε, F (Tε)) 
+
+18 records both the degree at which coverage is achieved and how tightly the budget is exhausted there. Finally, the even and odd masses collect the total OKC N mass over even and odd values of N respectively: 
+
+even := ∑ 
+
+> Neven
+
+OKC N , odd := ∑ 
+
+> Nodd
+
+OKC N , even + odd = 1 .
+
+Tables 1 and 2 report all these quantities for two representative configurations: the Legendre case (α, β ) = (0 , 0) and the asymmetric Jacobi case (α, β ) = (2 .5, 1.2) , both with C = 1 and 
+
+n ∈ { 1, 2, 3, 5, 8, 12 , 14 , 16 }.Table 1: ORCA decomposition for the double-spiral dataset. Jacobi parameters (α, β ) = (0 , 0) 
+
+(Legendre), C = 1 . OKC (0) : constant mass; OKC (1) : total marginal mass; OKC 1, OKC 2:coordinate-specific marginals; OKC (2) : interaction mass. N ∗: spectral peak degree. Tε: smallest total degree T with cumulative OKC mass F (T ) ≥ 1 − ε.
+
+n even odd OKC (0) OKC (1) OKC 1 OKC 2 OKC (2) N ∗ T0.10 T0.05 T0.01 
+
+1 0.0001 0.9999 0.0000 0.9999 0.3100 0.6900 0.0001 1 1 1 12 0.0188 0.9812 0.0000 0.8682 0.6856 0.1827 0.1318 1 3 3 33 0.0002 0.9998 0.0000 0.6018 0.5290 0.0728 0.3982 3 3 3 55 0.0047 0.9952 0.0000 0.2909 0.1810 0.1099 0.7091 7 7 9 98 0.0030 0.9970 0.0000 0.1770 0.1057 0.0713 0.8230 11 15 15 15 12 0.0028 0.9972 0.0000 0.1432 0.0559 0.0873 0.8568 11 17 21 –14 0.0032 0.9968 0.0000 0.1379 0.0890 0.0489 0.8621 11 17 19 23 16 0.0027 0.9973 0.0000 0.1367 0.0822 0.0545 0.8633 11 17 19 25 
+
+Table 2: ORCA decomposition for the double-spiral dataset. Jacobi parameters (α, β ) = (2 .5, 1.2) , C = 1 . Column definitions as in Table 1. 
+
+n even odd OKC (0) OKC (1) OKC 1 OKC 2 OKC (2) N ∗ T0.10 T0.05 T0.01 
+
+1 0.0001 0.9999 0.0000 0.9999 0.3121 0.6878 0.0001 1 1 1 12 0.1983 0.8017 0.0000 0.9136 0.5538 0.3599 0.0864 1 2 3 33 0.4829 0.5171 0.0000 0.7412 0.6100 0.1312 0.2588 2 3 3 45 0.4585 0.5415 0.0000 0.2563 0.1766 0.0797 0.7437 4 7 9 98 0.5552 0.4448 0.0000 0.2284 0.0952 0.1332 0.7716 10 13 15 15 12 0.5727 0.4273 0.0000 0.1953 0.1009 0.0944 0.8047 10 15 15 19 14 0.5188 0.4812 0.0000 0.2278 0.1107 0.1171 0.7722 10 15 17 21 16 0.5178 0.4822 0.0000 0.2420 0.1148 0.1272 0.7580 10 15 18 25 
+
+Discussion. Several structural patterns emerge from both tables and merit detailed comment. 
+
+Vanishing constant mode OKC (0) . The index OKC (0) measures the fraction of squared RKHS norm carried by the constant basis function p0, i.e. the mode (k1, k 2) = (0 , 0) . In every row of both tables, OKC (0) = 0 exactly. This is not a numerical artefact: it follows directly from the dual feasibility constraint ∑mi=1 αiyi = 0 in (8), which together with (28) gives c0 = p0
+
+∑mi=1 αiyi = 0 .Consequently, the entire squared RKHS norm is partitioned between OKC (1) and OKC (2) , with no constant contribution regardless of n or (α, β ).
+
+Interaction-order indices OKC (1) and OKC (2) . The index OKC (1) aggregates all purely marginal modes (those depending on exactly one coordinate), while OKC (2) collects the inter-action modes (both coordinates active). For both parameter choices, OKC (2) grows rapidly with n and dominates for n ≥ 5, reaching values above 0.85 for large n in the Legendre case and above 0.75 in the asymmetric case. This confirms the geometric prediction: separating a double spiral inherently requires coupling between the two input coordinates, and the SVM 19 correctly concentrates its RKHS norm on tensor modes with k1 > 0 and k2 > 0. Note that a linear classifier, which can only use modes with q ≤ 1, would have OKC (2) = 0 by construction; the interaction mass is therefore a direct quantitative marker of the nonlinear structure learned by the separator. 
+
+Coordinate-specific marginals OKC 1 and OKC 2. These indices isolate the contribution of each input coordinate to the purely marginal part OKC (1) . In both tables OKC 1 and OKC 2
+
+are of the same order of magnitude for large n, consistently with the approximate symmetry of the spiral between the two coordinates. In the Legendre case the balance is not always tight at small n (e.g., at n = 2 , OKC 1 = 0 .686 versus OKC 2 = 0 .183 ), but both contributions decrease together as OKC (2) grows with n. In the asymmetric Jacobi case (α, β ) = (2 .5, 1.2) ,the heavier left-endpoint weight ( α > β ) re-allocates mass between the two coordinate-specific modes: the imbalance between OKC 1 and OKC 2 is visibly more persistent than in the Legendre case, reflecting the directional bias that the asymmetric measure introduces into the RKHS geometry. 
+
+Even and odd masses, and rotational symmetry. The even and odd masses partition the total-degree profile into contributions from even and odd values of N (k) = k1 + k2. In the Legendre case (α, β ) = (0 , 0) , the odd mass is consistently close to 1 across all values of n,with even contributions below 0.02 in every row. This is a direct spectral signature of the approximate 180 ◦ rotational symmetry of the double spiral: such a rotation maps one arm onto the other while reversing the class label, making the decision function g approximately odd in the Legendre coordinates and concentrating the RKHS norm on modes of odd total degree. Crucially, this symmetry is not imposed externally: it is discovered from the data through the orthogonal polynomial expansion. In the asymmetric case (α, β ) = (2 .5, 1.2) the picture changes qualitatively: the even mass reaches values above 0.55 for n ≥ 8, and the even-odd split is no longer extreme. This reflects the fact that the Jacobi weight w(2 .5, 1.2) (x) = (1 − x)2.5(1 + x)1.2
+
+breaks the parity of the L2(μ) inner product, so that the same geometric symmetry of the data is encoded across a mixture of even and odd orthogonal modes under the asymmetric measure. 
+
+Spectral peak N ∗ and its stabilisation. The spectral peak N ∗ = arg max N OKC N identifies the total degree at which the aggregated OKC mass is greatest. For small n, N ∗ grows with the truncation level, reflecting spectral saturation: the RKHS does not yet have enough modes to distribute the energy freely, so the mass is pushed toward the highest available degree. Once 
+
+n is large enough, however, N ∗ stabilises: in the Legendre case it is fixed at N ∗ = 11 for all 
+
+n ∈ { 8, 12 , 14 , 16 }, and in the asymmetric case at N ∗ = 10 for the same values. This stabilisation signals that the RKHS has reached sufficient capacity to represent the decision function without spectral constraint; additional modes add oscillatory corrections around the peak without shifting it. The stabilised value of N ∗ is therefore a data-intrinsic complexity indicator: it encodes the characteristic polynomial degree at which the geometry of the classification problem is most efficiently captured in the given orthogonal coordinate system. The small difference between the two stabilised values ( N ∗ = 11 versus N ∗ = 10 ) reflects the change in orthogonal coordinates induced by the Jacobi parameters. 
+
+Spectral thresholds Tε and cumulative mass F (T ). The threshold Tε is the smallest total degree 
+
+T such that F (T ) = ∑TN =0 OKC N ≥ 1 − ε; the value F (Tε) records how tightly the cumulative budget is exhausted at that degree. Both quantities are needed: two configurations may share the same Tε while differing in F (Tε), and this difference is informative about spectral compactness. In both tables, Tε increases monotonically with n for all three levels ε ∈ { 0.10 , 0.05 , 0.01 },confirming the expected spectral broadening: as the truncation level grows, the RKHS norm spreads over higher total degrees. For instance, in the Legendre case T0.05 jumps from 1 at n = 1 
+
+(with F (1) = 1 .000 , all mass at degree 1) to 19 at n = 16 (with F (19) = 0 .950 , barely crossing the threshold). The latter is a borderline case: the mass is spread widely enough that the 95% 
+
+coverage is achieved only at degree 19 and essentially nothing is left in reserve. By contrast, at 
+
+n = 8 the same threshold is T0.05 = 15 with F (15) = 0 .9998 , indicating a spectrally compact 20 classifier that concentrates its energy well below the maximum available degree 2n = 16 . For a fixed n, the asymmetric parameters (α, β ) = (2 .5, 1.2) tend to produce slightly lower thresholds than the Legendre case, consistent with the smoothing effect observed in the boundary plots: the asymmetric weight concentrates more mass at lower degrees, yielding a spectrally more compact representation of the same classifier at the same truncation level. 
+
+6.2 Real data: echocardiogram dataset ( d = 5 )
+
+Dataset and features. The second experiment uses the Echocardiogram dataset from the UCI Machine Learning Repository [ 1 ], which contains post-heart-attack echocardiographic measurements together with survival-related variables. After removing records with missing values in the variables of interest, the working dataset contains m = 61 observations. The binary label is the variable still-alive : yi = +1 if the patient was alive at the end of the follow-up period and yi = −1 otherwise. The five input features used are listed in Table 3; the remaining columns of the original dataset (survival time, wall-motion score, group identifier, and the derived one-year survival indicator) are discarded as either redundant, unreliable, or non-predictive for the task at hand [1]. Table 3: Input features used in the echocardiogram experiment ( d = 5 ). 
+
+Index Description 
+
+x1 Age at time of heart attack (years) 
+
+x2 Fractional shortening: measure of cardiac contractility (lower values indicate greater abnormality) 
+
+x3 E-point septal separation (epss): measure of contractility; larger values indicate greater abnormality 
+
+x4 Left ventricular end-diastolic dimension (lvdd): size of the heart at end-diastole 
+
+x5 Wall-motion index: wall-motion score divided by number of segments seen 
+
+All five features are continuous and are rescaled to [−1, 1] prior to training, following the same procedure as in Section 6.1. With d = 5 , the tensor-product feature space H(5)  
+
+> n
+
+has dimension 
+
+(n+1) 5, and the multi-index set I(5)  
+
+> n
+
+= {0, . . . , n }5 supports interaction orders q ∈ { 0, 1, 2, 3, 4, 5}
+
+and total degrees N (k) ∈ { 0, . . . , 5n}. The ORCA decomposition now reads 
+
+∥h(5)  
+
+> n
+
+∥2 = OKC (0) + OKC (1) + OKC (2) + OKC (3) + OKC (4) + OKC (5) ,
+
+with the five non-trivial interaction orders reflecting single-variable effects ( q = 1 ), pairwise couplings ( q = 2 ), three-way ( q = 3 ), four-way ( q = 4 ), and full five-way interactions ( q = 5 ). 
+
+ORCA tables. Tables 4, 5 and 6 report the ORCA profiles for three Jacobi configurations: 
+
+(α, β ) = (0 , 0) (Legendre), (α, β ) = (4 .3, 1.8) , and (α, β ) = (0 .8, 2.7) , all with C = 1 and 
+
+n ∈ { 1, 2, 5, 6, 7, 8, 10 , 15 , 25 }.Table 4: ORCA decomposition, echocardiogram dataset. (α, β ) = (0 , 0) (Legendre), d = 5 ,
+
+C = 1 . N ∗: spectral peak degree. Tε: spectral threshold ( F (Tε) in parentheses).                                                                                                                
+
+> neven odd OKC (1) OKC (2) OKC (3) OKC (4) OKC (5) N∗T0.10 T0.05 T0.01
+> 10.200 0.800 0.616 0.150 0.164 0.050 0.020 134520.514 0.486 0.099 0.233 0.360 0.237 0.066 478950.505 0.495 0.014 0.086 0.243 0.384 0.274 12 18 19 21 60.494 0.506 0.009 0.065 0.215 0.400 0.311 14 20 22 25 70.501 0.499 0.005 0.046 0.169 0.404 0.376 18 24 26 29 80.497 0.503 0.003 0.029 0.141 0.397 0.430 20 27 29 33 10 0.499 0.501 0.001 0.015 0.105 0.374 0.505 25 34 36 41 15 0.500 0.500 0.000 0.005 0.058 0.306 0.631 37 51 54 61 25 0.500 0.500 0.000 0.001 0.024 0.214 0.760 63 84 90 101
+
+21 Table 5: ORCA decomposition, echocardiogram dataset. (α, β ) = (4 .3, 1.8) , d = 5 , C = 1 .Column definitions as in Table 4.                                                                                                                
+
+> neven odd OKC (1) OKC (2) OKC (3) OKC (4) OKC (5) N∗T0.10 T0.05 T0.01
+> 10.380 0.620 0.250 0.180 0.369 0.200 0.001 344420.499 0.501 0.170 0.208 0.267 0.243 0.112 678950.492 0.508 0.051 0.152 0.285 0.358 0.154 915 19 19 60.493 0.507 0.027 0.102 0.266 0.392 0.212 11 19 21 24 70.504 0.496 0.019 0.086 0.255 0.393 0.247 14 23 23 27 80.499 0.501 0.011 0.066 0.225 0.413 0.285 16 25 27 31 10 0.501 0.499 0.006 0.046 0.194 0.415 0.338 22 31 34 39 15 0.501 0.499 0.002 0.020 0.128 0.391 0.459 32 48 51 59 25 0.500 0.500 0.000 0.007 0.063 0.314 0.615 57 80 86 97
+
+Table 6: ORCA decomposition, echocardiogram dataset. (α, β ) = (0 .8, 2.7) , d = 5 , C = 1 .Column definitions as in Table 4.                                                                                                                
+
+> neven odd OKC (1) OKC (2) OKC (3) OKC (4) OKC (5) N∗T0.10 T0.05 T0.01
+> 10.551 0.449 0.105 0.360 0.330 0.191 0.014 244520.511 0.489 0.015 0.135 0.348 0.332 0.170 488950.501 0.499 0.006 0.072 0.265 0.424 0.233 10 15 17 19 60.500 0.500 0.003 0.043 0.197 0.429 0.328 14 20 22 25 70.498 0.502 0.002 0.035 0.173 0.424 0.366 16 22 24 28 80.502 0.498 0.002 0.028 0.153 0.417 0.401 18 25 27 31 10 0.500 0.500 0.001 0.017 0.119 0.389 0.474 22 32 35 39 15 0.500 0.500 0.000 0.006 0.070 0.326 0.597 35 48 52 60 25 0.500 0.500 0.000 0.002 0.030 0.237 0.731 58 82 89 99
+
+Discussion: structural contrasts with the spiral dataset. The echocardiogram ex-periment reveals patterns that differ qualitatively from those in Section 6.1, and the ORCA framework makes these differences explicit and quantitative. 
+
+Vanishing constant mode. As in the spiral case, OKC (0) = 0 exactly across all configurations. The argument is the same: the dual feasibility constraint forces c0 = 0 regardless of d, n, or 
+
+(α, β ).
+
+Dominance of high-order interactions. The most striking qualitative difference from the 
+
+d = 2 case lies in the distribution across interaction orders. With only two coordinates, q = 2 was the highest possible order and grew to dominate above 0.85 for large n. Here, with d = 5 , the RKHS norm disperses progressively across all five non-trivial interaction orders as n increases. For the Legendre case at n = 25 , the full five-way interaction block OKC (5) = 0 .760 is the single largest contributor, followed by OKC (4) = 0 .214 , while OKC (1) falls below 0.001 already at n = 10 and OKC (2) becomes negligible by n = 15 . This progression indicates that the cardiac survival boundary is not well described by low-order interactions: the SVM requires genuine high-dimensional coupling among all five clinical variables simultaneously. From a medical standpoint this is consistent with the known multifactorial nature of cardiac issues, where no single predictor or low-order combination of predictors captures the full risk profile. 
+
+Effect of Jacobi parameters on the interaction profile. The Legendre kernel (α, β ) = (0 , 0) 
+
+produces the strongest concentration in OKC (5) (0.760 at n = 25 ). The configuration (α, β ) = (4 .3, 1.8) dampens this tendency: OKC (5) reaches only 0.615 at n = 25 , with more mass retained in OKC (4) (0.314 ), producing a more balanced interaction profile across the two highest orders. The configuration (α, β ) = (0 .8, 2.7) is intermediate, with OKC (5) = 0 .731 . These differences reflect the modulation of the RKHS geometry by the Jacobi weight: larger values of (α, β )
+
+attenuate high-degree polynomial modes near the endpoints of [−1, 1] , redistributing mass toward lower interaction orders. 
+
+Absence of even-odd parity structure. In sharp contrast with the spiral, the even and odd masses are near 0.5 for all configurations and all n ≥ 2, with no systematic preference for either parity. This is the expected behaviour for real clinical data: the echocardiogram features carry no 22 geometric symmetry analogous to the rotational structure of the spiral. The ORCA framework detects this absence of structure as cleanly as it detected its presence in the previous experiment, confirming that the even-odd split is a genuine diagnostic tool rather than a numerical artefact. 
+
+Absence of spectral peak stabilisation. In the spiral experiment, N ∗ stabilised once n was large enough, providing a data-intrinsic complexity estimate. Here, N ∗ grows continuously with 
+
+n across all three tables, reaching N ∗ = 63 at n = 25 for Legendre. Two factors contribute to this behaviour. First, the maximum available degree is 5n, which expands five times faster than in the d = 2 case, so the spectral axis itself shifts outward as n grows. Second, the cardiac data geometry imposes no characteristic polynomial scale: the classification boundary is spectrally diffuse rather than concentrated at a fixed degree. Together, these observations suggest that N ∗ is informative as an intrinsic complexity indicator primarily when the data has clear geometric structure; for more irregular real datasets, the interaction-order profile {OKC (q)}
+
+and the spectral thresholds Tε are the more reliable diagnostic quantities. 
+
+Spectral broadening with dimension. The thresholds Tε are substantially larger than in the spiral case and grow rapidly with n, reflecting the much wider spectral range in d = 5 : at n = 25 
+
+the maximum total degree is 5n = 125 , versus 2n = 50 for d = 2 . For Legendre at n = 25 ,
+
+T0.01 = 101 , confirming that the classifier distributes energy across a wide range of degrees. Despite this broadening, the cumulative mass at threshold F (Tε) shows that coverage is achieved well before the maximum available degree in all configurations, indicating that the spectral energy remains concentrated rather than uniform. 
+
+# 7 Conclusions and future work 
+
+This paper introduced a post-training framework for analyzing SVM classifiers built from truncated orthogonal polynomial kernels. The central idea is that, in this setting, the regularized part of the trained decision function admits an exact expansion in an explicit tensor-product orthonormal basis. This makes it possible to move from an implicit kernel representation to a structured description of the classifier in terms of orthogonal modes with clear geometric meaning. On this basis, we defined Orthogonal Representation Contribution Analysis (ORCA) and the associated Orthogonal Kernel Contribution (OKC) indices. These quantities summarize how the squared RKHS norm of the trained classifier is distributed across interaction orders, total polynomial degrees, individual coordinates, and coordinate pairs. In this way, the framework provides a quantitative answer to questions that are difficult to address directly from the usual kernel expansion in support vectors. Rather than asking only whether a classifier performs well, ORCA also asks how the classifier is organized internally within the RKHS induced by the chosen kernel. An important point is that the proposed analysis is fully post-training. Once the SVM has been fitted, the OKC indices are computed directly from the exact coefficients, without surrogate fitting, re-training, or additional optimization. This makes the method easy to integrate into the usual SVM workflow. The present work also suggests several natural directions for future research. One promising direction is to use ORCA as a diagnostic tool for structural overfitting. As the truncation level 
+
+n increases, or as the regularization parameter C varies, one may track how the OKC profiles evolve together with validation performance. In particular, a systematic shift of the RKHS norm toward higher total degrees or higher-order interactions at the point where validation performance begins to deteriorate would provide a meaningful structural signal of overfitting. This would add an interpretable layer to the usual hyperparameter analysis and could help explain why a model starts to lose generalization ability. A second direction is to study the stability of the proposed summaries. Even when predictive metrics remain nearly unchanged, the internal organization of the classifier may vary across 23 different train–validation splits or bootstrap resamples. Analyzing how much the OKC profiles fluctuate under such perturbations would make it possible to assess whether the detected marginal, pairwise, or higher-order patterns are robust, or whether they are mainly sample-dependent. In this way, ORCA could also be used to evaluate the structural consistency of a fitted model, not only its predictive performance. Another relevant extension is to use the OKC indices as a tie-breaking criterion in model selection. In practice, it is common to obtain several hyperparameter pairs (n, C ) with very similar validation scores. When this happens, predictive performance alone may not be sufficient to choose between them. The proposed indices offer a natural additional criterion: among models with comparable validation behavior, one may prefer the classifier whose RKHS norm is concentrated on lower interaction orders, lower total degrees, or structurally simpler marginal and pairwise components. From this perspective, ORCA could serve not only as a post-training diagnostic framework, but also as a principled aid for selecting between competing models with similar predictive accuracy. Overall, the main message of the paper is that, when a kernel model comes with an explicit orthogonal structure, interpretability does not need to rely only on external approximations. It can be built directly from the trained classifier itself. We hope that this work motivates further use of orthogonal expansions not only as kernel constructions, but also as a principled language for describing how a learned model represents nonlinear structure. 
+
+# Acknowledgements 
+
+NT acknowledges support from the Severo Ochoa programme at ICMAT [details to be added]. VSL acknowledges the Ministerio de Ciencia, Innovación y Universidades–Agencia Estatal de Investigación, research project PID2024-155133NB-I00, Ortogonalidad, Aproximación e Integrabilidad: Aplicaciones en Procesos Estocásticos Clásicos y Cuánticos , for its support. EJH acknowledges Universidad de Alcalá, research project PIUAH25/CC-006, Análisis espectral de procesos estocásticos cuánticos abiertos: dinámicas, propiedades y aplicaciones , and the Ministerio de Ciencia, Innovación y Universidades–Agencia Estatal de Investigación, research project PID2024-155133NB-I00, Ortogonalidad, Aproximación e Integrabilidad: Aplicaciones en Procesos Estocásticos Clásicos y Cuánticos , for their support. VSL and EJH also wish to thank NT for inviting them to a six-month research stay at ICMAT (from Febreuary to July of 2026), during which this work was developed. They also gratefully acknowledge her as their scientific advisor for this research at ICMAT during that period. 
+
+# References 
+
+[1] Echocardiogram [Dataset], UCI Machine Learning Repository, 1988. DOI: https://doi. org/10.24432/C5QW24 .[2] J. B. Lasserre, E. Pauwels, and M. Putinar, The Christoffel–Darboux Kernel for Data Analysis , Cambridge University Press, 2022. [3] W. Gautschi, Orthogonal Polynomials: Computation and Approximation , Oxford University Press, 2004. [4] C. Cortes and V. Vapnik, Support-vector networks , Machine Learning 20 (1995), 273–297. [5] V. Vapnik, Statistical Learning Theory , Wiley, 1998. [6] B. Schölkopf and A. J. Smola, Learning with Kernels: Support Vector Machines, Regular-ization, Optimization, and Beyond , MIT Press, 2002. 24 [7] A. Berlinet and C. Thomas-Agnan, Reproducing Kernel Hilbert Spaces in Probability and Statistics , Springer, 2004. [8] G. Kimeldorf and G. Wahba, Some results on Tchebycheffian spline functions , Journal of Mathematical Analysis and Applications 33 (1971), 82–95. [9] B. Schölkopf, R. Herbrich, and A. J. Smola, A generalized representer theorem , in Com-putational Learning Theory (COLT 2001) , Lecture Notes in Computer Science, vol. 2111, Springer, 2001, pp. 416–426. [10] S. Ozer, C. H. Chen, and H. A. Çırpan, A set of new Chebyshev kernel functions for support vector machine pattern classification , Pattern Recognition 44 (2011), no. 7, 1435–1447. [11] V. H. Moghaddam and J. Hamidzadeh, New Hermite orthogonal polynomial kernel and combined kernels in Support Vector Machine classifier , Pattern Recognition 60 (2016), 921–935. [12] G. Szegő, Orthogonal Polynomials , American Mathematical Society Colloquium Publications, Vol. 23, American Mathematical Society, 1939. [13] B. Simon, The Christoffel–Darboux kernel , Proceedings of Symposia in Pure Mathematics 
+
+79 (2008); available as arXiv:0806.1528. 25

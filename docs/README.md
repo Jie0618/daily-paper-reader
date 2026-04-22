@@ -6,71 +6,67 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-21
-- 运行时间：2026-04-21 20:25:39 UTC
+- 最新运行日期：2026-04-22
+- 运行时间：2026-04-22 20:42:09 UTC
 - 运行状态：成功
-- 本次总论文数：17
-- 精读区：5
+- 本次总论文数：15
+- 精读区：3
 - 速读区：12
 
 ### 今日简报（AI）
-今日深度复盘 17 篇前沿进展，重点突破了符号回归的泛化理论边界与量子增强的非线性
-- 详情：[/202604/21/README](/202604/21/README)
+今日聚焦非线性动力学识别的重大突破，深度解析 AC-SINDy 与量子增强的 Q-SINDy 算法。
+核心结论展示了组合式建模与量子核方法在动力学识别中的高精度表现，并同步探讨了 LLM 数学推理的底层机制。
+建议重点关注量子技术在消除系数偏差中的应用，以及如何应对强化学习在饱和推理数据下的学习瓶颈。
+- 详情：[/202604/22/README](/202604/22/README)
 
 ### 精读区论文标签
-1. [On the Generalization Bounds of Symbolic Regression with Genetic Programming](/202604/21/2604.17402v1-on-the-generalization-bounds-of-symbolic-regression-with-genetic-programming)  
+1. [AC-SINDy: Compositional Sparse Identification of Nonlinear Dynamics](/202604/22/2604.18889v1-ac-sindy-compositional-sparse-identification-of-nonlinear-dynamics)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：遗传规划符号回归的泛化界限
-2. [Q-SINDy: Quantum-Kernel Sparse Identification of Nonlinear Dynamics with Provable Coefficient Debiasing](/202604/21/2604.16779v1-q-sindy-quantum-kernel-sparse-identification-of-nonlinear-dynamics-with-provable-coefficient-debiasing)  
+   evidence：用于非线性动力学识别的 SINDy 组合扩展
+2. [Q-SINDy: Quantum-Kernel Sparse Identification of Nonlinear Dynamics with Provable Coefficient Debiasing](/202604/22/2604.16779v2-q-sindy-quantum-kernel-sparse-identification-of-nonlinear-dynamics-with-provable-coefficient-debiasing)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：量子核增强的 SINDy 用于方程恢复
-3. [Machine Learning Hamiltonian Dynamical Systems with Sparse and Noisy Data](/202604/21/2604.17470v1-machine-learning-hamiltonian-dynamical-systems-with-sparse-and-noisy-data)  
+   evidence：量子核增强的非线性动力学稀疏识别 (SINDy)
+3. [Gradient-Based Program Synthesis with Neurally Interpreted Languages](/202604/22/2604.18907v1-gradient-based-program-synthesis-with-neurally-interpreted-languages)  
    标签：评分：9.0/10、query:math-ai
-   evidence：学习哈密顿动力系统的符号表示
-4. [Balance-Guided Sparse Identification of Multiscale Nonlinear PDEs with Small-coefficient Terms](/202604/21/2604.18414v1-balance-guided-sparse-identification-of-multiscale-nonlinear-pdes-with-small-coefficient-terms)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：多尺度系统控制方程的数据驱动发现
-5. [Physics-Informed Neural Networks for Biological $2\mathrm{D}{+}t$ Reaction-Diffusion Systems](/202604/21/2604.18548v1-physics-informed-neural-networks-for-biological-2mathrmdt-reaction-diffusion-systems)  
-   标签：评分：8.0/10、query:sr-alg
-   evidence：从数据中学习动力系统的控制方程
+   evidence：程序合成中符号化与神经方法的桥梁
 
 ### 速读区论文标签
-1. [Bolzano: Case Studies in LLM-Assisted Mathematical Research](/202604/21/2604.16989v1-bolzano-case-studies-in-llm-assisted-mathematical-research)  
+1. [Disentangling Mathematical Reasoning in LLMs: A Methodological Investigation of Internal Mechanisms](/202604/22/2604.15842v1-disentangling-mathematical-reasoning-in-llms-a-methodological-investigation-of-internal-mechanisms)  
    标签：评分：7.0/10、query:math-ai
-   evidence：LLM辅助发现数学和理论计算机科学的新结果
-2. [Model Selection and Parameter Inference through Constraints via Sequences of Surrogate Smoothing Functions](/202604/21/2604.17154v1-model-selection-and-parameter-inference-through-constraints-via-sequences-of-surrogate-smoothing-functions)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：通过平滑代理函数平衡简洁性与准确性
-3. [Monotone but Exciting: On Evolving Monotone Boolean Functions with High Nonlinearity](/202604/21/2604.17342v1-monotone-but-exciting-on-evolving-monotone-boolean-functions-with-high-nonlinearity)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：用于演化函数的基于符号树的遗传编程表示
-4. [The Topological Dual of a Dataset: A Logic-to-Topology Encoding for AlphaGeometry-Style Data](/202604/21/2604.18050v1-the-topological-dual-of-a-dataset-a-logic-to-topology-encoding-for-alphageometry-style-data)  
+   evidence：大模型算术运算内部机制调查
+2. [Matlas: A Semantic Search Engine for Mathematics](/202604/22/2604.17484v1-matlas-a-semantic-search-engine-for-mathematics)  
    标签：评分：7.0/10、query:math-ai
-   evidence：神经符号推理与用于结构理解的逻辑到拓扑编码
-5. [Rethinking Token-Level Credit Assignment in RLVR: A Polarity-Entropy Analysis](/202604/21/2604.11056v1-rethinking-token-level-credit-assignment-in-rlvr-a-polarity-entropy-analysis)  
+   evidence：数学命题和恒等式的语义搜索引擎
+3. [Too Correct to Learn: Reinforcement Learning on Saturated Reasoning Data](/202604/22/2604.18493v1-too-correct-to-learn-reinforcement-learning-on-saturated-reasoning-data)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：数学推理数据上的强化学习
+4. [Decompose, Structure, and Repair: A Neuro-Symbolic Framework for Autoformalization via Operator Trees](/202604/22/2604.19000v1-decompose-structure-and-repair-a-neuro-symbolic-framework-for-autoformalization-via-operator-trees)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：使用算子树处理数学逻辑的神经符号框架
+5. [Evaluation-driven Scaling for Scientific Discovery](/202604/22/2604.19341v1-evaluation-driven-scaling-for-scientific-discovery)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：扩展用于科学发现的评估驱动发现循环
+6. [A neural operator framework for data-driven discovery of stability and receptivity in physical systems](/202604/22/2604.19465v1-a-neural-operator-framework-for-data-driven-discovery-of-stability-and-receptivity-in-physical-systems)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：无需控制方程的数据驱动稳定性属性发现
+7. [Presenting Neural Networks via Coherent Functors](/202604/22/2604.15100v1-presenting-neural-networks-via-coherent-functors)  
    标签：评分：6.0/10、query:math-ai
-   evidence：具有可验证奖励的强化学习用于推理
-6. [Utilizing and Calibrating Hindsight Process Rewards via Reinforcement with Mutual Information Self-Evaluation](/202604/21/2604.11611v1-utilizing-and-calibrating-hindsight-process-rewards-via-reinforcement-with-mutual-information-self-evaluation)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：以自我评估作为稠密奖励的强化学习
-7. [Lightweight Geometric Adaptation for Training Physics-Informed Neural Networks](/202604/21/2604.15392v1-lightweight-geometric-adaptation-for-training-physics-informed-neural-networks)  
+   evidence：将神经网络表示为形式理论和相干逻辑
+8. [Structural interpretability in SVMs with truncated orthogonal polynomial kernels](/202604/22/2604.15285v1-structural-interpretability-in-svms-with-truncated-orthogonal-polynomial-kernels)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：物理信息神经网络训练的优化框架
-8. [Python library supporting Discrete Variational Formulations and training solutions with Collocation-based Robust Variational Physics Informed Neural Networks (DVF-CRVPINN)](/202604/21/2604.15398v1-python-library-supporting-discrete-variational-formulations-and-training-solutions-with-collocation-based-robust-variational-physics-informed-neural-networks-dvf-crvpinn)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于求解偏微分方程的物理信息神经网络
-9. [Machine Learning and Deep Learning in Quantum Materials: Symmetry, Topology, and the Rise of Altermagnets](/202604/21/2604.15985v1-machine-learning-and-deep-learning-in-quantum-materials-symmetry-topology-and-the-rise-of-altermagnets)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于量子材料科学发现的机器学习
-10. [Understanding Tool-Augmented Agents for Lean Formalization: A Factorial Analysis](/202604/21/2604.16538v1-understanding-tool-augmented-agents-for-lean-formalization-a-factorial-analysis)  
+   evidence：将决策函数展开为显式多项式基以提高可解释性
+9. [DALM: A Domain-Algebraic Language Model via Three-Phase Structured Generation](/202604/22/2604.15593v1-dalm-a-domain-algebraic-language-model-via-three-phase-structured-generation)  
    标签：评分：6.0/10、query:math-ai
-   evidence：将自然语言数学自动翻译为形式化代码
-11. [GRAIL: Autonomous Concept Grounding for Neuro-Symbolic Reinforcement Learning](/202604/21/2604.16871v1-grail-autonomous-concept-grounding-for-neuro-symbolic-reinforcement-learning)  
+   evidence：显式代数约束下的结构化生成
+10. [Detecting and Suppressing Reward Hacking with Gradient Fingerprints](/202604/22/2604.16242v1-detecting-and-suppressing-reward-hacking-with-gradient-fingerprints)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于可解释策略的神经符号强化学习
-12. [Yanasse: Finding New Proofs from Deep Vision's Analogies, Part 1](/202604/21/2604.17229v1-yanasse-finding-new-proofs-from-deep-visions-analogies-part-1)  
+   evidence：带有可验证奖励的推理强化学习
+11. [Solving Stochastic Constraints by Oracle-based Gradient Descent and Interval Arithmetic](/202604/22/2604.17275v1-solving-stochastic-constraints-by-oracle-based-gradient-descent-and-interval-arithmetic)  
    标签：评分：6.0/10、query:math-ai
-   evidence：通过迁移证明策略模式发现定理的新证明
+   evidence：随机优化与符号技术的协同作用
+12. [TensorRocq: Enabling diagrammatic reasoning in Rocq](/202604/22/2604.17592v1-tensorrocq-enabling-diagrammatic-reasoning-in-rocq)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：证明助手中的图表推理和项等价性
 
 
 <div class="dpr-home-promo-card">
