@@ -1,0 +1,524 @@
+Title: An explicit operator explains end-to-end computation in the modern neural networks used for sequence and language modeling
+
+URL Source: https://arxiv.org/pdf/2604.20595v1
+
+Published Time: Thu, 23 Apr 2026 01:00:42 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+# An explicit operator explains end-to-end computation in the modern neural networks used for sequence and language modeling 
+
+Anif N. Shikder, 1, 2, ∗ Ramit Dey, 1, 2, ∗ Sayantan Auddy, 1, 2 Luisa Liboni, 3, 2 Alexandra Busch, 1, 2 Arthur Powanwe, 1, 2 J´ an Min´ aˇ c, 1, 2 Roberto C. Budzinski, 4, 2 and Lyle E. Muller 1, 2, †
+
+> 1
+
+Department of Mathematics, Western University, London ON, Canada 
+
+> 2
+
+Fields Lab for Network Computation, Fields Institute, Toronto ON, Canada 
+
+> 3
+
+King’s University College at Western University, London ON, Canada 
+
+> 4
+
+Department of Neuroscience, University of Lethbridge, Lethbridge AB, Canada 
+
+We establish a mathematical correspondence between state space models, a state-of-the-art archi-tecture for capturing long-range dependencies in data, and an exactly solvable nonlinear oscillator network. As a specific example of this general correspondence, we analyze the diagonal linear time-invariant implementation of the Structured State Space Sequence model (S4). The correspondence embeds S4D, a specific implementation of S4, into a ring network topology, in which recent inputs are encoded as waves of activity traveling over the one-dimensional spatial layout of the network. We then derive an exact operator expression for the full forward pass of S4D, yielding an analytical char-acterization of its complete input–output map. This expression reveals that the nonlinear decoder in the system induces interactions between these information-carrying waves that enable classifying real-world sequences. These results generalize across modern SSM architectures, and show that they admit an exact mathematical description with a clear physical interpretation. These insights enable a new level of interpretability for these systems in terms of nonlinear oscillator networks. 
+
+Transformers are a central machine learning architec-ture for language and sequence tasks [1]. Transformers capture long-range dependencies in language through a mechanism called “matrix attention” [2, 3]. However, because this mechanism requires computing pairwise in-teractions between all tokens in a sequence – for example, all words in a sentence – it introduces a computational bottleneck when handling long-range interactions across inputs [4]. This results in quadratic scaling of both mem-ory and computation with respect to sequence length. This quadratic complexity is, in turn, a key factor for resource consumption in these models as they scale to larger problems and longer context lengths [5, 6]. State-space models (SSMs) have recently emerged as an alternative architecture for sequence modeling, ad-dressing the central computational inefficiency of trans-formers [7–11]. Unlike transformers, SSMs achieve lin-ear scaling in sequence length by encoding temporal de-pendencies in patterns of activity across a network [7]. Because connections between nodes cause each input to reverberate within the network, an SSM can build up a complex dynamical state that contains information about the history of inputs to the system. SSM architectures have demonstrated that this dynamics-based computa-tion can be both efficient and highly parallelizable during training [7]. SSMs now match or exceed transformers on sequence modeling benchmarks critical to language tasks [10], while also dramatically reducing computational re-quirements for long sequences [7, 10]. In addition to increased efficiency, SSMs offer po-tentially substantial advantages in interpretability over   
+
+> ∗These authors contributed equally to this work.
+> †lmuller2@uwo.ca
+
+transformers: unlike the attention mechanism in trans-formers, the dynamics within an SSM are linear and therefore mathematically solvable. This opens the pos-sibility of understanding SSMs through mathematical analyses of their internal network dynamics, offering a level of explainability beyond post-hoc approaches for in-terpreting transformer outputs [12], which observe model behavior empirically and case-by-case, rather than de-riving it from the model’s mathematical structure from first principles. Linear dynamics alone are not sufficient for sequence processing, however: without an additional nonlinear decoder, SSM architectures cannot capture the range of input-output mappings needed to perform se-quence processing tasks [13, 14]. Because of the funda-mental difficulty in analyzing these interleaved linear and nonlinear operations, end-to-end explainability of SSMs has not yet been achieved. Establishing this link would represent a substantial advance in understanding how an SSM generates output, potentially leading to future large language models whose outputs can be precisely under-stood and controlled. We now present a theoretical framework in which the complete linear and nonlinear cascade of an SSM can be understood exactly, revealing the mechanism of compu-tation in these systems. This framework leverages an exact solution for the dynamics of a nonlinear oscillator network [15] and an exact operator description of com-putation in this network [16]. We first establish a formal mathematical correspondence between this oscillator net-work and diagonal SSMs – currently the most widely de-ployed SSM architectures for sequence processing. We then derive an end-to-end mathematical description of computation in S4D, a specific implementation of the Structured State Space Sequence model (S4) [8, 17]. This expression reveals that different input sequences excite specific waves traveling over the network, and the non-
+
+> arXiv:2604.20595v1 [cs.NE] 22 Apr 2026
+
+2linear readout induces interactions between waves that are critical for classifying real-world inputs. This frame-work thus provides mechanistic insight into computation in SSMs, while also suggesting principled ways to design future architectures. 
+
+MATHEMATICAL BACKGROUND 
+
+Consider a network of N nodes arranged on a one-dimensional ring. The network evolves in time according to: ˙ψi = ω + κ
+
+> N
+
+X
+
+> j=1
+
+aij 
+
+
+
+sin ( ψj − ψi − ϕij )
+
+−i cos ( ψj − ψi − ϕij )
+
+
+
+,
+
+(1) where ψi(t) ∈ C is the state of node i at time t, ω ∈ R
+
+is the intrinsic oscillation frequency, the matrix element 
+
+aij ∈ R represents the connection from node j to i, κ ∈ R
+
+homogeneously scales the strength of connections in the network, ϕij ∈ R is a phase lag in the connection, and i = √−1 is the imaginary unit (note that i is an index). We have recently shown that Eq. (1) admits an exact solution [15]. To see this, change Eq. (1) to a rotating coordinate frame (in which ω can be set to zero w.l.o.g. – see, for example, [18]), multiply Eq. (1) by i, and apply standard identities to obtain: i ˙ψi = κe −iψi
+
+> N
+
+X
+
+> j=1
+
+aij e−iϕij eiψj . (2) This system of equations is nonlinear in ψi; however, by applying the nonlinear coordinate transformation xi =
+
+eiψi and noticing that dx i 
+
+> dt
+
+= i eiψi dψ i 
+
+> dt
+
+, we obtain an exact solution in the new variable x, expressed in matrix form as: 
+
+x(t) = eKtx(0) , (3) where x(t) ∈ CN is the solution for the state vector of the network at time t, e is the matrix exponential, the matrix K has elements kij = κe −iϕij aij , and is a com-posite matrix containing information about the coupling strength κ, network connectivity aij and phase lag ϕij ,and x(0) ∈ CN are the initial conditions. Note that vectors and matrices will be typeset in bold throughout. Note, as well, the exact solution can be expressed in the non-rotating coordinate frame by multiplying the RHS of Eq. (3) by an additional term eiωt .In terms of the ψ-coordinate, the exact solution is then given by 
+
+ψ(t) = Arg 
+
+
+
+eKteiψ(0) 
+
+− i log eKteiψ(0) (4) where ψ(0) ∈ CN are the initial conditions in terms of the ψ-coordinate, and scalar functions (here Arg, log, and modulus) are taken elementwise when applied to a vector. Finally, we can utilize the exact solution Eq. (3) to propagate the recurrent dynamics in terms of the x-coordinate in discrete steps of time τ k :
+
+xk = eKτ k xk−1 . (5) The matrix exponential serves as an exact propagator to bring the continuous-time dynamics from time point 
+
+τ (k − 1) to τ k . We can then use the exact solution in Eq. (5) to define a dynamics operator Dτ = eKτ that propagates the state of the network forward in time. The operator Dτ is applied at discrete time k − 1 to evolve the state of the network to discrete time k. In terms of this operator, we can write Eq. (5) as xk = Dτ xk−1.Intuition from the theory of coupled oscillators be-comes useful at this point: across a range of phase lags, 
+
+Figure 1. The nonlinear oscillator network produces rich spatiotemporal dynamics across its ring topol-ogy. (a) The network is composed of N nodes arranged on a one-dimensional ring (left), resulting in a network ad-jacency matrix with connections between nodes in a neigh-borhood of n steps on the ring with boundaries conditions (right). (b) For specific combinations of network connectivity and phase-lags, traveling waves emerge in the phase dynam-ics (Arg( xj (t)) ∀ j), here plotted in color-code as a function of node position and time. (c) Different spatiotemporal pat-terns are possible: a localized pocket of synchronization that co-exist with asynchronous behavior, known as a “chimera” state [16, 19], emerges in the phase dynamics of the network with homogeneous phase lag. 3the network exhibits long transients, rich spatiotempo-ral dynamics, and signatures of spatiotemporal chaos (Fig. 1). The rich spatiotemporal dynamics in the phase of this system (Fig. 1b,c) are in fact the result of complex-linear dynamics viewed through the lens of a nonlin-ear readout, since the phase Arg( xj (t)) ∀ j is a nonlin-ear function applied to each element of the state x(t). This system, with complex-linear dynamics and a non-linear readout, has recently been found to allow a range of computations – from logic gates, short-term memory, and message encryption [16] to simple computer vision tasks like image segmentation [20], while also being ex-actly mathematically interpretable. Finally, an input to this network is straightforward to incorporate into this framework: 
+
+xk = Dτ xk−1 + ¯Bu k (6) where ¯B = (∆ K)−1(eK∆ − I)∆ B is the discrete-time input projection to the system and uk is an input vector (e.g. following an encoder block) at time point k.The operator Dτ can be diagonalized numerically, in general. In addition, many connection patterns in K ad-mit fully analytical forms for diagonalizing Dτ . For ex-ample, if the strength of connections from node i to other nodes j falls off with distance (e.g. with a power law), and the same connection rule is applied to each node i, then the adjacency matrix defining this network will be cir-culant. A circulant matrix is constructed by cyclically permuting a generating vector c N times, resulting in an 
+
+N × N matrix. The Circulant Diagonalization Theorem (CDT) states that all circulants are diagonalized by the same unitary matrix F , with entries fij [21]: 
+
+fij = 1
+
+√N exp 
+
+
+
+− 2πi
+
+N (i − 1)( j − 1) 
+
+
+
+, (7) and there is a similar closed-form expression for the eigenvalues in terms of the generating vector c (see Ap-pendix I A). Applying the change of basis F † to Eq. (6) then results in: ˜xk = eΛτ ˜xk−1 + ˜Bu k, (8) where ˜ xk = F †xk, Λ is a diagonal matrix containing the eigenvalues λs of K (see Appendix I A), and ˜B =
+
+F † ¯B. As demonstrated in the next section, Eq. (8) allows revealing a precise correspondence with a family of linear time-invariant SSMs used in sequence processing. 
+
+> RESULTS Correspondence with diagonal SSMs
+
+Several implementations of S4 achieve high accuracy on benchmarks for sequence processing [7, 8, 17] such as the long-range arena (LRA) [22]. We will focus on analyzing S4D-Lin [8], which is a diagonalized version of S4 that is most commonly used in implementation. We note that the mathematical analysis introduced here generalizes across all diagonal SSMs (see Appendix I B). In addition, because the recurrence matrix for nearly all SSMs is diagonalizable, this analysis applies quite gener-ally across SSM architectures. The linear recurrence in S4D-Lin evolves in discrete time according to the equation: 
+
+xk = eDτ xk−1 + ¯Bu k (9) where D is a diagonal matrix with entries djj :
+
+djj = − 12 + i πj . (10) Comparing Eq. (9) with Eq. (8) reveals the precise corre-spondence between the exactly solvable nonlinear oscilla-tor network and S4D-Lin: both systems evolve by a diag-onal operator acting on the state vector xk−1 ∈ CN , with externally added input uk linearly projected through the operator ¯B at each discrete time step. The two systems become fully equivalent by matching the eigenvalue ma-trices – Λ in Eq. (8) and D in Eq. (9) – and the input projection matrices. 1 Importantly, the nonlinear coordi-nate transformation xi = eiψi that renders the oscilla-tor network exactly solvable is also what establishes the mathematical correspondence with S4D-Lin. The central distinction between the systems, then, is that the oscilla-tor network dynamics unfold in a precisely defined eigen-basis given by the unitary operator F , whereas S4D-Lin leaves this eigenvector basis unspecified. This oscillator correspondence thus provides both an explicit eigenbasis in which the SSM dynamics evolve and, as demonstrated in the following section, a ring topology in which the SSM’s latent state can be understood in terms of travel-ing waves. This theoretical foundation will, in turn, allow an explicit characterization of computation in these sys-tems during sequence classification. 
+
+> Traveling waves in S4D’s recurrent layer distinguish simple inputs
+
+We can now use the framework introduced in the pre-vious sections to analyze the dynamics in the recurrent layer of S4D. Specifically, using the explicit basis F from the nonlinear oscillator context, we can now write the state xk as a superposition of the eigenmodes fj :
+
+xk =
+
+> N
+
+X
+
+> j=1
+
+μj (k) fj . (11) Here, μj (k) = ⟨fj |xk⟩ is the complex amplitude of the 
+
+jth eigenvector in the basis, which represents a traveling     
+
+> 1Note that τused here is equivalent to ∆ tin the work introducing S4D-Lin [8].
+
+4          
+
+> Figure 2. The oscillator network correspondence reveals S4D generates traveling waves in its dynamical state. (a) The mathematical correspondence embeds S4D into a ring topology with a specific structure of network connections, where connection strengths weaken with distance between nodes and phase delays shift systematically. The network adjacency matrix is depicted at right, with magnitude (top) and phase (bottom) of each element plotted in color code. (b) Eigenvalue spectrum of the S4D state-transition operator (i.e. Dτ) in the complex plane. As details in Eq. (10), all modes share a common decay rate (real part), while the imaginary parts increase approximately linearly with mode index, forming a harmonic ladder of temporal frequencies. (c) Representative node trajectory in the complex plane, illustrating oscillatory dynamics with a slowly decaying amplitude. (d) Spatiotemporal evolution of node phases across time. Diagonal phase bands indicate coherent traveling waves propagating around the ring, with velocity determined by the eigenfrequencies of the dynamics operator.
+
+wave in the node dynamics at a specific spatial frequency (cf. Eq. 7). Further, we can use the eigenvalues from S4D (Eq. 10) to understand the complex adjacency matrix K
+
+in the equivalent oscillator network, via the expression 
+
+K = F DF † (Fig. 2a). When exponentiated (in eDτ ,Eq. 9), the eigenvalues djj fall on the unit circle in the complex plane (Fig. 2b). This matrix and its eigenstruc-ture determines the interactions between nodes, and the spatio-temporal structure of the dynamics that the net-work will produce [23, 24]. Without input, and with random initial conditions, the recurrent layer generates transient, fluctuating dynam-ics at each node (Fig. 2c). These fluctuations in activity at single nodes form waves traveling in a single direc-tion around the network’s ring topology (Fig. 2d). Waves traveling over a topographically organized neural net-work are known to serve useful computational roles: by embedding a continuous spatiotemporal structure across the network, they can provide a way to store information about the recent past [25–27]. This property has been observed with physical experiments in fluid mechanics [28] and in trained recurrent neural networks [29]. It has previously been recognized that this property can be a useful way to store long-term dependencies directly in a network’s activity structure [3, 30], but has not previ-ously been expressed in a direct mathematical form. We can now show that, when driven by input, S4D indeed stores information about the recent past through traveling waves in its recurrent layer. Since Dτ acts diag-onally in the F −basis, each amplitude evolves indepen-dently, yielding the simple update rule 
+
+μi(k) = λD,i μi(k − 1) + ˜bTi uk, (12) where λD,i is the i-th eigenvalue of Dτ and ˜bi =[( F †B)i]T describes how strongly the input at time k
+
+excites wave i.Equation (12) shows that the input signal is encoded by waves traveling across the recurrent layer, with tem-poral frequency determined by Im( λD,j ) and decay con-trolled by Re( λD,j ). To demonstrate how different sig-nals are encoded by these waves, we trained S4D to classify a synthetic dataset composed of three different signal classes embedded in high noise (Fig. 3a). The first class contained ten sinusoids with fixed frequency (15 Hz), random amplitude, and random phase embed-ded in strong Gaussian noise ( −0.5 to −1 dB signal-to-noise ratio). The second class consisted of ten 20 Hz si-nusoids, again with random amplitude and phase, and embedded in Gaussian noise with the same strength. The third class contained no sinusoids and only Gaus-sian noise. All signals were sampled for 900 time steps, and there were 300 independent realizations for each class in the dataset tested here. Following the analytical ex-pression Eq. (12), when the network is driven by these in-puts, the recurrent layer generates waves corresponding to specific modes μj (k) (Fig. 3b). Summing the square of each mode ( μj (k)) 2 over time shows that power at spe-cific modes distinguishes the different input classes across 5               
+
+> Figure 3. Traveling waves distinguish different inputs in a simple dataset. (a) Representative samples of timeseries data from each of the three classes. Class 1 contains 15 Hz sinusoids embedded in noise; Class 2 contains 20 Hz sinusoids embedded in noise; and Class 3 consists of signals with noise only. (b) We calculate the difference in modal energy Ej=P
+> k|μj(k)|2across inputs, which is the summed difference between class 1 and 2, 1 and 3, and 2 and 3. Each mode corresponds to an eigenfrequency of the state-transition operator Dτ. Only a small subset of resonant modes shows pronounced differences. The stem plot shows that mode 101, whose eigenphase lies closest to the 15–20 Hz temporal frequency band, separates input classes most effectively. (c) Single-trial distributions of the resonant modal energy log 10 E(j101 ), shown as histograms with counts. This single resonant mode exhibits clear class separation: the 15 Hz and 20 Hz classes concentrate at distinct energy levels, while the noise-only class occupies a lower-energy regime. Together, these results demonstrate that discrimination arises from a small subset of resonant modes rather than from global spectral differences.
+
+trials (Fig. 3c). This result demonstrates that S4D generates travel-ing waves in its recurrent layer that distinguish simple inputs, allowing successful classification at the system’s readout. As discussed above, the sinusoidal inputs that are varying in time become translated into waves trav-eling across the network. These spatial modes allow a relatively small 5 Hz difference in temporal frequency be-tween class 1 and class 2 to build up over time, until the network produces very different traveling wave patterns in the recurrent layer. These wave dynamics in the recurrent layer of the SSM are then processed through a series of linear and nonlin-ear operations. While only the linear recurrent dynamics in S4D-Lin are needed to distinguish inputs in this rel-atively simple dataset, more complex, real-world inputs require the entire cascade of linear and nonlinear steps. In general, the forward pass of the network – i.e., how a specific input leads to a specific classification – is very difficult to analyze mathematically when the interactions between linear and nonlinear steps become critical to the network’s performance. In the next section, however, we will introduce a mathematical approach, using the frame-work introduced above, that allows understanding pre-cisely how S4D classifies inputs in a real-world sequence processing task. 
+
+> An explicit operator for computation in S4
+
+Our goal is to write a mathematical expression that exactly characterizes a single computation in S4, from receiving an input to generating an output. To do this, we will utilize the connection between S4D and the oscil-lator networks defined above. This expression should take the following operator form: 
+
+O = 1
+
+T W
+
+> T
+
+X
+
+> k=1
+
+Λ
+
+
+
+ℜ C [Dτ xk + ¯Bu k]
+
+, (13) relating the input uk ∈ Rdmodel to the output O ∈ RNc
+
+(where Nc is the number of output classes) via the linear transformation C ∈ Rdmodel ×N , the nonlinear activation function Λ applied to each node, and the final readout operator W ∈ RNc×dmodel . Note that the nonlinear ac-tivation function Λ is applied elementwise, and is also distinct from the matrix of eigenvalues Λ in Eq. (8). This end-to-end expression completely describes the computation performed on an individual input by a gen-eral SSM composed of a linear recurrence and nonlinear readout, and is applicable (with modification) whether the SSM dynamics is diagonalized or not. We will utilize the expression to understand computation in S4D-Lin, but note that the analysis generalizes across SSMs. The mathematical expression also makes explicit why analyz-ing the complete forward pass in SSMs is difficult: even if one uses a completely standard linear recursion, which can be easily solved, the result is always passed through a nonlinear activation Λ that aides performance on real-world classification tasks. This means that, even if the high-dimensional mappings in the linear recurrence xk
+
+can be understood, it is very difficult to understand how the subsequent nonlinear transformation Λ interacts with 6the linear transformations in xk to accurately process real-world sequences. In this section, however, we will utilize a technique called Carleman embedding for non-linear systems [31] to understand precisely how these lin-ear transformations interact with nonlinear activations in these SSMs. To do this, the recurrence of the SSM layer 
+
+xk+1 = Dτ xk + ¯Bu k (14) can be expressed at any future time T , in terms of the initial conditions and input, as 
+
+xT = D Tτ x0 + ¯B
+
+> T
+
+X
+
+> j=1
+
+D T −jτ uj , (15) which expresses the final state as a linear superposition of the propagated initial condition and a weighted input history. Diagonalizing the propagator Dτ with the basis 
+
+F leads to the modal dynamics 
+
+μi(k) = λ kD,i μi(0) + ˜bTikX
+
+> j=1
+
+λ k−jD,i uj (16) as before (cf. Eq. 12). Here, each eigenmode evolves inde-pendently and accumulates its own filtered input history. Because real-world data possess much broader spec-tral content than the sinusoid example presented above (Fig. 2), real-world sequence inputs do not map onto sin-gle eigenmodes in a simple way, in general. The transfor-mation C on the output of the dynamics operator mixes the wave modes, 
+
+sk := Cx k =
+
+> N
+
+X
+
+> i=1
+
+μi(k) ci, ci := Cf i ∈ Cdmodel ,
+
+(17) in a manner that helps to separate features in real-world data inputs. We can then define the observed features yk as the real part of sk
+
+yk := ℜ(sk) ∈ Rdmodel . (18) Using ℜ(z) = 12 (z + z), this gives 
+
+yk = 12
+
+> N
+
+X
+
+> i=1
+
+
+
+μi(k)ci + μi(k) ci
+
+
+
+. (19) Writing the ℓ-th coordinate and defining αℓi := [ ci]ℓ =[Cf i]ℓ,
+
+yk,ℓ = ℜ
+
+> N
+
+X
+
+> i=1
+
+αℓi μi(k)
+
+!
+
+, (20) 
+
+yk,ℓ = 12
+
+> N
+
+X
+
+> i=1
+
+αℓi μi(k) + 
+
+> N
+
+X
+
+> i=1
+
+αℓi μi(k)
+
+!
+
+. (21) The analysis to this point explains the computation in S4 up to the nonlinear activation function Λ, and we now need to analyze how Λ transforms the linear recursion in S4. To do this, let Λ : R → R denote the GELU activation applied elementwise, Λ( x) = GELU( x).
+
+Since Λ is analytic, it admits an exact Carleman repre-sentation in terms of elementwise monomials, Λ( y) = 
+
+> ∞
+
+X
+
+> r=0
+
+ar y⊙r , (22) where y⊙r denotes elementwise powers and the coeffi-cients {ar }r≥0 are fixed by the nonlinearity. Equivalently, defining the (infinite) Carleman lift 
+
+z(y) := 
+
+
+
+1
+
+yy⊗2
+
+y⊗3
+
+...
+
+ , (23) and diagonal-selection operators Sr ∈ Rdmodel ×dr 
+
+> model
+
+sat-isfying Sr (y⊗r ) = y⊙r , the nonlinearity can be written as Λ( y) = H∞ z(y), (24) 
+
+H∞ := a0I a1S1 a2S2 a3S3 · · · . (25) We can define a complex scalar 
+
+Ak,ℓ := 
+
+> N
+
+X
+
+> i=1
+
+αℓi μi(k). (26) and use it in Eq. (21) to rewrite the feature vectors as 
+
+yk,ℓ = 12 (Ak,ℓ + Ak,ℓ ). (27) Then for each order r,
+
+y rk,ℓ = 2 −rrX
+
+> m=0
+
+ rm
+
+
+
+A mk,ℓ Ak,ℓ r−m. (28) Now, using Eq. (26) we can write the m-th power of the complex scalar as 
+
+A mk,ℓ = X
+
+> i1,...,i m
+
+αℓi 1 · · · αℓi m μi1 (k) · · · μim (k), (29) 
+
+Ak,ℓ r−m = X
+
+> j1,...,j r−m
+
+αℓj 1 · · · αℓj r−m μj1 (k) · · · μjr−m (k).
+
+(30) Thus capturing the features of the data depends on non-linear wave interactions of the form 
+
+μi1 · · · μim μj1 · · · μjr−m ,7
+
+Figure 4. Operator description of S4 performing classification on real-world input sequences. (a) The input-to-output mapping in S4 admits a closed-form operator expression: the recurrent operator Dτ evolves the latent state in the Fourier eigenbasis, producing modal amplitudes μi(k) that encode traveling-wave dynamics. The mixing matrix C forms intermediate features yk , and the nonlinear readout is expressed at the operator level via polynomial lifts of these modal coordinates. (b) 
+
+S4 dynamics during classification of the real-world dataset SelfRegulationSCP1 [32]. Representative eigenmode trajectories Re( μ4(k)) and Re( μ8(k)) wax and wane at different sections of the input. The term z4,8(k) captures the nonlinear interaction between μ4 and μ8, quantifying times where the interaction between these two waves can contribute to sequence classification. 
+
+(c) The nonlinear interaction term z4,8(k) in the amplitude basis illustrates how these interacting waves propagate over the network. Note how the activity pattern caused by these two interacting waves bends at different times due to time-varying phase offsets in the two waves. The time of peak wave interaction is denoted with an arrow at top. (d) The distributions of the interaction term Z4,8 = ⟨Re( μ4μ8)⟩k separate two input classes (blue and red, respectively) for the SCP1 dataset. This indicates that wave-wave interactions distinguish input classes beyond the contribution of individual wave modes. (e) The linear SSM contribution explains 83% of the network’s classification performance, quantified in terms of the output margin O2 − O1. (f ) 
+
+A second-order Carleman approximation ( R = 2), implemented via a weighted Chebyshev fit to the GELU nonlinearity (see Appendix I C for details), captures quadratic modal interactions and explains 94% of the network’s performance. (g) The complete GELU activation function explains 100% of the classification performance in this network, illustrating the level to which the Carleman embedding converges. 
+
+including energy-like ( m = r − m) and phase-sensitive terms. Thus, while Fig. 3 shows that the energy of the traveling wave modes in the recurrent layer is already enough to distinguish simple sinusoidal inputs embedded in noise, classification of real-world data requires nonlin-ear wave interactions that depend on their relative phase, extracting information beyond wave amplitude alone. The explicit expression for the system’s output (Eq. 13) then admits the exact Carleman representation 
+
+O = 1
+
+T W
+
+> T
+
+X
+
+> k=1
+
+H∞ z(yk) , (31) which can be truncated to order R,8
+
+O ≈ 1
+
+T
+
+> R
+
+X
+
+> r=0
+
+ar 2−rrX
+
+> m=0
+
+ rm
+
+
+
+W
+
+> T
+
+X
+
+> k=1
+
+
+
+(Aμ(k)) ⊙m ⊙ (Aμ(k)) ⊙(r−m)
+
+, (32) where A ∈ Cdmodel ×N has entries Aℓi = αℓi .Equation (32) provides an explicit expression for how S4 maps an individual input to a specific output, provid-ing an end-to-end description of computation in the sys-tem. Further, this expression also provides direct mecha-nistic insight into how computation works in S4: the non-linear activation function Λ decomposes into a hierarchy of interaction orders – where linear responses ( r = 1) represent the waves excited by individual inputs, second-order responses ( r = 2) capture interactions between two waves, and higher-order responses ( r ≥ 3) capture multi-wave interactions. The advantage of the Carleman embedding is that it provides a holistic insight into the interactions in a non-linear system [33], in contrast to standard techniques like Taylor expansion that approximate a nonlinear system only in a restricted neighborhood. In addition, the Car-leman embedding for the S4 computation does not re-quire an extensive expansion: truncating the embedding only to second-order accounts for 94% of the complete SSM’s performance in classifying a real-world sequence (Fig. 4). Truncating the Carleman embedding at higher orders brings the explained accuracy closer and closer to the complete system, but the second-order expansion already explains a substantial fraction of the accuracy achieved by the complete S4 system, while also provid-ing succinct theoretical insight. Specifically, the first-order linear SSMs contribution – representing the travel-ing waves directly evoked by the input – accounts for 83% of the network’s classification accuracy, while the second-order contribution – representing nonlinear interactions between two traveling waves in the SSM – brings the ex-plained performance up to 94%. This provides a clear theoretical account of how S4 stores and uses past inputs in its activity state, in terms of waves and nonlinear wave interactions, in addition to opening new paths to faster and more lightweight implementations of S4 guided by this mathematical analysis. 
+
+> DISCUSSION
+
+A central challenge in the theory of machine learning is to understand what computations trained neural net-works actually perform. While much theoretical work has provided insight into the learning dynamics of deep net-works [34] – that is, how a randomly initialized network evolves during training – theoretical analyses typically do not characterize the forward pass of the network – where an individual input sequence drives the network to gen-erate a specific output. The results presented here rep-resent a first step in providing a theoretical description of the forward pass in SSMs, providing new insight into how S4 generates individual outputs through its trained connection weights. By identifying a precise mathematical correspondence between SSMs and nonlinear oscillator networks, this work demonstrates that a large class of linear time-invariant SSMs that have achieved state-of-the-art per-formance on sequence processing benchmarks can be completely understood in terms of traveling waves. Com-plex spatiotemporal patterns – and traveling waves, in particular – have recently been of interest for computa-tion in both state-space models and the wider class of recurrent neural networks (RNNs) [20, 29, 35–39], in ad-dition to biological brains [25, 40]. The framework in-troduced here shows that these wave dynamics are not merely byproducts of the dense interconnectivity in the recurrent layer of these systems, but instead are a funda-mental computational mechanism through which SSMs process sequence information. 
+
+> Traveling waves are the computational substrate of SSMs
+
+The correspondence established in this work reveals that diagonal SSMs like S4D-Lin are mathematically equivalent to a specific, exactly solvable nonlinear oscil-lator network. In the eigenbasis provided by this connec-tion, the recurrent dynamics in S4 unfold as waves travel-ing around the network’s one-dimensional ring topology, rather than relatively abstract transformations on a la-tent state space. This physical insight provides, in turn, a concrete physical meaning for S4’s complex-valued pa-rameterization: the recurrent operator Dτ implements a bank of input-driven traveling wave modes, each with a specific spatial frequency. The operator Dτ performs a highly structured spectral factorization of individual input sequences. When Dτ is circulant, its eigenvectors are discrete Fourier modes on a spatially organized ring topology of the network [23, 24], and different input sequences selectively excite different subsets of these modes. This selective excitation pro-duces distinct signatures of modes that store information about the recent past in a manner useful for sequence classification problems. In the relatively simple sinusoid dataset, for example, only a small set of modes – those whose frequencies resonate with inputs in the 15-20 Hz temporal frequency band – serve to distinguish between input classes. Although the distribution of energy across modes is broadly similar across the different input classes, a specific set of resonant modes exhibit consistent shifts in amplitude that enable linear separation of the input classes. This spectral factorization emerges through the linear dynamics of the recurrent layer, prior to any non-9linear processing. 
+
+> Nonlinear activation induces interactions between waves
+
+The nonlinear activation function induces interactions between waves in the SSM’s linear recurrence, amplify-ing the waves’ ability to store information about recent inputs in a complex spatiotemporal pattern of activity in the network. Using Carleman embedding, we derived an exact operator expression for the complete forward pass of S4, revealing how the GELU activation decom-poses computation into a hierarchy of interactions be-tween wave modes. This operator expression makes ex-plicit how S4 combines information across timescales in real-world datasets: the readout weights determine which wave modes and nonlinear wave interactions contribute to the output classification. Truncating the Carleman embedding to first order reveals that the system stores information in the amplitude of traveling waves in the recurrent layer. Truncating the embedding to second or-der reveals quadratic interactions μi(k)μj (k) that cap-ture interaction between waves and cross-frequency cou-plings. Higher-order truncations correspond to increas-ingly complex interactions between multiple waves. The lifting mechanism of the nonlinear activation function thus transforms the wave dynamics into an interaction space whose low-order terms already capture most task-relevant structure. The mathematical analysis thus re-veals that S4’s computational power derives not only from its ability to maintain information about the recent past through wave dynamics, but also from the geome-try of interactions between wave modes induced by the nonlinear readout. 
+
+> Implications for understanding and designing SSMs
+
+This mathematical framework provides several insights into why SSMs achieve state-of-the-art performance on sequence processing tasks. First, temporal information is encoded as traveling waves – coherent spatiotemporal activity patterns, rather than abstract, high-dimensional activity patterns on a random network topology. Sec-ond, the specific eigenvalue structure in S4D-Lin en-sures that, once excited, all wave modes decay at iden-tical rates, preventing any single mode from dominat-ing purely due to stability or an intrinsically long life-time. This produces nearly uniform distributions of en-ergy across modes, which can flexibly process diverse in-put patterns. Third, the complex-valued parameteriza-tion of S4 approximates heterogeneous time delays across connections in the recurrent layer [24], expanding the ef-fective dimensionality of the system [41] and enhancing its computational capacity [35, 39, 42–44]. These physical insights also extend beyond simple trav-eling wave patterns in the recurrent layer. When connec-tivity or phase-lag parameters are altered, a specific set of modes could be designed to have similar decay rates, re-sulting in more complex interference patterns than occur in S4D-Lin by default. This could produce longer-lived transient spatiotemporal structures that could, in turn, be useful for capturing longer-time input dependencies, and could further improve SSMs’ capabilities relative to transformers. The mathematical framework introduced in this work can thus suggest specific, mathematically guided design principles for future SSM architectures. In addition, the analysis presented here could be directly extended to architectures with time-varying recurrences, such as Mamba [9], in future work. 
+
+> A new level of mathematical interpretability for SSMs
+
+Current methods for explaining machine learning ar-chitectures for sequence processing or language mod-eling require analyzing outputs post-hoc in order to trace model inputs to outputs. This process is largely done manually, and is also data- and method-dependent, meaing that different choices of input datasets or analy-sis parameters yield different explanations of the model. Thus, while approaches like mechanistic interpretability can provide insight into how systems like large language models process inputs and generate outputs [12, 45], these methods remain fundamentally empirical, observ-ing model output rather than deriving first-principles in-sight from the structure of the model itself. In contrast, the analysis introduced here opens the door to understanding the input-output mapping at a mathematical level, enabling prediction of outputs a pri-ori without necessarily needing even to run the model. By deriving an explicit operator expression (Eq. 32) that relates arbitrary inputs to model ouputs in a classi-fication task, we establish a mathematical framework where the forward pass becomes analytically tractable. This represents a qualitative shift from needing to inter-pret model output post-hoc to prospective understand-ing: rather than empirically probing a trained model to understand its computational strategy, we can derive how specific input features propagate through the recurrent dynamics, undergo nonlinear transformation, and lead to the model output. This mathematical interpretability can lead to several clear benefits, including the potential for controllable lan-guage models in future work. If the mapping from input sequences to model output can be understood in terms of explicit mathematical expressions, then one can po-tentially design eigenvector-based strategies to control model output in real time. This level of control is funda-mentally unavailable when methods for interpretability rely solely on empirical observation rather than mathe-matical expressions for computation. Such controllable 10 language models, based on mathematical expressions, would enable a new level of guarantees on model output and safety that are critical to deployment in sensitive applications. 
+
+Broader implications 
+
+This work demonstrates that state-of-the-art ma-chine learning architectures can be precisely understood through explicit mathematical expressions. The opera-tor expression for S4 provides the first end-to-end char-acterization of computation in a modern sequence pro-cessing architecture, revealing how traveling-wave recur-rent dynamics and nonlinear modal interactions com-bine to produce strong sequence classification perfor-mance. By bridging nonlinear dynamical systems, spec-tral graph theory, and modern deep learning architec-tures, this framework opens new directions for under-standing sequence processing and language modeling at a mathematical level. 
+
+CODE AVAILABILITY 
+
+An open-source version of the code and data used in this study will be made available at https://mullerlab.github.io. 
+
+ACKNOWLEDGMENTS 
+
+This work was supported by BrainsCAN at Western University through the Canada First Research Excellence Fund (CFREF), the NSF through a NeuroNex award (#2015276), the Natural Sciences and Engineering Re-search Council of Canada (NSERC) grant R0370A01, Compute Ontario (computeontario.ca), Digital Research Alliance of Canada (alliancecan.ca), the Air Force Of-fice of Scientific Research (FA9550-24-1-0028), and NIH Grants U01-NS131914 and R01-EY028723. 
+
+[1] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, ˚ A. Kaiser, and I. Polosukhin, Attention is all you need, in Advances in Neural Infor-mation Processing Systems , Vol. 30 (2017). [2] D. Bahdanau, Neural machine translation by jointly learning to align and translate, arXiv:1409.0473 (2014). [3] L. Muller, P. S. Churchland, and T. J. Sejnowski, Trans-formers and cortical waves: encoders for pulling in con-text across time, Trends in neurosciences (2024). [4] Y. Tay, M. Dehghani, D. Bahri, and D. Metzler, Efficient transformers: A survey, arXiv:2009.06732 (2020). [5] R. Child, Generating long sequences with sparse trans-formers, arXiv:1904.10509 (2019). [6] A. Katharopoulos, A. Vyas, N. Pappas, and F. Fleuret, Transformers are rnns: Fast autoregressive transformers with linear attention, in International Conference on Ma-chine Learning (2020). [7] A. Gu, K. Goel, and C. R´ e, Efficiently modeling long sequences with structured state spaces, arXiv:2111.00396 (2021). [8] A. Gu, K. Goel, A. Gupta, and C. R´ e, On the parameter-ization and initialization of diagonal state space models, Advances in Neural Information Processing Systems 35 
+
+(2022). [9] A. Gu and T. Dao, Mamba: Linear-time sequence model-ing with selective state spaces, arXiv:2312.00752 (2023). [10] J. T. H. Smith, A. Warrington, and S. W. Linder-man, Simplified state space layers for sequence modeling, arXiv:2208.04933 (2022). [11] A. Orvieto, S. L. Smith, A. Gu, A. Fernando, C. Gul-cehre, R. Pascanu, and S. De, Resurrecting recurrent neural networks for long sequences, in International Con-ference on Machine Learning (PMLR, 2023). [12] N. Elhage, N. Nanda, C. Olsson, T. Henighan, N. Joseph, B. Mann, A. Askell, Y. Bai, A. Chen, T. Conerly, et al. , A mathematical framework for transformer circuits, Trans-former Circuits Thread 1, 12 (2021). [13] S. Wang and B. Xue, State-space models with layer-wise nonlinearity are universal approximators with exponen-tial decaying memory, in Advances in Neural Information Processing Systems , Vol. 36 (2023). [14] N. Muca Cirone, A. Orvieto, B. Walker, C. Salvi, and T. Lyons, Theoretical foundations of deep selective state-space models, in Advances in Neural Information Pro-cessing Systems , Vol. 37 (2024). [15] L. Muller, J. Min´ aˇ c, and T. T. Nguyen, Algebraic ap-proach to the kuramoto model, Physical Review E 104 ,L022201 (2021). [16] R. C. Budzinski, A. N. Busch, S. Mestern, E. Martin, L. H. B. Liboni, F. W. Pasini, J. Min´ aˇ c, T. Coleman, W. Inoue, and L. E. Muller, An exact mathematical de-scription of computation with transient spatiotemporal dynamics in a complex-valued neural network, Commu-nications Physics 7, 239 (2024). [17] A. Gupta, A. Gu, and J. Berant, Diagonal state spaces are as effective as structured state spaces, in Advances in neural information processing systems , Vol. 35 (2022). [18] S. H. Strogatz and R. E. Mirollo, Collective synchroni-sation in lattices of nonlinear oscillators with random-ness, Journal of Physics A: Mathematical and General 
+
+21 , L699 (1988). [19] D. M. Abrams and S. H. Strogatz, Chimera states for coupled oscillators, Physical Review Letters 93 , 174102 (2004). [20] L. H. B. Liboni, R. C. Budzinski, A. N. Busch, S. L¨ owe, T. A. Keller, M. Welling, and L. E. Muller, Image seg-mentation with traveling waves in an exactly solvable recurrent neural network, Proceedings of the National Academy of Sciences 122 , e2321319121 (2025). [21] P. J. Davis, Circulant Matrices (Wiley, 1979). [22] Y. Tay, M. Dehghani, S. Abnar, Y. Shen, D. Bahri, P. Pham, J. Rao, L. Yang, S. Ruder, and D. Metzler, 11 
+
+Long range arena: A benchmark for efficient transform-ers, in International Conference on Learning Representa-tions (2021). [23] R. C. Budzinski, T. T. Nguyen, J. Do` an, J. Min´ aˇ c, T. J. Sejnowski, and L. E. Muller, Geometry unites synchrony, chimeras, and waves in nonlinear oscillator networks, Chaos: An Interdisciplinary Journal of Nonlinear Science 
+
+32 , 031104 (2022). [24] R. C. Budzinski, T. T. Nguyen, G. B. Benigno, J. Do` an, J. Min´ aˇ c, T. J. Sejnowski, and L. E. Muller, Analyti-cal prediction of specific spatiotemporal patterns in non-linear oscillator networks with distance-dependent time delays, Physical Review Research 5, 013159 (2023). [25] L. Muller, F. Chavane, J. Reynolds, and T. J. Sejnowski, Cortical travelling waves: mechanisms and computa-tional principles, Nature Reviews Neuroscience 19 , 255 (2018). [26] G. B. Benigno, R. C. Budzinski, Z. W. Davis, J. H. Reynolds, and L. Muller, Waves traveling over a map of visual space can ignite short-term predictions of sensory input, Nature Communications 14 , 3409 (2023). [27] T. A. Keller, L. Muller, T. Sejnowski, and M. Welling, Traveling waves encode the recent past and enhance se-quence learning, in ICLR (2024). [28] S. Perrard and M. Labousse, Transition to chaos in wave memory dynamics in a harmonic well: Deterministic and noise-driven behavior, Chaos: An Interdisciplinary Jour-nal of Nonlinear Science 28 (2018). [29] T. A. Keller and M. Welling, Neural wave ma-chines: learning spatiotemporally structured represen-tations with locally coupled oscillatory recurrent neural networks, in International Conference on Machine Learn-ing (2023). [30] T. A. Keller, L. Muller, T. J. Sejnowski, and M. Welling, A spatiotemporal perspective on dynamical computation in neural information processing systems, ArXiv , arXiv (2026). [31] T. Carleman, Application de la theorie des polynomes orthogonaux a un probleme de la theorie des fonctions analytiques, Arkiv f¨ or Matematik, Astronomi och Fysik 
+
+17 , 1 (1932). [32] A. Bagnall, H. A. Dau, J. Levy, G. Forestier, C. Hou, G. Jehan, and L. Ye, The uea multivariate time series classification archive, 2018, arXiv:1811.00075 (2018). [33] A. Amini, C. Zheng, Q. Sun, and N. Motee, Carleman lin-earization of nonlinear systems and its finite-section ap-proximations, Discrete and Continuous Dynamical Sys-tems - B 30 , 577 (2025). [34] A. M. Saxe, J. L. McClelland, and S. Ganguli, Exact solutions to the nonlinear dynamics of learning in deep linear neural networks, arXiv:1312.6120 (2013). [35] D. J. Heeger and W. E. Mackey, Oscillatory recurrent gated neural integrator circuits (organics), a unifying the-oretical framework for neural dynamics, Proceedings of the National Academy of Sciences 116 , 22783 (2019). [36] T. K. Rusch and D. Rus, Oscillatory state-space models, arXiv:2410.03943 (2024). [37] T. Miyato, S. L¨ owe, A. Geiger, and M. Welling, Artificial kuramoto oscillatory neurons, arXiv:2410.13821 (2024). [38] A. Karuvally, T. J. Sejnowski, and H. T. Siegelmann, Hidden traveling waves bind working memory variables in recurrent neural networks, arXiv:2402.10163 (2024). [39] S. Muzellec, A. Alamia, T. Serre, and R. VanRullen, En-hancing deep neural networks through complex-valued representations and kuramoto synchronization dynamics, arXiv:2502.21077 (2025). [40] T. A. Engel and N. A. Steinmetz, New perspectives on di-mensionality and variability from large-scale cortical dy-namics, Current opinion in neurobiology 58 , 181 (2019). [41] J. D. Hart, L. Larger, T. E. Murphy, and R. Roy, De-layed dynamical systems: networks, chimeras and reser-voir computing, Philosophical Transactions of the Royal Society A: Mathematical, Physical and Engineering Sci-ences 377 , 20180389 (2019). [42] Y. Ebato, K. Nakajima, and R. Masuda, Impact of time-history terms on reservoir dynamics and prediction accu-racy in echo state networks, Scientific Reports 14 , 8871 (2024). [43] S. K. Tavakoli and A. Longtin, Boosting reservoir com-puter performance with multiple delays, Physical Review E 109 , 054203 (2024). [44] S. Marzen, Time delays improve performance of certain neural networks, Physics 17 , 111 (2024). [45] N. Nanda, L. Chan, T. Lieberum, J. Smith, and J. Stein-hardt, Progress measures for grokking via mechanistic interpretability, in International Conference on Learning Representations (2023). 12   
+
+> I. APPENDIX A. Closed-form diagonalization of circulant operators
+
+Let C ∈ CN ×N be a circulant matrix generated by the vector 
+
+c = ( c1, c 2, . . . , c N ),
+
+such that each row of C is obtained by a cyclic shift of c. By the Circulant Diagonalization Theorem, C is diagonalized by the unitary discrete Fourier transform matrix F with entries 
+
+fjs = 1
+
+√N exp 
+
+
+
+− 2πi
+
+N (s − 1)( j − 1) 
+
+
+
+,j, s = 1 , . . . , N. 
+
+(33) The corresponding eigenvalues admit a closed-form ex-pression in terms of the generating vector c,
+
+λs =
+
+> N
+
+X
+
+> j=1
+
+cj exp 
+
+
+
+− 2πi
+
+N (s − 1)( j − 1) 
+
+
+
+,s = 1 , . . . , N, 
+
+(34) which is simply the discrete Fourier transform of c. As a result, the circulant operator can be written as 
+
+C = F diag( λ1, . . . , λ N ) F †. (35) Applying the change of basis F † to the input-driven re-currence in Eq. (6) therefore yields a diagonal state up-date in the Fourier eigenbasis, in which each mode evolves independently.  
+
+> B. Example of several diagonal SSMs in this mathematical framework
+
+Figure 5 compares several diagonal SSMs by visualiz-ing the networks that result from translating their recur-rence operators into the oscillator network context, using the expression K = F DF † (as in Fig. 2). The result-ing network adjacency matrix for S4D-Lin has connec-tion strengths that decay with distance between nodes, and phase offsets that change linearly with distance (Fig. 5a). The network adjacency matrix resulting from S4D-Inv has connection strengths that decrease similarly with distance between nodes (Fig. 5b, middle panel), but these strengths decrease more slowly than for S4D-Lin. Phase offsets in the resulting network are nearly constant (Fig. 5b, right panel). The network adjacency matrix for S4D-DFouT shows similar decay in connection strength and change in phase offset to S4D-Lin (Fig. 5c). In all cases, the recurrent evolution admits an exact modal de-composition, and differences between parameterizations arise from eigenvalue allocation and readout structure rather than from changes in the linear propagator itself; consequently, each variant is amenable to the same modal and operator-level analysis developed in the main text.                                
+
+> Figure 5. Topology and induced connectivity struc-ture of the S4D operators. Each row shows the net-work representation and connectivity matrices induced by the eigenvalue spectrum of the diagonal recurrence opera-tor. (a) S4D-Lin :λn=−12+ i πn , yielding identical de-cay rates and linearly spaced imaginary parts and a cir-culant, Fourier-diagonalizable propagator. (b) S4D-Inv :
+> λn=−12+ i Nπ
+> N
+> 2n+1 −1
+> 
+> , inverting the spectral ordering while preserving stability. (c) S4D-FouTD :λn=−12+i 2πn N,corresponding to a uniform Fourier frequency grid; differences in the displayed connectivity arise solely from this eigenvalue parameterization.
+> C. Chebyshev Approximation of Carleman Embedding
+
+For Fig. 4, we implement a truncated polynomial ap-proximation of the point-wise nonlinearity using Cheby-shev polynomials. Chebyshev polynomials of the first kind are defined by 
+
+T0(x) = 1 , T1(x) = x, Tk+1 (x) = 2 xT k(x) − Tk−1(x)and span the same degree-K polynomial space as mono-mials, while offering improved numerical stability. Given readout activations y, we rescale and clip them to the interval [ −1, 1] and construct the lifted features 
+
+z(y) = T0(y), T 1(y), . . . , T K (y).
+
+The nonlinearity is approximated by a truncated Cheby-shev series fitted via weighted least squares, giving a polynomial (Carleman) feature map applied at the read-out. 13  
+
+> D. Training S4D on a sequence processing dataset
+
+To demonstrate how S4D processes real-world se-quence inputs, we trained a single-layer S4D archi-tecture on the SelfRegulationSCP1 (SCP1) classifica-tion task [32]. The SCP1 dataset is a multivariate, long-horizon time-series dataset collected during a self-regulation paradigm, where the goal is to infer cognitive control states from temporally extended neural signals. For the purpose of probing the contribution of the non-linear (higher-order) interactions to class separation, we perform an analysis on the test set in which misclassified samples are excluded. This is done to isolate the mecha-nisms underlying successful discrimination by restricting focus to only correctly classified examples. For the mathematical analysis presented in the paper, the eigenvalues (or the propagator Dτ ) are kept fixed while the readout matrix W and the mode mixing matrix 
+
+C are trained. The discretization step τ (equivalently ∆t) is fixed to 0 .01 in all experiments. Unless otherwise stated, the state dimension and model width are set to 
+
+N = 64 and dmodel = 64, respectively. Model parameters are optimized using the AdamW optimizer with standard hyperparameter settings.

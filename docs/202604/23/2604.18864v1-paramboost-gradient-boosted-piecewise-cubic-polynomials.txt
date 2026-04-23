@@ -1,0 +1,609 @@
+Title: ParamBoost: Gradient Boosted Piecewise Cubic Polynomials
+
+URL Source: https://arxiv.org/pdf/2604.18864v1
+
+Published Time: Wed, 22 Apr 2026 00:17:53 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Highlights 
+
+ParamBoost: Gradient Boosted Piecewise Cubic Polynomials 
+
+Nicolas Salvadé, Tim Hillel 
+
+• ParamBoost is a new GAM that uses Gradient Boosting with cubic polynomials to learn shape functions. 
+
+• Existing glass-box models lack support for incorporating expert knowledge. 
+
+• It supports constraints like monotonicity, convexity, and smooth continuity. 
+
+• The unconstrained model outperforms state-of-the-art GAMs on real-world datasets. 
+
+• Constraints can be selectively applied with only a modest trade-off in accuracy. 
+
+> arXiv:2604.18864v1 [cs.LG] 20 Apr 2026
+
+# ParamBoost: Gradient Boosted Piecewise Cubic Polynomials 
+
+Nicolas Salvadé a, Tim Hillel a,∗∗ 
+
+> aDepartment of Civil, Environmental and Geomatic Engineering, University College London, Gower Street, London, WC1E 6BT, , United Kingdom
+
+A R T I C L E I N F O 
+
+> Keywords :Machine Learning Gradient Boosting Generalized Additive Models Interpretability Shape Function Constraints
+
+A B S T R A C T     
+
+> Generalized Additive Models (GAMs) can be used to create non-linear glass-box (i.e. explicitly interpretable) models, where the predictive function is fully observable over the complete input space. However, glass-box interpretability itself does not allow for the incorporation of expert knowledge from the modeller. In this paper, we present ParamBoost , a novel GAM whose shape functions (i.e. mappings from individual input features to the output) are learnt using a Gradient Boosting algorithm that fits cubic polynomial functions at leaf nodes. ParamBoost incorporates several constraints commonly used in parametric analysis to ensure well-refined shape functions. These constraints include: (i) continuity of the shape functions and their derivatives (up to 𝐶 2); (ii) monotonicity; (iii) convexity; (iv) feature interaction constraints; and (v) model specification constraints. Empirical results show that the unconstrained ParamBoost model consistently outperforms state-of-the-art GAMs across several real-world datasets. We further demonstrate that modellers can selectively impose required constraints at a modest trade-off in predictive performance, allowing the model to be fully tailored to application-specific interpretability and parametric-analysis requirements.
+
+1. Introduction 
+
+Machine Learning (ML) methods (and Deep Neural Networks (DNNs) in particular) offer improved predictive capabilities over traditional parametric models. However, many applications still require parameter-based interpreta-tions, where practitioners rely on gradients (i.e., marginal effects or elasticities ) to quantify how a feature (or exogenous variable ) influences the output. Such analysis is crucial in domains including: (i) transportation modelling (Wardman, 2022; Salvadé and Hillel, 2025); (ii) econometrics (Zhang, Chen, Huang and Hu, 2022b); (iii) health (Zazdravnykh, Aistov and Aleksandrova, 2024); and (iv) structural equation modelling and energy demand (Gao, Peng and Smyth, 2021). Recent years have seen a growing focus on interpretable 
+
+ML, leading to the establishment of the field of eXplainable Artificial Intelligence (XAI). XAI techniques largely fall into two different approaches: (i) post-hoc techniques that approx-imate a black-box model; and (ii) intrinsically interpretable 
+
+glass- (or white-) box models. Among post-hoc methods, permutation-based techniques such as LIME (Ribeiro, Singh and Guestrin, 2016) and SHAP (Lundberg and Lee, 2017), have been most widely used, with applications in healthcare (Gabbay, Bar-Lev, Montano and Hadad, 2021; Zhang, Shi, Yin, Liu, Fang, Li, Zhang and Zhang, 2022a; Magesh, Myloth and Tom, 2020), finance (Gramegna and Giudici, 2021; Lin and Gao, 2022; Aljadani, Alharthi, Farsi, Balaha, Badawy and Elhosseini, 2023), road safety (Yang, Chen and Yuan, 2021a; Parsa, Movahedi, Taghipour, Derrible and Mohammadian, 2020) and travel behaviour (Tamim Kashifi, Jamal, Samim Kashefi, Almoshaogeh and Masiur Rahman, 2022; Dahmen, Weikl and Bogenberger, 2024; Martín-Baos, López-Gómez, Rodriguez-Benitez, Hillel and García-Ródenas, 2023; Ren,       
+
+> ∗∗ Corresponding author
+> nicolas.salvade.22@ucl.ac.uk (N. Salvadé); tim.hillel@ucl.ac.uk
+> (T. Hillel)
+> ORCID (s): 0009-0000-0961-9844 (N. Salvadé); 0000-0001-6872-2235 (T. Hillel)
+
+Yang, Chen, Cheng and Yuan, 2023; Hagenauer and Helbich, 2017; Salas, De la Fuente, Astroza and Carrasco, 2022). However, as these methods rely on local approximations of the model predictive functions, they only provide valid explanations at observed data points and offer no guarantee of validity over the full input space. On the other hand, recent work in intrinsically inter-pretable techniques has focused on Generalised Additive Models (GAMs)(Hastie and Tibshirani, 1990), where each feature is associated with a non-linear shape function learnt from the data; commonly using splines or Gaussian pro-cesses (GPs) (Wood, 2017), and more recently incorporating structural constraints (Ibrahim, Radchenko, Ben-David and Mazumder, 2025)). Other ML algorithms have also been adapted to GAMs, including scalable tree-based methods (Caruana, Lou, Gehrke, Koch, Sturm and Elhadad, 2015; Konstantinov and Utkin, 2021; Chang, Caruana and Golden-berg, 2021; Ibrahim, Afriat, Behdin and Mazumder, 2023; Gabidolla and Carreira-Perpiñán, 2025; Salvadé and Hillel, 2025), NNs (Agarwal, Melnick, Frosst, Zhang, Lengerich, Caruana and Hinton, 2021; Radenovic, Dubey and Mahajan, 2022; Yang, Zhang and Sudjianto, 2021b), piecewise-linear models (von Ottenbreit and De Bin, 2024) and polynomial-based models (Dubey, Radenovic and Mahajan, 2022; Duong, Wu, Zhou, Zhao, Luo, Zavesky, Yao and Shao, 2024), often achieving performance close to black-box models. Despite these advances, glass-box interpretability itself does not enable the incorporation of domain knowledge. We identify four essential constraints that, when applied to a GAM, allow for the integration of expert knowledge: (i) continuous differentiability of shape functions over the full input space, enabling computation of marginal effects and related indicators; (ii) restrictable feature interactions ,enabling each feature’s effect on the predictive function to be represented and visualised with a single exact shape function; (iii) monotonicity or curvature (i.e. convex/concave) control of shape functions; and (iv) output-specific feature 
+
+: Preprint submitted to Elsevier Page 1 of 11 Table 1 
+
+Comparison of shape function constraint capabilities of state-of-the-art GAMs. Diff.: continuous differentiability of shape functions; 
+
+FI: restrictable feature interactions; Mono./curv. monotonicity and/or curvature control of shape functions; OSF: output-specific feature assignment in multi-output problems                                                                                     
+
+> Model Modelling tasks Typical base learner Diff. FI Mono./curv. OSF
+> EBM (Caruana et al., 2015; Chang et al., 2021) Regr. and class. Trees ✗✓∼*✗
+> EGBM (Konstantinov and Utkin, 2021) Regr. Randomised trees ✗✗✗✗
+> Stump Forests (Gabidolla and Carreira-Perpiñán, 2025) Regr. and class. Trees (stumps) ✗✓✗✗
+> GRAND-SLAMIN (Ibrahim et al., 2023) Regr. and class. Soft trees 𝐶 0✓✗✗
+> APLR (von Ottenbreit and De Bin, 2024) Regr. and class. Linear trees 𝐶 0✓∼*✗
+> NAM (Agarwal et al., 2021) Regr. and class. Neural networks ✗✓✗✗
+> GAMI-Net (Yang et al., 2021b) Regr. and class.** Neural networks ✗✓✗*** ✗
+> NBM (Radenovic et al., 2022) Regr. and class. Neural basis ✗✓✗✗
+> SPAM (Dubey et al., 2022) Regr. and class. Polynomials ✗✗**** ✗✗
+> CAT (Duong et al., 2024) Regr. and class. Polynomials ✗✗✗✗
+> MGCV (Wood, 2017) Regr. and class. Splines 𝐶 2***** ✓✗✓
+> ELAAN (Ibrahim et al., 2025) Regr. Splines 𝐶 2***** ✓✗✗
+> ParamBoost (our approach) Regr. and class. Cubic trees 𝐶 2✓✓✓
+> *only monotonicity constraints **only binary classification ***based on the paper ****if interactions are turned off, the model falls back to linear/logistic regression *****with cubic splines
+
+assignment in multi-output problems (e.g. multi-class and multi-label classification, multi-target regression, and other multitask problems), such that only relevant features influence each predictive function. For example, for disease prediction in blood tests, indicators related to a specific disease should only appear in the corresponding function (e.g. a white blood cell count should influence the blood cancer class only). While some existing methods satisfy some individual constraints above, none provide all four at the same time, limiting their usage in domains such as health, transport, and policy evaluation. Table 1 summarises the interpretability capabilities of state-of-the-art GAMs. To address these limitations, we propose ParamBoost ,a novel parametric gradient boosting GAM that fits cubic polynomial functions at leaf nodes. This allows each shape function to be expressed as a polynomial up to cubic de-gree, enabling flexible non-linear effects while maintaining continuous gradients for computing marginal effects and confidence intervals. ParamBoost introduces four tunable model components: 1. Degree 𝐷 of the polynomial trees 𝑂 𝐷 : up to the cubic degree ( 𝑂 3), where 𝐷 = 0 reduces to classical Gradient Boosting Decision Trees (GBDT); 2. Smoothness 𝑆 of shape functions 𝐶 𝑆 :, from dis-continuous ( 𝑆 = −1 ) to 𝐶 2 (i.e. continuous second derivative), subject to 𝑆 ≤ 𝐷 − 1 ;3. Monotonicity and curvature constraints: restricting each feature’s shape function to incorporate domain knowledge; and 4. Output-specific feature assignment: restricting which features impact which predictive functions, again incorporating domain knowledge and supporting meaningful shape constraints 1.
+
+> 1
+
+as noted by Zhang, Tan, Koch, Lou, Chajewska and Caruana (2019), if a feature is present in all class-specific predictive functions, monotonicity in the shape function does not guarantee monotonicity of the probability outputs due to the softmax. Restricting a feature to a single predictive function resolves this, with the same reasoning applied to curvature constraints. 
+
+ParamBoost incorporates these constraints during train-ing, which has several advantages: (i) the shape functions are guaranteed to behave in a way that respects domain knowledge; (ii) the model can find the best solution within the constrained space, and there are no loss of predictive power from a post-hoc transformation, that would happen, for example, when there is a major violation of the constraint; and (iii) constraints can act as a form of regularisation. We evaluate ParamBoost on 11 real-world datasets across regression, binary classification, and multi-class classifica-tion tasks. We then present a detailed case study to demon-strate how the proposed constraints improve interpretability and generalisation. The code used to run experiments is available on Github 2.
+
+2. Methodology 
+
+2.1. GAMs 
+
+GAMs are additive models where the predictive function 
+
+𝐹 𝑖 for a class or task 𝑖 is the sum of specific shape functions 
+
+𝑓 𝑖,𝑘 :
+
+𝐹 𝑖 (𝒙 ) = 𝛽 0 +
+
+𝐾 ∑
+
+𝑘 =1 
+
+𝑓 𝑖,𝑘 (𝑥 𝑘 ), (1) where 𝑥 𝑘 is the data associated with feature 𝑘 . These predic-tive functions are transformed into predictions ̂𝑦 , the inverse of the link function 𝑔 . The type of link function used depends on the nature of the problem: (i) for (multi-target) regression, the identity function: ̂𝑦 𝑖 = 𝐹 𝑖 (𝒙 ) ∀𝑖 = 1 , ..., 𝐽 , (2) where 𝐽 = 1 for a simple regression task; (ii) for multi-label or binary classification, the logistic function: ̂𝑦 𝑖 = 11 + 𝑒 𝐹 𝑖 (𝒙 ) ∀𝑖 = 1 , ..., 𝐽 , (3) 
+
+> 2
+
+https://github.com/big-ucl/paramboost 
+
+: Preprint submitted to Elsevier Page 2 of 11 where 𝐽 = 1 for binary classification; and (iii) for multi-class classification, the softmax function: ̂𝑦 𝑖 = 𝑒 𝐹 𝑖 (𝒙 )
+
+∑𝐽 𝑗 =1 𝑒 𝐹 𝑗 (𝒙 ) , (4) where 𝐽 is the number of classes. Each shape function is learnt by minimising a loss function  over the dataset of size 𝑁 :
+
+ = 1
+
+𝑁 
+
+∑
+
+> 𝑛
+
+∑
+
+> 𝑖
+
+𝓁 (𝑦 𝑖𝑛 ,̂𝑦 𝑖𝑛 ), (5) where 𝓁 is the element-wise loss, typically: (i) the mean squared error (𝑦 𝑖𝑛 −̂𝑦 𝑖𝑛 )2 for regression and (ii) the cross-en-tropy loss ∑𝑖 𝑦 𝑖𝑛 ln( ̂𝑦 𝑖𝑛 ) for classification. Note that 𝑦 𝑖𝑛 is the observed target for class 𝑖 and observation 𝑛 (continuous for regression; equals to one if 𝑖 is the outcome, zero otherwise for classification). 
+
+2.2. Gradient Boosting Decision Trees 
+
+Gradient Boosting Decision Trees (GBDT) constructs ensembles of regression trees, where each tree partitions the input space and assigns a constant leaf-value to each partition. At iteration 𝑚 , a new tree is added to the ensemble of class/ task 𝑖 to minimise the loss function directly: 
+
+ =
+
+> 𝑁
+
+∑
+
+> 𝑛 =1
+> 𝐽
+
+∑
+
+> 𝑖 =1
+
+𝓁 (𝑦 𝑖𝑛 ,̂𝑦 𝑖𝑛,𝑚 −1 + 𝑇 𝑖,𝑚 (𝑥 𝑛 )) , (6) where: (i) 𝓁 is the loss function for each individual and alter-native as defined in Equation 5; (ii) ̂𝑦 𝑖𝑛,𝑚 −1 = ∑𝑚 −1  
+
+> 𝑝 =1
+
+𝑇 𝑖,𝑝 (𝑥 𝑛 )
+
+is the current prediction of the ensemble for observation 𝑛 
+
+and class/task 𝑖 ; and (iii) 𝑇 𝑖,𝑚 (𝑥 𝑛 ) is the tree added at iteration 
+
+𝑚 .To determine the optimal leaf values of the new tree, GBDT uses a second-order Taylor expansion of the loss function around the current prediction: 
+
+ ≈
+
+> 𝑁
+
+∑
+
+> 𝑛 =1
+> 𝐽
+
+∑
+
+> 𝑖 =1
+
+[𝓁 (𝑦 𝑖𝑛 ,̂𝑦 𝑖𝑛,𝑚 −1 )+ 𝑔 𝑖𝑛 𝑇 𝑖,𝑚 (𝑥 𝑛 ) + 12 ℎ𝑖𝑛 𝑇 𝑖,𝑚 (𝑥 𝑛 )2],
+
+(7) where 𝑔 𝑖𝑛 = 𝜕 𝓁 (𝑦 𝑖𝑛 ,̂𝑦 𝑖𝑛,𝑚 −1 )∕ 𝜕̂ 𝑦 𝑖𝑛,𝑚 −1 and ℎ𝑖𝑛 = 𝜕 2𝓁 (𝑦 𝑖𝑛 ,̂ 𝑦 𝑖𝑛,𝑚 −1 )∕ 𝜕 2̂𝑦 𝑖𝑛,𝑚 −1 are the first and second derivatives, re-spectively, of the loss with respect to the prediction. In standard GBDT, each tree 𝑇 𝑖,𝑚 (𝑥 𝑛 ) consists of 𝐿 non-overlapping terminal nodes (or leaves ) such that each data point will belong to a single leaf: 
+
+𝑇 𝑖,𝑚 (𝑥 𝑛 ) = 
+
+> 𝐿
+
+∑
+
+> 𝑙 =1
+
+𝛾 𝑙,𝑖,𝑚 𝟏 (𝑥 𝑛 ∈ 𝑙 ), (8) where 𝟏 (𝑥 𝑛 ∈ 𝑙 ) indicates that sample 𝑥 𝑛 belongs to leaf 𝑙 .The optimal value 𝛾 𝑙,𝑖,𝑚 of a leaf 𝑙 of class/task 𝑖 at iteration 𝑚 is obtained by setting the derivative of Equation 7 with respect to the leaf value to zero, giving: 
+
+𝛾 𝑙,𝑖,𝑚 = − (∑𝑛 ∈𝑙 𝑔 𝑖𝑛 )(∑𝑛 ∈𝑙 ℎ𝑖𝑛 ) (9) GBDT therefore effectively mimics a mini-batch quasi-Newton method with a diagonal approximation of the Hessian applied to a batch defined by the tree partitions. 
+
+2.3. Gradient Boosting with Polynomial Trees 
+
+We modify the standard paradigm of GBDT by assum-ing that the terminal nodes output monomials of degree 
+
+𝑑 ∈ {0 , .., 𝐷 }, rather than constant values. Thus, the tree predictions 𝑓 𝑖,𝑚 (𝑥 𝑖𝑛 ) correspond to elements of a polynomial function rather than shape function values. Gradient boosting with linear trees (monomial of degree 1) was introduced by Shi, Li and Li (2019), but their approach fits independent 
+
+linear models 𝛽 𝑖 0 + 𝜷 𝑇 𝑖 𝐱 𝐧 on the left and right sides of each split, providing no mechanism to enforce continuity. In contrast, we exploit the binning procedure of histogram-based GBDT, where each feature is discretised into 𝐵 bins. For each feature 𝑘 and bin 𝑏 ∈ {1 , ..., 𝐵 }, the binned variable is defined as 
+
+𝑥 ∗ 
+
+> 𝑘𝑏𝑛
+
+=
+
+⎧⎪⎪⎨⎪⎪⎩
+
+0 if 𝑥 𝑘𝑛 < 𝑢 𝑏 −1 ,𝑥 𝑘𝑛 if 𝑥 𝑘𝑛 < 𝑢 𝑏 and 𝑏 = 1 
+
+𝑥 𝑘𝑛 − 𝑢 𝑏 −1 if 𝑢 𝑏 −1 ≤ 𝑥 𝑘𝑛 < 𝑢 𝑏 and 𝑏 > 1,𝑢 𝑏 otherwise ,
+
+(10) where 𝑢 𝑏 denotes the upper boundary of the bin (and 𝑢 0 = −∞ 
+
+and 𝑢 𝐵 = ∞ ). Note that the bin edges are obtained with a quantile-based binning algorithm. Thus, each feature shape function becomes a piecewise polynomial of degree 𝐷 :
+
+𝑓 𝑖𝑘 (𝑥 𝑘𝑛 ) = 
+
+> 𝐷
+
+∑
+
+> 𝑑 =0
+> 𝐵
+
+∑
+
+> 𝑏 =1
+
+𝛽 𝑖𝑘𝑑𝑏 (𝑥 ∗
+
+> 𝑘𝑏𝑛
+
+)𝑑 . (11) As before, we apply the second-order approximation in 7 to find the optimal parameter values, however the gradients and Hessians must now account for the polynomial basis. Using the chain rule, the first derivative of the loss with respect to coefficient 𝛽 𝑖𝑘𝑑𝑏 is given by: 
+
+𝑔 𝛽 𝑖𝑘𝑏𝑑𝑛 = 𝜕 𝓁 (𝑦 𝑖𝑛 ,̂𝑦 𝑖𝑛,𝑚 −1 )
+
+𝜕𝛽 𝑖𝑘𝑑𝑏 
+
+= 𝑔 𝑖𝑛 
+
+𝜕𝐹 𝑖𝑛,𝑚 −1 
+
+𝜕𝛽 𝑖𝑘𝑑𝑏 
+
+= 𝑔 𝑖𝑛 (𝑥 ∗
+
+> 𝑘𝑏𝑛
+
+)𝑑 .
+
+(12) Similarly, the second derivative is given by: 
+
+ℎ𝛽 𝑖𝑘𝑏𝑑𝑛 = 𝜕 2𝓁 (𝑦 𝑖𝑛 ,̂𝑦 𝑖𝑛,𝑚 −1 )
+
+𝜕 2𝛽 𝑖𝑘𝑑𝑏 
+
+= ℎ𝑖𝑛 
+
+( 𝜕𝐹 𝑖𝑛,𝑚 −1 
+
+𝜕𝛽 𝑖𝑘𝑑𝑏 
+
+)2
+
+= ℎ𝑖𝑛 (𝑥 ∗
+
+> 𝑘𝑏𝑛
+
+)2𝑑 ,
+
+(13) 
+
+: Preprint submitted to Elsevier Page 3 of 11 The optimal leaf values in each terminal node 𝑙 are then obtained as with in Equation 9, substituting in the new gradients: 
+
+𝛾 𝑙,𝑖𝑘𝑑,𝑚 = − (∑𝑛 ∈𝑙 𝑔 𝛽 𝑖𝑘𝑏𝑑𝑛 )(∑𝑛 ∈𝑙 ℎ𝛽 𝑖𝑘𝑏𝑑𝑛 ) . (14) The parallel with gradient descent is now even more striking as all bins included in a terminal node are updated with the same leaf value: 
+
+𝛽 𝑖𝑘𝑑𝑏 += 𝜈𝛾 𝑙,𝑖𝑘𝑑,𝑚 , ∀𝑏 ∈ 𝑙, (15) where 𝜈 is the learning rate. Importantly, at each boosting iteration only one feature-degree pair competes for an update, analogous to standard GBDT where features compete via split selection. This results in a diagonal approximation of the Hessian, preserving the scalability of the method. Finally, note that the GAM polyno-mial form we extract is exactly equivalent to standard GBDT ensembles, but it is only valid when feature interactions are restricted. The restriction allows trees split on the same features to be summed. In practice, we implement this by growing trees of depth 1. 
+
+3. ParamBoost 
+
+In ParamBoost, we exploit gradient boosting with polyno-mial trees to compute piecewise cubic shape functions. A key distinction from standard GBDT is that we only keep track of the overall (global) parameters of the piecewise polynomials, rather than storing each individual trees. As such, the memory requirements of ParamBoost is independent of the number of trees/boosting iterations in the model, in contrast with typical GBDT models. 
+
+3.1. Continuity and smoothness of shape functions 
+
+Computing leaf values using Equation 14 generally re-sults in discontinuities in the resulting shape functions at leaf boundaries. To ensure continuity, we instead boost relative 
+
+to the split point. Specifically, when considering a split at a specific threshold 𝑢 𝑏 ∗ , we calculate all derivatives using 
+
+(𝑥 𝑘𝑛 − 𝑢 𝑏 )𝑑 as opposed to (𝑥 ∗
+
+> 𝑘𝑏𝑛
+
+)𝑑 . This ensures contributions from both sides of the split evaluate to zero at the boundary. With this transformation, the gradient becomes: 
+
+𝑔 𝛽 𝑖𝑘𝑏𝑑𝑛 = 𝑔 𝑖𝑛 (𝑥 𝑘𝑛 − 𝑢 𝑏 )𝑑 , (16) and the Hessian: 
+
+ℎ𝛽 𝑖𝑘𝑏𝑑𝑛 = ℎ𝑖𝑛 (𝑥 𝑘𝑛 − 𝑢 𝑏 )2𝑑 . (17) This ensures continuity at the split points for all mono-mials of degree 𝑑 ≥ 1. The drawback is that both the first- and second-order derivatives must be precomputed for all candidate split points, increasing the computational and memory cost compared with standard gradient boosting with linear trees. This is the main scalability bottleneck of ParamBoost. Even with this modification, using constants (i.e. degree-0 terms) at split points results in discontinuities in the shape function. Therefore, to ensure 𝐶 0 continuity, we can simply disallow splits on monomials of degree 𝑑 = 0, instead using a single global constant term across all bins. This is achieved with a quasi-Newton update with a diagonal approximation of the Hessian, computed by aggregating gradients and Hessians across bins (as in Equation 14, but with a single leaf 𝑙 encompassing all bins). Updating this global constant competes against splitting on higher-degree monomials when choosing the best split. The result above can be generalised to higher order continuity. For a shape function of maximum degree 𝐷 , we can enforce smoothness 𝐶 𝑆 where 𝑆 ∈ {0 , .., 𝐷 − 1} by disallowing splits on all monomials of 𝑂 𝑆 or below, instead estimating a single global parameter for these terms across all bins. For instance, enforcing 𝐶 1 continuity requires excluding all splits of 𝑑 = 0 and 𝑑 = 1 , and 𝐶 2 continuity requires excluding all splits of 𝑑 ≤ 2.
+
+3.2. Monotonicity and curvature constraints 
+
+In many applications, the modeller may wish to ensure monotonicity or convexity of the shape function over the input space, i.e.: 
+
+𝑚 𝑘 𝑓 ′
+
+> 𝑖𝑘
+
+(𝑥 ) ≥ 0 ∀𝑥, (18) 
+
+𝑐 𝑘 𝑓 ′′ 
+
+> 𝑖𝑘
+
+(𝑥 ) ≥ 0 ∀𝑥, (19) where: (i) 𝑓 ′
+
+> 𝑖𝑘
+
+(𝑥 ) and 𝑓 ′′ 
+
+> 𝑖𝑘
+
+(𝑥 ) are the first and second deriva-tives of the shape function of feature 𝑘 and class 𝑖 : (ii) 𝑚 𝑘 ∈{−1 , 1} specifies decreasing or increasing monotonicity respectively; and (iii) 𝑐 𝑘 ∈ {−1 , 1} specifies concavity or convexity respectively. To ensure monotonicity, when adding a new tree, all updates 𝛾 𝑙,𝑖,𝑚 must satisfy the following constraints, for degree 𝑑 ≥ 1:
+
+𝑚 𝑘 𝑑𝛾 𝑙,𝑖𝑘𝑑,𝑚 (𝑥 − 𝑢 𝑙 )𝑑 −1 ≥ 𝑚 𝑘 𝑓 ′
+
+> 𝑖𝑘
+
+(𝑥 ) (20) and for 𝑑 = 0 :
+
+𝑚 𝑘 (𝛾 right ,𝑖𝑘𝑑,𝑚 − 𝛾 left ,𝑖𝑘𝑑,𝑚 ) ≥ 0. (21) For convexity/concavity, continuity is required, and so (following the above) terms of 𝑑 = 0 are not permitted. The relevant constraints for degree 𝑑 ≥ 2 are: 
+
+𝑐 𝑘 𝑑 (𝑑 − 1) 𝛾 𝑙,𝑖𝑘𝑑,𝑚 (𝑥 − 𝑢 𝑙 )𝑑 −2 ≥ 𝑐 𝑘 𝑓 ′′ 
+
+> 𝑖𝑘
+
+(𝑥 ) (22) and for 𝑑 − 1 :
+
+𝑐 𝑘 (𝛾 right ,𝑖𝑘𝑑,𝑚 − 𝛾 left ,𝑖𝑘𝑑,𝑚 ) ≥ 0. (23) 
+
+3.3. Output-specific features 
+
+In a multi-output problem, such as multi-class and multi-label classification and multi-task regression, it is desirable to control which features contribute to which predictive   
+
+> :Preprint submitted to Elsevier Page 4 of 11
+
+functions. This offers two primary benefits: (i) improved interpretability as a feature related to a specific class/ label will impact only its corresponding shape function; and (ii) (specific to multi-class classification) consistency of soft-max probabilities with monotonicity/curvature constraints of the shape functions. 
+
+3.4. Confidence intervals 
+
+As ParamBoost learns parametric, piecewise-cubic shape functions, we can compute formal standard errors and con-fidence intervals. We exploit the fact that, in maximum likelihood estimation, the variance-covariance matrix of the parameter can be approximated by the inverse of the Hessian matrix. We then make the same assumptions as in gradient boosting (and during training): that the Hessian is diagonal and that the observations are independent and identically distributed. For a parameter 𝛽 𝑖𝑘𝑑𝑏 of a class 𝑖 , feature 𝑘 ,degree 𝑑 and bin 𝑏 , the standard error is: SE (𝛽 𝑖𝑘𝑑𝑏 ) = 1
+
+√∑𝑛 ∈𝑏 ℎ𝑖𝑛 (𝑥 ∗
+
+> 𝑘𝑏𝑛
+
+)2𝑑 
+
+(24) where ℎ𝑖𝑛 (𝑥 ∗
+
+> 𝑘𝑏𝑛
+
+)2𝑑 is the diagonal of the Hessian as defined in in Equation 13. The standard error of the shape function 
+
+𝑓 𝑖𝑘 (𝑥 𝑘 ) is then: SE pred ,𝑖𝑘 (𝑥 𝑘 ) = 
+
+> 𝐷
+
+∑
+
+> 𝑑 =0
+> 𝐵
+
+∑
+
+> 𝑏 =1
+
+SE (𝛽 𝑖𝑘𝑑𝑏 )2(𝑥 ∗
+
+> 𝑘𝑏
+
+)2𝑑 (25) The corresponding 95% confidence interval is: CI 95 ,𝑖𝑘 (𝑥 𝑘 ) = ̂𝑦 𝑖𝑘 ± 1 .96 ⋅ SE pred ,𝑖𝑘 (𝑥 𝑘 ) (26) Note that the assumption of independence between classes and features simplifies this computation greatly, as the Hessian matrix is therefore diagonal, and so inverting it to obtain the variance-covariance matrix is straightforward. 
+
+4. Benchmarks 
+
+4.1. Datasets 
+
+We benchmark ParamBoost on 11 open-source, real-world tabular datasets covering regression, binary classi-fication, and multi-class classification tasks. The datasets are sourced from Kaggle and the UCI Machine Learning Repository (Markelle Kelly). Table 2 provides summary statistics, with brief descriptions of each dataset below. 
+
+Regression tasks 
+
+Boston housing (Housing (Harrison Jr and Rubinfeld, 1978)): A regression dataset where the target is the median house price in 1000$ of owner-occupied homes in the suburbs of Boston. 
+
+Concrete compressive strength (Concrete (Yeh, 1998)): This dataset is a regression problem where the concrete                                                 
+
+> Table 2
+> Datasets used for benchmarking. N is the number of instances in the dataset.
+> Dataset Task N# Features # Classes
+> Housing Regression 506 13 -
+> Concrete Regression 1030 8-
+> Power Regression 9568 4-
+> Energy Regression 768 8-
+> Protein Regression 45730 9-
+> Year Regression 515344 90 -
+> Fraud Binary 284807 30 2
+> Diabetes Binary 130157 175 2
+> Cover Multi-class 581012 54 7
+> HAR Multi-class 10299 561 6
+> LPMC Multi-class 81086 29 4
+
+compressive strength (MPa) is being predicted from the concrete recipe characteristics. 
+
+Combined cycle power plant (Power (Tüfekci, 2014; Tfekci and Kaya, 2014)): A dataset containing hourly averaged ambient observations (such as temperature, relative humidity, ...) and where the goal is to predict the net hourly electrical energy output of a combined gas and steam turbine plant. 
+
+Energy efficiency (Energy (Tsanas and Xifara, 2012a,b)): A dataset where the heating load and cooling load requirements of a building need to be estimated from its shape and charac-teristics. We choose to predict the heating load requirement. 
+
+Physicochemical properties of protein tertiary structure 
+
+(Protein (Rana, 2013)): This dataset contains information about the area and spatial distribution of the protein, and the target variable is the size of its residue. 
+
+Year prediction MSD (Year (Bertin-Mahieux, 2011)): A regression dataset where the goal is to predict a song release year from audio features. We follow the author’s recommendation to split the dataset in a way that the songs of the same artist cannot be in both the train and test sets. 
+
+Binary classification task 
+
+Credit card fraud detection (Fraud (Pozzolo, Caelen, Johnson and Bontempi, 2015)): A dataset containing trans-actions from credit card. The target variable is whether the transaction is fraudulent or not. 
+
+Diabetes detection (Diabetes (Matthys, Lee, NehaGoel, Kalanidhi, Valerie and M, 2021; Kaggle, 2021)): A dataset to determine if the patient has diabetes or not from their health indicators. 
+
+Multi-class classification task 
+
+Forest cover type (Cover (Blackard, 1998; Blackard and Dean, 1999)): A multi-class classification dataset where the goal is to predict the forest cover type of a pixel from features such as elevation, aspect, slope, and soil type. 
+
+Human activity recognition using smartphones (HAR (Anguita, Ghio, Oneto, Parra, Reyes-Ortiz et al., 2013)): This dataset is intended to recognise human activities from features obtained by smartphone sensors. 
+
+London passenger mode choice (LPMC (Hillel, Elshafie and Jin, 2018)): A transportation dataset where the target variable   
+
+> :Preprint submitted to Elsevier Page 5 of 11
+
+Table 3 
+
+Experiment results on the holdout test set. Values are MSE for regression tasks (housing, concrete, power, energy, protein, and year datasets), BCEL for binary classification tasks (fraud and diabetes datasets), and CEL for multi-class classification tasks (Cover, HAR, and LPMC). All metrics are lower the better . For the housing, concrete, power, and energy datasets, experiments are repeated over 10 runs, with the mean and standard deviation reported. The best results for each dataset are highlighted in bold.                                                                                                                
+
+> Linear/Logistic regression EBM NAM NBM APLR MGCV ParamBoost Regression
+> Housing 22.017 ( ±6.538) 13.691 ( ±4.323) 19.052 ( ±4.215) 21.013 ( ±9.798) 14.087 ( ±3.113) 21.982 ( ±6.407) 13.683 ( ±4.108)
+> Concrete 112.939 ( ±9.648) 28.153 ( ±3.366) 52.213 ( ±5.415) 48.165 ( ±6.278) 34.009 ( ±3.616) 113.030 ( ±9.512) 27.774 ( ±3.594)
+> Power 21.029 ( ±0.791) 13.386 ( ±0.651) 20.757 ( ±1.240) 19.263 ( ±0.575) 17.770 ( ±0.678) 21.030 ( ±0.786) 15.859 ( ±0.686)
+> Energy 9.103 ( ±1.442) 1.229 ( ±0.176) 8.562 ( ±1.435) 10.662 ( ±3.340) 1.110 ( ±0.196) 9.001 ( ±1.338) 1.215 ( ±0.143)
+> Protein 27.193 23.494 24.224 30.901 24.718 27.186 23.584
+> Year 90.442 85.274 86.343 94.412 85.488 90.426 85.395
+> Binary Classification
+> Fraud 0.009 0.003 0.003 0.012 0.003 0.004 0.003
+> Diabetes 0.416 0.379 0.387 0.385 0.387 0.416 0.380
+> Multi-class Classification
+> Cover 0.951 0.599 0.613 0.618 -* -** 0.579
+> HAR 0.052 0.030 0.061 0.170 0.057 -** 0.029
+> LPMC 0.731 0.677 0.676 0.677 0.674 1.344 0.674
+> *Time out: more than 48 hours **Out of memory
+
+is the transportation mode used during the trips. The target can be walking, cycling, public transport services, or driving. Additionally, the dataset contains various socio-demographic characteristics and trip characteristics such as travel time (obtained from the Google Maps API) and costs for each mode (walking and cycling are assumed to be free). 
+
+4.2. Baseline models 
+
+We compare ParamBoost with state-of-the-art GAMs that: (i) provide explicit interpretability from input features to predictions, (ii) support regression, binary, and multi-class classification tasks, and (iii) have a publicly available, usable implementation. Below, we summarise each baseline model and the hyper-parameter search spaces used. 
+
+Linear/Logistic Regression : used for regression and classification tasks, respectively, to represent the simplest form of a GAM. Both models use L2 regularisation. We use the implementation of the scikit-learn library (Pedregosa, Varoquaux, Gramfort, Michel, Thirion, Grisel, Blondel, Prettenhofer, Weiss, Dubourg, Vanderplas, Passos, Courna-peau, Brucher, Perrot and Duchesnay, 2011), and tune the regularisation strength: uniform in [10 −5 , 1] ; keeping all other parameters at default values. 
+
+EBM : Explainable Boosting Machine is a tree-based GAM built from shallow boosted trees(Nori, Jenkins, Koch and Caruana, 2019). We disable pairwise interactions and tune: (i) the maximum number of bins in the discrete set: 
+
+{64 , 128 , 256 , 512} ; (ii) the minimum samples in a leaf in the discrete set: {1 , 2, 4, 8, 10 , 15 , 20} ; (iii) the minimum sum of hessian in a leaf in the discrete set: {0 .0001 , 0.001 , 0.01 , 0.1} ;and (iv) the learning rate in the interval [0 .001 , 0.1] .
+
+NAM : Neural Additive Models is an NN-based GAM that learns a small network per feature. We reimplement the rec-ommended NAM architecture of Radenovic et al. (2022), with an MLP with 3 hidden layers of 64, 64 and 32 neurons respec-tively using the AdamW optimiser (Loshchilov, 2017). We tune: (i) initial learning rate: uniform in [0 .0001 , 0.1] ; (ii) the weight decay: logarithmic in [10 −6 , 10 −3 ]; and (iii) dropout: 
+
+{0 , 0.1, 0.2, 0.3, 0.4, 0.5} .
+
+NBM : Neural Basis Models improve scalability over NAM by learning shared basis functions for each shape func-tion. We reimplement the recommended NBM architecture of Radenovic et al. (2022), restricting feature interactions: 100 shared basis functions learnt with MLPs with 3 hidden layers of 256, 128 and 128 neurons respectively. As with NAM we use AdamW and tune: (i) initial learning rate: uniform in 
+
+[0 .0001 , 0.1] , (ii) weight decay: logarithmic in [10 −6 , 10 −3 ];and (iii) dropout: {0 , 0.1, 0.2, 0.3, 0.4, 0.5} .
+
+MGCV : Mixed GAM Computation Vehicle is a widely used spline-based GAM implementation in R(Wood, 2017). We use its Python wrapper PyMGCV . Features are modelled using CubicSpline bases with 10 knots (or fewer if the number of unique feature values is small). We use linear terms for dummy or binary features. We tune: (i) using fixed degrees of freedom vs. penalised splines ( fx hyperparameter), and (ii) whether to include a penalty on the null space ( shrinkage 
+
+hyperparameter). 
+
+APLR : Automatic Piecewise-Linear Regression (von Ot-tenbreit and De Bin, 2024) is a piecewise linear GAM imple-mented in the interpret library. We tune: (i) learning rate: uni-form in [0 .001 , 1] ; (ii) L2 penalty: {0 .0001 , 0.001 , 0.01 , 0.01 ,
+
+1} ; and (iii) the minimum of observations per split: {1 , 2, 4,
+
+8, 10 , 15 , 20} . Default values are used for all remaining parameters. 
+
+4.3. Implementation details 
+
+We implement ParamBoost with the JAX Python library (Bradbury, Frostig, Hawkins, Johnson, Leary, Maclaurin, Necula, Paszke, VanderPlas, Wanderman-Milne and Zhang, 2018). For the terms of degree 𝑑 > 0, we are required to multiply functional space gradients with features, as defined in Equation 16 and Equation 17. To compute them efficiently, we need to precompute the feature values for all potential split points and order. This is the main bottleneck of ParamBoost in terms of memory requirements, and, to keep the model scalable, we use a different number of bins for monomials of degree 𝑑 = 0 and monomials of degree 𝑑 > 0. We find experimentally that ParamBoost is less sensitive to 
+
+: Preprint submitted to Elsevier Page 6 of 11 hyperparameters, therefore we run the model with default parameters, that is: (i) learning rate: 0.1; (ii) L1 penalty: 0.001 
+
+(iii) L2 penalty: 0.01 ; (iv) Minimum number of data in a leaf: 
+
+10 ; (v) Max number of bins for terms of degree 𝑑 = 0 : 256 ;and (vi) Max number of bins for terms of degree 𝑑 > 0:
+
+20 ; Since we are using trees of depth 1, we do not use any other regularisation hyperparameters for tree building. For the benchmarks, we use the most flexible version of ParamBoost, that is, cubic polynomials with no required continuity or differentiability. ParamBoost will be released as a Python package upon acceptance of the paper. For all datasets, we split the data into 70 % for training, 10 % for validation, and 20 % for testing. We randomly search for optimal hyperparameters (except for ParamBoost) and choose them on the basis of the model’s performance on the validation set. For ParamBoost, APLR, and EBM, we train the model for a maximum of 25000 iterations, and we stop the training if the validation loss does not improve during 100 iterations. Note that for the last two models, it is not possible to choose the instances used for validation, so early stopping is done with cross-validation on the training set. For NAM and NBM, we train the models for a maximum of 200 epochs and stop the training if the validation loss does not improve during 10 epochs. We train MGCV and Linear/Logistic Regression with the default method. For housing , concrete ,
+
+power and energy datasets, we repeat the experiment 10 times to mitigate the randomness due to the train–validation–test split, and search for 50 sets of hyperparameters. For all other datasets, we do a hyperparameter search with 15 trials. We train ParamBoost, NAM, and NBM on a single A5000 GPU with 24GB of memory, and linear/logistic, EBM, MGCV, and APLR on the CPU. We use the Mean-Squared Error (MSE), Binary Cross-Entropy Loss (BCEL), and Cross-Entropy Loss (CEL) as loss functions for regression, binary, and multi-class classification tasks. 
+
+5. Results 
+
+The experiment results are shown in Table 3. Overall, we observe that ParamBoost, EBM, and APLR consistently outperform other GAMs, with ParamBoost showcasing the best performance overall. We note that ParamBoost performs especially well on classification tasks, and on small regression datasets, while EBM showcase better performances on bigger regression datasets and binary classification datasets. The splines or NN-based GAMs mostly outperform linear or logistic regression, although not strictly, depending on the dataset. Table 7 in Appendix B summarises computational times for all models and datasets. Linear or logistic regression is significantly faster than all other models. Among GAMs, NAM is the fastest model on small datasets, whereas EBM and NBM are the most efficient models on larger datasets. ParamBoost is slower than other models because: (i) since the derivatives are computed in the parameter space, they need to be recomputed for each potential threshold at each iteration; (ii) there are more potential split points due to the cubic nature of the model; and (iii) JAX includes a compilation time. However, we note that ParamBoost is significantly faster                
+
+> Table 4
+> A case study where each model successively has more con-straints. We first add differentiability constraints, then class-specific features, monotonicity, and curvature constraints. We compare the models on their cross-entropy loss.
+> CEL
+> ParamBoost-𝑂 3−𝐶 −1 0.6734
+> ParamBoost-𝑂 3−𝐶 20.6749
+> ParamBoost-𝑂 3−𝐶 2-ClassSpec 0.6744
+> ParamBoost-𝑂 3−𝐶 2-MonoCons 0.6792
+> ParamBoost-𝑂 3−𝐶 2-CurvCons 0.6757
+
+than APLR, the only other model in this benchmark that has trees with degree 𝑑 > 0, and that, since we do not perform a hyperparameter search for ParamBoost, the training time is overall faster than for all other models. 
+
+5.1. Interpretability case study: LPMC 
+
+While Section 5 compares the model based purely on its predictive performance, extracting parametric uncertainties and marginal effects is key for the model acceptance by practitioners. We use the LPMC dataset from the benchmarks section to conduct an evaluation of the interpretability and trustworthiness of ParamBoost. To understand the effect of the constraints on the model, we start from the flexible model of Section 5, then sequen-tially add differentiability constraints, class-specific feature constraints, monotonicity constraints, and finally curvature constraints. For class-specific features, each feature impacts only its respective class predictive function (e.g., walking travel time impacts only the walking predictive function). Using domain knowledge, we apply negative monotonicity and convexity constraints to all cost, travel time, transfer and congestion rate features. This means that an increase in these features is usually perceived negatively, and worse when their values are small than when they are bigger (e.g. an increase of 1 minute in travel time for a 10-minute trip is perceived more negatively than an increase of 1 minute in travel time for a 3-hour trip). Interestingly, we have found empirically that the convex assumption was not justified for bus and rail travel time; therefore, we apply a concave constraint to the shape functions of these two features. The cross-entropy loss for the five models is shown in Table 4. We observe that adding constraints marginally decreases the model predictive performance. More specif-ically, in this case study, monotonicity constraints seem to have the worst effect on predictive performance, unless coupled with curvature constraints. Overall, the final model with all constraints is a model with more meaningful shape functions than the original one, at a modest cost of predictive performance. This highlights the modest trade-off that is required for better interpretability. We can then observe the 𝐶 2 piecewise cubic shape functions learnt from the data. As an example, we provide the shape functions of the walking, cycling, rail and driving travel times, in Figure 1, for all models. We see that, apart from   
+
+> :Preprint submitted to Elsevier Page 7 of 11
+
+(a) Walking travel time. (b) Cycling travel time (c) Rail travel time. (d) Driving travel time. 
+
+Figure 1: Travel time shape functions. 
+
+(a) Walking travel time. (b) Cycling travel time (c) Rail travel time. (d) Driving travel time. 
+
+Figure 2: Travel time shape functions with 95% confidence interval 
+
+the cycling travel time, the shape functions are fairly similar to those for the most flexible, but with more guarantee of interpretability. For cycling travel time, the constraints ensure that the shape functions are consistent with behavioural theory, as an increase in travel time should decrease the attractiveness of an alternative. Finally, we can also draw 95% confidence intervals (CI). Figure 2 shows the shape functions of the model with 𝐶 2, class-specific features, monotonicity, and curvature constraints with 95% CI. 
+
+6. Conclusion 
+
+To conclude, we introduce ParamBoost, a model that learns piecewise cubic shape functions that are up to 𝐶 2,such that elasticities can be extracted for any input feature. With ParamBoost, we also provide the practitioner with control over the model interpretability. That means that it is possible to select constraints at the discretion of the modeller. This provide the modeller with keys to incorporate expert knowledge. The trade-off between interpretability and predictive performance can be assessed, with often having a much simpler model performing as well as or even better than a much more complex one. Finally, this unlocks new applications of interpretable ML models in fields where continuous derivatives are crucially needed. 
+
+A. Training and validation results on the benchmarks 
+
+Table 5 and Table 6 summarise the results on the train and validation sets for all models and all datasets. 
+
+B. Computational time 
+
+Table 7 summarises the best training iteration for all models and all datasets. 
+
+CRediT authorship contribution statement 
+
+Nicolas Salvadé: Writing – original draft, Visualization, Software, Methodology, Conceptualization, Formal analysis, Investigation. Tim Hillel: Writing – review & editing, Supervision, Methodology, Conceptualization, Project ad-ministration. 
+
+Declaration of competing interest 
+
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper. 
+
+Acknowledgments 
+
+This research is supported by a Chadwick PhD Scholar-ship awarded to Nicolas Salvadé by the UCL Department of Civil, Environmental, and Geomatic Engineering. 
+
+References 
+
+> Agarwal, R., Melnick, L., Frosst, N., Zhang, X., Lengerich, B., Caruana, R., Hinton, G.E., 2021. Neural additive models: Interpretable machine learning with neural nets. Advances in neural information processing systems 34, 4699–4711. Aljadani, A., Alharthi, B., Farsi, M.A., Balaha, H.M., Badawy, M., Elhos-seini, M.A., 2023. Mathematical modeling and analysis of credit scoring using the lime explainer: a comprehensive approach. Mathematics 11, 4055. Anguita, D., Ghio, A., Oneto, L., Parra, X., Reyes-Ortiz, J.L., et al., 2013. A public domain dataset for human activity recognition using smartphones., in: Esann, pp. 3–4.
+
+: Preprint submitted to Elsevier Page 8 of 11 Table 5 
+
+Experiment results on the train set. We compare the models with their MSE for regression tasks (housing, concrete, power, energy, protein, and year datasets), BCEL for binary classification tasks (fraud and diabetes datasets), and CEL for multi-class classification tasks (Cover, HAR, and LPMC). All metrics are lower the better . For the housing, concrete, power, and energy datasets, results are the mean over 10 runs and their corresponding standard deviation. 
+
+Linear/Logistic regression EBM NAM NBM APLR MGCV ParamBoost Regression 
+
+Housing 22.344 ( ± 1.591) 8.700 ( ± 3.873) 17.816 ( ± 2.659) 19.080 ( ± 4.191) 11.575 ( ± 1.438) 22.149 ( ± 1.483) 8.310 ( ± 2.674) Concrete 106.516 ( ± 2.827) 14.506 ( ± 1.806) 48.906 ( ± 3.300) 44.671 ( ± 6.431) 29.757 ( ± 2.297) 106.319 ( ± 2.802) 17.237 ( ± 4.026) Power 20.725 ( ± 0.236) 10.814 ( ± 0.851) 20.101 ( ± 0.669) 18.769 ( ± 0.413) 17.094 ( ± 0.260) 20.724 ( ± 0.236) 14.251 ( ± 0.483) Energy 8.578 ( ± 0.429) 0.993 ( ± 0.040) 8.379 ( ± 0.799) 10.156 ( ± 2.495) 0.910 ( ± 0.045) 8.473 ( ± 0.377) 0.997 ( ± 0.034) Protein 26.817 22.353 23.903 30.362 24.338 26.815 22.529 Year 91.013 83.620 85.666 93.787 84.447 91.009 83.462 
+
+Binary Classification 
+
+Fraud 0.009 0.002 0.002 0.013 0.003 0.004 0.003 Diabetes 0.414 0.371 0.382 0.379 0.384 0.414 0.371 
+
+Multi-class Classification 
+
+Cover 0.955 0.595 0.611 0.617 -* -** 0.572 HAR 0.028 0.005 0.022 0.135 0.041 -** 0.005 LPMC 0.708 0.624 0.649 0.652 0.650 1.354 0.636 *Time out: more than 48 hours **Out of memory 
+
+Table 6 
+
+Experiment results on the validation set. We compare the models with their MSE for regression tasks (housing, concrete, power, energy, protein, and year datasets), BCEL for binary classification tasks (fraud and diabetes datasets), and CEL for multi-class classification tasks (Cover, HAR, and LPMC). All metrics are lower the better . For the housing, concrete, power, and energy datasets, results are the mean over 10 runs and their corresponding standard deviation. 
+
+Linear/Logistic regression EBM NAM NBM APLR MGCV ParamBoost Regression 
+
+Housing 20.899 ( ± 6.442) 10.473 ( ± 2.997) 14.713 ( ± 6.082) 17.981 ( ± 6.104) 11.479 ( ± 4.314) 23.006 ( ± 6.831) 12.045 ( ± 4.391) Concrete 103.985 ( ± 14.585) 24.797 ( ± 6.127) 50.568 ( ± 10.201) 44.914 ( ± 9.001) 35.597 ( ± 6.398) 106.965 ( ± 14.900) 27.846 ( ± 8.078) Power 20.574 ( ± 1.117) 12.785 ( ± 1.216) 20.097 ( ± 1.635) 18.730 ( ± 1.159) 17.286 ( ± 1.128) 20.594 ( ± 1.119) 15.391 ( ± 1.323) Energy 8.073 ( ± 1.632) 1.069 ( ± 0.355) 7.664 ( ± 1.345) 9.055 ( ± 3.219) 0.925 ( ± 0.310) 8.287 ( ± 1.595) 1.064 ( ± 0.359) Protein 26.598 22.752 23.785 30.197 24.133 26.615 22.800 Year 92.963 86.647 88.220 96.449 86.814 93.020 86.697 
+
+Binary Classification 
+
+Fraud 0.008 0.002 0.002 0.012 0.003 0.004 0.003 Diabetes 0.413 0.382 0.387 0.389 0.389 0.415 0.382 
+
+Multi-class Classification 
+
+Cover 0.953 0.599 0.613 0.617 -* -** 0.579 HAR 0.028 0.035 0.069 0.181 0.062 -** 0.034 LPMC 0.716 0.653 0.661 0.662 0.649 1.332 0.650 *Time out: more than 48 hours **Out of memory 
+
+Bertin-Mahieux, T., 2011. Year Prediction MSD. UCI Machine Learning Repository. DOI: https://doi.org/10.24432/C50K61. Blackard, J., 1998. Covertype. UCI Machine Learning Repository. DOI: https://doi.org/10.24432/C50K5N. Blackard, J.A., Dean, D.J., 1999. Comparative accuracies of artificial neural networks and discriminant analysis in predicting forest cover types from cartographic variables. Computers and electronics in agriculture 24, 131–151. Bradbury, J., Frostig, R., Hawkins, P., Johnson, M.J., Leary, C., Maclaurin, D., Necula, G., Paszke, A., VanderPlas, J., Wanderman-Milne, S., Zhang, Q., 2018. JAX: composable transformations of Python+NumPy programs. URL: http://github.com/jax-ml/jax .Caruana, R., Lou, Y., Gehrke, J., Koch, P., Sturm, M., Elhadad, N., 2015. Intelligible models for healthcare: Predicting pneumonia risk and 
+
+Table 7 
+
+Computational time in seconds for the best training iteration. 
+
+Linear/Logistic regression EBM NAM NBM APLR MGCV ParamBoost* Regression 
+
+Housing 0.001 ( ± 0.000) 0.271 ( ± 0.255) 0.352 ( ± 0.147) 0.453 ( ± 0.171) 0.978 ( ± 0.856) 0.016 ( ± 0.001) 2.338 ( ± 3.562) Concrete 0.001 ( ± 0.000) 1.163 ( ± 1.207) 0.414 ( ± 0.145) 0.507 ( ± 0.125) 7.125 ( ± 2.788) 0.017 ( ± 0.001) 3.368 ( ± 3.293) Power 0.001 ( ± 0.000) 5.156 ( ± 0.921) 0.915 ( ± 0.351) 1.355 ( ± 0.643) 19.485 ( ± 7.085) 0.053 ( ± 0.014) 6.492 ( ± 4.575) Energy 0.002 ( ± 0.001) 1.005 ( ± 1.094) 0.399 ( ± 0.133) 0.407 ( ± 0.130) 0.979 ( ± 0.134) 0.013 ( ± 0.001) 1.556 ( ± 2.611) Protein 0.004 2.298 9.292 5.740 91.163 0.742 25.829 Year 0.308 66.343 230.872 255.686 2133.798 121.807 611.758 
+
+Binary Classification 
+
+Fraud 1.117 10.429 67.630 15.004 1005.472 10.027 22.359 Diabetes 1.064 7.660 82.196 53.178 310.639 40.006 207.932 
+
+Multi-class Classification 
+
+Cover 8.728 371.311 329.540 135.860 - - 1078.351 HAR 0.720 14.163 60.445 10.421 903.500 - 93.031 LPMC 0.674 13.207 15.862 7.443 494.494 11.891 30.636 
+
+*Full training time 
+
+: Preprint submitted to Elsevier Page 9 of 11 hospital 30-day readmission, in: Proceedings of the 21th ACM SIGKDD international conference on knowledge discovery and data mining, pp. 1721–1730. Chang, C.H., Caruana, R., Goldenberg, A., 2021. Node-gam: Neural generalized additive model for interpretable deep learning. arXiv preprint arXiv:2106.01613 . Dahmen, V., Weikl, S., Bogenberger, K., 2024. Interpretable ma-chine learning for mode choice modeling on tracking-based re-vealed preference data. Transportation Research Record 2678, 2075– 2091. URL: https://doi.org/10.1177/03611981241246973 , doi: 10.1177/ 03611981241246973 , arXiv:https://doi.org/10.1177/03611981241246973 .Dubey, A., Radenovic, F., Mahajan, D., 2022. Scalable interpretability via polynomials. Advances in neural information processing systems 35, 36748–36761. Duong, V., Wu, Q., Zhou, Z., Zhao, H., Luo, C., Zavesky, E., Yao, H., Shao, H., 2024. Cat: Interpretable concept-based taylor additive models, in: Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining, pp. 723–734. Gabbay, F., Bar-Lev, S., Montano, O., Hadad, N., 2021. A lime-based explainable machine learning model for predicting the severity level of covid-19 diagnosed patients. Applied Sciences 11, 10417. Gabidolla, M., Carreira-Perpiñán, M.Á., 2025. Generalized additive models via direct optimization of regularized decision stump forests, in: Forty-second International Conference on Machine Learning. Gao, J., Peng, B., Smyth, R., 2021. On income and price elasticities for energy demand: A panel data study. Energy Economics 96, 105168. Gramegna, A., Giudici, P., 2021. Shap and lime: an evaluation of discriminative power in credit risk. Frontiers in Artificial Intelligence 4, 752558. Hagenauer, J., Helbich, M., 2017. A comparative study of machine learning classifiers for modeling travel mode choice. Expert Systems with Applications 78, 273–282. URL: https://www.sciencedirect.com/ science/article/pii/S0957417417300738 , doi: https://doi.org/10.1016/j. eswa.2017.01.057 .Harrison Jr, D., Rubinfeld, D.L., 1978. Hedonic housing prices and the demand for clean air. Journal of environmental economics and management 5, 81–102. Hastie, T.J., Tibshirani, R.J., 1990. Generalized additive models. volume 43. CRC press. Hillel, T., Elshafie, M.Z.E.B., Jin, Y., 2018. Recreating passenger mode choice-sets for transport simulation: A case study of London, UK. Proceedings of the Institution of Civil Engineers - Smart Infrastructure and Construction 171, 29–42. URL: https://www.icevirtuallibrary.com/ doi/10.1680/jsmic.17.00018 , doi: 10.1680/jsmic.17.00018 .Ibrahim, S., Afriat, G., Behdin, K., Mazumder, R., 2023. Grand-slamin’interpretable additive modeling with structural constraints. Ad-vances in Neural Information Processing Systems 36, 61158–61186. Ibrahim, S., Radchenko, P., Ben-David, E., Mazumder, R., 2025. Predicting census survey response rates with parsimonious additive models and structured interactions. The Annals of Applied Statistics 19, 94–120. Kaggle, 2021. Widsdatathon2021: Diabetes detection. URL: https://www. kaggle.com/code/iamleonie/wids-datathon-2021-diabetes-detection . ac-cessed: 2025-29-01. Konstantinov, A.V., Utkin, L.V., 2021. Interpretable machine learning with an ensemble of gradient boosting machines. Knowledge-Based Systems 222, 106993. Lin, K., Gao, Y., 2022. Model interpretability of financial fraud detection by group shap. Expert Systems with Applications 210, 118354. Loshchilov, I., 2017. Decoupled weight decay regularization. arXiv preprint arXiv:1711.05101 . Lundberg, S.M., Lee, S.I., 2017. Consistent feature attribution for tree ensembles. arXiv preprint arXiv:1706.06060 . Magesh, P.R., Myloth, R.D., Tom, R.J., 2020. An explainable machine learning model for early detection of parkinson’s disease using lime on datscan imagery. Computers in Biology and Medicine 126, 104041. Markelle Kelly, Rachel Longjohn, K.N., . The uci machine learning repository. URL: https://archive.ics.uci.edu .Martín-Baos, J.Á., López-Gómez, J.A., Rodriguez-Benitez, L., Hillel, T., García-Ródenas, R., 2023. A prediction and behavioural analysis of machine learning methods for modelling travel mode choice. Transp. Res. Part C Emerg. Technol. 156, 104318. Matthys, K., Lee, M., NehaGoel, Kalanidhi, S., Valerie, M, V., 2021. Wids datathon 2021. https://kaggle.com/competitions/widsdatathon2021 .Kaggle. Nori, H., Jenkins, S., Koch, P., Caruana, R., 2019. Interpretml: A unified framework for machine learning interpretability. arXiv preprint arXiv:1909.09223 . von Ottenbreit, M., De Bin, R., 2024. Automatic piecewise linear regression. Computational Statistics 39, 1867–1907. Parsa, A.B., Movahedi, A., Taghipour, H., Derrible, S., Mohammadian, A.K., 2020. Toward safer highways, application of xgboost and shap for real-time accident detection and feature analysis. Accident Analysis & Prevention 136, 105405. Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Blondel, M., Prettenhofer, P., Weiss, R., Dubourg, V., Vanderplas, J., Passos, A., Cournapeau, D., Brucher, M., Perrot, M., Duchesnay, E., 2011. Scikit-learn: Machine learning in Python. Journal of Machine Learning Research 12, 2825–2830. Pozzolo, A.D., Caelen, O., Johnson, R.A., Bontempi, G., 2015. Calibrating probability with undersampling for unbalanced classification, in: 2015 IEEE Symposium Series on Computational Intelligence, pp. 159–166. doi: 10.1109/SSCI.2015.33 .Radenovic, F., Dubey, A., Mahajan, D., 2022. Neural basis models for interpretability. Advances in Neural Information Processing Systems 35, 8414–8426. Rana, P., 2013. Physicochemical Properties of Protein Tertiary Structure. UCI Machine Learning Repository. DOI: https://doi.org/10.24432/C5QW3H. Ren, Y., Yang, M., Chen, E., Cheng, L., Yuan, Y., 2023. Exploring passengers’ choice of transfer city in air-to-rail intermodal travel using an interpretable ensemble machine learning approach. Transportation , 1–31. Ribeiro, M.T., Singh, S., Guestrin, C., 2016. " why should i trust you?" explaining the predictions of any classifier, in: Proceedings of the 22nd ACM SIGKDD international conference on knowledge discovery and data mining, pp. 1135–1144. Salas, P., De la Fuente, R., Astroza, S., Carrasco, J.A., 2022. Asystematic comparative evaluation of machine learning classifiers and discrete choice models for travel mode choice in the presence of response heterogeneity. Expert Systems with Applications 193, 116253. URL: https://www.sciencedirect.com/science/article/pii/ S0957417421015633 , doi: https://doi.org/10.1016/j.eswa.2021.116253 .Salvadé, N., Hillel, T., 2025. Rumboost: Gradient boosted random utility models. Transportation Research Part C: Emerging Technologies 170, 104897. Shi, Y., Li, J., Li, Z., 2019. Gradient Boosting With Piece-Wise Linear Regression Trees URL: http://arxiv.org/abs/1802.05640 .arXiv:1802.05640 [cs]. Tamim Kashifi, M., Jamal, A., Samim Kashefi, M., Almoshaogeh, M., Masiur Rahman, S., 2022. Predicting the travel mode choice with inter-pretable machine learning techniques: A comparative study. Travel Be-haviour and Society 29, 279–296. URL: https://www.sciencedirect.com/ science/article/pii/S2214367X22000746 , doi: https://doi.org/10.1016/j. tbs.2022.07.003 .Tfekci, P., Kaya, H., 2014. Combined Cycle Power Plant. UCI Machine Learning Repository. DOI: https://doi.org/10.24432/C5002N. Tsanas, A., Xifara, A., 2012a. Accurate quantitative estimation of energy per-formance of residential buildings using statistical machine learning tools. Energy and Buildings 49, 560–567. URL: https://api.semanticscholar. org/CorpusID:109658267 .Tsanas, A., Xifara, A., 2012b. Energy Efficiency. UCI Machine Learning Repository. DOI: https://doi.org/10.24432/C51307. Tüfekci, P., 2014. Prediction of full load electrical power output of a base load operated combined cycle power plant using machine learning methods. International Journal of Electrical Power & Energy Systems 60, 126–140. 
+
+: Preprint submitted to Elsevier Page 10 of 11 URL: https://api.semanticscholar.org/CorpusID:111365542 .Wardman, M., 2022. Meta-analysis of price elasticities of travel demand in great britain: Update and extension. Transportation Research Part A: Policy and Practice 158, 1–18. Wood, S.N., 2017. Generalized additive models: an introduction with R. chapman and hall/CRC. Yang, C., Chen, M., Yuan, Q., 2021a. The application of xgboost and shap to examining the factors in freight truck-related crashes: An exploratory analysis. Accident Analysis & Prevention 158, 106153. Yang, Z., Zhang, A., Sudjianto, A., 2021b. Gami-net: An explainable neural network based on generalized additive models with structured interactions. Pattern Recognition 120, 108192. Yeh, I.C., 1998. Modeling of strength of high-performance concrete using artificial neural networks. Cement and Concrete research 28, 1797–1808. Zazdravnykh, E., Aistov, A., Aleksandrova, E., 2024. Total expenditure elasticity of spending on self-treatment and professional healthcare: a case of russia. International Journal of Health Economics and Management 24, 81–105. Zhang, G., Shi, Y., Yin, P., Liu, F., Fang, Y., Li, X., Zhang, Q., Zhang, Z., 2022a. A machine learning model based on ultrasound image features to assess the risk of sentinel lymph node metastasis in breast cancer patients: Applications of scikit-learn and shap. Frontiers in Oncology 12, 944569. Zhang, S., Chen, C., Huang, D.H., Hu, L., 2022b. Measurement of factor price distortion: A new production function method with time-varying elasticity. Technological Forecasting and Social Change 175, 121363. Zhang, X., Tan, S., Koch, P., Lou, Y., Chajewska, U., Caruana, R., 2019. Axiomatic interpretability for multiclass additive models, in: Proceedings of the 25th ACM SIGKDD international conference on Knowledge Discovery & Data Mining, pp. 226–234. 
+
+: Preprint submitted to Elsevier Page 11 of 11
