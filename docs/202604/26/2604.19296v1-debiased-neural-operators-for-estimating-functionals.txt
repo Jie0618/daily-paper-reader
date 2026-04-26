@@ -1,0 +1,2524 @@
+Title: Debiased neural operators for estimating functionals
+
+URL Source: https://arxiv.org/pdf/2604.19296v1
+
+Published Time: Wed, 22 Apr 2026 00:54:09 GMT
+
+Number of Pages: 33
+
+Markdown Content:
+# Debiased neural operators for estimating functionals 
+
+Konstantin Hess 1,2,* , Dennis Frauen 1,2 , Niki Kilbertus 2,3,4 , Stefan Feuerriegel 1,2 
+
+> 1
+
+LMU Munich 2Munich Center for Machine Learning 3TU Munich 4Helmholtz Munich 
+
+> *
+
+Corresponding author: k.hess@lmu.de 
+
+Abstract 
+
+Neural operators are widely used to approximate solution maps of complex physical systems. In many applications, however, the goal is not to recover the full solution trajectory, but to summarize the solution trajectory via a scalar target quantity (e.g., a functional such as time spent in a target range, time above a threshold, accumulated cost, or total energy). In this paper, we introduce DOPE (debiased neural operator ): a semiparametric estimator for such target quantities of solution trajectories obtained from neural operators. DOPE is broadly applicable to settings with both partial and irregular observations and can be combined with arbitrary neural operator architectures. We make three main contributions. (1) We show that, in contrast to DOPE , naïve plug-in estimation can suffer from first-order bias. (2) To address this, we derive a novel one-step, Neyman-orthogonal estimator that treats the neural operator as a high-dimensional nuisance mapping between func-tion spaces, and removes the leading bias term. For this, DOPE uses a weighting mechanism that simultaneously accounts for irregular observation designs and for how sensitive the target quantity is to perturbations of the underlying trajec-tory. (3) To learn the weights, we extend automatic debiased machine learning to 
+
+operator-valued nuisances via Riesz regression. We demonstrate the benefits of DOPE across various numerical experiments. 
+
+1 Introduction Drug exposure (AUC) Plasma concentration Target range     
+
+> Blood glucose Velocity field Tracked trajectory Target trajectory
+> Cumulative error High temperature Low temperature
+> 𝟙
+> 𝟙
+> Area under the concentration-curve Time-in-range Energy dissipation Tracking error Soft-max Extreme event extent
+
+Figure 1: Examples: In many scientific appli-cations, solution trajectories are summarized by scalar quantities (i.e., functionals g). Neural operators [ 35 , 39 , 40 ] are a powerful framework for learning solution maps of com-plex physical systems governed by partial dif-ferential equations (PDEs). In particular, neural operators can efficiently learn mesh-independent approximations of PDE solutions that general-ize across varying input functions, including dif-ferent boundary conditions and forcing terms [ 3, 50 ]. As a result, they are increasingly used in various applications such as scientific com-puting [ 3, 6 , 18 ], climate science [ 36 , 46 , 55 ], and engineering [33, 51, 54]. In this paper, we aim to learn a scalar target quantity (i.e., a functional) of the solution tra-jectory . This is relevant in many scientific applications, where the main quantity of interest is not the full solution trajectory produced by a PDE solver or its neural operator approximation. Instead, the aim is often to summarize the trajectory into a scalar target quantity that is directly relevant for decision-making or scientific interpretation (see Figure 1). 
+
+Preprint. 
+
+> arXiv:2604.19296v1 [cs.LG] 21 Apr 2026
+
+Examples: 1 In medicine, physicians care about whether a patient’s vital signs remain within a target range, such as maintaining blood glucose above a critical threshold or keeping heart rate and respiratory rate within a safe range [ 21 , 29 , 57 , 59 ]. 2 In climate modeling, researchers quantify whether forecasts exceed critical thresholds, such as extreme temperatures [ 47 ] 3 In fluid dynamics and energy systems, the goal is to measure total fluxes or energy over time [ 20 ]. 4 In control systems, engineers quantify the accumulated tracking error or other stability metrics over time [16 , 56 ]. Importantly, such functionals typically depend on the trajectory in complex, nonlinear ways. 
+
+Why a naïve estimation is problematic: A naïve strategy for estimating such functionals is the following (which we later refer to as plug-in estimator ): first train a neural operator, then evaluate the functional of interest on the predicted trajectory, and use the result as the final estimate. However, we later show that this naïve plug-in estimator can be systematically biased, even when the neural operator predicts the solution trajectory reasonably well. The reason is that the quantity of interest is a nonlinear summary of the trajectory, so approximation errors in the learned solution map do not simply average out but instead propagate through the functional and thus accumulate into a non-negligible error in the final estimate. We refer to this systematic error as plug-in bias .1.In this paper, we introduce the debiased neural operator (DOPE ): a semiparametric framework for estimating scalar summaries of solution trajectories with neural operators. Our DOPE framework is broadly applicable to settings with both partial and irregular observations. Further, DOPE is model-agnostic and can be instantiated with any neural operator architecture (e.g., such as Fourier neural operators [39] or DeepONet [40]), and is therefore broadly applicable across scientific applications. To construct DOPE , we derive a novel one-step, Neyman-orthogonal estimator that treats the neural operator as a high-dimensional nuisance mapping between function spaces. Specifically, we use the Riesz representer to build a score that is first-order insensitive to errors in the learned neural operator. As a result, approximation errors of the neural operator affect the estimated functional only through higher-order terms, and thus remove the plug-in bias. Methodologically, DOPE corrects the neural-operator-induced bias using pointwise residuals of the solution trajectory, and, for this, uses a weighting mechanism that simultaneously accounts for irregular observation designs and for how sensitive the target quantity is to perturbations of the underlying trajectory. To learn the weights, we propose a tailored automatic debiasing approach based on Riesz regression and automatic differentiation. 
+
+Contributions. In summary, our contributions are as follows: 2 
+
+> 1
+
+We develop a novel semiparametric framework called DOPE for inference on scalar functionals of neural operator outputs. Crucially, DOPE removes the plug-in bias of naïve estimation strategies.  
+
+> 2
+
+We further develop an automatic debiasing procedure for operator-valued nuisance functions via Riesz regression and automatic differentiation. In this way, we provide a non-trivial extension of automatic debiased machine learning (DML) [ 9 , 10 ] from function-valued to operator-valued 
+
+nuisances.  
+
+> 3
+
+We establish various theoretical properties of DOPE , including asymptotic normality and con-fidence intervals (under standard regularity conditions). Further, our framework easily integrates prediction-powered inference (PPI) [1, 2] for neural operators. 
+
+2 Related Work 
+
+• Plug-in bias: In many statistical problems, estimating the target parameter of interest requires first estimating nuisance functions (i.e., auxiliary functions that are not themselves of direct interest). Orthogonal estimation [ 19 , 44 ] constructs estimators so that small errors in these nuisance functions affect the target only at second order. A common issue is that errors in these nuisance estimates propagate into the final estimate, often leading to systematic bias—commonly referred to as plug-in bias [15, 30]. Orthogonal estimation [ 19 , 44 ] addresses the problem of plug-in bias by constructing estimators that are insensitive to small errors in the nuisance functions. Intuitively, this means that approximation        
+
+> 1Plug-in bias is a know problem in other fields such as causal machine learning [ 15 ,30 ]. Here, we extend the idea to neural operators, yet which comes with new challenges as we move from function-valued nuisances to operator-valued nuisances.
+> 2Code is available at https://anonymous.4open.science/r/1C71 .
+
+2errors do not propagate as first-order biases, but only at second order in the target quantity. In semiparametric theory, this is typically achieved by deriving influence-function-based moment conditions [ 26 , 28 ]. To remove the first-order bias, one then aims to derive a one-step estimator [ 30 ], which “corrects” (i.e., debiases) the plug-in estimate with the sample average of a debiasing score, and thereby removes the first-order bias term. However, the problem of plug-in bias has been studied in several settings, such as for causal machine learning [ 15 , 30 ], but not for neural operators. Importantly, existing works typically focus on settings that have function-valued nuisances [e.g., 24 , 25 , 42 ]. ⇒ In contrast, our setting involves operator-valued nuisances, which introduces new challenges and requires tailored estimation techniques. 
+
+• Automatic debiasing: Orthogonal estimation has attractive second-order bias properties, but applying it often requires deriving the debiasing score analytically. A remedy is automatic debiasing, which aims to construct this correction directly from the target functional [7, 41]. This idea can be implemented via automatic debiased machine learning, which reduces debiasing to estimation of an auxiliary function through Riesz regression rather than requiring a closed-form derivation of the correction term [ 9, 11 ]. Prior work studies this idea for function-valued nuisances using random forests and multi-layer perceptrons [ 10 ], for regularized Riesz regression [ 12 ], under covariate shift [ 13 ], and for smooth functionals of M-estimands [ 53 ]. ⇒ In contrast, we extend automatic debiasing to operator-valued nuisance functions. 
+
+3 Problem Formulation 
+
+• PDE setup: We consider the standard setting of operator learning [ 35 ]. Let Ω ⊂ Rd be a bounded domain. 3 Let A denote a Banach space of admissible input functions (e.g., coefficient functions, boundary conditions, or forcing terms). For each admissible coefficient function a ∈ A , we consider a PDE of the generic form 
+
+Tau = f, (1) with homogeneous boundary conditions. We assume that, for each a ∈ A , the PDE admits a unique weak solution 
+
+T −1 
+
+> a
+
+f = u ∈ U , (2) where, throughout, we take U = L2(Ω , μ ), which is the Hilbert space of square-integrable functions on Ω with inner product induced by Lebesgue measure μ. We denote by 
+
+S0 : A → U , S0(a) = u(a, ·), (3) the unknown solution operator , which maps input functions to solution trajectories. 
+
+• Neural operators: Neural operators are learned approximations of the solution operator S0
+
+[34 , 39 , 40 ]. Given training data consisting of input functions and partial solution observations, neural operators learn a mapping ˆS : A → U , such that ˆS(a) ≈ S0(a). They operate directly on functional inputs and outputs defined on the continuous domain Ω, which can be evaluated at arbitrary locations 
+
+x ∈ Ω. We provide an extended related work on neural operators in Supplement A. 
+
+• Partial and irregular measurements: In many scientific workflows, a central challenge is that the evaluation locations depend on the input through measurement protocols, adaptive solvers, or experimental constraints [ 4 , 59 ]. Hence, solution trajectories are often observed only partially and irregularly [ 8, 22 , 23 , 27 ]. Accordingly, let A denote a random coefficient function with associated solution trajectory S0(A) ∈ U . Rather than observing the full trajectory, we observe noisy point evaluations 
+
+Yk = S0(A)( Xk) + εk, k = 1 , . . . , K, (4) where K ∈ N may be random and depend on A, where Xk ∈ Ω is an evaluation location, and where the noise satisfies E[εk | A, X k] = 0 and E[ε2 
+
+> k
+
+| A, X k] < ∞. We model the sampling mechanism through a joint law P on A × Ω with factorization P(d a, dx) = P(d x | a) P(d a), where P(· | a) is an input-dependent design distribution on Ω. Given (A, K ), we assume that the pairs {(Xk, Y k)}Kk=1   
+
+> 3We make no formal distinction between time and spatial domain, and w.l.o.g. Ωcan refer to both.
+
+3are conditionally i.i.d. draws from a generic pair (X, Y ) with X | A = a ∼ P(· | a). We observe n
+
+i.i.d. realizations 
+
+Oi =
+
+
+
+Ai, K i, {(Xik , Y ik )}Ki
+
+> k=1
+
+
+
+, i = 1 , . . . , n, (5) and write D = {Oi}ni=1 . Throughout, all L2(P) norms are taken with respect to the joint law of 
+
+(A, X ). This setting captures the common regime where generating new inputs is relatively cheap, while dense evaluations of the corresponding solution trajectory are costly [43, 31]. 
+
+• Identifiability: In order to ensure identifiability from observations sampled under dP, we impose a standard design overlap assumption [14, 22]. 
+
+Assumption 3.1 (Design overlap) . Let μ denote a fixed reference measure on Ω (e.g., Lebesgue measure). Whenever it exists, we define the corresponding inverse design weight as 
+
+ξ0(a)( x) := dμ
+
+dP(· | a) (x). (6) 
+
+Then, for P-almost every a ∈ A , the reference measure μ is absolutely continuous with respect to 
+
+P(· | a). Moreover, there exists a constant C < ∞ such that 
+
+0 < ξ 0(a)( x) ≤ C P(· | a)-a.e. x ∈ Ω. (7) Finally, for P-almost every a ∈ A , we define the conditional Hilbert space 
+
+Ha := L2(Ω , P(· | a)) (8) with inner product ⟨f, h ⟩a := R 
+
+> Ω
+
+f (x)h(x) d P(x | a). Under Assumption 3.1, Ha embeds continu-ously into U = L2(Ω , μ ).
+
+• Objective: Let g : U → R be our scalar-valued functional of interest. Throughout, we let g be twice Fréchet differentiable in a neighborhood of {S0(A)} with uniformly bounded second derivative, i.e., 
+
+g(u + h) = g(u) + D gu(h) + R(u, h ) (9) with |R(u, h )| ≲ ∥h∥2 
+
+> U
+
+for all u in this neighborhood and all sufficiently small h.4 This is naturally satisfied by many common functionals in practice, including linear functionals, polynomial energy-type functionals, norm-based functionals, or weighted transport functionals. 
+
+Objective 
+
+We aim to perform inference on the averaged scalar functional 
+
+θ := E[g(S0(A))] , (10) where the expectation is taken with respect to the population distribution of A.
+
+Examples (see Figure 1) 
+
+• Medicine. A encodes subject- or drug-specific parameters (e.g., from pharmacokinetics); 
+
+S0(A)( t) is the concentration–time curve; and g(S0(A)) represents the time spent in a target range or above a clinically relevant threshold. 
+
+• Fluid dynamics and energy systems. A represents coefficients, forcing terms, or boundary conditions; S0(A)( x) is the resulting field; and g(S0(A)) represents the flux over a spatial region or energy over time. 
+
+• Control systems. A parameterizes system dynamics or disturbances; S0(A)( t) is the resulting trajectory; and g(S0(A)) represents accumulated tracking error or another scalar measure of stability and performance over time. By the Riesz representation theorem [ 45 ], for every Fréchet differentiable functional g : U → R and every u ∈ U , there exists a unique wg (u) ∈ U such that 
+
+Dgu(h) = ⟨wg (u), h ⟩U =
+
+Z
+
+> Ω
+
+wg (u)( x) h(x) d μ(x). (11)             
+
+> 4We use standard notation a(x)≲b(x)to denote that there exists C > 0such that a(x)≤Cb (x)for all x.
+
+44 DOPE: Debiased estimation of functionals for neural operators 
+
+In the following, we focus on debiased estimation of the scalar functional in Eq. 10. For this, we proceed as follows: 1 We first show why the naïve estimator leads to plug-in bias (§4.1). 2 We then introduce DOPE : a one-step Neyman-orthogonal estimator (see Figure 2). For this, we derive the debiasing score by expressing the Fréchet derivative as an inner product with a Riesz representer, which yields a first-order debiasing procedure (§4.2). 3 We show several desirable theoretical properties of DOPE (§4.3). 4 Finally, we present a tailored approach for automatic DML with operator-valued nuisances using the Riesz representer (§4.4). We provide the pseudo-code in Algorithm 1 in Supplement D. 
+
+4.1 Why naïve plug-in estimation is problematic 
+
+A naïve estimation strategy for Eq. 10 is to estimate S0(A) with a neural operator ˆS(A) and treat the surrogate as the ground-truth operator. However, such plug-in estimation leads to severe plug-in bias: 
+
+Proposition 4.1 (First-order bias of plug-in estimators) . Let ∆( ·) = ˆS(·) − S0(·). Then 
+
+E[g( ˆS(A))] − θ ≲ EDgS0(A)(∆( A))  + ∥∆∥2
+
+> L2(P)
+
+, (12) 
+
+i.e., the neural operator error propagates linearly through the Fréchet differential, and induces 
+
+first-order bias .
+
+Proof. See Supplement B.1. Proposition 4.1 shows that the estimation error of the plug-in estimator is, in general, linear in 
+
+E[D gS0(A)(∆( A))] and thus does not vanish. As a result, root-n inference from the plug-in estimator requires this first-order bias to be negligible, i.e., of order o(n−1/2). To understand what this implies, suppose the Fréchet derivative admits a uniformly bounded Riesz representer, so that 
+
+| DgS0(A)(∆( A)) | ≲ ∥∆( A)∥L2(μ). Then, by overlap, this implies that the linear term can be controlled by E[D gS0(A)(∆( A))] ≲ ∥∆∥L2(P). Hence, a sufficient condition for root-n inference is that the neural operator error satisfies ∥∆∥L2(P) = o(n−1/2). However, such rates are typically highly unrealistic in practice. Intuitively, the problem of the plug-in estimator is that nonlinear functionals propagate operator errors linearly through the Fréchet derivative, so even small approximation errors accumulate. 
+
+4.2 Debiased estimation via DOPE 
+
+As a remedy, we now derive a one-step Neyman-orthogonal estimator (DOPE ). In contrast to the naïve plug-in estimator from Proposition 4.1, DOPE achieves root-n convergence under substantially weaker accuracy requirements on the neural operator. The starting point is the leading bias term of the naïve plug-in estimator, EDgS0(A)
+
+ ∆( A) , where 
+
+∆( ·) = S0(·) − ˆS(·) denotes the operator error. To eliminate the plug-in bias, we seek a correction term that recovers the value of the functional derivative DgS0(A)(∆( A)) using observable quantities. Debiased pseudo-outcome  
+
+> Observed samples
+> Neural operator
+> Neural operator
+> Residuals
+> Predicted trajectory
+> Weights at samples Weighted residual correction
+> Biased plug-in evaluation
+> DOPE estimate
+> Plug-in branch Orthogonal correction branch
+
+Figure 2: Overview of DOPE (our debiased neural operator). However, this is non-trivial : the perturbation 
+
+∆( A) is not observed as a function, but only through noisy point evaluations 
+
+Yk − ˆS(A)( Xk) at loca-tions Xk drawn from the sampling design. Hence, we can not directly evaluate the functional derivative. Instead, we leverage that DgS0(A)(·) is a linear functional and can therefore be represented via a Riesz representer. That is, for P-almost every a ∈ A , there exists a function β0(a)( ·) ∈ H a which is 5the unique Riesz representer satisfying 
+
+E[β0(A)( X) h(X) | A = a] = D gS0(a)(h), ∀h ∈ H a. (13) This representation is crucial: it expresses the functional derivative as an expectation over pointwise evaluations under the sampling design . Applying Eq. 13 with generic A ∈ A and h = ∆( A) shows that the weighted residual β0(A)( X) Y − ˆS(A)( X) recovers the leading plug-in bias in expectation. This suggests the debiasing score 
+
+ψ(O) = g(S0(A)) − θ + 1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk) Yk − S0(A)( Xk), (14) which we formally derive in Lemma B.2. Intuitively, the weighted residual term reconstructs the first-order bias DgS0(A)(∆( A)) and thus provides the required correction. In Supplement B.2, we show that the debiasing score ψ(O) is Neyman-orthogonal at the truth. Motivated by this, we now define DOPE. 
+
+Definition 4.2 ( DOPE ). Given i.i.d. observations {Oi}ni=1 , consider the debiasing score in Eq. 14. We replace the unknown quantities (S0, β 0) by estimators ( ˆS, ˆβ). We further define the pseudo-outcome 
+
+˜ψi = g( ˆS(Ai)) + 1
+
+KiKiX
+
+> k=1
+
+ˆβ(Ai)( Xik ) Yik − ˆS(Ai)( Xik ). (15) In DOPE, the one-step estimator of the target functional in Eq. 10 is given by 
+
+ˆθ = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+˜ψi. (16) 
+
+4.3 Theoretical properties 
+
+The key property of DOPE is Neyman-orthogonality : first-order errors in the neural operator ˆS and in the correction term ˆβ do not affect the leading asymptotics. As a result, nuisance errors enter the remainder only at second-order . We show this formally in Theorem 4.3. 
+
+Theorem 4.3 (Second-order remainder) . Let ˆθ be the DOPE estimate in Eq. 16. Let ˆS and ˆβ be estimated via cross-fitting. Then, we have 
+
+E[ˆθ] − θ ≲ ∥ ˆS − S0∥2 
+
+> L2(P)
+
++ ∥ ˆβ − β0∥2
+
+> L2(P)
+
+. (17) 
+
+In particular, there is no first-order bias from either nuisance component. 
+
+Proof. See Supplement B.2. As a result, by construction, DOPE removes the linear bias term and leaves only a second-order remainder. This is in contrast to the plug-in estimator, for which the bias is generally linear in 
+
+EDgS0(A)(∆( A))  (cf. Proposition 4.1). Consequently, root-n inference for DOPE is possible under substantially weaker nuisance rates . For example, it suffices that 
+
+∥ ˆS − S0∥2 
+
+> L2(P)
+
+= op(n−1/2) and ∥ ˆβ − β0∥2 
+
+> L2(P)
+
+= op(n−1/2), (18) which corresponds to n−1/4-type rates in L2(P) root-mean-squared error. 
+
+Remark 4.4 (Input-specific targets via second-stage regression) . Our main focus is the population-average estimand θ = E[g(S0(A))] . In some applications, however, the object of interest is the input-specific functional 
+
+g(S0(a)) = E[g(S0(A)) | A = a]. (19) 
+
+In this case, our debiased pseudo-outcomes ˜ψi may be used in a second-stage regression on Ai
+
+to estimate the conditional map a 7 → g(S0(a)) . This type of second-stage regression maintains Neyman-orthogonality w.r.t. ˆS and ˆβ.
+
+6Remark 4.5 (Asymptotic normality) . Under additional regularity conditions controlling the dis-crepancy between the estimated pseudo-outcomes and the oracle debiasing score, one can further establish asymptotic normality of DOPE . We state a formal result in Supplement B.2, and provide experimental results for empirical coverage in Supplement C. 
+
+Remark 4.6 (PPI with neural operators) . Our framework easily integrates prediction-powered inference (PPI) [ 1, 2 ] when additional unlabeled inputs are available. Unlike standard PPI, which uses only whether a label is observed, our setting also exploits where labels are observed through the location-dependent correction term. Thus, with n1 partially observed and n2 fully unlabeled inputs, a PPI-enhanced version of DOPE is 
+
+ˆθPPI = 1
+
+n1 + n2
+
+> n1+n2
+
+X
+
+> i=1
+
+g  ˆS(Ai) + 1
+
+n1
+
+> n1
+
+X
+
+> i=1
+
+1
+
+KiKiX
+
+> k=1
+
+ˆβ(Ai)( Xik ) Yik − ˆS(Ai)( Xik ). (20) 
+
+This preserves the orthogonal correction while allowing large-scale unlabeled input data to improve efficiency through the plug-in component. 
+
+4.4 Automatic DML with DOPE 
+
+We now turn to the practical question of how to estimate the debiasing weight β0 from data. The key insight is that β0 admits a structured decomposition that separates properties of the functional from the sampling design. 
+
+Proposition 4.7 (Decomposition of the debiasing weight) . Suppose U = L2(Ω , μ ), and let 
+
+wg (u) ∈ L2(Ω , μ ) denote the Riesz representer of Dgu with respect to μ. Then, the unique solution β0(A)( x) satisfying Eq. 13 admits, P(· | A)-a.e., the decomposition 
+
+β0(A)( x) = ξ0(A)( x) wg (S0(A))( x). (21) 
+
+Proof. See Supplement B.3. This proposition shows that the debiasing weight β0 factorizes into two components: (i) a functional sensitivity term wg , which captures how the target functional reacts to local perturbations of the trajectory, and (ii) a design correction ξ0, which accounts for irregular and input-dependent sampling. Hence, a naïve way to estimate β0 would be to try to derive wg analytically, and to obtain ξ0 by inverting an estimated sampling design P(· | A). However, this requires an inversion of the estimated sampling design, which can be highly unstable due to division close to 0.As a remedy, we show how to estimate the correction term β0 in the debiasing score without explicitly estimating the sampling distribution P(· | A) and performing density inversion. Further, we do not require an analytical derivation of wg . Instead, our approach directly targets the Riesz representer via a primal variational characterization , and thus extends automatic DML to operator-valued nuisances and autodiff-based moments. Recall from Eq. 13 that the correction term β0 is defined by 
+
+E[β0(A)( X) h(X) | A = a] = D gS0(a)(h), ∀h ∈ H a. (22) Rather than enforcing this equality over a class of test functions h, we exploit the variational characterization of the Riesz representer. For each A, we define the linear functional LA(h) := DgS0(A)(h). Then, β0(A)( ·) is the unique minimizer of the quadratic functional 
+
+β0(A)( ·) = arg min 
+
+> β(A)( ·)
+
+E[β(A)( X)2 | A] − 2 LA
+
+ β(A)( ·) . (23) Averaging over A yields the population risk 
+
+β0 = arg min  
+
+> β
+
+E E[β(A)( X)2 | A] − 2 D gS0(A)
+
+ β(A)( ·) . (24) 7Theorem 4.8 (Primal characterization of the Riesz representer) . The unique minimizer of Eq. 24 is the Riesz representer β0 satisfying Eq. 22. 
+
+Proof. See Supplement B.3. The objective of Eq. 24 directly targets the correction weight β0 required for bias cancellation, without introducing auxiliary test functions h or attempting to estimate the sampling density. In particular, the Riesz identity is enforced implicitly through the optimality conditions of Eq. 24, which avoids the need for numerically unstable density inversion. 
+
+Remark 4.9 (Structured parameterization when wg is known) . In some cases, the decomposition 
+
+β0(A)( x) = ξ0(A)( x) wg (S0(A))( x) from Eq. 21 in Proposition 4.7 admits a closed-form expression for the Riesz representer wg (u) of the functional derivative Dgu (see Supplement H). In this case, one may restrict the parameterization of the debiasing weight to 
+
+ˆβ(A)( x) = ˆξ(A)( x) wg ( ˆS(A))( x), (25) 
+
+which reduces the complexity of the estimation problem, and can lead to improved numerical stability and variance reduction. 
+
+• Implementation details: We provide a pseudo-code in Algorithm 1 in Supplement D, and we explain how to efficiently compute the empirical analogue of Eq. 24 via automatic differentiation in Supplement E. Finally, we provide details on the neural operator backbones in Supplement F. 
+
+5 Experiments 
+
+The purpose of our experiments is three-fold: 1 We demonstrate benefits over simple plug-in estimation , which is the only existing baseline for estimating functionals with neural operators. 2 We validate the benefits of debiasing, namely, that it offers robustness to nuisance errors as derived in Section 4.2. 3 We show that DOPE benefits from large-scale unlabeled data through its PPI extension .
+
+• Implementation: DOPE is model agnostic and can be instantiated with any neural operator architecture. Hence, we thus use a state-of-the-art backbone , the Fourier neural operator [ 39 ], in our main results. We provide additional experiments with DeepONet [ 40 ] in Supplement C. We evaluate DOPE against the plug-in estimator, which is the only existing baseline for our setting. For fairness reasons, and to isolate the gains from our debiasing, we use the same neural operator backbones for the plug-in baseline and DOPE . Full implementation details are in Supplement F. All results are averaged over 50 runs. 
+
+• Pharmacokinetics dataset: The pharmacokinetics dataset models the drug concentration under a one-compartment model [37, 52]. Details are in Supplement G.1.                                                                                                                                                                                                             
+
+> ρ= 0 ρ= 0 .125 ρ= 0 .25 ρ= 0 .375 ρ= 0 .5ρ= 0 .625 ρ= 0 .75 ρ= 0 .875 ρ= 1
+> AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT DOPE: structured wg(ours) 1.43 ±0.11 1 .36 ±0.11 1 .31 ±0.10 1 .30 ±0.11 1 .13 ±0.10 1 .38 ±0.12 1 .50 ±0.12 1 .35 ±0.11 1 .41 ±0.12 1 .44 ±0.12 1 .28 ±0.10 1 .15 ±0.10 1 .48 ±0.13 1 .52 ±0.13 1 .24 ±0.12 1 .15 ±0.11 1 .32 ±0.13 1 .31 ±0.11
+> DOPE: oracle β0(ours) 1.43 ±0.11 1 .22 ±0.10 1 .31 ±0.10 1 .24 ±0.10 1 .12 ±0.10 1 .09 ±0.09 1 .48 ±0.12 1 .31 ±0.11 1 .40 ±0.12 1 .15 ±0.10 1 .24 ±0.10 1 .17 ±0.10 1 .52 ±0.13 1 .35 ±0.12 1 .24 ±0.12 1 .18 ±0.11 1 .36 ±0.13 1 .18 ±0.11
+> Plug-in 1.73 ±0.14 1 .89 ±0.15 1 .86 ±0.17 2 .10 ±0.18 1 .96 ±0.16 2 .14 ±0.18 2 .33 ±0.20 2 .30 ±0.18 2 .01 ±0.16 2 .25 ±0.17 1 .82 ±0.16 1 .92 ±0.16 2 .00 ±0.17 2 .20 ±0.17 1 .77 ±0.16 1 .90 ±0.17 2 .05 ±0.16 2 .32 ±0.17
+> DOPE ( ours )1.44 ±0.11 1 .67 ±0.14 1 .31 ±0.10 1 .78 ±0.16 1 .12 ±0.10 1 .78 ±0.13 1 .50 ±0.12 1 .74 ±0.14 1 .41 ±0.12 1 .95 ±0.16 1 .29 ±0.10 1 .62 ±0.13 1 .48 ±0.13 1 .97 ±0.16 1 .25 ±0.12 1 .64 ±0.13 1 .31 ±0.13 1 .91 ±0.14
+> Rel. improvement 17 .25% 11 .97% 29 .68% 15 .31% 43 .00% 16 .70% 35 .51% 24 .43% 29 .94% 13 .46% 29 .06% 15 .40% 26 .18% 10 .24% 29 .42% 13 .43% 36 .44% 17 .92%
+
+Table 1: Comparison: plug-in estimator vs. DOPE . RMSE ± SE ( ×100 ) across different functionals (area under the concentration curve [AUC] and time-above-threshold [TAT]) for different overlap levels ρ. ⇒ DOPE outperforms the plug-in estimator. 
+
+1 Main results ( DOPE vs. plug-in): We analyze 18 settings of different complexity, where we vary (i) the target functional : area under the concentration curve ( AUC ) and time-above-threshold (TAT ) as a more complex functional; (ii) the sampling irregularity of the output trajectory for both estimation tasks. For the latter, we vary ρ, where ρ = 0 corresponds to uniform sampling, and larger values of ρ increasingly concentrate observations near the subject-specific peak region (which leads to more limited overlap). We further report a structured parameterization of DOPE with known wg to show the additional benefits when a closed-form version of the Riesz representer is available. Finally, we report an “oracle” DOPE where we use the oracle β0 to understand the “upper-bound” on the performance. 8Results: DOPE outperforms the plug-in baseline by a clear margin (see Table 1). The DOPE variant with structured wg yields further improvements, which shows that, for known wg , the structured parametrization simplifies the estimation task notably. 0.0 0.1 0.2 0.3 0.4 0.5    
+
+> Nuisance corruption
+> 0.0000
+> 0.0025
+> 0.0050
+> 0.0075
+> 0.0100
+> 0.0125
+> 0.0150
+> 0.0175
+> Increase in RMSE
+> Plug-in: S
+> DOPE (ours): S
+> DOPE (ours):
+> DOPE (ours): S,
+
+Figure 3: Robustness to nuisance esti-mation errors: Reported is the increase in RMSE as we artificially increase esti-mation errors of the nuisance functions 
+
+ˆS and ˆβ. ⇒ Due to debiasing, RMSE for DOPE increases more slowly even when both nuisances are corrupted simultane-ously.  
+
+> 2
+
+Robustness to nuisance errors: To show the bene-fits of debiasing, we analyze the robustness of our DOPE against errors in the nuisance functions. For this, we up-scale the estimation errors for S0 and β0, and report the increase in RMSE for the target functional. Specifically, we artificially increase the bias in the estimated neural operators by a factor (1 + δ) for δ ∈ [0 , 0.5] .Results: Figure 3 shows that, for increasing nuisance er-rors, the RMSE of DOPE increases much more slowly compared to the plug-in estimator. Of note, this holds even when estimation errors are increased in both nui-sances (i.e., in both ˆS, ˆβ). This behavior confirms our theory: due to debiasing of DOPE , errors in ˆS and ˆβ prop-agate only at lower order to the estimated functional ˆθ. 
+
+> 3
+
+PPI extension: We report performance of a PPI-style variant of DOPE as in Eq. 20, where we increase the number of unlabeled trajectories during inference. We again analyze the performance of DOPE against the plug-in estimator. Specifically, during inference, we increase the number n2 of input trajectories without any observed point evaluations. Given that DOPE outperforms on AUC and TAT in (1)–(2) , we now use the soft continuous maximum (soft cmax) functional (see Supplement H). Results on AUC are in Supplement C. Results: Table 2 shows that DOPE clearly benefits from additional, unlabeled inputs during inference time, and the gain is larger for DOPE than for the plug-in estimator. This is highly relevant for many scientific scenarios, where generating inputs is cheap, but measuring point evaluations is expensive.                                                                                
+
+> n2= 0 n2= 64 n2= 128 n2= 256 n2= 512 n2= 1024 n2= 2048 n2= 4096
+> Plug-in 6.15 ±0.55 5.60 ±0.50 5.54 ±0.48 5.45 ±0.48 5.32 ±0.47 5.24 ±0.45 5.17 ±0.45 5.11 ±0.44
+> Rel. improvement 0.00% 8.81% 9.90% 11 .36% 13 .49% 14 .67% 15 .85% 16 .87%
+> DOPE 5.14 ±0.47 4.29 ±0.36 4.24 ±0.34 3.95 ±0.30 3.77 ±0.30 3.74 ±0.30 3.69 ±0.30 3.62 ±0.30
+> Rel. improvement 0.00% 16 .56% 17 .47% 23 .23% 26 .76% 27 .38% 28 .28% 29 .70%
+
+Table 2: PPI results. RMSE ± SE ( ×100 ), where compare the standard estimates against PPI-style estimates with additional unlabeled samples of size n2. ⇒ DOPE benefits from access to large unlabeled samples. 
+
+• Darcy flow dataset: We consider a two-dimensional Darcy-flow benchmark dataset, which is standard for evaluating neural operator outputs [ 34 , 35 ]. Details are in Supplement G.2. We evaluate a smooth excess-above-threshold functional of the Darcy solution field, which measures the spatial extent and intensity of regions where the pressure or state field exceeds a fixed level c. For this, we vary the smoothness parameter κ in the functional.                                                      
+
+> κ= 0 .0κ= 0 .2κ= 0 .4κ= 0 .6κ= 0 .8κ= 1 .0
+> Plug-in 1.45 ±0.06 1.17 ±0.05 0.94 ±0.04 0.75 ±0.03 0.60 ±0.03 0.48 ±0.02
+> DOPE 1.16 ±0.11 0.78 ±0.09 0.56 ±0.06 0.46 ±0.04 0.43 ±0.04 0.41 ±0.03
+> Rel. improvement 19 .74% 33 .32% 40 .48% 38 .75% 28 .76% 15 .53%
+
+Table 3: Darcy flow results. RMSE ± SE ( ×10 4) for plug-in and DOPE across different values of functional smoothness 
+
+κ. ⇒ DOPE improves over the plug-in estimator across all smoothness levels. 
+
+Results: Table 3 reports the RMSE as we vary the smoothness parameter κ
+
+in the target functional. Thereby, we make estimating the target functional more challenging. Due to debiasing, DOPE outperforms the plug-in esti-mator for all smoothness levels κ.
+
+• Limitations: Our functionals of interest exclude non-smooth targets such as hard maxima or indicator-type functionals. However, such smoothness restrictions are standard in debiased machine learning and are typically required for orthogonal bias expansions. 
+
+• Conclusion: In this work, we propose DOPE , a debiased estimator for averaged statistical function-als of neural operator outputs under partial and input-dependent observations. Our approach extends automated DML from function-valued to operator-valued nuisance estimation, and thereby enables bias correction and valid inference for nonlinear functionals of learned solution operators. 9References 
+
+[1] A. N. Angelopoulos, S. Bates, C. Fannjiang, M. I. Jordan, and T. Zrnic. Prediction-powered inference. Science , 382(6671):669–674, 2023. [2] A. N. Angelopoulos, J. C. Duchi, and T. Zrnic. PPI++: Efficient prediction-powered inference. 
+
+arXiv preprint arXiv:2311.01453 , 2023. [3] K. Azizzadenesheli, N. Kovachki, Z. Li, M. Liu-Schiaffini, J. Kossaifi, and A. Anandkumar. Neural operators for accelerating scientific simulations and design. Nature Reviews Physics , 6 (5):320–328, 2024. [4] J. Berg and K. Nyström. Data-driven discovery of PDEs in complex datasets. Journal of Computational Physics , 384:239–252, 2019. [5] B. Bonev, T. Kurth, C. Hundt, J. Pathak, M. Baust, K. Kashinath, and A. Anandkumar. Spherical fourier neural operators: Learning stable dynamics on the sphere. In ICML , 2023. [6] Q. Cao, S. Goswami, and G. E. Karniadakis. Laplace neural operator for solving differential equations. Nature Machine Intelligence , 6:631–640, 2024. [7] M. Carone, A. R. Luedtke, and M. J. van der Laan. Toward computerized efficient estimation in infinite-dimensional models. Journal of the American Statistical Association , 114(527): 1174–1190, 2019. [8] R. T. Q. Chen, Y. Rubanova, J. Bettencourt, and D. Duvenaud. Neural ordinary differential equations. In NeurIPS , 2018. [9] V. Chernozhukov, W. K. Newey, V. Quintas-Martinez, and V. Syrgkanis. Automatic debiased machine learning via Riesz regression. arXiv preprint , 2104.14737, 2021. [10] V. Chernozhukov, W. Newey, V. Quintas-Martinez, and V. Syrgkanis. RieszNet and ForestRiesz: Automatic debiased machine learning with neural nets and random forests. In ICML , 2022. [11] V. Chernozhukov, W. K. Newey, and R. Singh. Automatic debiased machine learning of causal and structural effects. Econometrica , 90(3):967–1027, 2022. [12] V. Chernozhukov, W. K. Newey, and R. Singh. Debiased machine learning of global and local parameters using regularized riesz representers. The Econometrics Journal , 25(3):576–601, 2022. [13] V. Chernozhukov, W. Newey, V. Quintas-Martinez, and V. Syrgkanis. Automatic debiased machine learning for covariate shifts. arXiv preprint , arXiv:2307:04527, 2023. [14] A. Curth and M. van der Schaar. Nonparametric estimation of heterogeneous treatment effects: From theory to learning algorithms. In AISTATS , 2021. [15] A. Curth, A. M. Alaa, and M. van der Schaar. Estimating structural target functions using machine learning and influence functions. arXiv preprint , arXiv:2008.06461, 2020. [16] K. Dong, S. Chen, Y. Dan, L. Zhang, X. Li, W. Liang, Y. Zhao, and Y. Sun. Optimal stochastic tracking control for brain network dynamics. Communications Biology , 8(1), 2025. [17] V. Fanaskov and I. Oseledets. Spectral neural operators. Doklady Mathematics , 108(2):226–232, 2023. [18] S. A. Faroughi, N. M. Pawar, C. Fernandes, M. Raissi, S. Das, N. K. Kalantari, and S. Kourosh Mahjour. Physics-guided, physics-informed, and physics-encoded neural net-works and operators in scientific computing: Fluid and solid mechanics. Journal of Computing and Information Science in Engineering , 24(4):040802, 2024. [19] D. J. Foster and V. Syrgkanis. Orthogonal statistical learning. The Annals of Statistics , 53(3): 879–908, 2023. [20] A. A. Grachev, C. W. Fairall, B. W. Blomquist, H. J. Fernando, L. S. Leo, S. F. Otárola-Bustos, J. M. Wilczak, and K. L. McCaffrey. On the surface energy balance closure at different temporal scales. Agricultural and Forest Meteorology , 281:107823, 2020. [21] Y. Hashiguchi, N. Matsumoto, K. Oda, H. Jono, and H. Saito. Population pharmacokinetics and auc-guided dosing of tobramycin in the treatment of infections caused by glucose-nonfermenting gram-negative bacteria. Clinical Therapeutics , 45(5):400–414, 2023. [22] K. Hess and S. Feuerriegel. Stabilized neural prediction of potential outcomes in continuous time. In ICLR , 2025. 10 [23] K. Hess, V. Melnychuk, D. Frauen, and S. Feuerriegel. Bayesian neural controlled differential equations for treatment effect estimation. In ICLR , 2024. [24] K. Hess, D. Frauen, V. Melnychuk, and S. Feuerriegel. Efficient and sharp off-policy learning under unobserved confounding. In ICLR , 2026. [25] K. Hess, D. Frauen, M. van der Schaar, and S. Feuerriegel. Overlap-weighted orthogonal meta-learner for treatment effect estimation over time. In ICLR , 2026. [26] O. Hines, O. Dukes, K. Diaz-Ordaz, and S. Vansteelandt. Demystifying statistical learning based on efficient influence functions. The American Statistician , 76(3):292–304, 2022. [27] V. Iakovlev, M. Heinonen, and H. Lähdesmäki. Learning space-time continuous neural pdes from partially observed states. In NeurIPS , 2023. [28] H. Ichimura and W. K. Newey. The influence function of semiparametric estimators. Quantita-tive Economics , 13(1):29–61, 2022. [29] K. Iqbal, A. Milioudi, and S. G. Wicha. Pharmacokinetics and pharmacodynamics of tedizolid. 
+
+Clinical Pharmacokinetics , 61:489–503, 2022. [30] E. H. Kennedy. Semiparametric doubly robust targeted double machine learning: A review. 
+
+arXiv preprint , 2203.06469, 2022. [31] Y. Kim, H. Kim, G. Ko, and J. Lee. Active learning with selective time-step acquisition for pdes. In ICML , 2025. [32] D. P. Kingma and J. Ba. Adam: A method for stochastic optimization. In ICLR , 2015. [33] K. Kobayashi, J. Daniell, and S. B. Alam. Improved generalization with deep neural operators for engineering systems: Path towards digital twin. Engineering Applications of Artificial Intelligence , 131:107844, 2024. [34] N. Kovachki, S. Lanthaler, and S. Mishra. On universal approximation and error bounds for fourier neural operators. Journal of Machine Learning Research , 22(290):1–76, 2021. [35] N. Kovachki, Z. Li, B. Liu, K. Azizzadenesheli, K. Bhattacharya, A. Stuart, and A. Anandkumar. Neural operator: Learning maps between function spaces with applications to PDEs. Journal of Machine Learning Research , 24(89):1–97, 2023. [36] T. Kurth, S. Subramanian, P. Harrington, J. Pathak, M. Mardani, D. Hall, A. Miele, K. Kashinath, and A. Anandkumar. FourCastNet: Accelerating global high-resolution weather forecasting using adaptive fourier neural operators. In PASC , 2023. [37] Y. Kwon. Handbook of Essential Pharmacokinetics, Pharmacodynamics and Drug Metabolism for Industrial Scientists . Springer US, Boston, MA, 2002. ISBN 978-0-306-46820-9. [38] J. Lee, Z. Liu, X. Yu, Y. Wang, H. Jeong, M. Y. Niu, and Z. Zhang. KANO: Kolmogorov-Arnold neural operator. In ICLR , 2026. [39] Z. Li, N. Kovachki, K. Azizzadenesheli, B. Liu, K. Bhattacharya, A. Stuart, and A. Anandkumar. Fourier neural operator for parametric partial differential equations. In ICLR , 2021. [40] L. Lu, P. Jin, G. Pang, Z. Zhang, and G. E. Karniadakis. Learning nonlinear operators via DeepONet based on the universal approximation theorem of operators. Nature Machine Intelligence , 3:218–229, 2021. [41] A. Luedtke. Simplifying debiased inference via automatic differentiation and probabilistic programming. arXiv preprint , 2405.08675, 2024. [42] V. Melnychuk, S. Feuerriegel, and M. van der Schaar. Quantifying aleatoric uncertainty of the treatment effect: A novel orthogonal learner. In NeurIPS , 2024. [43] L. Meyer, M. Schouler, R. A. Caulk, A. Ribes, and B. Raffin. Training deep surrogate models with large scale online learning. In ICML , 2023. [44] P. Morzywolek, J. Decruyenaere, and S. Vansteelandt. On a general class of orthogonal learners for the estimation of heterogeneous treatment effects. arXiv preprint , arXiv:2303.12687, 2023. [45] M. Pavone. On the riesz representation theorem for bounded linear functionals. Proceedings of the Royal Irish Academy. Section A: Mathematical and Physical Sciences , 94A(1):133–135, 1994. 11 [46] W. Peng, S. Qin, S. Yang, J. Wang, X. Liu, and L. L. Wang. Fourier neural operator for real-time simulation of 3d dynamic urban microclimate. Building and Environment , 248:111063, 2024. [47] I. Price, A. Sanchez-Gonzalez, F. Alet, T. R. Andersson, A. El-Kadi, D. Masters, T. Ewalds, J. Stott, S. Mohamed, P. Battaglia, R. Lam, and M. Willson. Probabilistic weather forecasting with machine learning. Nature , 637:84–90, 2025. [48] M. A. Rahman, Z. E. Ross, and K. Azizzadenesheli. U-NO: U-shaped neural operators. 
+
+Transactions on Machine Learning Research , 2023. [49] B. Raonic, R. Molinaro, T. De Ryck, T. Rohner, F. Bartolucci, S. Alaifari, Rima Mishra, and E. de Bézenac. Convolutional neural operators for robust and accurate learning of pdes. In 
+
+NeurIPS , 2023. [50] S. G. Rosofsky, H. A. Majed, and E. A. Huerta. Applications of physics informed neural operators. Machine Learning: Science and Technology , 4, 2023. [51] K. Shukla, V. Oommen, A. Peyvan, M. Penwarden, N. Plewacki, L. Bravo, A. Ghoshal, R. M. Kirby, and G. E. Karniadakis. Deep neural operators as accurate surrogates for shape optimization. Engineering Applications of Artificial Intelligence , 129:107615, 2024. [52] R. N. Upton, D. J. Foster, and A. Y. Abuhelwa. An introduction to physiologically-based pharmacokinetic models. Pediatric Anesthesia , 26(11):1036–1046, 2016. [53] L. van der Laan, A. Bibaut, N. Kallus, and A. Luedtke. Automatic debiased machine learning for smooth functionals of nonparametric M-estimands. arXiv preprint , arXiv:2501.11868, 2025. [54] H. Wang, Y. Song, H. Yang, and Z. Liu. Generalized koopman neural operator for data-driven modeling of electric railway pantograph–catenary systems. IEEE Transactions on Transportation Electrification , 11(6):14100–14112, 2025. [55] G. Wen, Z. Li, Q. Long, K. Azizzadenesheli, A. Anandkumar, and S. M. Benson. Real-time high-resolution co2 geological storage prediction using nested fourier neural operators. Science ,16:1732–1741, 2023. [56] A. Widdershins, E. Hansen, A. Read, and R. Hohl. Optimal control theory as a method for designing multidrug adaptive therapy regimens. npj Systems Biology and Applications , 12(1), 2026. [57] X.-D. Yang and Y.-Y. Yang. Clinical pharmacokinetics of semaglutide: A systematic review. 
+
+Drug Design, Development and Therapy , 18:2555–2570, 2024. [58] Z. Zhao, C. Liu, Y. Li, Z. Chen, and X. Liu. Diffeomorphism neural operator for various domains and parameters of partial differential equations. Communications Physics , 8(15), 2025. [59] Y. Zhou, J. Li, Z. Xu, Y. Zhao, S. Zhang, T. Liu, Y. Yao, L. Fang, Y. Cai, , X. Ye, and B. Liang. A nanomip sensor for real-time in vivo monitoring of levodopa pharmacokinetics in precision parkinson’s therapy. Nature Communications , 16(1), 2025. 12 A Extended related work 
+
+Neural operators provide a framework for learning mappings between function spaces [ 35 ]. This allows one to learn solution operators for PDEs that map input functions (e.g., coefficients or boundary conditions) to solution trajectories. Hence, neural operators are widely used to solve scientific problems in scientific computing [ 3 , 6, 18 ], climate science [ 36 , 46 , 55 ], and engineering [18 , 33 , 51 , 54 ]. They enjoy several favorable properties, such as discretization invariance, the ability to evaluate functions at arbitrary locations, and universal approximation properties [34, 35]. Several architectures for neural networks have been proposed [e.g., 5, 6 , 17 , 38 , 40 , 48 , 49 , 58 ]. Two state-of-the-art examples are the Fourier neural operator [ 39 ] and DeepONet [ 40 ], which we use both to demonstrate our framework. Importantly, our DOPE framework is agnostic to the underlying architecture and can be instantiated with arbitrary neural operator backbones. A common downstream use of neural operators is inference on low-dimensional functionals of the predicted trajectory rather than recovery of the full field itself (see Figure 1). ⇒ However, the only generally available strategy is naïve plug-in evaluation of the functional on the predicted trajectory, which suffers from plug-in bias under operator approximation error. 
+
+13 B Proofs 
+
+B.1 Plug-in bias Proposition B.1 (First-order bias of plug-in estimators) . Let ∆( ·) = ˆS(·) − S0(·). Then 
+
+E[g( ˆS(A))] − θ ≲ EDgS0(A)(∆( A))  + ∥∆∥2
+
+> L2(P)
+
+, (26) 
+
+i.e., the neural operator error propagates linearly through the Fréchet differential and induces first-order bias. Proof. We apply the second-order expansion in Eq. 9 with h = ∆( A):
+
+g( ˆS(A)) = g(S0(A) + ∆( A)) = g(S0(A)) + D gS0(A)(∆( A)) + R(S0(A), ∆( A)) . (27) Taking expectations and using θ = E[g(S0(A))] yields 
+
+E[g( ˆS(A))] − θ = EDgS0(A)(∆( A))  + E[R(S0(A), ∆( A))] . (28) In the Hilbert space U = L2(Ω , μ ), the remainder bound in Eq. 9 gives 
+
+|R(S0(A), ∆( A)) | ≲ ∥∆( A)∥2
+
+> L2(μ)
+
+, (29) which depends on A only. In order to express this bound in the sampling geometry, we use Assump-tion 3.1. That is, since μ ≪ P(· | A) with Radon–Nikodym derivative ξ0(A)( ·) = dμ 
+
+> dP(·| A)
+
+≤ C, we have, for each realization of A,
+
+∥∆( A)∥2 
+
+> L2(μ)
+
+=
+
+Z
+
+> Ω
+
+∆( A)( x)2 dμ(x) = 
+
+Z
+
+> Ω
+
+∆( A)( x)2 ξ0(A)( x) d P(x | A) (30) 
+
+≤ C
+
+Z
+
+> Ω
+
+∆( A)( x)2 dP(x | A) = CE[∆( A)( X)2 | A]. (31) Taking expectation over A and using the definition of the joint law P(d a, dx) = P(d a) P(d x | a)
+
+yields 
+
+E∥∆( A)∥2 
+
+> L2(μ)
+
+≤ C E[∆( A)( X)2] = C ∥∆∥2
+
+> L2(P)
+
+, ∥∆∥2 
+
+> L2(P)
+
+:= E[∆( A)( X)2]. (32) Therefore, applying Jensen’s inequality and Eq. 32, yields 
+
+E[R(S0(A), ∆( A))] ≤ E|R(S0(A), ∆( A)) | ≲ E∥∆( A)∥2 
+
+> L2(μ)
+
+≲ ∥∆∥2
+
+> L2(P)
+
+. (33) Finally, combining Eq. 28 and Eq. 33 and applying the triangle inequality gives 
+
+E[g( ˆS(A))] − θ ≲ EDgS0(A)(∆( A))  + ∥∆∥2
+
+> L2(P)
+
+. (34) Unless the linear term vanishes (which it need not for nonlinear g), √n-inference requires this bias to be o(n−1/2), i.e., 
+
+EDgS0(A)(∆( A))  = o(n−1/2), (35) which is a first-order (linear) accuracy requirement on the operator error ∆( A).14 B.2 One-step estimator Lemma B.2 (Debiasing identity for the score) . Let ∆ be any measurable perturbation such that 
+
+∆( A, ·) ∈ U almost surely and 
+
+E[∆( A)( X)2] < ∞. (36) 
+
+If β0 ∈ L2(P) satisfies 
+
+E[β0(A)( X)h(X) | A] = D gS0(A)(h), ∀h ∈ H A, (37) 
+
+then 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk)∆( A)( Xk)
+
+#
+
+= EDgS0(A)(∆( A))  . (38) 
+
+Moreover, if ˆS is any estimator independent of the evaluation fold (for instance, by cross-fitting), and 
+
+∆( A) = ˆS(A) − S0(A), then 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk) Yk − ˆS(A)( Xk) ˆS
+
+#
+
+= −E
+
+h
+
+DgS0(A)(∆( A)) ˆS
+
+i
+
+. (39) 
+
+Hence, the weighted residual term in Eq. 14 cancels the linear plug-in bias. Proof. For the first claim, conditional on (A, K ) the pairs {(Xk, Y k)}Kk=1 are i.i.d., so applying exchangeability yields 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk)∆( A)( Xk) A, K 
+
+#
+
+= E[β0(A)( X)∆( A)( X) | A]. (40) Taking expectations and applying the Riesz identity from Eq. 37 with h = ∆( A) yields 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk)∆( A)( Xk)
+
+#
+
+= E[E[β0(A)( X)∆( A)( X) | A]] (41) 
+
+= EDgS0(A)(∆( A))  , (42) which proves Eq. 38. For the second claim, write 
+
+Yk − ˆS(A)( Xk) =  Yk − S0(A)( Xk) − ∆( A)( Xk), ∆( A) = ˆS(A) − S0(A). (43) Conditioning on ˆS treats ∆ as fixed, so 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk) Yk − ˆS(A)( Xk) ˆS
+
+#
+
+= E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk) Yk − S0(A)( Xk) ˆS
+
+#
+
+− E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk)∆( A)( Xk) ˆS
+
+#
+
+. (44) For the first term, iterated expectations together with E[Yk − S0(A)( Xk) | A, X k] = 0 give 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk) Yk − S0(A)( Xk) ˆS
+
+#
+
+= 0 . (45) Applying Eq. 38 conditionally on ˆS to the second term in Eq. 44 yields 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk) Yk − ˆS(A)( Xk) ˆS
+
+#
+
+= −E
+
+h
+
+DgS0(A)(∆( A)) ˆS
+
+i
+
+, (46) which proves Eq. 39. 15 Proposition B.3 (Neyman orthogonality of the debiasing score) . Define the score map 
+
+m(O; θ, S, β ) := g(S(A)) − θ + 1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β(A)( Xk) Yk − S(A)( Xk). (47) 
+
+Let (θ0, S 0, β 0) denote the truth, where 
+
+θ0 = E[g(S0(A))] (48) 
+
+and β0 ∈ L2(P) satisfies 
+
+E[β0(A)( X)h(X) | A] = D gS0(A)(h) ∀h ∈ H A. (49) 
+
+Then, the score is Neyman-orthogonal at (θ0, S 0, β 0) in the sense that, for any admissible pertur-bations h and b such that h(A, ·) ∈ H A almost surely, b ∈ L2(P), and S0 + th remains in the neighborhood from Eq. 9 for sufficiently small t, i.e., 
+
+ddt E[m(O; θ0, S 0 + th, β 0)] t=0 
+
+= 0 , (50) 
+
+ddt E[m(O; θ0, S 0, β 0 + tb )] 
+
+> t=0
+
+= 0 . (51) 
+
+Proof. We first consider perturbations of S. By definition of the score map, 
+
+E[m(O; θ0, S 0 + th, β 0)] = E[g(S0(A) + th (A))] − θ0 (52) 
+
++ E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk) Yk − S0(A)( Xk) − th (A)( Xk)#
+
+. (53) Differentiating at t = 0 using Fréchet differentiability of g gives 
+
+ddt E[m(O; θ0, S 0 + th, β 0)] 
+
+> t=0
+
+= E[D gS0(A)(h(A))] − E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk)h(A)( Xk)
+
+#
+
+.
+
+(54) Conditional on (A, K ), the pairs {(Xk, Y k)}Kk=1 are i.i.d., so by exchangeability, we arrive at 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk)h(A)( Xk) A, K 
+
+#
+
+= E[β0(A)( X)h(A)( X) | A]. (55) Hence, we obtain 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+β0(A)( Xk)h(A)( Xk)
+
+#
+
+= E[E[β0(A)( X)h(A)( X) | A]] (56) 
+
+= E[D gS0(A)(h(A))] , (57) where the last step uses the Riesz identity from Eq. 49 with h = h(A, ·). Substituting into Eq. 54 proves Eq. 50. Next, consider perturbations of β. We have 
+
+E[m(O; θ0, S 0, β 0 + tb )] = E[m(O; θ0, S 0, β 0)] + t E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+b(A, X k) Yk − S0(A)( Xk)#
+
+.
+
+(58) Therefore, 
+
+ddt E[m(O; θ0, S 0, β 0 + tb )] t=0 
+
+= E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+b(A, X k) Yk − S0(A)( Xk)#
+
+. (59) Using iterated expectations and the regression property E[Yk − S0(A)( Xk) | A, X k] = 0 , we obtain 
+
+Eb(A, X k) Yk − S0(A)( Xk) = E[b(A, X k) E[Yk − S0(A)( Xk) | A, X k]] = 0 . (60) Averaging over k yields Eq. 51. Thus, the score is Neyman-orthogonal at (θ0, S 0, β 0).16 Theorem B.4 (Second-order remainder) . Let ˆθ be the one-step estimator in Eq. 16. If ˆS and ˆβ are cross-fitted, then 
+
+E[ˆθ] − θ ≲ ∥ ˆS − S0∥2 
+
+> L2(P)
+
++ ∥ ˆβ − β0∥2
+
+> L2(P)
+
+. (61) 
+
+In particular, there is no first-order bias in either nuisance component. Proof. Recall that 
+
+ˆθ = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+˜ψi, ˜ψ = g( ˆS(A)) + 1
+
+K
+
+> K
+
+X
+
+> k=1
+
+ˆβ(A)( Xk) Yk − ˆS(A)( Xk), (62) where (A, K, {(Xk, Y k)}Kk=1 ) denotes a generic observation in the evaluation fold. 
+
+Step 0: Cross-fitting. By cross-fitting, ( ˆS, ˆβ) are measurable with respect to the training sample 
+
+Dtrain , and independent of the evaluation fold. Thus, 
+
+E[ˆθ − θ] = E
+
+h
+
+E[ ˜ψ − θ | D train ]
+
+i
+
+, (63) and it therefore suffices to bound the conditional bias E[ ˜ψ − θ | D train ].
+
+Step 1: Expansion of functional. Let ∆( A) = ˆS(A) − S0(A). By Eq. 9, we have that 
+
+g( ˆS(A)) = g(S0(A)) + D gS0(A)(∆( A)) + R(S0(A), ∆( A)) , |R(S0(A), ∆( A)) | ≲ ∥∆( A)∥2 
+
+> U
+
+.
+
+(64) Hence, taking conditional expectation given Dtrain yields 
+
+E[g( ˆS(A)) − g(S0(A)) | D train ] = E[D gS0(A)(∆( A)) | D train ] + O E[∥∆( A)∥2 
+
+> U
+
+| D train ] .
+
+(65) 
+
+Step 2: Expansion of the residual correction. Next, we decompose 
+
+Yk − ˆS(A)( Xk) = ( Yk − S0(A)( Xk)) − ∆( A)( Xk) =: εk − ∆( A)( Xk). (66) Since E[εk | A, X k] = 0 and ˆβ is measurable w.r.t. Dtrain , iterated expectations give 
+
+E[ ˆβ(A)( Xk)εk | D train ] = 0 (67) Therefore, we have that 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+ˆβ(A)( Xk) Yk − ˆS(A)( Xk) Dtrain 
+
+#
+
+= −E[ ˆβ(A)( X)∆( A)( X) | D train ], (68) where X | A ∼ P(· | A) denotes a generic draw from the sampling design. With ˆβ = β0 + ( ˆβ − β0), we have 
+
+− E[ ˆβ(A)( X)∆( A)( X) | D train ] (69) 
+
+= − E[β0(A)( X)∆( A)( X) | D train ] − E[( ˆβ − β0)( A)( X)∆( A)( X) | D train ]. (70) 
+
+Step 3: First-order cancellation. By the Riesz identity in Eq. 13, we obtain 
+
+E[β0(A)( X)∆( A)( X) | A] = D gS0(A)(∆( A)) . (71) Hence, we take expectations conditionally on Dtrain , which yields 
+
+E[β0(A)( X)∆( A)( X) | D train ] = E[D gS0(A)(∆( A)) | D train ]. (72) 17 Substituting Eq. 72 into Eq. 70 and Eq. 68, we obtain 
+
+E
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+ˆβ(A, X k) Yk − ˆS(A)( Xk) Dtrain 
+
+#
+
+= −E[D gS0(A)(∆( A)) | D train ]
+
+− E[( ˆβ − β0)( A, X )∆( A)( X) | D train ]. (73) Hence, the β0-part of the correction term exactly cancels the first-order term 
+
+E[D gS0(A)(∆( A)) | D train ] (74) from the Taylor expansion in Eq. 65, while the additional cross-term involving ( ˆβ − β0)∆ remains and is controlled in the next step. 
+
+Step 4: Bounding the remaining second-order terms. Combining Eq. 65 with Eq. 73, after cancellation of the linear term, yields 
+
+E[ ˜ψ − θ | D train ] = O E[∥∆( A)∥2 
+
+> U
+
+| D train ] − E[( ˆβ − β0)( A, X )∆( A)( X) | D train ]. (75) For the cross-term, conditional Cauchy–Schwarz gives 
+
+E[( ˆβ − β0)( A)( X)∆( A)( X) | D train ] ≤ ∥ ˆβ − β0∥L2(P|D train ) · ∥ ∆( A)( X)∥L2(P|D train ). (76) Hence, using 2ab ≤ a2 + b2 yields 
+
+E[( ˆβ − β0)( A)( X)∆( A)( X) | D train ] ≤ 12 ∥ ˆβ − β0∥2 
+
+> L2(P|D train )
+
++ 12 E[∆( A)( X)2 | D train ].
+
+(77) Finally, by Assumption 3.1 (i.e., bounded ξ0(A) = d μ/ dP(· | A)) and U = L2(Ω , μ ),
+
+E[∥∆( A)∥2 
+
+> U
+
+| D train ] = E
+
+Z 
+
+> Ω
+
+∆( A)( x)2 dμ(x) Dtrain 
+
+
+
+(78) 
+
+≤C E
+
+Z 
+
+> Ω
+
+∆( A)( x)2 dP(x | A) Dtrain 
+
+
+
+= C E[∆( A)( X)2 | D train ]. (79) Substituting Eq. 77 and Eq. 79 into Eq. 75 then gives 
+
+E[ ˜ψ − θ | D train ] ≲ ∥ ˆβ − β0∥2 
+
+> L2(P|D train )
+
++ E[∆( A)( X)2 | D train ]. (80) Finally, taking expectation over Dtrain together with the tower property yields 
+
+E[ˆθ] − θ ≲ ∥ ˆβ − β0∥2 
+
+> L2(P)
+
++ E[∆( A)( X)2] = ∥ ˆβ − β0∥2 
+
+> L2(P)
+
++ ∥ ˆS − S0∥2
+
+> L2(P)
+
+, (81) which concludes the proof. 18 Proposition B.5 (Asymptotic normality) . If ˆS and ˆβ are cross-fitted, E[ψ2 
+
+> i
+
+] < ∞, and the nuisance estimators satisfy 
+
+∥ ˆS − S0∥2 
+
+> L2(P)
+
+= op(n−1/2), ∥ ˆβ − β0∥2 
+
+> L2(P)
+
+= op(n−1/2), (82) 
+
+and, in addition, the estimated score is conditionally mean-square consistent: 
+
+E
+
+h
+
+( ˜ψi − ψi)2 | D train i
+
+= op(1) , (83) 
+
+then 
+
+√n(ˆθ − θ) d
+
+−→ N  0, V[ψi]. (84) 
+
+Moreover, a consistent estimator of the asymptotic variance of ˆθ is 
+
+bV(ˆθ) = 1
+
+n2
+
+> n
+
+X
+
+> i=1
+
+( ˜ψi − ˆθ)2. (85) 
+
+Proof. Let 
+
+δi := ˜ψi − ψi. (86) Then 
+
+ˆθ − θ = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+ψi + 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+δi. (87) Since E[ψi] = 0 , we may further decompose 
+
+√n(ˆθ − θ) = 1
+
+√n
+
+> n
+
+X
+
+> i=1
+
+ψi + 1
+
+√n
+
+> n
+
+X
+
+> i=1
+
+
+
+δi − E[δi | D train ]
+
+
+
++ √n E[δi | D train ]. (88) 
+
+Step 1: Bias term. By definition, δi = ˜ψi − ψi, and since E[ψi] = 0 , we have 
+
+E[δi | D train ] = E[ ˜ψi − θ | D train ]. (89) Hence, by the second-order remainder result (Theorem B.4), we obtain 
+
+E[δi | D train ] = Op
+
+
+
+∥ ˆS − S0∥2 
+
+> L2(P)
+
++ ∥ ˆβ − β0∥2
+
+> L2(P)
+
+
+
+. (90) Under Eq. 82, this yields 
+
+√n E[δi | D train ] = op(1) . (91) 
+
+Step 2: Stochastic remainder. Conditional on Dtrain , the variables {δi}ni=1 are i.i.d. Therefore, 
+
+V 1
+
+√n
+
+> n
+
+X
+
+> i=1
+
+ δi − E[δi | D train ] Dtrain 
+
+!
+
+= V(δi | D train ) ≤ E[δ2 
+
+> i
+
+| D train ]. (92) By Eq. 83, the right-hand side is op(1) , so conditional Chebyshev implies 
+
+1
+
+√n
+
+> n
+
+X
+
+> i=1
+
+ δi − E[δi | D train ] = op(1) . (93) 
+
+Step 3: Central limit theorem (CLT). Combining Eq. 88, Eq. 91, and Eq. 93, we obtain 
+
+√n(ˆθ − θ) = 1
+
+√n
+
+> n
+
+X
+
+> i=1
+
+ψi + op(1) . (94) 19 Since {ψi}ni=1 are i.i.d., mean zero, and have finite variance, the classical CLT gives 
+
+1
+
+√n
+
+> n
+
+X
+
+> i=1
+
+ψid
+
+−→ N  0, V[ψi]. (95) Slutsky’s theorem then yields 
+
+√n(ˆθ − θ) d
+
+−→ N  0, V[ψi]. (96) 
+
+Step 4: Variance estimation. We first show that 
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+( ˜ψi − ˆθ)2 p
+
+−→ V[ψi]. (97) Write again ˜ψi = ψi + δi. Then, conditional on Dtrain , the variables δi are i.i.d., so by the weak law of large numbers and Eq. 83, 
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+δ2 
+
+> i
+
+− E[δ2 
+
+> i
+
+| D train ] = op(1) , (98) hence 
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+δ2 
+
+> i
+
+= op(1) . (99) Moreover, by Cauchy–Schwarz inequality, we have 
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+ψiδi ≤ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+ψ2
+
+> i
+
+!1/2
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+δ2
+
+> i
+
+!1/2
+
+= op(1) , (100) since n−1 P 
+
+> i
+
+ψ2
+
+> ip
+
+−→ E[ψ2 
+
+> i
+
+] and Eq. 99 holds. Therefore, 
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+˜ψ2 
+
+> i
+
+= 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+ψ2 
+
+> i
+
++ 2
+
+n
+
+> n
+
+X
+
+> i=1
+
+ψiδi + 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+δ2 
+
+> i
+
+(101) 
+
+= 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+ψ2 
+
+> i
+
++ op(1) p
+
+−→ E[ψ2 
+
+> i
+
+]. (102) Also, ˆθ p
+
+−→ θ, so 
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+( ˜ψi − ˆθ)2 = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+˜ψ2 
+
+> i
+
+− ˆθ2 p
+
+−→ E[ψ2 
+
+> i
+
+] − θ2 = V[ψi], (103) which proves Eq. 97. Consequently, 
+
+bV(ˆθ) = 1
+
+n2
+
+> n
+
+X
+
+> i=1
+
+( ˜ψi − ˆθ)2 = 1
+
+n
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+( ˜ψi − ˆθ)2
+
+!
+
+(104) satisfies 
+
+n bV(ˆθ) p
+
+−→ V[ψi]. (105) Therefore, bV(ˆθ) is a consistent estimator of the asymptotic variance V[ψi]/n of ˆθ.20 B.3 Automatic DML for operator-valued nuisances Proposition B.6 (Decomposition of the debiasing weight) . Suppose U = L2(Ω , μ ) and let wg (u) ∈
+
+L2(Ω , μ ) denote the Riesz representer of Dgu with respect to μ. Then the unique solution β0(A)( x)
+
+satisfying Eq. 13 admits ( P(· | A)-a.e.) the decomposition 
+
+β0(A)( x) = ξ0(A)( x) wg (S0(A))( x). (106) 
+
+Proof. By definition of the Riesz representer, we have 
+
+DgS0(A)(h) = 
+
+Z
+
+> Ω
+
+wg (S0(A))( x) h(x) d μ(x). (107) On the other hand, 
+
+E[β0(A)( X) h(X) | A] = 
+
+Z
+
+> Ω
+
+β0(A)( x) h(x) d P(x | A). (108) Equating the two expressions for all h ∈ H A implies 
+
+β0(A)( x) d P(x | A) = wg (S0(A))( x) d μ(x), (109) which yields the decomposition in Eq. 106 by Radon–Nikodym differentiation. 21 Theorem B.7 (Primal characterization of the Riesz representer) . The unique minimizer of Eq. 24 is the Riesz representer β0 satisfying Eq. 22. Proof. We prove that the unique minimizer of the population risk 
+
+R(β) := E E[β(A)( X)2 | A] − 2 D gS0(A)
+
+ β(A)( ·) (110) is the Riesz representer β0 satisfying 
+
+E[β0(A)( X)h(X) | A] = D gS0(A)(h), ∀h ∈ H A. (111) 
+
+Step 1: Conditional Hilbert space structure. For each A = a, define the Hilbert space 
+
+Ha := L2(P(· | A = a)) (112) with inner product 
+
+⟨f, h ⟩a := E[f (X)h(X) | A = a]. (113) By Assumption 3.1, for every h ∈ H a, we have 
+
+∥h∥2 
+
+> U
+
+=
+
+Z
+
+> Ω
+
+h(x)2 dμ(x) = 
+
+Z
+
+> Ω
+
+h(x)2 ξ0(a)( x) d P(x | a) ≤ C ∥h∥2 
+
+> Ha
+
+. (114) Hence, Ha embeds continuously into U = L2(Ω , μ ). Therefore, the Fréchet derivative 
+
+La(h) := D gS0(a)(h) (115) defines a continuous linear functional on Ha by restriction. 
+
+Step 2: Existence of the Riesz representer. By the Riesz representation theorem, for each a, there exists a unique β0(a)( ·) ∈ H a such that 
+
+La(h) = ⟨β0(a)( ·), h ⟩a = E[β0(A)( X)h(X) | A = a], ∀h ∈ H a. (116) This establishes the conditional Riesz identity on Ha.
+
+Step 3: Variational characterization. We now use the standard variational characterization of the Riesz representer in a Hilbert space [ 9 ]. For any Hilbert space (H, ⟨· , ·⟩ ) and continuous linear functional L(h) = ⟨r, h ⟩, the representer r satisfies 
+
+r = arg min 
+
+> b∈H
+
+∥b∥2 
+
+> H
+
+− 2L(b) . (117) Indeed, for any b ∈ H , we obtain 
+
+∥b∥2 
+
+> H
+
+− 2L(b) = ∥b∥2 
+
+> H
+
+− 2⟨r, b ⟩ = ∥b − r∥2 
+
+> H
+
+− ∥ r∥2
+
+> H
+
+, (118) which is uniquely minimized at b = r. This variational formulation is the basis of automatic Riesz regression in debiased machine learning [9, 10]. Our construction extends this idea to a conditional, operator-valued setting. 
+
+Step 4: Conditional minimization. Applying Eq. 117 with 
+
+H = Ha, L = La, r = β0(a)( ·), (119) we obtain, for each fixed a,
+
+β0(a)( ·) = arg min 
+
+> β(a)( ·)∈H a
+
+E[β(A)( X)2 | A = a] − 2 D gS0(a)
+
+ β(a)( ·) . (120) 
+
+Step 5: Averaging over A. Finally, observe that the population risk Eq. 110 can be written as 
+
+R(β) = E
+
+h
+
+RA
+
+ β(A)( ·)i
+
+, (121) where 
+
+RA
+
+ β(A)( ·) := E[β(A)( X)2 | A] − 2 D gS0(A)
+
+ β(A)( ·). (122) Since the objective separates across values of A, minimizing R(β) is equivalent to minimizing 
+
+RA(β(A)( ·)) for almost every A. By Eq. 120, the unique minimizer is therefore β0(A)( ·).This means that β0 is the unique minimizer of Eq. 110, which completes the proof. 22 C Additional results 
+
+C.1 Experiments with DeepONet backbone 
+
+We repeat our main experimental results from Section 5 with DeepONet [ 40 ] as the neural backbone of both DOPE and the plug-in estimator. The new instantiation confirms our previous results: Table 4 DOPE clearly improves upon the plug-in estimator for both functionals and all sampling levels. At the same time, this also shows that DOPE is broadly applicable across different neural operator architectures.                                                                                                                                                                                                                                                       
+
+> ρ= 0 ρ= 0 .125 ρ= 0 .25 ρ= 0 .375 ρ= 0 .5ρ= 0 .625 ρ= 0 .75 ρ= 0 .875 ρ= 1
+> AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT AUC TAT DOPE: structured wg(ours) 2.00 ±0.16 6 .88 ±0.28 1 .87 ±0.16 7 .48 ±0.40 1.64 ±0.16 7.13 ±0.37 1.67 ±0.15 6.24 ±0.39 1.92 ±0.19 6.04 ±0.37 2.06 ±0.18 5.95 ±0.41 2.31 ±0.20 5.81 ±0.40 2.28 ±0.19 4.73 ±0.34 2.30 ±0.19 5.22 ±0.34
+> DOPE: oracle β0(ours) 1.42 ±0.12 7 .64 ±0.32 1 .47 ±0.12 7 .49 ±0.28 1.09 ±0.09 8.07 ±0.31 1.56 ±0.13 7.97 ±0.33 1.47 ±0.12 8.10 ±0.31 1.46 ±0.13 8.34 ±0.30 1.87 ±0.15 8.05 ±0.26 1.26 ±0.12 8.61 ±0.31 1.81 ±0.17 8.10 ±0.31
+> Plug-in 9.59 ±0.68 6 .69 ±0.53 9 .26 ±0.55 6 .19 ±0.48 10 .26 ±0.57 7 .15 ±0.50 10 .11 ±0.62 7 .05 ±0.56 11 .02 ±0.62 7 .87 ±0.56 11 .19 ±0.67 8 .06 ±0.59 11 .08 ±0.56 7 .83 ±0.47 12 .28 ±0.68 8 .89 ±0.58 11 .00 ±0.66 7 .94 ±0.56
+> DOPE ( ours )1.68 ±0.14 4 .85 ±0.27 1 .59 ±0.13 5 .19 ±0.26 1.50 ±0.11 4.86 ±0.25 2.20 ±0.18 4.13 ±0.24 2.25 ±0.20 4.28 ±0.33 2.82 ±0.22 3.74 ±0.27 2.96 ±0.26 3.96 ±0.26 3.42 ±0.23 3.03 ±0.26 3.56 ±0.29 3.39 ±0.28
+> Rel. improvement 82 .51% 27 .58% 82 .87% 16 .12% 85 .41% 32 .02% 78 .25% 41 .49% 79 .54% 45 .60% 74 .78% 53 .65% 73 .27% 49 .36% 72 .12% 65 .96% 67 .67% 57 .27%
+
+Table 4: Comparison: plug-in estimator vs. DOPE . RMSE ± SE ( ×100 ) across different functionals (area under the concentration curve [AUC] and time-above-threshold [TAT]) for different overlap levels ρ. ⇒ DOPE outperforms the plug-in estimator. 
+
+C.2 AUC functional for PPI-style experiments 
+
+We repeat our PPI-style experiments from Section 5 on the AUC functional. Our results in Table 5 are consistent with the smooth continuous maximum functional. Both DOPE and the plug-in estimator benefit from abundant unlabeled trajectories, but DOPE clearly has stronger performance gains. 
+
+n2 = 0 n2 = 64 n2 = 128 n2 = 256 n2 = 512 n2 = 1024 n2 = 2048 n2 = 4096 
+
+Plug-in 3.20 ± 0.29 3.10 ± 0.28 3.07 ± 0.27 3.06 ± 0.28 3.05 ± 0.27 3.05 ± 0.27 3.04 ± 0.27 3.04 ± 0.27 
+
+Rel. improvement 0.00% 2.93% 3.97% 4.22% 4.64% 4.68% 4.90% 4.84% 
+
+DOPE 1.39 ± 0.11 1.27 ± 0.09 1.24 ± 0.09 1.22 ± 0.09 1.18 ± 0.09 1.15 ± 0.09 1.14 ± 0.09 1.12 ± 0.08 
+
+Rel. improvement 0.00% 8.56% 11 .18% 12 .73% 15 .49% 17 .27% 18 .50% 19 .39% 
+
+Table 5: AUC RMSE ± SE ( ×100 ) across unlabeled sample sizes n2.
+
+C.3 CLT-based confidence intervals 
+
+We report the empirical coverage for CLT-based confidence intervals in Table 6 on the AUC functional with the pharmacokinetics data. Using the CLT is grounded in Proposition B.5. We find that DOPE is fairly reliable, while the empirical coverage from simple plug-in estimation is not. 
+
+ρ = 0 ρ = 0 .125 ρ = 0 .25 ρ = 0 .375 ρ = 0 .5 ρ = 0 .625 ρ = 0 .75 ρ = 0 .875 ρ = 1 
+
+Plug-in 0.44 0.48 0.46 0.40 0.38 0.46 0.42 0.52 0.36 
+
+DOPE (ours) 0.96 0.96 0.98 0.96 0.92 1.00 0.90 0.94 0.92 
+
+Table 6: Empirical coverage for 95% CLT-based confidence intervals across overlap levels ρ over 50 repeats. 23 D Pseudo-code for automatic DML with neural operators 
+
+Algorithm 1 Cross-fitted debiased neural operator 
+
+Input: Observations D = {Oi}ni=1 , where Oi = ( Ai, K i, {(Xik , Y ik )}Ki
+
+> k=1
+
+); number of folds J; common discretization {xℓ}mℓ=1 ⊂ Ω; discretized functional gm : Rm → R; regularization parameter λ ≥ 0; neural operator model classes S0 for S and B for β0
+
+Output: One-step estimate ˆθ
+
+1: Split {1, . . . , n } into disjoint folds I1, . . . , I J
+
+2: for j = 1 , . . . , J do 
+
+3: Define training and evaluation indices 
+
+Itrain  
+
+> j
+
+← { 1, . . . , n } \ Ij , Ieval  
+
+> j
+
+← Ij (123) 
+
+4: Train neural operator for the solution map: 
+
+ˆS(−j) ← arg min  
+
+> Sη∈S
+
+1
+
+|Itrain  
+
+> j
+
+|
+
+X
+
+> i∈Itrain
+> j
+
+1
+
+KiKiX
+
+> k=1
+
+ Yik − S(Ai)( Xik )2 (124) 
+
+5: Instantiate the debiasing-weight model as a neural operator: let βη ∈ B be a neural operator mapping 
+
+A 7 → βη (A, ·) (125) Optionally, if wg is known in closed form, use the structured parameterization 
+
+βη (A)( x) = ξη (A)( x) wg ( ˆS(−j)(A))( x) (126) with ξη parameterized by a neural operator. 
+
+6: Train neural operator for the debiasing weight via Riesz regression: 
+
+ˆβ(−j) ← arg min  
+
+> βη∈B
+
+1
+
+|Itrain  
+
+> j
+
+|
+
+X
+
+> i∈Itrain
+> j
+
+"
+
+1
+
+KiKiX
+
+> k=1
+
+βη (Ai)( Xik )2 − 2 JVP( gm, u i; bi)
+
+#
+
++ λ∥η∥2 (127) where 
+
+ui ←   ˆS(−j)(Ai)( xℓ)mℓ=1 ∈ Rm, bi ←  βη (Ai)( xℓ)mℓ=1 ∈ Rm, (128) and 
+
+JVP( gm, u i; bi) ← ddt gm(ui + tb i)
+
+> t=0
+
+. (129) 
+
+7: Evaluate pseudo-outcomes on the held-out fold: 
+
+8: for each i ∈ Ieval  
+
+> j
+
+do 
+
+9: Compute 
+
+˜ψi ← gm
+
+  ˆS(−j)(Ai)( xℓ)mℓ=1 
+
+
+
++ 1
+
+KiKiX
+
+> k=1
+
+ˆβ(−j)(Ai)( Xik ) Yik − ˆS(−j)(Ai)( Xik ). (130) 
+
+10: end for 
+
+11: end for 
+
+12: Aggregate cross-fitted estimate: 
+
+ˆθ ← 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+˜ψi (131) 
+
+13: return One-step estimate ˆθ
+
+24 E Empirical objective of DOPE via automatic differentiation 
+
+Empirical objective and implementation of DOPE 
+
+We directly parameterize the correction weight ˆβ(·)( ·) using a neural operator, and minimize the empirical analogue of Eq. 24. Specifically, let ˆS, ˆβ denote a cross-fitted estimators of S0, β0,respectively. For each observation Ai, we evaluate both ˆS(Ai)( ·) and ˆβ(Ai)( ·) on a common discretization {xℓ}mℓ=1 ⊂ Ω, which yields 
+
+ui :=   ˆS(Ai)( xℓ)mℓ=1 ∈ Rm, bi :=   ˆβ(Ai)( xℓ)mℓ=1 ∈ Rm. (132) Let gm : Rm → R denote the discretized implementation of the functional g.5The empirical risk is then given by 
+
+min 
+
+> ˆβ
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+"
+
+1
+
+KiKiX
+
+> k=1
+
+ˆβ(Ai)( Xik )2 − 2 JVP( gm, u i; bi)
+
+#
+
++ λ∥ ˆβ∥2, (133) where the directional derivative is computed as a Jacobian–vector product 
+
+JVP( gm, u i; bi) = ddt gm(ui + t b i) t=0 
+
+= Jgm (ui) bi. (134) This quantity can be evaluated efficiently via automatic differentiation (e.g., in forward mode) and thus without explicitly forming the Jacobian matrix. 
+
+Importantly, even though the objective of DOPE in Eq. 24 is formulated in function space, our empirical implementation in DOPE reduces to differentiating the scalar computational graph t 7 →
+
+gm(ui + tb i) at t = 0 . In particular, DOPE requires only that both ˆS(A)( ·) and ˆβ(A)( ·) can be evaluated on a common discretization of Ω, which is naturally satisfied by neural operator architectures.  
+
+> 5Of note, while our theory is formulated in function space for the continuous functional g, the implemented estimator targets a numerical approximation to the population quantity. The resulting discretization and quadrature error is separate from the statistical error analyzed here.
+
+25 F Implementation details 
+
+• Neural operator implementation. To make the comparison in Section 5 and Supplement C fair, DOPE and the plug-in baseline use the exact same neural backbone. Specifically, the plug-in estimator only consists of the solution operator ˆS, which is shared for both methods (see Table 7).                                            
+
+> Setting Operator(s) Backbone Architecture specification Pharmacokinetics (main) ˆS,ˆβFNO [39] 4input channels, 32 hidden channels, 1output channel, 3Fourier layers, 12 retained modes 2D Darcy-flow (main) ˆS,ˆβFNO [39] 3input channels, 24 hidden channels, 1output channel, 3Fourier layers, 8×8retained modes Pharmacokinetics (ablation) ˆS,ˆβDeepONet [40] 4input channels, 32 branch hidden channels, 32 trunk hidden channels, latent dimension 32 ,1output channel
+
+Table 7: Neural operator architectures used in the main experiments and ablation study. For fairness, DOPE and the plug-in baseline share the same solution-operator backbone ˆS within each setting. 
+
+Pharmacokinetics dataset: Both nuisance components, namely the solution operator ˆS and the debiasing operator ˆβ, are implemented using the same Fourier neural operator (FNO) [ 39 ] architecture. The shared model configuration uses the FNO family with 4 input channels, 32 hidden channels, 
+
+1 output channel, 3 Fourier layers, and 12 retained modes. Both modules are trained with Adam optimization [ 32 ] settings given by learning rate 10 −3, weight decay 10 −5, batch size 8, and a maximum of 20 epochs (see Table 8). 
+
+2D Darcy-flow dataset: Here, ˆS and ˆβ are also implemented with the same Fourier neural archi-tecture. Specifically, they use the FNO family with 3 input channels, 24 hidden channels, 1 output channel, 3 Fourier layers, and 8 retained modes for both x- and y-dimension, respectively. Both are learned with Adam optimization [ 32 ] and learning rate 10 −3, weight decay 10 −5, batch size 8, and a maximum of 20 epochs (see Table 8). 
+
+Ablation instantiation: In Supplement C, we report a variant of our main results on the pharmacoki-netics dataset, where we replace the Fourier neural operator with a DeepONet [ 40 ]). For both the solution operator ˆS of the plug-in estimator and DOPE , as well as the debiasing operator ˆβ of DOPE ,the DeepONets have 4 input channels, 32 branch hidden channels, 32 trunc hidden channels, a latent dimension of 32 , and 1 output channel. They are trained via Adam [ 32 ] with a learning rate of 10 −3,a weight decay of 10 −5, batch size 8, and a maximum of 20 epochs (see Table 8).                               
+
+> Component Setting Specification Optimizer all models Adam-style optimization with learning rate 10 −3and weight decay 10 −5
+> Batch size / epochs all models batch size 8, maximum of 20 epochs Solution operator training ˆStrained to predict the latent trajectory from Aiusing mean squared error evaluated only at the sampled observation locations Debiasing operator training ˆβfor DOPE trained separately via the implemented Riesz-style objective with the same optimizer hyperparameters as ˆS
+> Riesz penalty ˆβfor DOPE λRiesz = 0 .1
+> Cross-fitting final experiments 2-fold cross-fitting on the test split Repeated runs final experiments results aggregated over 50 repetitions
+
+Table 8: Training and evaluation details used throughout the experiments. 
+
+• Solution operator training. For both DOPE and the plug-in estimator, the neural operator ˆS is trained to predict the full latent concentration trajectory from the functional input Ai. Its loss is the mean squared prediction error evaluated only at the subject-specific sampled observation times. 
+
+• Debiasing operator training. For DOPE, the correction operator ˆβ is parameterized by the same FNO architecture, and trained separately through the implemented Riesz-style objective used by the one-step estimator. The corresponding debiasing module uses the same optimizer hyperparameters as the solution module and includes the penalty parameter λRiesz = 0 .1.
+
+• Cross-fitting and evaluation. The final experiments use 2-fold cross-fitting on the test split. The reported results aggregate repeated-run summaries over 50 repetitions. 
+
+• Runtime. For each method, training took approximately 30 minutes over 50 repeats with an AMD Ryzen 7 Pro CPU and 32GB of RAM. The runtime was comparable for DOPE and the plug-in estimator. 26 G Additional details on the data 
+
+G.1 Pharmacokinetic model 
+
+We consider a pharmacokinetics benchmark in which each subject is characterized by a function-valued input Ai consisting of a subject-specific dosing-rate profile together with subject-level clear-ance and volume parameters. The resulting latent concentration trajectory u(Ai, ·) follows a standard one-compartment pharmacokinetic model [ 37 , 52 ], where clearance governs elimination, volume determines how the administered drug is translated into concentration, and the time-varying dosing profile allows for heterogeneous infusion- or pulse-like regimens across subjects. The corresponding scientific targets are not the full concentration trajectories themselves, but rather low-dimensional summaries such as exposure, peak burden, or time above a clinically relevant threshold. We observe each trajectory only at sparse time points and vary the degree of input-dependent sampling through an irregularity parameter ρ, where ρ = 0 corresponds to approximately uniform monitoring and larger values of ρ increasingly concentrate observations near the subject-specific peak region. We now introduce the exact data-generating process for our pharmacokinetics benchmark study. We summarize all parameters in Table 9. Table 9: Overview of the pharmacokinetics benchmark configuration used in the main study.                                                  
+
+> Component Specification Time horizon T= 24
+> Grid size ∆ = 128
+> Reference measure normalized trapezoid rule on [0 , T ]
+> Input channels [ri(t),log CL i,log Vi]
+> PK parameter means (0 .0,1.0) for (log CL i,log Vi)
+> PK parameter standard deviations (0 .25 ,0.20)
+> PK parameter correlation 0.4
+> Dosing family one_or_two_pulse
+> Number of pulses Mi∈ { 1,2}uniformly Pulse amplitude range [0 .5,2.0]
+> Pulse duration range [1 .0,4.0]
+> Observation design peak_window_mixture
+> Observations per subject K= 24
+> Noise standard deviation σε= 0 .002
+> Peak bandwidth h= 5 .0
+> Irregularity grid ρ∈ { 0.00 ,0.125 , . . . , 1.00 }
+> Dataset split sizes (256 ,64 ,64) for train/val/test Repeated runs 50
+> Cross-fitting 2folds
+
+• Governing model: We consider a one-dimensional pharmacokinetics benchmark on the time horizon [0 , T ] with T = 24 . The latent concentration trajectory ui for subject i solves the one-compartment dynamics 
+
+dui
+
+dt (t) = − CL i
+
+Vi
+
+ui(t) + 1
+
+Vi
+
+ri(t), ui(0) = 0 , (135) where ri is a subject-specific dosing-rate profile and (CL i, V i) are clearance and volume parameters. At the operator-learning level, each subject is represented through the function-valued input 
+
+Ai(tδ ) = ri(tδ ), log CL i, log Vi
+
+ ∈ R3, δ = 1 , . . . , ∆, (136) where the last two channels are constant over the grid. We use a uniform grid of size ∆ = 128 with points 
+
+tδ = δ − 1∆ − 1 T, δ = 1 , . . . , ∆. (137) 27 The subject-specific PK parameters are sampled as 
+
+CL log 
+
+> i
+
+V log 
+
+> i
+
+
+
+∼ N 
+
+ 0.01.0
+
+
+
+, Σ
+
+
+
+, Σ = 
+
+ 0.25 2 0.4 · 0.25 · 0.20 0.4 · 0.25 · 0.20 0.20 2
+
+
+
+, (138) and we set 
+
+CL i = exp( CL log  
+
+> i
+
+), Vi = exp( V log  
+
+> i
+
+). (139) The dosing profile follows the one_or_two_pulse family. Specifically, 
+
+Mi ∼ Unif {1, 2}. (140) For each pulse m = 1 , . . . , M i, we draw independently 
+
+Dim ∼ Unif[1 .0, 4.0] , Sim ∼ Unif[0 , T − Dim ], cim ∼ Unif[0 .5, 2.0] . (141) The dosing-rate profile is then 
+
+ri(tδ ) = 
+
+> Mi
+
+X
+
+> m=1
+
+cim 1{Sim ≤ tδ ≤ min {T, S im + Dim }} . (142) 
+
+• Implementation level: Trajectories are generated on the grid using the recursion 
+
+ui, 1 = 0 , (143) and, for δ = 2 , . . . , ∆,
+
+ui,δ = e−κi∆tui,δ −1 + ri(tδ−1)
+
+Vi
+
+1 − e−κi∆t
+
+κi
+
+, κi = CL i
+
+Vi
+
+, (144) with the small-κi fallback 
+
+ui,δ = ui,δ −1 + ∆ t ri(tδ−1)
+
+Vi
+
+. (145) Quadrature uses normalized trapezoid weights 
+
+w1 = w∆ = 12(∆ − 1) , wδ = 1∆ − 1 , δ = 2 , . . . , ∆ − 1, (146) so that P∆ 
+
+> δ=1
+
+wδ = 1 . The corresponding discrete inner product is 
+
+⟨f, h ⟩w =
+
+> ∆
+
+X
+
+> δ=1
+
+wδ fδ hδ . (147) 
+
+• Sampling mechanism and irregularity parameter: We observe each latent trajectory only at 
+
+sparse time points. In all reported experiments, each subject contributes K = 24 observations. For subject i, let 
+
+δ⋆i = arg max  
+
+> δ=1 ,..., ∆
+
+ui,δ , τi = tδ⋆i , (148) denote the grid location and time of the latent peak concentration. We define a peak-window mass function by 
+
+qwindow  
+
+> iδ
+
+= 1{| tδ − τi| ≤ h}
+
+P∆ 
+
+> ℓ=1
+
+1{| tℓ − τi| ≤ h} , h = 5 .0. (149) The observation design is a mixture 
+
+piδ (ρ) = (1 − ρ/ 5) 1∆ + ρ/ 5 qwindow  
+
+> iδ
+
+. (150) Hence, ρ = 0 corresponds to uniform monitoring over the grid, while larger values of ρ increasingly concentrate observations near the subject-specific peak region. In the main study, we use 
+
+ρ ∈ { 0.00 , 0.125 , 0.25 , 0.375 , 0.50 , 0.625 , 0.75 , 0.875 , 1.00 }. (151) Given piδ (ρ), we sample K = 24 distinct grid indices without replacement from {1, . . . , ∆}, sort them, and observe 
+
+Yik = ui(tJik ) + εik , εik ∼ N (0 , σ 2 
+
+> ε
+
+), σε = 0 .002 . (152) For oracle calculations , the inverse-design weight on the grid is 
+
+ξi(tδ ) = wδ
+
+piδ (ρ) . (153) 28 Functional Definition Implementation Hyperparameters                                 
+
+> auc g(u) = (1 /T )RT
+> 0u(t) d tg(u) =
+> ∆X
+> δ=1
+> wδuδnone
+> tat g(u) = (1 /T )RT
+> 0σ(κ(u(t)−c⋆)) d tg(u) =
+> ∆X
+> δ=1
+> wδσ κ(uδ−c⋆)κ= 8 .0, c ⋆= 0 .5
+> soft_cmax g(u) = (1 /λ ) log (1 /T )RT
+> 0exp( λu (t)) d tg(u) = 1
+> λlog
+> ∆X
+> δ=1
+> wδeλu δ
+> !
+> λ= 6 .0
+
+Table 10: Functional-specific hyperparameters used in the reported pharmacokinetics experiments. 
+
+• Functional estimation: The population target is the mean functional 
+
+θ = E[g(S0(A))] , (154) where we use 2000 datapoints to compute the ground-truth average functional. Table 10 lists the functional-specific hyperparameters. More details on the closed-form functional derivatives and their Riesz representers are given in Supplement H. All experiments are repeated 50 
+
+times. 
+
+G.2 Darcy-flow model 
+
+We consider a two-dimensional Darcy-flow benchmark in which each sample is characterized by a spatially varying coefficient field ai on the unit square, and the latent scientific state is the corre-sponding solution field u(ai, ·) of an elliptic PDE. The operator-learning task is therefore to map coefficient fields to solution fields, but the inferential target is not the full field itself: instead, we study low-dimensional functionals of the solution, namely smooth excess-above-threshold summaries of the spatial field. The Darcy-flow model is standard for benchmarking neural operators [35]. We observe each latent solution only at a sparse set of noisy spatial locations and allow the observation design to depend on the realized coefficient and solution field. The observation design is fully adaptive, and concentrates samples in regions with small coefficients and rapidly varying solutions. We now introduce the exact data-generating process for our Darcy-flow benchmark study. We summarize all benchmark parameters in Table 11. Table 11: Overview of the Darcy-flow benchmark configuration used in the main study. 
+
+Component Specification Spatial domain Ω = (0 , 1) 2
+
+Grid size H = W = 17 
+
+Reference measure normalized 2D trapezoid rule on Ω
+
+Coefficient family piecewise_constant_transformed_gaussian_field 
+
+Coarse coefficient grid 5 × 5
+
+Number of cosine basis modes 3 × 3
+
+Log-coefficient scale 0.65 
+
+Lower coefficient bound 0.2
+
+Observation design inverse_energy_mixture 
+
+Observations per sample K = 24 
+
+Noise standard deviation σε = 0 .01 
+
+Adaptive design temperature λ = 7 .0
+
+Adaptive design floor ε = 10 −3
+
+Irregularity parameter ρ = 1 .0
+
+Dataset split sizes (256 , 64 , 64) for train/val/test Truth-pool size 2000 
+
+Repeated runs 50 
+
+Cross-fitting 2 folds 
+
+• Governing model: We consider the elliptic Darcy problem on Ω = (0 , 1) 2,
+
+−∇ ·  ai(x)∇ui(x) = 1 , x ∈ (0 , 1) 2, (155) 29 with homogeneous Dirichlet boundary conditions 
+
+ui(x) = 0 , x ∈ ∂(0 , 1) 2. (156) Thus, the forcing term is constant and equal to 1, and all sample-specific heterogeneity enters through the random coefficient field ai.At the operator-learning level, each sample is represented by a coefficient field on a tensor-product grid with 
+
+xp = p − 1
+
+H − 1 , p = 1 , . . . , H, yq = q − 1
+
+W − 1 , q = 1 , . . . , W, (157) where H = W = 17 , and grid locations 
+
+Xpq = ( xp, y q ) ∈ [0 , 1] 2. (158) The coefficient field is sampled from the family piecewise_constant_transformed_gaussian_field .First, define a coarse 5 × 5 grid by 
+
+¯xr = r − 15 − 1 , r = 1 , . . . , 5, ¯ys = s − 15 − 1 , s = 1 , . . . , 5. (159) For each pair of modes (mx, m y ) ∈ { 1, 2, 3}2, we use the cosine basis 
+
+ϕmx,m y (¯ xr , ¯ys) = √2 cos( πm x ¯xr ) √2 cos( πm y ¯ys). (160) Independent Gaussian coefficients ξmx,m y ∼ N (0 , 1) are drawn, and the latent coarse field is 
+
+Zrs = 0.65 3
+
+> 3
+
+X
+
+> mx=1 3
+
+X 
+
+> my=1
+
+ξmx,m y ϕmx,m y (¯ xr , ¯ys). (161) The coarse coefficient field is then obtained by exponentiation and lower clipping, 
+
+¯ars = exp( Zrs ), ¯ars ← max {¯ars , 0.2}. (162) Finally, the coarse field is mapped to the 17 × 17 grid by nearest-cell replication in both spatial directions, yielding a piecewise-constant coefficient field on the fine grid. 
+
+• Implementation level: The PDE is solved on the 17 × 17 grid by a finite-difference discretization of the divergence-form operator. Let 
+
+hx = hy = 117 − 1 . (163) On interior grid points, the code assembles the linear system corresponding to 
+
+−∂x(a ∂ xu) − ∂y (a ∂ y u) = 1 . (164) To preserve flux continuity across coefficient jumps, harmonic means are used at cell interfaces. For example, at the west interface, 
+
+a(h)   
+
+> i−12,j
+
+= 2aij ai−1,j 
+
+aij + ai−1,j 
+
+, (165) with analogous formulas for east, north, and south interfaces. The resulting interior system has dimensions 
+
+(17 − 2) × (17 − 2) = 225 , (166) is assembled explicitly as a dense matrix, and is solved using numpy.linalg.solve . Boundary values are then set to zero to obtain the full 17 × 17 solution field. Quadrature uses a normalized two-dimensional trapezoid rule. If w(x) and w(y) denote the one-dimensional trapezoid weights, 
+
+w(x)1 = w(x) 
+
+> H
+
+= 12 , w(x) 
+
+> p
+
+= 1 for p = 2 , . . . , H − 1, (167) 30 and analogously in the y-direction, then the unnormalized two-dimensional weights are 
+
+ewpq = w(x) 
+
+> p
+
+w(y) 
+
+> q
+
+. (168) These are normalized to sum to one, i.e., 
+
+wpq = ewpq 
+
+PHr=1 
+
+PWs=1 ewrs 
+
+. (169) The corresponding discrete inner product is 
+
+⟨f, h ⟩w =
+
+> H
+
+X
+
+> p=1
+> W
+
+X
+
+> q=1
+
+wpq fpq hpq . (170) 
+
+• Sampling mechanism and irregularity parameter: We observe each latent solution field only at a sparse set of spatial locations. In all reported experiments, each sample contributes 
+
+K = 24 (171) observations. The observation design is inverse_energy_mixture . Let apq denote the coefficient field and upq 
+
+the latent solution. The code first constructs the inverse-coefficient factor 
+
+a−1 
+
+> pq
+
+= 1max {apq , 10 −8} . (172) It then computes a discrete gradient magnitude using centered finite differences, 
+
+Gpq =
+
+q up+1 ,q − up−1,q 
+
+2 +  up,q +1 − up,q −1
+
+2. (173) The resulting saliency map is 
+
+Spq = a−1
+
+> pq
+
+ 0.5 + |upq | + Gpq 
+
+. (174) After centering and normalizing this field by its maximum absolute magnitude, writing the normalized saliency as eS, the adaptive design distribution is 
+
+qpq ∝ exp  λ| eSpq | + ε, λ = 7 .0, ε = 10 −3. (175) Hence, the observation design concentrates entirely according to the adaptive saliency map. Given ppq (ρ), we sample K = 24 distinct grid locations without replacement, sort the flattened indices, and observe 
+
+Yik = ui(XJik ) + εik , εik ∼ N (0 , σ 2 
+
+> ε
+
+), σε = 0 .01 . (176)                       
+
+> Functional Definition Implementation Hyperparameters
+> smooth_excess_above_threshold gexc (u) =
+> Z
+> Ω
+> 1
+> κlog  1 + exp( κ⋆(u(x)−c)) dμ(x)gexc (u) =
+> HX
+> p=1
+> WX
+> q=1
+> wpq
+> 1
+> κlog  1 + exp( κ(upq −c)) c= 0 .5, κ ⋆= 7 .5 + 2 .5κ;κ∈ { 0.0,0.2,0.4,0.6,0.8,1.0}
+
+Table 12: Functional-specific hyperparameters used in the reported Darcy-flow experiments. 
+
+• Functional estimation: The population target is the mean functional 
+
+θ = E[g(S0(A))] , (177) where the benchmark ground truth is computed from a disjoint truth pool of size 2000 . The estimator itself is evaluated on the held-out test split of size 64 , and all reported results are aggregated over 50 
+
+repeated runs. For the smooth excess-above-threshold functional, the corresponding Riesz representer under the benchmark reference measure is the pointwise sigmoid field 
+
+wg (u)( x) = σ κ⋆(u(x) − c), σ(z) = 11 + e−z . (178) In discrete form, the same pointwise expression is evaluated on the spatial grid (see Table 12). More details on the closed-form functional derivatives and their Riesz representers are given in Supplement H. 31 H Examples of functional derivatives and their Riesz representers 
+
+In some cases, the functional derivatives Dgu(h) and their Riesz representers wg (u) can be computed analytically. In the following, we summarize the functionals used in our experiments (Section 5), and provide closed-form solutions for the functional derivatives and their Riesz representers, which allows us to properly validate our results. Note that these closed-form solutions are not always easily tractable but can involve complex derivations. Yet, DOPE is applicable even when these closed-form solutions are not available (see Section 4.2 and Section 4.4). In the following, all integrals are w.r.t. Lebesgue-measure μ.
+
+• Normalized AUC: The normalized area under the (concentration) curve is given by 
+
+g(u) = (1 /T )
+
+Z T
+
+> 0
+
+u(t) d t. (179) The corresponding Fréchet derivative in direction h is 
+
+Dgu(h) = (1 /T )
+
+Z T
+
+> 0
+
+h(t) d t. (180) Then, its Riesz representer under μ(d t) = d t/T is 
+
+w(u)( t) = 1 . (181) For our experiments, this functional is especially interesting as it isolates the inverse-design compo-nent; wg is constant, and therefore β0(·)( ·) = ξ0(·)( ·).
+
+• Time-above-threshold: We define a smooth version of the time-above-threshold (TAT) as 
+
+g(u) = (1 /T )
+
+Z T
+
+> 0
+
+σ(κ(u(t) − c⋆)) d t, (182) where c⋆ is a clinically meaningful concentration threshold, κ > 0 controls the sharpness of the smooth threshold, and σ(z) = 1 /(1+exp( −z)) . This is a smooth version of the time-above-threshold / time-in-range functional, since 
+
+σ(κx ) −−−−→ 
+
+> κ→∞
+
+1{x ≥ 0}, (183) so, pointwise in t,
+
+σ κ(u(t) − c⋆) → 1{u(t) ≥ c⋆}. (184) Therefore, 
+
+gtat (u) = 1
+
+T
+
+Z T
+
+> 0
+
+σ κ(u(t) − c⋆) dt → 1
+
+T
+
+Z T
+
+> 0
+
+1{u(t) ≥ c⋆} dt. (185) The corresponding Fréchet derivative in direction h is 
+
+Dgu(h) = (1 /T )
+
+Z T
+
+> 0
+
+κσ (κ(u(t) − c⋆))(1 − σ(κ(u(t) − c⋆))) h(t) d t. (186) Its Riesz representer under μ(d t) = d t/T is 
+
+wg (u)( t) = κσ (κ(u(t) − c⋆))(1 − σ(κ(u(t) − c⋆))) . (187) This functional is PK-motivated and gives a nontrivial, threshold-localized sensitivity profile. 
+
+• Soft cmax: We define the soft cmax functional as 
+
+g(u) = (1 /λ ) log (1 /T )
+
+Z T
+
+> 0
+
+exp( λu (t)) d t, (188) 32 where the temperature parameter λ > 0 controls how sharply this approximates peak concentration. This is a standard smooth proxy for peak concentration “cmax” (continuous maximum functional) cmax (u) := sup  
+
+> t∈[0 ,T ]
+
+u(t), (189) since 
+
+1
+
+λ log 1
+
+T
+
+Z T
+
+> 0
+
+eλu (t) dt
+
+!
+
+−→ sup  
+
+> t∈[0 ,T ]
+
+u(t) as λ → +∞. (190) Its Fréchet derivative in direction h is 
+
+Dgu(h) = (1 /T )
+
+Z T
+
+> 0
+
+[exp( λu (t)) /((1 /T )
+
+Z T
+
+> 0
+
+exp( λu (s)) d s)] h(t) d t. (191) Equivalently, under μ(d t) = d t/T ,
+
+Dg u(h) = 
+
+Z T
+
+> 0
+
+wg (u)( t)h(t)μ(d t), (192) with Riesz representer 
+
+wg (u)( t) = exp( λu (t)) /[(1 /T )
+
+Z T
+
+> 0
+
+exp( λu (s)) d s]. (193) This functional is peak-sensitive, nonlinear, and temporally varying, while still having a closed-form derivative. 
+
+• Smooth excess-above-threshold: We define the smooth excess-above-threshold functional as 
+
+g(u) = 
+
+Z
+
+> Ω
+
+1
+
+κ log  1 + exp( κ⋆(u(x) − c))  dμ(x), (194) where the sharpness parameter κ⋆ > 0 controls how rapidly the functional transitions around the threshold c. This is a standard smooth proxy for the excess-above-threshold functional 
+
+excess c(u) := 
+
+Z
+
+> Ω
+
+(u(x) − c)+ dμ(x), (195) since 
+
+1
+
+κ⋆ log  1 + exp( κ⋆(u(x) − c))  −→ (u(x) − c)+ as κ⋆ → +∞ (196) pointwise in x, and hence 
+
+g(u) −→ 
+
+Z
+
+> Ω
+
+(u(x) − c)+ dμ(x) as κ⋆ → +∞. (197) Its Fréchet derivative in direction h is 
+
+Dgu(h) = 
+
+Z
+
+> Ω
+
+σ κ⋆(u(x) − c) h(x) d μ(x), σ(z) = 11 + e−z . (198) Equivalently, 
+
+Dgu(h) = 
+
+Z
+
+> Ω
+
+wg (u)( x) h(x) d μ(x), (199) with Riesz representer 
+
+wg (u)( x) = σ κ⋆(u(x) − c). (200) This functional is nonlinear and threshold-sensitive, while still admitting a closed-form derivative and a simple Riesz representer. Note that in our experiments, we use a linear transformation κ∗ := f (κ)
+
+(see Supplement G.2). 33

@@ -1,0 +1,215 @@
+Title: Interpretable Analytic Formulae for GWTC-4 Binary Black Hole Population Properties via Symbolic Regression
+
+URL Source: https://arxiv.org/pdf/2604.20941v1
+
+Published Time: Fri, 24 Apr 2026 00:03:02 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+> Draft version April 24, 2026
+> Typeset using L ATEX default style in AASTeX7.0.1
+
+Interpretable Analytic Formulae for GWTC-4 Binary Black Hole Population Properties via Symbolic Regression 
+
+Chayan Chatterjee 1, 2 
+
+> 1Department of Physics and Astronomy, Vanderbilt University 2201 West End Avenue, Nashville, Tennessee - 37235,
+> 2Data Science Institute, Vanderbilt University 1400 18th Avenue South Building, Suite 2000, Nashville, Tennessee - 37212,
+
+ABSTRACT Recent LIGO-Virgo-KAGRA (LVK) analyses have revealed complex structure in the binary black hole (BBH) population, including distinct features in the primary mass spectrum and nontrivial spin–mass correlations. However, the phenomenological models used to capture these features often lack analytic transparency, making it difficult to isolate robust physical laws from modeling artifacts. To address this, symbolic regression is applied to the posterior inference products of the GWTC-4 cata-log, discovering compact, closed-form analytic expressions for four key population relationships: (i) the merger-rate evolution with redshift R(z); (ii) the mass-ratio dependence of the effective-spin distribu-tion χeff (q); (iii) the redshift evolution of the effective-spin distribution χeff (z); and (iv) the conditional mass-ratio distributions associated with the 10 M⊙ and 35 M⊙ primary mass peaks. This framework successfully compresses both rigid and highly flexible models into differentiable phenomenological laws, dynamically recovering a low-redshift merger rate slope of γ0 = 3 .18 +0 .83  
+
+> −0.87
+
+without assuming an a priori power-law form. The exact analytic derivatives provided by symbolic regression show that the q–χeff 
+
+and z–χeff correlations are robustly driven by broadening of the posterior widths rather than shifts in the mean. Furthermore, qualitatively distinct functional forms for the mass-ratio distributions condi-tioned on the 10 M⊙ and 35 M⊙ primary mass peaks are identified. These closed-form expressions enable exact analytic gradient diagnostics and compact surrogate summaries, particularly for flexible numerical posteriors that are not otherwise available in low-dimensional analytic form. They also facil-itate rapid downstream calculations for rate forecasting, formation channel comparison, and stochastic background estimation. 
+
+1. INTRODUCTION The LIGO–Virgo–KAGRA (LVK) gravitational-wave (GW) detector network (J. Aasi et al. 2015; F. Acernese et al. 2014; T. Akutsu et al. 2020; E. Capote et al. 2025; S. Soni et al. 2025) has now observed more than ∼ 250 confident mergers through the fourth observing run (T. L. S. Collaboration et al. 2025a), transforming compact-object astro-physics from an event-by-event enterprise into a population science (T. L. S. Collaboration et al. 2025b). Hierarchical Bayesian population inference applied to these events has revealed rich structure in the distributions of BBH masses, spins, and merger rates, using both parametric models (e.g., power-law-plus-peak mass spectra; C. Talbot & E. Thrane (2018a)) and flexible non-parametric approaches (e.g., B-spline models; B. Edelman et al. (2023)) (T. L. S. Collaboration et al. 2025b). A central challenge involved in population inference is that interpretability has not scaled as quickly as catalog size. Early population studies often relied on relatively low-dimensional parametric models, such as power laws with cutoffs and Gaussian-like excesses, which were intentionally designed to encode specific astrophysical hypotheses. Those models remain extremely valuable because they connect directly to questions such as the pair-instability mass scale, mass-ratio preferences, and the spin properties expected from isolated or dynamical formation (I. Mandel & S. E. de Mink 2016; C. L. Rodriguez et al. 2016; M. Zevin et al. 2021). However, as the data improve, increasingly flexible 
+
+> Email: chayan.chatterjee@vanderbilt.edu
+> arXiv:2604.20941v1 [astro-ph.CO] 22 Apr 2026
+
+2models have become necessary to avoid overcommitting to overly restrictive functional forms. This has motivated a broad move toward weakly parametric or nonparametric inference in the GW population literature. That flexibility comes with a cost. Posterior predictive distributions represented as splines, autoregressive processes, Gaussian-mixture descriptions, or gridded rate reconstructions can capture subtle structure, but they are not always easy to summarize in a form that is both human-interpretable and portable across analyses. Symbolic regression (SR) offers a natural route between flexibility and interpretability. Rather than imposing a specific functional form a priori, it searches over analytic expressions and returns formulas that balance accuracy against complexity. K. W. K. Wong & M. Cranmer (2022) demonstrated that SR can distill flexible population models into compact equations and recover familiar phenomenological forms while also suggesting new empirical descriptions. This work builds on that program by applying SR directly across several draws of the posterior predictive distribution samples inferred by the GWTC-4.0 analysis (L. S. Collaboration et al. 2025). This approach is timely because several of the most interesting current population questions are fundamentally questions about functional shape. For exam-ple, the low-redshift slope and turnover scale of the BBH merger-rate density encode information about delay times, star-formation history, and metallicity evolution (M. Fishbach et al. 2018; P. Madau & M. Dickinson 2014). Likewise, correlations involving χeff have emerged as potentially important probes of formation pathways (W. M. Farr et al. 2017; S. Vitale et al. 2017; T. A. Callister et al. 2020). In this paper, SR is applied to four distinct population relationships–the merger rate R(z), the effective spin dis-tribution as a function of the mass ratio, μχeff (q) and σχeff (q), their redshift evolution μχeff (z) and σχeff (z), and the mass-ratio distribution conditioned on the 10 M ⊙ and 35 M ⊙ peaks of the primary mass spectrum p(q|peak). The goal is to construct compact analytic surrogates for a heterogeneous set of GWTC-4 posterior-predictive relations and to analyze them within a common diagnostic framework. For highly flexible models, particularly B-Spline, SR provides a genuine interpretability gain by compressing high-dimensional numerical structure into closed-form expressions, while for already parametric models, the same procedure serves primarily as a consistency check. This enables a common set of surrogate-based diagnostics, including low-redshift slopes, turnover locations and probabilities, and qualitative functional-form classifications, while clarifying which inferred features are robust across different underlying parame-terizations.  
+
+> 2.
+
+DATA AND METHOD SR is an advanced machine learning technique uniquely suited for data-driven scientific discovery. Unlike standard regression, in which a functional family is specified in advance, SR searches over combinations of elementary operators and constants to identify expressions that optimally balance descriptive accuracy against algebraic complexity. In this work, the Python library PySR (M. Cranmer 2023) is used, which implements an efficient evolutionary search over candidate expressions and returns a Pareto set of equations spanning this trade-off. The resulting expressions provide an interpretable representation of trends that are otherwise available only numerically through posterior summaries. Our method extends the approach of K. W. K. Wong & M. Cranmer (2022) in two key ways. First, rather than fitting only a single representative curve, we perform SR independently across multiple posterior draws from the released GWTC-4.0 products. This draw-by-draw strategy propagates uncertainty from the original hierarchical inference into an ensemble of symbolic expressions, from which credible regions and distributions of surrogate-based diagnostics can be constructed. Second, because the inferred surrogates are analytic, their derivatives can be evaluated directly, enabling gradient-based diagnostics for flexible models such as B-splines, where the corresponding behavior is not naturally available as a simple low-dimensional expression and would otherwise require working with high-dimensional basis coefficients or numerical reconstructions. This work operates directly on the posterior predictive population products released with the GWTC-4.0 population analysis (T. L. S. Collaboration et al. 2025b; L. S. Collaboration et al. 2025). For the merger-rate evolution, we consider both the flexible BSplineIID model (B. Edelman et al. 2022), which provides the main opportunity for new symbolic compression and interpretation, and the parametric PowerLawRedshift model (M. Fishbach et al. 2018), included primarily as a consistency check. Similarly, for the effective-spin correlations with mass ratio and redshift, 3we analyze both the flexible Spline and simpler Linear parametrizations of the conditional spin distribution (C. Talbot & E. Thrane 2017, 2018b), with the linear case serving mainly to test whether the SR procedure reproduces already interpretable native trends. For the mass-ratio distributions, the Extended Broken Powerlaw + 2 Peaks model (C. Talbot & E. Thrane 2018b; The LIGO Scientific Collaboration et al. 2023) with separate p(q)distributions conditioned on the low- and high-mass peaks is used. The data are stored as HDF5 posterior grids of shape ( Ndraws , N grid ), with Ndraws ranging from ∼ 150 to ∼ 4400 depending on the model. For each analysis, PySR is configured with binary operators {+, −, ×, / } and unary operators {exp , log , √·, tanh , | · |} . The search uses 300–1000 iterations, 50–80 populations, a maximum expression size of 28–45 nodes, and a parsimony penalty of 10 −4–10 −6.Mean squared error is adopted as the loss, evaluated in log 10 -space for the rate and mass-ratio distributions to better capture their dynamic range. A 70/30 train-test split is used to guard against overfitting. PySR is run independently on N = 200 posterior draws for each target relation, yielding an ensemble of best-fit symbolic expressions. From these expressions, pointwise credible intervals and the distributions of derived quantities are obtained.  
+
+> 3.
+
+RESULTS 3.1. BBH Merger Rate Evolution 
+
+SR is applied to the BBH comoving merger-rate evolution, R(z), inferred from GWTC-4 using both the parametric 
+
+PowerLawRedshift model (M. Fishbach et al. 2018) and the more flexible BSplineIID model (B. Edelman et al. 2022). The latter provides the main opportunity for symbolic compression, since its inferred rate evolution is repre-sented by a higher-dimensional and less directly interpretable reconstruction. The parametric PowerLawRedshift 
+
+case is analyzed in parallel primarily as a consistency check, allowing both model families to be compared within the same surrogate-based diagnostic framework. All symbolic regression analyses in this paper are performed using the PySR software package (M. Cranmer 2023). To physically interpret the resulting library of analytic expressions, their morphological features are quantified using derivative-based diagnostics. The steepness of the low-redshift rise is characterized using a model-independent logarithmic slope, defined as: 
+
+γ0 ≡
+
+ d ln R
+
+d ln(1+ z)
+
+ 
+
+> z∈[0 .1,0.3]
+
+, (1) This metric measures the effective power-law index of the rate evolution at low redshift without assuming a global power-law functional form a priori. The probability of a high-redshift turnover is also assessed by calculating the fraction of posterior symbolic expressions where the derivative is negative ( dR/dz < 0) at various reference redshifts (z⋆). Finally, the global shape of each symbolic expression is catagorized using the automated criteria detailed in Table 1. By evaluating the roots and signs of the first and second derivatives, this scheme maps the raw mathematical equations generated by the SR algorithm into physically meaningful phenomenological classes (e.g., distinguishing between a continuously growing rate and one that peaks and turns over). As shown in Figure 1, the symbolic surrogates successfully reproduce the published GWTC-4 trends for both models while distilling them into closed-form equations. For the PowerLawRedshift model, SR reproduces the expected monotonic rate evolution with a compact surrogate, shown here as a benchmark: log 10 R(z) = pz + [( −0.28 z + 2 .63) z + 1 .66] − 0.08 . (2) Analyzing the 200 individual posterior draws reveals an overwhelmingly monotonic population: 194 draws are classified as monotonic powerlaw like , 5 as broken rise , and 1 as complex . The extracted low-redshift slope is 
+
+γ0 = 3 .18 +0 .83  
+
+> −0.87
+
+(90% CI). This value is robust across multiple tested low-z windows (e.g., [0 .05 , 0.2] and [0 .2, 0.4]). Consistent with the model’s structural constraints, there is zero posterior symbolic support for a declining merger rate at any tested redshift between z = 0 .5 and 1 .25, yielding a boundary-limited peak at zpeak = 1 .9. By contrast, the 
+
+BSplineIID model admits substantially more diverse and flexible functional forms. The median symbolic expression is: log 10 R(z) = 
+
+s √zz2 − 1.53 z + 1 .02 + z + 1 .61 . (3) 4      
+
+> Figure 1. BBH comoving merger rate R(z) as a function of redshift. Shaded bands show the 90% credible intervals from the GWTC-4 PowerLawRedshift (blue) and BSplineIID (green) models. Dashed lines show the corresponding PySR symbolic regression median fits (orange), with PySR 90% credible bands derived from 200 draw-by-draw fits. The symbolic expressions faithfully capture both the median and the uncertainty structure of the GWTC-4 posteriors.
+
+This median relation is distinctly peaked, turning over at zpeak ≃ 1.01. The posterior symbolic family is highly heterogeneous: out of 200 draws, 125 are classified as peaked , 66 as complex , 7 as broken rise , and 1 each as 
+
+monotonic powerlaw like and plateau like . The inferred turnover is weak at low redshift but becomes moderately favored beyond z ∼ 1, with the probability of a declining rate rising from Pr( dR/dz < 0) = 0 .01 at z = 0 .5 to 0 .63 at z = 1 .25. The overall peak redshift across the ensemble is zpeak = 1 .75 +0 .61  
+
+> −0.92
+
+(90% CI). Despite this high-redshift flexibility, the extracted low-redshift slope remains highly consistent with the power-law model, yielding γ0 = 3 .47 +2 .89 
+
+> −2.49
+
+(90% CI). Both models independently agree on a steep low-z rise consistent with R(z) ∝ (1+ z)∼3 (Figure 2, right panel). However, the left panel reveals a stark contrast in their implied high-redshift evolution. For the PowerLawRedshift 
+
+model, the zpeak distribution is concentrated entirely in a single bin at the evaluation boundary ( z = 1 .9). This artifact arises because the model’s posterior is overwhelmingly dominated by monotonically rising functions; lacking a genuine mathematical turnover, the maximum merger rate is trivially found at the upper edge of the analyzed redshift grid. In contrast, the BSplineIID model yields a broad, well-resolved distribution of peak redshifts centered near z ∼ 1.75. Because the flexible spline parametrization readily admits mathematically peaked functions, this spread represents a genuine physical uncertainty regarding the exact location of the turnover rather than a boundary constraint. 3.2. Effective Spin vs. Mass Ratio 
+
+Next, the GWTC-4 q–χeff relation is analyzed using both the published Linear and Spline models (C. Talbot & E. Thrane 2017, 2018b; T. A. Callister & W. M. Farr 2024). Here the main added value of SR lies in the Spline 5
+
+Figure 2. Distributions of the peak redshift zpeak (left) and the low-z logarithmic slope γ0 (right), extracted from 200 draw-by-draw PySR fits for the PowerLawRedshift (blue) and BSplineIID (orange) models. Because the PowerLawRed-shift symbolic surrogates are overwhelmingly monotonic, they lack a true mathematical turnover. Consequently, their zpeak 
+
+values pile up at the upper boundary of the evaluation grid ( z = 1 .9). By contrast, the more flexible BSplineIID model yields a broad distribution of peak redshifts yielding a statistical ensemble median to z = 1 .75. Despite these differences in high-redshift behavior, both models strongly agree on the steep low-redshift growth rate, yielding γ0 ∼ 3–3 .5. 
+
+Label Operational definition Interpretation 
+
+peaked Interior maximum of RSR (z) Turnover within fitted range 
+
+monotonic powerlaw like dR SR  
+
+> dz
+
+≥ 0 throughout, without clear flattening Continued monotonic rise 
+
+saturating Monotonic rise with strongly reduced high-z slope Rise toward plateau 
+
+plateau like Extended interval with near-zero slope Approximately flat evolution 
+
+broken rise Monotonic rise with curvature change(s) Bent or broken-slope rise 
+
+monotonic decreasing dR SR  
+
+> dz
+
+≤ 0 throughout Continued decline 
+
+complex No simple class matched Irregular or mixed behavior 
+
+Table 1. Functional-form classification of symbolic merger-rate relations. Labels are assigned based on the numerical behavior of the symbolic prediction RSR (z) evaluated on the GWTC-4 redshift grid, using first- and second-derivative diagnostics. 
+
+case, where it provides a compact surrogate for a nontrivial inferred shape, while the Linear case serves primarily to verify that the SR pipeline faithfully recovers trends that are already transparent in the native parametrization. SR is applied independently to the 1D distributions for the mean, μχeff (q), and the logarithmic width, log σχeff (q). By fitting both the posterior median relations and an ensemble of 200 posterior draws, analytic surrogates are extracted that reproduce the published trends. Because SR yields closed-form mathematical expressions, these local gradients (e.g., dμ/dq evaluated at a reference q = 0 .6) are computed exactly via numerical differentiation. Evaluating these exact derivatives across the 200 draw-by-draw fits allows us to construct full posterior distributions for the slopes, directly capturing the statistical uncertainty of the morphological features. Fig. 3 visualizes these reconstructed trends alongside the GWTC-4 constraints. The results show that for the q–χeff correlation, the inferred mean behavior is highly sensitive to modeling assump-tions. For the Linear model, SR reproduces the published parametric trend: 
+
+μχeff (q) ≃ 0.17(1 − q) (4) This gives a weak, approximately constant gradient across the mass-ratio range. Across the posterior ensemble, the median derivative is dμ/dq |q=0 .6 = −0.17 +0 .28 
+
+> −0.22
+
+. Because this interval crosses zero, even the sign of the mean shift is 6
+
+Figure 3. Effective spin distribution parameters as a function of mass ratio q. Top left: Mean effective spin μχeff (q) for both the 
+
+Spline (blue solid) and Linear (orange dashed) GWTC-4 models, with PySR symbolic fits overlaid. Top right: Width σχeff (q)of the spin distribution. Bottom left: Analytic gradient dμ χeff /dq computed from the PySR symbolic expressions. Bottom right: 
+
+Gradient d ln σχeff /dq . Shaded bands show 90% credible intervals. The gradients shown here are surrogate-based diagnostics constructed from the symbolic fits. 
+
+not entirely secure under a linear prior. By contrast, the more flexible Spline model favors a genuinely curved, non-monotonic relation, visible as a distinct dip in the median trace. A compact symbolic surrogate capturing this structure is 
+
+μχeff (q) = 0 .84 
+
+ 5.23 q(1 − q)2 − 0.24 
+
+q(1 − q) + 0 .82 + 0 .05 
+
+2
+
+− 0.02 . (5) Unlike the Linear model, this surrogate is not characterized by a single constant slope. Instead, it exhibits posi-tive window-averaged slopes near both boundaries, while developing a pronounced negative gradient at intermediate mass ratios. Defining the low-q and high-q slope windows as q ∈ [0 .05 , 0.3] and q ∈ [0 .7, 0.9], respectively, the median surrogate yields average slopes of +1 .04 at low q and +0 .33 at high q, together with a steep local derivative 
+
+dμ/dq |q=0 .6 = −0.75. Across the posterior ensemble, the median derivative at q = 0 .6 is dμ/dq |q=0 .6 = −0.80 +0 .58 
+
+> −0.67
+
+(90% CI), while the low-q and high-q windows still favor positive average slopes. Thus, the Spline model supports a localized intermediate-q downturn rather than a simple monotonic trend, making clear that the inferred mean relation 7is strongly model-dependent. It must be noted that the disagreement near q → 0 of the median Spline fit of dμ χeff /dq , (bottom-left panel of Fig. 3) with the GWTC-4 curve, is a boundary effect of the symbolic surrogate rather than a robust physical feature. Small differences between the GWTC-4 curve and the SR median fit are amplified by differentiation at the edge of the fitted domain. Unlike the mean relation, the width of the effective-spin distribution shows a comparatively robust trend across both model families, indicating that the inferred q–χeff correlation is driven more securely by changes in the dispersion than by shifts in the mean. This is also the clearest visual feature of Fig. 3: in both models, the credible intervals narrow visibly as q → 1, funneling nearly equal-mass binaries toward a much tighter range of effective spins centered near zero. For log σχeff (q), both model families therefore favor negative gradients over much of the mass-ratio range. For the Linear model, SR recovers a simple linear decline, reproducing the published trend, log σχeff (q) ≃ − 1.92 q − 0.99 , (6) corresponding to an approximately constant gradient across the full mass-ratio range. The median surrogate therefore yields d ln σ/dq |q=0 .6 ≃ − 1.92 fully consistent with the expected monotonic narrowing toward equal masses. Across the posterior ensemble, the median derivative at q = 0 .6 is d ln σ/dq |q=0 .6 = −1.94 +1 .76  
+
+> −1.30
+
+(90% CI), yielding a high posterior probability of narrowing toward equal masses, Pr[narrows] = 0 .98 .
+
+For the more flexible Spline model, a compact symbolic surrogate can reproduce the same overall narrowing trend while allowing substantially more local structure. Using the higher-fidelity surrogate adopted for the median fit, log σχeff (q) = 50 .5
+
+h (1 − q)2 − 0.19 q(1 − q)( √q + 0 .16) q(1 − q) − 0.05 
+
+i
+
+, (7) the median symbolic fit gives d ln σ/dq |q=0 .6 ≃ − 2.02, again indicating narrowing toward equal masses. Across the posterior ensemble, the median derivative at q = 0 .6 is d ln σ/dq |q=0 .6 = −1.83 +4 .95  
+
+> −3.38
+
+(90% CI), with a still-robust narrowing probability of Pr[narrows] = 0 .81. These symbolic results indicate that the mean effect, while present, is weak and highly sensitive to parametrization. Conversely, the narrowing of the effective-spin distribution for symmetric binaries survives the transition from rigid to flexible priors, visibly constraining highly symmetric systems to a much tighter range of spin configurations than their unequal-mass counterparts. More broadly, this SR framework provides an interpretable bridge between flexible population inference and compact phenomenology: it explicitly identifies which aspects of an inferred multidimen-sional correlation are robust across modeling choices, and securely reduces a complex population trend into a simple, physically meaningful effective law. The gradient-based diagnostics from the surrogates provide direct constraints on how spin properties vary with mass ratio that can be compared to formation channel predictions (T. A. Callister et al. 2020; A. Vijaykumar et al. 2026). 3.3. Effective Spin vs. Redshift 
+
+SR is applied to the redshift–effective spin ( z–χeff ) inference results, independently evaluating the Linear and 
+
+Spline models (C. Talbot & E. Thrane 2017, 2018b) published in GWTC-4. As above, the main novelty is in the flexible Spline reconstruction, whereas the Linear model is used mainly as a benchmark for cross-model consistency. The joint distribution is decomposed again into 1D symbolic fits for the mean, μχeff (z), and the logarithmic width, log σχeff (z). These functions are evaluated across a defined low-redshift window ( z ∈ [0 .0, 0.4]) and a high-redshift window ( z ∈ [1 .0, 1.9]). Crucially, because SR extracts exact closed-form analytic expressions, we compute exact symbolic derivatives (e.g., d ln σ/dz ) for every individual fit across the 200 posterior draws. Statistical confidences, such as the probability of broadening (Pr[broadens]), are then computed via directly counting the exact fraction of draws that exhibit a positive derivative within the relevant redshift window. Figure 4 visualizes these reconstructed trends. The inferred mean relation μχeff (z) is found to be highly sensitive to modeling assumptions (Figure 4, left panel). For the Linear model, SR naturally extracts a shallow, monotonically declining surrogate: 8                      
+
+> Figure 4. Effective spin distribution parameters as a function of redshift z.Top left: Mean effective spin μχeff (z) for the
+> Spline and Linear GWTC-4 models with PySR overlays. Top right: Width σχeff (z). Bottom left: Analytic gradient dμ χeff /dz .
+> Bottom right: Gradient dln σχeff /dz .
+
+μχeff (z) ≃ 0.05 − 0.02 z (8) The corresponding gradient curves are effectively flat and pinned near zero, yielding a median slope of dμ/dz ≈ − 0.02. While this slight decline is uniform across all posterior draws, its absolute magnitude is physically marginal. Conversely, the more flexible Spline model captures a genuinely non-monotonic evolution. An optimal low-complexity Spline 
+
+surrogate isolates this structure using a simple quadratic form: 
+
+μχeff (z) ≃ − 0.02 z2 (9) This relation yields a median zero-crossing at z ≈ 1.28. However, the Spline gradient curves reveal immense posterior uncertainty, and the evolutionary direction is highly inconsistent across individual draws—with only a 75% probability of a negative gradient in the low-z window. Consequently, the structural complexity of the mean evolution is not a robustly informed feature of the data, but rather an artifact of prior flexibility. In stark contrast to the mean, the redshift evolution of the distribution’s width is a robust physical feature (Fig. 4, right panel). Both models favor a substantial broadening of the effective-spin distribution as redshift increases in the 9local universe. For the Linear model, SR identifies a strong, uniform monotonic broadening, cleanly represented by linear log-width surrogates: log σχeff (z) ≃ 0.96 z − 2.7 (10) The posterior gradient curves confidently exclude zero, yielding a median d ln σ/dz ≈ 0.96 and an overwhelming probability of monotonic broadening equal to unity (Pr[broadens] = 1 .0). The Spline model permits more complex dispersion dynamics, but SR firmly captures an initial low-redshift broadening phase. The optimal symbolic surrogate mathematically encodes this transition using an absolute-value term ( |z − 1|) to serve as a functional hinge at z = 1: log σχeff (z) ≃ 0.15 |z−1| 1.61 z2 − 0.23 z − 1.69  − 1.45( z−1) 2 − 1.50 (11) This expression elegantly distills the Spline model’s complex median behavior. By expanding the polynomial for local redshifts ( z < 1), the equation yields a steep, continuous broadening within the low-z window (average gradient ≈ +2 .60). As evolution crosses z = 1, the absolute-value hinge smoothly inverts the polynomial contri-bution, transitioning the distribution into a high-redshift plateau and gradual narrowing phase (average gradient 
+
+≈ − 0.75). The reconstructed gradient curves vividly capture this two-phase behavior, cresting sharply before dipping at higher redshifts. Across the Spline posterior ensemble, we find a 93.4% probability (Pr = 0 .93) that the gra-dient curves remain positive in the low-z regime, independently confirming the growth trend seen in the Linear model. The sharp feature in the d ln σ/dz SR median gradient near z = 0 in Fig. 4 arises from boundary sensitivity in the differentiated symbolic surrogate, and should be regarded as a fitting artifact. The robust conclusion is the broader low-z preference for positive d ln σ/dz , not the exact gradient shape at the boundary. Astrophysically, this robust low-redshift broadening suggests a redshift-dependent evolution in the dominant BBH formation channels (M. Zevin et al. 2021). A primary contribution from isolated binary evolution at low redshift would yield a narrow, positively aligned spin distribution (I. Mandel & S. E. de Mink 2016; S. S. Bavera et al. 2022). However, an increasing relative contribution from dynamical assembly, which yields isotropic, widely distributed spins (C. L. Rodriguez et al. 2016; W. M. Farr et al. 2017), at higher redshifts would manifest precisely as this observed broadening in σχeff (A. M. Farah et al. 2026). Standard parametric models often struggle to isolate whether a shifting population is driven by its mean or its variance. By compressing posterior distributions into exact, differentiable mathematical laws, SR quantitatively proves—via explicitly extracted gradient distributions—that the apparent complexity in the population’s redshift evolution is driven fundamentally by dispersion growth, rather than a macroscopic shift in the mean. 3.4. Mass-Ratio Distribution by Mass Peak 
+
+In GWTC-4, the parameterized Extended Broken Power Law + 2 Peaks model (C. Talbot & E. Thrane 2018b; The LIGO Scientific Collaboration et al. 2023) was used to explore whether the distribution of mass ratios of BBHs are dependent on the primary mass, specifically the low-mass ( m1 ∼ 10 M⊙) and high-mass ( m1 ∼ 35 M⊙)peaks of the BBH primary mass spectrum. While flexible phenomenological models like the Extended Broken Power Law + 2 Peaks are powerful at capturing complex structures through multidimensional parameter mixtures, they lack unified, easily manipulable analytic forms. Here, SR is applied to compress the posterior distributions into exact, analytical scaling laws. Further, by evaluating these distributions across an ensemble of 200 posterior draws, a direct, mathematically rigorous comparison of the inferred shapes across the two dominant mass components is made in this study. The inferred analytic forms can readily be integrated into binary evolution codes or dynamical encounter rates for population studies. Fig. 5 visualizes these reconstructed distributions. For the low-mass component ( m1 ∼ 10 M⊙), SR identifies an exceptionally accurate compact surrogate that captures the underlying complexity of the distribution: log p(q|low) ≃ 15 .2 ln q + 104 exp −3326 e−39 .4 q  − 12 .6 q − 89 .8 (12) The insight provided by this symbolic expression is the explicit mathematical nature of the low-q deviation. The double-exponential term perfectly isolates a sharp step-function behavior, mathematically shutting off the probability 10    
+
+> Figure 5. Conditional mass-ratio distributions p(q) for the low-mass peak ( left ) and high-mass peak ( right ) of the BBH primary mass distribution. Blue shaded bands show the GWTC-4 90% credible intervals, orange bands show the PySR 90% CI from draw-by-draw fits, and the solid (GWTC-4) and dashed (PySR) lines show the medians. The low-mass peak is well-described by a simpler expression (Equation 12), while the high-mass peak requires a more complex functional form (Equation 13).
+
+density at unequal mass ratios ( q ≤ 0.2). Crucially, this sharp cutoff is not an independent astrophysical discovery, but rather the exact manifestation of an indirect LVK modeling constraint. Without any explicit physical intuition or prior knowledge of the mmin parameter boundary, the SR algorithm successfully recovered this hard constraint directly from the structure of the posterior predictive grids. While this flexible functional form technically permits an interior maximum, evaluating exact mathematical diagnostics across the full SR posterior ensemble reveals that the data does not reliably support a dominant sub-equal-mass preference. Although 22% of the symbolic fits exhibit a local interior peak, 84% of the posterior draws ultimately reach their absolute global maximum at equal mass, yielding a posterior-median peak location pinned tightly at qpeak = 1 .0. By contrast, the high-mass peak ( m1 ∼ 35 M⊙) is much more cleanly consistent with standard equal-mass pairing, lacking the extreme low-q cutoff features of its low-mass counterpart. The optimal low-complexity surrogate takes the form: log p(q|high) ≃ 7.30 ln q − exp 
+
+h
+
+1.22 e√q(9 .78 −100 .2 q)i
+
+− [ln( q + 0 .24) ln q]2 + 3 .08 (13) This high-mass surrogate decisively favors a peak at qpeak ≃ 1.0. Across the posterior ensemble, 91.3% of symbolic draws rise continuously toward equal mass, and only 14.7% show any mathematical evidence of an interior peak. Taken together, these symbolic results isolate a critical new insight: the conditional mass-ratio structure in GWTC-4 is not best interpreted as evidence for two sharply distinct pairing mechanisms. Rather, SR analytically demonstrates that both mass regimes share a fundamental, structural preference for near-equal-mass binaries ( q → 1). The primary departure between the two populations is not qualitative, but manifests specifically in how strongly the unequal-mass tails are suppressed (as isolated by the double-exponential cutoff in the low-mass equation). This finding is astrophys-ically significant for assessing binary formation channels. It implies that the underlying physical pairing mechanism is likely the same across the mass spectrum, e.g., both strongly driven by common-envelope evolution or isolated binary stability (I. Mandel & S. E. de Mink 2016; S. S. Bavera et al. 2022). The structural differences isolated by SR likely reflect modest, mass-dependent shifts in the efficiency of these shared processes, such as lower-mass systems being more susceptible to asymmetric supernova kicks disrupting highly unequal-mass pairings (S. Repetto et al. 2012). 11  
+
+> 4.
+
+DISCUSSION This work has applied symbolic regression to four population relationships from the GWTC-4 BBH catalog, extend-ing K. W. K. Wong & M. Cranmer (2022) from a single population quantity (the GWTC-3 primary mass spectrum) to merger rates, spin correlations, and mass-dependent pairing, while propagating full posterior uncertainty through draw-by-draw fitting of 200 samples per relation. The analytic gradients enabled by the symbolic surrogates provide a common diagnostic prescription across the fitted relations, and are especially useful for summarizing the flexible models in compact form. The model-independent recovery of γ0 ≈ 3.2, steeper than the cosmic star formation rate slope of ∼ 2.7 (P. Madau & M. Dickinson 2014), implies short merger time delays ( td ≲ 1 Gyr), consistent with isolated binary evolution (I. Mandel & S. E. de Mink 2016; S. S. Bavera et al. 2022) and dynamical formation in young clusters (C. L. Rodriguez et al. 2016). Unlike the parametric κ in T. L. S. Collaboration et al. (2025b), this slope is recovered without as-suming a power-law form. The functional form classification reveals a clear dichotomy: the PowerLawRedshift 
+
+posterior is overwhelmingly monotonic (194/200 draws), while the BSplineIID model admits a high-redshift turnover with zpeak = 1 .75 +0 .61 
+
+> −0.92
+
+, physically expected as the SFR declines (M. Fishbach et al. 2018) but not yet statistically required. Across both the q–χeff and z–χeff analyses, a consistent pattern emerges: the mean effective spin trends are model-dependent and often statistically marginal, whereas the width evolution is robust. The narrowing of σχeff (q)toward equal mass holds across both Linear (Pr[narrows] = 0 .98) and Spline (0 .81) models, and the broadening of 
+
+σχeff with redshift is confirmed with Pr[broadens] = 1 .0 ( Linear ) and 0 .93 ( Spline ). This broadening is consistent with an increasing contribution from dynamical formation channels at higher redshift (W. M. Farr et al. 2017; M. Zevin et al. 2021), which produce isotropic spins compared to the aligned distributions expected from field binaries (I. Mandel & S. E. de Mink 2016; S. S. Bavera et al. 2022). The SR gradient analysis quantitatively demonstrates that the population’s spin evolution is driven primarily by dispersion growth rather than a shift in the mean. The conditional mass-ratio distributions for the two mass peaks both favor near-equal-mass pairing, but the symbolic expressions reveal that the key difference lies in the severity of low-q suppression: a sharp double-exponential cutoff for the 10 M⊙ peak versus a smoother logarithmic decline for the 35 M⊙ peak. This may reflect mass-dependent variations in the efficiency of shared formation processes, such as greater susceptibility of lower-mass systems to natal kicks (S. Repetto et al. 2012). The compact formulae derived here are directly portable to downstream calculations including rate forecasting, stochastic background estimation, and formation channel comparison, without requiring interpolation of posterior grids. The draw-by-draw ensemble approach mitigates the inherent stochasticity of SR by providing distributions over functional forms rather than single expressions. As the BBH catalog grows, this frame-work can be reapplied to track how inferred population laws evolve and which features sharpen into robust constraints.  
+
+> 5.
+
+CODE AND DATA AVAILABILITY All codes for reproducing the analysis are available on this GitHub repo. The data used in this analysis was obtained from the GWTC-4.0: Population Properties of Merging Compact Binaries public release on Zenodo. ACKNOWLEDGMENTS The author would like to thank Cailin Plunkett, Ignacio Magana Hernandez, Thomas Callister and Karan Jani for helpful comments and suggestions. This research was undertaken with the support of compute grant and resources located at Vanderbilt University, USA. This material is based upon work supported by NSF’s LIGO Laboratory which is a major facility fully funded by the National Science Foundation. This research used data obtained from the Gravitational Wave Open Science Center (https://www.gw-openscience.org), a service of LIGO Laboratory, the LIGO Scientific Collaboration and the Virgo Collaboration. LIGO is funded by the U.S. National Science Foundation. Virgo is funded by the French Centre National de Recherche Scientifique (CNRS), the Italian Istituto Nazionale della Fisica Nucleare (INFN) and the Dutch Nikhef, with contributions by Polish and Hungarian institutes. REFERENCES 
+
+> Aasi, J., Abbott, B. P., Abbott, R., et al. 2015, Classical and Quantum Gravity, 32, 074001, doi: 10.1088/0264-9381/32/7/074001 Acernese, F., Agathos, M., Agatsuma, K., et al. 2014, Classical and Quantum Gravity, 32, 024001, doi: 10.1088/0264-9381/32/2/024001
+
+12 
+
+Akutsu, T., Ando, M., Arai, K., et al. 2020, Progress of Theoretical and Experimental Physics, 2021, 05A101, doi: 10.1093/ptep/ptaa125 Bavera, S. S., Fragos, T., Zevin, M., et al. 2022, Astronomy & Astrophysics, 657, A36, doi: 10.1051/0004-6361/202141979 Callister, T. A., & Farr, W. M. 2024, Physical Review X, 14, 021005, doi: 10.1103/PhysRevX.14.021005 Callister, T. A., Haster, C.-J., Ng, K. K. Y., Vitale, S., & Farr, W. M. 2020, The Astrophysical Journal Letters, 896, L32, doi: 10.3847/2041-8213/ab9743 Capote, E., Jia, W., Aritomi, N., et al. 2025, Phys. Rev. D, 111, 062002, doi: 10.1103/PhysRevD.111.062002 Collaboration, L. S., Collaboration, T. V., & Collaboration, T. K. 2025, GWTC-4.0: Population Properties of Merging Compact Binaries, Zenodo, doi: 10.5281/zenodo.16911563 Collaboration, T. L. S., Collaboration, T. V., & the KAGRA Collaboration. 2025a, GWTC-4.0: Updating the Gravitational-Wave Transient Catalog with Observations from the First Part of the Fourth LIGO-Virgo-KAGRA Observing Run, https://arxiv.org/abs/2508.18082 Collaboration, T. L. S., the Virgo Collaboration, & the KAGRA Collaboration. 2025b, GWTC-4.0: Population Properties of Merging Compact Binaries, https://arxiv.org/abs/2508.18083 Cranmer, M. 2023, arXiv e-prints. https://arxiv.org/abs/2305.01582 Edelman, B., Doctor, Z., Godfrey, J., & Farr, B. 2022, The Astrophysical Journal, 924, 101, doi: 10.3847/1538-4357/ac3667 Edelman, B., Farr, B., & Doctor, Z. 2023, The Astrophysical Journal, 946, 16, doi: 10.3847/1538-4357/acb5ed Farah, A. M., Vijaykumar, A., & Fishbach, M. 2026, https://arxiv.org/abs/2601.03456 Farr, W. M., Stevenson, S., Miller, M. C., et al. 2017, Nature, 548, 426, doi: 10.1038/nature23453 Fishbach, M., Holz, D. E., & Farr, W. M. 2018, The Astrophysical Journal Letters, 863, L41, doi: 10.3847/2041-8213/aad800 Madau, P., & Dickinson, M. 2014, Annual Review of Astronomy and Astrophysics, 52, 415, doi: 10.1146/annurev-astro-081811-125615 Mandel, I., & de Mink, S. E. 2016, Monthly Notices of the Royal Astronomical Society, 458, 2634, doi: 10.1093/mnras/stw379 Repetto, S., Davies, M. B., & Sigurdsson, S. 2012, Monthly Notices of the Royal Astronomical Society, 425, 2799, doi: 10.1111/j.1365-2966.2012.21549.x Rodriguez, C. L., Chatterjee, S., & Rasio, F. A. 2016, Physical Review D, 93, 084029, doi: 10.1103/PhysRevD.93.084029 Soni, S., Berger, B. K., Davis, D., et al. 2025, Classical and Quantum Gravity, 42, 085016, doi: 10.1088/1361-6382/adc4b6 Talbot, C., & Thrane, E. 2017, Physical Review D, 96, 023012, doi: 10.1103/PhysRevD.96.023012 Talbot, C., & Thrane, E. 2018a, The Astrophysical Journal, 856, 173, doi: 10.3847/1538-4357/aab34c Talbot, C., & Thrane, E. 2018b, The Astrophysical Journal, 856, 173, doi: 10.3847/1538-4357/aab34c The LIGO Scientific Collaboration, The Virgo Collaboration, & The KAGRA Collaboration. 2023, Physical Review X, 13, 011048, doi: 10.1103/PhysRevX.13.011048 Vijaykumar, A., Farah, A. M., & Fishbach, M. 2026, Astrophys. J. Lett., 999, L30, doi: 10.3847/2041-8213/ae4878 Vitale, S., Gerosa, D., Haster, C.-J., Chatziioannou, K., & Zimmerman, A. 2017, Physical Review Letters, 119, 251103, doi: 10.1103/PhysRevLett.119.251103 Wong, K. W. K., & Cranmer, M. 2022, arXiv e-prints. https://arxiv.org/abs/2207.12409 Zevin, M., Bavera, S. S., Berry, C. P. L., et al. 2021, The Astrophysical Journal, 910, 152, doi: 10.3847/1538-4357/abe40e
