@@ -1,0 +1,3051 @@
+Title: Bootstrapping Post-training Signals for Open-ended Tasks via Rubric-based Self-play on Pre-training Text
+
+URL Source: https://arxiv.org/pdf/2604.20051v1
+
+Published Time: Thu, 23 Apr 2026 00:18:07 GMT
+
+Number of Pages: 43
+
+Markdown Content:
+# Bootstrapping Post-training Signals for Open-ended Tasks via Rubric-based Self-play on Pre-training Text 
+
+Chengyu Huang Sheng-Yen Chou Zhengxin Zhang Claire Cardie 
+
+Department of Computer Science, Cornell University 
+
+{ch2263, sc3379, zz865, ctc9}@cornell.edu 
+
+## Abstract 
+
+Self-play has recently emerged as a promising paradigm to train Large Language Models (LLMs). In self-play, the target LLM creates the task input (e.g., ask a question), which it then addresses itself by producing a task output (e.g., give an answer). A reward model evaluates the output, and the rewards are then used to train the LLM, typically via Reinforcement Learning (RL). Self-play incurs minimal supervision costs, and this is especially helpful for post-training LLMs, which require high-quality input-output pairs that traditionally have to be written by humans or expensive proprietary models. However, existing work explores self-play only for verifiable tasks such as math and coding. Instead, we seek to extend it to more realistic open-ended tasks. In particular, we propose POP, a self-play framework that uses the same LLM to synthesize evaluation rubrics, along with input-output pairs, for each example. The rubric is then used to evaluate outputs and train the model. We further ground the framework on a content-rich pretraining corpus to (1) ensure a generation-verification gap and reduce reward hacking, and (2) prevent mode collapse. On Qwen-2.5-7B, POP increases performance of both pretrained and instruction-tuned models, across different tasks ranging from long-form Healthcare QA to creative writing and instruction following. GitHub: 
+
+https://github.com/HCY123902/POP .
+
+## 1 Introduction 
+
+Recent Large Language Models (LLMs) have become increasingly capable of handling complex tasks, from math problem solving [ 22 ] to agentic workflows [ 25 ]. However, continual improvement of LLMs still requires high-quality training data from humans or stronger LLMs, which is often expensive or unavailable. In fact, the cost and scarcity of high-quality training data is becoming a bottleneck [40]. To this end, self-play has emerged as a promising direction to improve LLMs with minimal external supervision. In essence, self-play is a Reinforcement Learning (RL) process. In each iteration, (i) the LLM synthesizes the task input (e.g., asks a question); (ii) the same LLM then responds to itself with a task output (e.g., gives an answer); (iii) the output (and optionally the input) is then scored by a reward model, which can take various forms (a rule-based verifier, neural network, etc.) and is task-dependent; (iv) the rewards are then used to train the LLM, to make it produce better task output (i.e, answer better) and optionally better task input as well (i.e., ask better questions). In contrast to standard RL and alternative self-improvement methods [ 14 , 43 ], self-play avoids the need for supervision not only of the task output, but also of the task input. However, self-play has only been explored on verifiable domains such as math [ 12 , 20 , 44 , 3] and coding [ 45 , 49 ] thus far, due to their ease of evaluation. Extending these methods to more realistic open-ended tasks is important yet challenging. Previous work [ 9, 40 , 2, 48 , 10 , 30 , 15 ] shows that rubric-based rewards provide reliable signals on open-ended tasks. Inspired by this, we propose a                    
+
+> Preprint.
+> arXiv:2604.20051v1 [cs.CL] 21 Apr 2026 (1) Question Synthesis
+> 𝑑 :…Increasing peak bone mass in
+> young persons could reduce the
+> incidence of later osteoporosis or
+> fragility fracture …
+> 𝑑 ~𝐷
+> 𝑥 :Discuss the importance of
+> maintaining peak bone mass in young
+> adulthood .
+> 𝑦 𝑟𝑒𝑓 :… it reduces risks of
+> osteoporosis or fracture …
+> (2) Question Answering
+> 𝑦 1: …it lays the foundation for
+> lifelong bone health …
+> 𝑦 𝐽 : … it lays a foundation for better
+> bone health later in life, reducing the
+> risk of osteoporosis …
+> …
+> (3) Rubric Generation
+> 𝑑
+> 𝑥
+> 𝑦 𝑟𝑒𝑓
+> 𝑦 1
+> 𝑦 𝐽
+> …
+> 𝑟 1: O steoporosis
+> Description: This criterion evaluates …
+> Gold: Reduces risks of O steoporosis
+> Weight: 1.0
+> …
+> 𝑟 𝐾 𝑖 : Fracture
+> Description: This criterion evaluates …
+> Gold: Reduces risks of fragility fracture
+> Weight: 1.0
+> (4) Answer Grading
+> 𝑥
+> 𝑟 1
+> 𝑟 𝐾 𝑖
+> …
+> 𝑒 𝑗
+> 1: O steoporosis
+> Thoughts: Mentions
+> reduced risks of …
+> Rating: 2.0
+> …
+> 𝑒 𝑗
+> 𝐾 𝑖 : Fracture
+> Thoughts: Does not
+> mention …
+> Rating: 0.0
+> 𝑦 𝑗
+> Sampling
+> Filtering
+> Pairing
+> 𝑦 𝑤 ←𝑦 𝑏𝑒𝑠𝑡 𝑦 𝑙 ←𝑦 𝑤𝑜𝑟𝑠𝑡
+> 𝑠 𝑗
+> Training
+> {(𝑥 𝑖 ,𝑦 𝑤
+> 𝑖 ,𝑦 𝑙
+> 𝑖 )}𝑖 =1
+> 𝐼
+> DPO
+> 𝜋 𝑟𝑒𝑓 𝜋 𝑡𝑟𝑎𝑖𝑛𝑒𝑑
+> 𝜋 𝑟𝑒𝑓
+
+Figure 1: Pipeline of POP. We sample a set of examples from the base model and create response pairs from them, which are then used to train the model via DPO. During the sampling stage, for each example, (i) we get a piece of text from a pretraining corpus and, grounded on that, the LLM synthesizes a question; (ii) the LLM produces a set of candidate answers to the question; (iii) the LLM generates an evaluation rubric, conditioned on the pretraining text; (iv) the LLM scores each candidate answer according to the rubric. After sampling, we filter out invalid examples and take the answer with the highest score and the lowest score as the positive and negative responses, respectively. The resulting dataset is used for DPO. rubric-based self-play framework that Post-trains LLMs on Open domains with Pretraining Text (POP ). In particular, after the model generates answers to a query, we use the same model to generate an evaluation rubric specific to that query, and then grade each answer based on the rubric. The use of the same model to synthesize the queries, answers, and rewards implies several risks: (1) On the query side, a lack of query diversity and thus mode collapse; (2) On the answer side, a lack of high quality answers and hence no positive training signals; (3) On the reward side, the lack of generation-verification gap [ 35 ] and consequently reward hacking. We address (1) by grounding the entire framework on diverse text sampled from a content-rich pretraining corpus. We ask the model to synthesize questions that build upon the text, and, in tasks where ground truth exists, questions whose answers are derivable from the text. We use two methods to mitigate (3). First, we give privileged access to the pretraining text to the model when it evaluates the answers. Second, we select only the highest and lowest scored answers for training. We address (2) by using Direct Preference Optimization [26] that learns contrastive signals from the response pairs [13]. Put together, POP uses the same model for three roles: The Proposer, which synthesizes questions, grounded on pretraining text; The Solver, which answers the questions; The Verifier, which generates the rubric and grades each answer, again grounded on pretraining text. We evaluate our POP on three open-ended tasks: long-form health care QA, creative writing, and general instruction following. For each task, we only change the pretraining corpus and the prompts for the proposer and solver, while keeping other parts of the framework fixed. Our main contributions are as follows. (i) We propose POP, a general self-play framework for post-training LLMs on open-ended tasks; (ii) We ground POP on pretraining text to enable generation-verification gap without introducing strong supervision; (iii) Experiment results show that POP in-creases performance of both pretrained and instruction-tuned models on different tasks ranging from long-form Healthcare QA (up to 4% on HealthBench500 [ 1]) to creative writing (up to 5% on Creative Writing V3 [24]) and instruction following (up to 9% on IFEval [47] and 4% on ArenaHard [46]). 
+
+## 2 Related Work 
+
+Self-Play. Prior work applies self-play almost exclusively to verifiable reasoning tasks: [ 45 ] and [ 48 ]apply self-play to coding tasks; [ 3 , 12 , 20 , 44 ] focus on math reasoning; [ 4 ] works with commonsense reasoning. [ 7] and [ 29 ] synthesize question-answer pairs on various verifiable agentic tasks, with access to tools that interact with environments. However, these verifiable tasks are only a small part of what is needed to train highly capable LLMs [ 5]. Real-world use cases often require long-form open-ended output, such as document-assisted writing (e.g., summarization), creative writing (e.g., storytelling), information extraction, open-ended QA, etc. 2Rubric as Rewards. There is a growing body of literature on extending existing Reinforcement Learning (RL) methods to post-train LLMs in non-verifiable domains. One major branch is to use rubrics to score the open-ended text from the model, and use that as the reward for RL. [9 , 41 ] are among the first in this direction. They take questions from existing datasets and generate question-specific rubrics using strong LLMs. Their rubric criteria adopt a binary rating scale. [ 15 ]curate a set of rubrics in advance, from human experts or strong LLMs, and use these rubrics to synthesize questions, which are then fed into their rubric-based RL pipeline. [ 30 ] ask a strong LLM to compare responses from the current model against those from a reference model to curate new rubric criteria during training, and then use another strong LLM to grade the responses. [ 48 ] use rubrics to guide the solver to generate high-quality responses, and gradually limits access to rubrics during training for curriculum learning. [ 10 ] hire humans to generate the rubrics and score responses, and these are used to train their LLM-based rubric generators and verifiers. [ 2] ask humans or strong LLMs to synthesize rubrics from reference answers and use them for RL training. Similar to [ 48 ], they selectively refine the sampled responses with rubrics to enhance RL training efficiency. However, these existing methods require strong teacher models to create the questions and rubrics, which are expensive and would not function without a stronger teacher. 
+
+## 3 Methodology 
+
+The full pipeline of POP is shown in Figure 1, and the pesudo code is in Algorithm 1. 
+
+3.1 Sampling 
+
+First, we find a pretraining corpus D whose content is relevant to our target task t (e.g., a corpus of medical articles or clinical records for health QA; fantasy books for creative writing; General text for instruction following). With that, we synthesize I examples from a base LLM πref . Each example is synthesized according to the following four steps. 
+
+Question Synthesis. First, we sample a text document d from D. To ensure that d is informative, we force it to be at least 50 words long. For efficiency reasons, we also truncate d to only the first 1024 words. Then, we ask the LLM to synthesize a new question x and a reference answer yref 
+
+conditioned on d: (x, y ref ) ∼ πref (·| P qus t (d)) , where P qus t is a task-specific question synthesis prompt (See Apendix L). For tasks where ground truth answers exist (e.g., long-form health/medical QA), in the prompt P qus t ,we ask that the answer to question x needs to be derivable from d. For tasks where ground truth does not exist (e.g., creative writing; instruction-following), we relax the condition and ask that the answer needs to build upon d. Moreover, we ask that the model provide a reference answer yref to x, which will be used later for rubric generation. 
+
+Question Answering. We sample a set of candidate answers to x from πref : ∀j ∼{1, · · · , J }, y j ∼ πref (·| P ans t (x)) , where P ans t is the question answering prompt. 
+
+Rubric Generation. We generate a question-specific rubric r, conditioned on the pretrain-ing document d, question x, reference answer yref , and candidate answers {yj }Jj=1 : r ∼
+
+πref (·| P rub (d, x, y ref , {yj }Jj=1 )) , where P rub is the rubric generation prompt. 
+
+r consists of Ki criteria r1, · · · , r Ki , where Ki is uppered bound by a constant K. Each criterion rk
+
+has a name, a description of the characteristics of good and bad responses, an optional gold label extracted from the document d, and a weight wk that indicates how important the criterion is. Importantly, we enforce several principles in the rubric generation prompt (See full prompt in Appendix L). First, we require the rubric to be grounded on the pretraining document . For criteria that have ground truth or gold standard answers, we ask the model to extract the gold label from the document d. This provides explicit grounding on the pretraining corpus. For other criteria where there is no ground truth, we ask that the model utilize d when generating their descriptions, which serves as implicit grounding on the pretraining corpus. 3In addition, we require the rubric to be discriminative . We ask that the model only generate criteria that meaningfully distinguish high-quality answers from low-quality ones. Different from [ 32 ], we also include a d-privileged reference answer yref in the rubric prompt. When all the candidate answers are highly similar, yref serves as an extra reference point to avoid generating meaningless criteria that do not correlate with global quality. Such cases will then be filtered out after sampling. 
+
+Answer Grading. We grade each candidate response yj using the rubric r to get a evaluation report 
+
+ej : ej ∼ πref (·| P grade (x, r, y j ), where P grade is the grading prompt. ej consists of individual evaluations {ekj }Kk=1 of yj for each criterion rk. For each ekj , we ask the model to first give its thoughts on how well the model does according to ek’s description and gold label. Then, we ask it to produce a rating skj of either 0 (Bad/Do not match gold), 1 (Medium/Partially match gold), or 2 (Good/Fully match gold), depending on the extent to which yj satisfies rk. If no valid score can be extracted for a criterion, we set its score to 0. Finally, we aggregate the score as follows. 
+
+sj =
+
+PKk=1 wk · skj
+
+PKk=1 wk
+
+(1) 
+
+3.2 Filtering, Pairing, and Training Preliminaries. Direct Preference Optimization [ 26 ] is an offline version of traditional policy gradient methods such as PPO [ 31 ]. It avoids the need for an extra reward model, and trains the main policy to learn the reward landscape directly. Given a dataset {(xi, y iw, y il )}Ni=1 , where each example has a prompt x, a preferred response yw, and a dispreferred response yl, it initializes the main policy 
+
+πθ from the reference policy πref and trains it using the following objective. 
+
+LDP O (πθ , π ref ) = −E(x,y w ,y l)∼S
+
+
+
+logσ 
+
+
+
+βlog πθ (yw|x)
+
+πref (yw|x) − βlog πθ (yl|x)
+
+πref (yl|x)
+
+ 
+
+(2) 
+
+Filtering. After synthesizing I examples, for each example, we filter out candidate answers that are malformed or have a malformed evaluation report. Then, we filter out examples where the question or rubric cannot be extracted, does not follow the correct format, or has zero valid candidate answers. 
+
+Pairing. For each example that passes filtering, we pick the candidate answer with the highest score as the positive response yw ← argmax yj (sj ) and the answer with the lowest score as the negative response yl ← argmin yj (sj ). Following [ 13 ], we want yw and yl to be maximally different in terms of quality but minimally different in terms of other irrelevant features such as length. Therefore, we filter out response pairs where yw and yl differ by more than 100 words in length. We also filter out pairs where yw and yl have the same score. This gives the DPO training set {(xi, y iw, y il )}Ni=1 .
+
+Training. We initialize the main policy from πref and then train it using the DPO objective in equation (2) on the synthesized dataset. We denote the trained model as πtrained .
+
+## 4 Experiment Setup 
+
+Tasks and Evaluations. We experiment with three tasks: Long-form Healthcare QA; Creative Writing; Instruction Following. For Long-form Healthcare QA , we use HC4 [ 23 ] as our pre-training corpus, which consists of more than 9.7 million medical articles. We evaluate on HealthBench [ 1], an LLM-as-a-judge benchmark with example-specific rubrics created by human experts. To reduce evaluation cost, we randomly sample 500 examples from it and denote it as HealthBench500. For 
+
+Creative Writing , we use 2 million book abstracts scraped from the Internet [ 34 ] as the pretraining corpus. We evaluate on Creative Writing V3 [ 24 ]. For Instruction Following , we use OpenWebText [ 8] as the pretraining corpus, which consists of 8 million documents in the general domains. For evaluation, we use IFEval [ 47 ], a verifiable benchmark that measures strict adherence to writing constraints, and ArenaHard [ 46 ], an LLM-as-a-judge benchmark measuring general instruction following abilities. We use GPT-4.1-mini [ 38 ] as the judge model across different LLM-as-a-judge benchmarks. 4Task Model #Ques(I) #Ans.(J) #Criteria(K) s mean s std syw syl                                             
+
+> Healthcare QA Base 1381 10.69 4.48 1.19 0.47 1.78 0.45 Inst 2667 24.45 2.71 1.01 0.29 1.51 0.54 Creative Writing Base 1822 8.91 4.84 1.41 0.58 1.96 0.47 Inst 2521 28.95 2.96 1.66 0.21 1.95 1.21 Instruction Following Base 1665 10.53 4.47 1.20 0.50 1.80 0.43 Inst 2502 24.68 3.04 1.35 0.30 1.79 0.80
+
+Table 1: Statistics of the synthesized datasets, after filtering. Base: Qwen-2.5-7B; Inst: Qwen-2.5-7B-Instruct; #Ques: Number of questions; #Ans: Number of valid candidate answers per question; #Crtieria: Number of rubric criteria per question; s mean: Average answer score per question; s
+
+std: Answer score standard deviation per question; syw : Average score of preferred response; syl :Average score of dispreferred response. 
+
+OOD Evaluations. To ensure that our trained model’s performance does not degrade on other tasks, especially on verifiable tasks, we evaluate the models on nine out-of-distribution benchmarks, on scientific reasoning (GPQA-Diamond [ 27 ]); math reasoning (GSM8K [ 6]; Math500 [ 11 ]; AIME2024; AIME2025); and factoid QA (NaturalQuestions [ 18 ]; TriviaQA [ 17 ]; TruthfulQA [ 19 ]; MMLU-Pro [42]); MedQA [16]. We use 0-shot prompting for the benchmarks. 
+
+Models. We experiment with both pretrained model (Qwen-2.5-7B [ 39 ]) and instruction-finetuned model (Qwen-2.5-7B-Instruct [39]) as our reference model. 
+
+Sampling. We sample I = 4096 (except for Creative Writing, where we set I = 8192 ) questions, each with J = 32 initial candidate answers, and ask the model to create at most 5 rubrics (i.e., 
+
+K = 5 ). The statistics of the resulting synthesized datasets are shown in Table 1. 
+
+Training. We train the model for 1 epoch, using learning rate of 1e − 6 with a cosine schedule and warmup ratio of 0.1, β = 0 .01 , and batch size of 16. We use AdamW optimizer [21]. 
+
+Baselines. We compare πtrained against (1) the reference model πref and (2) a model that is continuously pretrained on the same pretraining text used to ground our pipeline ( Train on D). Prior methods on rubric-based RL [ 9, 40 , 2 , 48 , 10 , 30 , 15 ] use strong supervisions to get the input questions, rubrics, and scores, so we do not compare against them. 
+
+## 5 Results and Analysis 
+
+We first discuss the main results in § 5.1, then evaluate the trained models on OOD benchmarks in § 5.2. We also analyze the synthesized training datasets in § 5.3 and conduct various ablation studies in § 5.4. Finally, we analyze the correctness of answer ranking by our rubric evaluation § 5.5. 
+
+5.1 Main Results 
+
+We show the main results in Table 2. Across different domains, we observe a consistent performance increase from the reference model. In addition, continuously pretraining on the grounding documents 
+
+D significantly underperforms both the reference and our model. This shows the necessity of transforming pre-training data into post-training format, which is achieved by POP.                                                 
+
+> Health QA Creative Writing Instruction Following HealthBench500 Creative Writing V3 IFEval ArenaHard Rubric Rubric Elo Prompt Inst Win Rate Qwen-2.5-7B 26.36 41.18 1200.00 26.07 39.03 12.53 Train on D23.89 30.10 766.79 23.48 35.67 10.63 POP 29.97 42.77 1284.66 34.94 46.64 15.98
+> Qwen-2.5-7B-Inst 40.83 59.96 1524.83 67.93 76.74 50.17 Train on D26.14 40.38 1026.52 52.87 63.43 41.30 POP 41.16 64.71 1577.32 71.54 79.50 54.09
+
+Table 2: Main results. Rubric: Rubric score; Elo: Elo score; IFEval: We report the average of strict and loose categories for both prompt-level and instruction-level metrics. 5overall score       
+
+> accuracy
+> completeness
+> communication quality
+> context awareness
+> instruction following 0
+> 20
+> 40
+> 60
+> Score
+> 26
+> 34
+> 19
+> 48
+> 34 37
+> 24
+> 31
+> 16
+> 50
+> 31 32 30
+> 36
+> 24
+> 60
+> 34
+> 47
+> Base
+> Train on D
+> Ours overall score
+> accuracy
+> completeness
+> communication quality
+> context awareness
+> instruction following 0
+> 25
+> 50
+> 75
+> Score
+> 41 46
+> 39
+> 72
+> 42
+> 51
+> 26 32
+> 22
+> 48
+> 34 29
+> 41 47
+> 38
+> 70
+> 44
+> 53
+> Base
+> Train on D
+> Ours
+
+Figure 2: Per-axis results on HealthBench500. Left: Qwen-2.5-7B; Right: Qwen-2.5-7B-Inst. 
+
+Healthcare QA. On the pretrained model (Qwen-2.5-7B), we observe a 4% increase on Health-Bench500. The performance gains on the instruction-tuned model (Qwen-2.5-7B-Inst) are marginal. We suspect this is due to the misalignments between our synthesized training data and the evaluation data from HealthBench. In Figure 2, we show the results breakdown on HealthBench. For Qwen-2.5-7B, performance increases notably on all axes except context awareness. For Qwen-2.5-7B-Inst, performance slightly increases on accuracy, context awareness, and instruction following, but slightly drops on completeness and communication quality. 
+
+Creative Writing. On Creative Writing V3, POP gets a 1.6% increase for Qwen-2.5-7B and a 5% increase for Qwen-2.5-7B-Inst. We show the detailed per-criteria breakdown in Appendix C. overall score  
+
+> strict:prompt
+> strict:inst
+> loose:prompt
+> loose:inst 0
+> 20
+> 40
+> Score  33
+> 23
+> 37
+> 29
+> 41
+> 30
+> 21
+> 33
+> 26
+> 39
+> 41
+> 33
+> 44
+> 37
+> 49
+> Base
+> Train on D
+> Ours overall score
+> strict:prompt
+> strict:inst
+> loose:prompt
+> loose:inst 0
+> 20
+> 40
+> 60
+> 80
+> Score
+> 72
+> 66
+> 75
+> 70
+> 78
+> 58
+> 52
+> 62
+> 54
+> 65
+> 76
+> 70
+> 78 73
+> 81
+> Base
+> Train on D
+> Ours
+
+Figure 3: Per-axis results on IFEval. Left: Qwen-2.5-7B; Right: Qwen-2.5-7B-Inst. 
+
+Instruction Following. We first discuss results on IFEval. For Qwen-2.5-7B, POP gives a 9% increase on prompt-level metrics and a 7.5% increase on instruction-level metrics. For Qwen-2.5-7B-Inst, increases are milder. We observe a 3.5% increase on the prompt-level and a 3% increase on the instruction-level. We further show the detailed breakdown in Figure 3, which indicates a consistent performance increase under strict and loose evaluations. On ArenaHard, POP improves the win rate against GPT-4 by 3.5% on Qwen-2.5-7B and 4% on Qwen-2.5-7B-Inst. 
+
+5.2 Results on OOD Benchmarks 
+
+We evaluate on various out-of-distribution benchmarks. We present the results for models trained on Healthcare QA datasets in Table 3. We show OOD results for other models in Appendix D. We observe a slight performance increase across knowledge and reasoning benchmarks for Qwen-2.5-7B. Notably, results on MMLU-Pro increase from 30.10% to 44.75%. Average results change from 34.71% to 37.34%. On Qwen-2.5-7B-Inst, performance slightly drops on NaturalQuestions and GPQA-Diamond, but remains largely the same on other benchmarks. Average results change from 43.17% to 42.88%. We also highlight that results on MedQA increase by around 1% for both models, suggesting that training on our long-form datasets slightly helps performance on short-form tasks in the same domain. In contrast, naively training on the pretraining corpus D causes a performance drop on NaturalQues-tions, TriviaQA, and GPQA-Diamond for Qwne-2.5-7B. Average results remain at 34.68% due 6MedQA NQ TvQA TfQA MMLU-P GPQA-D GSM Math Aime24 Aime25 Qwen-2.5-7B Base 52.95 14.36 17.93 48.07 30.10 33.84 78.77 61.15 6.82 3.07 Train on D 53.12 12.54 14.76 48.06 39.32 28.28 80.31 61.25 5.89 3.23 POP 53.86 14.65 18.96 49.81 44.75 35.35 79.98 64.00 7.76 4.32                                
+
+> Qwen-2.5-7B-Inst Base 55.94 15.12 18.49 62.51 56.57 36.36 90.64 75.55 12.40 8.07 Train on D40.74 8.50 9.22 56.40 48.92 26.26 87.02 69.80 7.76 5.47 POP 56.54 14.01 18.99 62.35 56.49 33.84 90.52 75.75 12.03 8.23
+
+Table 3: OOD Results for models trained on the models trained on the healthcare datasets. NQ: NaturalQuestions; TvQA: TriviaQA; TfQA: TruthfulQA; MMLU-P: MMLU-Pro; GPQA-D: GPQA-Diamond; GSM: GSM8K; Math: MATH500. We use 0-shot evaluation. to an increase on MMLU-Pro. On Qwen-2.5-7B-Inst, naive pretraining causes degradation across benchmarks, with average results dropping from 43.17% to 36.01%. 
+
+5.3 Statistics of the Synthesized Dataset 10% 
+
+> 7%
+> 15%
+> 5%
+> 5%
+> 19%
+> 3%
+> 21%
+> 5%
+> 10% 0%
+> Pharmacology
+> Endocrinology
+> Molecular
+> Biology
+> Oncology
+> Infectious
+> Diseases
+> Other
+> Public
+> Health
+> Medical
+> Imaging
+> Healthcare
+> Management
+> Immunology
+> Neurology
+
+Figure 4: Question topics. We analyze the types of questions, rubrics, and answers synthesized by POP. We use the Healthcare QA Qwen-2.5-7B dataset as an example. Detailed methodology and results for other set-tings are in Appendix E. 
+
+5.3.1 Questions 
+
+In Figure 4, we show the common topics for the synthesized questions. Healthcare Management (21%) and Public Health (19%) are the two most common topics, which also have the strongest overlap with questions from HealthBench. Since a considerable portion of our pretraining corpus [ 23 ] is medical articles from PubMed, the rest of the synthesized questions tend to focus on professional medical knowledge and research. 
+
+5.3.2 Rubrics 22% 
+
+> 0%
+> 25%
+> 18%
+> 4%
+> 11%
+> 0%
+> 6%
+> 3%
+> 8% 0%
+> Relevance
+> Safety
+> Accuracy
+> Clarity
+> Evidence
+> Depth
+> Ethics
+> Originality
+> Practicality
+> Biological
+> Understanding
+> Other
+
+Figure 5: Meta rubric criteria We group the rubric criteria into meta-criteria and show the composition in Figure 5. Relevance (25%), Accuracy (22%), and Clarity (18%) make up two-thirds of the rubric criteria. Other major categories in-clude Depth (11%), Biological Understanding (8%), and Originality (6%). This suggests that our rubric values both objective and subjective criteria. 
+
+5.3.3 Answers and Scores 
+
+In Figure 6, we show the distribution of answer scores, grouped by questions. According to the rubric and scores generated by the model itself, more than 50% of questions have their average scores above 1.0. However, since these scores are not perfect, we additionally ask a stronger teacher model (GPT-4o-mini) to generate its own scores on the same questions, answers, and rubrics. The teacher distribution moves more toward the lower end, with more than 50% of questions having an average score below 1.0. As we will show in § 5.5, the scores generated by weaker models are not accurate without the pairing step. 70.25 0.50 0.75 1.00 1.25 1.50 1.75                                 
+
+> Average Score for Question
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2% 5% 7% 12% 15% 13% 12% 12% 12% 9%
+> =0.1
+> =0.3
+> =0.4
+> =0.5
+> =0.6
+> =0.6 =0.6 =0.6 =0.5 =0.3 0.25 0.50 0.75 1.00 1.25 1.50 1.75
+> Average Score for Question
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2% 10% 17% 21% 20% 17% 7% 4% 1% 1%
+> =0.2
+> =0.2
+> =0.3
+> =0.4 =0.4
+> =0.5
+> =0.5 =0.5 =0.5 =0.3
+
+Figure 6: Answer score distribution for healthcare Qwen-2.5-7B dataset. Left: scores given by the model itself; Right: scores given by a stronger model; We group the candidate answers by questions and compute the average and standard deviation of answer scores for each question. We then partition the questions into 10 bins. x-axis is the average answer score for the questions in that bin; error bar indicates standard deviations of answer scores for the questions in that bin, averaged by number of questions; bubble size indicates the percentage of questions that fall into that bin. Nonetheless, we observe a large standard deviation of over 0.3 across question groups under both models. This suggests that POP is able to synthesize questions of appropriate difficulties, so that the model generates answers of varying qualities, and can give meaningful contrastive signals. 
+
+5.4 Ablation Study overall score     
+
+> accuracy
+> completeness
+> communication quality
+> context awareness
+> instruction following 0
+> 20
+> 40
+> 60
+> Score
+> 30 36
+> 24
+> 60
+> 34
+> 47
+> 28 34
+> 22
+> 60
+> 34
+> 46
+> 27 33
+> 17
+> 58
+> 34
+> 43
+> 28 33
+> 22
+> 55
+> 32
+> 43
+> 30
+> 36
+> 23
+> 60
+> 34
+> 42
+> Ours
+> Eval w/o D
+> w/o D
+> w/ pairwise judge
+> w/o rubric
+
+Figure 7: Ablation Results on HealthBench500. We remove or replace various components of POP. This in-cludes (1) revoking the access to pretraining text d when generat-ing the rubric (Eval w/o D); (2) revoking our entire pipeline’s ac-cess to d altogether (w/o D); (2) As prior work suggests [ 33 , 36 ], replacing our pointwise rubric grader with a pairwise judge that compares two answers according to our rubric (w/ pairwise judge); (3) Removing access to rubrics for our judge, but still grounding it on d (w/o rubric). See Appendix F.1 for details. We conduct the studies on Healthcare Qwen-2.5-7B dataset, and show the results in Figure 7. Removing grounding of our rubric evaluation on the pretraining corpus reduces the overall performance to 28%. We suspect this to be a result of a lack of generation verification gap and an increase in reward hacking, which we will analyze in § 5.5. Removing our pipeline’s access to D entirely (w/o D) further hurts performance, since in this case, questions are synthesized without grounding, and likely degrade in terms of quality and diversity. Grading answers without rubrics slightly hurts the performance. Surprisingly, using a pairwise judge is not better than ours, which we will analyze in Appendix F.2. 
+
+5.5 Answer Ranking Analysis 
+
+Without external input, the use of the same model to verify its own answers implies a lack of generation-verification gap [ 35 ]. In our case, the rubric generated by our model may not be able to distinguish high-quality answers from low-quality ones. As a result, the ranking of answers according to the rubric will be inconsistent with the "true quality" ranking, which encourages undesired behavior, a phenomenon known as reward hacking . In our case, since we only choose the highest-ranked yw
+
+and lowest-ranked yl answers for DPO training, reward hacking happens when yw is worse than yl in terms of "true qualities". To measure "true qualities", we use GPT-4o-mini as a proxy. In particular, we use our prompts and ask it to generate a new set of rubrics and scores for the same questions and answers from πref .We define the rankings from this stronger model as the gold rankings . We want to know (1) the correlation between rankings from POP and gold rankings, and (2) whether grounding our rubric on pretraining text D helps. For (2), we revoke access to D and regenerate the rubrics and scores. We 80.0 0.2 0.4 0.6 0.8 1.0      
+
+> Eval w/o D
+> 0.0
+> 0.5
+> 1.0
+> Gold
+> y = x
+> Spearman's r = 0.3301 0.0 0.2 0.4 0.6 0.8 1.0
+> Eval w/ D (Ours)
+> 0.0
+> 0.5
+> 1.0
+> Gold
+> y = x
+> Spearman's r = 0.3424
+
+Figure 8: Correlation between our rankings and gold rankings on the healthcare Qwen-2.5-7B dataset. x-axis: Percentile ranking of answers from our model, with (Right) or without (Left) access to D.y-axis: Given that the answer is ranked at the top x% according to our model, the distribution of gold ranking percentiles. A smaller percentile means a higher rank. Spearman’s r: Spearman’s ranking correlation coefficient. denote the new answer rankings as Eval w/o D and compare them against our original rankings Eval w/ D, using the gold rankings as a reference.         
+
+> %(rk gold yw≤rk gold yl)
+> Eval w/o D82.04 Eval w/ D(Ours) 85.14
+
+Table 4: Ranking accuracy. 
+
+Global correlation is imperfect. Figure 8 shows the correlation between our rankings and gold rank-ings. The setting without grounding (Eval w/o D)achieves a moderate positive correlation of 0.3301. Grounding the rubric evaluation on pretraining text (Eval w/ D) gives a slightly stronger correlation of 0.3424, but still far from perfect. 
+
+yw − yl correlation is strong, leading to correct training signals. Since our DPO algo-rithm only uses the highest and lowest ranked answers yw and yl for training, a more rel-evant metric for POP is the pairwise ranking accuracy. That is, the percentage of cases where yw is truly better than yl according to gold rankings. We show this in Table 4.                                 
+
+> rk ywrk yl∆rk sywsyl∆s
+> Eval w/o D0100 100 1.78 0.47 1.31 Gold 26.59 75.35 48.76 1.01 0.63 0.38 Eval w/ D(Ours) 0100 100 1.79 0.51 1.28 Gold 23.59 76.50 52.91 1.04 0.63 0.41
+
+Table 5: Rankings and scores of yw and yl from Eval w/o D and Eval w/ D, according to either πref or stronger model. Both w/o D and w/ D achieves accuracies higher than 80%, and w/ D achieves an accuracy of 85%. This suggests (1) even though global correlation is im-perfect, taking the extremes ac-cording to our own rankings still gives mostly correct training sig-nals; (2) Grounding rubric evalu-ation on the pretraining corpus gives stronger correlation with gold rankings and helps reduce reward hacking. In Table 5, we further list the detailed statistics of yw and yl under both the w/o D and w/ D settings. For both settings, we compute the average rankings and scores of yw and yl under our model and the stronger model. In both settings, yw is ranked and scored significantly higher than yl even with the gold model. In addition, the rank difference between yw and yl is larger in the w/ D setting, showing the benefits of grounding on pretraining text. We show further analysis in Appendix H. 
+
+## 6 Conclusion 
+
+We introduce POP, a rubric-based self-play framework on open-ended tasks. POP synthesizes question-answer-rubric pairs and grades each answer using the rubrics. To mitigate reward hacking, we give privileged access to pretraining text during rubric generation and only take the answers with the highest and lowest scores for DPO training. Experiment results suggest that POP bootstraps effective training signals across different tasks. The design of POP is meant to be generalizable, and we hope it highlights a direction toward cheap and effective post-training for LLMs. 9References 
+
+[1] Rahul K. Arora, Jason Wei, Rebecca Soskin Hicks, Preston Bowman, Joaquin Quiñonero-Candela, Foivos Tsimpourlas, Michael Sharman, Meghan Shah, Andrea Vallone, Alex Beutel, Johannes Heidecke, and Karan Singhal. Healthbench: Evaluating large language models towards improved human health. arXiv preprint arXiv:2505.08775 , 2025. [2] Baolong Bi, Shenghua Liu, Yiwei Wang, Siqian Tong, Lingrui Mei, Yuyao Ge, Yilong Xu, Jiafeng Guo, and Xueqi Cheng. Reward and guidance through rubrics: Promoting exploration to improve multi-domain reasoning. arXiv preprint arXiv:2508.16949 , 2025. [3] Jiaqi Chen, Bang Zhang, Ruotian Ma, Peisong Wang, Xiaodan Liang, Zhaopeng Tu, Xiaolong Li, and Kwan-Yee K. Wong. Spc: Evolving self-play critic via adversarial games for llm reasoning. arXiv preprint arXiv:2504.19162 , 2025. [4] Pengyu Cheng, Tianhao Hu, Han Xu, Zhisong Zhang, Zheng Yuan, Yong Dai, Lei Han, Nan Du, and Xiaolong Li. Self-playing adversarial language game enhances llm reasoning. arXiv preprint arXiv:2404.10642 , 2024. [5] Hyung Won Chung, Le Hou, Shayne Longpre, Barret Zoph, Yi Tay, William Fedus, Yunxuan Li, Xuezhi Wang, Mostafa Dehghani, Siddhartha Brahma, Albert Webson, Shixiang Shane Gu, Zhuyun Dai, Mirac Suzgun, Xinyun Chen, Aakanksha Chowdhery, Alex Castro-Ros, Marie Pellat, Kevin Robinson, Dasha Valter, Sharan Narang, Gaurav Mishra, Adams Yu, Vincent Zhao, Yanping Huang, Andrew Dai, Hongkun Yu, Slav Petrov, Ed H. Chi, Jeff Dean, Jacob Devlin, Adam Roberts, Denny Zhou, Quoc V. Le, and Jason Wei. Scaling instruction-finetuned language models. arXiv preprint arXiv:2210.11416 , 2022. [6] Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. Training verifiers to solve math word problems. arXiv preprint arXiv:2110.14168 ,2021. [7] DeepSeek-AI. Deepseek-v3.2: Pushing the frontier of open large language models. arXiv preprint:arXiv:2512.02556 , 2025. [8] Aaron Gokaslan, Vanya Cohen, Ellie Pavlick, and Stefanie Tellex. Openwebtext corpus. 
+
+http://Skylion007.github.io/OpenWebTextCorpus , 2019. [9] Anisha Gunjal, Anthony Wang, Elaine Lau, Vaskar Nath, Yunzhong He, Bing Liu, and Sean Hendryx. Rubrics as rewards: Reinforcement learning beyond verifiable domains. arXiv preprint arXiv:2507.17746 , 2025. [10] Yun He, Wenzhe Li, Hejia Zhang, Songlin Li, Karishma Mandyam, Sopan Khosla, Yuanhao Xiong, Nanshu Wang, Xiaoliang Peng, Beibin Li, Shengjie Bi, Shishir G. Patil, Qi Qi, Shengyu Feng, Julian Katz-Samuels, Richard Yuanzhe Pang, Sujan Gonugondla, Hunter Lang, Yue Yu, Yundi Qian, Maryam Fazel-Zarandi, Licheng Yu, Amine Benhalloum, Hany Awadalla, and Manaal Faruqui. Advancedif: Rubric-based benchmarking and reinforcement learning for advancing llm instruction following. arXiv preprint arXiv:2511.10507 , 2025. [11] Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, and Jacob Steinhardt. Measuring mathematical problem solving with the math dataset. In 
+
+Advances in Neural Information Processing Systems , 2021. [12] Chengsong Huang, Wenhao Yu, Xiaoyang Wang, Hongming Zhang, Zongxia Li, Ruosen Li, Jiaxin Huang, Haitao Mi, and Dong Yu. R-zero: Self-evolving reasoning llm from zero data. 
+
+arXiv preprint arXiv:2508.05004 , 2025. [13] Chengyu Huang and Tanya Goyal. Dcrm: A heuristic to measure response pair quality in preference optimization. In Findings of the Association for Computational Linguistics: EMNLP ,2025. [14] Jiaxin Huang, Shixiang Gu, Le Hou, Yuexin Wu, Xuezhi Wang, Hongkun Yu, and Jiawei Han. Large language models can self-improve. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , 2023. 10 [15] Zenan Huang, Yihong Zhuang, Guoshan Lu, Zeyu Qin, Haokai Xu, Tianyu Zhao, Ru Peng, Jiaqi Hu, Zhanming Shen, Xiaomeng Hu, Xijun Gu, Peiyi Tu, Jiaxin Liu, Wenyu Chen, Yuzhuo Fu, Zhiting Fan, Yanmei Gu, Yuanyuan Wang, Zhengkai Yang, Jianguo Li, and Junbo Zhao. Reinforcement learning with rubric anchors. arXiv preprint arXiv:2508.12790 , 2025. [16] Di Jin, Eileen Pan, Nassim Oufattole, Wei-Hung Weng, Hanyi Fang, and Peter Szolovits. What disease does this patient have? a large-scale open domain question answering dataset from medical exams. arXiv preprint arXiv:2009.13081 , 2009. [17] Mandar Joshi, Eunsol Choi, Daniel Weld, and Luke Zettlemoyer. triviaqa: A Large Scale Distantly Supervised Challenge Dataset for Reading Comprehension. arXiv e-prints , art. arXiv:1705.03551, 2017. [18] Tom Kwiatkowski, Jennimaria Palomaki, Olivia Redfield, Michael Collins, Ankur Parikh, Chris Alberti, Danielle Epstein, Illia Polosukhin, Jacob Devlin, Kenton Lee, Kristina Toutanova, Llion Jones, Matthew Kelcey, Ming-Wei Chang, Andrew M. Dai, Jakob Uszkoreit, Quoc Le, and Slav Petrov. Natural questions: A benchmark for question answering research. Transactions of the Association for Computational Linguistics, Volume 7 , 2019. [19] Stephanie Lin, Jacob Hilton, and Owain Evans. Truthfulqa: Measuring how models mimic human falsehoods. In Proceedings of the 60th Annual Meeting of the Association for Computa-tional Linguistics (Volume 1: Long Papers) , 2022. [20] Bo Liu, Chuanyang Jin, Seungone Kim, Weizhe Yuan, Wenting Zhao, Ilia Kulikov, Xian Li, Sainbayar Sukhbaatar, Jack Lanchantin, and Jason Weston. Spice: Self-play in corpus environments improves reasoning. arXiv preprint arXiv:2510.24684 , 2025. [21] Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization. In Proceedings of International Conference on Learning Representations , 2019. [22] Thang Luong and Edward Lockhart. Advanced version of gemini with deep think officially achieves gold-medal standard at the international mathematical olympiad, 2025. [23] Svetlana Maslenkova, Clement Christophe, Marco AF Pimentel, Tathagata Raha, Muham-mad Umar Salman, Ahmed Al Mahrooqi, Avani Gupta, Shadab Khan, Ronnie Rajan, and Praveenkumar Kanithi. Building trust in clinical llms: Bias analysis and dataset transparency. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing ,2025. [24] Samuel J Paech. Eq-bench creative writing benchmark v3. https://github.com/EQ-bench/ creative-writing-bench , 2025. [25] Aske Plaat, Max van Duijn, Niki van Stein, Mike Preuss, Peter van der Putten, and Kees Joost Batenburg. Agentic large language models, a survey. arXiv preprint arXiv:2503.23037 , 2025. [26] Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher D. Manning, and Chelsea Finn. Direct preference optimization: Your language model is secretly a reward model. In arXiv preprint arXiv:2305.18290 , 2023. [27] David Rein, Betty Li Hou, Asa Cooper Stickland, Jackson Petty, Richard Yuanzhe Pang, Julien Dirani, Julian Michael, and Samuel R. Bowman. GPQA: A graduate-level google-proof q&a benchmark. In First Conference on Language Modeling , 2024. URL https: //openreview.net/forum?id=Ti67584b98 .[28] Yi Ren and Danica J. Sutherland. Learning dynamics of llm finetuning. In Proceedings of International Conference on Learning Representations , 2025. [29] Databricks AI Research. Karl: Knowledge agentsvial reinforcement learning. arXiv preprint:arXiv:2603.05218 , 2026. [30] MohammadHossein Rezaei, Robert Vacareanu, Zihao Wang, Clinton Wang, Bing Liu, Yunzhong He, and Afra Feyza Akyürek. Online rubrics elicitation from pairwise comparisons. arXiv preprint arXiv:2510.07284 , 2025. 11 [31] John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. Proximal policy optimization algorithms. arXiv preprint arXiv:1707.06347 , 2017. [32] Rulin Shao, Akari Asai, Shannon Zejiang Shen, Hamish Ivison, Varsha Kishore, Jingming Zhuo, Xinran Zhao, Molly Park, Samuel G. Finlayson, David Sontag, Tyler Murray, Sewon Min, Pradeep Dasigi, Luca Soldaini, Faeze Brahman, Wen tau Yih, Tongshuang Wu, Luke Zettlemoyer, Yoon Kim, Hannaneh Hajishirzi, and Pang Wei Koh. Dr tulu: Reinforcement learning with evolving rubrics for deep research. arXiv preprint arXiv:2511.19399 , 2025. [33] Harman Singh, Xiuyu Li, Kusha Sareen, Monishwaran Maheswaran, Sijun Tan, Xiaoxia Wu, Junxiong Wang, Alpay Ariyak, Qingyang Wu, Samir Khaki, Rishabh Tiwari, Long Lian, Yucheng Lu, Boyi Li, Alane Suhr, Ben Athiwaratkun, and Kurt Keutzer. V1: Unifying generation and self-verification for parallel reasoners. arXiv preprint arXiv:2603.04304 , 2026. [34] Skelebor. Book titles and abstracts. https://huggingface.co/datasets/Skelebor/ book_titles_and_descriptions , 2022. [35] Yuda Song, Hanlin Zhang, Carson Eisenach, Sham Kakade, Dean Foster, and Udaya Ghai. Mind the gap: Examining the self-improvement capabilities of large language models. In Proceedings of International Conference on Learning Representations , 2025. [36] Gokul Swamy, Christoph Dann, Rahul Kidambi, Zhiwei Steven Wu, and Alekh Agarwal. A minimaximalist approach to reinforcement learning from human feedback. In Proceedings of the 41st International Conference on Machine Learning , 2024. [37] Yunhao Tang, Daniel Zhaohan Guo, Zeyu Zheng, Daniele Calandriello, Yuan Cao, Eugene Tarassov, Rémi Munos, Bernardo Ávila Pires, Michal Valko, and Will Dabney Yong Cheng. Understanding the performance gap between online and offline alignment algorithms. arXiv preprint arXiv:2405.08448 , 2024. [38] OpenAI Team. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 , 2023. [39] Qwen Team. Qwen2.5 technical report. arXiv preprint arXiv:2412.15115 , 2024. [40] Pablo Villalobos, Anson Ho, Jaime Sevilla, Tamay Besiroglu, Lennart Heim, and Marius Hobbhahn. Will we run out of data? limits of llm scaling based on human-generated data. In 
+
+Proceedings of the 41st International Conference on Machine Learning , 2024. [41] Vijay Viswanathan, Yanchao Sun, Shuang Ma, Xiang Kong, Meng Cao, Graham Neubig, and Tongshuang Wu. Checklists are better than reward models for aligning language models. In 
+
+Advances in Neural Information Processing Systems , 2025. [42] Yubo Wang, Xueguang Ma, Ge Zhang, Yuansheng Ni, Abhranil Chandra, Shiguang Guo, Weiming Ren, Aaran Arulraj, Xuan He, Ziyan Jiang, Tianle Li, Max Ku, Kai Wang, Alex Zhuang, Rongqi Fan, Xiang Yue, and Wenhu Chen. Mmlu-pro: A more robust and challenging multi-task language understanding benchmark. In Advances in Neural Information Processing Systems, Datasets and Benchmarks Track , 2024. [43] Weizhe Yuan, Richard Yuanzhe Pang, Kyunghyun Cho, Xian Li, Sainbayar Sukhbaatar, Jing Xu, and Jason Weston. Self-rewarding language models. In Proceedings of the 41st International Conference on Machine Learning , 2024. [44] Zhengxin Zhang, Chengyu Huang, Aochong Oliver Li, and Claire Cardie. Better llm reasoning via dual-play. arXiv preprint arXiv:2511.11881 , 2025. [45] Andrew Zhao, Yiran Wu, Yang Yue, Tong Wu, Quentin Xu, Yang Yue, Matthieu Lin, Shenzhi Wang, Qingyun Wu, Zilong Zheng, and Gao Huang. Absolute zero: Reinforced self-play reasoning with zero data. arXiv preprint arXiv:2505.03335 , 2025. [46] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang, Joseph E. Gonzalez, and Ion Stoica. Judging llm-as-a-judge with mt-bench and chatbot arena. In Advances in Neural Information Processing Systems, Datasets and Benchmarks Track , 2023. 12 [47] Jeffrey Zhou, Tianjian Lu, Swaroop Mishra, Siddhartha Brahma, Sujoy Basu, Yi Luan, Denny Zhou, and Le Hou. Instruction-following evaluation for large language models. arXiv preprint arXiv:2311.07911 , 2023. [48] Yang Zhou, Sunzhu Li, Shunyu Liu, Wenkai Fang, Kongcheng Zhang, Jiale Zhao, Jingwen Yang, Yihe Zhou, Jianwei Lv, Tongya Zheng, Hengtong Lu, Wei Chen, Yan Xie, and Mingli Song. Breaking the exploration bottleneck: Rubric-scaffolded reinforcement learning for general llm reasoning. arXiv preprint arXiv:2508.16949 , 2025. [49] Yifei Zhou, Sergey Levine, Jason Weston, Xian Li, and Sainbayar Sukhbaatar. Self-challenging language model agents. arXiv preprint arXiv:2506.01716 , 2025. 13 Stage Parameter Value Sampling Max Context Length 32768 
+
+|d| ∈ [50 , 1024] 
+
+Proposer Max New Tokens 6144 Proposer Temperature 1.0 Proposer Top P 1.0 Solver Max New Tokens 6144 Solver Temperature 1.0 Solver Top P 1.0 Rubric Gen Max New Tokens 8192 Rubric Gen Temperature 0.0 Rubric Gen Top P 1.0 Ans Grading Max New Tokens 4096 Ans Grading Gen Temperature 0.0 Ans Grading Gen Top P 1.0 # Ques ( I) 4096 # Ques ( I) Creative Writing 8192 # Ques per d 1# Ans per Ques ( J) 32 Max # Rub Criteria per Ques ( K) 5Continuous Pretraining (Train on D) Scheduler Cosine Warmup Ratio 0.1 Optimizer AdamW Learning Rate 2e-5 Number of Epochs 1Batch Size 64 DPO (POP) Scheduler Cosine Warmup Ratio 0.1 Optimizer AdamW Learning Rate 1e-6 Beta 0.01 Number of Epochs 1Batch Size 16 Table 6: Hyperparameters 
+
+## A Hyperparameter 
+
+We show the list of hyperparameters in Table 6. For rubric generation, to prevent context length overflow, we select ten candidate answers to put into the rubric generation prompt. In particular, we sort the answers by length and then pick one from every #Ans  
+
+> 10
+
+so that the rubric generator sees answers of varying length. 
+
+## B POP Algorithm 
+
+We show the pseudo code of POP in Algorithm 1. 
+
+## C Results on Creative Writing V3 
+
+We show the per-criterion results for Qwen-2.5-7B in Figure 9 and results for Qwen-2.5-7B-Inst in Figure 10. POP achieves consistent improvement over the reference models for both cases. Exceptions include "Incongruent Ending Positivity", "Amateurish", "Unsurprising or Uncreative", and "Tell-Don’t Show" for both models, and "Unearned Transformations", "Overwrought", "Purple Prose", "Weak Dialogue", and "Meandering" for Qwen-2.5-7B-Inst. Naively pretraining on D significantly degrades performance on most criteria. 14 Algorithm 1 POP Pipeline 
+
+Require: Reference LLM πref ; Pretraining Corpus D; #Questions I; #Answers /Qus J; #Max Rubric Citeria/Qus K; Task t; Question Synthesis Prompt P qus t ; Question Answering Prompt 
+
+P ans t ; Rubric Generation Prompt P rub ; Answer Grading Prompt P grade  
+
+> 1:
+
+// Sampling  
+
+> 2:
+
+Initialize RawDataset ← {}  
+
+> 3:
+
+for i = 1 to I do  
+
+> 4:
+
+// Question Synthesis  
+
+> 5:
+
+Sample d ∼ D 
+
+> 6:
+
+Sample (x, y ref ) ∼ πref (·| P qus t (d))  
+
+> 7:
+
+// Question Answering  
+
+> 8:
+
+Sample {yj }Jj=1 ∼ πref (·| P ans t (x))  
+
+> 9:
+
+// Rubric Generation  
+
+> 10:
+
+Draw sample answers Yrub ⊂ ({yj }Jj=1 ) ▷ Prevent context overflow  
+
+> 11:
+
+Sample r ∼ πref (·| P rub (d, x, y ref , Y rub )) with |r| ≤ K 
+
+> 12:
+
+// Answer Grading  
+
+> 13:
+
+for j = 1 to J do  
+
+> 14:
+
+Sample ej ∼ πref (·| P grade (x, r, y j ))  
+
+> 15:
+
+{wk}Ki 
+
+> k=1
+
+← GetWeights( r) 
+
+> 16:
+
+{skj }Ki 
+
+> k=1
+
+← GetScores( e) 
+
+> 17:
+
+sj ←    
+
+> PKk=1 wk·skj
+> PKk=1 wk
+> 18:
+
+end for  
+
+> 19:
+
+RawDataset ← RawDataset ∪ { (d, x, y ref , {yj }Jj=1 , r, {(ej , s j )}Jj=1 )} 
+
+> 20:
+
+end for  
+
+> 21:
+
+// Filtering  
+
+> 22:
+
+FilteredDataset ← {}  
+
+> 23:
+
+for example in RawDataset do  
+
+> 24:
+
+isvalid ← T rue  
+
+> 25:
+
+for component in example do  
+
+> 26:
+
+if not ValidCheck(component) then ▷ Not extractable, etc.  
+
+> 27:
+
+isvalid ← F alse  
+
+> 28:
+
+break  
+
+> 29:
+
+end if  
+
+> 30:
+
+end for  
+
+> 31:
+
+if isvalid then  
+
+> 32:
+
+FilteredDataset ← FilteredDataset ∪ { example } 
+
+> 33:
+
+end if  
+
+> 34:
+
+end for  
+
+> 35:
+
+// Pairing  
+
+> 36:
+
+DPODataset ← {}  
+
+> 37:
+
+for example in RawDataset do  
+
+> 38:
+
+x ← GetQuestion(example)  
+
+> 39:
+
+{(yj , s j )}J′ 
+
+> j=1
+
+← GetAnswersAndScores(example)  
+
+> 40:
+
+yw ← argmax yj (sj ) 
+
+> 41:
+
+yl ← argmin yj (sj ) 
+
+> 42:
+
+if yw > y l and || yw| − | yl|| ≤ 100 then  
+
+> 43:
+
+DPODataset ← DPODataset ∪ { (x, y w, y l)} 
+
+> 44:
+
+end if  
+
+> 45:
+
+end for  
+
+> 46:
+
+// Training  
+
+> 47:
+
+πtrained ← DP O (πref , DPODataset ) 
+
+> 48:
+
+return πtrained 
+
+15 0 2 4 6 8 10 12 14 
+
+Score 
+
+Adherence to Instructions 
+
+Believable Character Actions 
+
+Nuanced Characters 
+
+Consistent Voice/Tone of Writing 
+
+Imagery and Descriptive Quality 
+
+Elegant Prose 
+
+Emotionally Engaging 
+
+Emotionally Complex 
+
+Coherent 
+
+Meandering 
+
+Weak Dialogue 
+
+Tell-Don't-Show 
+
+Unsurprising or Uncreative 
+
+Amateurish 
+
+Purple Prose 
+
+Overwrought 
+
+Incongruent Ending Positivity 
+
+Unearned Transformations 
+
+Well-earned Lightness or Darkness 
+
+Sentences Flow Naturally 
+
+Overall Reader Engagement 
+
+Overall Impression 
+
+8.40 
+
+9.81 
+
+6.08 
+
+9.71 
+
+7.61 
+
+7.42 
+
+6.78 
+
+5.49 
+
+11.19 
+
+11.64 
+
+7.83 
+
+11.47 
+
+11.54 
+
+12.15 
+
+10.20 
+
+10.29 
+
+11.45 
+
+10.65 
+
+7.31 
+
+10.25 
+
+7.68 
+
+8.08 
+
+1.42 
+
+1.75 
+
+0.99 
+
+2.11 
+
+1.41 
+
+1.46 
+
+1.11 
+
+0.86 
+
+3.82 
+
+6.71 
+
+2.31 
+
+9.35 
+
+9.21 
+
+10.88 
+
+3.26 
+
+3.08 
+
+3.99 
+
+3.49 
+
+1.38 
+
+3.09 
+
+1.38 
+
+1.53 
+
+8.99 
+
+10.45 
+
+6.45 
+
+10.31 
+
+7.65 
+
+7.72 
+
+7.34 
+
+5.97 
+
+12.19 
+
+12.98 
+
+8.26 
+
+10.79 
+
+10.60 
+
+10.91 
+
+11.51 
+
+11.41 
+
+11.38 
+
+11.04 
+
+7.62 
+
+10.88 
+
+8.28 
+
+8.62 
+
+Base 
+
+Train on D 
+
+Ours Figure 9: Qwen-2.5-7B Results on Creative Writing V3. 16 0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5 20.0 
+
+Score 
+
+Adherence to Instructions 
+
+Believable Character Actions 
+
+Nuanced Characters 
+
+Consistent Voice/Tone of Writing 
+
+Imagery and Descriptive Quality 
+
+Elegant Prose 
+
+Emotionally Engaging 
+
+Emotionally Complex 
+
+Coherent 
+
+Meandering 
+
+Weak Dialogue 
+
+Tell-Don't-Show 
+
+Unsurprising or Uncreative 
+
+Amateurish 
+
+Purple Prose 
+
+Overwrought 
+
+Incongruent Ending Positivity 
+
+Unearned Transformations 
+
+Well-earned Lightness or Darkness 
+
+Sentences Flow Naturally 
+
+Overall Reader Engagement 
+
+Overall Impression 
+
+15.43 
+
+15.97 
+
+11.49 
+
+15.78 
+
+13.02 
+
+12.80 
+
+12.56 
+
+10.89 
+
+17.03 
+
+10.12 
+
+9.56 
+
+11.27 
+
+11.25 
+
+9.85 
+
+11.30 
+
+11.21 
+
+11.06 
+
+11.22 
+
+13.32 
+
+15.66 
+
+13.59 
+
+14.04 
+
+6.97 
+
+9.89 
+
+5.56 
+
+10.26 
+
+7.45 
+
+7.27 
+
+6.32 
+
+4.86 
+
+12.28 
+
+12.14 
+
+7.90 
+
+12.52 
+
+12.69 
+
+12.07 
+
+9.97 
+
+10.31 
+
+10.59 
+
+10.31 
+
+5.98 
+
+11.15 
+
+7.41 
+
+7.60 
+
+16.29 
+
+16.46 
+
+12.23 
+
+16.34 
+
+13.84 
+
+13.34 
+
+13.47 
+
+11.60 
+
+17.91 
+
+9.11 
+
+8.76 
+
+10.70 
+
+10.99 
+
+9.35 
+
+9.27 
+
+9.36 
+
+9.09 
+
+9.02 
+
+14.08 
+
+16.39 
+
+14.45 
+
+14.72 
+
+Base 
+
+Train on D 
+
+Ours Figure 10: Qwen-2.5-7B-Inst Results on Creative Writing V3. 17 MedQA NQ TvQA TfQA MMLU-P GPQA-D GSM Math Aime24 Aime25 Qwen-2.5-7B Base 52.95 14.36 17.93 48.07 30.10 33.84 78.77 61.15 6.82 3.07 Train on D 49.13 9.03 11.75 44.96 41.65 31.82 82.37 60.35 6.56 3.12 POP 52.95 13.48 18.14 48.49 36.86 30.81 80.17 62.26 7.86 4.32                                
+
+> Qwen-2.5-7B-Inst Base 55.94 15.12 18.49 62.51 56.57 36.36 90.64 75.55 12.40 8.07
+> Train on D53.33 4.87 6.15 53.21 54.65 32.83 87.98 72.55 10.05 6.82 POP 56.08 14.65 18.21 62.66 56.62 34.85 90.18 74.75 11.98 7.81
+
+Table 7: OOD Results for models trained on the Creative Writing datasets. NQ: NaturalQuestions; TvQA: TriviaQA; TfQA: TruthfulQA; MMLU-P: MMLU-Pro; GPQA-D: GPQA-Diamond; GSM: GSM8K; Math: MATH500. We use 0-shot evaluation.                                                                        
+
+> MedQA NQ TvQA TfQA MMLU-P GPQA-D GSM Math Aime24 Aime25 Qwen-2.5-7B Base 52.95 14.36 17.93 48.07 30.10 33.84 78.77 61.15 6.82 3.07 Train on D53.65 12.19 15.11 48.97 38.07 27.78 82.98 61.95 6.15 3.12 POP 52.98 14.07 18.86 48.18 43.82 27.78 83.26 64.25 7.92 4.69
+> Qwen-2.5-7B-Inst Base 55.94 15.12 18.49 62.51 56.57 36.36 90.64 75.55 12.40 8.07 Train on D55.30 11.20 19.82 59.89 53.86 32.83 88.87 72.45 10.47 7.92 POP 56.47 14.13 18.30 62.12 56.44 38.38 90.24 76.35 11.82 9.84
+
+Table 8: OOD Results for models trained on the Instruction Following datasets. 
+
+## D Results on OOD Benchmarks 
+
+We show the OOD results of models trained on the Creative Writing datasets in Table 7 and the OOD results of models trained on the Instruction Following datasets Table 8. POP is able to maintain the performance across different benchmarks compared with the reference model, while naive pretraining on D causes degeneration. 
+
+## E Statistics of the Synthesized Datasets 
+
+E.1 Questions and Rubrics Classification Questions. For each task, we sample 100 examples from both Qwen-2.5-7B and Qwen-2.5-7B-Instruct. The questions for the resulting 200 examples are fed into GPT-4.1-mini to identify the common topics. We then ask GPT-4.1-mini again to categorize each question to exactly 1 of the topics. 
+
+Rubrics. We take the rubric criteria from the 200 examples used in the previous question topic analysis and feed them into GPT-4.1-mini to identify the meta-criteria. We then ask GPT-4.1-mini again to categorize each rubric criterion to exactly 1 of the meta-criteria. 
+
+E.2 Healthcare QA 
+
+We show the statistics for our synthesized datasets HealthcareQA Qwen-2.5-7B in Figure 11 and HealthcareQA Qwen-2.5-7B-Inst in Figure 12. 
+
+E.3 Creative Writing 
+
+We show the statistics for our synthesized datasets CreativeWriting Qwen-2.5-7B in Figure 13 and CreativeWriting Qwen-2.5-7B-Inst in Figure 14. 18 10% 
+
+7% 
+
+15% 
+
+5% 
+
+5% 
+
+19% 
+
+3% 
+
+21% 
+
+5% 
+
+10% 0% 
+
+Pharmacology 
+
+Endocrinology 
+
+Molecular 
+
+Biology 
+
+Oncology 
+
+Infectious 
+
+Diseases 
+
+Other 
+
+Public 
+
+Health 
+
+Medical 
+
+Imaging 
+
+Healthcare 
+
+Management 
+
+Immunology 
+
+Neurology (a) Question topics 22% 
+
+0% 
+
+25% 
+
+18% 
+
+4% 
+
+11% 
+
+0% 
+
+6% 
+
+3% 
+
+8% 0% 
+
+Relevance 
+
+Safety 
+
+Accuracy 
+
+Clarity 
+
+Evidence 
+
+Depth 
+
+Ethics 
+
+Originality 
+
+Practicality 
+
+Biological 
+
+Understanding 
+
+Other (b) Meta rubric criteria 0.25 0.50 0.75 1.00 1.25 1.50 1.75 
+
+Average Score for Question 
+
+0.0 
+
+0.5 
+
+1.0 
+
+1.5 
+
+2.0 
+
+2% 5% 7% 12% 15% 13% 12% 12% 12% 9% 
+
+=0.1 
+
+=0.3 
+
+=0.4 
+
+=0.5 
+
+=0.6 
+
+=0.6 =0.6 =0.6 =0.5 =0.3 
+
+(c) Answer score distribution, grouped by questions. 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 
+
+> Individual Score
+
+0.0% 
+
+10.0% 
+
+20.0% 
+
+30.0%                         
+
+> % of Scores
+> 2%
+> 7% 5% 6% 4% 4% 3% 4% 3%
+> 8%
+> 3% 3% 3% 2% 2% 2% 3% 3% 5%
+> 28%
+> mean =1.22
+> std =0.67
+> min =0.10
+> max =2.00
+
+(d) Individual answer score distribution. 
+
+Figure 11: Statistics for Healthcare QA Qwen-2.5-7B dataset. 10% 
+
+6% 
+
+9% 
+
+16% 
+
+3% 9% 7% 
+
+27% 
+
+4% 
+
+9% 0% 
+
+Pharmacology 
+
+Endocrinology 
+
+Molecular 
+
+Biology 
+
+Oncology 
+
+Infectious 
+
+Diseases 
+
+Healthcare 
+
+Management 
+
+Other 
+
+Medical 
+
+Imaging 
+
+Public 
+
+Health 
+
+Immunology 
+
+Neurology 
+
+(a) Question topics 48% 
+
+8% 6% 
+
+4% 
+
+3% 
+
+9% 
+
+1% 
+
+10% 
+
+0% 
+
+11% 0% 
+
+Accuracy 
+
+Other 
+
+Relevance 
+
+Clarity 
+
+Evidence 
+
+Safety 
+
+Depth 
+
+Ethics 
+
+Practicality 
+
+Originality 
+
+Biological 
+
+Understanding (b) Meta rubric criteria 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 
+
+Average Score for Question 
+
+0.5 
+
+1.0 
+
+1.5 
+
+2.0 
+
+2% 9% 17% 19% 19% 12% 8% 5% 3% 
+
+5% 
+
+=0.2 
+
+=0.2 
+
+=0.3 
+
+=0.3 =0.3 
+
+=0.4 =0.4 =0.4 
+
+=0.4 =0.2 
+
+(c) Answer score distribution, grouped by questions. 0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 
+
+> Individual Score
+
+0.0% 
+
+5.0% 
+
+10.0% 
+
+15.0% 
+
+20.0% 
+
+25.0%                 
+
+> % of Scores
+> 0% 1% 3%
+> 8%
+> 3%
+> 13%
+> 4% 5%
+> 3%
+> 22%
+> 2%
+> 4% 3% 2%
+> 8%
+> 6%
+> 2% 1% 0%
+> 10%
+> mean =1.04
+> std =0.50
+> min =0.08
+> max =2.00
+
+(d) Individual answer score distribution. 
+
+Figure 12: Statistics for Healthcare QA Qwen-2.5-7B-Inst dataset 19 40% 
+
+1% 9% 1% 
+
+27% 
+
+2% 
+
+10% 
+
+1% 2% 7% 0% 
+
+Setting and Worldbuilding 
+
+Narrative 
+
+Structure 
+
+Character 
+
+Development 
+
+Other 
+
+Dialogue 
+
+Plot and Conflict 
+
+Genre 
+
+Writing 
+
+Themes and Symbolism 
+
+Voice and Style 
+
+Cultural 
+
+Context 
+
+Creative 
+
+Nonfiction (a) Question topics 23% 
+
+19% 
+
+19% 
+
+9% 
+
+3% 
+
+6% 
+
+5% 
+
+4% 
+
+1% 
+
+11% 
+
+1% 
+
+Originality 
+
+Relevance 
+
+Clarity 
+
+Character 
+
+Engagement 
+
+Narrative 
+
+Language 
+
+Theme 
+
+Setting 
+
+Accuracy 
+
+Other (b) Meta rubric criteria 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 
+
+Average Score for Question 
+
+0.0 
+
+0.5 
+
+1.0 
+
+1.5 
+
+2.0 
+
+1% 2% 3% 8% 8% 14% 16% 19% 17% 12% 
+
+=0.2 
+
+=0.4 
+
+=0.7 =0.7 
+
+=0.8 =0.8 =0.7 =0.7 =0.5 =0.3 
+
+(c) Answer score distribution, grouped by questions. 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 
+
+> Individual Score
+
+0.0% 
+
+10.0% 
+
+20.0% 
+
+30.0% 
+
+40.0% 
+
+50.0%                         
+
+> % of Scores
+> 1%
+> 8%
+> 3% 7%
+> 2% 4% 2% 3% 1% 2% 1% 1% 1% 1% 1% 2% 2% 3% 4%
+> 49%
+> mean =1.42
+> std =0.71
+> min =0.10
+> max =2.00
+
+(d) Individual answer score distribution. 
+
+Figure 13: Statistics for Creative Writing Qwen-2.5-7B dataset. 39% 
+
+0% 11% 0% 10% 
+
+4% 
+
+1% 
+
+23% 
+
+7% 
+
+5% 0% 
+
+Voice and Style 
+
+Setting and Worldbuilding 
+
+Narrative 
+
+Structure 
+
+Character 
+
+Development 
+
+Plot and Conflict 
+
+Themes and Symbolism 
+
+Genre 
+
+Writing 
+
+Dialogue 
+
+Cultural 
+
+Context 
+
+Creative 
+
+Nonfiction 
+
+Other 
+
+(a) Question topics 12% 
+
+2% 
+
+8% 
+
+30% 
+
+4% 
+
+11% 
+
+4% 
+
+10% 
+
+5% 
+
+13% 
+
+0% 
+
+Character 
+
+Clarity 
+
+Originality 
+
+Relevance 
+
+Other 
+
+Engagement 
+
+Narrative 
+
+Language 
+
+Theme 
+
+Setting 
+
+Accuracy (b) Meta rubric criteria 1.0 1.2 1.4 1.6 1.8 
+
+Average Score for Question 
+
+1.0 
+
+1.5 
+
+2.0 
+
+0% 0% 1% 3% 6% 11% 22% 26% 22% 9% 
+
+=0.2 
+
+=0.3 =0.3 =0.3 =0.3 =0.2 =0.2 =0.2 =0.2 =0.1 
+
+(c) Answer score distribution, grouped by questions. 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 
+
+> Individual Score
+
+0.0% 
+
+5.0% 
+
+10.0% 
+
+15.0% 
+
+20.0% 
+
+25.0%                     
+
+> % of Scores
+> 0% 0% 0% 0% 0% 0% 0% 0% 0%
+> 3% 2% 2%
+> 6%
+> 8% 8%
+> 11%
+> 12% 11%
+> 13%
+> 23%
+> mean =1.66
+> std =0.28
+> min =0.11
+> max =2.00
+
+(d) Individual answer score distribution. 
+
+Figure 14: Statistics for Creative Writing Qwen-2.5-7B-Inst dataset 20 E.4 Instruction Following 
+
+We show the statistics for our synthesized datasets InstructionFollowing Qwen-2.5-7B in Figure 15 and InstructionFollowing Qwen-2.5-7B-Inst in Figure 16. We highlight that we use the most general prompt (Figure 49) and pretraining corpus (OpenWebText) for this task, so the topic coverage is much broader than Healthcare QA and Creative Writing, and we are not explicitly asking models to generate questions similar to those in our evaluation benchmarks (IFEval, ArenHard). 34%  
+
+> 5%
+> 3% 4% 11%
+> 6%
+> 21%
+> 3%
+> 7%
+> 6% 0%
+> Procedural
+> Instruction
+> Logical
+> Reasoning
+> Quantitative
+> Reasoning
+> Information
+> Extraction
+> Ethical
+> Analysis
+> Scientific
+> Reasoning
+> Political
+> Context
+> Cultural
+> Analysis
+> Planning
+> Behavioral
+> Analysis
+> Other
+
+(a) Question topics 30%   
+
+> 3%
+> 19% 0%
+> 23%
+> 1%
+> 8%
+> 1%
+> 10%
+> 4% 0%
+> Accuracy
+> Contextuality
+> Relevance
+> Consistency
+> Clarity
+> Actionability
+> Completeness
+> Coherence
+> Originality
+> Use of Evidence
+> Other
+
+(b) Meta rubric criteria 0.25 0.50 0.75 1.00 1.25 1.50 1.75              
+
+> Average Score for Question
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 4% 6% 7% 10% 11% 13% 12% 14% 14% 9%
+> =0.1
+> =0.3
+> =0.5
+> =0.5
+> =0.6
+> =0.7 =0.7 =0.6 =0.5 =0.2
+
+(c) Answer score distribution, grouped by questions. 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00                     
+
+> Individual Score
+> 0.0%
+> 10.0%
+> 20.0%
+> 30.0%
+> % of Scores
+> 2%
+> 12%
+> 3%
+> 8%
+> 4% 4% 3% 3% 3%
+> 5%
+> 2% 2% 2% 2% 1% 2% 2% 3%
+> 8%
+> 30%
+> mean =1.22
+> std =0.71
+> min =0.10
+> max =2.00
+
+(d) Individual answer score distribution. 
+
+Figure 15: Statistics for Instruction Following Qwen-2.5-7B dataset. 
+
+## F Ablation Study 
+
+We detail the methodology for each ablation setting in Appendix F.1. Since prior work [ 33 ] claims strong performance of pairwise judge over pointwise judge, we also investigate the reason why it does not outperform our judge, using same ranking analysis as in § 5.5 for the resulting dataset produced by each setting. 
+
+F.1 Methodology Eval w/o D. We use the same prompt for rubric generation (See Appendix L), while setting d (i.e., the "knowledge") to "None". This ensures that the prompt is fixed and only the pretraining text is removed. 
+
+w/o D. Similarly, we set d (i.e., the "knowledge") to "None" for the question synthesis prompt and rubric generation prompt. 
+
+w/o rubric. We ask the model to directly give a single rating to each candidate answer, without generating the intermediate rubric. To distinguish different answers, we use a finer-grained rating scale of 0 to 10. Importantly, to ensure a fair comparison, we still give the answer grading prompt access to the pretraining text d. See prompts in Figure 17 and Figure 18. 21 18% 
+
+3% 
+
+27% 
+
+4% 8% 0% 
+
+15% 
+
+4% 
+
+0% 
+
+21% 
+
+0% 
+
+Quantitative 
+
+Reasoning 
+
+Logical 
+
+Reasoning 
+
+Information 
+
+Extraction 
+
+Other 
+
+Procedural 
+
+Instruction 
+
+Ethical 
+
+Analysis 
+
+Scientific 
+
+Reasoning 
+
+Political 
+
+Context 
+
+Cultural 
+
+Analysis 
+
+Behavioral 
+
+Analysis 
+
+Planning (a) Question topics 9% 
+
+40% 
+
+6% 1% 
+
+10% 
+
+2% 
+
+4% 
+
+10% 
+
+5% 
+
+12% 0% 
+
+Accuracy 
+
+Relevance 
+
+Other 
+
+Clarity 
+
+Originality 
+
+Completeness 
+
+Coherence 
+
+Consistency 
+
+Use of Evidence 
+
+Actionability 
+
+Contextuality (b) Meta rubric criteria 0.25 0.50 0.75 1.00 1.25 1.50 1.75 
+
+Average Score for Question 
+
+0.5 
+
+1.0 
+
+1.5 
+
+2.0 
+
+1% 4% 7% 7% 10% 10% 12% 17% 17% 16% 
+
+=0.1 
+
+=0.2 
+
+=0.3 
+
+=0.4 
+
+=0.4 =0.4 
+
+=0.4 =0.3 =0.3 =0.2 
+
+(c) Answer score distribution, grouped by questions. 0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 
+
+> Individual Score
+
+0.0% 
+
+10.0% 
+
+20.0% 
+
+30.0%                   
+
+> % of Scores
+> 0% 1% 2% 4%
+> 1%
+> 6%
+> 2% 2% 1%
+> 12%
+> 1%
+> 4% 4% 4%
+> 8% 9%
+> 6% 5%
+> 3%
+> 26%
+> mean =1.40
+> std =0.53
+> min =0.08
+> max =2.00
+
+(d) Individual answer score distribution. 
+
+Figure 16: Statistics for Instruction Following Qwen-2.5-7B-Inst dataset Answer Grading without Rubric System Prompt 
+
+Given a piece of knowledge, a problem, and a candidate answer to the question, evaluate the candidate answer and rate it, using the knowledge as a reference. 
+
+## Format 
+
+First, provide your thoughts on how well the answer does. Then, on a separate new line, give the rating of the answer using the EXACT tags below. 
+
+``` 
+
+<rating>INTEGER_0_TO_10</rating> 
+
+``` 
+
+Rating is on a 0 to 10 scale. Within the tags, put the rating as an integer from 0 to 10. Higher rating means better answer quality. 
+
+Figure 17: Judge without Rubric System Prompt. Answer Grading without Rubric User Prompt 
+
+<knowledge> 
+
+{knowledge} 
+
+</knowledge> 
+
+<problem> 
+
+{question} 
+
+</problem> 
+
+<candidate_answer> 
+
+{answer} 
+
+</candidate_answer> 
+
+Now evaluate and rate the candidate answer. 
+
+Figure 18: Judge without Rubric User Prompt. 22 Pairwise Answer Grading System Prompt 
+
+> Given a problem, an evaluation rubric, and two candidate answers, compare the two candidate answers and rate each of them, using the rubric as a reference.
+> ## Format
+> First, provide your thoughts on how well each answer does according to the rubric, and how they compare with each other. Then, on separate new lines, give ratings of each answer using the EXACT tags below.
+> ```
+> <rating_A>INTEGER_0_TO_10</rating_A>
+> <rating_B>INTEGER_0_TO_10</rating_B>
+> ```
+> Rating is on a 0 to 10 scale. Within the tags, put the rating as an integer from 0 to 10. Higher rating means better answer quality. Equal ratings imply a tie.
+> ## Reminder
+> * In the rubric, for each applicable criterion, there is a "gold" field that indicates a gold standard answer for that criterion. Use it when evaluating and comparing the answers whenever possible.
+> * In the rubric, the "weight" field of each criterion indicates the importance of that criterion. Consider these weights when evaluating and comparing the answers.
+
+Figure 19: Pairwise Judge System Prompt. Pairwise Answer Grading User Prompt 
+
+> <problem>
+> {question}
+> </problem>
+> <rubric>
+> {rubric}
+> </rubric>
+> <candidate_answer_A>
+> {answer_a}
+> </candidate_answer_A>
+> <candidate_answer_B>
+> {answer_b}
+> </candidate_answer_B>
+> Now compare candidate answer A and candidate answer B and rate each of them.
+
+Figure 20: Pairwise Judge User Prompt. 
+
+%(rk gold yw ≤ rk gold yl )
+
+Pairwise 84.43 Pointwise (Ours) 85.14 
+
+Table 9: Ranking accuracy. 
+
+w/ pairwise judge. Naive pairwise judging re-quires O(N 2) calls to the judge model, which is prohibitively expensive, since we often have more than 20 answers per question. Therefore, we use an anchor-based approach to reduce the number of pair-wise comparisons to O(N ). In particular, we select an anchor answer and compare every answer against that anchor. For each comparison, we ask the model to give both the current answer and the anchor a score from 0 to 10 (See prompts in Figure 19 and Figure 20). To avoid position bias, for each candidate answer, we prompt the judge twice with the orders between the anchor and candidate switched. When comparing the anchor and each answer i, we denote the score of answer i as si and the score of the anchor as sianchor . We then compute the relative score of answer i as si − sianchor .This is then used to rank the answers and select yw and yl. To avoid length bias, we sort the answers according to length and pick the medium-length answer as the anchor. 
+
+F.2 Answer Ranking Analysis for Pairwise Judge 
+
+We show the correlation between rankings of answers from our model and gold rankings from the stronger model in Figure 21 and the pairwise ranking accuracy in Table 9. 23 0.0 0.2 0.4 0.6 0.8 1.0 
+
+w/ Pairwise Judge 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> Gold
+> y = x
+> Spearman's r = 0.4374
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Eval w/ D (Ours) 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> Gold
+> y = x
+> Spearman's r = 0.3424
+
+Figure 21: Correlation between our rankings and gold rankings on the healthcare Qwen-2.5-7B dataset. x-axis: Ranking of answers from our model, with pointwise (Right) or pairwise (Left) judges. y-axis: Given that the answer is ranked at the top x% according to our model, the distribution of gold ranking percentiles. A smaller rank percentile means a higher rank. Spearman’s r: Spearman’s ranking correlation coefficient. 
+
+rk yw rk yl ∆rk syw syl ∆s
+
+Pairwise 0 100 100 2.15 -2.29 4.44 Gold 21.97 78.14 56.17 1.05 0.63 0.42 Pointwise (Ours) 0 9.78 9.78 1.79 0.51 1.28 Gold 23.59 76.50 52.91 1.04 0.63 0.39 
+
+Table 10: Rankings and scores of yw and yl from Eval w/o D and Eval w/ D, according to either 
+
+πref or stronger model. Scores from Pairwise Judge are on a different scale and not normalized. Pairwise judge gives a much higher ranking correlation of 0.44, but its pairwise ranking accuracy remains similar to ours, which partly explains why its performance on HealthBench500 is still similar to ours. We further show the detailed ranking and score statistics in Table 10. 
+
+## G Using Stronger Model in Our Pipeline overall score    
+
+> accuracy
+> completeness
+> communication quality
+> context awareness
+> instruction following 0
+> 20
+> 40
+> 60
+> Score
+> 30 36
+> 24
+> 60
+> 34
+> 47
+> 27 33
+> 21
+> 55
+> 32
+> 42
+> 25
+> 32
+> 18
+> 49
+> 33 38
+> 27
+> 35
+> 20
+> 59
+> 33
+> 44
+> Ours
+> w/ teacher qus
+> w/ teacher ans
+> w/ teacher eva
+
+Figure 22: Results with a strong teacher model. We want to investigate the effect of introducing strong external supervision in our pipeline. In particular, we replace our model with a stronger teacher model GPT-4o-mini, for each com-ponent in our pipeline. This includes using the teacher model to (1) synthesize questions (w/ teacher qus); (2) generate answers (w/ teacher ans); (3) generate rubrics and grade answers (w/ teacher eva). Each of these settings produces a new training dataset. We conduct the experiments on Healthcare QA with Qwen-2.5-7B, and show the results on HealthBench500 in Figure 22. Surprisingly, none of the variants significantly surpasses our unsupervised version. w/ teacher qus and w/ teacher eva only give similar performance to ours. For w/ teacher aus, we suspect that the relatively small training set size that we are using hinders the manifestation of the benefits of using better questions from stronger models. For w/ teacher eva, as we discuss in § 5.5, our choice of yw
+
+and yl already gives mostly correct training signals to DPO, and our yw already ranks significantly higher than yl, so choosing better ( yw, yl) yields marginal benefits. However, we suspect that for RL algorithms that train the model on the full set of answers instead of just the extremes, such as PPO or GRPO, rubric evaluation with a stronger teacher should give much better results. This is because 24 while our rankings at the extremes are mostly accurate, the full rankings are not. More work needs to be done to align our observations with prior work [1, 48]. Even more surprisingly, training on the teacher’s answers degrades performance (w/ teacher ans). However, we argue that this is likely due to the sensitivity of DPO to off-policy responses [37, 28]. 
+
+## H Additional Answer Ranking Analysis       
+
+> w/ D
+> Spearman’s r 42.59 %(rk gold yw≤rk gold yl)89.47
+
+Table 11: Ranking correlation un-der the same rubric. We additionally experiment with a setting where we ask the stronger model to grade the same answers using rubrics synthe-sized by our model. 
+
+Correlation is higher if conditioned on the same rubrics. 
+
+As shown in Table 11, Spearman’s ranking correlation increases from 0.34 to 0.43, and the yw − yl ranking accuracy increases from 85% to 89%. This is expected, since using the same rubric means both models share common ground on the evaluation criteria. 
+
+## I Compute 
+
+Each run of POP , including sampling, filtering, pairing, training, and evaluation, uses a single node with 32 CPU cores, 192 GB of memory, and 1 Nvidia A100 80GB GPU. 
+
+## J Limitations and Future Directions 
+
+We do not manage to scale up our synthesized datasets due to cost and compute constraints. Since the design of POP is general and not specific to any task, we believe synthesizing datasets larger in magnitude on a general pretraining corpus (e.g., OpenWebText) is a promising direction to enable cheap, effective, and general post-training. Our pipeline also requires a strong enough reference model. Otherwise, the model may not be able to follow our instructions to synthesize questions, answers, rubrics, or conduct evaluations. Investigating the minimum level of model competency for POP to be functional is a promising future direction. Another direction is to raise the level of automation by one more level. That is, we can ask πref to automatically select tasks suitable for the pretraining text and generate the corresponding Question Synthesis prompt. 
+
+## K Examples 
+
+We show a complete example for each task in this section. 25 Pretraining Text 
+
+Comparative Analysis of Mesophilic YqfB-Type Amidohydrolases 
+
+# Introduction 
+
+The human activating signal cointegrator-1 homology (ASCH) domain is widespread in all domains of life and some prokaryotic viruses [bib_ref] Compilation of TRNA Sequences and Sequences of TRNA Genes, Sprinzl [/bib_ref]. It has been identified mainly at the C-terminus of ASC-1 (also known as thyroid receptor-interacting protein 4 (TRIP4)), which is associated with nuclear receptors and transcription factors and is part of an RNA-interacting complex. ASCH superfamily proteins consist of~110 amino acids and contain a conservative octapeptide G-X-K-X-X-[ETS]-X-R. ASCH domain-containing proteins have been shown to adopt a tertiary fold, which was originally observed in the RNA-binding pseudouridine synthase and archeosine transglycosylase (PUA) protein superfamily, even with low protein sequence similarity. Based on the known properties and functions of homologous domain-containing proteins in RNA metabolism, the ASCH domain is thought to be able to interact with RNA molecules as a transcription co-regulator [bib_ref] Novel Domains with a Fold Related to the PUA Domain and a..., Iyer [/bib_ref]. However, there is a lack of available experimental data that highlight the biochemical characterization and biological functions of this diverse protein superfamily. 
+
+In a previous study, a hypothetical ASCH domain-containing protein from Zymomonas mobilis was described as a monomeric ribonuclease that binds nucleic acids and degrades single-stranded RNA molecules in vitro [bib_ref] Expression, Purification, Crystallization and Preliminary X-ray Diffraction Analysis of an ASCH Domain-Containing..., Park [/bib_ref]. Recently, the Escherichia coli ASCH domain-containing protein YqfB was characterized as the smallest known amidohydrolase with only 103 amino acids. The primary substrate of the enzyme is the modified nucleoside N 4 -acetylcytidine (ac4C), which is abundant in both eukaryotic and prokaryotic RNA molecules. The presence of ac4C is important for efficient protein synthesis and Biomolecules 2022, 12, 1492 2 of 12 eukaryotic ribosome biogenesis [bib_ref] A Single Acetylation of 18 S RRNA Is Essential for Biogenesis of..., Ito [/bib_ref] [bib_ref] Conformational Preferences of Modified Nucleoside N(4)-Acetylcytidine, Ac4C Occur at "Wobble" 34th Position..., Kumbhar [/bib_ref] [bib_ref] Synthesis and Properties of Oligodeoxyribonucleotides Containing 4-N-Acetylcytosine Bases, Wada [/bib_ref] [bib_ref] Conformational Characteristics of 4-Acetylcytidine Found in TRNA, Kawai [/bib_ref]. The cytidine acetylation writer enzymes have been well studied in both prokaryotes and eukaryotes, but the prokaryotic erasers have not yet been identified. 
+
+Enzymes belonging to the large class of amidohydrolases are known to hydrolyze various linear and cyclic amides. These biocatalysts are attractive in biotechnology for their potential application in chemoenzymatic synthesis of pharmaceuticals. The amidohydrolase YqfB was shown to hydrolyze a well-known cancer prodrug, capecitabine, as well as N 4 -acylated 5-fluorocytosines (cytidines), suggesting potential application in a selective two-step activation system for the prodrug-targeted therapy. 
+
+Here we describe ASCH domain-containing proteins from mesophilic bacteria Buttiauxella agrestis (BagYqfB; 109 a.a.), Cronobacter universalis (CunYqfB; 113 a.a.), Klebsiella pneumoniae (KpnYqfB; 103 a.a.), and Shewanella loihica (SloYqfB; 107 a.a.). A comparative study showed that the recombinant proteins, including E. coli YqfB, were highly salt tolerant, and active towards a broad substrate range of N 4 -acylated cytosines and cytidines. In addition, we present data on the production of a functional recombinant YqfB from E. coli in the yeast Pichia pastoris. 
+
+# Materials and methods 
+
+## Phylogenetic analysis of asch domain-containing proteins 
+
+In total, 1082 ASCH-domain-containing protein sequences were retrieved from the non-redundant protein sequences (nr) database using BLASTp search (https://blast.ncbi. nlm.nih.gov/Blast.cgi?PAGE=Proteins, accessed on 6 October 2022). The initial query was based on the YqfB amino acid sequence. The BLASTp search algorithm was set to exclude the Escherichia and Klebsiella genera, and to filter sequences outside the 50-80% sequence identity and 95-100% query coverage ranges. Multiple sequence alignment of these sequences, including the sequences of the YqfB and KpnYqfB, was performed with Clustal Omega [bib_ref] Search and Sequence Analysis Tools Services from EMBL-EBI in 2022, Madeira [/bib_ref] under default settings. The phylogenetic tree was visualized with iTOL v5 [bib_ref] Interactive Tree of Life (ITOL) v5: An Online Tool for Phylogenetic Tree..., Letunic [/bib_ref] 
+
+## Strains and chemicals 
+
+Cell cultures of the target microorganisms Buttiauxella agrestis DSM 9389, Cronobacter universalis DSM 27963, and Shewanella loihica DSM 17748 were obtained from the German Collection of Microorganisms and Cell Cultures (DSMZ). Klebsiella pneumoniae strain KV-3 is a veterinary isolate [bib_ref] Klebsiella Phage VB_KleM-RaK2-A Giant Singleton Virus of the Family Myoviridae, Šimoli nnas [/bib_ref]. 
+
+The E. coli DH5 α (Novagen, Germany) strain was used for routine cloning experiments, while for the recombinant synthesis of target proteins, E. coli HMS174 ∆pyrF ∆yqfB cells were used. PichiaPink TM expression system (Invitrogen, Carlsbad, CA, USA) strain 2, which is an ade2 and pep4 knockout, was used for YqfB expression in Pichia pastoris. 
+
+Cytidine, N 4 -acetylcytosine, N 4 -acetylcytidine, N 4 -acetyl-2 -deoxycytidine, and N 4isobutyryl-2 -deoxycytidine were purchased from Combi-Blocks (San Diego, CA, USA). N 4benzoylcytidine, capecitabine, 5 -fluorocytosine, and p-nitrophenyl acetate were obtained from Sigma Aldrich (St. Louis, MO, USA). Cytosine was purchased from Alfa Aesar (Germany), and isocytosine, 2 -deoxycytidine, and 5 -fluorocytidine were from Biosynth Carbosynth (Berkshire, UK). 
+
+The preparation of N 2 -acetylisocytosineand N 4 -hexanoyl-2 -deoxycytidine, N 4nicotinoyl-2 -deoxycytidine, N 4 -(3-acetyl-benzoyl)-2 -deoxycytidine, and N 4 -(4-acetylbenzoyl)-2 -deoxycytidine [bib_ref] N4-Acyl-2 -Deoxycytidine-5 -Triphosphates for the Enzymatic Synthesis of Modified DNA, Jakubovska [/bib_ref] was described in previous publications. The synthesis of other compounds is described in the Supplementary Material. 
+
+## Growth media 
+
+A standard Lennox LB medium was used for routine bacteria cultivation and protein synthesis induction (10 g/L tryptone, 5 g/L yeast extract, 5 g/L NaCl). SOB (20 g/L Bacto Tryptone, 5 g/L yeast extract, 0.5 g/L NaCl, 0.1 g/L KCl) was used for E. coli recovery after transformation. The complementation experiments with an auxotrophic E. coli HMS174 ∆pyrF ∆yqfB strain were carried out in a minimal M9 medium (3.5 g/L Na 2 HPO 4 , 1.5 g/L KH 2 PO 4 , 2.5 g/L NaCl, 0.2 g/L MgSO 4 , 0.01 g/L CaCl 2 ) supplemented with 20 mg/L of ac4C. 
+
+For the cultivation of yeast cells, YPD (Yeast Peptone Dextrose; 1% yeast extract, 2% peptone, 2% dextrose) media with and without 2% agar was used for P. pastoris growth and storage. YPDS (YPD media with 1 M D-sorbitol) was used for P. pastoris cell recovery after transformation. PAD (Pichia Adenine Dropout media; 13.4% YNB-aa, 1.25% CMS-ADE, 0.005% biotin, 2% dextrose) with 2% agar was used for the Figure 23: Pretraining Text (Healthcare QA). 
+
+K.1 Healthcare QA 
+
+See Figure 23 through 30 for the sampled pretraining text, synthesized question, reference answer, rubric, and the answer and grading for yw and yl.26 Question 
+
+During your routine check-up, your doctor identifies an abnormality in a specific RNA molecule within your cells, which contains a modified nucleotide N4-acetylcytidine (ac4C). This modification is essential for efficient protein synthesis and ribosome biogenesis, yet your body's ability to degrade this nucleotide through enzymatic means seems compromised. As a healthcare professional, you need to identify potential enzyme candidates that could degrade ac4C and propose further experimental design to confirm the functionality of these candidates in a clinical setting. 
+
+Given the context of the paper, which mesophilic amidohydrolase enzymes from different species could potentially degrade ac4C in humans, and how might you design an experiment to test their activity? Figure 24: Question (Healthcare QA). Reference Answer 
+
+The potential mesophilic amidohydrolase enzymes that could degrade ac4C in humans include BagYqfB from Buttiauxella agrestis, CunYqfB from Cronobacter universalis, KpnYqfB from Klebsiella pneumoniae, and SloYqfB from Shewanella loihica. To test their activity, the following experiment could be designed: 
+
+1. Express and purify the recombinant amidohydrolase enzymes. 
+
+2. Conduct in vitro degradation assays using labeled ac4C substrates in buffer conditions mimicking human cellular environments. 
+
+3. Analyze the degradation products using techniques such as HPLC or mass spectrometry. 
+
+4. Validate the results by comparing the degradation rates and efficiencies of the enzymes from different mesophilic organisms against each other and against a control without the enzyme. 
+
+Figure 25: Reference Answer (Healthcare QA). Rubric 
+
+{
+
+"Enzyme Identification": { 
+
+"name": "Identification of Potential Enzymes", 
+
+"gold": "BagYqfB, CunYqfB, KpnYqfB, and SloYqfB", 
+
+"description": "The criterion is about correctly identifying the potential mesophilic amidohydrolase enzymes that could degrade ac4C. The ground truth includes BagYqfB from Buttiauxella agrestis, CunYqfB from Cronobacter universalis, KpnYqfB from Klebsiella pneumoniae, and SloYqfB from Shewanella loihica. Good responses will mention these specific enzymes.", 
+
+"weight": 4 
+
+}, 
+
+"Experimental Design": { 
+
+"name": "Experimental Design for Testing Enzyme Activity", 
+
+"gold": "Expression, purification, in vitro assays, kinetic analysis, and in cell studies", 
+
+"description": "The criterion is about proposing a comprehensive experimental design to test the activity of the identified enzymes. The ground truth includes steps such as enzyme expression and purification, in vitro assays with labeled ac4C substrates, kinetic analysis, and in cell studies. Good responses will outline these steps clearly and logically.", 
+
+"weight": 3 
+
+}, 
+
+"Relevance to Clinical Setting": { 
+
+"name": "Relevance to Clinical Application", 
+
+"gold": "In vitro and in cell studies, validation, and potential clinical trials", 
+
+"description": "The criterion is about ensuring the proposed experimental design is relevant to a clinical setting. The ground truth includes in vitro and in cell studies, validation of results, and potential clinical trials. Good responses will discuss how the findings can be translated into clinical practice.", 
+
+"weight": 3 
+
+}
+
+}
+
+Figure 26: Rubric (Healthcare QA). Candidate Answer yw 
+
+The potential enzymes to degrade ac4C include E. coli amidohydrolase, human cytosolic amidohydrolase, and Pseudomonas putida amidohydrolase. To test their activity, synthesize ac4C substrate, express and incubate with these enzymes under optimal conditions. Use HPLC/MS for degradation assessment, ensuring thorough purification steps. In addition to assessing rate of degradation, verify specificity with control and non-target modified bases. For confirmation, use both in vitro and potentially in vivo testing methods. 
+
+Figure 27: Answer yw (Healthcare QA). 27 Answer yw Grading 
+
+[
+
+{
+
+"name": "Identification of Potential Enzymes", 
+
+"rating": 1.0, 
+
+"thoughts": "The candidate answer mentions E. coli amidohydrolase, human cytosolic amidohydrolase, and Pseudomonas putida amidohydrolase, but does not specifically mention the mesophilic amidohydrolase enzymes from the ground truth: BagYqfB, CunYqfB, KpnYqfB, and SloYqfB. While it provides some relevant enzymes, it misses the specific ones required by the ground truth." 
+
+}, 
+
+{
+
+"name": "Experimental Design for Testing Enzyme Activity", 
+
+"rating": 1.0, 
+
+"thoughts": "The candidate answer outlines a basic experimental design including enzyme expression, incubation, and HPLC/MS for degradation assessment. It also mentions verifying specificity and using both in vitro and potentially in vivo testing methods. However, it lacks detailed steps like purification, kinetic analysis, and in cell studies, which are crucial parts of the ground truth." 
+
+}, 
+
+{
+
+"name": "Relevance to Clinical Application", 
+
+"rating": 1.0, 
+
+"thoughts": "The candidate answer suggests using both in vitro and potentially in vivo testing methods, which is a good start towards relevance to a clinical setting. However, it does not fully cover all aspects of the ground truth, such as validation and potential clinical trials. The response is partially relevant but not fully comprehensive." 
+
+}
+
+]
+
+Final score: 1.0 Figure 28: Answer yw Grading (Healthcare QA). Candidate Answer yl 
+
+The potential mesophilic amidohydrolase enzymes that could degrade ac4C include N-acetylneuraminate lyase, N-acetylmuramide glycanase 2 (MurG), and N-acetylmuramide amidohydrolase (NAM-AH). An experimental design to test their activity would involve purifying these enzymes, preparing synthetic ac4C, conducting the reaction under controlled conditions, monitoring degradation using HPLC or mass spectrometry, and confirming specificity through competitive inhibition assays. 
+
+Figure 29: Answer yl (Healthcare QA). Answer yl Grading 
+
+[
+
+{
+
+"name": "Identification of Potential Enzymes", 
+
+"rating": 0.0, 
+
+"thoughts": "The candidate answer mentions N-acetylneuraminate lyase, N-acetylmuramide glycanase 2 (MurG), and N-acetylmuramide amidohydrolase (NAM-AH) instead of the correct enzymes BagYqfB, CunYqfB, KpnYqfB, and SloYqfB. These are not the correct enzymes mentioned in the ground truth." 
+
+}, 
+
+{
+
+"name": "Experimental Design for Testing Enzyme Activity", 
+
+"rating": 1.0, 
+
+"thoughts": "The candidate answer outlines a basic experimental design involving enzyme purification, substrate preparation, and monitoring degradation using HPLC or mass spectrometry. However, it lacks specific details such as in vitro assays, kinetic analysis, and in cell studies, which are crucial components of the ground truth." 
+
+}, 
+
+{
+
+"name": "Relevance to Clinical Application", 
+
+"rating": 0.0, 
+
+"thoughts": "The candidate answer does not explicitly discuss the relevance of the experimental design to a clinical setting. It does not mention in vitro and in cell studies, validation, or potential clinical trials, which are key aspects of the ground truth." 
+
+}
+
+]
+
+Final score: 0.3 
+
+Figure 30: Answer yl Grading (Healthcare QA). 28 Pretraining Text 
+
+The story of Theodore Roosevelt, Jr., a fortunate son who proved himself on the battlefields of two world wars. 
+
+General Omar Bradley said of him, I have never known a braver man or a more devoted soldier. But for much of his life, Theodore Roosevelt s son Ted seemed born to live in his father s shadow. With the same wide smile, winning charm, and vigorous demeanor, Ted possessed limitless potential, with even the White House within his reach. 
+
+In the First World War, Ted braved gunfire and gas attacks in France to lead his unit into battle. Yet even after returning home a hero, he was unable to meet the expectations of a public that wanted a man just like his father. A diplomat, writer, and man of great adventure, Ted remained frustrated by his lack of success in the world of politics, witnessing instead the rise of his cousin, Franklin, to the office that had once seemed his for the taking. 
+
+Then, with World War II looming, Ted reenlisted. In his mid-fifties with a gimpy leg and a heart condition, he was well past his prime, but his insistence to be in the thick of combat proved a vital asset. Paired with the irascible Terry de la Mesa Allen Sr., Ted soon distinguished himself as a front-line general in a campaign that often brought him into conflict with another hard fighter, George Patton. On D-Day, Ted became the oldest soldier and the only general in the Allied forces to storm the beach in the first wave, hobbling across the sand with his cane in one hand and a pistol in the other. His valor and leadership on Utah Beach became the stuff of legends and earned him the Medal of Honor. 
+
+His Father's Son delves into the life of a man as courageous, colorful, and unwavering as any of the Roosevelt clan, and offers up a definitive portrait of one of America s greatest military heroes. Figure 31: Pretraining Text (Creative Writing). Question 
+
+At the onset of World War II, Theodore “Ted” Roosevelt Jr. saw an opportunity to distinguish himself further and break away from the shadow of his father's fame. Despite his age and physical ailments, Ted insisted on active service. Write a scene where Ted, now in his mid-fifties and with a limp from a previous injury, discusses his decision with General Omar Bradley, who has recently been appointed Chief of Staff of the United States Army. Elaborate on their conversation, including their arguments and the respect they hold for each other. Consider how General Bradley might react to this impetuous request and what advice he might give. Additionally, describe the challenges Ted faces and the doubts he might harbor about leading an infantry battalion. 
+
+Length: 1000 words. 
+
+Figure 32: Question (Creative Writing). 
+
+K.2 Creative Writing 
+
+See Figure 31 through 38 for the sampled pretraining text, synthesized question, reference answer, rubric, and the answer and grading for yw and yl.29 Reference Answer 
+
+In the dimly lit study of his headquarters, surrounded by maps and papers, General Omar Bradley sat behind his desk when Theodore "Ted" Roosevelt Jr. arrived, his face creased with determination. The room exuded an atmosphere of tension and urgency, as war clouds gathered over Europe. 
+
+Ted entered with a spring in his step, despite a noticeable limp, greeting General Bradley with his characteristic, infectious grin. "General," Ted began, his voice filled with enthusiasm, "I know you've just taken command of our armed forces, and there's no doubt you'll face numerous challenges. But I have one request that I must make." 
+
+Bradley looked up, a mix of concern and curiosity in his eyes. "Well, Mr. Roosevelt, speak up. Let's hear your thoughts." 
+
+Ted paced the carpeted floor, pausing only to rest a hand on the back of a chair. "General, I have served in both World Wars and feel it's my duty to do so again, despite my age and physical limitations. There's an opportunity here to lead an infantry battalion in this critical time." 
+
+Bradley shook his head gently, his expression a delicate balance of pride and worry. "Ted, I understand your desire to serve, but you're at a high risk. Your age, physical condition, and the current combat situation are factors we must consider." 
+
+Ted's smile remained unwavering, his determination evident. "General, I'm not asking for anyone else's spot. I am fully aware of the consequences. It's important to me that I take personal responsibility and show others that no matter our backgrounds, we all have a role to play." 
+
+Bradley leaned forward, considering Ted carefully. "What if something were to happen during your assignment? Your family would bear the loss, and I don't want you to go through that pain." 
+
+"General, if there's nothing to lose, then we're not fighting hard enough," Ted replied fervently. His voice softened slightly. "Please, consider me. I still possess the vigor and courage that got us through previous battles. Our nation needs leaders like us, willing to take risks to secure its future." 
+
+Bradley sighed deeply, weighing his options. "Very well, Ted. You have earned the right to make that choice. However, you must be prepared for the worst. Understand that I cannot guarantee anything, and I need to ensure you have all the support you need." 
+
+With a deep breath, Ted acknowledged, "Thank you, General. I promise to do my utmost and not let you down. But please, consider me for active field duty." 
+
+As they shook hands, a silent agreement between two men of great resolve, Ted felt a sense of relief mixed with anxiety. He knew the road ahead would be fraught with challenges, but he was ready to prove his worth once more. 
+
+Length: 895 words. Figure 33: Reference Answer (Creative Writing). 30 Rubric 
+
+{
+
+"Leadership and Persuasion": { 
+
+"name": "Demonstrates strong leadership and persuasive qualities in convincing General Bradley of his suitability for the role.", 
+
+"gold": "Demonstrates strong leadership and persuasive qualities, effectively conveying determination, experience, and the importance of personal example.", 
+
+"description": "The response should showcase Ted's leadership qualities and his ability to persuade General Bradley. It should highlight his determination, experience, and the importance of leading by example. The response should also address the general's concerns about age, physical condition, and the risks involved.", 
+
+"weight": 4 
+
+}, 
+
+"Respectful Dialogue": { 
+
+"name": "Maintains a respectful and professional dialogue with General Bradley, acknowledging his concerns and offering solutions.", 
+
+"gold": "Maintains a respectful and professional dialogue, acknowledging General Bradley's concerns and offering practical solutions to mitigate risks.", 
+
+"description": "The response should demonstrate a respectful and professional interaction with General Bradley. It should acknowledge the general's concerns about Ted's age, physical condition, and the risks involved, and offer practical solutions to address these concerns.", 
+
+"weight": 3 
+
+}, 
+
+"Character Development": { 
+
+"name": "Develops Ted's character, showing his determination, resilience, and the reasons behind his desire to serve.", 
+
+"gold": "Develops Ted's character, showing his determination, resilience, and the reasons behind his desire to serve, including his family legacy and the importance of leading by example.", 
+
+"description": "The response should develop Ted's character, highlighting his determination, resilience, and the reasons behind his desire to serve. It should also touch on his family legacy and the importance of leading by example.", 
+
+"weight": 3 
+
+}, 
+
+"Realism and Feasibility": { 
+
+"name": "Presents a realistic and feasible plan for Ted to serve in the infantry battalion, addressing potential challenges and risks.", 
+
+"gold": "Presents a realistic and feasible plan, addressing potential challenges and risks, such as training, medical management, and strategic support.", 
+
+"description": "The response should present a realistic and feasible plan for Ted to serve in the infantry battalion. It should address potential challenges and risks, such as training, medical management, and strategic support, and show how Ted can overcome these obstacles.", 
+
+"weight": 3 
+
+}, 
+
+"Length and Structure": { 
+
+"name": "Meets the length requirement and maintains a coherent structure with a clear introduction, body, and conclusion.", 
+
+"gold": "Meets the length requirement of 1000 words and maintains a coherent structure with a clear introduction, body, and conclusion.", 
+
+"description": "The response should be exactly 1000 words and maintain a coherent structure with a clear introduction, body, and conclusion. It should flow logically and be easy to follow.", 
+
+"weight": 2 
+
+}
+
+}Figure 34: Rubric (Creative Writing). 31 Candidate Answer yw 
+
+The room was cool and dimly lit, the flickering glow of candles casting shadows over the large oak table and the leather chairs that surrounded it. The air was heavy with anticipation as General Omar Bradley leaned back in his chair, studying Theodore "Ted" Roosevelt Jr. over a steaming mug of coffee. It had been months since Bradley had taken command as Chief of Staff, and now he faced one of his most challenging directives yet – ensuring that the younger generation of leaders understood the weight of their responsibilities. 
+
+Ted cleared his throat, breaking the silence. His voice was low but resolute as he began, "General, I know we've discussed my request before, but I must make one more plea. Despite my age and physical condition, I believe there is still much I can do to serve my country." 
+
+Bradley raised an eyebrow, a subtle sign of both curiosity and skepticism. "Ted, you have served our nation well, and your contributions are recognized. But your health—" 
+
+"I am aware of my limitations, General," Ted interrupted gently but firmly. "But this is more than just a personal desire. It's about leaving a legacy and proving to those who doubt me that one can overcome adversity and still make a difference." 
+
+Bradley took a moment to consider Ted's earnest expression. Though he respected and admired Ted's spirit, he knew the risks involved. The youngest son of his namesake, Teddy Roosevelt, Ted came from a legacy rich with valor and leadership, yet he bore the burden of being compared to his illustrious forebear. 
+
+"Ted," Bradley said, leaning forward slightly, "you have earned the right to make this choice. Yet, I cannot condone disregarding medical advice, especially not in such perilous times. We need leaders at their best—not compromised by preventable injuries or illnesses." 
+
+Ted nodded, acknowledging the general's point. "I understand your concerns, sir. But the need for competent, experienced officers remains acute. My age and experience can complement fresh perspectives. Plus, it would be a way for me to contribute directly rather than from a removed command post." 
+
+Bradley's expression softened, recognizing the deep-seated patriotism driving Ted's determination. "I appreciate your willingness to listen and consider my perspective, Ted. However, I fear the logistical and operational implications." 
+
+"This request isn't simply about me, General," Ted argued. "The men and women under my command deserve a veteran leader who understands what they face. My presence can inspire those who look up to me as a son or a descendant of a legend, instilling confidence and resilience in them." 
+
+For a moment, Bradley was silent, lost in thought. He saw the sincerity in Ted's eyes and felt the weight of his own responsibilities. The decision ahead was both personal and professional, with profound consequences in the war-torn world outside their walls. 
+
+"Very well, Ted," he finally said, his tone calm and authoritative. "I will grant you a temporary assignment, provided you receive a thorough medical examination and are deemed fit enough to lead an infantry battalion. If you prove capable, you may even gain a permanent position after this campaign." 
+
+Relief washed over Ted as he stood to shake hands with Bradley firmly. "Thank you, sir. I promise not to let you down." 
+
+As they parted ways, the weight of their discussion lingered in the air. Ted faced numerous challenges, not least of which was his own doubts. Overcoming a lifelong injury and potential re-injury, managing the pressures of combat command without succumbing to stress—and maintaining composure while inspiring others—were all significant obstacles. Yet, the prospect of making a tangible impact on young soldiers and the broader war effort kept him hopeful. 
+
+General Bradley watched as Ted left, his mind racing through various contingencies. While he respected Ted's spirit, the practical aspects of the assignment required careful planning. Training cadres, coordinating with higher commands, and ensuring safety protocols remained crucial. As the chief architect of America's military strategy, he couldn't afford to compromise the operational integrity of the forces under his command. 
+
+Yet, as they both went about their respective duties, the underlying sentiment remained clear: in this tumultuous time, courage and commitment were paramount. Whether on the front lines or strategizing in the rear echelons, both men understood the immense responsibility they bore to safeguard the freedom and future of millions. Figure 35: Answer yw (Creative Writing). 32 Answer yw Grading 
+
+[
+
+{
+
+"name": "Demonstrates strong leadership and persuasive qualities in convincing General Bradley of his suitability for the role.", 
+
+"rating": 2.0, 
+
+"thoughts": "The response effectively showcases Ted's leadership qualities and his ability to persuade General Bradley. Ted demonstrates determination, experience, and the importance of leading by example. The response addresses General Bradley's concerns about age, physical condition, and the risks involved, providing a balanced argument." 
+
+}, 
+
+{
+
+"name": "Maintains a respectful and professional dialogue with General Bradley, acknowledging his concerns and offering solutions.", 
+
+"rating": 2.0, 
+
+"thoughts": "The response maintains a respectful and professional dialogue, acknowledging General Bradley's concerns and offering practical solutions to mitigate risks. Ted shows understanding and respect for Bradley's perspective, which adds to the overall quality of the interaction." 
+
+}, 
+
+{
+
+"name": "Develops Ted's character, showing his determination, resilience, and the reasons behind his desire to serve.", 
+
+"rating": 2.0, 
+
+"thoughts": "The response develops Ted's character, highlighting his determination, resilience, and the reasons behind his desire to serve. It touches on his family legacy and the importance of leading by example, which adds depth to his character development." 
+
+}, 
+
+{
+
+"name": "Presents a realistic and feasible plan for Ted to serve in the infantry battalion, addressing potential challenges and risks.", 
+
+"rating": 2.0, 
+
+"thoughts": "The response presents a realistic and feasible plan, addressing potential challenges and risks, such as training, medical management, and strategic support. It shows how Ted can overcome these obstacles, making the scenario believable and grounded in reality." 
+
+}, 
+
+{
+
+"name": "Meets the length requirement and maintains a coherent structure with a clear introduction, body, and conclusion.", 
+
+"rating": 2.0, 
+
+"thoughts": "The response meets the length requirement of 1000 words and maintains a coherent structure with a clear introduction, body, and conclusion. The narrative flows logically and is easy to follow, making it a well-structured piece." 
+
+}
+
+]
+
+Final score: 2.0 Figure 36: Answer yw Grading (Creative Writing). 33 Candidate Answer yl 
+
+The sun had begun to set on the Pentagon, casting long shadows across the vast, cavernous offices. General Omar Bradley, now in his early sixties, sat at his mahogany desk, a stack of reports before him, his silver hair contrasted sharply against his dark suit. The door creaked open, and in walked Theodore Roosevelt Jr., looking every bit his age but with an indomitable spirit that hadn't dulled with time. 
+
+"General Bradley, it is an honor to see you," Ted said, his voice tinged with a mix of reverence and urgency. 
+
+Bradley nodded gravely, his eyes meeting Ted’s with a look of concern and respect. "Colonel Roosevelt, you know I have nothing but the highest regard for your father, and for you, of course." 
+
+Ted’s shoulders tightened as he shifted uncomfortably in the chair. His left leg, a constant reminder of the war that had nearly cost him more than he could bear, throbbed mildly. "I understand, sir, and I appreciate your words. But I have reached a point in my life where I feel a strong compulsion to do something concrete and meaningful, beyond my duties here." 
+
+Bradley leaned forward, his gaze piercing. "Colonel, your service record speaks for itself, and you’ve proven yourself many times over. But this is a different kind of fight. It’s not just about leadership or bravery—it’s about logistics, strategy, and the overall conduct of the war effort." 
+
+Ted took a deep breath, his eyes flickering with resolve. "I’m aware of that, General, but I believe my presence can influence morale among our troops. I am not asking to lead a major operation, but perhaps an infantry battalion—a position where I can help directly." 
+
+Bradley’s face softened, and he sighed deeply. "In my experience, Ted, you need to think beyond just your personal desires. This is about the welfare of thousands of men. If I were to put you in such a high-risk position—" 
+
+"I understand the risk, sir," Ted interrupted, cutting off any attempt at dissuasion prematurely. "But consider it this way: what if I were to get injured again? Would we then be wasting that opportunity?" 
+
+Bradley hesitated, weighing his words carefully. "Let me counter with another scenario. What if you were to fall ill in the field—a virus common among soldiers? How would you lead then?" 
+
+Ted’s expression faltered, and a wave of doubt washed over him. "That’s true," he admitted softly. "I hadn’t thought of those circumstances." 
+
+Bradley held up a hand, acknowledging Ted’s vulnerability. "Look, I’m not trying to be discouraging, Colonel Roosevelt. You’ve served admirably and made significant contributions. However, your value lies not just in your combat experience but in your strategic insight and administrative skills." 
+
+Ted nodded, the weight of his argument pressing down on him. He could see the wisdom in Bradley’s perspective but still felt an internal battle raging within himself. "I understand your point, General, but I fear I would lose sight of the larger picture if I merely advise from behind a desk. I want to make a tangible difference...to prove that I am worthy of the name Roosevelt." 
+
+Bradley placed a hand on Ted’s shoulder, offering a rare moment of empathy. "Your desire to serve and your courage in the face of adversity are admirable qualities, Ted. But sometimes, leading requires stepping back and ensuring that every piece fits perfectly. We must balance individual ambition with the greater good." 
+
+A silence fell between them, each contemplating the complexity of the situation. Finally, Bradely leaned back in his chair, a small smile tugging at his lips. "Consider this, Colonel. I’ll approve your request under one condition—your commitment to serving alongside your troops as much as possible, ensuring that you fully understand the challenges they face. And remember, there will always be opportunities to lead, provided you stay healthy and maintain the trust of your superiors." 
+
+Ted stood, visibly lighter in the mood but still grappling with his own fears. "Thank you, General. That agreement is acceptable, and I’ll ensure that it is adhered to. I promise you, I won’t let this chance slip through my fingers." 
+
+Bradley nodded, a genuine warmth in his eyes. "I believe you, Teddy. And know this, even if you don’t lead a battalion, your efforts will not go unnoticed. Your presence and actions will inspire others." 
+
+Ted left the office, a newfound sense of direction and purpose coursing through him. As he passed through the corridors of power, he couldn’t shake the doubts lingering just below the surface. Yet, despite the challenges and risks, he was determined to make a difference, to honor not only his father’s memory but also his own unyielding spirit. Figure 37: Answer yl (Creative Writing). 34 Answer yl Grading 
+
+[
+
+{
+
+"name": "Demonstrates strong leadership and persuasive qualities in convincing General Bradley of his suitability for the role.", 
+
+"rating": 1.0, 
+
+"thoughts": "Ted demonstrates some leadership qualities and attempts to persuade General Bradley, but the conversation lacks depth in terms of showcasing his determination and experience. The response does not fully convey the importance of leading by example or address the general's concerns comprehensively." 
+
+}, 
+
+{
+
+"name": "Maintains a respectful and professional dialogue with General Bradley, acknowledging his concerns and offering solutions.", 
+
+"rating": 1.0, 
+
+"thoughts": "The dialogue is respectful and professional, and Ted acknowledges General Bradley's concerns. However, the solutions offered are somewhat vague and do not fully address the risks involved. The response shows a good attempt at maintaining respect but falls short in providing practical solutions." 
+
+}, 
+
+{
+
+"name": "Develops Ted's character, showing his determination, resilience, and the reasons behind his desire to serve.", 
+
+"rating": 1.0, 
+
+"thoughts": "Ted's character is developed to some extent, showing his determination and resilience. The response touches on his family legacy and the importance of leading by example, which adds depth to his character. However, it could benefit from more detailed exploration of his motivations and experiences." 
+
+}, 
+
+{
+
+"name": "Presents a realistic and feasible plan for Ted to serve in the infantry battalion, addressing potential challenges and risks.", 
+
+"rating": 0.0, 
+
+"thoughts": "The response presents a somewhat realistic plan but lacks specific details on how Ted would address the challenges and risks. The conversation touches on potential issues like injuries and illness but does not provide concrete solutions or strategies. The response shows an attempt to address these concerns but falls short of being fully realistic and feasible." 
+
+}, 
+
+{
+
+"name": "Meets the length requirement and maintains a coherent structure with a clear introduction, body, and conclusion.", 
+
+"rating": 2.0, 
+
+"thoughts": "The response meets the length requirement and maintains a coherent structure. The introduction, body, and conclusion are clearly defined, and the narrative flows logically. However, the content could be more detailed and engaging to fully meet the criteria." 
+
+}
+
+]
+
+Final score: 0.9333333333 Figure 38: Answer yw Grading (Creative Writing). 35 Pretraining Text 
+
+(UPDATED) President Rodrigo Duterte tells the military not to believe reports that he wants to declare a revolutionary government 
+
+Published 6:55 PM, November 21, 2017 
+
+MANILA, Philippines (UPDATED) – President Rodrigo Duterte, on Tuesday, November 21, denied he plans to establish a revolutionary government. 
+
+"Huwag maniwala sa mga coup d'etat, revolutionary [government]. Wala tayong makuha diyan. Let us just build a country," he said to wounded soldiers at the Army General Hospital in Taguig City. 
+
+(Don't believe in coup d'etat, revolutionary [government]. We won't get anything from that. Let us just build a country.) 
+
+He reiterated this in his next event, when he honored the heroism of soldiers who fought in Marawi City. 
+
+"Ang sabi nila (They say), revolutionary, coup d'etat, huwag 'nyo intindihin 'yan, malayo 'yan (don't concern yourself with that, that's far from happening)," said Duterte. 
+
+The President said he would not use the declaration of a revolutionary government as a way to crack down on "destabilizers." 
+
+"Hindi ako mag (I will not declare a) revolutionary government. I will just arrest them," he said. 
+
+It was only a month ago when Duterte threatened to declare a revolutionary government if alleged efforts to destabilize his administration escalate. 
+
+"'Pag ang destabilization ninyo patagilid na at medyo magulo na (Once your destabilization is already creating chaos), I will not hesitate to declare a revolutionary government until the end of my term, and I will arrest all of you, and we can go to a full-scale war against the Reds," he said during an interview aired on national television on October 13. 
+
+Prior to that, he had already denied such plans. Back in August, he said, a revolutionary government is "good" for the country but he is "not into it." 
+
+Duterte's most recent downplaying of his previous threats comes a week before a planned nationwide show of support for a revolutionary government. Promotional materials for the event have been going around on social media. (READ: Pro-revolutionary gov't rally to pave way for Duterte reforms – organizer) 
+
+Organizers of the upcoming event include actress Vivian Velez who had also organized a similar rally in April, attended by over 4,000 people. 
+
+Robredo approves 
+
+Vice President Leni Robredo welcomed Duterte's statement, saying it is a step towards "allaying the fears of many Filipinos that a return to the chaos and uncertainty of a dictatorial regime may be imminent." 
+
+"It is our hope that this declaration will put an end to the dangerous and alarming proposals made in both traditional and social media the past month to set aside the certainty and security of our Constitution and laws in favor of dictatorial rule by way of either 'revolutionary government' or martial law," said Robredo on Wednesday, November 22. 
+
+The Vice President does not support any moves for a revolutionary government, arguing that the Constitution is a "covenant" between Filipinos and their government. 
+
+"Our authority, and our legitimacy, is anchored on our fidelity to the Constitution, and to the democratic principles enshrined within it. Setting aside the Constitution is a betrayal of this oath, and denies this authority and legitimacy," said Robredo. 
+
+"The President’s latest declaration should serve as a clear message to all our public officials and our people — the oaths we took will continue to be honored, and our Constitution, and the democratic republic it establishes, will be upheld and defended," she added. – Rappler.com Figure 39: Pretraining Text (Instruction Following). 
+
+K.3 Instruction Following 
+
+See Figure 39 through 46 for the sampled pretraining text, reference answer, synthesized question, rubric, and the answer and grading for yw and yl.36 Question 
+
+President Rodrigo Duterte has made several statements about the possibility of declaring a revolutionary government in the Philippines. In recent months, these statements have sparked controversy, particularly when he initially threatened to declare a revolutionary government if his administration faced significant destabilization. However, on November 21, 2017, he clarified his stance. 
+
+Given the following context, determine what happened to the President's original threat to declare a revolutionary government and how he justified it in his statements: 
+
+1. What did President Duterte declare regarding his plans for a revolutionary government? 
+
+2. Why did President Duterte state this new position? 
+
+Use the details provided in the passage to clearly answer these questions. Figure 40: Question (Instruction Following). Reference Answer 
+
+1. President Rodrigo Duterte declared that he will not declare a revolutionary government. 
+
+2. He stated his new position by emphasizing the importance of building a country and lawfulness, saying that he would arrest individuals who pose a threat rather than use the declaration of a revolutionary government. He further explained that he did not intend to use a revolutionary government as a tool to crack down on destabilizers but instead preferred to arrest them directly. 
+
+Figure 41: Reference Answer (Instruction Following). Rubric 
+
+{
+
+"criterion_1": { 
+
+"name": "Correctness of the first part of the answer", 
+
+"gold": "President Rodrigo Duterte declared that he will not declare a revolutionary government.", 
+
+"description": "This criterion evaluates whether the candidate correctly states that President Duterte declared he would not declare a revolutionary government. Look for accurate information about the President's stance on the revolutionary government.", 
+
+"weight": 4 
+
+}, 
+
+"criterion_2": { 
+
+"name": "Justification of the new position", 
+
+"gold": "He stated that he would arrest individuals who pose a threat rather than use the declaration of a revolutionary government, and clarified that he did not intend to use a revolutionary government as a tool to crack down on destabilizers but instead preferred to arrest them directly.", 
+
+"description": "This criterion evaluates whether the candidate accurately captures the justification given by President Duterte for his new position. Look for explanations related to building the country, arresting destabilizers, and maintaining lawfulness.", 
+
+"weight": 6 
+
+}
+
+}
+
+Figure 42: Rubric (Instruction Following). Candidate Answer yw 
+
+1. On November 21, 2017, President Rodrigo Duterte clarified that he was not going to declare a revolutionary government. He stated that he would continue to work within the framework of the Philippine constitution and existing governmental structures. 
+
+2. President Duterte justified this new position by asserting that declaring a revolutionary government was unnecessary and potentially unconstitutional. He explained that the current system already provides ample avenues to address issues and challenges facing the country, such as through executive orders, legislative processes, and other constitutional mechanisms. He emphasized the need to maintain stability and the rule of law, which can be undermined by declaring a revolutionary government. 
+
+Figure 43: Answer yw (Instruction Following). 37 Answer yw Grading 
+
+[
+
+{
+
+"name": "Correctness of the first part of the answer", 
+
+"rating": 2.0, 
+
+"thoughts": "The candidate answer correctly states that President Duterte declared he would not declare a revolutionary government. It aligns with the gold standard answer provided in the rubric." 
+
+}, 
+
+{
+
+"name": "Justification of the new position", 
+
+"rating": 2.0, 
+
+"thoughts": "The candidate answer provides a reasonable explanation for why President Duterte changed his stance, including the assertion that the current system provides sufficient means to address issues and the emphasis on maintaining stability and the rule of law. This closely matches the gold standard answer, which mentions building the country, arresting destabilizers, and maintaining lawfulness." 
+
+}
+
+]
+
+Final score: 2.0 Figure 44: Answer yw Grading (Instruction Following). Candidate Answer yl 
+
+1. On November 21, 2017, President Duterte declared that his initial threat to declare a revolutionary government was a bluff and that he had no intention of actually implementing such a move. He stated that the declaration was made under duress due to threats from opposing groups and to protect national interest. 
+
+2. President Duterte stated this new position to clarify and de-escalate the tension related to his earlier statements. By clarifying that the threat was not genuine and that he had no plans to implement a revolutionary government, Duterte aimed to reduce political instability and reassure the public and international community that there were no immediate plans for such extreme measures. This action helped to mitigate potential conflicts and maintain stability within the country. 
+
+Figure 45: Answer yl (Instruction Following). Answer yl Grading 
+
+[
+
+{
+
+"name": "Correctness of the first part of the answer", 
+
+"rating": 1.0, 
+
+"thoughts": "The candidate answer correctly states that President Duterte declared he would not declare a revolutionary government. It captures the essence of his clarification without adding incorrect details. However, it does not explicitly mention that the declaration was a bluff or under duress, which is a key part of the gold standard answer." 
+
+}, 
+
+{
+
+"name": "Justification of the new position", 
+
+"rating": 1.0, 
+
+"thoughts": "The candidate answer provides a reasonable explanation for why President Duterte stated his new position, aligning with the gold standard answer. It mentions reducing tension, reassuring the public and international community, and maintaining stability, which are all valid justifications. However, it does not capture the specific points about building the country, arresting destabilizers, and maintaining lawfulness as mentioned in the gold standard." 
+
+}
+
+]
+
+Final score: 1.0 
+
+Figure 46: Answer yl Grading (Instruction Following). 38 Question Synthesis System Prompt (Healthcare QA) 
+
+You are a problem proposer. Given a piece of knowledge, create a challenging, well-structured, and unambiguous problem. 
+
+## Guidelines 
+
+* The problem should be assessable. 
+
+* The problem should be based on the knowledge and the answer should be derivable from the knowledge. In particular, to create the problem, follow these steps 
+
+1. Extract the list of facts in mentioned in the knowledge. 
+
+2. Create a problem that requires the use of one or more of the extracted facts to answer. Ensure that it is necessary and sufficient to use these facts to derive the correct answer to the problem. 
+
+* The problem should ask about a health/medical-related question (pretend that you are a patient and seek health/medical advice; pretend that you are a healthcare professional and ask about professional knowledge, etc.). 
+
+## Format 
+
+* Enclose the problem statement within <problem>...</problem> tags. 
+
+1. In the problem statement, provide the necessary context so that the problem is unambiguous, self-contained, and standalone. Never use: "according to the knowledge", "in the knowledge", "as mentioned", "the knowledge states", "based on the knowledge", etc. 
+
+2. While you should include the necessary context, you should not mention or include any part of the ground truth answer in the problem statement. 
+
+* Provide a reference answer within <answer>...</answer> tags. The reference answer should be final and concise, excluding any raw thinking traces. Figure 47: Question Synthesis Prompt (Healthcare QA). Question Synthesis System Prompt (Creative Writing) 
+
+You are a problem proposer. Given a text sample from the description or main body of a book, create a challenging, well-structured, and unambiguous creative writing question. 
+
+## Guidelines 
+
+* The question should be assessable. 
+
+* The question should build upon the given text sample. In particular, to create the question, follow these steps 
+
+1. Extract the key entities, relations, and settings mentioned in the text sample. 
+
+2. Create a creative writing question (write a story, a scene or dialogue in a story, a narrative; expand or continue a story; construct or expand the setting of a story, etc.) that builds upon the text sample and the mentioned entities, relations, and settings. 
+
+## Format 
+
+* Enclose the question statement within <problem>...</problem> tags. 
+
+1. In the question statement, provide the necessary context so that the question is unambiguous, self-contained, and standalone. Never use: "according to the text sample", "in the text sample", "as mentioned", "the text sample states", "based on the text sample", etc. 
+
+2. While you should include the necessary context, you should not mention or include any reference answer in the question statement. 
+
+3. End your question statement with the length requirement "Length: 1000 words.". 
+
+* Provide a reference answer within <answer>...</answer> tags. The reference answer should exclude any raw thinking traces. 
+
+Figure 48: Question Synthesis Prompt (Creative Writing). 
+
+## L Prompts 
+
+39 Question Synthesis System Prompt (Instruction Following) 
+
+You are a problem proposer. Given a piece of knowledge, create a challenging, well-structured, and unambiguous problem. 
+
+## Guidelines 
+
+* The problem should be assessable. 
+
+## Format 
+
+* Enclose the problem statement within <problem>...</problem> tags. 
+
+1. In the problem statement, provide the necessary context so that the problem is unambiguous, self-contained, and standalone. Never use: "according to the knowledge", "in the knowledge", "as mentioned", "the knowledge states", "based on the knowledge", etc. 
+
+2. While you should include the necessary context, you should not mention or include any part of the ground truth answer in the problem statement. 
+
+* Provide a reference answer within <answer>...</answer> tags. The reference answer should exclude any raw thinking traces. Figure 49: Question Synthesis Prompt (Instruction Following). Question Synthesis User Prompt 
+
+<knowledge> 
+
+{knowledge} 
+
+</knowledge> 
+
+Now, please create a challenging, well-structured, and unambiguous problem along with its reference answer, using the provided external knowledge as context. 
+
+Figure 50: Question Synthesis User Prompt. Question Synthesis User Prompt (Creative Writing) 
+
+<text_sample> 
+
+{knowledge} 
+
+</text_sample> 
+
+Now, please create a challenging, well-structured, and unambiguous creative writing question along with its reference answer, using the provided text sample as context. 
+
+Figure 51: Question Synthesis User Prompt (Creative Writing). Question Answering System Prompt (Healthcare QA) 
+
+You are an assistant that gives health care and medical advice. Answer the given question. 
+
+Think step by step, and enclose your final answer in the <answer>...</answer> tags. 
+
+Figure 52: Question Answering System Prompt (Healthcare QA). Question Answering System Prompt (Creative Writing) 
+
+You are a helpful assistant. Answer the given question. 
+
+Think step by step, and enclose your answer in the <answer>...</answer> tags. 
+
+Figure 53: Question Answering System Prompt (Creative Writing). Question Answering System Prompt (Instruction Following) 
+
+You are a helpful assistant. Answer the given question. 
+
+Think step by step, and enclose your answer in the <answer>...</answer> tags. 
+
+Figure 54: Question Answering System Prompt (Instruction Following). 40 Question Answering User Prompt 
+
+{question} Figure 55: Question Answering User Prompt. Rubric Generation System Prompt 
+
+Given a piece of knowledge, a problem, its reference answer, and a set of candidate answers, generate a rubric to evaluate the candidate answers. It should consist of 1 to 5 criteria, where each criterion is accompanied by (1) a description, (2) a weight that indicates how important that criterion is to the overall quality, and (3) a gold standard answer if applicable. 
+
+## Format 
+
+Enclose your final rubric in the <rubric>...</rubric> tags. 
+
+Within <rubric>...</rubric>, follow the format: 
+
+``` 
+
+<rubric> 
+
+{
+
+"criterion_1": { 
+
+"name": "(Name of criterion_1)", 
+
+"gold": "(The gold standard answer for criterion_1, if applicable.)", 
+
+"description": "(Description of criterion_1. Mention what details to look for to identify good and bad responses for this criterion.)", 
+
+"weight": (Numeric weight for criterion_1) 
+
+}, 
+
+..., 
+
+"criterion_(N)": { 
+
+"name": "(Name of criterion_(N))", 
+
+"gold": "(The gold standard answer for criterion_(N), if applicable.)", 
+
+"description": "(Description of criterion_(N). Mention what details to look for to identify good and bad responses for this criterion.)", 
+
+"weight": (Numeric weight for criterion_(N)) 
+
+}
+
+}
+
+</rubric> 
+
+``` 
+
+## Reminders 
+
+* If all the answers are empty, put 'ERROR' as your response. 
+
+* Do not overthink. Finalize it once you come up with a reasonable rubric. 
+
+* Each criterion needs to distinguish high-quality answers from low-quality ones meaningfully. Take the following process to identify the suitable criteria: 
+
+1. Group answers (both reference and candidate answers) by quality level. In general, the reference answer should have a high quality compared to the candidate answers, but this is not always true. 
+
+2. Identify factors that separate the answers in high-quality groups from those in low-quality groups. 
+
+3. Select the key factors with the highest discriminative power as the criteria to include in the rubric. 
+
+* Each criterion needs to be atomic and focus on a single aspect of quality. Different criteria should not overlap with each other. 
+
+* Each criterion needs to be specific to the problem as much as possible. If possible, avoid general criteria that are applicable to any problem (i.e., avoid "factuality", "clarity", "conciseness", etc.). If it is necessary to include general criteria, change them to ones that are specific to the problem (e.g, instead of "factuality", put "factuality of XXX"). 
+
+* For each criterion, whenever applicable, extract or infer the ground truth or gold standard answer from the provided knowledge, and put it in the "gold" field. 
+
+1. The ground truth or gold standard answer needs to be as concise as possible, ideally a single sentence or phrase (e.g., The criterion is about property "YYY" of "XXX". The ground truth answer is "ZZZ". Put "ZZZ" in the "gold" field.). 
+
+2. If not applicable, put "Not applicable" in "gold". 
+
+* For each criterion, its description in the "description" field needs to be as specific to the problem as possible. 
+
+1. Do not just give a general description for the criterion. Elaborate on it with key details, key facts, key phrases, keywords, and examples (e.g., The criterion is about understanding of "XXX". To describe it, instead of saying "The level of understanding of XXX", say "The level of understanding of XXX. Correct understanding should include YYY and ZZZ. ..."). 
+
+2. Whenever applicable, connect your description to the gold standard answer that you provide in the "gold" field. 
+
+* A small number of high-quality criteria are better than a large number of low-quality criteria. 2 specific, highly distinguishing criteria >> 5 general criteria that rate all answers equally. 
+
+Figure 56: Rubric Generation System Prompt. 41 Rubric Generation User Prompt 
+
+<knowledge> 
+
+{knowledge} 
+
+</knowledge> 
+
+<problem> 
+
+{question} 
+
+</problem> 
+
+<reference_answer> 
+
+{ref_answer} 
+
+</reference_answer> 
+
+<candidate_answers> 
+
+{answers} 
+
+</candidate_answers> 
+
+Now generate the rubric to evaluate the candidate answers. Figure 57: Rubric Generation User Prompt. Answer Grading System Prompt 
+
+Given a problem, an evaluation rubric, and a candidate answer, evaluate the candidate answer by giving the answer a rating for each criterion in the rubric. 
+
+## Format 
+
+Put your rubric-based evaluation in <evaluation>...</evaluation> tags. 
+
+``` 
+
+<evaluation> 
+
+{
+
+"criterion_1": { 
+
+"name": "(Name of criterion_1)", 
+
+"thoughts": "(Your thoughts on how well the answer does for criteron_1. If there is a gold standard answer in the "gold" field, does the answer match the gold standard?)", 
+
+"rating": (Your numeric rating between 0 and 2 according to the description and gold standard answer of criteron_1) 
+
+}, 
+
+..., 
+
+"criterion_(N)": { 
+
+"name": "(Name of criterion_(N))", 
+
+"thoughts": "(Your thoughts on how well the answer does for criteron_(N). If there is a gold standard answer in the "gold" field, does the answer match the gold standard?)", 
+
+"rating": (Your numeric rating between 0 and 2 according to the description and gold standard answer of this criteron_(N)) 
+
+}
+
+}
+
+</evaluation> 
+
+``` 
+
+## Reminder 
+
+* The rating needs to be either 0 (Bad), 1 (Medium), or 2 (Good). Higher ratings should indicate better qualities. 
+
+* For each criterion that has a gold standard answer in the "gold" field, give a rating of 2 only when the response FULLY matches the gold standard. Give a rating of 1 when the response partially matches the gold standard. Give a rating of 0 when the response does not match any part of the gold standard. 
+
+* If the candidate answer is empty, put nothing in the <evaluation>...</evaluation> tags. 
+
+Figure 58: Answer Grading System Prompt. 42 Answer Grading User Prompt 
+
+<problem> 
+
+{question} 
+
+</problem> 
+
+<rubric> 
+
+{rubric} 
+
+</rubric> 
+
+<candidate_answer> 
+
+{answer} 
+
+</candidate_answer> 
+
+Now evaluate the Candidate Answer. Figure 59: Answer Grading User Prompt. 43
