@@ -1,0 +1,2707 @@
+Title: Explicit integral representations and quantitative bounds for two-layer ReLU networks
+
+URL Source: https://arxiv.org/pdf/2604.23260v1
+
+Published Time: Tue, 28 Apr 2026 00:33:31 GMT
+
+Number of Pages: 27
+
+Markdown Content:
+# Explicit integral representations and quantitative bounds for two-layer ReLU networks 
+
+## Anthony Lee School of Mathematics, University of Bristol April 28, 2026 
+
+Abstract 
+
+An approach to construct explicit integral representations for two-layer ReLU networks is presented, which provides relatively simple representa-tions for any multivariate polynomial. Quantitative bounds are provided for a particular, sharpened ReLU integral representation, which involves a harmonic extension and a projection. The bounds demonstrate that func-tions can be approximated with L2(D) errors that do not depend explic-itly on dimension or degree, but rather the coefficients of their monomial expansions and the distribution D.
+
+# Contents 
+
+1 Introduction 22 ReLU networks, integral representations and operator 4
+
+2.1 Two-layer ReLU network . . . . . . . . . . . . . . . . . . . . . . . 42.2 ReLU integral representations . . . . . . . . . . . . . . . . . . . . 42.3 An integral operator and equation . . . . . . . . . . . . . . . . . 5
+
+3 Solving the integral equation for general polynomials 7
+
+3.1 The solution . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 73.2 Harmonic decomposition of polynomials . . . . . . . . . . . . . . 93.3 Spectral analysis of Tμ . . . . . . . . . . . . . . . . . . . . . . . . 9
+
+4 Transformations of polynomials 11 
+
+4.1 Linear transformations . . . . . . . . . . . . . . . . . . . . . . . . 11 4.2 Lifting by harmonic extension . . . . . . . . . . . . . . . . . . . . 12 4.3 Sharpened ReLU integral representation and the heat equation . 14 
+
+5 Quantitative error bounds 18 
+
+1
+
+> arXiv:2604.23260v1 [stat.ML] 25 Apr 2026
+
+6 Observations from trained two-layer ReLU networks 22 7 Discussion 23 A Optimal squared L2 error for random networks 25 B Funk–Hecke formulas 26 
+
+# 1 Introduction 
+
+The capability of trained neural networks to accurately approximate some high-dimensional functions is now well established empirically, and has driven spec-tacular progress in many application areas. A robust theoretical explanation for this phenomenon, particularly for deep networks, remains outstanding. In this paper, we focus on an explicit representation of arbitrary multivariate polyno-mials in two-layer ReLU networks, which is relatively simple both to describe and to bound the performance of. The approach follows the perspective of two-layer networks adopted in Barron [1993], i.e. to view a random two-layer network as an average of independent and identically distributed random func-tions ϕ1, . . . , ϕ n, or neurons, that are pointwise unbiased for the function of interest f . The resulting O(n−1/2) bound on the expected L2(D) error of the function then implies the existence of a deterministic two-layer network with at most that L2(D) error. As discussed in Peyré [2025], the general idea does not provide bounds on the number of neurons required without making assumptions on the function to be approximated, e.g. using a Barron semi-norm that de-pends on the Fourier transform. The representation and bounds we present are an attempt to contribute alternative, simple measures of function difficulty, and we require no assumptions on the polynomials to obtain quantitative bounds for suitable, sub-Gaussian and mean 0, D.We focus on arbitrary polynomials f ∈ P d, the space of polynomials with domain Rd. Polynomials have a finite degree, but we do not need to make explicit the degree in the sequel. We adopt multi-index notation: for α ∈
+
+Nd
+
+> 0
+
+, xα = Qdi=1 xαi 
+
+> i
+
+and α! = Qdi=1 αi!. For a given smooth, non-polynomial, function of interest φ : Rd → R, we could, e.g., define f via a truncated Taylor expansion of φ around 0:
+
+f (x) = X
+
+> α:|α|≤ m
+
+∂αφ(0) 
+
+α! xα =
+
+> m
+
+X
+
+> k=0
+
+X
+
+> |α|=k
+
+∂αφ(0) 
+
+α! xα =
+
+> m
+
+X
+
+> k=0
+
+fk(x),
+
+where fk ∈ P d,k , the space of homogeneous polynomials of degree k in Pd. The natural way to measure the size of these polynomials, at least from the per-spective of our quantitative bounds, is via the Fischer norm of its homogeneous components. For a homogeneous polynomial of degree k, g(x) = P 
+
+> |α|=k
+
+cαxα,the squared Fischer norm of g is ∥g∥2 
+
+> F
+
+= P 
+
+> |α|=k
+
+c2
+
+> α
+
+α!. In view of the Taylor 2expansion of φ, this means ∥fk∥2 
+
+> F
+
+= P 
+
+> |α|=k
+> |∂αφ(0) |2
+> α!
+
+. Of course, one may de-fine a different polynomial approximation to φ if a Taylor approximation is not suitable, or φ is not smooth. The restriction to polynomials is not particularly strong, from the perspective that polynomials are dense in the space of contin-uous functions with compact domain and dense in L2(D) for many probability measures D with suitable tail decay. In contrast to several other works, we do not begin by expressing f using a Fourier transform as in Barron [1993], i.e., 
+
+f (x) = 
+
+Z
+
+> Rd
+
+exp ( i ⟨ω, x ⟩) ˜f (ω)d ω, 
+
+where ˜f is the complex-valued Fourier transform of f . This approach appears to be the main starting point for integral representations [see, e.g., Ji et al., 2019, Hsu et al., 2021]. The Fourier approach, while very general as it can be used for different activation functions, tends to involve a sequence of approximations, which makes an explicit and interpretable integral representation difficult to obtain. Often, there are assumptions required to either represent the function of interest or provide quantitative bounds. In contrast, the representation we develop here is specifically for the ReLU network and we make no assumptions beyond the target function f being a polynomial: we will develop representations that are totally explicit for any given polynomial and the quantitative bounds are valid for any polynomial, accepting of course that they may not always be accurate. In particular, the bounds are consistent with the notion that a two-layer network is capable of approximating well functions that do not depend too much on too many components of their input, and that neither dimension nor degree are necessarily important. Our approach involves the explicit solution of an integral equation involving an appropriate ReLU integral operator from which a ReLU integral representa-tion is immediately available (Theorem 5). Once a ReLU integral representation is obtained, it can be optimized to minimize the expected squared L2(D) error in an explicit way (Proposition 2). As we restrict our attention to polynomials, the analysis avoids many technicalities, and we find that there is a ReLU integral representation of a particular form for every polynomial (Theorem 9). It tran-spires that the most direct application of this result may produce complicated representations, but that by performing an appropriate harmonic extension, we are able to recover a representation for an extension of the function, leading ultimately to a simpler ReLU representation for the original function (Theo-rem 23), which involves sharpened versions of its homogeneous components: these are defined by running the heat equation backwards in time. Ultimately, the error bounds (Theorem 30) only involve the Fischer norms of the homoge-neous components of f .The network and bounds seem to show some agreement with trained two-layer ReLU networks for some examples. A careful study would be required to determine whether these representations are a suitable model for trained networks. In particular, there are transformations that could be applied prior 3to constructing the network, and it is not clear which of these would minimize the error of the network. In simple examples, the trained network is consistent with having performed such a transformation. The bounds seem also seem to capture the sense that functions that depend only weakly on each individual input component, or that depend on only a few input components, are easier to represent. 
+
+# 2 ReLU networks, integral representations and operator 
+
+## 2.1 Two-layer ReLU network 
+
+Let ς = max {x, 0}, interpreted element-wise if x is a vector, denote the ReLU activation function. An L layer ReLU neural network, viewed as a function 
+
+fNN : Rd → R, may be written as 
+
+fNN = fL ◦ · · · ◦ f1,
+
+where for ℓ ∈ { 1, . . . , L − 1}, with Wℓ a matrix and bℓ a vector, 
+
+fℓ(x) = ς (Wℓx + bℓ) ,
+
+and fL(x) = a+uT x. Such networks, when trained appropriately, appear to have very impressive representational capacity and amenability to optimization. We focus on the case L = 2 , the two-layer ReLU network, which can be written as 
+
+fn(x) = a + 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+uiς (⟨x, v i⟩ + bi) , x ∈ Rd,
+
+where the parameters of the function are (a, v 1: n, b 1: n, u 1: n) with a, b, u i ∈ R and 
+
+vi ∈ Rd. One can think of fn as mainly involving the average of parameterized functions 
+
+ϕ(·; u, v, b ) = uς (⟨· , v ⟩ + b) ,
+
+each of which cannot be an accurate representation of some target function f ,but whose combination clearly can. Although considerably less powerful em-pirically than fNN , two-layer networks are a suitable target for mathematical research, and progress in their analysis may facilitate progress for deeper net-works. 
+
+## 2.2 ReLU integral representations 
+
+Since Barron [1993], one useful perspective is to view the two-layer network fn
+
+as an approximation of an integral representation of f . We define here a suitable ReLU integral representation in this spirit. 4Definition 1 (ReLU integral representation) . A ReLU integral representation 
+
+(ν, a, b, u ) of a function f ∈ P d is given by a measure ν, a constant a and functions b and u such that 
+
+f (x) = a +
+
+Z
+
+u(v, s )ς (⟨x, v ⟩ + b(v, s )) ν(d v, ds), x ∈ Rd.
+
+Given one representation, there exist a family of equivalent representations, by a change of measure. That is, for any probability measure π such that π ≫ ν,one has that (π, a, b, u π ) is a ReLU integral representation for a suitable uπ , see Corollary 7. A corresponding random two-layer network is the function 
+
+fn(x) = a + 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+uπ (Vi, S i)ς (⟨x, V i⟩ + b(Vi, S i)) , x ∈ Rd
+
+where (Vi, S i) ∼ π are independent. An upper bound on the squared L2(D)
+
+error of a non-random, perfectly trained network is the expected squared error associated with the minimizing choice of π.
+
+Proposition 2. Assume f has ReLU integral representation (ν, a, b, u ). Let 
+
+ϕ(x; v, s ) = u(v, s )ς (⟨x, v ⟩ + b(v, s )) .
+
+1. For any π ≫ ν, the random function 
+
+fn(·) = a + 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+dν
+
+dπ (Vi, S i)ϕ (·; Vi, S i) ,
+
+with independent (Vi, S i) ∼ π satisfies E [fn(x)] = f (x).2. The choice of π minimizing Eπ
+
+h
+
+∥fn − f ∥2
+
+> L2(D)
+
+i
+
+satisfies 
+
+Eπ
+
+h
+
+∥fn − f ∥2
+
+> L2(D)
+
+i
+
+= 1
+
+n
+
+(Z 
+
+ν(d z) ∥ϕ(·; z)∥L2(D)
+
+2
+
+− ∥ f − a∥2
+
+> L2(D)
+
+)
+
+.
+
+In particular, there exists some realization fn such that 
+
+∥fn − f ∥2 
+
+> L2(D)
+
+≤ 1
+
+n
+
+(Z 
+
+ν(d z) ∥ϕ(·; z)∥L2(D)
+
+2
+
+− ∥ f − a∥2
+
+> L2(D)
+
+)
+
+.
+
+Proof. Part 1 follows from Corollary 7, while Part 2 follows by applying Lemma 33 in Appendix A while observing fn − f = fn − a − (f − a).
+
+## 2.3 An integral operator and equation 
+
+It is clear that a ReLU integral representation can provide a route to under-standing and quantitatively bounding the representational capacity of a two-layer ReLU network. 5Definition 3 (ReLU operator, Tμ). For a distribution μ with finite moments of all orders, i.e. R ∥v∥2k μ(d v) ∈ R for all k ≥ 0, we define the integral operator 
+
+Tμ : Pd → P d by 
+
+Tμg(x) = 
+
+Z
+
+g (⟨x, v ⟩ v) μ(d v), x ∈ Rd.
+
+The requirement that μ have finite moments of all orders, is necessary and sufficient to ensure that the operator is well-defined for all g ∈ P d. We will see in the sequel that Tμ is bijective when μ is additionally spherically symmetric, i.e. there is a unique solution g = T −1 
+
+> μ
+
+f for any polynomial f .
+
+Definition 4 (ReLU representative) . A ReLU representative for a function f
+
+and distribution μ is any solution g to f = Tμg.In constructing a ReLU integral representation of a function f , we will find that an appropriate route is to identify a ReLU representative of f for some spherically symmetric μ. Then, we may obtain the ReLU integral representation via a first-order Taylor expansion. For a function g : Rd → R and a vector v ∈ Rd
+
+we denote by gv : R → R the function t 7 → g(tv ). We define ϱ = δ0 + Leb( R+),the measure corresponding to the sum of a Dirac measure at 0 and the Lebesgue measure on the positive reals. 
+
+Theorem 5. Let μ be a spherically symmetric distribution, and assume f = Tμg
+
+for some twice differentiable function g. Then (μ ⊗ ϱ, a, b, u ) is a ReLU integral representation of f , where a = f (0) , b(v, s ) = −s and 
+
+u(v, s ) = 
+
+(
+
+2g′ 
+
+> v
+
+(0) s = 0 ,
+
+2g′′  
+
+> v
+
+(s) s > 0.
+
+Proof. Fix any x ∈ Rd. Then, 
+
+f (x) = 
+
+Z
+
+> Rd
+
+g (⟨x, v ⟩ v) μ(d v) = 2 
+
+Z
+
+> Rd
+
+g (⟨x, v ⟩ v) 1⟨x,v ⟩>0μ(d v),
+
+since μ is spherically symmetric and ⟨x, v ⟩ v = ⟨x, −v⟩ (−v) for any v ∈ Rd. Let 
+
+τ = ⟨x, v ⟩ > 0 and observe that by Taylor’s Theorem with integral remainder, 
+
+g (τ v ) = gv (0) + τ g ′ 
+
+> v
+
+(0) + 
+
+Z τ
+
+> 0
+
+(τ − s)g′′  
+
+> v
+
+(s)d s
+
+= gv (0) + τ g ′ 
+
+> v
+
+(0) + 
+
+Z ∞
+
+> 0
+
+ς(τ − s)g′′  
+
+> v
+
+(s)d s, 
+
+from which we may conclude, noting that gv (0) = g(0) = f (0) .The use of gv rather than g is to simplify the presentation. One can also express u using the gradient and Hessian of g by the identities g′ 
+
+> v
+
+(0) = ⟨v, ∇g(0) ⟩
+
+and g′′  
+
+> v
+
+(s) = ∇2g(sv )v, v .6Remark 6. For d = 1 , Tμ = Id for μ = Uniform( {− 1, 1}). Indeed, then 
+
+⟨x, v ⟩ v = xv 2 = x, so Tμg = g. This observation for a different, indicator-based integral representation rather than ReLU-based integral representation for one-dimensional functions in Telgarsky [2023, Proposition 2.8] inspired the use of the present expansion to recover the ReLU function naturally and then commence the search for ReLU representatives. The Radon–Nikodym Theorem then provides an immediate corollary for suitable alternatives to μ ⊗ ϱ. These ReLU integral representations, however, do not correspond to solving the ReLU integral equation for a different probabil-ity measure. Instead, they perturb μ⊗ϱ and modify u accordingly to potentially improve the performance of the network while retaining the same essential repre-sentation. The distribution of v under π is not necessarily spherically symmetric, even if μ is. 
+
+Corollary 7. Let (ν, a, b, u ) be a ReLU integral representation of f . Let π be a probability measure on Rd × R+ such that π ≫ ν. Then (π, a, b, u π ) is a ReLU integral representation of f with 
+
+uπ (v, s ) = u(v, s ) dν
+
+dπ (v, s ).
+
+Remark 8. The function ϕ(x; v, s ) = u(v, s )ς (⟨x, v ⟩ + b(v, s )) is invariant to rescaling in the sense that 
+
+u(v, s )ς (⟨x, v ⟩ + b(v, s )) = cu (v, s )ς  c−1 ⟨x, v ⟩ + c−1b(v, s ) ,
+
+for any c > 0. Hence, ReLU integral representations have similar invariance properties. If (ν, a, b, u ) is a ReLU integral representation of f , and b is homo-geneous of degree 1, which will be the case in the sequel, we can remove this type of invariance by writing 
+
+f (x) = a +
+
+Z
+
+∥v∥ u(v, s )ς
+
+ 
+
+x, v
+
+∥v∥
+
+
+
++ b
+
+ v
+
+∥v∥ , s
+
+∥v∥
+
+ 
+
+ν(d v, ds), x ∈ Rd.
+
+We do not pursue this any further here, but it could be useful as a means of comparing integral representations to trained networks that have been similarly normalized. 
+
+# 3 Solving the integral equation for general poly-nomials 
+
+## 3.1 The solution 
+
+The main result of this section is Theorem 9. Essentially, for spherically sym-metric μ, we construct a basis for Pd using eigenfunctions of Tμ with eigen-values that are strictly positive. This then implies that Tμ is a bijection and the function T −1 
+
+> μ
+
+f can be obtained by diagonalization. The eigenvalues depend 7on dimension, degree, the extent to which the eigenfunctions are harmonic or radial, and the moments of μ. We might think of this as a polynomial analogue of the Fourier transform. 
+
+Theorem 9. Let μ be a spherically symmetric distribution. Then Tμ : Pd → P d
+
+is an invertible operator. In particular, if d ≥ 2 and f ∈ P d, then 
+
+T −1 
+
+> μ
+
+f = X
+
+> i≥0
+> ⌊i/ 2⌋
+
+X
+
+> j=0
+
+λ−1
+
+> d,i −2j,j,μ
+
+fij ,
+
+where f = P
+
+> i≥0
+
+P⌊i/ 2⌋ 
+
+> j=0
+
+fij is the unique harmonic decomposition of f (see Corollary 12) and 
+
+λd,k,i,μ = Γ( d 
+
+> 2
+
+)22i+ki! · (k + 2 i)! Γ( k + i + d 
+
+> 2
+
+)
+
+Z
+
+∥v∥2( k+2 i) μ(d v).
+
+For d = 1 , we have T −1 
+
+> μ
+
+f = P 
+
+> k≥0
+
+λ−11,k,μ fk, where f = P 
+
+> k≥0
+
+fk is the unique decomposition of f into monomials, and λ1,k,μ = R ∥v∥2k μ(d v).Proof. Consider d ≥ 2 first. Applying Proposition 15 to the claimed inverse, 
+
+Tμ
+
+X
+
+> i≥0
+> ⌊i/ 2⌋
+
+X
+
+> j=0
+
+λ−1
+
+> d,i −2j,j,μ
+
+fij = X
+
+> i≥0
+> ⌊i/ 2⌋
+
+X
+
+> j=0
+
+λ−1
+
+> d,i −2j,j,μ
+
+Tμfij = X
+
+> i≥0
+> ⌊i/ 2⌋
+
+X
+
+> j=0
+
+fij = f. 
+
+Hence, for any f ∈ P d there exists g ∈ P d such that Tμg = f . Now we show that Tμ is injective, for which it is sufficient to show that g̸ = 0 implies Tμg̸ = 0 ,since Tμ is a linear operator. Let g̸ = 0 be an arbitrary polynomial. Then we can decompose g = P 
+
+> i≥0
+
+gi and gi = P⌊i/ 2⌋ 
+
+> j=0
+
+gij uniquely by Corollary 12, i.e. the gij are linearly independent. Then, 
+
+Tμg = X
+
+> i≥0
+> ⌊i/ 2⌋
+
+X
+
+> j=0
+
+λd,i −2j,j,μ gij ,
+
+and since all the eigenvalues λd,i −2j,j,μ are positive, g̸ = 0 implies Tμg̸ = 0 . We conclude that Tμ is bijective and that its inverse is as claimed. The case d = 1 
+
+follows essentially the same argument and is omitted. 
+
+Remark 10 . If μ = N (0 , σ 2Id) then V ∼ μ has 1 
+
+> σ2
+
+∥V ∥2 ∼ χ2(d). Hence, 
+
+R 
+
+> Rd
+
+∥v∥2m μ(d v) is the product of the mth moment of a χ2(d) random variable and σ2m, i.e. Z
+
+> Rd
+
+∥v∥2m μ(d v) = σ2m2m Γ( m + d 
+
+> 2
+
+)Γ( d 
+
+> 2
+
+) .
+
+It follows that when d ≥ 2,
+
+λd,k,i,μ = σ2( k+2 i) (k + 2 i)! 
+
+i! · Γ( k + 2 i + d 
+
+> 2
+
+)Γ( k + i + d 
+
+> 2
+
+) ,
+
+8and the eigenvalue for a homogeneous harmonic function of degree k is 
+
+λd,k, 0,μ = σ2k · k!.
+
+For d = 1 , we see that if μ = N (0 , σ 2) then 
+
+λ1,k,μ = σ2k2k Γ( k + 12 )Γ( 12 ) = σ2k (2 k)! 2kk! ,
+
+which has dependence on k, whereas λ1,k, Uniform( {− 1,1}) = 1 . We notice that the radial distribution affects the homogeneous components of g differently, which for large d can have a stabilizing effect on the eigenvalues. 
+
+## 3.2 Harmonic decomposition of polynomials 
+
+We denote by Hd,k the set of homogeneous harmonic polynomials of degree 
+
+k, and by Hd,k,i the set of functions φ such that φ(x) = ∥x∥2i hk(x) with 
+
+hk ∈ H d,k . Lemma 11 is classical, see, e.g. Axler et al. [2013, Theorem 5.7]. The construction is explicit: one applies the Laplacian several times to construct the decomposition. However, we will not require explicit representation of these functions in the sequel. Corollary 12 is also classical, we state it here mainly to provide an explicit representation of f . Although Corollary 12 does make sense when d = 1 , it is a little awkward and we will opt instead to use the decomposition of f into monomials when d = 1 .
+
+Lemma 11 (Harmonic decomposition) . If f ∈ P d,k , i.e. f is a homogeneous polynomial of degree k, then we may decompose f uniquely as 
+
+f (x) = hk(x) + ∥x∥2 hk−2(x) + · · · + ∥x∥2j hk−2j (x), x ∈ Rd,
+
+where j = ⌊k/ 2⌋, and each hr ∈ H d,r .
+
+Corollary 12. If f ∈ P d, then we may uniquely decompose 
+
+f = X
+
+> i≥0
+> ⌊i/ 2⌋
+
+X
+
+> j=0
+
+fij ,
+
+where fij ∈ H d,i −2j,j for each i and j.Proof. Decompose f = P 
+
+> i≥0
+
+fi where fi is homogeneous of degree i. This decomposition is unique as homogeneous polynomials of different degrees are linearly independent. Then apply Lemma 11 to each homogeneous polynomial, i.e. fi = P 
+
+> j
+
+fij where fij ∈ H d,i −2j,j , which is also unique. 
+
+## 3.3 Spectral analysis of Tμ
+
+The proof of Lemma 13 is in Appendix B, and relies on a general Funk–Hecke formula. The result identifies eigenvalue-eigenfunction pairs for the operator 9Sk,i defined by 
+
+Sk,i g(u) = 
+
+Z
+
+⟨u, v ⟩k+2 i g(v)σ(d v), u ∈ Sd−1.
+
+where σ = Uniform( Sd−1), the uniform distribution on the sphere Sd−1. In particular, functions in Hd,k are eigenfunctions of S.
+
+Lemma 13. Let d ≥ 2, k ≥ 0, i ≥ 0, and hk ∈ H d,k . Then Sk,i g = λd,k,i hk,with 
+
+λd,k,i = Γ( d 
+
+> 2
+
+)22i+ki! · (k + 2 i)! Γ( k + i + d 
+
+> 2
+
+) .
+
+Lemma 13 can be used to identify eigenvalue-eigenfunction pairs for the ReLU operator Tμ when μ = Uniform( Sd−1) . In particular, functions in Hd,k,i 
+
+are eigenfunctions of Tμ for this μ.
+
+Lemma 14. Let d ≥ 2, k ≥ 0, i ≥ 0, g ∈ H d,k,i , and μ = Uniform( Sd−1).Then Tμg = λd,k,i g, where λd,k,i is as in Lemma 13. Proof. We can write g(x) = ∥x∥2i hk(x) for some hk ∈ H d,k . Let x ∈ Rd and 
+
+u = x/ ∥x∥. Using homogeneity and Lemma 13, 
+
+Tμg(x) = 
+
+Z
+
+> Sd−1
+
+g (⟨x, v ⟩ v) μ(d v)=
+
+Z
+
+> Sd−1
+
+∥⟨ x, v ⟩ v∥2i hk(⟨x, v ⟩ v)μ(d v)= ∥x∥2i+k
+
+Z
+
+> Sd−1
+
+∥⟨ u, v ⟩ v∥2i hk(⟨u, v ⟩ v)μ(d v)= ∥x∥2i+k
+
+Z
+
+> Sd−1
+
+⟨u, v ⟩2i+k hk(v)μ(d v)= ∥x∥2i+k λd,k,i hk(u)= λd,k,i ∥x∥2i hk(x),
+
+from which we conclude. We now proceed to generalize Lemma 14 to spherically symmetric distribu-tions μ. Recall that a spherically symmetric random vector taking values in Rd
+
+is necessarily of the form 
+
+V = RU, 
+
+where U ∼ Uniform( Sd−1) and R is an independent radial random variable. In particular, functions in Hd,k,i are also eigenfunctions of the operator Tμ, and the eigenvalues are scaled according to the radial distribution. 
+
+Proposition 15. Let be μ a spherically symmetric distribution on Rd. Then 1. For d = 1 , g ∈ P 1,k , we have Tμg = λ1,k,μ g, where λ1,k,μ = R ∥v∥2k μ(d v).
+
+10 2. For d ≥ 2, g ∈ H d,k,i , we have Tμg = λd,k,i,μ g where 
+
+λd,k,i,μ =
+
+Z
+
+∥v∥2( k+2 i) μ(d v)λd,k,i ,
+
+with λd,k,i from Lemma 14. Proof. Consider d ≥ 2. Let σ be the uniform distribution on the sphere Sd−1.For v ∈ Rd, write ˆv = v/ ∥v∥. Let x ∈ Rd. For d ≥ 2, since g is homogeneous of degree k + 2 i, Lemma 14 gives 
+
+Tμg(x) = 
+
+Z
+
+> Rd
+
+g (⟨x, v ⟩ v) μ(d v)=
+
+Z
+
+> Rd
+
+g (⟨x, ∥v∥ ˆv⟩ ∥ v∥ ˆv) μ(d v)=
+
+Z
+
+> Rd
+
+∥v∥2( k+2 i) μ(d v)
+
+Z
+
+> Sd−1
+
+g (⟨x, ˆv⟩ ˆv) σ(dˆ v)= λd,k,i,μ g(x).
+
+The same argument applies for d = 1 , except we can consider i = 0 , and that when d = 1 , Tσ = Id (see Remark 6). 
+
+# 4 Transformations of polynomials 
+
+We introduce transformations of polynomials to accommodate some shifting and scaling, as well as changes in dimension. 
+
+## 4.1 Linear transformations 
+
+Definition 16. Let f ∈ P d be a polynomial, A a d′ × d matrix and x0 ∈ Rd.We say ˜f ∈ P d′ is a (A, x 0)-linearly transformed version of f if 
+
+f (x) = ˜f (A(x − x0)) , x ∈ Rd.
+
+If A is invertible then there exists such a linearly transformed f , we may take 
+
+˜f = y 7 → f (A−1y + x0) If A is not invertible, e.g. if A is d′ × d with d′ < d , then such a function may not exist as it implies f can be represented using a lower dimensional linear transformation of x. If, on the other hand, d′ > d then this allows us to embed f within a higher-dimensional polynomial. The following theorem provides a generalized ReLU integral representation of f .
+
+Theorem 17. Let f ∈ P d, A a d′ × d matrix and x0 ∈ Rd. Let ˜f ∈ P d′ be a 
+
+(A, x 0)-linearly transformed version of f , μ a spherically symmetric probability measure on Rd′
+
+, and g = T −1 
+
+> μ
+
+˜f . Then a generalized ReLU integral representa-tion of f is 
+
+f (x) = f (x0) + 
+
+Z
+
+> Rd′
+
+Z
+
+> R+
+
+u(v, s )ς   x, A T v − x0, A T v − s ϱ(d s)μ(d v),
+
+11 where 
+
+u(v, s ) = 
+
+(
+
+2g′ 
+
+> v
+
+(0) s = 0 ,
+
+2g′′  
+
+> v
+
+(s) s > 0.
+
+If A is invertible, then this corresponds to a standard ReLU integral represen-tation (μA ⊗ ϱ, a, b, u A) where μA is the distribution of AT V when V ∼ μ,
+
+a = f (x0), b(v, s ) = − ⟨ x0, v ⟩ − s and 
+
+uA(v, s ) = u(A−T v, s ).
+
+Proof. By Theorem 5, we obtain that (μ ⊗ ϱ, ˜a, ˜b, u ) is a ReLU integral repre-sentation of ˜f with ˜a = ˜f (0) and ˜b(v, s ) = −s, i.e. 
+
+˜f (y) = ˜f (0) + 
+
+Z
+
+> Rd′
+
+Z
+
+> R+
+
+u(v, s )ς (⟨y, v ⟩ − s) ϱ(d s)μ(d v), y ∈ Rd′
+
+.
+
+For any x ∈ Rd,f (x) = ˜f (A(x − x0)) = ˜f (0) + 
+
+Z
+
+> Rd′
+
+Z
+
+> R+
+
+u(v, s )ς (⟨A(x − x0), v ⟩ − s) ϱ(d s)μ(d v),
+
+from which we may conclude. 
+
+Remark 18 . We observe that μA need not be spherically symmetric. Indeed, if μ = N (0 , σ 2Id) then μA = N (0 , σ 2AT A). We also see that b(v, s ) may take positive values since it is possible that ⟨x0, v ⟩ < −s.
+
+## 4.2 Lifting by harmonic extension 
+
+In Theorem 9, we observe that for spherically symmetric μ, the ReLU repre-sentative for a given f is unique. Moreover, the terms required to compensate for the action of Tμ are the eigenvalues λd,k,i,μ that are particularly sensitive to i > 0. In particular, if μ = N (0 , σ 2Id) then Remark 10 gives λd,k,i,μ which is dimension-independent if i = 0 but O(di) for i > 0. So harmonic functions have representatives that are not rescaled by amounts involving dimension d.However, harmonic functions are a very small subset of the class of polynomials. We consider a special case of the approach in Section 4.1, where we embed 
+
+f in a higher-dimensional polynomial. In particular, we exploit the simple fact that a polynomial f ∈ P d can be extended to a polynomial H(f ) ∈ H d+1 that is harmonic and satisfies H(f )( ·, 0) = f . The following construction is classical; generalizations of this kind of extension exist such as Garofalo and Ros-Oton [2019, Lemma 5.2]. The basic idea is to introduce an additional variable y ∈ R
+
+and define the function H(f ) so that ∂2 
+
+> y
+
+H(f ) = −∆xH(f ) and hence ∆H(f ) = 0 .
+
+Definition 19 (Harmonic extension) . For a polynomial f ∈ P d we define 
+
+H(f ) ∈ P d+1 to be the polynomial, 
+
+H(f )( x, y ) = 
+
+> ∞
+
+X
+
+> j=0
+
+(−1) j y2j
+
+(2 j)! ∆j f (x), x ∈ Rd, y ∈ R,
+
+which satisfies H(f )( x, 0) = f (x) by construction. 12 Lemma 20. If f = P 
+
+> k≥0
+
+fk is the decomposition of f ∈ P d into homogeneous polynomials fk ∈ P d,k , then H(f ) = P 
+
+> k≥0
+
+hk is also such a decomposition for 
+
+H(f ) with 
+
+hk(x, y ) = 
+
+> ⌊k/ 2⌋
+
+X
+
+> j=0
+
+(−1) j y2j
+
+(2 j)! ∆j fk(x),
+
+and each hk ∈ H d+1 ,k . Hence, H(f ) is harmonic. Proof. For k ≥ 0, hk is exactly the degree k component of H(f ). We now show that hk is harmonic. We have 
+
+∆hk = ∆ xhk + ∂2 
+
+> y
+
+hk,
+
+and we find 
+
+∂2
+
+> y
+
+ (−1) j y2j
+
+(2 j)! ∆j fk(x)
+
+
+
+= (−1) j y2j−2
+
+(2 j − 2)! ∆j fk(x)I(j ≥ 1) ,
+
+while 
+
+∆x
+
+ (−1) j y2j
+
+(2 j)! ∆j fk(x)
+
+
+
+= (−1) j y2j
+
+(2 j)! ∆j+1 fk(x).
+
+It follows that 
+
+∆hk(x, y ) = 
+
+> ⌊k/ 2⌋
+
+X
+
+> j=0
+
+(−1) j y2j
+
+(2 j)! ∆j+1 fk(x) + (−1) j y2j−2
+
+(2 j − 2)! ∆j fk(x)I(j ≥ 1) =
+
+> ⌊k/ 2⌋− 1
+
+X
+
+> j=0
+
+(−1) j y2j
+
+(2 j)! ∆j+1 fk(x) + 
+
+> ⌊k/ 2⌋
+
+X
+
+> j=1
+
+(−1) j y2j−2
+
+(2 j − 2)! ∆j fk(x)=
+
+> ⌊k/ 2⌋− 1
+
+X
+
+> j=0
+
+(−1) j y2j
+
+(2 j)! ∆j+1 fk(x) + 
+
+> ⌊k/ 2⌋− 1
+
+X
+
+> j=0
+
+(−1) j+1 y2j
+
+(2 j)! ∆j+1 fk(x)= 0 ,
+
+from which we may conclude. 
+
+Theorem 21. Let f ∈ P d be a polynomial and μ = N (0 , σ 2Id+1 ). Then (μ ⊗
+
+ϱ, a, b, u ) is a ReLU integral representation of H(f ) = P 
+
+> k≥0
+
+hk, where hk ∈Hd+1 ,k for k ≥ 0, a = H(f )(0) = f (0) , b(v, s ) = −s and 
+
+u(v, s ) = 
+
+( 2 
+
+> σ2
+
+h1(v) s = 0 ,
+
+2 P  
+
+> k≥2sk−2
+> (k−2)! σ2k
+
+hk(v) s > 0.
+
+Proof. Let H(f ) ∈ H d+1 ,k be the harmonic extension of f . We may write 
+
+H(f ) = P 
+
+> k≥0
+
+hk where each hk ∈ H d+1 ,k . Then Theorem 9 and Remark 10 imply 
+
+g := T −1 
+
+> μ
+
+H(f ) = X
+
+> k≥0
+
+1
+
+k!σ2k hk.
+
+13 Using homogeneity, we have 
+
+gv (s) = g(vs ) = X
+
+> k≥0
+
+1
+
+k!σ2k hk(vs ) = X
+
+> k≥0
+
+sk
+
+k!σ2k hk(v),
+
+so g′ 
+
+> v
+
+(s) = P  
+
+> k≥1sk−1
+> (k−1)! σ2k
+
+hk(v), g′ 
+
+> v
+
+(0) = 1 
+
+> σ2
+
+h1(v) and g′′  
+
+> v
+
+(s) = P  
+
+> k≥2sk−2
+> (k−2)!
+
+hk(v).We conclude by applying Theorem 5. 
+
+## 4.3 Sharpened ReLU integral representation and the heat equation 
+
+The main result of this section is Theorem 23, a sharpened ReLU integral repre-sentation of f ∈ P d with μ = N (0 , σ 2Id). We use this term because sharpened versions of the homogeneous components of f arise naturally, corresponding to running the heat equation on f for negative time. The sharpening can be thought of as a consequence of the harmonic extension of f to H(f ), followed by integration of the additional variable in the resulting ReLU integral repre-sentation (Theorem 21). The representation in Theorem 21 is not associated in general with the ReLU representative for (μ, f ); indeed such a representative is unique for spherically symmetric μ and given by Theorem 9. Instead, we obtain the representation for f by first lifting f to H(f ) in Rd+1 , obtaining the ReLU representative 
+
+g = T −1 
+
+> μ
+
+H(f ) and then projecting the ReLU integral representation for H(f )
+
+back into Rd. It is unclear if there is a more direct route for obtaining this ReLU representation of f . One can think of the representation for H(f ) as incorporating a small amount of noise around 0 for the additional variable, which is then integrated out to obtain the representation for f .
+
+Definition 22 (Solution operator for the heat equation) . The operator 
+
+exp ( t∆) = 
+
+> ∞
+
+X
+
+> j=0
+
+tj
+
+j! ∆j ,
+
+is the solution operator for the heat equation ∂tu = ∆ u.To assist in interpretation, if g = exp   t 
+
+> 2
+
+∆ f for t > 0 we have 
+
+g(x) = E
+
+h
+
+f (x + √tZ )
+
+i
+
+, Z ∼ N (0 , I d),
+
+and we can think of g as a smoothed or noisy version of f [see, e.g., Durrett, 2019, Section 9.2]. For polynomials, the inverse operator with t < 0 is also well defined. If g = exp  − t 
+
+> 2
+
+∆ f , then 
+
+f (x) = E[g(x + √tZ )] , Z ∼ N (0 , I d),
+
+so g is a sharpened or denoised version of f .14 Theorem 23. Let f ∈ P d, with f = P 
+
+> k≥0
+
+fk its decomposition into homo-geneous components, μ = N (0 , σ 2Id). Then (μ ⊗ ϱ, a, b, u ) is a ReLU integral representation of f , where a = f (0) , b(v, s ) = −s and 
+
+u(v, s ) = 
+
+( 2 
+
+> σ2
+
+f ♯ 
+
+> 1
+
+(v) s = 0 ,
+
+2 P  
+
+> k≥2sk−2
+> (k−2)! σ2k
+
+f ♯k(v) s > 0,
+
+where f ♯k = exp 
+
+
+
+− σ2 
+
+> 2
+
+∆
+
+
+
+fk for k ≥ 1.Proof. Let H(f ) = P 
+
+> k≥0
+
+hk where hk ∈ H d+1 ,k for k ≥ 0. Using f (x) = 
+
+H(f )( x, 0) , and ⟨(x, 0) , (v, w )⟩ = ⟨x, v ⟩, and letting γ = N (0 , σ 2), Theorem 21 gives the ReLU integral representation 
+
+f (x) = f (0) + 
+
+Z
+
+˜u(( v, w ), s )ς (⟨x, v ⟩ − s) ϱ(d s)μ(d v)γ(d w), x ∈ Rd,
+
+with 
+
+˜u(( v, w ), s ) = 
+
+( 2 
+
+> σ2
+
+h1(v, w ) s = 0 ,
+
+2 P  
+
+> k≥2sk−2
+> (k−2)! σ2k
+
+hk(v, w ) s > 0.
+
+from which we may define 
+
+u(v, s ) = 
+
+Z
+
+˜u(( v, w ), s )γ(d w).
+
+Since R 
+
+> R
+
+w2j γ(d w) = σ2j (2 j − 1)!! = σ2j (2 j)! 2j j! ,
+
+Z
+
+> R
+
+hk(v, w )μ(d w) = 
+
+Z ∞X
+
+> j=0
+
+(−1) j w2j
+
+(2 j)! ∆j fk(v)γ(d w)=
+
+> ∞
+
+X
+
+> j=0
+
+(−σ2)j
+
+2j j! ∆j fk(v)= exp 
+
+
+
+− σ2
+
+2 ∆
+
+
+
+fk(v)= f ♯k(v),
+
+we conclude. 
+
+Remark 24 . We consider the s = 0 term. Observe that f ♯ 
+
+> 1
+
+= exp 
+
+
+
+− σ2 
+
+> 2
+
+∆
+
+
+
+f1 =
+
+f1 since ∆f1 = 0 . Hence, 
+
+Z
+
+> Rd
+
+u(v, 0) ς (⟨x, v ⟩) μ(d v) = 2 
+
+Z
+
+> Rd
+
+1
+
+σ2 f1(v)ς (⟨x, v ⟩) μ(d v).
+
+Notice that f1(v) = ⟨c, v ⟩ for some c ∈ Rd, and that ∇f (0) = ∇f1(0) = c. Since 
+
+⟨c, v ⟩ ⟨ x, v ⟩ = ⟨c, −v⟩ ⟨ x, −v⟩ ,
+
+15 so by spherical symmetry of μ, we have 
+
+Z
+
+> Rd
+
+u(v, 0) ς (⟨x, v ⟩) μ(d v) = 2 
+
+Z
+
+> Rd
+
+1
+
+σ2 ⟨c, v ⟩ ς (⟨x, v ⟩) μ(d v)=
+
+Z
+
+> Rd
+
+1
+
+σ2 ⟨c, v ⟩ ⟨ x, v ⟩ μ(d v)=
+
+Z
+
+> Rd
+
+1
+
+σ2 cT vv T xμ (d v)= ⟨c, x ⟩ .
+
+Hence, the s = 0 term corresponds to the ⟨∇ f (0) , x ⟩ term in the Taylor expan-sion of f about 0.It is natural to consider what f ♯k might look like. For the case of polynomials, it is known that the result of applying exp 
+
+
+
+− σ2 
+
+> 2
+
+∆
+
+
+
+to a polynomial f is that the basis changes from monomials to generalized Hermite polynomials without changing the coefficients. The relation between f ♯ 
+
+> L2(μ)
+
+and ∥f ∥F σk is used for our quantitative bounds in Section 5. 
+
+Lemma 25. If f (x) = P 
+
+> α
+
+cαxα is the representation of a polynomial f as a linear combination of monomials, then f ♯ = exp 
+
+
+
+− σ2 
+
+> 2
+
+∆
+
+
+
+f satisfies 
+
+f ♯(x) = X
+
+> α
+
+cαHσ,α (x),
+
+where Hσ,α is the (probabilist’s) Hermite polynomial with degree α for the mea-sure N (0 , σ 2I),Hσ,α (x) = σ|α|Hα
+
+ xσ
+
+
+
+.
+
+Moreover, if μ = N (0 , σ 2I) and f is homogeneous of degree k
+
+f ♯ 
+
+> L2(μ)
+
+= ∥f ∥F σk,
+
+where ∥f ∥F =  P  
+
+> α
+
+c2
+
+> α
+
+α!1/2 is the Fischer norm. Proof. Let Mk = x 7 → xk. For d = 1 , one may prove using generating functions that 
+
+exp 
+
+
+
+− σ2
+
+2 ∆
+
+
+
+Mk = Hσ,k .
+
+Then, since 
+
+exp 
+
+
+
+− σ2
+
+2 ∆
+
+
+
+= exp 
+
+− 12
+
+> d
+
+X
+
+> j=1
+
+∂2
+
+∂x 2
+
+> j
+
+ =
+
+> d
+
+Y
+
+> j=1
+
+exp − 12
+
+∂2
+
+∂x 2
+
+> j
+
+!
+
+,
+
+we have 
+
+Hσ,α (x) = 
+
+> d
+
+Y
+
+> j=1
+
+Hσ,α j (xj ) = 
+
+> d
+
+Y
+
+> j=1
+
+exp − σ2
+
+2
+
+∂2
+
+∂x 2
+
+> j
+
+!
+
+Mαj (xj ) = exp 
+
+
+
+− σ2
+
+2 ∆
+
+
+
+Mα(x).
+
+16 Moreover, one can show using the expression for Hσ,α and the properties of standard Hermite polynomials, 
+
+⟨Hσ,α , H σ,β ⟩L2(μ) = I(α = β)α!σ2|α|.
+
+Hence, 
+
+f ♯ 2 
+
+> L2(μ)
+
+= X
+
+> α
+
+c2
+
+> α
+
+α!σ2|α|,
+
+from which we may conclude the last part, which assumes f is homogeneous of degree k.
+
+Remark 26 . It is possible to combine other transformations with the harmonic extension and projection. For example, let f ∈ P d be a polynomial and let 
+
+˜f ∈ P d′ be an (A, x 0)-linearly transformed version of f . We can obtain by Theorem 23 the integral representation, involving the harmonic extension H( ˜f ),
+
+˜f (z) = ˜f (0) + 
+
+Z
+
+> Rd′
+
+Z
+
+> R+
+
+u(v, s )ς (⟨z, v ⟩ − s) ϱ(d s)μ(d v), z ∈ Rd′
+
+,
+
+which by Theorem 17 provides the representation, 
+
+f (x) = f (x0) + 
+
+Z
+
+> Rd′
+
+Z
+
+> R+
+
+u(v, s )ς   x, A T v + b(v, s ) ϱ(d s)μ(d v), x ∈ Rd,
+
+where b(v, s ) = − x0, A T v − s.
+
+Example 27. Let f ∈ P 1 be f (x) = x2. The harmonic extension is h(x, y ) = 
+
+x2 − y2. For μ = N (0 , 1) , we have f ♯(x) = x2 − 1. So the sharpened integral representation is 
+
+f (x) = 2 
+
+Z
+
+> R
+
+Z
+
+> R+
+
+(v2 − 1) max ( xv − s, 0) d s N (v; 0 , 1)d v. 
+
+In contrast, the direct representation without a harmonic extension is obtained by g = T −1 
+
+> μ
+
+f = x 7 → x2/3, so that g′′  
+
+> v
+
+(s) = 23 v2, from which we obtain 
+
+f (x) = 2 
+
+Z
+
+> R
+
+Z
+
+> R+
+
+23 v2 max ( xv − s, 0) d s N (v; 0 , 1)d v. 
+
+If we instead take a direct approach with μ = Uniform ( {− 1, 1}), we obtain 
+
+g = f , so that g′′  
+
+> v
+
+(s) = v2, from which we obtain 
+
+f (x) = 2 X
+
+> v∈{− 1,1}
+
+Z
+
+> R+
+
+2v2 max ( xv − s, 0) d s. 
+
+In an experiment, the trained network appears to be more consistent with the harmonic extension approach, i.e. the ui take small negative as well as a broader range of positive values, and the bias terms are almost exclusively negative. Of course, this could also be due to the choice of network initialization. 17 5 Quantitative error bounds 
+
+We focus here on the ReLU integral representation of f obtained in Theorem 23. More precisely, on the optimized version of that representation after the change of measure to minimize the expected L2(D) error presented in Proposition 2. The main result is Theorem 30, which considers the L2(D) error of a two-layer network. We assume that D is sub-Gaussian to obtain quantitative bounds. 
+
+Definition 28. We say X is sub-Gaussian with mean 0 and variance proxy σ2
+
+> X
+
+if 
+
+P (⟨X, u ⟩ ≥ t) ≤ exp 
+
+
+
+− t2
+
+2σ2
+
+> X
+
+
+
+,
+
+for any unit vector u.
+
+Example 29. Here are some examples of sub-Gaussian variance proxies: 1. If X ∼ N (0 , σ 2Id) then σ2 
+
+> X
+
+= σ2.2. If Xi are independent, mean 0 and take values in [a, b ] then σ2 
+
+> X
+
+= ( b −
+
+a)2/4. E.g. if X ∼ Uniform([ −a, a ]d) then σ2 
+
+> X
+
+= a2.3. If X is uniform in the ball or on the sphere of radius r in Rd then σ2 
+
+> X
+
+=
+
+r2/d .In particular, for a parameter σ2 
+
+> X
+
+that scales as 1/d we may take X ∼ N (0 , 1 
+
+> d
+
+Id),
+
+X ∼ Uniform( Sd−1) or X ∼ Uniform( B1) where Sd−1 is the unit sphere centred at 0 and B1 the unit ball in Rd centred at 0.
+
+Theorem 30. Assume D is sub-Gaussian with mean 0 and variance proxy σ2 
+
+> X
+
+,and that f ∈ P d with f = P 
+
+> k≥0
+
+fk, fk ∈ P d,k . Then there exists a two-layer network fn such that 
+
+∥fn − f ∥L2(D) ≤ 1
+
+√n
+
+X
+
+> k≥1
+
+Cd,k ∥fk∥F
+
+
+
+> 2
+
+− ∥ f − a∥2
+
+> L2(D)
+
+
+
+> 1/2
+
+≤ 1
+
+√n
+
+X
+
+> k≥1
+
+Cd,k ∥fk∥F ,
+
+where Cd, 1 = 2 3/2σX d1/2, and for k ≥ 2,
+
+Cd,k = 2 3k−12 σkX
+
+Γ   k−12
+
+
+
+(k − 2)! Γ( k + d 
+
+> 2
+
+)1/2
+
+Γ( d 
+
+> 2
+
+)1/2 ≤ σkX
+
+√2k
+
+
+
+2e · d + k − 1
+
+k
+
+k/ 2
+
+.
+
+Proof. This follows from Proposition 2 and Proposition 32. We observe that the bound has no dependence on σ2, the variance parameter of μ, which is consistent with Remark 8: the choice of σ2 is irrelevant. In order that the bound Cd,k ∥fk∥F is controlled as d → ∞ , it is necessary that ∥fk∥F ∈O(( σX
+
+√d)−k). In order that P 
+
+> k
+
+Cd,k ∥fk∥F < ∞, it is necessary that ∥fk∥F ∈
+
+o
+
+ σX
+
+√2e−k k−3/2
+
+
+
+as k → ∞ . If the condition ∥fk∥F ∈ O (( σX d)−k/ 2) holds 18 then ∥fk∥F ∈ o
+
+ σX
+
+√2e−k k−3/2
+
+
+
+will also hold when d ≥ 6 since 6 > 2e.For large d, one can see that if σX = d−1/2, then the Cd,k are dimension-independent, suggesting that suitably regular functions can be approximated well on the surface of the unit sphere or in the unit ball irrespective of dimension and degree. If we assume σX = 1 , e.g. if D = N (0 , I d), then an example of a function that achieves ∥fk∥F ∈ O (( σX
+
+√d)−k) is f (x) = g(d−1/2x), where g = P gk and 
+
+∥gk∥F ∈ O (1) as d → ∞ . Such an f can be viewed as not giving any particular component of x too much importance. The conditions on Fischer norms can of course be viewed as conditions on the partial derivatives of f at 0, in light of the discussion in Section 1. Another implication is that if f = φ(d−1/2 Pdi=1 xi),where φ(u) = P 
+
+> k≥0
+
+ckuk then one may deduce that ∥fk∥F = ∥φk∥F , where fk
+
+and φk are the degree k homogeneous components of f and φ, respectively. 
+
+Lemma 31. Assume D is sub-Gaussian with mean 0 and variance proxy σ2 
+
+> X
+
+.Then 
+
+∥ς (⟨· , v ⟩ − s)∥L2(D) ≤ √2σX ∥v∥ exp − s2
+
+2σ2 
+
+> X
+
+∥v∥2
+
+!
+
+.
+
+Moreover, 
+
+Z
+
+> R+
+
+∥ς (⟨· , v ⟩ − s)∥L2(D) sk−2ds ≤ 2k− 32 (σX ∥v∥)k Γ
+
+ k − 12
+
+
+
+.
+
+Proof. Since X is sub-Gaussian with mean 0, we may deduce that ⟨X, v ⟩ is sub-Gaussian with variance proxy δ2 = σ2 
+
+> X
+
+∥v∥2.
+
+PD (⟨X, v ⟩ ≥ t) ≤ exp 
+
+
+
+− t2
+
+2δ2
+
+
+
+.
+
+We obtain 
+
+∥ς (⟨x, v ⟩ − s)∥2 
+
+> L2(D)
+
+= E ς (⟨X, v ⟩ − s) 2
+
+=
+
+Z ∞
+
+> 0
+
+P
+
+
+
+ς (⟨X, v ⟩ − s)2 > t 
+
+
+
+dt
+
+=
+
+Z ∞
+
+> 0
+
+P
+
+
+
+⟨X, v ⟩ − s > √t
+
+
+
+dt
+
+=
+
+Z ∞
+
+> 0
+
+P
+
+
+
+⟨X, v ⟩ > √t + s
+
+
+
+dt
+
+≤
+
+Z ∞
+
+> 0
+
+exp 
+
+
+
+− (√t + s)2
+
+2δ2
+
+
+
+dt
+
+= 2 δ2 exp 
+
+
+
+− s2
+
+2δ2
+
+
+
+− 2√2πsδ Φ
+
+
+
+− sδ
+
+
+
+≤ 2δ2 exp 
+
+
+
+− s2
+
+2δ2
+
+
+
+.
+
+19 The last statement follows by integrating the square root of this bound multi-plied by sk−2.
+
+Proposition 32. Assume D is sub-Gaussian with mean 0 and variance proxy 
+
+σ2 
+
+> X
+
+, and that f = P 
+
+> k≥0
+
+fk is the decomposition of f into homogeneous compo-nents. Let μ = N (0 , σ 2Id) and (μ⊗ϱ, a, b, u ) be the ReLU integral representation from Theorem 23. Then with ϕ as in Proposition 2, we obtain 
+
+Z
+
+> Rd
+
+Z
+
+> R+
+
+∥ϕ(·; v, s )∥L2(D) ρ(d s)μ(d v) ≤ X
+
+> k≥1
+
+Cd,k ∥fk∥F ,
+
+where Cd,k are defined in Theorem 30. Proof. We have ϕ(x; v, s ) = ς (⟨x, v ⟩ − s) u(v, s ), so 
+
+Z
+
+> Rd
+
+Z
+
+> R+
+
+∥ϕ(·; v, s )∥L2(D) dsμ (d v) = 
+
+Z
+
+> Rd
+
+Z
+
+> R+
+
+∥ς (⟨· , v ⟩ − s)∥L2(D) |u(v, s )| dsμ (d v).
+
+First, consider s = 0 . Then observe that f ♯ 
+
+> 1
+
+= f1 since ∆j f1 = 0 for any j ≥ 1,so 
+
+|u(v, 0) | = 2
+
+σ2 f1(v).
+
+By Lemma 31, Cauchy–Schwarz and Lemma 25 
+
+Z
+
+> Rd
+
+∥ϕ(·; v, 0) ∥L2(D) μ(d v) ≤ 2√2
+
+σ2 σX
+
+Z
+
+∥v∥ f1(v)μ(d v)
+
+≤ 2√2
+
+σ2 σX
+
+Z 
+
+∥v∥2 μ(d v)
+
+1/2
+
+∥f1∥L2(μ)
+
+= 2√2
+
+σ σX
+
+(
+
+2σ2 Γ( d 
+
+> 2
+
++ 1) Γ( d 
+
+> 2
+
+)
+
+)1/2
+
+∥f1∥L2(μ)
+
+= 2 √2σX d1/2 ∥f1∥F .
+
+Now consider s > 0, so 
+
+|u(v, s )| = 2 X
+
+> k≥2
+
+sk−2
+
+(k − 2)! σ2k f ♯k(v) ,
+
+20 where f ♯k = exp 
+
+
+
+− σ2 
+
+> 2
+
+∆
+
+
+
+fk. Applying Lemma 31, Cauchy–Schwarz and Lemma 25, 
+
+Z
+
+> Rd
+
+Z
+
+> R+
+
+∥ϕ(·; v, s )∥L2(D) dsμ (d v)=
+
+Z
+
+> Rd
+
+Z
+
+> R+
+
+∥ς (⟨· , v ⟩ − s)∥L2(D) 2 X
+
+> k≥2
+
+sk−2
+
+(k − 2)! σ2k f ♯k(v) dsμ (d v)
+
+≤2
+
+Z
+
+> Rd
+
+X
+
+> k≥2
+
+Z
+
+> R+
+
+∥ς (⟨· , v ⟩ − s)∥L2(D)
+
+sk−2
+
+(k − 2)! σ2k f ♯k(v) dsμ (d v)
+
+≤2
+
+Z
+
+> Rd
+
+X
+
+> k≥2
+
+2k− 32 (σX ∥v∥)k Γ
+
+ k − 12
+
+ 1(k − 2)! σ2k f ♯k(v) μ(d v)= X
+
+> k≥2
+
+2k− 12
+
+Γ   k−12
+
+
+
+(k − 2)! σ2k σkX
+
+Z
+
+> Rd
+
+∥v∥k f ♯k(v) μ(d v)
+
+≤ X
+
+> k≥2
+
+2k− 12
+
+Γ   k−12
+
+
+
+(k − 2)! σ2k σkX
+
+Z 
+
+> Rd
+
+∥v∥2k μ(d v)
+
+1/2
+
+f ♯k L2(μ)
+
+≤ X
+
+> k≥2
+
+2k− 12
+
+Γ   k−12
+
+
+
+(k − 2)! σ2k σkX σk2 k
+
+> 2
+
+Γ( k + d 
+
+> 2
+
+)1/2
+
+Γ( d 
+
+> 2
+
+)1/2 ∥fk∥F σk
+
+= X
+
+> k≥2
+
+2 3k−12 σkX
+
+Γ   k−12
+
+
+
+(k − 2)! Γ( k + d 
+
+> 2
+
+)1/2
+
+Γ( d 
+
+> 2
+
+)1/2 ∥fk∥F .
+
+The expression for Cd,k follows. For the upper bound, observe that using the arithmetic-geometric mean inequality for 
+
+Γ( k + d 
+
+> 2
+
+)Γ( d 
+
+> 2
+
+) =
+
+ d
+
+2
+
+  d
+
+2 + 1 
+
+
+
+· · · 
+
+ d
+
+2 + k − 1
+
+
+
+,
+
+we obtain 
+
+Γ( k + d 
+
+> 2
+
+)1/2
+
+Γ( d 
+
+> 2
+
+)1/2 ≤
+
+ d + k − 12
+
+k/ 2
+
+.
+
+Using the Legendre duplication formula, we have 
+
+Γ   k−12
+
+
+
+(k − 2)! = Γ   k−12
+
+
+
+Γ( k − 1) = 22−k√π
+
+Γ( k 
+
+> 2
+
+) .
+
+Then applying the bound Γ( x) > √2πx x−1/2 exp( −x), we find 
+
+Γ
+
+ k
+
+2
+
+
+
+> √2π
+
+ k
+
+2
+
+(k−1) /2
+
+exp 
+
+
+
+− k
+
+2
+
+
+
+,
+
+and the bound results by combining the terms. 21 The numerical values of the bounds are likely to be somewhat conservative. The sub-Gaussian bound in Lemma 31 is not equally accurate for all s > 0, and hence the integral bound may also be quite conservative, even if the dependence on σX , ∥v∥ and k are appropriate. The strategy in the proof of Proposition 32 also involves use of the triangle inequality to allow integration with respect to 
+
+ϱ, which may not be ideal. 
+
+# 6 Observations from trained two-layer ReLU net-works 
+
+We perform a few experiments to determine if the integral representations are consistent with trained networks. There is no attempt for these experiments to be conclusive about any specific hypothesis. A more sophisticated analysis as well as, potentially, further theory would be required to do this in a com-pelling way, as there are two main obstacles. First, it is unknown which linear transformations (see Section 4.1) might be performed. Second, although the unoptimized ReLU integral representation (μ ⊗ ϱ, a, b, u ) is fairly simple, the optimized representation (π⋆, a, b, u π⋆ ) is not straightforward to determine as it involves reweighting the simple normal distribution μ and introducing a dis-tribution on s that takes into account ∥ϕ(·; v, s )∥L2(D), which seems not to be very tractable in general. Hence, it is not obvious concretely what one should compare a trained network to. It is quite common to initialize ReLU networks with the vi being N (0 , σ2 
+
+> d
+
+)
+
+and u being N (0 , σ2 
+
+> n
+
+) for some σ2. For example, He et al. [2015] is a popular approach suggesting to use σ2 = 2 . We use this initialization for our experi-ments. In both examples considered below, the L2(D) error of the individual neurons ϕ(·; vi, s i) are similar across neurons, which is consistent with optimized representations, see Remark 34. One of the features of the representations viewed so far is that if there is no linear transformation with a shift term x0, as in Section 4.1, then the bias terms should all be non-positive. We consider a simple model where 
+
+f (x) = ∥x − c∥2 ,
+
+and D = N (c, d −1/2Id). We observe predominantly negative biases with c = 0 
+
+but a mixture of negative and positive biases when c = 3 d−1/2 · 1. In addition, the second layer bias term a is close to 0 = f (c) in both cases, suggesting that the model has been shifted to ˜f (z) = ∥z∥2 with f (x) = ˜f (x − c). The empirical distribution of the vi is very close to the initialization distribution in both cases, which is unsurprising given the simplicity and symmetry of ˜f .We also examine an example with different dependence on the components of x:
+
+f (x) = x21 + x22 + x23 + x1x2x3 + 10 x41 + 10 x42,
+
+which has a lack of symmetry in that the coefficient of x43 is 0. In this case, we see that the covariance Σ of the vi in the trained network tends to be diagonal 22 with Σ33 significantly smaller than Σ11 ≈ Σ22 , which is consistent with A being diagonal with A1 = A2 > A 3, and so ˜f (z) = f (A−1z) scales x1 and x2 down to significantly lower the Fischer norm of the degree 4 component while increasing the Fischer norms of the degree 2 and 3 components. 
+
+# 7 Discussion 
+
+We have established some explicit ReLU integral representations for polyno-mials, which seem appealing at least from a mathematical perspective. The representations, as well as the bounds for the sharpened ReLU integral repre-sentation, are consistent with the invariance of the network to the magnitude of the vectors vi. The representations do not induce spherically symmetric dis-tributions on v, after transformations and error optimization are performed. There appears to be some agreement with trained two-layer networks, but this is far from conclusive. The representations and the quantitative bounds may be useful for future research in a number of directions. A natural question is how the approach could be used to analyze individ-ual layers within a deeper ReLU network: it seems plausible that this could be fruitful, although it is of course unclear what the intermediate functions could be. Nevertheless, the functions in each layer could be considerably more com-plicated than in carefully developed sparse networks [see, e.g., Schmidt-Hieber, 2020], which do not seem to capture the behaviour of trained deep networks. For example, a natural direction to consider is to extend Tμ to consider vector-valued polynomials, since such functions are just stacks of real-valued polyno-mials, then for a function f = fL ◦ · · · f1, we could set gℓ = T −1 
+
+> μ
+
+fℓ for each 
+
+ℓ ∈ { 1, . . . , L }, to obtain 
+
+f = ( TμgL) ◦ · · · ◦ (Tμg1) ,
+
+noting that each gℓ corresponds to a family of integral representations. In another direction, there could be other important actions on the function 
+
+f to consider, or different mechanisms to produce different integral represen-tations. It is possible that different operators could lead to different integral representations that are superior in some way, or accommodate a wider range of distributions μ. It is also natural to investigate how non-polynomial functions should be represented as polynomials or approximated via such networks. Finally, there has been recent progress on viewing the training of two-layer networks as an optimization on the space of distributions, motivated by integral representations of such networks [see, e.g., Mei et al., 2019]: it is conceivable that novel ReLU integral representations such as this are helpful in understanding how such representations are connected to, or inform, the statistical aspects of network training, which have not been addressed here at all. 23 Acknowledgements 
+
+This research was supported by the Engineering and Physical Sciences Research Council (Prob_AI, EP/Y028783/1). I would like to thank Christophe Andrieu for thoughtful comments on an early draft. 
+
+# References 
+
+K. Atkinson and W. Han. Spherical harmonics and approximations on the unit sphere: an introduction , volume 2044. Springer Science & Business Media, 2012. S. Axler, P. Bourdon, and R. Wade. Harmonic function theory . Springer Science & Business Media, 2013. A. Barron. Universal approximation bounds for superpositions of a sigmoidal function. IEEE Transactions on Information Theory , 39(3):930–945, 1993. R. Durrett. Probability: Theory and Examples . Cambridge Series in Statistical and Probabilistic Mathematics. Cambridge University Press, 5 edition, 2019. N. Garofalo and X. Ros-Oton. Structure and regularity of the singular set in the obstacle problem for the fractional Laplacian. Revista Matemática Iberoamericana , 35(5):1309–1365, 2019. K. He, X. Zhang, S. Ren, and J. Sun. Delving deep into rectifiers: Surpassing human-level performance on imagenet classification. In Proceedings of the IEEE International Conference on Computer Vision , pages 1026–1034, 2015. D. Hsu, C. H. Sanford, R. Servedio, and E. V. Vlatakis-Gkaragkounis. On the approximation power of two-layer networks of random ReLUs. In Conference on Learning Theory , pages 2423–2461. PMLR, 2021. Z. Ji, M. Telgarsky, and R. Xian. Neural tangent kernels, transportation map-pings, and universal approximation. In International Conference on Learning Representations , 2019. S. Mei, T. Misiakiewicz, and A. Montanari. Mean-field theory of two-layers neural networks: dimension-free bounds and kernel limit. In Conference on Learning Theory , pages 2388–2464. PMLR, 2019. G. Peyré. The mathematics of artificial intelligence. arXiv preprint arXiv:2501.10465 , 2025. J. Schmidt-Hieber. Nonparametric regression using deep neural networks with ReLU activation function. The Annals of Statistics , 48(4):1875 – 1897, 2020. M. Telgarsky. Deep learning theory . 2023. URL https://mjt.cs.illinois. edu/dlt/two.pdf . Draft compiled September 25 2023. 24 A Optimal squared L2 error for random networks 
+
+In this section we establish the minimal expected squared L2(D) error of an IID average of random functions, when f = R ϕ(·, z )μ(d z) for some measure μ and the optimization is performed with respect to the choice of distribution of z.The argument is a variation on a classical argument for identifying the optimal importance distribution in simple Monte Carlo integration. 
+
+Lemma 33. Let f (·) = R ϕ(·, z )μ(d z), where μ is a measure. Let 
+
+fn(·) = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+w(Zi)ϕ(·; Zi),
+
+where Z = ( Z1, . . . , Z n) is a random vector of independent π-distributed random variables with π ≫ μ and dμ/ dπ = w. Let D be a probability measure. Then 
+
+Eπ
+
+h
+
+∥fn − f ∥2
+
+> L2(D)
+
+i
+
+= 1
+
+n Eπ
+
+h
+
+∥w(Z1)ϕ(·; Z1) − f ∥2
+
+> L2(D)
+
+i
+
+≥ 1
+
+n
+
+(Z 
+
+μ(d z) ∥ϕ(·; z)∥L2(D)
+
+2
+
+− ∥ f ∥2
+
+> L2(D)
+
+)
+
+,
+
+and the lower bound is attained for π = π⋆, where 
+
+π⋆(d z) = μ(d z) ∥ϕ(·; z)∥L2(D)
+
+R μ(d z′) ∥ϕ(·; z′)∥L2(D)
+
+,
+
+i.e. 
+
+w⋆(z) = dμ
+
+dπ⋆ = 1
+
+∥ϕ(·; z)∥L2(D)
+
+Z
+
+μ(d z′) ∥ϕ(·; z′)∥L2(D) .
+
+Proof. Observe that 
+
+f (x) = 
+
+Z
+
+ϕ(x, z )μ(d z) = 
+
+Z
+
+ϕ(x, z )w(z)π(d z).
+
+Hence, we have E [fn(x)] = f (x) for arbitrary x. Let ϕw(x; z) = w(z)ϕ(x; z),and write fn(·; z) = 1
+
+> n
+
+Pni=1 ϕw(·; zi).
+
+Eπ
+
+h
+
+∥fn(·; Z) − f ∥2
+
+> L2(D)
+
+i
+
+=
+
+Z Z
+
+|fn(x; z) − f (x)|2 D(d x)π⊗n(d z)= 1
+
+n
+
+Z
+
+var π (ϕw(x; Z1)) D(d x)= 1
+
+n
+
+Z
+
+Eπ
+
+ϕw(x; Z1)2 − f (x)2D(d x)= 1
+
+n
+
+n
+
+Eπ
+
+h
+
+∥ϕw(·; Z1)∥2
+
+> L2(D)
+
+i
+
+− ∥ f ∥2
+
+> L2(D)
+
+o
+
+.
+
+25 Jensen’s inequality gives 
+
+Eπ
+
+h
+
+∥ϕw(·; Z1)∥2
+
+> L2(D)
+
+i
+
+= Eπ
+
+h
+
+w(Z1)2 ∥ϕ(·; Z1)∥2
+
+> L2(D)
+
+i
+
+≥ Eπ
+
+h
+
+w(Z1) ∥ϕ(·; Z1)∥L2(D)
+
+i2
+
+=
+
+Z 
+
+μ(d z) ∥ϕ(·; z)∥L2(D)
+
+2
+
+,
+
+while 
+
+Eπ⋆
+
+h
+
+∥ϕw⋆ (·; Z1)∥2
+
+> L2(D)
+
+i
+
+= Eπ⋆
+
+h
+
+w⋆(Z1)2 ∥ϕ(·; Z1)∥2
+
+> L2(D)
+
+i
+
+=
+
+Z 
+
+μ(d z) ∥ϕ(·; z)∥L2(D)
+
+2
+
+,
+
+from which we may conclude. 
+
+Remark 34 . In the proof, we see that the optimal distribution π⋆ is such that 
+
+ϕw⋆ has ∥ϕw⋆ (·; z)∥L2(D) = R μ(d z′) ∥ϕ(·; z′)∥L2(D) for π⋆ almost all z. This suggests that for a trained network, each of the functions ϕ(·; z) in the ensemble should have a similar L2(D) norm. 
+
+# B Funk–Hecke formulas 
+
+The following formula identifies eigenvalue-eigenfunction pairs for the operator 
+
+Sφ where 
+
+Sφg(u) = 
+
+Z
+
+> Sd−1
+
+φ (⟨u, v ⟩) g(v)σ(d v), u ∈ Sd−1,
+
+with σ = Uniform( Sd−1), which is a generalization of Sk,i defined in Section 3.3. 
+
+Lemma 35 (Atkinson and Han [2012, Theorem 2.22]) . Let φ : [ −1, 1] → R be such that R 1 
+
+> −1
+
+φ(t)(1 − t2) d−32 dt is finite. Then with hk ∈ H d,k ,
+
+Sφhk = λd,k,φ hk,
+
+where 
+
+λd,k,φ = Sd−2
+
+|Sd−1|
+
+Z
+
+φ(t)Pd,k (t)(1 − t2) d−32 dt, 
+
+and Pd,k is the restriction of the Legendre polynomial of degree k in d dimensions on the unit sphere, 
+
+Pd,k (t) = n!Γ 
+
+ d − 12
+
+ [k/ 2] 
+
+X
+
+> i=0
+
+(−1) i (1 − t2)itk−2i
+
+4ii!( k − 2i)!Γ( i + d−12 ) .
+
+26 Proof of Lemma 13. Lemma 35 applies with φ(t) = tm, where m = 2 k + i.Using Atkinson and Han [2012, Proposition 2.26], we compute 
+
+λd,k,i = Sd−2
+
+|Sd−1|
+
+Z 1
+
+> −1
+
+φ(t)Pd,k (t)(1 − t2) d−32 dt
+
+= Γ( d 
+
+> 2
+
+)
+
+√πΓ( d−12 ) · Γ( d−12 )2kΓ( k + d−12 )
+
+Z 1
+
+> −1
+
+φ(k)(t)(1 − t2)k+ d−32 dt
+
+= Γ( d 
+
+> 2
+
+)
+
+√π · 12kΓ( k + d−12 ) · m!(m − k)! ·
+
+Z 1
+
+> −1
+
+tm−k(1 − t2)k+ d−32 dt
+
+= Γ( d 
+
+> 2
+
+)
+
+√π2kΓ( k + d−12 ) · m!(m − k)! · Γ( m−k+1 2 )Γ( 2k+d−12 )Γ( m+k+d 
+
+> 2
+
+)= Γ( d 
+
+> 2
+
+)
+
+√π2k · m!(m − k)! · Γ( m−k+1 2 )Γ( m+k+d 
+
+> 2
+
+)= Γ( d 
+
+> 2
+
+)
+
+√π2k · (k + 2 i)! (2 i)! · Γ( i + 12 )Γ( k + i + d 
+
+> 2
+
+)= Γ( d 
+
+> 2
+
+)22i+ki! · (k + 2 i)! Γ( k + i + d 
+
+> 2
+
+) .
+
+27

@@ -6,58 +6,70 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-27
-- 运行时间：2026-04-27 20:15:31 UTC
+- 最新运行日期：2026-04-28
+- 运行时间：2026-04-28 21:00:41 UTC
 - 运行状态：成功
-- 本次总论文数：12
-- 精读区：1
-- 速读区：11
+- 本次总论文数：16
+- 精读区：4
+- 速读区：12
 
 ### 今日简报（AI）
-今日深度解析利用 TranNet 求解高维偏微分方程的新范式，高效处理 12 篇 AI 与数学交叉领域前沿进展。
-核心突破在于有限表达式法在高维 PDE 中的应用，同时揭示了 Transformer 在符号推理中超越训练分布的泛化潜力。
-推荐关注物理信息表征的迁移学习与元数学实证工具，探索复杂科学计算的自动化新路径。
-- 详情：[/202604/27/README](/202604/27/README)
+今日精选16篇论文，深度聚焦星系演化函数形式的突破与符号回归架构的决定性影响。
+重点推荐满分论文对星系光度函数的重新定义，以及物理引导神经算子在复杂系统建模中的应用。
+建议从星系质量函数入手探索宇宙规律，并关注AI Agent如何助力科学命题的自动化证明。
+- 详情：[/202604/28/README](/202604/28/README)
 
 ### 精读区论文标签
-1. [Finite Expression Method with TranNet-based Function Learning for High-Dimensional Partial Differential Equations](/202604/27/2604.22208v1-finite-expression-method-with-trannet-based-function-learning-for-high-dimensional-partial-differential-equations)  
+1. [The functional form of galaxy and halo luminosity and mass functions](/202604/28/2604.23236v1-the-functional-form-of-galaxy-and-halo-luminosity-and-mass-functions)  
+   标签：评分：10.0/10、query:sr-alg
+   evidence：使用穷举符号回归算法，通过描述长度平衡准确性与复杂度
+2. [Why Architecture Choice Matters in Symbolic Regression](/202604/28/2604.23256v1-why-architecture-choice-matters-in-symbolic-regression)  
+   标签：评分：9.0/10、query:sr-alg
+   evidence：研究了基于树结构的符号回归架构的基本原理以及梯度下降优化方法。
+3. [Learning Interpretable PDE Representations for Generative Reconstructions with Structured Sparsity](/202604/28/2604.23867v1-learning-interpretable-pde-representations-for-generative-reconstructions-with-structured-sparsity)  
    标签：评分：8.0/10、query:sr-alg
-   evidence：使用解析表达式生成的函数空间来逼近偏微分方程的解
+   evidence：将潜变量参数化为控制偏微分方程的系数和源项
+4. [A Machine-Learned Symbolic Committor for a Chemical Reaction: Retinal Isomerization](/202604/28/2604.24245v1-a-machine-learned-symbolic-committor-for-a-chemical-reaction-retinal-isomerization)  
+   标签：评分：8.0/10、query:sr-alg
+   evidence：学习化学反应机制的符号转换函数
 
 ### 速读区论文标签
-1. [To See the Unseen: on the Generalization Ability of Transformers in Symbolic Reasoning](/202604/27/2604.21632v1-to-see-the-unseen-on-the-generalization-ability-of-transformers-in-symbolic-reasoning)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：用于抽象符号推理的Transformer模型
-2. [Transferable Physics-Informed Representations via Closed-Form Head Adaptation](/202604/27/2604.21761v1-transferable-physics-informed-representations-via-closed-form-head-adaptation)  
+1. [A neural operator framework for data-driven discovery of stability and receptivity in physical systems](/202604/28/2604.19465v2-a-neural-operator-framework-for-data-driven-discovery-of-stability-and-receptivity-in-physical-systems)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：将物理定律融入神经网络以求解偏微分方程
-3. [Ablation and the Meno: Tools for Empirical Metamathematics](/202604/27/2604.22519v1-ablation-and-the-meno-tools-for-empirical-metamathematics)  
+   evidence：无需控制方程的物理系统属性数据驱动发现
+2. [Physics-Guided Dimension Reduction for Simulation-Free Operator Learning of Stiff Differential-Algebraic Systems](/202604/28/2604.19930v2-physics-guided-dimension-reduction-for-simulation-free-operator-learning-of-stiff-differential-algebraic-systems)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：微分代数系统的物理信息算子学习
+3. [FormalScience: Scalable Human-in-the-Loop Autoformalisation of Science with Agentic Code Generation in Lean](/202604/28/2604.23002v1-formalscience-scalable-human-in-the-loop-autoformalisation-of-science-with-agentic-code-generation-in-lean)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于证明定理和探索数学创造力的自动形式化工具
-4. [From Natural Language to Executable Narsese: A Neuro-Symbolic Benchmark and Pipeline for Reasoning with NARS](/202604/27/2604.18873v1-from-natural-language-to-executable-narsese-a-neuro-symbolic-benchmark-and-pipeline-for-reasoning-with-nars)  
+   evidence：科学和数学推理的自动形式化代码生成
+4. [In-context modeling as a retrain-free paradigm for foundation models in computational science](/202604/28/2604.23098v1-in-context-modeling-as-a-retrain-free-paradigm-for-foundation-models-in-computational-science)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：利用控制方程直接从观测场推断物理关系
+5. [Explicit integral representations and quantitative bounds for two-layer ReLU networks](/202604/28/2604.23260v1-explicit-integral-representations-and-quantitative-bounds-for-two-layer-relu-networks)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：用于表示多元多项式的神经网络架构
+6. [Hamiltonian Graph Inference Networks: Joint structure discovery and dynamics prediction for lattice Hamiltonian systems from trajectory data](/202604/28/2604.23606v1-hamiltonian-graph-inference-networks-joint-structure-discovery-and-dynamics-prediction-for-lattice-hamiltonian-systems-from-trajectory-data)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：从数据中发现哈密顿动力学和相互作用图
+7. [Independent Sets and Continued Fractions](/202604/28/2604.19094v1-independent-sets-and-continued-fractions)  
    标签：评分：6.0/10、query:math-ai
-   evidence：将语言翻译为形式化表示的神经符号框架
-5. [Discovering a Shared Logical Subspace: Steering LLM Logical Reasoning via Alignment of Natural-Language and Symbolic Views](/202604/27/2604.19716v1-discovering-a-shared-logical-subspace-steering-llm-logical-reasoning-via-alignment-of-natural-language-and-symbolic-views)  
+   evidence：图论与连分数理论之间的联系
+8. [Combinatorial Geometry of Erdős--Szekeres Type Problems: SAT/ASP Modeling and Linear Subreduction](/202604/28/2604.20120v1-combinatorial-geometry-of-erds--szekeres-type-problems-satasp-modeling-and-linear-subreduction)  
    标签：评分：6.0/10、query:math-ai
-   evidence：对齐LLM中推理的自然语言和符号视图
-6. [Bootstrapping Post-training Signals for Open-ended Tasks via Rubric-based Self-play on Pre-training Text](/202604/27/2604.20051v1-bootstrapping-post-training-signals-for-open-ended-tasks-via-rubric-based-self-play-on-pre-training-text)  
+   evidence：用于发现几何配置和恒等式的计算框架
+9. [Process Supervision of Confidence Margin for Calibrated LLM Reasoning](/202604/28/2604.23333v1-process-supervision-of-confidence-margin-for-calibrated-llm-reasoning)  
    标签：评分：6.0/10、query:math-ai
-   evidence：针对数学等可验证任务的强化学习
-7. [Temporally Extended Mixture-of-Experts Models](/202604/27/2604.20156v1-temporally-extended-mixture-of-experts-models)  
+   evidence：强化学习用于改进大模型的数学推理能力
+10. [Constraint-Based Analysis of Reasoning Shortcuts in Neurosymbolic Learning](/202604/28/2604.23377v1-constraint-based-analysis-of-reasoning-shortcuts-in-neurosymbolic-learning)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于MoE模型的强化学习及在MATH基准上的表现
-8. [ParetoSlider: Diffusion Models Post-Training for Continuous Reward Control](/202604/27/2604.20816v1-paretoslider-diffusion-models-post-training-for-continuous-reward-control)  
+   evidence：神经符号学习与概念映射中的逻辑约束
+11. [IRIS: Interleaved Reinforcement with Incremental Staged Curriculum for Cross-Lingual Mathematical Reasoning](/202604/28/2604.24114v1-iris-interleaved-reinforcement-with-incremental-staged-curriculum-for-cross-lingual-mathematical-reasoning)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：用于复杂数学推理和逐步引导的强化学习
+12. [Information bottleneck for learning the phase space of dynamics from high-dimensional experimental data](/202604/28/2604.24662v1-information-bottleneck-for-learning-the-phase-space-of-dynamics-from-high-dimensional-experimental-data)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：用于平衡冲突目标和帕累托前沿的多目标强化学习
-9. [Incentivizing Neuro-symbolic Language-based Reasoning in VLMs via Reinforcement Learning](/202604/27/2604.22062v1-incentivizing-neuro-symbolic-language-based-reasoning-in-vlms-via-reinforcement-learning)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：用于思维系统的神经符号推理和强化学习
-10. [Characterizing LTL Formulas by Examples](/202604/27/2604.22097v1-characterizing-ltl-formulas-by-examples)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：使用有限标记示例集表征线性时序逻辑公式
-11. [Multiple Mellin-Barnes integrals in Schwinger-DeWitt technique](/202604/27/2604.22299v1-multiple-mellin-barnes-integrals-in-schwinger-dewitt-technique)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：积分核与超几何类型函数的级数表示
+   evidence：从物理数据中学习动力学相空间
 
 
 <div class="dpr-home-promo-card">

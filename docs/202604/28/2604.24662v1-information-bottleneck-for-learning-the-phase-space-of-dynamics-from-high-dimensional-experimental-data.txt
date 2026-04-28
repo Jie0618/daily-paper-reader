@@ -1,0 +1,432 @@
+Title: Information bottleneck for learning the phase space of dynamics from high-dimensional experimental data
+
+URL Source: https://arxiv.org/pdf/2604.24662v1
+
+Published Time: Tue, 28 Apr 2026 02:22:30 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+# Information bottleneck for learning the phase space of dynamics from high-dimensional experimental data 
+
+K. Michael Martini, 1, 2, ∗ Eslam Abdelaleem, 1, † Paarth Gulati, 1, 2 and Ilya Nemenman 1, 2, 3, ‡
+
+> 1
+
+Department of Physics, Emory University, Atlanta, GA, USA 
+
+> 2
+
+Initiative in Theory and Modeling of Living Systems, Emory University, Atlanta, GA, USA 
+
+> 3
+
+Department of Biology, Emory University, Atlanta, GA, USA 
+
+Identifying the dynamical state variables of a system from high-dimensional observations is a central problem across physical sciences. The challenge is that the state variables are not directly observable and must be inferred from raw high-dimensional data without supervision. Here we intro-duce DySIB ( Dy namical Symmetric Information Bottleneck) as a method to learn low-dimensional representations of time-series data by maximizing predictive mutual information between past and future observation windows while penalizing representation complexity. This objective operates entirely in latent space and avoids reconstruction of the observations. We apply DySIB to an ex-perimental video dataset of a physical pendulum, where the underlying state space is known. The method, with hyperparameters of the learning architecture set self-consistently by the data, recovers a two-dimensional representation that matches the dimensionality, topology, and geometry of the pendulum phase space, with the learned coordinates aligning smoothly with the canonical angle and angular velocity. These results demonstrate, on a well-characterized experimental system, that predictive information in latent space can be used to recover interpretable dynamical coordinates directly from high-dimensional data. 
+
+I. INTRODUCTION 
+
+Many natural and synthetic dynamical systems are governed by a small number of state variables. For ex-ample, the state of a physical pendulum is fully speci-fied by its angle and angular velocity; a neural action potential can be modeled by the membrane voltage and the gating states of just a few ion channels [1]; collec-tive behavior in inanimate matter and in animal flocks is organized by a small number of slowly varying collec-tive modes [2–4]. The dynamics remain low-dimensional even when observed through high-dimensional, partially redundant measurements, such as the sequence of video images formed on our retina or on a CCD camera when watching the pendulum or the flock. Detecting these low-dimensional variables in high-dimensional data, and understanding how they govern each other’s dynamics, is one of the central problems of theoretical physics. The field has developed a powerful set of tools for this task, exploiting symmetries, local-ity, separation of scales, and the resulting hierarchy of effective theories. The Landau program, in particular, identifies the slow collective modes of a system as order parameters derived from broken symmetries, and writes equations of motion directly in terms of those modes. This approach, however, requires locality, symmetries and conservation laws known a priori , often augmented by physical intuition about which scales matter. For sys-tems where these symmetries and locality do not exist     
+
+> ∗Equal Contribution
+> †Equal Contribution; Currently: Schools of Physics and Psychol-ogy, Georgia Institute of Technology, Atlanta, GA, USA
+> ‡Corresponding author: ilya.nemenman@emory.edu
+
+or are not known, such as gene-regulatory networks, an-imal behavior, or raw video of physical experiments, a data-driven approach to identify the effective variables is required. With the advent of modern AI, where the same low-dimensional variables that describe a system (known in the AI-speak as latent representations or embeddings) underpin nearly all applications, one can dream of an ap-proach in which AI itself is used to “learn new physics” from raw data [5–8], including the detection of physi-cally meaningful, low-dimensional, interpretable repre-sentations of the systems of interest [9–17]. A multitude of AI approaches have indeed been tried. The best-known ones tackle a somewhat orthogonal prob-lem: starting from approximately correctly identified low-dimensional state variables, they focus on detecting dynamical relations among them [18–24]. A second large class of approaches uses autoencoders [25–30]. A low-dimensional latent representation is enforced, while re-quiring that the original data can be reconstructed from it with minimal error, and dynamical relations are then sought between these latent representations of pasts and futures. However, the information needed to reconstruct the original data does not have to coincide with the infor-mation relevant to the dynamics. Thus, such approaches often preserve all salient variation in their embeddings, including variability with little relation to the dynamics. Modern AI has focused on prediction instead of auto-reconstruction, chiefly through autoregressive generative modeling [31, 32]. Here, a latent representation is built to predict the next state of the system in the data space—for example, generating the next frame of the high-dimensional movie that captures the dynamics, or the next snapshot of a forecast weather field [33]. In the linear setting, focusing on prediction rather than auto-reconstruction sometimes lowers the data require-ments [34–37], and one could hope for similar results in 
+
+> arXiv:2604.24662v1 [physics.data-an] 27 Apr 2026
+
+2nonlinear cases as well, so that predicting the future may be easier than reconstructing the now. This pivot to time series prediction makes AI a lot more relevant to phys-ical sciences, and yet the goals of generative AI remain fundamentally different from what physical modeling re-quires. Indeed, Newton’s laws do not predict the next video frame but the future of the latent variables describ-ing it, namely position and velocity of a particle in that frame. In other words, physical understanding lives in the latent space, and the dynamics it describes must op-erate there directly [38–40]. Under some conditions, such latent-prediction models, even nonlinear ones, are prov-ably more sample-efficient than data-space-based genera-tive ones, since they need only enough data to sample the much lower-dimensional latent space [41, 42]. Nonethe-less, adoption of latent-space predictive approaches for modeling dynamics in the AI community has been slow. Where they have been adopted successfully [39, 40, 43– 46], the focus has rarely been on low-dimensional, phys-ically interpretable embeddings. Further, models emerg-ing from the AI community often learn past-to-future maps that do not preserve the differential structure of physical dynamics, where the change in the state vari-ables over a short time interval must remain small. Overall, this suggests that the problem of using high-dimensional experimental measurements (e.g., videos) to learn low-dimensional embeddings that are predic-tive of their own temporal evolution, and hence are interpretable as the phase-space coordinates of physi-cal dynamical systems, remains unsolved. In this pa-per, we propose and validate a solution to this prob-lem, building on a principled framework for constructing information-theoretic loss functions for AI applications, the Deep Variational Multivariate Information Bottle-neck [47]. Extending the well-known Information Bot-tleneck construction [48, 49], we ask to compress the rep-resentation of the high-dimensional vector describing the current state of a dynamical system in such a way that small, nearly differential, changes to it make it maximally informative, and hence predictive, of the similarly (aka, symmetrically) compressed future state of the system. In other words, the entire prediction is forced to live in the latent representation space, as it typically does in physics. We call our approach DySIB ( Dy namical 
+
+Symmetric Information Bottleneck). To test our approach, we apply it to a real-world, low-resolution video of a physical pendulum from [29], where the known physics allows for an easy interpretation of the results. DySIB, with all of its tunable parameters set self-consistently by the data, recovers a two-dimensional representation with a meaningful phase-space structure, easily interpretable as “correct” by anyone with an in-troductory physics course under their belt. The learning of this low-dimensional phase space is possible with very small datasets and with far fewer neural-network (NN) parameters than competing approaches, demonstrating the power of encoding physical inductive biases into the AI architecture. The rest of the paper is organized as follows. In Sec. II we review the theory behind our approach, introduce DySIB, and describe its computational implementation. In Sec. III we present results on the pendulum dataset. Finally, in Sec. IV we discuss limitations of our approach, and speculate on how it can be applied to other systems to learn new physics, rather than to recreate the known one.   
+
+> II. DySIB: Dynamical Symmetric Information Bottleneck A. Background: Information Bottleneck and its symmetric variant
+
+The Information Bottleneck (IB) [48] formalizes the search for a compressed latent representation that pre-serves what matters and discards what does not. Given a high-dimensional signal X and a supervising (aka, rel-evance ) variable Y , one seeks a representation of the sig-nal, Z, that is informative about Y while retaining as little information about X as possible. This is achieved by minimizing the loss 
+
+LIB = I(X; Z) − β I (Z; Y ), (1) where I(A; B) denotes the mutual information between A
+
+and B [50], and the trade-off parameter β sets the balance between the compression and the preservation of relevant information. In the limit β → ∞ , Z becomes a sufficient statistic of X for Y . Since the data processing inequality implies I(Z; Y ) ≤ I(Z; X), the construction provides a natural measure of how close the latent representation is to capturing all the relevant information available in the signal. Real-world data are often multimodal, with several ob-served variables X1, X 2, . . . each carrying partly overlap-ping information about the system of interest. The Mul-tivariate Information Bottleneck (MIB) [51] encodes this structure in two Bayesian networks. An encoder graph specifies the statistical dependencies by which latent vari-ables compress the observations, and a decoder graph specifies which of those compressed representations the latent variables are required to preserve. Writing the multiinformation [52] of each graph, Igraph , as a sum of mutual informations between each child node in the graph and the union of all of its parent nodes, the MIB loss takes the form 
+
+LMIB = Iencoder − β I decoder , (2) which generalizes Eq. (1) to arbitrary patterns of com-pression and relevance relations [51]. The Symmetric Information Bottleneck (SIB) is the special case of MIB in which two observed variables X
+
+and Y are themselves both high-dimensional, such as the past and the future of large-dimensional observations of a dynamical system, and must be compressed symmetri-cally, though not necessarily equally. The encoder graph 3maps X → ZX and Y → ZY via two independent com-pressions, and the decoder graph requires ZX and ZY
+
+to be maximally informative about each other, thus pre-serving the mutual information in the latent space. The associated loss is 
+
+LSIB = I(X; ZX ) + I(Y ; ZY ) − β I (ZX ; ZY ). (3) Formal recursive solutions for the optimal p(z|x) in IB, and for p(zx|x), p (zy |y) in SIB, are known [48, 51], but computing them in practice is hard and typically requires variational assumptions about the structure of these dis-tributions [53]. As a result, the IB family of approaches became useful in high-dimensional, real-world problems only with the advent of deep neural networks (DNNs). 
+
+B. Background: Deep Variational SIB 
+
+The Deep Variational Symmetric Information Bottle-neck (DVSIB) [47] is a DNN-based variational implemen-tation of Eq. (3). The latent variables are obtained us-ing variational encoders, qX (zx|x) and qY (zy |y), each im-plemented by a DNN. Training optimizes the usual ev-idence lower bound (ELBO) [49, 53, 54], which is tight when the variational posteriors qX (zx|x) and qY (zy |y)approximate the true posteriors p(zx|x) and p(zy |y) im-plied by the data, and the variational priors used for zx
+
+and zy approximate the corresponding latent marginals. We parametrize these variational encoders as Gaussians with trainable means μX (x), μ Y (y) and log-variances 
+
+ℓX (x), ℓ Y (y) such that 
+
+qX (zx|x) = N (μX (x), diag(exp( ℓX (x)))) ,qY (zy |y) = N (μY (y), diag(exp( ℓY (y)))) . (4) Whenever during the optimization or inference one needs to produce samples in the latent spaces, zx and zy , these are then drawn from these variational posteriors using the usual reparameterization trick [54]. The DVSIB objective is then given by: 
+
+LDVSIB = ˜IE (X; ZX ) + ˜IE (Y ; ZY ) − β ˜ID (ZX ; ZY ), (5) where the first two terms are variational upper bounds on the mutual information I(X; ZX ) and I(Y ; ZY ), and are implemented as a KL divergence between the varia-tional posterior and a standard normal prior (see App. B for an extended discussion). The third term is a varia-tional lower bound on the mutual information between 
+
+ZX and ZY . The superscripts E, D follow the DVSIB nomenclature distinguishing the encoder-side (compres-sion) term(s) from the decoder-side (predictive) term(s), respectively. In practice, the decoder term can be implemented by many different mutual information estimators, as dis-cussed in [55]. We use the InfoNCE estimator [43], which contrasts matched (zx, z y ) pairs against mismatched pairs. Throughout, no reconstruction of X and Y is used 
+
+X = {Ft, . . . , F t+nF −1}
+
+[Φ( Ft), . . . , Φ( Ft+nF −1)] 
+
+μ(x) ℓ(x)
+
+ZX ∼ q(z|x)   
+
+> Φ
+> ΨμΨℓ
+> ϵ∼ N (0 , I )
+
+Y = {Ft+nF , . . . , F t+2 nF −1}
+
+[Φ( Ft+nF ), . . . , Φ( Ft+2 nF −1)] 
+
+μ(y) ℓ(y)
+
+ZY ∼ q(z|y)   
+
+> Φ
+> ΨμΨℓ
+> ϵ∼ N (0 , I )
+
+InfoNCE estimator ˜INCE (ZX ; ZY )
+
+> δ-predictor
+
+FIG. 1. DySIB architecture , where boxes represent vari-ables and intermediate quantities, dashed arrows represent sampling, and arrows represent trainable functions imple-mented via NNs. A video is segmented into a past window 
+
+X and a future window Y of nF frames each. Each frame is processed by a shared encoder Φ; the per-frame embed-dings are concatenated into a delayed embedding and passed through NNs Ψ μ and Ψ ℓ that produce the mean μ(·) and log-variance ℓ(·) of a Gaussian posterior q(z|· ), from which ZX
+
+and ZY are sampled via the reparameterization trick. The weights in the entire shaded block are shared between past and future. A δ-predictor maps zx to a Gaussian predictive distribution r(zy |zx) = N (zx +μδ (zx), diag(exp( ℓδ (zx)))), pa-rameterizing latent dynamics as residual increments. This predictive distribution serves as the critic for the InfoNCE mutual information estimator. DySIB minimizes LDySIB =˜IE (X; ZX ) + ˜IE (Y ; ZY ) − β ˜INCE (ZX ; ZY ), trading compres-sion against predictive information, the latter entirely in la-tent space. 
+
+and the objective is defined entirely in terms of the en-coders and the latent variables, so that the entire training and subsequent inference stays in the latent space, par-alleling JEPA approaches [39, 40]. The tradeoff parameter β controls the weighting of compression terms relative to the relevant information preserving term in the latent space. Another similar tradeoff parameter is the dimensionality of the latent spaces (in principle, dim ( zx) and dim ( zy ) need not be the same, though we set them equal in what follows): a larger embedding dimensionality typically allows the model to preserve more information, and a smaller di-mensionality enforces stronger compression. When the dimensionality, the variational form of the compression, and the estimator for the information in the decoder graph are specified, the DVSIB problem becomes a stan-dard deep-learning training problem. In it, the two en-coders qX and qY have independent parameters, and they are optimized jointly, end-to-end, together with the NN that estimates the mutual information I(ZX ; ZY ) in the latent space [47]. 4 
+
+> C. DySIB: adapting DVSIB to dynamical systems
+
+To apply DVSIB to dynamical systems, we construct paired variables X and Y from past and future segments of high-dimensional trajectories (video recordings). The DVSIB objective is applied to these variables, with ZX
+
+and ZY representing latent descriptions of the past and the future. To incorporate appropriate inductive biases, we impose a few structural constraints on the involved NNs (see Fig. 1), described in detail below; two of them are particularly important. First, since the same latent variables are expected to describe the system in the past and in the future (approximate time-translation invari-ance), we tie the encoders: the distributions q(zx|x) and 
+
+q(zy |y) share parameters and are implemented by the same DNN. Second, to respect the differential structure of physical dynamics, we implement a δ-predictor, a small change in the embedding of the past that makes it max-imally informative about the immediate future.  
+
+> 1. Delayed embeddings and the shared encoder
+
+We start with observations of a dynamical system as a sequence of high-dimensional frames (for example, image frames of a video) {F1, F 2, · · · } , with each frame Ft ∈
+
+RD , where D is the dimensionality of the observation space. At each time t, we construct a pair of variables by taking consecutive segments of this trajectory in the observation space. We define a past window X and a future window Y :
+
+X = {Ft, F t+1 , · · · , F t+nF −1} ,Y = {Ft+nF , · · · , F t+2 nF −1} , (6) each consisting of nF consecutive frames. Using multiple frames is necessary because a single frame typically does not determine the full state of the system. For example, quantities such as velocity or acceleration cannot be in-ferred from a measurement at a single time point. Includ-ing a short temporal window provides enough context to resolve these variables, and is analogous to a standard delayed embedding of the dynamics [56]. The dynamics we want to study are approximately time-translation invariant, so that the latent description of a frame should not depend on when the frame oc-curs. Thus, each frame Ft is mapped by a shared en-coder Φ : RD → RdF into its own latent representation, where dF is the per-frame embedding dimension. Φ is an NN whose specific architecture depends on the prob-lem. For a window X, this produces a sequence of vectors Φ( Ft), · · · , Φ( Ft+nF −1), which we concatenate to form a representation of the past window in RnF dF . The same construction is applied to the future window Y .From this concatenated vector we define a distribution over a latent variable Z ∈ Rkz . Here kz is the (bottle-neck) dimension of the latent representation. In what follows, we will vary both kz and nF , and we will show how to use this variation to determine the dimensional-ity and temporal order of the underlying dynamics from data. We parameterize this posterior distribution as a di-agonal Gaussian, specified by its mean and log-variance 
+
+μ(x), ℓ (x) : RnF dF → Rkz , such that 
+
+q(zx|x) = N (μ(x), diag(exp( ℓ(x)))) , (7) and similarly for q(zy |y) with μ(y) and ℓ(y) (see Fig. 1). The means and the log-variances are produced by NNs Ψμ and Ψ ℓ acting on the nF dF -dimensional embedding. As with Φ, the specific architecture should depend on the problem. Finally, insisting now on approximate past-future sym-metry, we use the same per-frame encoder Φ and poste-rior parametrization μ, ℓ for both the past X and the future Y . As a result, the past and the future are rep-resented in the same latent coordinates, so that our ap-proach now has an opportunity to discover the dynamics of the compressed representations of the system in the latent space.  
+
+> 2. δ-predictor and DySIB objective
+
+We are ultimately interested in physical systems whose dynamics can be expressed by ordinary or, in principle, partial differential equations. The laws governing such systems describe rates of change, so that a future state is well approximated by a small differential update to the present [57]. Typical predictive latent-space methods, such as JEPA [39, 40] and information-theoretic dimen-sionality reduction [44], learn a flexible map between an arbitrary past and an arbitrary future, without exploit-ing this differential structure. However, when the past and future windows are separated by a short time inter-val, the future latent zy is expected to be close to the past latent zx, so it is natural (and likely simpler) to model the increment. We encode this physical inductive bias directly into the architecture and phrase prediction as the construction of a small differential update of the past latent variable. Specifically, given a past latent variable zx, we define a conditional distribution over the future latent variable zy ,parameterized by an NN we refer to as the δ-predictor. The δ-predictor is an NN, whose specific architecture again is dictated by the structure of the problem. It takes 
+
+zx as input and outputs both a mean and a log-variance of the increment, 
+
+μδ (zx), ℓ δ (zx) ∈ Rkz . (8) Our predicted future mean is then 
+
+zpred  
+
+> y
+
+= zx + μδ (zx), (9) and the overall conditional distribution of the future given the past is 
+
+r(zy | zx) = N  zpred  
+
+> y
+
+, diag(exp( ℓδ (zx)))  , (10) 5
+
+FIG. 2. Ground truth and learned phase space of the pendulum. (A) Cartesian phase space: angular velocity ω vs. angle θ for all 1200 trajectories. (B) The same trajectories in the polar projection ( θ as polar angle, ω + c as radius for a fixed offset c), which accounts for the periodic nature of θ (see Fig. S1 for the geometric construction). (C) The two-dimensional latent space learned by DySIB ( kz = 2, nF = 2, training N = 1000). The learned latent space closely matches the polar projection, up to a rotation and reflection, recovering the correct phase space structure without supervision. 
+
+Note that this structure parallels the residual connections used in deep neural networks [58]. Thus, in addition to encoding the physical inductive bias of differential dy-namics, it is also expected to simplify the training of our relatively complex, inhomogeneous architecture. This conditional distribution defines the critic for an InfoNCE estimator of the mutual information I(ZX ; ZY )between past and future latents, with the residual struc-ture zx + μδ (zx) entering through the critic. This is the quantity we want to maximize. For a pair of observations (i, j ), the critic is the log-likelihood of the future latent of the jth datum given the past latent of the ith datum, i.e., 
+
+s(zx,i , z y,j ) = log r(zy,j | zx,i ),
+
+= − 12
+
+> kz
+
+X
+
+> d=1
+
+
+
+zy,j,d − zpred 
+
+> y,i,d
+
+2
+
+exp( ℓδ,d (zx,i )) + ℓδ,d (zx,i ) + log 2 π
+
+ ,
+
+(11) where zpred  
+
+> y,i
+
+= zx,i + μδ (zx,i ) and d indexes latent dimen-sions. Overall, the latent predictive information estima-tor is then ˜INCE (ZX ; ZY ) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+log es(zx,i ,z y,i )1
+
+> N
+
+PNj=1 es(zx,i ,z y,j )
+
+!
+
+(12) which compares matched pairs ( zx,i , z y,i ) to mismatched pairs ( zx,i , z y,j ̸ =i) within the batch. The full objective for DySIB is then 
+
+LDySIB = ˜IE (X; ZX ) + ˜IE (Y ; ZY ) − β ˜INCE (ZX ; ZY ),
+
+(13) where ˜INCE is the InfoNCE instantiation of the general ˜ID term in Eq. (5), and ˜IE (X; ZX ) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+DKL (q(zx | xi) ∥ N (0 , I )) , (14) and similarly for ˜IE (Y ; ZY ). The parameter β sets the relative weight of the predictive term and the KL penalty. Throughout, we fix a sufficiently large β = 100 so that the objective is primarily predictive in the latent space, and the dimensionality of the latent variables (which we show later how to choose self-consistently) is the primary regularizer, while the KL penalty terms act only as a weak regularization [47]. The full DySIB architecture, combining the shared en-coder, the δ-predictor, and the InfoNCE estimator, is summarized in Fig. 1. 
+
+III. RECONSTRUCTING THE PHASE SPACE OF A PENDULUM A. Data and neural architecture 
+
+We apply DySIB to the dataset of experimental video recordings of a rigid rod pendulum from [29]. The origi-nal 128 × 128 RGB images are downsampled to 28 × 28 grayscale frames, Ft ∈ RD with D = 784. Each video consists of 60 frames sampled at 1 /60 s, covering exactly 1 s of motion, or about 0 .86 of one small-angle oscillation period ( T ≈ 1.16 s). The dataset comprises 1200 tra-jectories spanning a range of initial conditions, including both small-angle oscillations and full rotations. The state of the pendulum, which the videos display, is completely specified by its angle θ and angular velocity ω,corresponding to a two-dimensional phase space for the dynamical system (Fig. 2A). The coordinate θ is periodic with period 2 π, giving the phase space the topology of 6a cylinder, with θ as the angular coordinate and ω as the axial coordinate (see Fig. S1 for an illustration of the cylinder). Our variational embeddings are expected to map the latent variables into marginal distributions that are ap-proximately standard normal, since the encoder KL term pulls them toward N (0 , I ). Thus, to facilitate compari-son with the trained representation, we map the cylindri-cal phase space to a plane by taking θ as the polar angle and ω + c as the radius, for a fixed offset c (Fig. 2B; cf. Fig. S1). The two fixed points of the system, the sta-ble equilibrium at ( θ, ω ) = (0 , 0) and the unstable equi-librium at ( θ, ω ) = ( π, 0), are marked with stars in the figures. In this representation, positive angular velocities map to radii larger than c and negative angular velocities to radii smaller than c, so they lie radially on opposite sides of the stable-equilibrium star. Values of ω outside the data range leave an empty outer region (large positive 
+
+ω) and an unoccupied inner hole (large negative ω). Full rotations with negative ω trace loops that wind around the hole, full rotations with positive ω wind around the hole and the rest of the phase space in the opposite di-rection, and small oscillations form closed banana-like curves near the stable fixed point. Ground-truth annotations for θ, ω, and the energies are available for each frame but are not used during training; the method is fully self-supervised. To assess the correct-ness of the learned representations, we train probe net-works on top of the frozen DySIB encoder that map the latent code z to ground-truth physical quantities such as 
+
+θ and ω (see App. A 3). We use up to 1000 trajectories for training and 200 for held-out testing. For this dataset, we make the following architectural choices. The frame encoder Φ is a three-layer fully con-nected multi-layer perceptron (MLP) with hidden width 256 and ReLU activations. The heads Ψ μ and Ψ ℓ that produce the mean and log-variance of q(z|x) are taken to be parallel linear maps Wμ and Wℓ; for this simple prob-lem, linear heads already produce nearly perfect results. The δ-predictor is a three-layer fully connected MLP with hidden width 64 and ReLU activations. In more com-plex scenarios, or for longer temporal context nF , linear heads can become limiting; replacing them with deeper, non-linear Ψ may then be necessary to preserve predic-tive information and to scale to larger temporal windows. Full implementation details are in App. A 1. For each parameter value, we report the run with the highest test mutual information across ten independent seeds [55, 59]. This protocol filters out trials in which stochastic optimization failed to find a good local op-timum, so that the reported numbers reflect what the architecture and objective can deliver. All mutual in-formation and prober errors are computed on a held-out test set of 200 trajectories. Prober errors in all panels correspond to this selected run.                     
+
+> FIG. 3. Mutual information selects the latent dimen-sion. (A) MI (bits) as a function of latent dimension kzwith
+> nF= 2 frames and N= 1000 training videos. MI saturates with no resolvable gain beyond kz= 2, consistent with the two degrees of freedom of the pendulum. Opaque markers show the run with highest test MI across ten independent seeds; faded markers show the remaining trials. (B) Angle prober RMSE (degrees) vs. kz.(C) Angular velocity prober RMSE (degrees/s) vs. kz. Both prober errors drop sharply at
+> kz= 2 and then plateau.
+> B. Self-consistent selection of the latent dimensionality and the temporal window
+
+The objective in Eq. (13) depends on the latent dimen-sion kz and the number of frames nF , which we can de-termine self-consistently by examining how the estimated mutual information ˜INCE (ZX ; ZY ) varies with each. By the data processing inequality, ˜INCE (ZX ; ZY ) sat-urates from below at I(X; Y ) once kz is large enough to capture the dynamics, so we take the smallest kz at which further increments fall within the InfoNCE error bars (computed as in [55, 59]) as the latent dimensional-ity. For the pendulum the saturation at kz = 2 is sharp enough to read off by eye (Fig. 3), consistent with the two-dimensional phase space of the system. This is sup-ported by the probes: both θ and ω are accurately re-covered at kz = 2, while kz = 1 is insufficient to encode either accurately. We apply the same procedure to determining the cor-rect temporal window nF (Fig. 4). As nF increases, the estimated mutual information increases and peaks at nF = 2, with a decline for larger values entirely due to the increasing difficulty of mutual-information estima-tion as the dimensionality of X grows with nF [55]. The probes show that the angle θ is already recovered accu-rately with nF = 1, since a single frame determines the position, but the angular velocity ω is not, and it requires at least two frames to resolve. We also vary the number of training trajectories N at fixed kz = 2 and nF = 2. The estimated mutual in-formation increases with N , while probe errors decrease, 7                                  
+
+> FIG. 4. Mutual information selects the temporal order of the dynamics. (A) MI (bits) as a function of number of frames nFwith kz= 2 and N= 1000. MI peaks at nF= 2 with a decay for larger nFvalues, due to the MI estimation becoming harder as the dimensionality of Xand Ygrow as
+> nF×Dwhile we keep the same architecture and number of samples. Opaque markers show the run with highest test MI across ten independent seeds; faded markers show the remain-ing trials. (B) Angle prober RMSE vs. nF: error is already minimal at nF= 1, as a single frame can accurately recover the angle θ.(C) Angular velocity prober RMSE vs. nF: er-ror is large at nF= 1 and drops sharply at nF= 2, since resolving velocity requires at least two frames.
+
+with both θ and ω recovered accurately using only a frac-tion of the full dataset (Fig. 5). This is consistent with prior work showing that mutual-information-based objec-tives that operate in the low-dimensional latent represen-tations can capture predictive structure from relatively small datasets [55, 59]. Finally, we find that using a latent dimension larger than necessary does not change the effective dimension-ality of the learned representation, but substantially re-duces variability across trials (see Fig. S3), similar to the observation in [59]. In practice, we can therefore choose kz > 2. The learned representation remains in-trinsically two-dimensional, embedded in a slightly larger latent space, and the probes continue to recover θ and ω
+
+with the same or even improved accuracy across all trials.  
+
+> C. Structure in the latent space
+
+We examine the structure of the learned two-dimensional latent space by embedding all trajectories (Fig. 2C) and coloring them by physical variables not used during training (Fig. 6). The angle θ varies smoothly as the angular coordinate, so that DySIB apparently learned the 2 π periodicity of the problem. The angular velocity ω varies along the ra-dial direction. Full rotations form closed loops around the origin, while small oscillations form loops around the stable fixed point. This matches the original polar rep-resentation of the pendulum phase space (Fig. 2B) up to global rotations, scaling, and local reparameterizations, consistent with the non-uniqueness of the learned repre-sentation up to smooth invertible transformations. The DySIB objective does not enforce any particular shape or orientation of the latent embedding: the predictive in-formation term is invariant under any smooth invertible transformation of the latent variables, and the Gaussian-prior compression constrains only the overall scale and center. That the learned embedding nonetheless repro-duces the textbook polar phase space, including the an-gular wrap, the radial separation of ω, and the correct locations of the two fixed points, all from raw video alone, is unexpected and is the central empirical result of this pa-per. As expected from the encoding of θ and ω, this structure extends to other labeled physical quantities (Fig. S2). Kinetic energy, which scales as ω2, follows the same radial organization. Potential energy, which de-pends on cos θ, follows the same angular structure. Sur-faces of approximately constant total energy align with the trajectories in latent space, consistent with approxi-mate energy conservation in the lightly damped pendu-lum dynamics over the 1 s observation window.                             
+
+> FIG. 5. Sample efficiency of DySIB (kz= 2, nF= 2).
+> (A) MI (bits) vs. number of training videos N(log scale). MI grows approximately as log 2N(dashed line), indicating that independent information scales with the number of distinct initial conditions rather than the total number of frame pairs. Opaque markers show the run with highest test MI across ten independent seeds; faded markers show the remaining trials.
+> (B) Angle prober RMSE (degrees) vs. N.Accurate recov-ery of θrequires only ∼16–32 videos. (C) Angular velocity prober RMSE (degrees/s) vs. N. Accurate recovery of ωre-quires only ∼256 videos.
+
+8                         
+
+> FIG. 6. The learned latent space encodes physical variables. All trajectories embedded in the learned two-dimensional DySIB latent space ( kz= 2, nF= 2, N= 1000), colored by (A) angle θand (B) angular velocity ω, whose val-ues were not used in training. The smooth, globally consistent colorings show that θcorresponds to the angular coordinate in latent space and ωto the radial coordinate, consistent with the polar phase space structure. Embeddings colored by ki-netic energy, potential energy, and total energy are shown in Fig. S2, confirming that the full physical state is encoded in the two-dimensional representation.
+> D. Long-term forecasting
+
+Predictability does not entail understanding, but un-derstanding does entail predictability: a representation that captures the dynamical state variables should sup-port stable integration over long times. We therefore use the δ-predictor as a sanity check on the learned coor-dinates. It defines a conditional distribution r(zy | zx)(Eq. (10)), which provides a stochastic update rule in the latent space and lets us propagate dynamics forward for long times from any initial condition. Starting from an initial latent z(0), we generate predicted latent trajecto-ries z(t) by iterating, for t = 0 , 1, 2, . . . ,
+
+z(t + 1) ∼ r( · | z(t)) . (15) The mean predicted increment μδ (z) defines a vec-tor field in the latent space (Fig. 7A, background quiver plot). The flow has the expected qualitative structure: trajectories orbit around the stable fixed point for os-cillatory motion and circulate around the origin for full rotations. Two fixed points are visible, corresponding to the stable equilibrium at ( θ, ω ) = (0 , 0) and the unstable equilibrium at ( θ, ω ) = ( π, 0). To evaluate long-term forecasting accuracy, we initial-ize rollouts from the true latent states of held-out trajec-tories and generate stochastic trajectories by sampling from r(zy | zx) at each step. A few representative trajec-tories and predictions are shown in Fig. 7A. We compare these rollouts to the ground-truth evolution over time (Fig. 7B,C) for all the trajectories in the test set. The RMS error is computed both in the learned space and in terms of the angular coordinate, using a trained an-gle prober. It grows approximately linearly with rollout length, yet the trajectories remain qualitatively consis-tent with the correct dynamics over many time steps.  
+
+> IV. DISCUSSION
+
+Recovering the dynamical state variables and equa-tions of motion of a system from observations is along-standing dream and an active research program at the interface of physics and dynamical systems the-ory [56, 60, 61]. In principle, classical methods es-tablished that a generic scalar time series, embedded in a delay-coordinate space of sufficient dimension, can reconstruct the topology of the underlying attractor. They also created tools for estimating embedding di-mension, Lyapunov spectra, and equations of motion directly from data [62–64]. In practice, however, none of this delivered at a meaningful scale until the advent of big data and large-scale computation. Even then, methodologies of applications to real experimental ob-servations have remained problem-specific and each one has required a hand-crafted set of candidate variables or a tuned function library to represent the dynam-ics [5, 9, 15, 18, 20, 65]. What has been missing is a generic, end-to-end procedure that, given only raw high-dimensional measurements of a system, recovers a low-dimensional, interpretable phase space and the dynam-ics on it. Here we propose such a procedure, validate it on an experimental rigid-rod pendulum, and recover the full phase-space structure, including its dimensional-ity, topology, and geometry, directly from the recorded video. Our work builds on the argument that the dynamics of a system is essentially captured by the mutual infor-mation between its past and future, articulated several decades ago [66–68]. What was missing was a practical way of turning this principle into a usable reconstruc-tion of the state space and the dynamics on it. We believe that DySIB closes that gap. It operationalizes past–future predictive information as a symmetric infor-mation bottleneck in which both the past and the future are compressed simultaneously, isolating the most com-pressed summary of the past that retains predictive infor-mation about the future. In the strict β → ∞ limit, this summary ZX is a sufficient statistic of the past for the future and is therefore, by definition, a dynamical state variable of the system. This recasts the search for effec-tive variables as a data-driven counterpart of the Lan-dau program. Where Landau identifies order parame-ters from broken symmetries, DySIB identifies them from the requirement that they predict their own future. The objective also connects to recent representation-learning work showing the value of latent prediction over recon-struction [39, 40, 69]. The same information-theoretic objective also yields a practical criterion for learning the dimensionality and temporal order of the dynamics. The estimated predic-tive information saturates with kz and peaks with nF
+
+once the latent space and the temporal window are large enough to capture the system’s intrinsic dynamics. For the pendulum, this happens at kz = 2 and nF = 2, the right answers given the two degrees of freedom of the sys-9                        
+
+> FIG. 7. Long-term latent dynamics and forecasting (kz= 2, nF= 2, N= 1000). (A) Learned vector field δ(zx) overlaid on the latent phase space. Three representative trajectories are shown: true (solid circles) and predicted mean via stochastic rollout (dashed squares), starting from the triangle marker; shaded regions show ±1 s.e. over stochastic samples. Yellow and red stars mark the stable, ( θ, ω )≈(0 ,0), and unstable, ( θ, ω )≈(π, 0), fixed points. (B) Latent RMSE as a function of rollout step, averaged over 40 stochastic rollouts; shaded band shows ±1 s.e. (C) Corresponding θRMSE in degrees. Errors accumulate approximately linearly, consistent with the accumulation of integration errors over long rollouts.
+
+tem and the requirement of at least two frames to resolve angular velocity. The agreement between the true and learned phase portraits (Fig. 2B,C) is structural, going well beyond vi-sual resemblance. Both portraits exhibit the same skele-ton: a stable equilibrium of oscillatory character, an un-stable saddle, separatrices that partition the plane into small-angle oscillations and full rotations, and an an-nular topology in which the two directions of rotation wind around a common inner hole. This arrangement is structurally stable [70] in that its qualitative form per-sists under any sufficiently small smooth perturbation of the vector field, dissipation included. The decodability of θ and ω from the latent (Sec. III C) further suggests that the correspondence is realized by a smooth change of coordinates, although we make no claims that peri-ods or conserved quantities were learned quantitatively correctly. What we do claim is that DySIB recovers the correct bifurcation structure, with the dynamical regimes embedded in their proper topological relation. The phase space of a dynamical system is itself de-fined only up to smooth invertible reparameterizations of its coordinates. The latent space recovered by DySIB inherits this gauge freedom: any smooth invertible trans-formation of ZX and ZY leaves the predictive mutual information I(ZX ; ZY ) unchanged. The Gaussian-prior compression terms partially fix the gauge by setting the overall scale and centering of the latent distribution, but they do not single out a unique representation. Even im-posing exact marginal Gaussianity leaves a large residual symmetry, the same indeterminacy that makes nonlinear ICA unidentifiable [71]. This makes it hard to compare two learned latent spaces directly. A method that learns the right dynamics may present them in coordinates that look very different from another method’s, or from those of another random seed of the same method. A canonical form into which any equivalent representation could be transformed would resolve this. One natural candidate, in the spirit of recent geometry-based reconstruction ap-proaches [72], is to diagonalize the linear part of the la-tent transition operator and order its eigenvalues, giving a normal-mode coordinate system. Whether this normal-mode form is enough in general, or whether a more flex-ible construction such as a normalizing flow [73] on top of the encoder is needed, remains open. In the present work, the probe networks substitute for a canonical form as the decodability of θ and ω from the latent confirms correctness in a representation-independent way. When the right physical coordinates are not known a priori, this falsifiability test is unavailable, and validation must come from out-of-distribution forecasting, internal consistency, or comparison with downstream symbolic-regression re-sults. Many of the architectural choices we made in this work are not essential to the underlying principle of selecting variables by their predictive content in the latent space .The δ-predictor encodes the physical expectation that consecutive latent states differ by a small increment, an inductive bias that clearly helps for the pendulum but that could be relaxed for systems whose dynamics are not naturally written as small differential updates. The linear projections from the concatenated frame embed-10 dings to the latent mean and log-variance worked well here only because the underlying dynamics are this sim-ple, and richer observations or longer temporal context would presumably demand deeper nonlinear maps. Our use of the InfoNCE lower bound on the predictive mu-tual information was likewise a matter of convenience: any other bound could be substituted without qualita-tively affecting what the method recovers. Our choice of the simple rigid-rod pendulum as an experimental validation of DySIB was deliberate: with ground-truth angle and angular velocity available for ev-ery frame, with deterministic and low-dimensional dy-namics, and with clean video, the pendulum is the sim-plest setting in which DySIB’s success or failure can be cleanly read off. Our point was to verify that the method recovers the right physics where we already know what right means. Even the video itself is forgiving in this ex-ample: 28 ×28 pixels are sufficient, performance degrades in our hands only below roughly 16 × 16 pixels, and res-olutions above 28 × 28 give no further improvement for this problem. The genuine tests of the principle, namely systems with strong noise, chaotic dynamics, or multi-scale separation, and ones where the dynamical state variables are not known a priori, are what must come next. Another next step should be to feed the learned latents into symbolic regression or sparse equation dis-covery [5, 18, 20, 24], closing the loop from raw obser-vations to interpretable equations of motion expressed in coordinates that the system itself selects. 
+
+V. ACKNOWLEDGMENTS 
+
+This work was funded, in part, by the Simons Foun-dation Investigator grant to IN and by the National Sci-ence Foundation Grant No. 2409416. PG was addition-ally funded by the Tarbutton Interdisciplinary Postdoc-toral Fellowship at the Emory College of Arts and Sci-ences. We acknowledge support of our work through the use of the HyPER C3 cluster of Emory Univer-sity’s AI.Humanity Initiative. IN is grateful to Kristofer Bouchard and Vincenzo Vitelli for illuminating discus-sions. 
+
+VI. CODE AVAILABILITY 
+
+The code to set up and train DySIB, as well as the analyzed data from trained runs to repro-duce all the figures in this paper is available at 
+
+https://github.com/paarthgulati/DYSIB Pendulum 
+
+[1] A. L. Hodgkin and A. F. Huxley, A quantitative descrip-tion of membrane current and its application to conduc-tion and excitation in nerve, The Journal of Physiology 
+
+117 , 500 (1952). [2] J. Toner and Y. Tu, Long-range order in a two-dimensional dynamical XY model: how birds fly to-gether, Physical Review Letters 75 , 4326 (1995). [3] N. Goldenfeld, Lectures on Phase Transitions and the Renormalization Group (CRC Press, 2018). [4] A. Cavagna, L. Di Carlo, I. Giardina, T. S. Grigera, S. Melillo, L. Parisi, G. Pisegna, and M. Scandolo, Natu-ral swarms in 3.99 dimensions, Nature Physics 19 , 1043 (2023). [5] B. C. Daniels, W. S. Ryu, and I. Nemenman, Automated, predictive, and interpretable inference of Caenorhabdi-tis elegans escape dynamics, Proceedings of the National Academy of Sciences 116 , 7226 (2019). [6] V. Bapst, T. Keck, A. Grabska-Barwinska, C. Donner, E. D. Cubuk, S. S. Schoenholz, A. Obika, A. W. R. Nel-son, T. Back, D. Hassabis, and P. Kohli, Unveiling the predictive power of static structure in glassy systems, Na-ture Physics 16 , 448 (2020). [7] M. S. Schmitt, J. Colen, S. Sala, J. Devany, S. Seethara-man, A. Caillier, M. L. Gardel, P. W. Oakes, and V. Vitelli, Machine learning interpretable models of cell mechanics from protein images, Cell 187 , 481 (2024). [8] W. Yu, E. Abdelaleem, I. Nemenman, and J. C. Burton, Physics-tailored machine learning reveals unexpected physics in dusty plasmas, Proceedings of the National Academy of Sciences 122 , e2505725122 (2025). [9] G. J. Stephens, B. Johnson-Kerner, W. Bialek, and W. S. Ryu, Dimensionality and dynamics in the behavior of 
+
+C. elegans , PLOS Computational Biology 4, e1000028 (2008). [10] J. P. Cunningham and B. M. Yu, Dimensionality re-duction for large-scale neural recordings, Nature Neuro-science 17 , 1500 (2014). [11] S. S. Schoenholz, E. D. Cubuk, D. M. Sussman, E. Kaxi-ras, and A. J. Liu, A structural approach to relaxation in glassy liquids, Nature Physics 12 , 469 (2016). [12] F. No´ e and C. Clementi, Collective variables for the study of long-time kinetics from molecular trajectories: theory and methods, Current Opinion in Structural Biology 43 ,141 (2017). [13] E. D. Cubuk, R. J. S. Ivancic, S. S. Schoenholz, D. J. Strickland, A. Basu, Z. S. Davidson, J. Fontaine, J. L. Hor, Y.-R. Huang, Y. Jiang, N. C. Keim, K. D. Koshi-gan, J. A. Lefever, T. Liu, X.-G. Ma, D. J. Magagnosc, E. Morrow, C. P. Ortiz, J. M. Rieser, A. Shavit, T. Still, Y. Xu, Y. Zhang, K. N. Nordstrom, P. E. Arratia, R. W. Carpick, D. J. Durian, Z. Fakhraai, D. J. Jerolmack, D. Lee, J. Li, R. Riggleman, K. T. Turner, A. G. Yodh, D. S. Gianola, and A. J. Liu, Structure-property relation-ships from universal signatures of plasticity in disordered solids, Science 358 , 1033 (2017). [14] C. Pandarinath, D. J. O’Shea, J. Collins, R. Jozefow-icz, S. D. Stavisky, J. C. Kao, E. M. Trautmann, M. T. Kaufman, S. I. Ryu, L. R. Hochberg, J. M. Henderson, K. V. Shenoy, L. F. Abbott, and D. Sussillo, Inferring single-trial neural population dynamics using sequential auto-encoders, Nature Methods 15 , 805 (2018). 11 
+
+[15] T. Ahamed, A. C. Costa, and G. J. Stephens, Capturing the continuous complexity of behaviour in Caenorhabditis elegans , Nature Physics 17 , 275 (2021). [16] J. Colen, M. Han, R. Zhang, S. A. Redford, L. M. Lemma, L. Morgan, P. V. Ruijgrok, R. Adkins, Z. Bryant, Z. Dogic, M. L. Gardel, J. J. de Pablo, and V. Vitelli, Machine learning active-nematic hydrodynam-ics, Proceedings of the National Academy of Sciences 
+
+118 , e2016708118 (2021). [17] R. Supekar, B. Song, A. Hastewell, G. P. T. Choi, A. Mi-etke, and J. Dunkel, Learning hydrodynamic equations for active matter from particle simulations and experi-ments, Proceedings of the National Academy of Sciences 
+
+120 , e2206994120 (2023). [18] M. Schmidt and H. Lipson, Distilling free-form natural laws from experimental data, Science 324 , 81 (2009). [19] B. C. Daniels and I. Nemenman, Automated adaptive inference of phenomenological dynamical models, Nature Communications 6, 8133 (2015). [20] S. L. Brunton, J. L. Proctor, and J. N. Kutz, Discover-ing governing equations from data by sparse identifica-tion of nonlinear dynamical systems, Proceedings of the National Academy of Sciences 113 , 3932 (2016). [21] N. M. Mangan, T. Askham, S. L. Brunton, J. N. Kutz, and J. L. Proctor, Model selection for hybrid dynamical systems via sparse regression, Proceedings of the Royal Society A: Mathematical, Physical and Engineering Sci-ences 475 , 20180534 (2019). [22] A. Frishman and P. Ronceray, Learning force fields from stochastic trajectories, Physical Review X 10 , 021009 (2020). [23] P. A. K. Reinbold, L. M. Kageorge, M. F. Schatz, and R. O. Grigoriev, Robust learning from noisy, incomplete, high-dimensional experimental data via physically con-strained symbolic regression, Nature Communications 
+
+12 , 3219 (2021). [24] D. R. Gurevich, M. R. Golden, P. A. K. Reinbold, and R. O. Grigoriev, Learning fluid physics from highly tur-bulent data using sparse physics-informed discovery of empirical relations (SPIDER), Journal of Fluid Mechan-ics 996 , A25 (2024). [25] B. Lusch, J. N. Kutz, and S. L. Brunton, Deep learning for universal linear embeddings of nonlinear dynamics, Nature Communications 9, 4950 (2018). [26] K. Champion, B. Lusch, J. N. Kutz, and S. L. Brunton, Data-driven discovery of coordinates and governing equa-tions, Proceedings of the National Academy of Sciences 
+
+116 , 22445 (2019). [27] A. J. Linot and M. D. Graham, Deep learning to discover and predict dynamics on an inertial manifold, Physical Review E 101 , 062209 (2020). [28] J. Page, M. P. Brenner, and R. R. Kerswell, Revealing the state space of turbulence using machine learning, Physi-cal Review Fluids 6, 034402 (2021). [29] B. Chen, K. Huang, S. Raghupathi, I. Chandratreya, Q. Du, and H. Lipson, Automated discovery of funda-mental variables hidden in experimental data, Nature Computational Science 2, 433 (2022). [30] P. R. Vlachas, G. Arampatzis, C. Uhler, and P. Koumoutsakos, Multiscale simulations of complex sys-tems by learning their effective dynamics, Nature Ma-chine Intelligence 4, 359 (2022). [31] T. B. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal, A. Neelakantan, P. Shyam, G. Sas-try, A. Askell, S. Agarwal, A. Herbert-Voss, G. Krueger, T. Henighan, R. Child, A. Ramesh, D. M. Ziegler, J. Wu, C. Winter, C. Hesse, M. Chen, E. Sigler, M. Litwin, S. Gray, B. Chess, J. Clark, C. Berner, S. McCandlish, A. Radford, I. Sutskever, and D. Amodei, Language mod-els are few-shot learners, in Advances in Neural Informa-tion Processing Systems , Vol. 33 (2020) arXiv:2005.14165 [cs.CL]. [32] J. Lai, A. Bao, and W. Gilpin, Panda: A pretrained forecast model for chaotic dynamics, arXiv:2505.13755 [cs.LG] (2025), arXiv:2505.13755 [cs.LG]. [33] R. Lam, A. Sanchez-Gonzalez, M. Willson, P. Wirns-berger, M. Fortunato, F. Alet, S. Ravuri, T. Ewalds, Z. Eaton-Rosen, W. Hu, A. Merose, S. Hoyer, G. Hol-land, O. Vinyals, J. Stott, A. Pritzel, S. Mohamed, and P. Battaglia, Learning skillful medium-range global weather forecasting, Science 382 , 1416 (2023). [34] E. Abdelaleem, A. Roman, K. M. Martini, and I. Ne-menman, Simultaneous dimensionality reduction: A data efficient approach for multimodal representations learn-ing, Transactions on Machine Learning Research (2024), arXiv:2310.04458. [35] A. Swain, S. A. Ridout, and I. Nemenman, Better together: Cross and joint covariances enhance signal detectability in undersampled data, arXiv:2507.22207 [cond-mat.dis-nn] (2025), arXiv:2507.22207 [cond-mat.dis-nn]. [36] P. Mergny and L. Zdeborov´ a, Spectral thresholds in cor-related spiked models and fundamental limits of partial least squares, in Proceedings of the 29th International Conference on Artificial Intelligence and Statistics (AIS-TATS) (2026) arXiv:2510.17561 [math.ST]. [37] T. Z. Baharav, P. B. Nicol, R. A. Irizarry, and R. Ma, Stacked SVD or SVD stacked? A random matrix the-ory perspective on data integration, arXiv:2507.22170 [stat.ML] (2025), arXiv:2507.22170 [stat.ML]. [38] L. Wiskott and T. J. Sejnowski, Slow feature analysis: Unsupervised learning of invariances, Neural Computa-tion 14 , 715 (2002). [39] R. Balestriero and Y. LeCun, LeJEPA: Provable and scalable self-supervised learning without the heuris-tics, arXiv:2511.08544 [cs.LG] (2025), arXiv:2511.08544 [cs.LG]. [40] L. Maes, Q. Le Lidec, D. Scieur, Y. LeCun, and R. Balestriero, LeWorldModel: Stable end-to-end joint-embedding predictive architecture from pix-els, arXiv:2603.19312 [cs.LG] (2026), arXiv:2603.19312 [cs.LG]. [41] K. M. Martini and I. Nemenman, Data efficiency, dimen-sionality reduction, and the generalized symmetric infor-mation bottleneck, Neural Computation 36 , 1353 (2024). [42] H. Van Assel, M. Ibrahim, T. Biancalani, A. Regev, and R. Balestriero, Joint embedding vs reconstruction: Provable benefits of latent space prediction for self-supervised learning, arXiv:2505.12477 [cs.LG] (2025), arXiv:2505.12477 [cs.LG]. [43] A. van den Oord, Y. Li, and O. Vinyals, Rep-resentation learning with contrastive predictive cod-ing, arXiv:1807.03748 [cs.LG] (2018), arXiv:1807.03748 [cs.LG]. [44] M. S. Schmitt, M. Koch-Janusz, M. Fruchart, D. S. Seara, M. Rust, and V. Vitelli, Information the-ory for dimensionality reduction in dynamical sys-tems, arXiv:2312.06608 [cond-mat.stat-mech] (2023), 12 
+
+arXiv:2312.06608 [cond-mat.stat-mech]. [45] M. S. Schmitt, M. Koch-Janusz, M. Fruchart, D. S. Seara, M. Rust, and V. Vitelli, Infor-mation theory for data-driven model reduction in physics and biology, bioRxiv:2024.04.19.590281 (2024), bioRxiv:2024.04.19.590281. [46] R. Meng and K. E. Bouchard, Bayesian inference of struc-tured latent spaces from neural population activity with the orthogonal stochastic linear mixing model, PLOS Computational Biology 20 , e1011975 (2024). [47] E. Abdelaleem, I. Nemenman, and K. M. Martini, Deep variational multivariate information bottleneck— a framework for variational losses, Journal of Machine Learning Research 26 , 1 (2025). [48] N. Tishby, F. C. Pereira, and W. Bialek, The information bottleneck method, in 37th Annual Allerton Conference on Communication, Control, and Computing (1999) pp. 368–377. [49] A. Alemi, I. Fischer, J. Dillon, and K. Murphy, Deep variational information bottleneck, in Interna-tional Conference on Learning Representations (2017) arXiv:1612.00410 [cs.LG]. [50] T. M. Cover and J. A. Thomas, Elements of Information Theory , 2nd ed. (Wiley-Interscience, 2006). [51] N. Friedman, O. Mosenzon, N. Slonim, and N. Tishby, Multivariate information bottleneck, in Proceedings of the 17th Conference on Uncertainty in Artificial Intel-ligence (UAI) (2001) pp. 152–161. [52] M. Studen´ y and J. Vejnarov´ a, The multiinformation function as a tool for measuring stochastic dependence, in Learning in Graphical Models , edited by M. I. Jordan (Springer, 1998) pp. 261–297. [53] M. I. Jordan, Z. Ghahramani, T. S. Jaakkola, and L. K. Saul, An introduction to variational methods for graphi-cal models, Machine Learning 37 , 183 (1999). [54] D. P. Kingma and M. Welling, Auto-encoding variational bayes, in International Conference on Learning Represen-tations (2014) arXiv:1312.6114 [stat.ML]. [55] E. Abdelaleem, K. M. Martini, and I. Nemenman, Ac-curate estimation of mutual information in high dimen-sional data, arXiv:2506.00330 [physics.data-an] (2025), arXiv:2506.00330 [physics.data-an]. [56] F. Takens, Detecting strange attractors in turbulence, in Dynamical Systems and Turbulence, Warwick 1980 ,Lecture Notes in Mathematics, Vol. 898 (Springer, 1981) pp. 366–381. [57] R. T. Q. Chen, Y. Rubanova, J. Bettencourt, and D. K. Duvenaud, Neural ordinary differential equations, Ad-vances in Neural Information Processing Systems 31 
+
+(2018), arXiv:1806.07366 [cs.LG]. [58] K. He, X. Zhang, S. Ren, and J. Sun, Deep residual learn-ing for image recognition, in Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition 
+
+(2016) pp. 770–778. [59] P. Gulati, E. Abdelaleem, A. Sederberg, and I. Nemen-man, Mutual information and task-relevant latent dimen-sionality, in ICLR 2026 Workshop on Geometry-grounded Representation Learning and Generative Modeling (2026) arXiv:2602.08105 [cs.LG]. [60] N. H. Packard, J. P. Crutchfield, J. D. Farmer, and R. S. Shaw, Geometry from a time series, Physical Review Let-ters 45 , 712 (1980). [61] J.-P. Eckmann and D. Ruelle, Ergodic theory of chaos and strange attractors, Reviews of Modern Physics 57 ,617 (1985). [62] J. P. Crutchfield and B. S. McNamara, Equations of mo-tion from a data series, Complex Systems 1, 417 (1987). [63] G. Sugihara and R. M. May, Nonlinear forecasting as a way of distinguishing chaos from measurement error in time series, Nature 344 , 734 (1990). [64] M. B. Kennel, R. Brown, and H. D. I. Abarbanel, Deter-mining embedding dimension for phase-space reconstruc-tion using a geometrical construction, Physical Review A 
+
+45 , 3403 (1992). [65] M. Ushio, C.-H. Hsieh, R. Masuda, E. R. Deyle, H. Ye, C.-W. Chang, G. Sugihara, and M. Kondoh, Fluctuat-ing interaction network and time-varying stability of a natural fish community, Nature 554 , 360 (2018). [66] P. Grassberger, Toward a quantitative theory of self-generated complexity, International Journal of Theoreti-cal Physics 25 , 907 (1986). [67] W. Bialek, I. Nemenman, and N. Tishby, Predictability, complexity, and learning, Neural Computation 13 , 2409 (2001). [68] F. Creutzig, A. Globerson, and N. Tishby, Past-future information bottleneck in dynamical systems, Physical Review E 79 , 041925 (2009). [69] M. Assran, Q. Duval, I. Misra, P. Bojanowski, P. Vincent, M. Rabbat, Y. LeCun, and N. Ballas, Self-supervised learning from images with a joint-embedding predictive architecture, in Proceedings of the IEEE/CVF Confer-ence on Computer Vision and Pattern Recognition (2023) pp. 15619–15629. [70] M. M. Peixoto, Structural stability on two-dimensional manifolds, Topology 1, 101 (1962). [71] A. Hyv¨ arinen and P. Pajunen, Nonlinear independent component analysis: Existence and uniqueness results, Neural Networks 12 , 429 (1999). [72] O. Yair, R. Talmon, R. R. Coifman, and I. G. Kevrekidis, Reconstruction of normal forms by learning informed ob-servation geometries from data, Proceedings of the Na-tional Academy of Sciences 114 , E7865 (2017). [73] S.-H. Li, C.-X. Dong, L. Zhang, and L. Wang, Neural canonical transformation with symplectic flows, Physical Review X 10 , 021020 (2020). [74] M. D. Donsker and S. R. S. Varadhan, Asymptotic eval-uation of certain markov process expectations for large time. IV, Communications on Pure and Applied Mathe-matics 36 , 183 (1983). [75] B. Poole, S. Ozair, A. Van Den Oord, A. Alemi, and G. Tucker, On variational bounds of mutual information, in Int. Conf. Machine Learning (2019) pp. 5171–5180. [76] E. Levina and P. Bickel, Maximum likelihood estimation of intrinsic dimension, Advances in Neural Information Processing Systems 17 (2004). [77] E. Facco, M. d’Errico, A. Rodriguez, and A. Laio, Esti-mating the intrinsic dimension of datasets by a minimal neighborhood information, Scientific Reports 7, 12140 (2017). 13  
+
+> Appendix A: Implementation and evaluation 1. Architecture
+
+The shared encoder Φ is a three-layer MLP with hid-den width 256 and ReLU activations that maps each frame Ft ∈ R784 to a per-frame embedding of dimen-sion dF = 32. The concatenated delayed embedding [Φ( Ft), . . . , Φ( Ft+nF −1)] ∈ R32 nF is passed through two parallel linear heads Wμ and Wℓ producing the mean 
+
+μ(x) ∈ Rkz and log-variance ℓ(x) ∈ Rkz , from which 
+
+zx is sampled via the reparameterization trick. The net-works are shared with zy . The δ-predictor is a three-layer MLP with hidden width 64 and ReLU activations map-ping zx ∈ Rkz to the mean increment μδ (zx) ∈ Rkz and log-variance ℓδ (zx) ∈ Rkz . All linear layers are initialized with Xavier uniform initialization.  
+
+> 2. Training
+
+We train on the experimental pendulum dataset [29], using up to the first 1000 videos for training and the final 200 for held-out evaluation. We downsample the original 128 × 128 RGB frames to 28 × 28 grayscale ( D = 784); each video contains T = 60 frames, resulting in T −2nF +1 valid past-future pairs per trajectory. We train with the Adam optimizer with a batch size of 1024 for 300 epochs at a learning rate of 10 −4. The trade-off parameter β is set to 100, making the KL penalty small relative to the predictive mutual information term β ˜INCE (ZX ; ZY ) and ensuring the objective is primarily driven by predictive information in latent space, aiming for the compressed representations to be nearly sufficient statistics for the dynamics. Then the role of the KL penalty is largely to constrain the latent embeddings to be marginally near-standard Gaussian. We run at least ten indepen-dent seeds per configuration and select the run with highest test mutual information. Code is available at 
+
+https://github.com/paarthgulati/DYSIB Pendulum . 
+
+> 3. Evaluation and probe networks
+
+We train probe networks on top of the frozen DySIB encoder to predict ground-truth physical quantities, a standard evaluation strategy for latent-space models [40]. Each prober takes the posterior mean μ(x) as input, and is trained to predict the physical state at the start of the past window. Two separate probers are trained for θ and 
+
+ω. Each prober is a four-layer MLP with three hidden layers of width 1024 and ReLU activations, followed by a linear output layer, initialized with Xavier uniform ini-tialization. Probers are trained for 100 epochs using the Adam optimizer at a learning rate of 10 −4, with DySIB weights frozen. Performance is evaluated on the held-out 200 trajectories using RMSE. Since θ is circular, the an-gle prober outputs (cos θ, sin θ) and predictions are con-verted back via atan2 using a wrapped angular error to correctly handle the ±π boundary. We report RMSE for 
+
+θ (degrees) and ω (degrees/s).  
+
+> 4. Architectural choices
+
+We deliberately chose a simple architecture throughout to isolate the contribution of the objective from archi-tectural improvements. This simplification was sufficient for the pendulum system studied here. Convolutional en-coders, transformer architectures suited to complex spa-tiotemporal data, higher-resolution frames, and nonlin-ear aggregations of the per-frame embeddings could all improve performance, particularly for more complex or higher-dimensional systems. 
+
+> Appendix B: Variational bounds on the DySIB objective
+
+The DySIB objective (Eq. (13)) trades off two compet-ing goals: keeping the latent representation ZX as simple as possible while making it maximally predictive of the future latent ZY . This is an instance of the informa-tion bottleneck principle [47, 48, 51]: compress the input as much as possible while retaining only the information relevant for a target variable. We seek variational ap-proximations for two kinds of terms: the encoder terms 
+
+IE (X; ZX ), I E (Y ; ZY ), which we want to minimize to en-sure compression, and the predictive term INCE (ZX ; ZY ), which we want to maximize to ensure that the past is in-formative about the future. Detailed derivations of all bounds used below are given in [47]; we recap them here only briefly.  
+
+> 1. Encoder terms
+
+The encoder terms penalize the complexity of the la-tent representation by bounding I(X; ZX ) from above. Intuitively, I(X; ZX ) measures how much information the latent code zx retains about the input x. Minimiz-ing it on its own would encourage the encoder to discard everything; the ˜INCE (ZX ; ZY ) term counteracts this by rewarding representations that retain information pre-dictive of the future. We start with mutual information definition: 
+
+I(X; ZX ) = Ep(x,z x)
+
+
+
+log q(zx|x)
+
+p(zx)
+
+
+
+, (B1) where p(zx) = R q(zx|x)p(x) dx is the aggregate poste-rior. This quantity is intractable because p(zx) has no closed form. We introduce a variational approximation ˜p(zx) to p(zx) and use the non-negativity of the KL di-vergence, DKL (p(zx)∥˜p(zx)) ≥ 0, to obtain: 
+
+I(X; ZX ) ≤ Ep(x) [DKL (q(zx|x) ∥ ˜p(zx))] ≡ ˜IE (X; ZX ).
+
+(B2) 14 Now, approximating p(x) with its empirical distribu-tion over N samples and choosing ˜ p(zx) = N (0 , I ) as the variational prior gives: ˜IE (X; ZX ) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+DKL (q(zx|xi) ∥ N (0 , I )) , (B3) and identically for ˜IE (Y ; ZY ). This is the standard KL regularization term from the VAE objective [54], repur-posed here as a complexity penalty rather than a recon-struction regularizer. The choice of N (0 , I ) as the prior is standard and ensures the bound is tractable; detailed derivation can be found in [47, 49, 54]. 
+
+2. Predictive term 
+
+The predictive term ˜INCE (ZX ; ZY ) lower-bounds the mutual information between past and future latent codes, which DySIB maximizes to encourage the latent repre-sentation to capture predictive structure. We start from the conditional factorization of mutual information: 
+
+I(ZX ; ZY ) = Ep(zx) [DKL (p(zy |zx) ∥ p(zy ))] , (B4) and apply the Donsker–Varadhan (DV) representation [74], which provides a lower bound on any KL divergence: 
+
+DKL (P ∥Q) ≥ sup 
+
+> T
+
+EP [T ] − log EQ[eT ] , (B5) where the supremum is over all measurable functions 
+
+T (the Donsker–Varadhan test function, unrelated to the frame count T = 60 of App. A 2), and equal-ity holds when T ∗ = log dP dQ + c. Applying this to 
+
+DKL (p(zy |zx)∥p(zy )) and integrating over p(zx) gives a lower bound on I(ZX ; ZY ) with a learned critic T (zx, z y ). In practice, the expectation over p(zy ) is approximated using contrastive sampling: for a batch {(zx,i , z y,i )}Ni=1 ,matched pairs ( zx,i , z y,i ) serve as positive samples and mismatched pairs ( zx,i , z y,j ̸ =i) serve as negatives, giving the InfoNCE estimator [43, 55]: ˜INCE (ZX ; ZY ) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+log eT (zx,i , z y,i )1
+
+> N
+
+PNj=1 eT (zx,i , z y,j ) , (B6) where T (zx,i , z y,j ) = s(zx,i , z y,j ) as defined in Eq. (11), with s being the log-likelihood critic constructed from the 
+
+δ-predictor. This estimator is a biased lower bound on 
+
+I(ZX ; ZY ) that is bounded above by log N [43, 75]. With a batch size of N = 1024 the ceiling is approximately 10 bits, which is sufficient for the kz , n F selection proce-dure used here. This is the estimator used in Eq. (12) of Sec. II C. In other application, larger batch sizes or estimators without a trivial upper bound may need to be used. 
+
+Appendix C: Supplementary materials 1. Phase space geometry: from Cartesian to polar coordinates 
+
+Because the KL terms in the loss function bias the em-beddings to be marginally near-standard Gaussian, the learned latent space recovered by DySIB takes the form of the polar projection of the pendulum phase space, with θ
+
+as the polar angle and ω as the (offset) radius. Figure S1 illustrates the geometric construction that connects these two representations, explaining why the learned latent space has the structure it does, including the hole at the origin, the distinction between oscillating and rotating trajectories, and the positions of the two fixed points. 
+
+FIG. S1. Geometric construction connecting the cylin-drical and polar phase space representations of the pendulum. The trajectories wind around the surface of a cylinder, with θ as the angular coordinate and ω as the ax-ial coordinate. Projecting onto a polar plane, with θ as the polar angle and ω as the radius, produces the polar repre-sentation recovered by DySIB. The stable fixed point ( θ = 0, 
+
+ω = 0, green star) and unstable fixed point ( θ = π, ω = 0, red star) are marked on the cylinder. Full rotations appear as closed loops winding around the cylinder and around the origin in the polar projection, while small oscillations form closed curves near the stable fixed point. 
+
+2. All physical quantities in the learned latent space 
+
+Figure 6 shows the latent space colored by θ and ω.Figure S2 extends this to all tracked physical quanti-15                   
+
+> FIG. S2. All tracked physical quantities in the learned latent space (kz= 2, nF= 2, N= 1000). From left to right: angle θ(degrees), angular velocity ω(degrees/s), kinetic energy (J), potential energy (J), and total energy (J). Each quantity varies smoothly and consistently with the latent coordinates. Kinetic energy follows the same radial structure as ω(scaling as
+> ω2); potential energy follows the same angular structure as θ(scaling as 1 −cos θ); surfaces of constant total energy align with the trajectories visible in Fig. 2C, consistent with energy conservation.
+
+ties, demonstrating that the physical state of the pen-dulum is encoded in the two-dimensional representation. The smooth, globally consistent structure of each color-ing shows an embedding closely aligned with the physi-cal state space, not just a useful downstream represen-tation. Together these colorings confirm that the two-dimensional latent space captures the complete physical state of the system.  
+
+> 3. A larger-than-necessary bottleneck reduces trial-to-trial variance
+
+In Figs. 3, 4 the trial-to-trial variance is visible in the kz and nF sweeps, particularly at small bottleneck sizes. Figure S3 shows that training with a larger-than-necessary bottleneck ( kz = 8) substantially reduces this variance without changing the saturation point or the in-trinsic dimensionality of the learned representation. Non-linear intrinsic dimensionality estimators applied to the 
+
+kz = 8 latent space return an effective dimension of ap-proximately 2, confirming that the additional capacity is not used to encode spurious structure. Interestingly, the participation ratio returns a slightly larger value, reflecting the curvature of the learned manifold rather than additional degrees of freedom. This is consistent with the earlier results [59] that models with a larger-than-necessary bottleneck concentrate the cross-view sig-nal onto an effectively low-dimensional subspace. Note that although the first two principal components of the 
+
+kz = 8 latent space account for approximately 90% of the variance (Fig. S3E), PCA does not recover the cor-rect phase-space geometry here since the angle is encoded nonlinearly. The nonlinear estimators are therefore the appropriate tool for assessing intrinsic dimensionality of the learned latent space. In practice, training with a larger-than-necessary bottleneck and reading off the ef-fective dimension is a robust alternative to sweeping kz . 
+
+> 4. Evolution of the learned embedding with training set size
+
+Figure S4 shows how the qualitative structure of the learned latent space changes as the number of training videos N increases. With very few videos the structure is distorted and the coloring by θ is inconsistent. As N
+
+increases, the embedding progressively organizes into the correct polar structure, with smooth and globally consis-tent coloring by θ emerging around N ∼ 256 and converg-ing by N = 1000. This qualitative progression mirrors the quantitative prober error decay in Fig. 5, illustrating what sample efficiency means in terms of the geometry of the learned representation. 16 
+
+FIG. S3. A larger-than-necessary bottleneck reduces trial-to-trial variance. (A–C) Past-future latent mutual infor-mation (bits), angle prober RMSE (degrees), and angular velocity prober RMSE (degrees/s) as functions of training set size 
+
+N , for kz = 8 and nF = 2. Error bars show standard deviation across ten independent seeds. Compared to kz = 2 (Figs. 3, 4), trial variance is substantially reduced across all values of N . The dashed line in (A) corresponds to log 2 N . Insets in panels (B,C) show that the prober error decays as a power law ∼ 1/√N . (D) Singular value spectrum of the kz = 8 latent space, with intrinsic dimensionality estimated by three independent methods: Levina–Bickel MLE [76], TwoNN [77], and participation ratio (PR) from the cross-covariance singular value spectrum [59]. The nonlinear estimators (TwoNN, Levina–Bickel) return 
+
+deff ≈ 2, while the PR returns a slightly larger value, reflecting the curvature of the learned manifold. (E) The first two principal components of the kz = 8 latent space, colored by θ, show that the angle is encoded in the representation, though not in a linearly separable way. 
+
+FIG. S4. Evolution of the learned latent space with training set size (kz = 2, nF = 2). Each panel shows all available trajectories embedded in the learned two-dimensional latent space, colored by ground-truth angle θ, for N = 64 (left), N = 256 (center), and N = 1000 (right). With N = 64, the structure is distorted and the coloring is inconsistent. With N = 256, the polar structure begins to emerge. With N = 1000, the embedding closely matches the polar phase space of Fig. 2B, with smooth and globally consistent coloring. The best run across ten seeds is shown for each N .
