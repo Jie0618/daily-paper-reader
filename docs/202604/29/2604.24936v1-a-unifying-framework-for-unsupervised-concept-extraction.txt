@@ -1,0 +1,1621 @@
+Title: A Unifying Framework for Unsupervised Concept Extraction
+
+URL Source: https://arxiv.org/pdf/2604.24936v1
+
+Published Time: Wed, 29 Apr 2026 00:13:26 GMT
+
+Number of Pages: 27
+
+Markdown Content:
+# A Unifying Framework for Unsupervised Concept Extraction 
+
+Chandler Squires Pradeep Ravikumar 
+
+Machine Learning Department, CMU Machine Learning Department, CMU 
+
+# Abstract 
+
+Techniques for concept extraction , such as sparse autoencoders and transcoders, aim to extract high-level symbolic concepts from low-level nonsymbolic representations. When these extracted concepts are used for downstream tasks such as model steer-ing and unlearning, it is essential to under-stand their guarantees, or lack thereof. In this work, we present a unified theoretical framework for unsupervised concept extrac-tion, in which we frame the task of con-cept extraction as identifying a generative model. We present a general meta-theorem for identifiability, which reduces the prob-lem of establishing identifiability guarantees to the problem of characterizing the inter-section of two sets. As we demonstrate on a range of widely-used approaches, this meta-theorem substantially simplifies the task of proving such guarantees, thus paving the way for the development of new, principled approaches for concept extraction. 
+
+# 1 INTRODUCTION 
+
+As large neural networks have become the de facto standard for many machine learning tasks, there has been growing interest in understanding the internal representations that they learn. Such an understand-ing promises to enable several downstream capabil-ities, e.g. intervening on these representations can be an effective approach for post-training tasks such as model steering, unlearning, and representation alignment (Turner et al., 2023; Ashuach et al., 2025; Sucholutsky et al., 2023). A key challenge to gaining such an understanding is that neural representations are often entangled and 
+
+distributed , rather than disentangled and local . More formally, consider a pre-trained encoder Φ : X → Z 
+
+mapping from a high-dimensional input space X to a neural feature space Z. For example, Φ may be the first 10 layers of an image classification model, which maps an image x ∈ X to a neural activation vector 
+
+z = Φ( x) ∈ Z . Typically, the individual coordinates of z are polysemantic , i.e., each coordinate zi rep-resents a combination of many human-interpretable features rather than a single one (Elhage et al., 2022). To address this challenge, a common approach is to extract high-level concepts from these neural repre-sentations, e.g. by training a sparse autoencoder to reconstruct the neural representations (Cunningham et al., 2023). Such approaches specify a concept space 
+
+C and find some concept extractor h : Z → C . The concept extractor is typically taken to be injective, so that an intervention on the concepts (i.e., a function 
+
+fc : C → C ) can be translated into a corresponding intervention fz = h−1 ◦ fc ◦ h on the neural features. Unfortunately, many existing approaches for concept extraction do not reliably recover a “canonical” set of features, e.g. for different random seeds, the same sparse autoencoder can recover very different concept extractors h and h′ from the same data (Leask et al., 2025; Paulo and Belrose, 2025). This ambiguity both hinders interpretability and casts doubt on the prospect of using the extracted concepts for down-stream tasks, since the same concept-level interven-tion will result in different feature-level interventions (M´ eloux et al., 2025; Song et al., 2025). To avoid these issues, it is essential to treat the task of concept extraction more rigorously, and develop new methods with appropriate uniqueness guarantees. In this work, we consider the task of concept extrac-tion from a rigorous statistical viewpoint, using the tools of identifiability theory . We treat concepts as latent random variables C sampled from some un-known distribution Q belonging to some known class 
+
+Q, and neural features as observed random variables 
+
+Z which depend on C in an unknown fashion. In the deterministic setting (i.e., Z = g(C) for some unknown, injective g), the task of concept extraction 
+
+> arXiv:2604.24936v1 [cs.LG] 27 Apr 2026 A Unifying Framework for Unsupervised Concept Extraction
+
+is thus equivalent to identifying h = g−1 up to simple symmetries, e.g. relabelings of the concepts. In this setting, the choice of class Q can be seen as an explicit 
+
+description of the implicit assumptions imposed by different sparse autoencoders (Hindupur et al., 2025). More generally, our framework permits stochastic 
+
+relationships between concepts and features, opening the door to a variety of more realistic cases. 
+
+Contributions Our contributions are four-fold: 1. We introduce a new theoretical framework for unsupervised concept extraction based on latent concept generative models (LC-GMs) , which are models that can be decomposed into a concept generator Q and a mixing kernel K (Sec. 3). 2. We present general meta-theorems for the identi-fiability of a class M of LC-GMs (Sec. 4). Most importantly, our intersection theorem (Thm. 4.2) characterizes identifiability via the intersection of two valid transition sets , extending prior work by Xi and Bloem-Reddy (2023) to model classes which allow for stochastic mixing. 3. To highlight the meta-theoretical utility of our framework, we show how our theorems can re-cover diverse existing identifiability results, e.g. in dictionary learning, independent component analysis, and mixture modeling (Sec. 5, App. F). 4. To highlight the potential practical utility of our framework, we discuss its implications for method development, including connections be-tween concept extraction, generative modeling, and amortized posterior inference (Sec. 6). 
+
+# 2 NOTATION 
+
+As is common in identifiability theory, our results are given in the population setting , i.e., we work directly with probability distributions rather than random variables and samples. As such, the mathematical context for this work is measure-theoretic probability, see App. A for key definitions and references. In this paper, we assume all spaces are Polish Borel spaces . These spaces enjoy several useful properties, which we introduce as needed. Two basic examples include the sets Rd and {1, 2, . . . , d } with their stan-dard topologies and σ-algebras. In this section, we let U, V, and W be Polish Borel spaces. 
+
+Distributions For any measure μ on V (including probability distributions), we define the support of 
+
+μ, denoted supp (μ), as the smallest closed set F ⊆ V 
+
+such that μ(V \ F ) = 0. We let P(V) denote the set of probability distributions on V. We say that Q is 
+
+absolutely continuous with respect to a measure 
+
+μ if μ(A) = 0 implies Q(A) = 0 for any measurable set A, written Q ≪ μ. If Q ≪ μ and μ ≪ Q, we write Q ∼ μ. Finally, given a point v ∈ V , we let 
+
+δv ∈ P (V) denote the delta distribution at v.
+
+Markov Kernels We let K(U → V ) denote the set of Markov kernels from U to V. For a Markov kernel 
+
+K from U to V, we let K(· | u) denote the associated probability distribution under u ∈ U . Given two Markov kernels K, K ′ ∈ K (U → V ) and a measure μ
+
+on U, we write K ∼μ K′ to denote that K and K′
+
+are equal μ-almost everywhere (abbreviated μ-a.e.). For K ∈ K (U → V ), we define the pushforward operator K♯ : P(U) → P (V) as follows: 
+
+K♯ : Q 7 → R 
+
+> U
+
+K(· | u) · Q(du ).
+
+A posterior kernel of K with respect to Q is a Markov kernel L ∈ K (V → U ) which satisfies the condition K(dv | du ) · Q(du ) = L(du | v) · P (dv ), where P = K♯(Q). In Polish Borel spaces, a posterior kernel always exists and is unique P -a.e.; we denote any such kernel as K†
+
+> Q
+
+.We say that K is measure-separating if its asso-ciated pushforward operator K♯ is injective. We let 
+
+Ksep (U → V ) denote the set of measure-separating Markov kernels from U to V.1 As a special case, we let Finj (U → V ) denote the set of injective measur-able functions from U to V, and we let Fc-inj (U → V )denote the set of continuous injective measurable functions from U to V. For a measurable function 
+
+g : U → V , we let Eg ∈ K (U → V ) denote the Dirac kernel associated with g, i.e., Eg : u 7 → δg(u).Given two Markov kernels K ∈ K (U → V ) and 
+
+L ∈ K (V → W ), we let LK ∈ K (U → W ) denote their composition, defined as (LK ) : u 7 → R 
+
+> V
+
+L(· | v) · K(dv | u).
+
+For Polish Borel spaces, pushforward and compo-sition can be interchanged, i.e., ( LK )♯ = L♯ ◦ K♯.We refer to this property as functoriality . Since a probability distribution Q ∈ P (U) can be treated as Markov kernel from the empty set to U, we also use the notation KQ = K♯(Q). In particular, by functoriality, ( LK )( Q) = L(KQ ).           
+
+> 1More generally, we say Kis measure-separating on P′⊆ P if the restriction K♯|P′is injective, and we denote the set of such kernels as Ksep (U → V ;P′). Chandler Squires, Pradeep Ravikumar
+
+Composition Notation For two sets of Markov kernels K ⊆ K (U → V ) and L ⊆ K (V → W ), we let 
+
+L ◦ K := {LK : L ∈ L , K ∈ K} .
+
+In App. A, we give an extension of this notation when 
+
+L or K are replaced by sets of functions, or when K
+
+is replaced by a set of probability distributions. 
+
+Matrix-Vector Notation For several examples, we use discrete spaces U and V. In such settings, dis-tributions and Markov kernels can be conveniently represented by (labelled) vectors and matrices, re-spectively. In this paper, we use column-stochastic convention, i.e., distributions are column vectors, and Markov kernels are column-stochastic matrices. For example, consider U = {a, b } and V = {u, v }. Then 
+
+Q =
+
+ 
+
+> a
+
+βab βb
+
+
+
+and K =
+
+ a bu βau βbu v βav βbv 
+
+
+
+are the distribution Q = βa · δa + βb · δb and the Markov kernel K with K(· | a) = βau · δu + βav · δv
+
+and K(· | b) = βbu · δu + βbv · δv , respectively. 
+
+# 3 LATENT CONCEPT GENERATIVE MODELS 
+
+Let C and Z be Polish Borel spaces, which we call a concept space and feature space , respec-tively. Though we typically consider C ⊆ Rd or 
+
+C = {1, 2, . . . , d }, we note that the Polish Borel con-dition is quite weak. Thus, our results can be applied to many complex spaces, e.g. some function spaces or spaces of structured objects such as graphs. A
+
+concept distribution is a distribution over C, and a mixing kernel is a Markov kernel from C to Z.
+
+3.1 Basic Definitions 
+
+As described in Sec. 1, we consider the task of con-cept extraction from a statistical viewpoint, in which the concepts are latent random variables which gen-erate the observed neural features. We formalize this generation process as a latent concept generative model (LC-GM) M from C to Z, which is a tuple 
+
+M = ( Q, K ) with Q ∈ P (C) and K ∈ K (C → Z ). 2
+
+Given a model M = ( Q, K ), the induced feature distribution of M, denoted P M ∈ P (Z), is 
+
+P M := KQ        
+
+> 2We note that LC-GMs are deep latent variable models (c.f. Diederik and Max (2019, Section 1.7)) where both the “prior” Qand the “stochastic decoder” Kare unknown.
+
+i.e., P M represents the marginal distribution over features Z when first sampling concepts C from Q,then sampling Z from the distribution K(· | C). Similarly, the induced concept extractor , denoted 
+
+HM ∈ K (Z → C ), is defined as HM = K†
+
+> Q
+
+, where 
+
+K† 
+
+> Q
+
+is the posterior kernel of K with respect to Q.We illustrate these two concepts with an example: 
+
+Example 3.1 (Induced objects) . Consider the con-cept space C = Rd and the feature space Z = Rp.For a left-invertible matrix G ∈ Rp×d, let M = ( Q, K ),where Q = N (0, Id) and K : c 7 → δG·c. The induced feature distribution of M is P M = N (0, G · G⊤), and the induced concept extractor is HM : z 7 → δH·z, where 
+
+H ∈ Rd×p is the left inverse of G.
+
+We let Mall (C, Z) denote the set of latent concept generative models from C to Z, i.e., 
+
+Mall (C, Z) := P(C) × K (C → Z ).
+
+Throughout this section, let C and C′ be concept spaces, let M = ( Q, K ) be a LC-GM from C to Z,and let M′ = ( Q′, K ′) be a LC-GM from C′ to Z.
+
+3.2 Feature Equivalence 
+
+When performing concept extraction in the popula-tion setting, we observe a distribution P ∗ ∈ P (Z)over features, and aim to find some LC-GM M such that P M = P ∗. Intuitively, such a model M repre-sents a possible explanation for the observed distri-bution P , and a possible concept extractor HM.However, multiple LC-GMs can induce the same feature distribution, but induce different concept ex-tractors. In particular, we say M and M′ are feature equivalent if P M = P M′
+
+. As the following simple example shows, feature equivalence does not imply 
+
+HM = HM′
+
+, even up to relabeling. 
+
+Example 3.2 (Feature equivalence) . Consider the spaces C = {a, b }, C′ = {c, d }, and Z = {u, v }. Let 
+
+M = ( Q, K ), and let M′ = ( Q′, K ′), for 
+
+K =  
+
+> abu2
+
+/3 1/3 
+
+> v
+
+0 1
+
+!
+
+, Q = a 3/4 
+
+> b1
+
+/4
+
+!
+
+,K′ =  
+
+> cdu
+
+1 0 
+
+> v
+
+0 1
+
+!
+
+, Q′ = c 1/2 
+
+> d1
+
+/2
+
+!
+
+.
+
+Then P M = P M′
+
+= 12 (δu + δv ). However, HM̸ = HM′
+
+:
+
+HM =
+
+ u va 1 1/2 
+
+> b
+
+0 1/2
+
+
+
+HM′
+
+=
+
+ u vc 1 0 
+
+> d
+
+0 1
+
+
+
+.A Unifying Framework for Unsupervised Concept Extraction 
+
+3.3 Blackwell Coarsening and Equivalence 
+
+In Sec. 4, we will consider restricted model classes 
+
+M ⊆ M all (C, Z), and our main interest will be de-veloping necessary conditions for feature equivalence. To motivate these restrictions, we first examine an im-portant sufficient condition for feature equivalence. Inspired by connections to Blackwell’s theory of ex-periments (Blackwell, 1953), we introduce the Black-well coarsening relation on LC-GMs. Returning to the general setting with potentially distinct con-cept spaces C and C′, consider a transition kernel 
+
+T ∈ K (C → C ′). We say M is Blackwell coarser than M′ under T if the following conditions hold: 1. Measure refinement : Q′ = T Q .2. Kernel coarsening : K ∼Q K′T .For convenience, we will often simply state that M is Blackwell coarser than M′, denoted M ⪯Bl M′, if there exists some T ∈ K (C → C ′) such that these relations hold. 3 It is straightforward to show that Blackwell coarsening is sufficient for feature equivalence: 
+
+Proposition 3.1. If M ⪯Bl M′, then M and M′ are feature equivalent. In particular, if Q′ = T Q and 
+
+K ∼Q K′T , then KQ = K′Q′.
+
+The proof follows directly from substitution and func-toriality; see App. C.1. Intuitively, the Blackwell coarsening relation captures a tradeoff between two explanations for randomness in a feature distribution 
+
+P ∗ = P M = P M′
+
+. When M ⪯Bl M′, K is “more stochastic” than K′ (a garbling of K in Blackwell’s terms), whereas Q′ has higher entropy than Q. Put differently, M emphasizes a kind of measurement un-certainty, while M′ emphasizes natural variability. This tradeoff is sharply illustrated by our example: 
+
+Example 3.3 (Blackwell coarsening) . Let M and M′
+
+be the models from Ex. 3.2. It is straightforward to check that M is Blackwell coarser than M′ under 
+
+T =
+
+ a bc 2/3 0 
+
+> d
+
+1/3 1
+
+
+
+.
+
+As this discussion and the example should make clear, Blackwell coarsening is not a symmetric relation, e.g., there is no Markov kernel T ′ ∈ K (C′ → C ) such that 
+
+K′ = KT ′ for Ex. 3.2. In the special case where the relation does hold in both directions (i.e., M ⪯Bl M′,and M′ ⪯Bl M), we say that M and M′ are Blackwell equivalent , which we denote by M =Bl M′.                    
+
+> 3Using ⪯Bl is justified since Blackwell coarsening is transitive: if M⪯Bl M′under Tand M′⪯Bl M′′ under
+> T′, then M⪯Bl M′′ under T′T, see App. C.1.
+
+Converse At first pass, it may seem that Blackwell coarsening could serve as a necessary condition for feature equivalence, at least under conditions such as injectivity of K♯ and K′
+
+> ♯
+
+. However, a simple modifi-cation of Ex. 3.2, given in App. B, shows that this is not the case: two LC-GMs M and M′ may be feature equivalent with neither M ⪯Bl M′ nor M′ ⪯Bl M.Despite this null result, we can already obtain a partial converse to Prop. 3.1, which will be a key ingredient for our main results. In particular, if the kernel coarsening condition already holds for M and 
+
+M′ which are feature equivalent, then the measure refinement condition automatically holds: 
+
+Lemma 3.1. Assume that K′ is measure-separating, and that K ∼Q K′T for some T ∈ K (C → C ′).If P M = P M′
+
+, then Q′ = T Q , i.e., M ⪯Bl M′.
+
+The proof follows directly from injectivity of K′ and functoriality; see App. C.1. 
+
+# 4 MAIN RESULTS 
+
+We are finally ready to move on to our main results, which give necessary conditions for the feature equiva-lence of two models M = ( Q, K ) and M′ = ( Q′, K ′) in the same model class M ⊆ M all (C, Z). As is typical in most settings, we consider model class of the form 
+
+M = Q × K , where Q ⊆ P (C) and K ⊆ K (C → Z ), so that any constraints on the concept distributions and the mixing kernels are logically independent. In Sec. 4.1, we define a natural condition on the kernel class K under which Blackwell equivalence is indeed a necessary condition for feature equivalence. We then use the result in Sec. 4.2 to establish an easy-to-use intersection theorem for identifiability. 
+
+4.1 Blackwell Reducibility 
+
+As seen in Sec. 3.3, a main obstacle to guaranteeing Blackwell equivalence of M and M′ is the potential incomparability of the mixing kernels K and K′. To avoid this issue, we define a novel condition on K.
+
+Definition 4.1. Let I be a Polish Borel space and 
+
+R := Finj (C → I ) ◦ P (C). Consider a base kernel 
+
+B ∈ K sep (I → Z ). We say that K ⊆ K (C → Z ; R)
+
+is Blackwell reducible (BR) through B if 
+
+K ⊆ { B} ◦ F inj (C → I ).
+
+We say K is continuous Blackwell reducible (CBR) through B if 
+
+K ⊆ { B} ◦ F c-inj (C → I ),Chandler Squires, Pradeep Ravikumar 
+
+Put differently, Blackwell reducibility of K means that, for all K ∈ K , we have K = BE ϕ for some injective function ϕ : C → I . By this definition, if K
+
+is Blackwell reducible, then any subset K′ ⊆ K is also BR (and similarly for CBR). As we show in App. B, the BR condition rules out previous problematic cases: K = {K, K ′} is not BR for the mixing kernels 
+
+K, K ′ in Ex. 3.2. Assuming that K is BR, we obtain a (specialized) converse of Prop. 3.1, where Blackwell equivalence and feature equivalence coincide. 
+
+Theorem 4.1. Let M = P(C)×K for some BR class of kernels K, and let M, M′ ∈ M with M = ( Q, K )
+
+and M′ = ( Q′, K ′). If P M = P M′
+
+, then M =Bl M′.If we also assume K is a CBR class of kernels and 
+
+supp (Q) = supp (Q′) = C, then M is a Blackwell coarsening of M′ under Eτ for some τ ∈ F inj (C → C ).
+
+See App. C.2 for the proof, which leverages the shared base kernel B to reduce the problem closer to the case of deterministic mixing. Indeed, Thm. 4.1 extends Lemma 2.1 of Xi and Bloem-Reddy (2023), which essentially shows that feature equivalence implies Blackwell equivalence for K = {Eg : g ∈ F inj (C → Z)}, a prototypical example of a BR class: 
+
+Example 4.1 (BR for injective measurable func-tions) . The set K = {Eg : g ∈ F inj (C → Z )} is BR. Specifically, letting I = Z and B : z 7 → δz, any 
+
+Eg ∈ K can be written as Eg = BE g . Similarly, the set K = {Eg : g ∈ F c-inj (C → Z} is CBR. 
+
+However, Blackwell reducibility is a much broader no-tion. For example, in latent factor models, a common assumption is that of additive noise after mixing, i.e., 
+
+Z = g(C) + ε for some independent noise ε ∼ Nε.In measure-theoretic terms, this assumption imposes 
+
+K(· | c) = Nε ∗ δg(c), where ∗ denotes convolution. When Nε has a well-behaved form, e.g. multivariate Gaussian, this class of mixing kernels is BR. 
+
+Example 4.2 (BR for additive Gaussian noise) .
+
+Take Z = Rp and Σ ∈ S p
+
+> ⪰0
+
+, where Sp 
+
+> ⪰0
+
+denotes the positive semidefinite cone. Let K denote the set of mixing kernels K such that K(· | c) = N (0, Σ) ∗ δg(c)
+
+for some g ∈ F inj (C → Z ). Then K is BR. Specifically, let I = Z and B : z 7 → N (0 , Σ) ∗ δz.Then, any K ∈ K can be written as K = BE g .
+
+In App. C.2.1, we show that B is indeed measure-separating. While both of these examples were closely based on injective functions from C to Z, our final example demonstrates that this need not be the case. In particular, Blackwell reducibility can also capture parametric mixture models, as long as each mixture component is associated with a distinct distribution. 
+
+Example 4.3 (BR of Gaussian mixtures) . For C =[d] and Z = Rp, let K denote the set of mixing kernels 
+
+K such that K(· | c) = N (μc, Σc), where μc̸ = μc′
+
+for c̸ = c′. Then K is BR. In particular, letting I = Rp × S p 
+
+> ⪰0
+
+and B : (μ, Σ) 7 →N (μ, Σ) , any mixing kernel K ∈ K can be written as 
+
+K = BE ϕ, where ϕ : c 7 → (μc, Σc).
+
+As seen in App. C.2.2, the main result of Yakowitz and Spragins (1968) can be viewed as a proof that 
+
+B is measure-separating on the appropriate domain. 
+
+4.2 Intersection Theorem 
+
+Thm. 4.1 is a powerful tool for characterizing feature equivalence, but is not directly stated in the typical language of identifiability theory. We now bridge this gap by giving a general definition of identifiability and giving a more direct, easy-to-use version of Thm. 4.1 based on the intersection of two valid transition sets ,extending Theorem 2.2 of Xi and Bloem-Reddy, 2023. 
+
+Identifiability Let M ⊆ M all (C, Z) be a model class, and let ∼ be an equivalence relation on 
+
+Mall (C, Z). We say that M ∈ M is identifiable up to ∼ in M, denoted ID (M, ∼, M), if P M = P M′
+
+implies M ∼ M′. As this definition makes clear, identifiability is in general a ternary relation, de-pending crucially on the choice model class M, the choice of equivalence relation ∼, and the specific model M ∈ M . However, in many practical scenar-ios, the same identifiability result will hold for all models M ∈ M , i.e., we will have ID (M, ∼, M) for all M ∈ M . In this case, we simply say that M is identifiable up to ∼, denoted ID (M, ∼). Notably, Blackwell equivalence is precisely an equiv-alence relation on Mall (C, Z), i.e., under this termi-nology, Thm. 4.1 shows that M is identifiable up to Blackwell equivalence in M whenever M = P(C)×K 
+
+for some Blackwell reducible class K. Our next goal is to characterize Blackwell equivalence more explicitly. 
+
+Valid transition sets The definition of Blackwell coarsening nearly suggests that Blackwell equivalence can be split into two separate relations: one over the concept distributions, and one over the mixing kernels. However, the kernel coarsening condition depends on Q, which is somewhat unsatisfactory for the practical development of identifiability results. To avoid this issue, we introduce a final restriction on our model classes. Again considering a model class of the form M = Q × K , this new restriction now applies to the set Q of concept distributions: A Unifying Framework for Unsupervised Concept Extraction 
+
+Definition 4.2. Q ⊆ P (C) is a full support mea-sure class if there is a base measure μ on C with 
+
+supp( μ) = C such that for all Q ∈ Q , Q ∼ μ.
+
+Under this condition, K ∼Q K′ if and only if 
+
+K ∼μ K′; thus, we can discuss kernel coarsening without reference to a specific Q ∈ Q . To capture the restrictions implied by the measure refinement condition, we define the set of valid measure tran-sitions of Q at Q, denoted TQ(Q), as 
+
+TQ(Q) := {τ ∈ F inj (C → C ) : Eτ Q ∈ Q} .
+
+Hence, TQ(Q) captures the set of transition functions 
+
+τ which stay inside the set Q when applied to Q, i.e., for which Q′ = Eτ Q is still a valid concept distri-bution according to the model class. Similarly, to capture the restrictions implied by the kernel coars-ening condition, we define the set of valid kernel transitions of K at K, denoted TK (K), as 
+
+TK (K) := {τ ∈ F inj (C → C ) : ∃ K′ ∈ K , K ∼μ K′Eτ }.
+
+Here, TK (K) denotes the set of transition functions which produce K upon coarsening some allowable mixing kernel K′. For ease of notation, the depen-dence of TK (K) on the base measure μ is left implicit. 
+
+Identifiability of Models Now that we have de-fined valid transition sets and introduced the mea-sure class assumption on Q, we are ready to adapt Thm. 4.1 into a more usable form. To relate the sets 
+
+TQ(Q) and TK (K) to equivalence relations, we con-sider one of the most common forms of equivalence relations: those induced by a group of functions. In particular, a nonempty set G of bijective measurable functions from C to C is called a transition group 
+
+if, for all τ, τ ′ ∈ G, we have τ −1 ∈ G and τ ◦ τ ′ ∈ G.A group of functions G defines a natural equivalence relation ∼G on Mall (C, Z), where M ∼G M′ if and only if M is Blackwell coarser than M′ under Eτ
+
+for some τ ∈ G. As we show in App. C.3, the group structure of G ensures that ∼G is indeed an equivalence relation. We can directly relate valid transition sets to identifiability for such relations: 
+
+Theorem 4.2. Let M = Q × K , where Q is a full support measure class and K is CBR. Let M =(Q, K ) ∈ M , and let G be a transition group. If TQ(Q) ∩ T K (K) ⊆ G, then M is identifiable up to 
+
+∼G in M, i.e., ID (M, ∼G, M).Proof. Let M = ( Q, K ) and M′ = ( Q′, K ′) be fea-ture equivalent models, with M, M′ ∈ M . By the assumption that Q is a full support measure class, supp (Q) = supp (Q′) = C. Thus, by the premise that 
+
+K is CBR, Thm. 4.1 gives Q′ = Eτ Q and K ∼μ K′Eτ
+
+for some τ ∈ F inj (C → C ). Finally, Q′ ∈ Q implies 
+
+τ ∈ T Q(Q), and K′ ∈ K implies τ ∈ T K (K). Thus, by the premise of the theorem, we have τ ∈ G, so M
+
+is identifiable up to ∼G in M, as desired. 
+
+Identifiability of Model Classes Alternatively, when we are interested in identifiability of an entire model class M, rather than identifiability of a specific model M = ( Q, K ), we can define transition sets which do not depend on Q and K. Specifically, we let T (Q) = S 
+
+> Q∈Q
+
+TQ(Q) and T (K) = S 
+
+> K∈K
+
+TK (K), i.e., τ ∈ T (Q) if it is a valid measure transition for some distribution Q ∈ Q , and similarly for τ ∈ T (K). 
+
+Corollary 4.1. Let M = Q × K , where Q is a full support measure class and K is CBR, and let G be a transition group. If T (Q) ∩ T (K) ⊆ G, then M is identifiable up to ∼G, i.e., ID (M, ∼G).
+
+As an important case, T (K) can be described quite simply for deterministic mixing functions. In particu-lar, let K = {Eg : g ∈ G} for some G ⊆ F inj (C → Z ). Then, T (K) is precisely the indeterminacy set defined in Xi and Bloem-Reddy (2023) (see App. C.3): 
+
+T (K) = {τ : τ ∼μ g−1 ◦ g′ for some g, g ′ ∈ G} .
+
+# 5 APPLICATIONS 
+
+In this section, we highlight the utility of Thm. 4.2 by recovering classic identifiability results for two model classes relevant to unsupervised concept extraction and representation learning. To describe these model classes, we first introduce a clean new notation that makes all modeling assumptions highly transparent. 
+
+Predicate notation To compactly express model classes of the form M = Q × K , we introduce predi-cate notation . We encode constraints on the con-cept distributions Q ∈ Q via concept predicates ,which are Boolean-valued functions P : P(C) →{True , False }. For a set {Pj }Jj=1 of concept predi-cates, we let P(C; P1, . . . , PJ ) denote the set of con-cept distributions for which all J predicates are true: 
+
+P(C; P1, . . . , PJ ) := 
+
+
+
+Q ∈ P (C) : 
+
+> J
+
+^
+
+> j=1
+
+Pj (Q)
+
+
+
+,
+
+Similarly, a mixing predicate is a Boolean-valued function P : K(C → Z ) → { True , False }, and for a set of mixing predicates {Pj }Jj=1 , we let K(C → Z; P1, . . . , PJ ) denote the set of mixing kernels K for which all J predicates are true. Chandler Squires, Pradeep Ravikumar 
+
+This notation plays very nicely with the notion of valid transition sets. Specifically, let Q1 = P(C; P1), 
+
+Q2 = P(C; P2), and Q = P(C; P1, P2) for some con-cept predicates P1 and P2. Then a simple application of the definitions shows that T (Q) = T (Q1) ∩ T (Q2); an analogous result holds for mixing kernels. 
+
+Equivalence Relations We let Relabel (d) de-note the set of relabeling functions on Rd, i.e., 
+
+τ ∈ Relabel (d) if and only if τ : c 7 → S · c for some permutation matrix S. Similarly, we let Scale (d)denote the set of scaling functions on Rd, i.e., 
+
+τ ∈ Scale (d) if and only if τ : c 7 → D · c for some diagonal matrix with nonzero diagonal entries. For C = Rd, ∼lbl denotes the equivalence relation 
+
+∼G for G = Relabel (d), i.e., M ∼lbl M′ if the two models are equivalent up to relabeling the concepts. Similarly, ∼scale denotes the equivalence relation ∼G
+
+for G = {g ◦ g′, g ∈ Relabel( d), g ′ ∈ Scale( d)}.
+
+5.1 SAEs and Dictionary Learning 
+
+Sparse autoencoders (SAEs) and their variants are some of the most widely-used methods for concept extraction from neural features. Typically, sparse autoencoders assume continuous concept and feature spaces C and Z and high-dimensional concept spaces, i.e., C = Rd and Z = Rp for d > p . As suggested by the name, SAEs aim for sparsity over the concept space, often by a soft constraint such as ℓ1 regular-ization. Although these approaches are not typically framed from the perspective taken here, they are closely related to the classical field of dictionary learning , also known as sparse coding (Olshausen and Field, 1997; Aharon et al., 2006a; Arora et al., 2014). To illustrate our results, we use Thm. 4.2 to derive a classic result in dictionary learning. To formalize a strict (rather than soft) sparsity con-straint, we let Σ ds denote the set of s-sparse vectors in Rd, i.e., Σ ds := {c ∈ Rd : ∥c∥0 ≤ s}. We en-dow C = Σ ds with the canonical stratified mea-sure λds defined in App. D.1, noting supp (λds ) = Σ ds .To employ Thm. 4.2, we use the concept predicate 
+
+MeasCls μ, where MeasCls μ(Q) holds if and only if Q
+
+is in the measure class of μ, i.e., Q ≪ μ and μ ≪ Q.In most mainstream SAEs and in the traditional dictionary learning literature, one assumes a deter-ministic and linear relationship between concepts and features, a form of the well-known linear repre-sentation hypothesis (Park et al., 2024; Jiang et al., 2024). This assumption can be encoded by the mix-ing predicate Linear , where Linear (K) holds if and only if K : c 7 → δG·c for some matrix G ∈ Rp×d.Since d > p , the matrix G is not necessarily injective on Σ ds . To ensure injectivity, it is essential to further restrict the matrices G. The classical approach to ensure injectivity is to assume a lower bound on the 
+
+spark of G. In particular, we let spk (G) denote the smallest k ∈ N such that some k columns of G are linearly dependent. Then, when used with the Linear ,the mixing predicate Spark σ (K) holds if and only if 
+
+K : c 7 → δG·c for some G ∈ Rp×d with spk( G) ≥ σ.Taking these assumptions together, we can define the model class for spark-constrained dictionary learning :
+
+Mspk (d, p ; s, σ ) := Qspk × K spk , for 
+
+Qspk := P(Σ ds ; MeasCls λds ), and 
+
+Kspk := K(Σ ds → Rp; Linear , Spark σ ).
+
+(1) To apply Cor. 4.1, we first note that Qspk is a full support measure class. We also need to verify that 
+
+Kspk is CBR. As noted in Sec. 4.1, the set of contin-uous injective measurable functions is CBR, and any subset of a CBR class is also CBR. Thus, to ensure the second condition, it suffices to ensure that Kspk 
+
+contains only injective functions. For general σ and s, this condition need not be true. However, it is well-known that taking σ > 2s ensures injectivity. 4 The following result further character-izes T (Kspk ) when σ > 2s.
+
+Claim 5.1. Let K, K ′ ∈ K spk defined in Eq. (1) ,and assume σ > 2s. If K ∼λds K′Eτ for some τ ∈Finj (Σ ds → Σds ), then τ ∈ Relabel( d) ◦ Scale( d).More concisely, T (Kspk ) = Relabel( d) ◦ Scale( d).
+
+See App. D.2 for the proof of this claim: intuitively, linearity of τ ∈ T (Kspk ) follows from linearity of K
+
+and K′, while the further constraints are induced by a combinatorial argument over s-dimensional sub-spaces. Thus, by applying Claim 5.1 and Cor. 4.1, we obtain an adaptation of Theorem 3 in Aharon et al. (2006b) to the population setting: 
+
+Claim 5.2. Let M = Mspk (d, p ; s, σ ) for σ > 2s.Then M is identifiable up to ∼scale .
+
+5.2 Independent Component Analysis 
+
+Although not commonly used for concept extrac-tion, several unsupervised representation learning approaches fit into our latent concept generative modeling framework. These approaches are also de-signed with the goal of disentangling their inputs into high-level concepts (Higgins et al., 2017; Bengio et al., 
+
+> 4For completeness, we give a proof in App. D.2. A Unifying Framework for Unsupervised Concept Extraction
+
+2013; R. Chen et al., 2018; Alemi et al., 2017). Again, these approaches are not always framed from a statis-tical angle, and often lack identifiability guarantees (Locatello et al., 2019). However, many approaches are closely related to the classical statistics problem of independent component analysis (ICA) , which fits directly into our framework. As suggested by the name, the core assumption in ICA is that the concept variables are statistically independent. We encode this with the concept predicate Ind , where Ind (Q)holds if and only if Q is a product distribution. As in Sec. 5.1, we focus on the common setting of continuous concepts, continuous features, and deter-ministic mixing. Hence, we let C = Rd and Z = Rp,where C is endowed with the Lebesgue measure λ. In contrast to Sec. 5.1, ICA usually considers d ≤ p, and does not assume sparsity on C. For convenience, we also assume a unit variance constraint. When used with Ind , the concept predicate UnitVar (Q) holds if and only if Cov (Q) = Id; this constraint removes scaling ambiguity and yields a simpler proof. It is well-known that the independence constraint and deterministic mixing are not sufficient for any meaningful identifiability guarantee (Hyv¨ arinen and Pajunen, 1999). In our parlance, with Qd 
+
+> ind
+
+:= 
+
+P(Rd; Ind , UnitVar ) the set T (Qd
+
+> ind
+
+) is far too large, since several non-trivial functions preserve indepen-dence. Hence, identifiability results in ICA must rely on additional assumptions. Here, we focus on the classical setting of linear ICA, which assumes a linear and injective mixing function. We encode this assumption by the mixing predicate 
+
+LinearInj , and let Klin = K(Rd → Rp; LinearInj ). This restriction reduces the space of possible transition kernels: since the composition of two linear maps is linear, we have T (Klin ) = GL (d), where GL (d)denotes the general linear group on Rd.However, linear mixing still does not provide enough constraint. In App. D.3, we recount the fact that 
+
+T (Klin ) ∩ T (Qd
+
+> ind
+
+) = O(d), where O(d) denotes the 
+
+orthogonal group on Rd. This ambiguity arises from a symmetry of Gaussian distributions: if Q = N (0, Id), then the pushforward distribution Q′ = Eτ Q also equals N (0, Id) for any τ ∈ O(d). To avoid this problem, the seminal work of Comon (1994) shows that this symmetry disappears when we enforce non-Gaussianity. To state their result in our framework, we define the concept predicate NonGaussian , which holds for Q if and only if Q ∼ λ and at most one component of Q is Gaussian. Letting Qd 
+
+> ind-ng
+
+:= 
+
+P(Rd; Ind , UnitVar , NonGaussian ), the next result is a minor adaptation of Theorem 11 in Comon (1994): 
+
+Claim 5.3. T (Qd
+
+> ind-ng
+
+) ∩ O(d) = Relabel( d).
+
+See App. D.3 for the proof. Gathering these assump-tions, we define the model class for linear ICA as 
+
+Mlin-ica (d, p ) := Qd 
+
+> ind-ng
+
+× K (Rd → Rp; LinearInj ).
+
+By construction, Qd 
+
+> ind-ng
+
+is a full support measure class, and K = K(C → Z ; LinearInj ) is CBR, so we can apply Cor. 4.1. Simple set manipulation shows that T (Qd
+
+> ind-ng
+
+) ∩ T (K) = Relabel (d), which gives our version of Corollary 13 in Comon (1994): 
+
+Claim 5.4. Let M = Mlin-ica (d, p ). Then M is identifiable up to ∼lbl .
+
+# 6 METHODOLOGICAL IMPLICATIONS 
+
+By design, a latent concept generative model (LC-GM) is a type of generative model over the feature space Z. Thus, to learn an LC-GM, one may apply many of the same tools as for learning other kinds of generative models. Here, we briefly discuss one nat-ural workflow for algorithm development suggested by our framework, and how this workflow relates to a common model class for sparse autoencoders: 
+
+Msae (d, p ; s) := P(Σ ds ) × K (Σ ds → Rp; Linear ),
+
+a relaxation of the model class in Eq. (1). 5 As short-hand, we let Msae = Msae (d, p ; s). In this section, we are slightly more informal, e.g. we assume all distributions have strictly positive densities. 
+
+6.1 Architecture Design 
+
+Our framework suggests a decomposed parameteri-zation of the model class M, similar to deep latent variable models (Diederik and Max, 2019). In particular, let Θ = Ω × Ψ for parameter spaces Ω and Ψ, where each ω ∈ Ω yields a concept distribu-tion Qω (i.e., a learnable latent “prior”), and each 
+
+ψ ∈ Ψ yields a mixing kernel Kψ (i.e., a stochas-tic decoder). Then, each θ = ( ω, ψ ) yields a latent concept generative model Mθ := (Qω , K ψ ), with the joint distribution Jθ (c, z ) := Kψ (z | c) · Qω (c) and the induced feature distribution Pθ := ( Kψ )♯(Qω ). One may use architectural design to exactly enforce the constraints, i.e., Qω ∈ Q and Kψ ∈ K , or may softly enforce these constraints through regulariza-tion. For the Msae example, we require Qω to output      
+
+> 5Note that Msae (d, p ;s) does not satisfy the same iden-tifiability guarantees as Mspk (d, p ;s, σ ). However, one may perform post-hoc identifiability checks; see App. E.1. Chandler Squires, Pradeep Ravikumar
+
+s-sparse vectors, and we require Kψ to be linear. The linearity constraint can be easily enforced by taking Ψ = Rp×d and letting Kψ : c 7 → Gψ ·c be a linear layer. Meanwhile, the sparsity constraint can be encoded into the architecture via a discrete operation, as in TopK SAEs (Makhzani and Frey, 2013; Gao et al., 2024), or can be softly enforced by ℓ1-regularization, as in traditional SAEs (Elhage et al., 2022). 
+
+6.2 Training 
+
+After designing the architecture, one needs to train 
+
+θ = ( ω, ψ ) on a consistent loss function ℓ : Θ×Z → R,i.e., a loss function such that the population loss 
+
+L(θ, P ∗) := EZ∼P ∗ [ℓ(θ, Z)] is minimized if and only if Pθ = P ∗, assuming the model class is well-specified. 6 In this approach, the choice of ℓ is constrained by the nature of Qω and 
+
+Kψ . For example, if Qω provides evaluation access, and Kψ = Egψ for some diffeomorphism gψ with a tractable inverse hψ := g−1 
+
+> ψ
+
+, then the negative log likelihood ℓ(θ, z ) := − log Pθ (z) can be evaluated using the change of measure formula with c = hψ (z): 
+
+− log Pθ (z) = − log Qω (c) + log |Jgψ (c)|,
+
+where the Jacobian Jgψ (z) can be computed via au-todifferentiation. However, if Qω and Kψ are implicit models, then other choices of ℓ, e.g. an f -GAN di-vergence (Nowozin et al., 2016), may be necessary. 
+
+6.3 Concept Extraction as Inference 
+
+As described in Sec. 3, a latent concept generative model Mθ∗ = ( Qω∗ , K ψ∗ ) induces a concept extractor 
+
+Hθ∗ (c | z) = Kψ∗ (z | c) · Qω∗ (c)
+
+Pθ∗ (z) .
+
+Again, in the simplest setting where Kψ = Egψ for some injective gψ , the concept extractor has a simple form: namely, Hθ∗ = Ehψ∗ . For example, in Mspk ,the exact solution c such that Gψ∗ · c = z can be computed via orthogonal matching pursuit under additional conditions on Gψ∗ (Tropp, 2004). In the more general stochastic mixing setting, concept extraction requires posterior inference , and the form of Qω and Kψ dictate the available inference proce-dures. For example, if Qω and Kψ both provide eval-uation access, then Hθ∗ (c | z) ∝ Kψ∗ (z | c) · Qω∗ (c)can be treated as an energy-based model, allowing 
+
+> 6We briefly discuss misspecification in Sec. 7.
+
+for the use of inference procedures such as Hamil-tonian Monte Carlo (Neal, 2011). However, if Qω
+
+and Kψ are implicit models, then one must turn to simulation-based inference (Cranmer et al., 2020). If concept extraction (rather than generation) is the main goal, one may instead wish to amortize poste-rior inference by learning a parameterized concept ex-tractor, as is done for traditional SAEs. In App. E.2, we further discuss this option, and App. E.3 discusses connections between our framework and the projec-tion encoders framework of Hindupur et al. (2025). 
+
+# 7 DISCUSSION 
+
+In this paper, we have introduced a unified framework which formalizes the task of concept extraction from the lens of identifiability theory. Our two main theo-rems, Thm. 4.1 and Thm. 4.2, give powerful tools for establishing identifiability results, with our two appli-cations in Sec. 5 showing how these theorems can be applied. In App. F, we cover a third application to a model class with stochastic mixing, which is a ma-jor extension beyond similar previous work (Xi and Bloem-Reddy, 2023). We expect these contributions to pave the way for a number of directions: 
+
+Bridging the theory-practice gap. By focusing on concept extraction as our motivating application, we have hopefully made identifiability theory acces-sible to a broader audience that greatly wants and needs these tools (Cui et al., 2025; M´ eloux et al., 2025; Song et al., 2025). Such theory can usefully inform method development and usage, but several issues remain, e.g. reasoning about identifiability in misspecified model classes (where P M̸ = P ∗ for any 
+
+M ∈ M ) and reasoning about identifiability under additional constraints on the concept extractor HM
+
+(as brought up in App. E.3). 
+
+Extensions to weak supervision. In this pa-per, we have considered concept extraction from the perspective of unsupervised representation learning. However, several works on identifiability can be inter-preted as providing weak supervision on the concepts, e.g. auxiliary variables in nonlinear ICA (Hyvarinen et al., 2019), interventions in causal representation learning (Zhang et al., 2023; Buchholz et al., 2023; Varici et al., 2025), or even downstream labels in traditional representation learning (Roeder et al., 2021; Reizinger et al., 2025; Zhai et al., 2025). Often, such supervision allows one to consider much more general latent concept generative models. Thus, it would be very useful to extend the framework here to incorporate weak supervision. A Unifying Framework for Unsupervised Concept Extraction 
+
+Acknowledgements 
+
+We would like to thank Jerry Huang, Che-Ping Tsai, and Jason Hartford for insightful discussions on the overall framework, and Yizhou Lu and Soheun Yi for careful proofreading and discussions about method-ology. We thank our anonymous reviewers for the encouragement to add Sec. 6 and the comparisons in App. E.3. This research was developed with fund-ing from the Defense Advanced Research Projects Agency (DARPA) via HR0011-25-3-0239, FA8750-23-2-1015, ONR via N00014-23-1-2368, and NSF via IIS-1909816. 
+
+References 
+
+Aharon, Michal et al. (2006a). “K-SVD: An algorithm for designing overcomplete dictionaries for sparse representation”. In: IEEE Transactions on Signal Processing .– (2006b). “On the uniqueness of overcomplete dic-tionaries, and a practical way to retrieve them”. In: Linear Algebra and Its Applications .Alemi, Alexander A et al. (2017). “Deep variational information bottleneck”. In: The International Conference on Learning Representations .Arora, Sanjeev et al. (2014). “New algorithms for learning incoherent and overcomplete dictionaries”. In: Conference on Learning Theory .Ashuach, Tomer et al. (2025). “CRISP: Persistent Concept Unlearning via Sparse Autoencoders”. In: 
+
+arXiv preprint arXiv:2508.13650 .Bengio, Yoshua et al. (2013). “Representation learn-ing: A review and new perspectives”. In: IEEE Transactions on Pattern Analysis and Machine Intelligence .Blackwell, David (1953). “Equivalent comparisons of experiments”. In: The Annals of Mathematical Statistics .Buchholz, Simon et al. (2023). “Learning linear causal representations from interventions under general nonlinear mixing”. In: Advances in Neural Infor-mation Processing Systems .Chen, Ricky et al. (2018). “Isolating sources of dis-entanglement in variational autoencoders”. In: Ad-vances in Neural Information Processing Systems .Comon, Pierre (1994). “Independent component anal-ysis, a new concept?” In: Signal Processing .Cranmer, Kyle et al. (2020). “The frontier of simulation-based inference”. In: Proceedings of the National Academy of Sciences .Cui, Jingyi et al. (2025). “On the theoretical under-standing of identifiable sparse autoencoders and beyond”. In: arXiv preprint arXiv:2506.15963 .Cunningham, Hoagy et al. (2023). “Sparse autoencoders find highly interpretable fea-tures in language models”. In: arXiv preprint arXiv:2309.08600 .Diederik, P Kingma and Welling Max (2019). “An in-troduction to variational autoencoders”. In: Foun-dations and Trends ® in Machine Learning .Elhage, Nelson et al. (2022). “Toy models of super-position”. In: arXiv preprint arXiv:2209.10652 .Gao, Leo et al. (2024). “Scaling and evaluat-ing sparse autoencoders”. In: arXiv preprint arXiv:2406.04093 .Higgins, Irina et al. (2017). “Beta-VAE: Learning basic visual concepts with a constrained variational framework”. In: The International Conference on Learning Representations .Hindupur, Sai Sumedh R et al. (2025). “Projecting assumptions: The duality between sparse autoen-coders and concept geometry”. In: Advances in Neural Information Processing Systems .Hyv¨ arinen, Aapo and Petteri Pajunen (1999). “Non-linear independent component analysis: Existence and uniqueness results”. In: Neural Networks .Hyvarinen, Aapo et al. (2019). “Nonlinear ICA us-ing auxiliary variables and generalized contrastive learning”. In: The International Conference on Artificial Intelligence and Statistics .Jiang, Yibo et al. (2024). “On the origins of linear representations in large language models”. In: The International Conference on Machine Learning .Leask, Patrick et al. (2025). “Sparse autoencoders do not find canonical units of analysis”. In: The International Conference on Learning Representa-tions .Locatello, Francesco et al. (2019). “Challenging com-mon assumptions in the unsupervised learning of disentangled representations”. In: The Inter-national Conference on Machine Learning .Makhzani, Alireza and Brendan Frey (2013). “K-sparse autoencoders”. In: arXiv preprint arXiv:1312.5663 .M´ eloux, Maxime et al. (2025). “Everything, every-where, all at once: Is mechanistic interpretability identifiable?” In: The International Conference on Learning Representations .Neal, Radford M (2011). “MCMC using Hamiltonian dynamics”. In: Handbook of Markov Chain Monte Carlo .Nowozin, Sebastian et al. (2016). “f-GAN: Training generative neural samplers using variational di-vergence minimization”. In: Advances in Neural Information Processing Systems .Chandler Squires, Pradeep Ravikumar 
+
+Olshausen, Bruno A and David J Field (1997). “Sparse coding with an overcomplete basis set: A strategy employed by V1?” In: Vision Research .Park, Kiho et al. (2024). “The linear representation hypothesis and the geometry of large language models”. In: The International Conference on Ma-chine Learning .Paulo, Gon¸ calo and Nora Belrose (2025). “Sparse au-toencoders trained on the same data learn different features”. In: arXiv preprint arXiv:2501.16615 .Reizinger, Patrik et al. (2025). “Cross-entropy is all you need to invert the data generating process”. In: The International Conference on Learning Rep-resentations .Roeder, Geoffrey et al. (2021). “On linear identifia-bility of learned representations”. In: The Interna-tional Conference on Machine Learning .Song, Xiangchen et al. (2025). “Position: Mech-anistic interpretability should prioritize fea-ture consistency in SAEs”. In: arXiv preprint arXiv:2505.20254 .Sucholutsky, Ilia et al. (2023). “Getting aligned on representational alignment”. In: arXiv preprint arXiv:2310.13018 .Tropp, Joel A (2004). “Greed is good: Algorithmic results for sparse approximation”. In: IEEE Trans-actions on Information theory .Turner, Alexander et al. (2023). “Activation addition: Steering language models without optimization”. In: CoRR .Varici, Burak et al. (2025). “Score-based causal rep-resentation learning: Linear and general transfor-mations”. In: The Journal of Machine Learning Research .Xi, Quanhan and Benjamin Bloem-Reddy (2023). “Indeterminacy in generative models: Characteri-zation and strong identifiability”. In: The Inter-national Conference on Artificial Intelligence and Statistics .Yakowitz, Sidney J and John D Spragins (1968). “On the identifiability of finite mixtures”. In: The Annals of Mathematical Statistics .Zhai, Runtian et al. (2025). “Contextures: Represen-tations from contexts”. In: International Confer-ence on Machine Learning . PMLR. Zhang, Jiaqi et al. (2023). “Identifiability guarantees for causal disentanglement from soft interventions”. In: Advances in Neural Information Processing Systems .A Unifying Framework for Unsupervised Concept Extraction 
+
+# Contents of Appendix 
+
+A BACKGROUND 13 
+
+A.1 Borel Spaces and Distributions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13 A.2 Markov Kernels . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13 A.3 Technical Results for Composition . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14 
+
+B ADDITIONAL EXAMPLES 15 
+
+B.1 Feature Equivalence Does Not Imply Blackwell Comparability . . . . . . . . . . . . . . . . . . 15 B.2 A Blackwell Irreducible Class of Kernels . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 
+
+C DEFEFFED PROOFS (MAIN RESULTS) 16 
+
+C.1 Proofs from Section 3.3 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 C.2 Proofs from Section 4.1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 C.3 Proofs from Section 4.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19 
+
+D DEFERRED PROOFS (APPLICATIONS) 20 
+
+D.1 Definition of the Canonical Stratified Measure . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 D.2 Proofs from Section 5.1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 D.3 Proofs from Section 5.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 
+
+E METHODOLOGICAL IMPLICATIONS FOR SPARSE AUTOENCODERS 22 
+
+E.1 Post-hoc Checks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22 E.2 Amortized Posterior Inference . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23 E.3 Comparison to the Projective Assumptions Framework . . . . . . . . . . . . . . . . . . . . . . 24 
+
+F ADDITIONAL APPLICATION: FINITE MIXTURE MODELS 25 A Unifying Framework for Unsupervised Concept Extraction 
+
+# A BACKGROUND 
+
+In Sec. 2, we described our notation for distributions and Markov kernels. This section reintroduces that notation and provides more explicit definitions for the unfamiliar reader. 
+
+A.1 Borel Spaces and Distributions 
+
+Let U be a topological space. The Borel space associated with U is the pair ( U, B), where B is the Borel 
+
+σ-algebra of U, i.e., the σ-algebra generated by the open sets of U. We define a Polish Borel space as a Polish space (i.e., a separable completely metrizable topological space) endowed with its Borel σ-algebra. Ignoring its topological data, such a space is commonly called a standard Borel space , see Kechris (1995, Definition 12.5). Here, we include Polish in the name to indicate that the topological structure is kept. For any measurable space V, we let P(V) denote the set of probability distributions on V. We say that 
+
+Q ∈ P (V) is absolutely continuous with respect to a measure μ on V if μ(A) = 0 implies Q(A) = 0 for any 
+
+V-measurable set A.
+
+A.2 Markov Kernels 
+
+A Markov kernel from U to V is a measurable function from U to P(V). We denote the set of Markov kernels from U to V as K(U → V ), and given a Markov kernel K ∈ K (U → V ), we let K(· | u) denote its output for u ∈ U . Given a measure μ on U, we say that two kernels K and K′ are equal μ-almost everywhere if μ(N ) = 0 for the set N = {u ∈ U : K(· | u)̸ = K′(· | u)}. We write K ∼μ K′ to denote that 
+
+K and K′ are equal μ-almost everywhere. 
+
+Pushforwards and Posterior Kernels For a Markov kernel K ∈ K (U → V ), we define an associated operator K♯ : P(U) → P (V), which maps the distribution Q ∈ P (U) to the distribution P = K♯(Q) such that 
+
+P (·) = 
+
+Z
+
+> U
+
+K(· | u) · Q(du ). (2) Given a Markov kernel K ∈ K (U → V ) and a distribution Q ∈ P (U), a posterior kernel of K with respect to Q is a Markov kernel L ∈ K (V → U ) such that, for all measurable sets A ⊆ U and B ⊆ V ,
+
+Z
+
+> A
+
+K(B | du ) · Q(du ) = 
+
+Z
+
+> B
+
+L(A | dv ) · P (dv ), (3) where P = K♯(Q). Assuming that U and V are standard Borel spaces, a posterior kernel always exists, and is unique P -almost everywhere (for reference, see Example 11.6 in Fritz (2020)). We let K† 
+
+> Q
+
+denote any such posterior kernel. 
+
+Composition Given two Markov kernels K ∈ K (U → V ) and L ∈ K (V → W ), the composition of these Markov kernels, denoted LK , is a Markov kernel from U to W, where for all u ∈ U ,(LK )( · | u) = 
+
+Z
+
+> V
+
+L(· | v) · K(dv | u)A Unifying Framework for Unsupervised Concept Extraction 
+
+A basic but important fact is that the pushforward and composition operators can be interchanged, i.e., (LK )♯ = L♯ ◦ K♯. This property is actually a special case of the associativity of Markov kernels, since 
+
+Q ∈ P (V) can be viewed as a Markov kernel from the empty set to V, in which case K♯(Q) = KQ . For a general proof of associativity, see Proposition 3.2 of Panangaden (1999). 
+
+Composition Notation As defined in Sec. 2, for two sets of Markov kernels K ⊆ K (U → V ) and 
+
+L ⊆ K (V → W ), we let 
+
+L ◦ K := {LK : L ∈ L , K ∈ K} ⊆ K (U → W ).
+
+For a set of probability distributions P ⊆ P (U), we let 
+
+K ◦ P := {KP : K ∈ K , P ∈ P} ⊆ P (V).
+
+For a set of functions F ⊆ F (U → V ), we let 
+
+L ◦ F := {LE f : L ∈ L , f ∈ F} ⊆ K (U → W ).
+
+and 
+
+F ◦ P := {Ef P : f ∈ F , P ∈ P} ⊆ P (V).
+
+A.3 Technical Results for Composition 
+
+Normal composition (on the left) respects almost-everywhere equality, i.e., if K ∼μ K′, then LK ∼μ LK ′. In several proofs, we need to pre-compose two kernels which are equal almost everywhere with respect to some measure. Thus, we will show that pre-composition also respects a.e.-equality in the necessary sense. First, we prove two auxiliary claims: 
+
+Claim A.1. Let U and V be standard Borel spaces. For any measurable functions f, g : U → V , the equalizer set 
+
+Equalizer( f, g ) := {u ∈ U : f (u) = g(u)}
+
+is measurable. Proof. Defining h : U → V × V with h : u 7 → (f (u), g (u)), we have that Equalizer (f, g ) = h−1[∆ V ], where ∆V = {(v, v ) : v ∈ V} . As noted by Kallenberg, 2011, the diagonal ∆ V is measurable in V × V when V is Borel, and h is measurable by construction. Thus, h−1[∆ V ] is a measurable set. 
+
+Claim A.2. Take R ∈ P (U) and J ∈ K (U → V ), and let R′ = JR ∈ P (V). Let V1 ⊆ V be a measurable set with R′(V1) = 1 . Define 
+
+U1 = {u ∈ U : J(V1 | u) = 1 }.
+
+Then U1 is measurable and R(U1) = 1 .Proof. Define the measurable function f : U → R with f (u) : u 7 → J(V1 | u), and let g : U → R with g(u) = 1. Then U1 is the equalizer set of f and g, so it is measurable by Claim A.1. Then, by definition of the pushforward, 
+
+R′(V1) = ( JR )( V1) = 
+
+Z
+
+> U
+
+f (u) · R(du ) = 1 .
+
+By linearity of the Lebesgue integral, we have R 
+
+> U
+
+(1 − f (u)) · R(du ) = 0. Since 1 − f (u) ≥ 0, we must have 1 − f (u) = 0 almost surely on R. Thus, f (u) = J(V1 | u) = 1 almost surely on R; i.e., R(U1) = 1. 
+
+Claim A.3 (Left composition respects a.e.-equality) . Take R ∈ P (U), J ∈ K (U → V ), and L1, L 2 ∈ K (V → W).Let R′ = JR ∈ P (V). If L1 ∼R′ L2, then L1J ∼R L2J.Chandler Squires, Pradeep Ravikumar 
+
+Proof. Define the sets 
+
+Veq := {v ∈ V : L1(· | v) = L2(· | v)},
+
+Ueq := {u ∈ U : ( L1J)( · | u) = ( L2J)( · | u)}, and 
+
+U1 := {u ∈ U : J(Veq | u) = 1 }.
+
+We briefly check these sets are measurable: 
+
+• Veq is the equalizer set of the measurable functions f, g : V → P (W) with f : v 7 → L1(· | v) and 
+
+g : v 7 → L1(· | v), and is thus measurable by Claim A.1. 
+
+• Ueq is the equalizer set of the measurable functions f, g : U → P (W) with f : u 7 → (L1J)( · | u) and 
+
+g : u 7 → (L2J)( · | u), and is thus measurable by Claim A.1. 
+
+• U1 is the equalizer set of the measurable functions f, g : U → R with f : u 7 → J(Veq | u) and g : u 7 → 1, and is thus measurable by Claim A.1. Notably, we use that P(W) is a Polish Borel space, which follows from the fact that P(W) is a Polish space (under the topology of weak convergence) for any Polish space W, see e.g. Bogachev and Ruas (2007, Theorem 8.9.5). By the assumption that L1 ∼R′ L2, we have R′(Veq ) = 1. By Claim A.2, we have R(U1) = 1. Finally, we aim to show that U1 ⊆ U eq . For u ∈ U 1, we have (L1J)( · | u) = 
+
+Z
+
+> V
+
+L1(· | v) · J(dv | u) (By definition) =
+
+Z
+
+> Veq
+
+L1(· | v) · J(dv | u) (Since J(V1 | u) = 1 for u ∈ U 1)=
+
+Z
+
+> Veq
+
+L2(· | v) · J(dv | u) (Since L1(· | v) = L2(· | v) for v ∈ V eq )=
+
+Z
+
+> V
+
+L2(· | v) · J(dv | u) (Since J(V1 | u) = 1 for u ∈ U 1)= ( L2J)( · | u) (By definition) Thus U1 ⊆ U eq , hence R(Ueq ) ≥ R(U1) = 1. Hence, by the definition of Ueq , we have L1J ∼R L2J.
+
+# B ADDITIONAL EXAMPLES 
+
+B.1 Feature Equivalence Does Not Imply Blackwell Comparability 
+
+In Sec. 3.3, we mentioned that a minor modification of Ex. 3.2 shows that two models M and M′ may be feature equivalent, but may not be comparable under the Blackwell relation, i.e., we may have neither 
+
+M ⪯Bl M′ nor M′ ⪯Bl M. We now furnish the promised example. 
+
+Example B.1 (Feature equivalence) . Consider the spaces C = {a, b }, C′ = {c, d }, and Z = {u, v }.Let M = ( Q, K ) for 
+
+Q =
+
+
+
+a 3/4
+
+b 1/4
+
+
+
+K =
+
+ a bu 2/3 0
+
+v 1/3 1
+
+
+
+.
+
+Meanwhile, let M′ = ( Q′, K ′) for 
+
+Q′ =
+
+
+
+c 1/2
+
+d 1/2
+
+
+
+K′ =
+
+ c du 3/4 1/4
+
+v 1/4 3/4
+
+
+
+.A Unifying Framework for Unsupervised Concept Extraction 
+
+Then P M = P M′
+
+= 12 (δu + δv ). We do not have K ∼Q K′T for any Markov kernel T ∈ K (C → C ′). In particular, since Q has full support, this condition becomes an equality, i.e., K = K′T . This equality induces a well-posed system of linear equations: 
+
+2/3 01/3 1
+
+
+
+=
+
+Tac Tbc 
+
+Tad Tbd 
+
+
+
+·
+
+3/4 1/41/4 3/4
+
+
+
+. (4) 
+
+The only solution to this system is Tac Tbc 
+
+Tad Tbd 
+
+
+
+=
+
+5/6 −1/21/6 3/2
+
+
+
+,
+
+which is not a valid Markov kernel (since, e.g., Tbc < 0). Similarly, we do not have K′ ∼Q′ KT ′ for any Markov kernel T ′ ∈ K (C′ → C ). Setting up a similar system of linear equations, the only solution is 
+
+T ′ 
+
+> ca
+
+T ′
+
+> da
+
+T ′ 
+
+> cb
+
+T ′
+
+> db
+
+
+
+=
+
+ 9/8 3/8
+
+−1/8 5/8
+
+
+
+,
+
+which is again not a valid Markov kernel. 
+
+B.2 A Blackwell Irreducible Class of Kernels 
+
+In Sec. 4.1, we mentioned that the Blackwell reducibility condition rules out cases like Ex. 3.2. We now describe this statement in more detail. To adapt Ex. 3.2 to the case where C = C′, we let C = {a, b } and Z = {u, v }. We consider the kernel class 
+
+K = {K, K ′} ⊆ K sep (C → Z ), where 
+
+K =
+
+ a bu 2/3 0
+
+v 1/3 1
+
+
+
+and K′ =
+
+ a bu 1 0
+
+v 0 1
+
+
+
+. (5) Then, we can show the following. 
+
+Claim B.1. The above kernel class K is not Blackwell reducible. Proof. Suppose there exists a Polish Borel space I, a base kernel B ∈ K (I → Z ), and functions ϕ, ϕ ′ ∈Finj (C → Z ) such that K = BE ϕ and K′ = BE ϕ′ . We will show that the base kernel B cannot be measure-separating. Let R = EϕQ and R′ = Eϕ′ Q′ for 
+
+Q =
+
+
+
+a 3/4
+
+b 1/4
+
+
+
+and Q′ =
+
+
+
+a 1/2
+
+b 1/2
+
+
+
+. (6) Then we have R = 34 δϕ(a) + 14 δϕ(b) and R′ = 12 δϕ′(a) + 12 δϕ′(b). Since ϕ and ϕ′ are injective, we must have 
+
+R̸ = R′, since (for example), R has lower entropy than R′. However, we have BR = KQ = 12 (δu + δv ) and 
+
+BR ′ = K′Q′ = 12 (δu + δv ), i.e., BR = BR ′ for R̸ = R′, so B is not measure-separating. 
+
+# C DEFEFFED PROOFS (MAIN RESULTS) 
+
+C.1 Proofs from Sec. 3.3 
+
+As mentioned in Sec. 3.3, the Blackwell coarsening relation is transitive, justifying the use of the ordering symbol ⪯Bl . We now state this formally and give a short proof. Chandler Squires, Pradeep Ravikumar 
+
+Proposition C.1 (Transitivity of the Blackwell coarsening relation) . Let M = ( Q, K ), M′ = ( Q′, K ′), and 
+
+M′′ = ( Q′′ , K ′′ ), where M ∈ M all (C, Z), M′ ∈ M all (C′, Z), and M′′ ∈ M all (C′′ , Z).If M ⪯Bl M′ and M′ ⪯Bl M′′ , then M ⪯Bl M′′ . In particular, if M is Blackwell coarser than M′ under T , and 
+
+M′ is Blackwell coarser than M′′ under T ′, then M is Blackwell coarser than M′′ under T ′′ = T ′T .Proof. From the Blackwell coarsening relation, we have (1) Q′ = T Q , (2) K ∼Q K′T , (3) Q′′ = T ′Q′, and (4) K′ ∼Q′ K′′ T ′. We must check the measure refinement and kernel coarsening conditions. 
+
+Measure refinement: The proof follows from substitution and functoriality: 
+
+Q′′ = T ′Q′ (Fact (3)) = T ′(T Q ) (Fact (1)) = ( T ′T )( Q) (Functoriality) = T ′′ Q, (Since T ′′ := T ′T )as desired. 
+
+Kernel coarsening: By Claim A.3, we have that (4) K′ ∼Q′ K′′ T ′ implies that (5) K′T ∼Q (K′′ T ′)T .7
+
+The proof follows from transitivity of ∼Q and functoriality: 
+
+K ∼Q K′T (Fact (1)) 
+
+∼Q (K′′ T ′)T (Fact (5) and transitivity of ∼Q)= K′′ (T ′T ) (By functoriality) = K′′ T ′′ , (Since T ′′ := T ′T )as desired. Our first result in Sec. 3.3 shows that Blackwell coarsening is sufficient for feature equivalence. We restate this result here and provide the proof. 
+
+Proposition (Restatement of Prop. 3.1) . If M ⪯Bl M′, then M and M′ are feature equivalent. In particular, if Q′ = T Q and K ∼Q K′T , then KQ = K′Q′.Proof. Since K ∼Q K′T , we have KQ = ( K′T )Q. Since Q′ = T Q , we have K′Q′ = K′(T Q ). Thus, P M = P M′
+
+directly follows from functoriality, since ( K′T )Q = K′(T Q ). Our second result in Sec. 3.3 gives a result in the reverse direction: under an injectivity assumption, feature equivalence and the kernel coarsening condition imply the measure refinement condition. Again, we restate this result and provide the proof. 
+
+Lemma (Restatement of Lemma 3.1) . Assume that K′ is measure-separating, and that K ∼Q K′T for some 
+
+T ∈ K (C → C ′).If P M = P M′
+
+, then Q′ = T Q , i.e., M ⪯Bl M′.Proof. By substitution and functoriality, 
+
+KQ = ( K′T )( Q) (Since K ∼Q K′T )= K′(T Q ). (Functoriality) By assumption, KQ = K′Q′, hence the above gives that K′(T Q ) = K′(Q′). By the assumption that K′ is measure-separating, Q′ = T Q .
+
+> 7
+
+In particular, we use Claim A.3 with R = Q, J = T , L1 = K′, L2 = K′′ T ′, and R′ = Q′ = T Q .A Unifying Framework for Unsupervised Concept Extraction 
+
+C.2 Proofs from Sec. 4.1 
+
+Our first result in Sec. 4.1 shows that feature equivalance and Blackwell equivalence coincide when we only consider mixing kernels from a Blackwell reducible class K. We now prove this key result. 
+
+Theorem (Restatement of Thm. 4.1) . Let M = P(C) × K for some BR class of kernels K, and let M, M′ ∈ M 
+
+with M = ( Q, K ) and M′ = ( Q′, K ′). If P M = P M′
+
+, then M =Bl M′.If we also assume K is a CBR class of kernels and supp (Q) = supp (Q′) = C, then M is a Blackwell coarsening of M′ under Eτ for some τ ∈ F inj (C → C ).Proof. By Blackwell reducibility, K = BE ϕ and K′ = BE ϕ′ for some base kernel B ∈ K sep (I → Z ; R) and injective functions ϕ and ϕ′. Thus, by functoriality, P M = B(EϕQ) and P M′
+
+= B(Eϕ′ Q′). By definition, 
+
+R = Finj (C → I ) ◦ P (C), so Eϕ, E ϕ′ ∈ R . Since B is measure-separating on R, and P M = P M′
+
+, we have 
+
+EϕQ = Eϕ′ Q′ = R for some R ∈ P (I). To address domain issues, we must define the restrictions of several objects: 
+
+• Sets: Let I0 = supp( R), let C0 = ϕ−1[I0], and let C′ 
+
+> 0
+
+= ( ϕ′)−1[I0]. 
+
+• Functions: Let ϕ0 : C0 → I 0 denote the restriction of ϕ to C0, and let ϕ′ 
+
+> 0
+
+: C′ 
+
+> 0
+
+→ I 0 denote the restriction of ϕ′ to C′
+
+> 0
+
+.
+
+• Kernels: Let K0 ∈ K (C0 → Z ) denote the restriction of K to C0, and let K′ 
+
+> 0
+
+∈ K (C′ 
+
+> 0
+
+→ Z ) denote the restriction of K′ to C′
+
+> 0
+
+. Note that K0 = BE ϕ0 and K′ 
+
+> 0
+
+= BE ϕ′ 
+
+> 0
+
+.By construction, ϕ0 and ϕ′ 
+
+> 0
+
+have matching images, so τ0 := (ϕ′
+
+> 0
+
+)−1 ◦ ϕ0 is a well-defined function from C0
+
+to C′
+
+> 0
+
+, and τ0 is injective. Let τ be any measurable extension of τ0 onto all of C. We now show that M is Blackwell coarser than M′ under Eτ .
+
+Kernel Coarsening By definition of τ0, we have Eϕ′ 
+
+> 0
+
+Eτ0 = Eϕ0 . Thus, by functoriality, K′
+
+> 0
+
+Eτ0 =(BE ϕ′ 
+
+> 0
+
+)Eτ0 = B(Eϕ′ 
+
+> 0
+
+Eτ0 ) = BE ϕ0 = K0, i.e., K0 = K′
+
+> 0
+
+Eτ0 . Since τ only extends τ0 on a Q-null set, this gives 
+
+K ∼Q K′Eτ .
+
+Measure refinement By Blackwell reducibility, K′ is measure-separating, and we have just shown that 
+
+K ∼Q K′Eτ . Thus, by Lemma 3.1, we have Q′ = Eτ Q.Repeating the proof by swapping M and M′ shows that M′ is Blackwell coarser than M under any extension 
+
+τ ′ of τ ′ 
+
+> 0
+
+:= ϕ−10 ◦ ϕ′
+
+> 0
+
+. Hence, M and M′ are Blackwell equivalent. 
+
+Special case of full supports and continuous Blackwell reducibility By Claim A.2, since R(I0) = 1, we have that Q(C0) = 1. By definition, I0 is a closed set. Thus, if ϕ is continuous, then C0 = ϕ−1[I0] is a closed set. Hence, by definition of supp( Q), we have supp( Q) ⊆ C 0. Similarly, supp( Q′) ⊆ C ′
+
+> 0
+
+.Under the assumption that supp (Q) = supp (Q′) = C, we thus obtain C0 = C′ 
+
+> 0
+
+= C. Hence, we avoid all domain issues: τ0 is already a well-defined injective function from C to C.
+
+C.2.1 Measure-separating base kernel under additive noise 
+
+To prove that the base kernel in Ex. 4.2 is measure-separating, we use elementary properties of characteristic functions, which we now review; see Lukacs (1970) for reference. Given a probability distribution R over 
+
+U = Rd, we recall that the characteristic function of R is defined as ϕR(t) := EU∼R[eit ⊤U], and that the map R 7 → ϕR is injective, i.e., characteristic functions are unique. Further, given two distributions R and N
+
+over U, we have ϕN ∗R(t) = ϕN (t) · ϕR(t). 
+
+Claim C.1. Let Nε ∈ P (Z) such that ϕNε is nowhere zero. Then the base kernel B : z 7 → Nε ∗ δz is measure-separating. Chandler Squires, Pradeep Ravikumar 
+
+Proof. Consider R, R ′ ∈ P (Z). Let Q = BR = Nε ∗ R and Q′ = BR ′ = Nε ∗ R′. Then we have 
+
+ϕQ(t) = ϕNε (t) · ϕR(t) and ϕQ′ (t) = ϕNε (t) · ϕR′ (t). Suppose Q = Q′. Then ϕQ = ϕQ′ , and since ϕNε is nowhere zero, we must have ϕR = ϕR′ . Since characteristic functions are unique, this entails R = R′, i.e., B is measure-separating, as desired. The fact that the base kernel in Ex. 4.2 is measure-separating follows from Claim C.1, since the characteristic function of Nε = N (0 , Σ) is ϕNε (t) = exp( −t⊤Σt/ 2), which is nowhere zero. 
+
+C.2.2 Measure-separating base kernel in Gaussian mixture 
+
+Recall that, in Ex. 4.3, we have the concept C = [ d], the index space I = Rp × S p
+
+> ⪰0
+
+, and the feature space 
+
+Z = Rp. We defined the base kernel B : ( μ, Σ) 7 → N (μ, Σ), and we wished to show that B is measure-separating over measures in R := {EϕQ : ϕ ∈ F inj (C → I ), Q ∈ P (C)}. In particular, R contains all distributions of the form R = Pri=1 wiδμi,Σi , where r ≤ d and ( μi, Σi)̸ = ( μj , Σj ) for i̸ = j.Consider R, R ′ ∈ R with R = Pri=1 wiδμi,Σi and R′ = Pr′ 
+
+> i=1
+
+w′
+
+> i
+
+δμ′ 
+
+> i,Σ′
+> i
+
+. Suppose Q = BR and Q′ = BR ′
+
+with Q = Q′. Then, by linearity of the pushforward operator, B♯(R − R′) = 0, where R − R′ ∈ R − R is a signed measure on I, and R − R := {R − R′ : R, R ′ ∈ R} . Thus, if nullspace (B♯|R−R ) = {0}, we can conclude that R − R′ = 0, i.e., R = R′. This connection is essentially the same one described in the first theorem of Yakowitz and Spragins (1968), where B is treated as an indexed family of distributions (rather than as a Markov kernel), and the result is stated in terms of linear independence (rather than in terms of the nullspace). In particular, Proposition 2 of Yakowitz and Spragins (1968) can be viewed as showing the more general result that nullspace (B♯|S ) = {0}, where S is the set of signed measures with finite (discrete) support (this result is more general since R − R ⊂ S ). 
+
+C.3 Proofs from Sec. 4.2 
+
+In Sec. 4.2, we mentioned that any group G of functions from C to C defines an equivalence relation ∼G over 
+
+Mall (C, Z). We now formally state and prove this result. 
+
+Proposition C.2. Let G be a group of functions on C, and define the binary relation Rel G on Mall (C, Z) as follows: Rel G(M, M′) holds if and only M is Blackwell coarser than M′ under some τ ∈ G.Then, Rel G is an equivalence relation. Proof. We check the three axioms of an equivalence relation: 
+
+Reflexivity: Since G is a group, it contains the identity map id C : c 7 → c. Clearly, M is a Blackwell coarsening of itself under the identity map, so Rel G(M, M) holds. 
+
+Symmetry: Let M = ( Q, K ) be Blackwell coarser than M′ = ( Q′, K ′) under τ ∈ G, i.e., Q′ = Eτ Q and 
+
+K ∼Q K′Eτ . Since G is a group, we have τ −1 ∈ G.We now show that M′ is Blackwell coarser than M under τ −1.
+
+• Measure refinement: By substitution and functoriality, we have Eτ −1 (Q′) = ( Eτ −1 Eτ )( Q). Since τ is injective, this gives Eτ −1 Q′ = Q, as desired. 
+
+• Kernel coarsening: By Claim A.3, K ∼Q K′Eτ implies that KE τ −1 ∼Q′ (K′Eτ )Eτ −1 .8 By functoriality and injectivity of τ , we obtain KE τ −1 ∼Q′ K′, as desired. 
+
+Transitivity: Let M be a Blackwell coarsening of M′ under Eτ and let M′ be a Blackwell coarsening of M′′ 
+
+under Eτ ′ . By transitivity of Blackwell coarsening (see Prop. C.1), M is a Blackwell coarsening of M′′ under 
+
+Eτ ′′ = Eτ Eτ ′ . Since G is a group of functions, τ ′′ ∈ G, hence Rel G(M, M′′ ) holds. 
+
+> 8
+
+In particular, we use Claim A.3 with R = Q′, J = Eτ −1 , L1 = K, L2 = K′Eτ , and R′ = Q = Eτ −1 Q′.A Unifying Framework for Unsupervised Concept Extraction 
+
+At the end of Sec. 4.2, we mentioned that the valid transition set T (K) takes a special form when K contains only injective deterministic functions from some set G. As in Xi and Bloem-Reddy (2023), we need to assume that G contains only image equivalent functions , i.e., g[C] = g′[C] for any g, g ′ ∈ G , so that g−1 ◦ g′ is well-defined. We now prove this claim. 
+
+Proposition C.3 (Valid kernel transitions in the deterministic case) . Let G ⊆ F inj (C → Z ) contain image equivalent functions, and assume K = {Eg : g ∈ G} . Then T (K) = {τ : τ ∼μ g−1 ◦ g′ for some g, g ′ ∈ G} .Proof. Let T (G) = {τ : τ ∼μ g−1 ◦ g′ for some g, g ′ ∈ G} . We first prove the T (K) ⊆ T (G), then that 
+
+T (G) ⊆ T (K). 
+
+First direction: Let τ ∈ T (K). In particular, there exist functions g, g ′ ∈ G such that K ∼μ K′Eτ for the mixing kernels K = Eg and K′ = Eg′ . It is straightforward that K ∼μ K′Eτ implies that g ∼μ g′ ◦ τ .Composing both sides with ( g′)−1, we obtain ( g′)−1 ◦ g ∼μ τ , i.e., τ ∈ T (G). 
+
+Second direction: Let τ ∈ T (G). In particular, there exists functions g, g ′ ∈ G such that τ ∼μ g−1 ◦ g′.Composing both sides with g, we obtain g ◦ τ ∼μ g′. Thus, K′ ∼μ KE τ for K = Eg and K′ = Eg′ . Hence, 
+
+τ ∈ T K′ (K), and since TK′ (K) ⊆ T (K), we have τ ∈ T (K). We note that, to drop the image equivalence assumption, one would need to define the set 
+
+T (G) = {τ : τ ∼μ g−1 ◦ g′ for some g, g ′ ∈ G such that supp( g♯(μ)) = supp( g′
+
+> ♯
+
+(μ)) }
+
+and carefully handle domain issues, similar to the proof of Thm. 4.1. 
+
+# D DEFERRED PROOFS (APPLICATIONS) 
+
+D.1 Definition of the Canonical Stratified Measure 
+
+For J ⊆ [d], let SJ := span ({ei : i ∈ J}). For |J| = k, we let λJ denote the k-dimensional Lebesgue measure on SJ , i.e., λJ = ( ιJ )♯λk, where ιJ : Rk → SJ is the canonical isomorphism between Rk and SJ , and λk is Lebesgue measure on Rk. Then, we define the canonical stratified measure λds referred to in Sec. 5.1 as 
+
+λds := X
+
+> J⊆[d]
+> |J|≤ s
+
+λJ .
+
+D.2 Proofs from Sec. 5.1 
+
+Before Claim 5.1, we cited the fact that any matrix with spark greater than 2 s is injective on the set Σ ds .This classical result can be found in many places, e.g. Theorem 2.4 of Elad (2010). For completeness and consistency with our notation, we now formally state and prove this result. 
+
+Claim D.1. Let G ∈ Rp×d with spk( G) > 2s, and let τ : c 7 → G · c. Then G is injective on Σds .Proof. Suppose c, c ′ ∈ Σds and G · c = G · c′. Let ∆ = c − c′, so that G · ∆ = 0. Since ∥c∥0 ≤ s and ∥c′∥0 ≤ s,we have ∥∆∥0 ≤ 2s. Thus, G · ∆ is a linear combination of at most 2 s columns of G. Since spk (G) > 2s, these columns are linearly independent, so G · ∆ = 0 implies that ∆ = 0. This shows that c = c′, as desired. Our main claim in Sec. 5.1 characterizes the valid transition set T (Kspk ) for the set of mixing functions 
+
+Kspk = K(Σ ds → Rp; Linear , Spark σ ). This characterization is the main difficulty in proving identifiability of 
+
+Mspk , and a version of this characterization appears in the proof of Theorem 3 from Aharon et al. (2006). Here, we hope to provide more intuition for the combinatorial nature of this proof. For s ≤ d, we define 
+
+J (d, s ) as the collection of all size-s subsets of [ d], i.e., 
+
+J (d, s ) := {J ⊆ [d] : |J| ≤ s}.Chandler Squires, Pradeep Ravikumar 
+
+For i ∈ [d], we define Ji(d, s ) as the collection of all size-s subsets of [ d] which contain i, i.e., 
+
+Ji := {J ∈ J : i ∈ J}.
+
+Claim D.2. Let T ∈ Rd×d be an invertible matrix. For s ≤ d − 1, assume T(Σ ds ) ⊆ Σds . Then T ∈
+
+Relabel( d) ◦ Scale( d).Proof. For i ∈ [d], let ei denote the ith canonical basis vector. For J ⊆ [d], let SJ denote the coordinate-aligned subspace spanned by the corresponding basis vectors, i.e., SJ := span ({ei : i ∈ J}), and let WJ := T [SJ ]. We note that, for s ≤ d − 1, any s-dimensional subspace S of Σ ds is coordinate-aligned, i.e., if dim (S) = s, then 
+
+S = SJ for some J ∈ J (d, s ). 
+
+Induced mapping on size-s coordinate-aligned subspaces: Let J ∈ J (d, s ). Since T is invertible, we have dim (WJ ) = s, and since T(Σ ds ) ⊆ Σds , we have WJ = SJ′ for some J′ ∈ J . Let ϕ : J (d, s ) → J (d, s ) be the map which sends J ∈ J (d, s ) to J′ ∈ J (d, s ) such that WJ = SJ′ .
+
+Induced mapping on axes: Let i ∈ [d]. Since T is invertible, we have dim (W{i}) = 1. Note that 
+
+S{i} = T 
+
+> J∈J i(d,s )
+
+SJ , so by definition of the image and ϕ, we have W{i} = T 
+
+> J∈J i(d,s )
+
+Sϕ(J), i.e., W{i} must be a coordinate-aligned subspace. Thus, since dim( Wi) = 1, we must have W{i} = Sj for some j ∈ [d]. 
+
+Conclusion: The induced mapping on axes shows that, for each i ∈ [d], there is one nonzero entry in the ith column of T. Since T is invertible, it must be a generalized permutation matrix, i.e., T ∈
+
+Relabel( d) ◦ Scale( d). Using this result, the characterization of T (Kspk ) becomes straightforward: 
+
+Claim (Restatement of Claim 5.1) . Let K, K ′ ∈ K spk defined in Eq. (1) , and assume σ > 2s. If K ∼λds K′Eτ
+
+for some τ ∈ F inj (Σ ds → Σds ), then τ ∈ Relabel( d) ◦ Scale( d).More concisely, T (Kspk ) = Relabel( d) ◦ Scale( d).Proof. First, we unpack definitions. Since K, K ′ ∈ K (Σ ds → Rp; Linear , Spark σ ), there exist matrices G, G′ ∈
+
+Rp×d, with spk( G) ≥ σ > 2s and spk( G′) ≥ σ > 2s, such that K : c 7 → δG·c and K′ : c 7 → δG′·c.Since G and G′ are both injective on Σ ds and linear, and τ is injective, τ must also be linear. Thus, we represent τ by an invertible matrix T ∈ Rd×d such that τ : c 7 → T · c. Moreover, since τ ∈ F inj (Σ ds → Σds ), T
+
+must be sparsity-preserving, i.e., ∥T · c∥0 ≤ s for any c such that ∥c∥0 ≤ s.Applying Claim D.2 on T, we obtain the result. 
+
+D.3 Proofs from Sec. 5.2 
+
+In Sec. 5.2, we recounted the classic result that T (K) ∩ T (Qd
+
+> ind
+
+) = O(d) when K = K(Rd → Rp; Linear ), where 
+
+O(d) denotes the orthogonal group on Rd. For completeness, we give a brief proof. 
+
+Claim D.3. For d ≤ p, let Qd 
+
+> ind
+
+= P(Rd; Ind , UnitVar ) and let K = K(Rd → Rp; LinearInj ). Then T (K) ∩T (Qd
+
+> ind
+
+) = O(d).Proof. First, we show that T (K) ∩ T (Qind ) ⊆ O(d). Recall that T (K) = GL( d). Let τ : c → T · c for some invertible matrix T ∈ Rd×d, so that τ ∈ T (K). Further, assume Q, Q ′ ∈ Q ind with 
+
+Q′ = τ♯(Q), so that τ ∈ T (Qind ). By definition of the UnitVar concept predicate, we have Cov (Q) = Cov (Q′) = Id. By linearity of expectation, we have Cov (Q′) = T · Cov (Q) · T⊤. Thus, we obtain T · T⊤ = Id, i.e., T ∈ O(d). Now, we show that O(d) ⊆ T (K) ∩ T (Qind ). Let τ ∈ O(d) ⊆ T (K). Then, for Q = Q′ = N (0, Id), we have 
+
+Q′ = τ♯(Q), i.e., τ ∈ T (Qind ), completing the proof. A Unifying Framework for Unsupervised Concept Extraction 
+
+Our main claim in Sec. 5.2 is a minor adaptation of Theorem 11 in Comon (1994), which shows that any orthogonal transformation of a product distribution with non-Gaussian components will no longer be a product distribution, unless the transformation is a generalized permutation. 9 The proof is a corollary of Darmois’s theorem, which we restate here for convenience: 
+
+Theorem (Darmois’s theorem) . Let (Cj )dj=1 be a collection of independent random variables. Let C′ 
+
+> 1
+
+=
+
+Pdj=1 aj · Cj , and let C′ 
+
+> 2
+
+= Pdj=1 bj · Cj . Finally, let I = {j ∈ [d] : aj · bj̸ = 0 }.If C′ 
+
+> 1
+
+and C′ 
+
+> 2
+
+are independent, then all (Cj )j∈I have Gaussian distributions (possibly with zero variance). 
+
+As a corollary of Darmois’s theorem, we obtain the following: 
+
+Corollary D.1. Let Q, Q ′ ∈ P (Rd; Ind ). Suppose Q′ = τ♯(Q) for τ : c 7 → T · c, where T has at least two nonzero entries in the kth column, i.e., Tuk ̸ = 0 and Tvk ̸ = 0 for u̸ = v. Then the kth component of Q has a Gaussian distribution. Proof. Define random variables C ∼ Q and let C′ = T · C, so that C′ ∼ Q′. We have C′ 
+
+> u
+
+= Pdj=1 Tuj · Cj and 
+
+C′ 
+
+> v
+
+= Pdj=1 Tvj · Cj . By the assumption that Q′ ∈ P (Rd; Ind ), C′ 
+
+> u
+
+and C′ 
+
+> v
+
+are independent. By the premise of the corollary, Tuk · Tvk ̸ = 0. Hence, by Darmois’s theorem, Ck has a Gaussian distribution. Applying this corollary and using properties of orthogonal matrices, we obtain the main result: 
+
+Claim (Restatement of Claim 5.3) . T (Qd
+
+> ind-ng
+
+) ∩ O(d) = Relabel( d).Proof. The direction Relabel (d) ⊆ T (Qind-ng ) ∩ O(d) is straightforward, since non-Gaussianity and indepen-dence are unaffected by relabeling. To show that T (Qind-ng ) ∩ O(d) ⊆ Relabel (d), let τ : c 7 → T · c for some orthogonal matrix T which is not a permutation matrix. Then there must be at least two columns j, k ∈ [d] such that T has at least two nonzero entries in each of these columns. Next, suppose that Q′ = Eτ Q for Q, Q ′ ∈ P (Rd; Ind ). By Cor. D.1, the jth 
+
+and kth component of Q must be Gaussian. Since this applies for any Q and Q′, we have τ̸ ∈ T (Qind-ng ). Thus, T (Qind-ng ) ∩ O(d) ⊆ Relabel( d). 
+
+# E METHODOLOGICAL IMPLICATIONS FOR SPARSE AUTOENCODERS 
+
+E.1 Post-hoc Checks 
+
+Compared to the model class Mspk (d, p ; s, σ ), the model class Msae (d, p ; s) lacks the spark constraint over the mixing kernel K. As discussed in Sec. 5.1, the spark constraint ensures injectivity of the mixing kernel, which is required for the class of mixing kernels Kspk to be Blackwell reducible, and thus for the proof of Claim 5.2. This raises an important question: if one learns a model M ∈ M sae (d, p ; s), what can be concluded about the identifiability of this model? As a partial answer to this question, we suggest performing a post-hoc check to determine whether M ∈Mspk (d, p ; s, σ ). In particular, after training a sparse autoencoder, one may check whether the matrix G
+
+associated with its decoder obeys the desired spark constraint, i.e., whether spk (G) > 2s. If this condition holds, then one can make the following conclusion from Claim 5.2: the model M is identifiable within the model class Mspk (d, p ; s, σ ). This conclusion reflects a generally useful strategy: for computational reasons, one may avoid enforcing some constraints during optimization (e.g. the spark constraint), and instead rely on post-hoc checks to determine identifiability guarantees. However, one must be mathematically careful in such cases: identifiability guarantees must be stated with respect to a particular model class (c.f. the definition of identifiability in Sec. 4.2). Finally, we note that for such checks, computing the spark of a matrix is NP-hard, but there are computationally tractable lower bounds (e.g. based on mutual incoherence) (Elad, 2010).   
+
+> 9As will be evident from the proof, one Gaussian component is allowed, and deterministic components need to be ruled out; these are built into the definition of the NonGaussian mixing predicate. Chandler Squires, Pradeep Ravikumar
+
+E.2 Amortized Posterior Inference 
+
+When concept extraction needs to be performed efficiently, the posterior inference methods described in Sec. 6.3 may be too slow, e.g. even for a deterministic decoder gψ : c 7 → Gψ · c, exactly computing the inverse 
+
+g−1 
+
+> ψ
+
+(z) via matching pursuit may be too expensive. Hence, one may instead wish to learn a parameterized concept extractor (i.e., an encoder) Hϕ for some parameters ϕ ∈ Φ, e.g. by training on a loss function that enforces Hϕ ≈ Hθ∗ .Here, we discuss two options for such amortization: post-hoc amortization , where ϕ is optimized after training the generative model Mθ∗ = ( Qω∗ , K ψ∗ ), and end-to-end amortization , where ϕ is optimized at the same time as θ = ( ω, ψ ). As a reminder, for a model Mθ = ( Qω , K ψ ), we let Jθ (c, z ) = Kψ (z | c) · Qω (c) denote its associated joint distribution over concepts and features, and we let Pθ (z) = R Kψ (z | dc ) · Qω (dc ) denote its associated marginal distribution over features. Further, we let Hθ (c | z) = Kψ (z|c)·Qω (c)  
+
+> Pθ(z)
+
+denote the induced posterior. Finally, we will see that many approaches can be interpreted as performing an amortized version of maximum a posteriori (MAP) inference, so we define the induced MAP function hθ : Z → C as follows: 
+
+hθ (z) := arg max 
+
+> c∈C
+
+Hθ (c | z) = arg max 
+
+> c∈C
+
+log Kψ (z | c) + log Qω (c),
+
+where for simplicity we assume there is a unique maximizer for all z ∈ Z .
+
+SAE Running Example To connect the maximum likelihood perspective (common in generative modeling) with the regularized reconstruction perspective (common for sparse autoencoders), we follow Geadah et al. (2024), who (in our terminology) consider mixing kernels of the form Kψ (· | c) = N (Gψ · c, σ 2I), and who consider a fixed concept distribution Q, e.g. a product of Laplace distributions Q(ci) ∝ exp (−α|ci|) over each component i of C. Under these choices, one obtains log Kψ (z | c) ≃ − 12σ2 ∥z − Gψ · c∥22 and log Q(c) ≃ − α∥c∥1, (7) where ≃ denotes equality up to an absolute constant. 
+
+E.2.1 Post-hoc amortization 
+
+Assuming evaluation access to Hϕ, a natural choice is the cross entropy loss 
+
+LCE (ϕ; θ∗) := E(C,Z)∼Jθ∗ [− log Hϕ(C | Z)] ,
+
+which by well-known theory is optimized when Hϕ(c | z) = Hθ∗ (c | z) almost everywhere on Pθ∗ (assuming 
+
+{Hϕ}ϕ∈Φ has universal approximation capability). This approach would resemble recent neural posterior estimation approaches in simulation-based inference (Lueckmann et al., 2017; Deistler et al., 2025) and 
+
+inference compilation approaches in probabilistic programming (Le et al., 2017), with roots in the “wake-sleep” algorithm (Hinton et al., 1995). As an illuminating example, one may consider optimizing over concept extractors of the form Hϕ(· | z) = N (hϕ(z), σ 2I), giving 
+
+LCE (ϕ; θ∗) ≃ E(C,Z)∼Jθ∗
+
+
+
+− 12σ2 ∥C − hϕ(Z)∥22
+
+
+
+,
+
+a least-squares objective for reconstructing the sampled concept C which generated the associated Z.
+
+Amortized MAP inference As described in Geadah et al. (2024), the use of a deterministic encoder can be thought of as performing maximum a posteriori (MAP) inference. Hence, to learn an amortized MAP function hλ (with the aim that hϕ ≈ hθ ), one may minimize the objective 
+
+LMAP (ϕ; θ∗) := EZ∼P ∗ [− log Kψ∗ (Z | hϕ(Z)) − log Qω∗ (hϕ(Z))] .
+
+Thus, assuming the log-likelihoods in Eq. (7), one obtains 
+
+LMAP (ϕ; θ∗) ≃ EZ∼P ∗
+
+ 12σ2 ∥Z − Gψ∗ · hϕ(Z)∥22 + α∥hϕ(Z)∥1
+
+
+
+,
+
+which is precisely the standard SAE objective, but with the decoder parameters ψ frozen to ψ = ψ∗.A Unifying Framework for Unsupervised Concept Extraction 
+
+E.2.2 End-to-end amortization 
+
+As a final option, the concept extractor Hϕ could be trained in parallel with the generative model Mθ . When the prior is learnable, such end-to-end training could be performed using a general form of the evidence lower bound (ELBO) 10 , as found in Tomczak and Welling (2018): 
+
+EZ∼P ∗ [− log P ∗(Z)] ≤ L GELBO (ϕ, ψ, ω ), where 
+
+LGELBO (ϕ, ψ, ω ) := EZ∼P ∗,C∼Hψ (·| Z) [− log Kψ (Z | C) − log Qω (C) + log Hϕ(C | Z)] When the prior is fixed to Q (e.g. a Laplace distribution as describe above), this bound reduces to the more standard ELBO: 
+
+LELBO (ϕ, ψ ) := EZ∼P ∗,C∼Hψ (·| Z)
+
+
+
+log Kψ (Z | C) + log Q(C)
+
+Hϕ(C | Z)
+
+
+
+.
+
+To connect our framework with traditional SAEs (which use deterministic encoders), one may take the regularization perspective described in Ghosh et al. (n.d.). Alternatively, to continue with the maximum likelihood perspective, one may consider the deterministic variational family Hϕ = Ehϕ . Formally, this choice cannot be interpreted as a density, but can be considered as a certain limit of the variational distributions Hβϕ (c | z) = N (hϕ(z), β −1I) as β → ∞ 11 , yielding 
+
+LELBO-lim (ϕ, ψ ) := EZ∼P ∗ [− log Kψ (Z | hϕ(Z))] .
+
+Under the likelihood in Eq. (7), we thus have 
+
+LELBO-lim (ϕ, ψ ) ≃ EZ∼P ∗
+
+ 12σ2 ∥Z − Gψ · hϕ(Z)∥22
+
+
+
+,
+
+the classic reconstruction loss for SAEs. Hence, the final distinction between existing SAE approaches is their choice of the deterministic variational family: many SAEs restrict to projection encoders (as described below), whereas matching pursuit SAE (Costa et al., 2025) and other methods (Tolooshams and Ba, 2021; Xiao et al., 2025) use variational family which more closely resemble classical methods for computing gψ , such as matching pursuit or the iterative shrinkage and thresholding algorithm (Daubechies et al., 2004; Gregor and LeCun, 2010). 
+
+E.3 Comparison to the Projective Assumptions Framework 
+
+Hindupur et al. (2025) discuss several SAE architectures, including ReLU SAEs (Cunningham et al., 2023), TopK SAEs (Makhzani and Frey, 2013), JumpReLU SAEs (Rajamanoharan et al., 2024; Lieberum et al., 2024), and their newly-introduced SparseMax SAEs. They show that each of these architectures uses a 
+
+constraint set S ⊆ Rd and a projection encoder h : Z → S of the form 
+
+hϕ(z) = Π S (Wϕ · z + bϕ) (8) for some matrix Wϕ ∈ Rd×p and some vector bϕ ∈ Rd, where Π S denotes the projection operator onto S.12 
+
+As noted in Hindupur et al. (2025), the form of hϕ entails implicit assumptions over (1) the geometry of the concept space C and (2) the functional relationship between concepts and features. Our framework proposes to make these assumptions more transparent by (1) explicitly defining the concept space C and (2) explicitly stating assumptions on the model class M.One straightforward implication of assuming a projection encoder is that the concept space C is constrained by the constraint set S of the projection operator. For example, since ReLU SAEs project onto the nonnegative orthant (i.e., ReLU (v) = Π S (v) for S = Rd
+
+> ≥0
+
+), they impose C ⊆ Rd
+
+> ≥0
+
+; since TopK SAEs project onto the the set of nonnegative sparse vectors, they impose C ⊆ Rd 
+
+> ≥0
+
+∩ Σds ; and so on, as summarized in Table 1. 
+
+> 10
+
+For consistency with other loss functions, we present the ELBO as an upper bound on the negative log likelihoood. 
+
+> 11
+
+This reduction can also be seen more intuitively, though less rigorously: under Hϕ = Ehϕ , the expectation is only evaluated at C = hϕ(Z), where Hϕ(C | Z) = ∞ and the second term vanishes. 
+
+> 12
+
+Strictly speaking, the projection operator Π S (v) = arg min v′∈S ∥v − v′∥22 is only well-defined when S is closed and convex, so that the minimizer exists and is unique. This point was not explicitly mentioned in Hindupur et al. (2025), but applies to the constraint sets they considered. Chandler Squires, Pradeep Ravikumar 
+
+Model S
+
+ReLU SAE Rd
+
+> ≥0
+
+TopK Rd 
+
+> ≥0
+
+∩ Σds
+
+Heaviside {0, 1}d
+
+JumpReLU Rd
+
+> ≥0
+
+SparseMax ∆d−1
+
+Table 1: Constraint sets used by different SAE architectures. However, the assumption of a projection encoder imposes a less straightforward assumption on the model class 
+
+M. In general, this assumption cannot be decomposed into separate assumptions on the concept distribution 
+
+Q and the mixing kernel K. Instead, the implicit model class used by an SAE with a linear decoder and the projection encoder in Eq. (8) is as follows: 
+
+Mproj-enc (d, p ; S) = Mall (C, Z; ProjEnc S ),
+
+where ProjEnc S : Mall (C, Z) → { True , False } is a model predicate , which is True for M = ( Q, K ) if and only if the following conditions hold: 1. K : c 7 → G · c for some matrix G ∈ Rp×d.2. G is injective on supp( Q), with a left-inverse of the form h(z) = Π C (W · z + b)In particular, the second condition involves both the concept distribution Q and the mixing kernel K. Due to this lack of product structure on the model class, Thm. 4.2 cannot be applied to these settings, and we propose that the use of projection encoders should be treated as an approximation to the true left-inverse 
+
+h (as discussed in Sec. 6, rather than as additional assumption. More generally, this discrepancy reflects well-known dichotomies, e.g. the dichotomy between generative and discrimative models (Ng and Jordan, 2001), and the dichotomy between causal and anticausal learning (K¨ ugelgen et al., 2020). Indeed, in the general case of a stochastic mixing kernel (decoder), we have 
+
+HM(c | z) = K(z | c) · Q(c)
+
+R 
+
+> C
+
+K(z | dc ) · Q(c)by Bayes’ rule, indicating that assumptions directly on HM should typically be expected to involve assumptions on both Q and K. Given our focus on the generative perspective, we do not explore this issue further here, but note it as an interesting direction for future elaboration upon the framework presented here. 
+
+# F ADDITIONAL APPLICATION: FINITE MIXTURE MODELS 
+
+As a final example, we consider a model class with stochastic mixing functions. Broadly speaking, a finite mixture model is a latent generative concept model where C = [ d]. We endow C with the standard counting measure μ, and we employ the concept predicate MeasCls μ, so that MeasCls μ(Q) holds if and only if Q({i}) > 0for all i ∈ [d]. Other than this constraint, we make no restrictions on the concept distribution. For simplicity, we consider the case of Gaussian mixture models. In particular, we define the mixing predicate 
+
+DistinctGaussian , where DistinctGaussian (K) holds if and only K(· | c) is a multivariate Gaussian distribution for all c ∈ C , and K(· | c)̸ = K(· | c′) for any c̸ = c′.Putting these constraints together, we obtain the model class 
+
+Mgmm (d, p ) := P([ d]; MeasCls μ) × K ([ d] → Rp; DistinctGaussian ).
+
+As discussed in Ex. 4.3, K([ d] → Rp; DistinctGaussian ) is Blackwell reducible, so we can apply Cor. 4.1, which gives the result almost immediately. Here, we use ∼perm as shorthand for the equivalence relation ∼G with 
+
+G = Perm( d), where Perm( d) denotes the set of all bijective functions τ : [ d] → [d]. A Unifying Framework for Unsupervised Concept Extraction 
+
+Claim F.1. Mgmm is identifiable up to ∼perm .Proof. Let Q = P([ d]; MeasCls μ). Then T (Q) = Perm( d), so we immediately have the result. As this result shows, the main obstacle to showing identifiability of certain classes of finite mixture models is showing that the kernel class K is Blackwell reducible. Indeed, showing this property is the essence of several other classic identifiability results for finite mixture models, e.g. Yakowitz and Spragins (1968). 
+
+Additional References 
+
+Aharon, Michal et al. (2006). “On the uniqueness of overcomplete dictionaries, and a practical way to retrieve them”. In: Linear Algebra and Its Applications .Bogachev, Vladimir Igorevich and Maria Aparecida Soares Ruas (2007). Measure theory . Springer. Comon, Pierre (1994). “Independent component analysis, a new concept?” In: Signal Processing .Costa, Val´ erie et al. (2025). “From flat to hierarchical: Extracting sparse representations with matching pursuit”. In: Advances in Neural Information Processing Systems .Cunningham, Hoagy et al. (2023). “Sparse autoencoders find highly interpretable features in language models”. In: arXiv preprint arXiv:2309.08600 .Daubechies, Ingrid et al. (2004). “An iterative thresholding algorithm for linear inverse problems with a sparsity constraint”. In: Communications on Pure and Applied Mathematics .Deistler, Michael et al. (2025). “Simulation-based inference: A practical guide”. In: arXiv preprint arXiv:2508.12939 .Elad, Michael (2010). Sparse and Redundant Representations: From Theory to Applications in Signal and Image Processing . Springer Science & Business Media. Fritz, Tobias (2020). “A synthetic approach to Markov kernels, conditional independence and theorems on sufficient statistics”. In: Advances in Mathematics .Geadah, Victor et al. (2024). “Sparse-coding variational autoencoders”. In: Neural Computation .Ghosh, Partha et al. (n.d.). “From variational to deterministic autoencoders”. In: International Conference on Learning Representations .Gregor, Karol and Yann LeCun (2010). “Learning fast approximations of sparse coding”. In: International Conference on Machine Learning .Hindupur, Sai Sumedh R et al. (2025). “Projecting assumptions: The duality between sparse autoencoders and concept geometry”. In: Advances in Neural Information Processing Systems .Hinton, Geoffrey E et al. (1995). “The wake-sleep algorithm for unsupervised neural networks”. In: Science .Kallenberg, Olav (2011). “Invariant Palm and related disintegrations via skew factorization”. In: Probability Theory and Related Fields .Kechris, Alexander (1995). Classical Descriptive Set Theory . Springer Science & Business Media. K¨ ugelgen, Julius et al. (2020). “Semi-supervised learning, causality, and the conditional cluster assumption”. In: Conference on Uncertainty in Artificial Intelligence .Le, Tuan Anh et al. (2017). “Inference compilation and universal probabilistic programming”. In: Artificial Intelligence and Statistics . PMLR. Lieberum, Tom et al. (2024). “Gemma scope: Open sparse autoencoders everywhere all at once on Gemma 2”. In: Proceedings of the 7th BlackboxNLP Workshop: Analyzing and Interpreting Neural Networks for NLP .Lueckmann, Jan-Matthis et al. (2017). “Flexible statistical inference for mechanistic models of neural dynamics”. In: Advances in Neural Information Processing Systems .Lukacs, Eugene (1970). Characteristic functions .Makhzani, Alireza and Brendan Frey (2013). “K-sparse autoencoders”. In: arXiv preprint arXiv:1312.5663 .Ng, Andrew and Michael Jordan (2001). “On discriminative vs. generative classifiers: A comparison of logistic regression and naive Bayes”. In: Advances in Neural Information Processing Systems .Panangaden, Prakash (1999). “The category of Markov kernels”. In: Electronic Notes in Theoretical Computer Science .Rajamanoharan, Senthooran et al. (2024). “Jumping ahead: Improving reconstruction fidelity with JumpReLU sparse autoencoders”. In: arXiv preprint arXiv:2407.14435 .Chandler Squires, Pradeep Ravikumar 
+
+Tolooshams, Bahareh and Demba Ba (2021). “Stable and interpretable unrolled dictionary learning”. In: 
+
+arXiv preprint arXiv:2106.00058 .Tomczak, Jakub and Max Welling (2018). “VAE with a VampPrior”. In: International Conference on Artificial Intelligence and Statistics .Xi, Quanhan and Benjamin Bloem-Reddy (2023). “Indeterminacy in generative models: Characterization and strong identifiability”. In: The International Conference on Artificial Intelligence and Statistics .Xiao, Pan et al. (2025). “SC-VAE: Sparse coding-based variational autoencoder with learned ISTA”. In: 
+
+Pattern Recognition .Yakowitz, Sidney J and John D Spragins (1968). “On the identifiability of finite mixtures”. In: The Annals of Mathematical Statistics .
