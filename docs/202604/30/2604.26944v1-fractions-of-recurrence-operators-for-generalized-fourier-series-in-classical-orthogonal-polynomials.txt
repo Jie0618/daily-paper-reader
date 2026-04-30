@@ -1,0 +1,4068 @@
+Title: Fractions of Recurrence Operators for Generalized Fourier Series in Classical Orthogonal Polynomials
+
+URL Source: https://arxiv.org/pdf/2604.26944v1
+
+Published Time: Thu, 30 Apr 2026 01:14:24 GMT
+
+Number of Pages: 53
+
+Markdown Content:
+FRACTIONS OF RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES IN CLASSICAL ORTHOGONAL POLYNOMIALS 
+
+ALEXANDRE BENOIT, NICOLAS BRISEBARRE, AND BRUNO SALVY 
+
+Abstract. We consider series expansions in bases of classical orthogonal polynomials. When such a series solves a linear differential equation with polynomial coefficients, its coefficients satisfy a linear recurrence equation. We interpret this equation as the numerator of a fraction of linear recurrence op-erators. This interpretation lets us give a simple and unified view of previous algorithms computing these recurrences, with a noncommutative Euclidean algorithm as the algorithmic engine. Finally, we demonstrate the effectiveness of our approach on various examples. 
+
+1. Introduction 
+
+Let (ψn(x)) n be a family of orthogonal polynomials associated to a weight func-tion w(x) over an interval (a, b ) ⊂ R and let f (x) be a sufficiently regular function defined on (a, b ) (see Section 2 for background and precise definitions.) Classically, the square norm of the polynomials is denoted (1.1) hn =
+
+Z ba
+
+ψn(x)2w(x) dx 
+
+and one considers the sequence of integrals (1.2) an = 1
+
+hn
+
+Z ba
+
+f (x)ψn(x)w(x) dx, n ∈ N.
+
+When these integrals converge, they are called the generalized Fourier coefficients 
+
+of f (x) with respect to the family (ψn(x)) and the sum 
+
+X
+
+> n⩾0
+
+anψn(x)
+
+is called a generalized Fourier series . There is a large literature on conditions un-der which this expansion actually converges to f (x) in some sense and the speed of this convergence [16, §10.19-10.20],[50, §8.3],[56, Chap. 2,§8.2],[76, Chap. 9]. These expansions find applications in spectral methods [8, 24, 81, 58, 5] and in the com-putation of connections or linearization coefficients between families of orthogonal polynomials (where convergence is not an issue) [78, 4, 72, 22, 77]. We focus here on a special but frequent situation: – f (x) satisfies a linear differential equation with polynomial coefficients; 
+
+2020 Mathematics Subject Classification. Primary 33C45, 33F10, 42C05, 42C10, 65D15, 65Q05, 68W30; Secondary 33C20, 65L99. 
+
+Key words and phrases. Orthogonal polynomials, classical orthogonal polynomials, recurrence relations, Ore fractions.  
+
+> 1
+> arXiv:2604.26944v1 [math.CA] 29 Apr 2026 2A. BENOIT, N. BRISEBARRE, AND B. SALVY
+
+– (ψn(x)) is a family of classical orthogonal polynomials. In that case, when the integrals (1.2) converge, they satisfy a linear recurrence with polynomial coefficients, whose computation is the aim of this work. Indeed, such a recurrence can lead to a faster computation of the series and in some cases, can also lead to a closed form solution, in combination with computer algebra algorithms such as Petkovšek’s algorithm [62]. This recurrence is also an entry point for the automatic proof of numerous identities related to these coefficients [19, 49, 51, 80, 82]. (See also Section 9 for examples.) 1.1. Previous work. It seems that Clenshaw [11] was the first to use recurrences satisfied by the coefficients of Chebyshev expansions (expansions in the basis of Chebyshev polynomials). He did not give an algorithm to compute recurrences but used them in an implicit way to compute numerically the first coefficients of a Chebyshev series solution to a linear differential equation. His method was ex-tended by Elliott [14] to ultraspherical (or Gegenbauer) expansions. It leads to the construction of a system of linear recurrences relating the generalized Fourier coef-ficients of the successive derivatives of the function. From there, several techniques have been developed for a numerically stable use of these recurrences [5, 58]. It is also possible to obtain a single linear recurrence directly, by first turning the differential equation into an integral equation and then extracting the coefficients. This has been shown by several authors, first for small orders [20, Chap. 5], [50, §8.7], then in more generality and with algorithms in the context of early symbolic computation by Geddes [21]. Another approach working directly at the level of differential equations was de-veloped by Paszkowski in the case of Chebyshev polynomials [61]. Lewanowicz extended this method to the case of Gegenbauer polynomials [38] and gave a new algorithm computing a smaller order recurrence in some cases. Later, Lewanow-icz extended his work to the Jacobi polynomial case [39, 40, 41, 42] and to the case of classical orthogonal polynomials [43, 44]. This algorithm has not been dis-cussed much in the literature (it is described as “very complicated” by Wimp [81, p. 186].) Our approach relies on many of Lewanowicz’ ideas. We use a more algebraic framework that lets us reformulate his algorithm as a sort of Horner eval-uation of the linear differential equation that is hopefully more transparent (see Algo. RightHorner). In later work, alone and jointly with Woźny, for the case of semi-classical orthogonal polynomials [45, 48], Lewanowicz noted that other tech-niques can be applied to reduce the order of the resulting recurrence equation in cases where the differential equation has singularities at 0 or ±1 [40, 41, 42, 45, 48]. These techniques can also be integrated in our framework, see Section 8.3. A method using integral operators in another way was designed by Rebillard [66, 67] for the case of Chebyshev series expansions, see Section 8.2. His method is used later, independently, by Olver and Townsend [58]. Similar to Paszkowski’s algorithm, it gives rise to a simpler handling of the operators. Later, Rebillard and Zakrajšek [68] addressed the case of expansions in a hypergeometric polynomial basis (see [56] for a definition.) Other approaches have been developed for the case of connection coefficients between classical (or semi-classical) orthogonal polynomials, by Area, Godoy, Ronveaux and Zarzo [72, 22]. These methods are discussed in Section 8. Also related is the work by Maroni and da Rocha [52, 53] who present a guess-and-prove approach to compute connection coefficients. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 3
+
+Finally, a completely different approach can be based on the recent progress in computer algebra around the method of creative telescoping initiated by Zeil-berger [84]. These methods can compute a linear recurrence starting from the integral representation (1.2) and a system of operators for the family (ψn) and the function f . However, this general-purpose method does not deal with convergence issues and may return an incorrect recurrence. We report on experiments with recent algorithms and implementations [36, 7] in Section 8.4. For a recurrence found by a purely algebraic approach to be satisfied by the Fourier coefficients, convergence conditions have to hold in general. Elliott indi-cates a sufficient condition without proof [14]. Lewanowicz works under the as-sumption that, if r denotes the order of the linear differential equation satisfied by the function f whose coefficients are considered, then f (r) has a Gegenbauer (or Jacobi) expansion that is uniformly convergent in [−1, 1] [38, 39, 40, 41, 42]. Rebil-lard [66, 67] and Olver & Townsend [58] who deal, respectively, with Chebyshev and Gegenbauer expansions, use the stronger assumption that the function f is holo-morphic in the neighborhood of [−1, 1] . These assumptions allow these authors to prove that the recurrences they compute are satisfied by the coefficients of con-vergent generalized Fourier expansions. Our approach is slightly different: we do not demand convergence of the expansions. Instead, we prove that the recurrences computed by our algorithms hold provided the generalized Fourier coefficients of the function and its first few derivatives exist (the integrals (1.2) converge), which is a much weaker condition. This article is an extension and an improvement of [6], where we focused on the case of the Chebyshev basis. 1.2. Contribution. The principle of Lewanowicz’ method is to construct recur-rences of the form (1.3) b0(n)vn + · · · + bℓ(n)vn+ℓ = a0(n)un + · · · + ak(n)un+k, n ∈ N
+
+with ai and bj rational functions of n, that relate the generalized Fourier coeffi-cients un of a function f to the generalized Fourier coefficients vn of the application 
+
+L · f of a linear differential operator L to f . In particular, when f is a solution of L · f = 0 , then the coefficients vn are all 0 and the right-hand side is the desired recurrence equation. The starting point is given by relations between the coefficients of a function and those of its derivative or its product by the variable. The construction of this recurrence then proceeds by induction using algorithms computing relations for the coefficients of sums and of compositions of linear differential operators. Our main observation is that these operations can be expressed as operations on fractions of linear recurrence operators. Indeed Eq. (1.3) can be expressed as A·un +B ·(−vn) = 0, where B and A are the recurrence operators on its left-hand and right-hand sides. Conceptually, we can rephrase this relationship with abuse as vn = B−1A·un, hence the fraction term. This has to be used with caution: common left factors of A and B
+
+cannot be simplified out in general. The algorithm reduces to sums and products of such fractions, performed in a simple way using a non-commutative variant of the Euclidean algorithm for the computation of gcds. These constructions are closely related to those used by Ore [60] to formalize fractions of operators. For the recurrence (1.3) to hold for all n ∈ N, the rational function coefficients ai
+
+and bj must not vanish on N. Thus the recurrence operators that we consider are 4 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+different from the shift operators that are commonly used in computer algebra, where all rational functions are allowed in the coefficients (Section 3). This has strong algebraic consequences: the ring of recurrence operators is not left principal and does not have least common left multiples in general. However, we show how to construct common left multiples of minimal order using Euclid’s algorithm. This leads to an incremental construction of fractions of recurrence operators (A, B ) for which the expression B · vn = A · un from Eq. (1.3) holds (Section 4). Having defined these operations of sum and product on fractions, the construc-tion of recurrences for Taylor or generalized Fourier coefficients is a direct transla-tion from the linear differential operator of interest. To each of the differentiation operator and the multiplication by the variable x is associated a fraction, which de-pends on the basis of classical orthogonal polynomials (or xn for Taylor expansions). Then a fraction is constructed by Horner evaluation of the differential operator on these fractions, keeping track of convergence requirements that were often absent in previous works. Several constructions of fractions are possible, depending on how one chooses to write the differential operator (Section 5). A feature of the fractions of recurrence operators that departs from the classical Ore fractions is that they are not equivalence classes for a relation expressing that the numerator of the difference is 0. Indeed, reducing a fraction by factoring out a common left factor between numerator and denominator would amount to simpli-fying both sides of Eq. (1.3), which is not valid in general. Instead, numerator and denominator are left untouched. Then it becomes important to design algorithms that compute irreducible fractions, i.e., fractions for which the greatest common left divisor between numerator and denominator does not involve the shift operator. This is achieved by studying the fractions obtained from different representations of the same linear differential operator, by right Horner and left Horner evalua-tions, already present with a different language in the works of Lewanowicz and Paszkowski. Our algebraic framework makes it possible to combine two fractions obtained by these different evaluations into a new one that is always irreducible. This is summarized in the following, which is made more precise in Section 6. 
+
+Theorem 1.1 (Main result) . Let (ψn) be a family of classical orthogonal polyno-mials and let L be a linear differential operator with polynomial coefficients. Then Algorithm 1 with L as input returns an irreducible fraction (Hnum , H den ) of linear recurrence operators. If f is a solution of L · f = 0 such that 
+
+(H) the sequences ([ ψn]( f (j))) n∈N exist for j ⩽ deg ∂ L, 
+
+then its sequence of generalized Fourier coefficients is annihilated by the numerator: 
+
+Hnum · [ψn]( f ) = 0 , n ∈ N.
+
+Extensions of this result with hypotheses weaker than (H) are given in Section 7. 1.3. Plan of the article. Section 2 recalls the required notation on classical or-thogonal polynomials. Shift and recurrence operators are described in Section 3. The former are classical, the latter are designed to prevent poles at nonnegative integers in the coefficients. Fractions of recurrence operators are then defined in Section 4, together with operations on them that boil down to a noncommutative version of Euclid’s algorithm. Their relation with Ore fractions is clarified. With these fractions, a general method of construction of recurrences is given in Sec-tion 5, first for coefficients of Taylor expansions and then for generalized Fourier RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 5
+
+coefficients. This general method allows one to develop different algorithms de-pending on choices of differential terms representing a linear differential operator. Section 6 studies the fractions that one obtains by right or left Horner evaluation and gives algorithms that always produce irreducible fractions. In some singular cases, it is possible to obtain recurrences that escape the convergence constraints of the algorithms in that section. This is discussed in Section 7. Section 8 summarizes the relations between our approach and previous work. A long Section 9 presents the results of a Maple implementation, together with timings. A few further com-ments are made in Section 10. 2. Classical orthogonal polynomials 
+
+We recall basic definitions related to classical orthogonal polynomials. We refer to classical treatises for more information [10, 76, 56, 34]. 2.1. Orthogonal polynomials. An interval −∞ ⩽ a < b ⩽ +∞ is given together with a measurable function w : ( a, b ) → R+, called the weight function , that is non-negative and such that R ba w(x) d x > 0 and R ba xnw(x) d x < +∞ for all n ∈ N.Equipped with the inner product (2.1) ⟨f |g⟩w := 
+
+Z ba
+
+f (x)g(x)w(x) d x, 
+
+the space L2(( a, b ), w ) is a Hilbert space. A family (ψn)n∈N of polynomials in R[x] such that deg ψn = n is a family of orthogonal polynomials with respect to w if they are orthogonal for the inner prod-uct (2.1). If hn denotes the squared norm ⟨ψn|ψn⟩w as in Eq. (1.1), then the triple 
+
+(( a, b ), w, (hn)n∈N) determines the family (ψn) in a unique way. A family (ψn)n∈N of orthogonal polynomials satisfies a 3-term recurrence [56, Chap. 2 §6.3] (2.2) xψ n(x) = a(n)ψn+1 (x) + b(n)ψn(x) + c(n)ψn−1(x), n ⩾ 0,
+
+where we set ψ−1 = 0 .2.2. Classical orthogonal polynomials. The classical orthogonal polynomials occur as eigenfunctions of linear differential operators of order 2 (2.3) σ(x)ψ′′ 
+
+> n
+
+(x) + τ (x)ψ′
+
+> n
+
+(x) + λnψn(x) = 0 , n ⩾ 0,
+
+with λn = −n(( n − 1) σ′′ + 2 τ ′)/2. The coefficients σ, τ are polynomials of degree at most 2 and 1, related to the weight w by the Pearson differential equation (2.4) (σ(x)w(x)) ′ = τ (x)w(x).
+
+Up to a suitable change of variable, the intervals (−1, 1) , (0 , +∞) and (−∞ , +∞)
+
+describe all the possible (a, b ). Then, the case when σ has degree 2 leads to the Ja-cobi polynomials P (α,β ) 
+
+> n
+
+(x), α, β > −1 and its special cases (Chebyshev, Gegenbauer 
+
+C(λ) 
+
+> n
+
+(x), λ > − 12 , λ ̸ = 0 ); degree 1 gives the Laguerre polynomials L(α) 
+
+> n
+
+(x), α > −1;the Hermite polynomials are obtained for degree 0. The corresponding a, b, w, h n
+
+are given in Table 1 [57, 13, Table 18.3.1 and §18.3.34], while σ, τ, λ n are presented in Table 2. The polynomials ψn also satisfy a structure relation 
+
+(2.5) σ(x)ψ′
+
+> n+1
+
+(x) = δ2(n)ψn+2 (x) + δ1(n)ψn+1 (x) + δ0(n)ψn(x), n ⩾ 0,6 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Name ψn(x) (a, b ) w(x) hn (n > 0) 
+
+Chebyshev Tn(x) (−1, 1) (1 − x2)−1/2 π/ 2
+
+Gegenbauer C(λ) 
+
+> n
+
+(x), λ> − 12 ,λ̸=0 (−1, 1) (1 − x2)λ−1/2 21−2λπΓ( n+2 λ)(n+λ)(Γ( λ)) 2n!
+
+Jacobi P (α,β ) 
+
+> n
+
+(x), α, β > −1 (−1, 1) (1 − x)α(1 + x)β 2α+β+1 Γ( n+α+1)Γ( n+β+1) (2 n+α+β+1)Γ( n+α+β+1) n!
+
+Laguerre L(α) 
+
+> n
+
+(x), α > −1 (0 , +∞) e−xxα Γ( n+α+1) 
+
+> n!
+
+Hermite Hn(x) (−∞ , +∞) e−x2
+
+π1/22nn!
+
+Table 1. Classical orthogonal polynomials. For n = 0 , the for-mulas for hn still apply, except for Chebyshev ( h0 = π) and Jacobi when α + β + 1 = 0 (h0 = −π/ sin( πα )). See also Section 2.4. Name ψn(x) σ(x) τ (x) λn
+
+Chebyshev Tn(x) 1 − x2 −x n2
+
+Gegenbauer C(λ) 
+
+> n
+
+(x), λ> − 12 ,λ̸=0 1 − x2 −(2 λ + 1) x n(n + 2 λ)
+
+Jacobi P (α,β ) 
+
+> n
+
+(x), α, β > −1 1 − x2 β − α − (α + β + 2) x n(n + α + β + 1) 
+
+Laguerre L(α) 
+
+> n
+
+(x), α > −1 x α + 1 − x n
+
+Hermite Hn(x) 1 −2x 2n
+
+Table 2. Classical orthogonal polynomials: Sturm-Liouville coefficients where the δks are rational functions in R(n). This relation is actually a characteri-zation of classical orthogonal polynomials [2]. For a slightly larger class of measures, the Bessel polynomials [57, 13, §18.34] can also be included in the classical family. For simplicity, we omit them from our discussion, but our implementation does handle them, see Section 9.7. 2.3. Generalized Fourier series. We write [ψn]( f ) for the generalized Fourier coefficient an of Eq. (1.2). This notation suggests that [ψn] is the linear operator extracting the coefficient of ψn in the generalized Fourier series for f when it con-verges, but we use it for the integrals an without any reference to convergence of the series. 2.4. Note on Chebyshev series. It is classical to use the symbol Σ′ for Cheby-shev series, as in X
+
+> n⩾0
+> ′
+
+anTn.
+
+This means that the term in T0, if there is one, is to be halved [54, p. 27]. Indeed, the formulas for an often become more regular when stated that way. One reason for this is that Tn(cos θ) = cos( nθ ) makes it natural to define T−n = Tn and consider sums over n ∈ Z, where now 0 does not need special treatment. Working over N
+
+leads to formulas with special cases at n = 0 , as in Tables 1 and 3. Since our algebraic algorithms require operators with coefficients that are rational functions in n, they cannot contain a Kronecker symbol. The recurrences produced by our algorithms in the case of Chebyshev expansions have to be understood as holding for RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 7
+
+the sequence an as in the formula above, i.e., with a0 which is twice the coefficient of T0.3. Shift vs recurrence operators 
+
+This section introduces two rings of operators with rational function coefficients and relates their properties. Shift operators encode the operations of shifting a sequence and multiplying it by rational functions. For instance, the right-hand side of the structure relation Eq. (2.5) is represented as 
+
+(δ2(n)S2 
+
+> n
+
++ δ1(n)Sn + δ0(n)) · ψn(x),
+
+where Sn denotes the shift operator that maps a sequence (un)n∈N to the sequence 
+
+(un+1 )n∈N, while ‘ ·’ denotes the application of an operator to a sequence. Shift operators form a ring, which is left Euclidean. Since the coefficients may have denominators that vanish at positive integers, in general, the application of an operator to a sequence requires n sufficiently large. This difficulty is avoided by 
+
+recurrence operators defined below, that operate on sequences. Again, these oper-ators form a ring, but now it is not left principal. However, it has minimal-degree common left multiples, that will be sufficient for our constructions. 3.1. Definitions. Definition 3.1 (Sequences and their germs) . Let K be a (commutative) field of characteristic 0. We write KN for the algebra of sequences of elements of K, with coordinate-wise addition and multiplication. Taking the equivalence relation (un) ∼
+
+(vn) when there exists N ∈ N such that the sequences are identical for n > N , the equivalence class of (un) is called the germ of (un) and the set of equivalence classes also forms a K-algebra [79]. 
+
+Definition 3.2 (Shift operators) . A shift operator over K is a polynomial of the form PNk=0 akSkn, with ak(n) ∈ K(n). These polynomials are added like commu-tative polynomials and multiplied with the commutation Snq(n) = q(n + 1) Sn for 
+
+q(n) ∈ K(n). The set of these polynomials forms a ring denoted Sh = K(n)⟨Sn⟩.The ring Sh is left and right principal, with greatest common right and left divi-sors (gcrds and gclds) and least common left and right multiples (lclms and lcrms) computed by non-commutative analogues of Euclid’s algorithm [60][12, §1.1]. These are defined up to multiplication by a rational function of K(n). For definiteness, the use of a definite article (e.g., the gcrd) corresponds to taking these polynomials as monic with respect to Sn. They are denoted gcrd Sh, gcld Sh, lclm Sh and lcrm Sh in this work to distinguish them from operations on recurrence operators below. The 
+
+lclm Sh of two operators is an operator that cancels K-linear combinations of germs 
+
+of their solutions but not the solutions themselves in general. 
+
+Example 3.3. Take P = ( n − 1) Sn − n and Q = ( n − 2) Sn − (n − 1) . Then 
+
+lclm Sh(P, Q ) = ( Sn − 1) 2
+
+and the sequence of QN defined by u0 = u1 = 0 and un = n − 1 for n ⩾ 2 is a solution of P · un = ( n − 1) un+1 − nu n = 0 that is not a solution of the lclm Sh,since u2̸ = 2 u1 − u0.8 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Definition 3.4 (Recurrence operators) . Let ZN be the set of polynomials in K[n]
+
+that do not vanish on N. Let K[n]ZN be the localization of K[n] at ZN; it is the ring of rational functions whose poles lie outside of N. We define the ring of recurrence operators over K as the subring Rec = K[n]ZN ⟨Sn⟩ of Sh. The algebra of sequences KN is a left Rec-module, where the operation of P =
+
+ak(n)Skn + · · · + a0(n) ∈ Rec on a sequence (un) ∈ KN is the sequence (vn) defined by 
+
+vi = ak(i)ui+k + · · · + a0(i)ui, for all i ∈ N.
+
+This equation defines vi ∈ K for all i ∈ N since none of the denominators of the aj
+
+vanishes on N. This is denoted P · un = vn.Note that it is also possible to work with the ring K[n]⟨Sn⟩ instead of Rec. In practice however, the computations with K[n]⟨Sn⟩ tend to produce bigger polyno-mials in intermediate expressions and result in much slower computations, which is why this article focuses on Rec. 3.2. Common left multiples. As K[n]ZN is not a field but merely an integral domain, some algebraic structure is lost in Rec compared to Sh. For the algorithms in later sections however, it is important to combine elements of Rec in ways similar to what is done for Ore fractions, using the Euclidean algorithm. 3.2.1. Rec is not left principal. In Rec, gcld , gcrd , lclm , lcrm do not exist in general. Here are simple examples illustrating these facts. 
+
+Example 3.5. A greatest common left or right gcd of n − 1 and Sn would have to divide n − 1 and thus have degree 0 in Sn. Moreover, these gcds would divide all polynomials of the forms U (n − 1) + V S n or (n − 1) U + SnV . Thus, their constant coefficient wrt Sn would be divisible by n − 1. This leaves only n − 1 as a possible gcd, but it is neither a right nor a left divisor of Sn in Rec and thus no 
+
+gcrd or gcld exists. (Note however that n − 1 is a right divisor of S2 
+
+> n
+
+in Rec, since 
+
+S2 
+
+> n
+
+= ( 1 
+
+> n+1
+
+S2
+
+> n
+
+)( n − 1) .) 
+
+Example 3.6. With P = n − 2 and Q = Sn + 1 , the following two polynomials are left multiples of both P and Q:
+
+L = ( n − 1)( n − 2)( Sn + 1) = (( n − 2) Sn + n − 1) P = ( n − 1)( n − 2) Q, L′ = nS 2 
+
+> n
+
++ 2( n − 1) Sn + n − 2 = ( Sn + 1) 2P = ( nS n + n − 2) Q. 
+
+Among the common left multiples of P and Q in Rec, L has minimal degree in Sn,since it has the same degree as Q. Among the degree 1 common left multiples, it can be checked that its leading coefficient (n − 1)( n − 2) has minimal degree in n.Thus if there existed a least common left multiple of P and Q it would be equal to L. The left multiples of L of degree 2 in Sn have leading coefficient divisible by n(n − 1) . This is not the case of L′, showing that L is not a lclm in Rec. 3.2.2. Common left multiples. While Rec is not left principal, since K[n]ZN is an integral domain, Rec is a left Ore domain [12, Prop. 1.1.4], which means any two elements have a nonzero common left multiple. A constructive proof is given in Prop. 3.10 below. Among all possible common multiples, it produces one that has minimal order and leading coefficient of minimal degree, like L in Example 3.6 above. That this is possible comes from the principality of K[n]ZN .RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 9
+
+Lemma 3.7 (Minimal elements in left ideals in Rec) . Every left ideal I̸ = 0 in Rec 
+
+has a minimal element, defined as the unique element of I of minimal degree in Sn
+
+with leading coefficient a monic polynomial in K[n] of minimal degree. Proof. Any two polynomials in I of minimal degree in Sn differ only by factors in 
+
+K(n): if A and B are two such polynomials and a, b are their leading coefficients, then bA − aB ∈ I has smaller degree in Sn and must therefore be 0. The leading coefficients of the polynomials of minimal degree in I form an ideal in K[n]ZN .Since this ring is principal [74], this ideal is generated by one element. Up to multiplication by an invertible element of K[n]ZN (a fraction with numerator and denominator in ZN), it can be made polynomial, of minimal degree and with leading coefficient 1. □
+
+More is known on the structure of these ideals and the computation of their Gröbner bases, see [55, Ch. 46], but will not be needed in this work. See also the related algorithms for desingularization of shift operators [9]. 
+
+Definition 3.8 (mclm in Rec) . If P and Q are recurrence operators in Rec, the 
+
+minimal-degree common left multiple of P and Q is the minimal element mclm Rec (P, Q )
+
+of the left ideal (P ) ∩ (Q) in Rec. The cofactors U, V in Rec such that U P = V Q =mclm Rec (P, Q ) are denoted (Q)P and (P )Q.
+
+Example 3.9. With the operators of Example 3.3, 
+
+mclm Rec (P, Q ) = ( n − 1)( Sn − 1) P = n(Sn − 1) Q = n(n − 1)( Sn − 1) 2.
+
+Now the sequence un of Example 3.3 does satisfy mclm Rec (P, Q ) · un = 0 .Since K[n]ZN is a subring of the field K(n), one can obtain a common left multiple by computing a lclm in Sh and clearing denominators [55, p. 79]. This is made precise in the following. 
+
+Proposition 3.10 (Computation of mclm Rec ). Let A, B be in Rec and U, V left-coprime in Sh be such that 
+
+U A = V B = lclm Sh(A, B ).
+
+Let du, d v in K[n] be the largest monic factors of the denominators of U, V that vanish only at nonnegative integers; let d = lcm( du, d v ) with d monic. Then 
+
+mclm Rec (A, B ) = d lclm Sh(A, B )
+
+and the corresponding cofactors are dU, dV .Proof. The left-coprimality of U, V is a property of lclms in Sh. By design, d lclm Sh(A, B ) = ( dU )A = ( dU )B is a common left multiple of A and 
+
+B in Rec. It has minimal degree in Sn, since lclm Sh does in Sh. This implies that there exists δ ∈ K[n] such that mclm Rec (A, B ) = δ lclm Sh(A, B ). Right division by 
+
+A shows that δU ∈ Rec. Similarly, δV ∈ Rec. This implies that δ is a multiple of 
+
+d and therefore is equal to d by minimality. □
+
+This result is convenient, as the computation of lclm Sh is implemented in several computer algebra systems. An alternative possibility for a more direct computation is described by Mora [55, 46.11.4], using a variant of the Euclidean algorithm based on pseudo-divisions. 10 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Finally, although gcld s do not exist in Rec, the following result gives an analogue of Prop. 3.10 that will be sufficient for our needs. Recall that gcld Sh denotes the 
+
+monic greatest common left divisor in Sh. 
+
+Proposition 3.11 (Almost gcld in Rec) . Let A, B in Rec and G ∈ Sh be such that 
+
+G = gcld Sh(A, B ). Then there exist δ(n) ∈ K[n]ZN , ˆG, U, V in Rec such that 
+
+deg Sn
+
+ˆG = deg Sn G, δ(n)A = ˆGU, δ(n)B = ˆGV, deg Sn gcld Sh(U, V ) = 0 .
+
+Proof. The proof is effective. Let ˜U and ˜V be such that A = G ˜U and B = G ˜V .Let g(n) and u(n) be minimal elements of K[n]ZN (for the degree of the part that vanishes only at elements of N) such that g(n)G, U := u(n) ˜U and V := u(n) ˜V all belong to Rec. Define ˆG and d(n) by (3.1) lclm Rec (g(n)G, u (n)) = ˆGu (n) = d(n)g(n)G
+
+and let δ(n) = d(n)g(n). Then, δ(n)A = δ(n)G ˜U = ˆGu (n) ˜U = ˆGU and similarly for B. Finally, 
+
+gcld Sh(U, V ) = gcld Sh(u(n) ˜U , u (n) ˜V ) = gcld Sh( ˜U , ˜V )
+
+and the last gcld Sh has degree 0 by maximality of gcld Sh(A, B ). □
+
+3.3. Operators in Sn and its inverse. Another approach that has been exploited in the literature uses the inverse S−1 
+
+> n
+
+of the shift operator Sn and polynomials in the ring of Laurent polynomials K[n]⟨Sn, S −1 
+
+> n
+
+⟩ [38, 39, 40, 41, 42, 43, 44, 67, 45, 48, 68]. This is convenient when working with germs, as simplifications by powers of Sn are harmless in that context. A difficulty is that the presence of S−1 
+
+> n
+
+yields recurrence operators valid for some negative indices. This could force to extend the definition of orthogonal polynomials to negative indices, in particular in accordance with Eq. (2.2). The adaptation is fine in the Chebyshev case, and more delicate in the other ones. Besides, when applying these operators for sequences rather than germs, one has to follow carefully the operations on operators, keeping track of a n0
+
+such that all recurrences hold for n ⩾ n0. Using recurrence operators as in Def. 3.4 avoids these difficulties and lets one still make use of Euclid’s algorithm as shown in Prop. 3.10. 4. Fractions of recurrence operators 
+
+We now define fractions of recurrence operators. Their addition and multipli-cation rely on the cofactors in the mclm (Def. 3.8). The algorithms of Section 6 produce irreducible fractions, a notion that is presented in Section 4.4. These frac-tions of recurrence operators resemble, but differ from, Ore fractions; the difference is clarified at the end of this section. 4.1. Annihilators. Definition 4.1 (Annihilators) . Given a k-tuple U = ( u1, . . . , u k) of sequences in 
+
+KN, the annihilator of U is the set 
+
+Ann Rec U = {(p1, . . . , p k) ∈ Rec k | p1 · u1 + · · · + pk · uk = 0 }.
+
+It is a left Rec-submodule of Rec k, Rec operating by left multiplication on each component. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 11 
+
+The case k = 1 corresponds to the annihilating left ideal of a sequence. The main focus of this work is the case when k = 2 and the elements of these modules are called pairs of recurrence operators. 4.2. Fractions of recurrence operators. The set Rec × of invertible elements of 
+
+Rec is the set of fractions in K(n) with both numerator and denominator belonging to ZN.
+
+Definition 4.2 (ZN-equivalence and fractions) . We write Prec for the equivalence classes of pairs of recurrence operators in Rec × Rec by the relation 
+
+(N1, D 1) ≡ZN (N2, D 2) ⇔ ∃ a ∈ Rec ×, N 1 = aN 2, D 1 = aD 2.
+
+The elements of Prec are called fractions of recurrence operators ; their first and second components are the numerator and denominator of the fraction. Checking that ≡ZN is an equivalence relation is straightforward, as is the follow-ing result that gives a motivation for considering this relation. 
+
+Lemma 4.3. Let u, v be sequences in KN, then (N, D ) ∈ Ann Rec (u, v ) if and only if (aN, aD ) ∈ Ann Rec (u, v ) for all a ∈ Rec ×.
+
+The set of ZN-equivalence classes of the elements of Ann Rec (u, v ) is denoted 
+
+Ann Prec (u, v ).4.3. Proper fractions. We call proper a fraction that is either (0 , 0) or has a nonzero denominator. Our algorithms computing annihilators of pairs of sequences will mostly deal with Rec-modules M of proper fractions, i.e., such that M ∩ ({0} × 
+
+Rec ) = {(0 , 0) }, Rec acting by left multiplication on both components. These modules behave almost like principal ideals, in the following sense. 
+
+Proposition 4.4. If M̸ = {(0 , 0) } is a left Rec -module of proper fractions, there exists a fraction G ∈ M that is a generator of the Sh-module generated by M . Thus for all A ∈ M , there exists a(n) ∈ K[n]\{ 0} and H ∈ Rec that satisfy a(n)A = HG .Such a pair is called a quasi-generating fraction of M .Proof. The proof reduces to modules over the ring Sh, whose left-principal character is then exploited. Let ˜M be the left-Sh-module generated by M .1. Properness of M implies that ˜M ∩ (Sh × { 0}) = {(0 , 0) }: The elements of ˜M
+
+are finite linear combinations C = a1(n1, d 1)+ · · · +ak(nk, d k) of elements of M with coefficients ai in Sh rather than Rec. If such a combination has a 0 denominator, then, multiplying C by a common multiple of the denominators of the ai gives an element of M . This element is proper, which implies that its numerator is 0 and thus also that of C.2. ˜M has a generating pair: The projection of ˜M on the second coordinate is a nonzero left ideal of Sh. Let y ∈ Sh be a generator of it and ˜G = ( x, y ) acorresponding element of ˜M . For any nonzero element P = ( u, v ) ∈ ˜M , there exists 
+
+a ∈ Sh such that v = ay and then P − a ˜G = ( u − ax, 0) = (0 , 0) (by properness) implies that P = a ˜G. Clearing denominators gives c ∈ Z N such that G := c ˜G ∈ M .3. The pair G generates M : For any A ∈ M , there exists h ∈ Sh, such that 
+
+A = h ˜G = hc −1G. Multiplying hc −1 by an appropriate polynomial a so that 
+
+H = ahc −1 ∈ Rec concludes. □
+
+The following equivalence relation is classical in Ore fractions. 12 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Definition 4.5 (Rec-Equivalence) . Two fractions P and Q in Prec are Rec -equivalent 
+
+if there exists r, s in Rec \ { 0} such that rP = sQ . This is denoted P ≡Rec Q.
+
+Corollary 4.6. Let M̸ = {(0 , 0) } be a left Rec -module of proper fractions. Then all nonzero fractions in M are Rec -equivalent. Proof. Let A, B be two nonzero fractions in M and G a quasi-generating fraction of M . Then there exists a, b in K[n] \ { 0} and HA, H B in Rec such that 
+
+aA = HAG, bB = HB G. 
+
+Let U H A = V H B be a common left multiple of HA, H B in Rec. Then U aA = V bB ,proving the Rec-equivalence of A, B . □
+
+4.4. Irreducible fractions. The algorithms presented in the next sections com-pute fractions annihilating pairs of sequences. The ZN-equivalence used to define these fractions does not allow to simplify these fractions by cancelling out com-mon left factors unless they belong to ZN. Extra work is thus needed to obtain quasi-generating fractions. A simple criterion is in terms of irreducible fractions. 
+
+Definition 4.7 (Irreducible fraction) . A fraction (p, q ) ∈ Prec \ { (0 , 0) } is called 
+
+irreducible if the monic greatest common left divisor of p, q in Sh is 1. Note that this definition does not depend on the equivalence class of (p, q ). Irre-ducibility is easily detected by a gcld computation in Sh. 
+
+Lemma 4.8 (Minimality criterion) . Let M̸ = {(0 , 0) } be a left Rec -module of proper fractions. If (p, q ) ∈ M is irreducible, then (p, q ) is a quasi-generating fraction of M
+
+and all quasi-generating fractions of M are irreducible. Proof. This is a direct corollary of Prop. 4.4. If (p, q ) is irreducible and a multiple of a quasi-generating fraction G, then G itself has to be irreducible and there-fore (p, q ) = c(n)G for some c(n) ∈ K(n). This makes (p, q ) a quasi-generating frac-tion of M . Also, all other quasi-generating fractions are multiples of that same G
+
+by some element of K(n), which makes them irreducible. □
+
+4.5. Addition and multiplication of fractions. Up to this point, the operations that have been used in Prec are those that make it a Rec module, i.e., pairwise addition and simultaneous multiplication by elements of Rec. We now define two more operations on these fractions. 
+
+Definition 4.9 (Addition and multiplication of fractions) . 1 One defines two maps from Prec × Prec to Prec: 
+
+(p1, p 2) ⊕ (q1, q 2) = (( q2)p2 p1 + ( p2)q2 q1, mclm Rec (p2, q 2)); (p1, p 2) ⊗ (q1, q 2) = (( p1)q2 q1, (q2)p1 p2).
+
+Proof that the operations do not depend on the equivalence class for ≡ZN . Let a, b be in Rec × and p, q in Rec. We first relate the cofactors of ap and bq to those of p, q .First, since lclm s are taken monic with respect to Sn, we have 
+
+lclm Sh (p, q ) = lclm Sh (ap, bq ) .
+
+Prop. 3.10 then implies 
+
+mclm Rec (p, q ) = mclm Rec (ap, bq ) .  
+
+> 1See Def. 3.8 for the notation for cofactors of the mclm in Rec. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 13
+
+In terms of cofactors, the equalities 
+
+(q)pp = ( p)q q = mclm Rec (p, q ) = ( q)p 1
+
+a ap = ( p)q 1
+
+b bq 
+
+give the following cofactors in Rec: 
+
+(bq )ap = ( q)p 1
+
+a , (ap )bq = ( p)q 1
+
+b .
+
+Therefore, 
+
+(bq 2)ap 2 ap 1 + ( ap 2)bq 2 bq 1 = ( q2)p2 1
+
+a ap 1 + ( p2)q2 1
+
+b bp 2 = ( q2)p2 p1 + ( p2)q2 q1,
+
+(( ap 1)bq 2 bq 1, (bq 2)ap 1 ap 2) = ( p1)q2 1
+
+b bq 1, (q2)p1 1
+
+a ap 2) = (( p1)q2 q1, (q2)p1 p2)
+
+show the result for ⊕ and for ⊗. □
+
+Our method constructs fractions inductively from the following. 
+
+Proposition 4.10 (Computation of annihilators) . Let u, v, w be sequences in KN.Then 
+
+Ann Prec (u, −v) ⊕ Ann Prec (u, −w) ⊂ Ann Prec (u, −(v + w)) ,
+
+Ann Prec (v, −w) ⊗ Ann Prec (u, −v) ⊂ Ann Prec (u, −w).
+
+Proof. Take (p1, p 2) ∈ Ann Prec (u, −v) and (q1, q 2) ∈ Ann Prec (u, −w). Then the matrix 
+
+N =
+
+p1 −p2 0
+
+q1 0 −q2
+
+
+
+is such that N · (u, v, w )T = 0 . Multiplying the first row by (q2)p2 , the second one by (p2)q2 and adding gives the first inclusion. For the second one, take (p1, p 2) ∈
+
+Ann Prec (v, −w) and (q1, q 2) ∈ Ann Prec (u, −v). The matrix 
+
+M =
+
+ 0 p1 −p2
+
+q1 −q2 0
+
+
+
+,
+
+is such that M · (u, v, w )T = 0 . Multiplying the first row by (q2)p1 , the second one by (p1)q2 and adding concludes. □
+
+4.6. Ore fractions. Since Rec is a left Ore domain, Ore’s construction can be applied to construct the skew field Frac( Rec ) [59]. This is obtained by defining sum and product with the operations of Def. 4.9 (except that any common left multiple can be used in place of the mclm ) and quotienting by Rec-equivalence. We call these fractions Ore fractions in order to distinguish them from those constructed and used here. By contrast, the fractions in Prec are not equivalence classes for Rec-equivalence. They are pairs. They can be added by adding numerators and denominators. Numerator and denominator can be left multiplied by the same element of Rec. They can also be subjected to the operations ⊕ and ⊗ of Def. 4.9, which is why we use the word ‘fractions’ for them. However, Prec is not a ring with these operations; it is not even a group for ⊕.The motivation for using Prec rather than Frac( Rec ) is that Rec-equivalence of pairs is not compatible with operations on sequences or on their germs. For instance, if un is the constant sequence defined by un = 1 for all n and similarly vn = 2 for 14 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+all n, then clearly (Sn − 1, S n − 1) ∈ Ann Sh(un, v n), but the Rec-equivalent pair 
+
+(1 , 1) does not belong to Ann Sh(un, v n).5. Recurrences for coefficients 
+
+Given a linear differential operator L (defined formally in Section 5.1), it is classical that two power series f and g related by the linear differential equation 
+
+L·f = g have sequences of Taylor coefficients that are related by a linear recurrence operator. In the case of generalized Fourier coefficients, this approach extends, but the relation involves a fraction of recurrence operators. Then when g = 0 , the 
+
+numerator of that fraction gives a linear recurrence for the Fourier coefficients of f .
+
+K[x]⟨∂⟩
+
+(differential operators) 
+
+D (differential terms) 
+
+Prec (fraction of recurrence operators) 
+
+Dδ Rψδ
+
+Figure 1. 
+
+Our approach is summarized in Fig. 1. The input is a differential operator in the bottom left leaf of the picture. This operator can be written in many ways, corresponding to distinct differential terms (Section 5.2) at the root of the tree in the picture. To each of these terms one can associate a fraction of recurrences (bottom right leaf). Depending on the choice of the term and sometimes on the choice of the derivation δ, this gives distinct recurrence operators that can sometimes be combined to reduce the order of the final recurrence. Such a recombination is described in the next section. This approach is very versatile. It is first illustrated in the simple case of Taylor series (Section 5.3), before turning to the more involved case of generalized Fourier expansions (Section 5.4). 5.1. Linear differential operators. A derivation δ on the ring of polynomi-als K[x] over the field K of characteristic 0 is a K-linear map that satisfies δ(ab ) = 
+
+aδ (b) + bδ (a). For instance, δ = d/dx is a derivation, but also more gener-ally δ = q(x)d/dx for q(x) ∈ K[x] is a derivation and all derivations of K[x] are of this type [37, VIII §5 Prop. 5.5]. Examples of such derivations are used in Section 7. 
+
+Linear differential operators are polynomials in a variable ∂ with coefficients in K[x], with usual commutative addition and a multiplication defined by the com-mutation ∂a = a∂ + δ(a) for a ∈ K[x]. The ring of linear differential operators is denoted K[x]⟨∂; δ⟩ and we omit δ when it is the usual derivation d/dx .5.2. Differential terms. We make use of differential terms. They can be thought of as binary trees with +, × at the internal nodes and x, ∂ and elements of K at the leaves. No assumption on associativity or commutativity of the operations is implied. Two differential terms are displayed in Fig. 2. This notion is formalized as follows. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 15     
+
+> ×
+> ×
+> ∂+
+> x+
+> x1
+> ∂
+> ×
+> +
+> ×
+> +
+> ×
+> 2x
+> 1
+> ∂
+> 2
+> ∂
+
+Figure 2. Tree representation of two differential terms: 
+
+(∂ × (x + ( x + 1))) × ∂ (left) and ((2 × x + 1) × ∂ + 2) × ∂ (right). 
+
+Dd/dx maps both to the differential operator (2 x + 1) ∂2 + 2 ∂.
+
+Definition 5.1. Let D be the term algebra (see, e.g., [29]) whose constants are the elements of K and the symbols x, ∂ , together with two binary operations +, ×.The elements of D are called differential terms .If δ = q(x)d/dx is a derivation of K[x], we write Dδ for the homomorphism from 
+
+D to the ring of linear differential operators K[x]⟨∂⟩ that maps the elements of K
+
+and x to themselves, ∂ to q(x)∂, and the operations +, × to these operations in 
+
+K[x]⟨∂⟩. Note that many distinct elements of D are mapped to the same element of K[x]⟨∂⟩. For instance the terms in Fig. 2 both map to the differential operator 
+
+(2 x+1) ∂2 +2 ∂ in K[x]⟨∂⟩. This will let us construct several different recurrences for Fourier coefficients of solutions of linear differential equations, and combine them. 5.3. Taylor expansions. We first illustrate the approach in the simple case of Taylor coefficients. 
+
+Definition 5.2 (Taylor morphism) . We write RTaylor ,d/dx for the homomorphism from (D, +, ×) to (Prec , ⊕, ⊗) defined by 
+
+RTaylor ,d/dx (x) = (1 , S n), RTaylor ,d/dx (∂) = (( n + 1) Sn, 1) 
+
+and for all λ ∈ K, RTaylor ,d/dx (λ) = ( λ, 1) .
+
+Proposition 5.3 (Recurrences for Taylor coefficients) . Let t ∈ D be a differential term, L be the differential operator Dd/dx (t) and let (Rnum , Rden ) = RTaylor ,d/dx (t).Then for any power series F ∈ K[[ x]] 2,
+
+Rnum · [xn]( F ) = Rden · [xn]( L · F ).
+
+In particular, if F is a power series such that L · F = 0 then its sequence of Taylor coefficients is annihilated by the numerator: Rnum · [xn]( F ) = 0 .Proof. The proof is by induction. For any λ ∈ K and any sequence u, one has 
+
+(λ, 1) ∈ Ann Prec (u, −λu ). If (fn) denotes the sequence of coefficients of F , then the coefficient of xn in xF is fn−1, thus they are related by [xn]( F ) = Sn[xn]( xF )
+
+or equivalently (1 , S n) ∈ Ann Prec ([ xn]( F ), −[xn]( xF )) . Similarly, the coefficient of 
+
+xn in F ′ is (n + 1) fn+1 , which proves the case of ∂. If t = t1 + t2, let Li =
+
+Dδ (ti) for i = 1 , 2. Then we have L = L1 + L2 and by induction, for any F ,
+
+RTaylor (ti) ∈ Ann Prec ([ xn]( F ), −[xn]( Li(F ))) for i = 1 , 2 so that the result follows         
+
+> 2The notation [xn]( F)represents the coefficient of xnin the power series F.16 A. BENOIT, N. BRISEBARRE, AND B. SALVY
+
+Name ψn Xψ 
+
+> num
+
+Dψ
+
+> den
+
+Chebyshev Tn 12 S2    
+
+> n+ 12−12( n+1) S2
+> n+12( n+1)
+
+Gegenbauer C(λ)       
+
+> nn+1+2 λ
+> 2( n+2+ λ)S2
+> n+n+1 2( n+λ)−12( n+2+ λ)S2
+> n+12( n+λ)
+
+Jacobi P (α,β )         
+
+> n
+> 2( n+α+2)( n+β+2) (2 n+4+ α+β)2S2
+> n
+> +β2−α2(2 n+2+ α+β)(2 n+4+ α+β)Sn
+> +2( n+1)( n+1+ α+β)(2 n+1+ α+β)2
+> −2( n+2+ α)( n+2+ β)(n+2+ α+β)(2 n+4+ α+β)2S2
+> n
+> +2( α−β)(2 n+2+ α+β)(2 n+4+ α+β)Sn
+> +2( n+1+ α+β)(2 n+1+ α+β)2
+
+Laguerre L(α)
+
+> n
+> −(n+α+2) S2
+> n+(2 n+3+ α)Sn
+> −(n+1)
+> Sn−1
+
+Hermite Hn (n+2) S2
+
+> n+ 1212( n+1)
+
+Table 3. Recurrence operators Xψ 
+
+> num
+
+and Dψ 
+
+> den
+
+associated to clas-sical orthogonal polynomials (see Eq. (5.1) and Eq. (5.3)). For Chebyshev, see Section 2.4. by Prop. 4.10. Finally, if t = t1 × t2, then with Li as above, L = L1L2 and by induction, for any power series F, G , RTaylor (t1) ∈ Ann Prec ([ xn]( G), −[xn]( L1(G))) 
+
+and RTaylor (t2) ∈ Ann Prec ([ xn]( F ), −[xn]( L2(F ))) . With G = L2(F ), Prop. 4.10 concludes. □
+
+Example 5.4. Consider the following two differential terms with identical image 
+
+L by Dd/dx : x∂ − 2 and ∂x − 3.Applying RTaylor ,d/dx to the first one gives the fraction (( n − 1) Sn, S n), while the second one produces (n − 2, 1) . If one takes for F the power series x2 which is such that L · F = 0 , then one deduces two different recurrences for its coefficients fn: the first one gives (n − 1) fn+1 = 0 while the second one gives (n − 2) fn = 0 . Obviously, the polynomial coefficients cannot be removed if one does not consider germs only. Both recurrences hold for all n ⩾ 0. In both cases, one deduces that f1 = 0 and 
+
+fj = 0 for j > 2, but only the second one captures the fact that f0 = 0 . This is due to the fact that the pair (( n + 1) Sn, 1) does not capture all the information about multiplication by x. The same type of phenomenon for generalized Fourier coefficients occurs below. Another approach in this example consists in using the derivation θ = xd/dx ,with RTaylor ,θ (∂) = ( n, 1) and the same values for x and constants. Then the differential term of interest is ∂ − 2, for which RTaylor ,θ gives the recurrence (n −
+
+2) fn = 0 , as desired. Analogous constructions in the case of generalized Fourier coefficients are given in Section 7. 5.4. Recurrences for generalized Fourier coefficients. In this section, Rec and Prec depend on the family ψn through the ground field K: K = Q for Chebyshev and Hermite, K = Q(λ) for Gegenbauer, Q(α) for Laguerre and Q(α, β ) for Jacobi. Extensions are also possible if one works with differential equations involving other parameters. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 17 
+
+5.4.1. Basic operations on generalized Fourier coefficients. From the 3-term recur-rence (2.2), we derive two operators (5.1) Xψ 
+
+> num
+
+= 1
+
+hn+1 
+
+(a(n)S2 
+
+> n
+
++ b(n)Sn + c(n)) hn, Xψ 
+
+> den
+
+= Sn.
+
+The values of Xψ 
+
+> num
+
+for classical orthogonal polynomials are displayed in Table 3. Note that they all belong to Rec. Indeed, in the case of Jacobi polynomials, when 
+
+α + β + 1 = 0 , the constant coefficient of Xψ 
+
+> num
+
+simplifies to (n + 1) /(2 n + 1) .
+
+Lemma 5.5. Let f be such that the sequence of Fourier coefficients ([ ψn]( f )) n∈N
+
+exist. Then ([ ψn]( xf )) n∈N exists and they are related by the recurrence 
+
+(5.2) Xψ 
+
+> num
+
+· [ψn]( f ) = Xψ 
+
+> den
+
+· [ψn]( xf ) for all n ∈ N.
+
+Proof. Part of the proof is due to Lewanowicz [43]. We give it here for the sake of completeness. The existence of the sequence ([ ψn]( xf )) n∈N is a consequence of the fact that, for all n ⩾ 0, xψ n(x) is a finite linear combination of ψn+1 , ψ n and 
+
+ψn−1, by the 3-term recurrence (2.2), and the existence of ([ ψn]( f )) n∈N. The proof reduces to 
+
+hn+1 Xψ 
+
+> den
+
+· [ψn]( xf ) = ⟨xf |ψn+1 ⟩w = ⟨f |xψ n+1 (x)⟩w
+
+= ⟨f |(a(n)S2 
+
+> n
+
++ b(n)Sn + c(n)) · ψn(x)⟩w
+
+= ( a(n)S2 
+
+> n
+
++ b(n)Sn + c(n)) · ⟨ f |ψn(x)⟩w
+
+= hn+1 Xψ 
+
+> num
+
+· [ψn]( f ). □
+
+For the differentiation operator for classical orthogonal polynomials, we start from the structure relation (2.5) and define two operators (5.3) Dψ 
+
+> num
+
+= Sn, Dψ 
+
+> den
+
+= 1
+
+λn+1 hn+1 
+
+Tden hn,
+
+where Tden = δ2(n)S2 
+
+> n
+
++δ1(n)Sn +δ0(n). The values of Dψ 
+
+> den
+
+are displayed in Table 3. Again, they all belong to Rec: the constant coefficient of Dψ 
+
+> den
+
+in the case of Jacobi polynomials when α + β + 1 = 0 simplifies to 1/(2 n + 1) .
+
+Lemma 5.6. Let f be such that the Fourier coefficients ([ ψn]( f )) n∈N and ([ ψn]( f ′)) n∈N
+
+exist. They are related by the recurrence 
+
+(5.4) Dψ 
+
+> num
+
+· [ψn]( f ) = Dψ 
+
+> den
+
+· [ψn]( f ′) for all n ∈ N.
+
+Proof. Here again, part of the proof is due to Lewanowicz [43]. We write it for the sake of readability. For any n ∈ N,
+
+hn+1 Dψ 
+
+> den
+
+· [ψn]( f ′) = λ−1
+
+> n+1
+
+(δ2(n)S2 
+
+> n
+
++ δ1(n)Sn + δ0(n)) · ⟨ f ′|ψn⟩w
+
+= λ−1
+
+> n+1
+
+⟨f ′|σψ ′
+
+> n+1
+
+⟩w
+
+= Sn · ⟨ f |ψn⟩w = hn+1 Dψ 
+
+> num
+
+· [ψn]( f ),
+
+by the definition of Dψ
+
+> den
+
+, the structure relation (2.5) and the following lemma. □
+
+Lemma 5.7. If (ψn)n∈N is one of the classical families of orthogonal polynomials on (a, b ) and f is such that the sequences ([ ψn]( f (j))) n∈N exist for j = 0 , 1, then 
+
+⟨σψ ′
+
+> n
+
+|f ′⟩w = λn⟨ψn|f ⟩w for all n ∈ N.18 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Proof. The case n = 0 is obvious. For all a < u ⩽ v < b , integration by parts gives, for any n ∈ N \ { 0},
+
+Z vu
+
+f ′(x)ψ′
+
+> n
+
+(x)σ(x)w(x)d x
+
+= [ f (x)ψ′
+
+> n
+
+(x)σ(x)w(x)] vu −
+
+Z vu
+
+f (x)( ψ′
+
+> n
+
+(x)σ(x)w(x)) ′dx
+
+= [ f (x)ψ′
+
+> n
+
+(x)σ(x)w(x)] vu +
+
+Z vu
+
+f (x)λnψn(x)w(x)d x. 
+
+We now show that the term between brackets is 0, following Nikiforov and Uvarov [56, Chap. 2, §8]. The existence and finiteness of the limit of the second integral as u → a or v → b follows from the fact that [ψn]( f ) exists. Similarly, by the structure relation (2.5), the limit of the first integral exists and is finite, since 
+
+[ψn−1+ k]( f ) exists for k = 0 , 1, 2. This implies that there exist A, B ∈ R such that 
+
+lim u→a f (u)ψ′
+
+> n
+
+(u)σ(u)w(u) = A and lim v→b f (v)ψ′
+
+> n
+
+(v)σ(v)w(v) = B. If A̸ = 0 ,then as u → a, f (u)ψ′
+
+> n
+
+(u)w(u) ∼ A/σ (u), which contradicts the existence of 
+
+R ba f (u)ψ′
+
+> n
+
+(u)w(u)d u, given the values of σ(x) in Tables 1 and 2. The same ar-gument proves B = 0 . □
+
+5.4.2. Fourier morphism. In order to manipulate convergent integrals only, it is important to pay attention to the degree of the terms. 
+
+Definition 5.8 (Degree of a term) . The degree of a differential term t ∈ D wrt ∂
+
+is denoted deg ∂ t and is defined inductively: deg ∂ t = 0 if t ∈ K ∪ { x}, deg ∂ ∂ = 1 
+
+and deg ∂ (t1 + t2) = max(deg ∂ t1, deg ∂ t2), deg ∂ (t1 × t2) = deg ∂ t1 + deg ∂ t2. The degree in x can be defined similarly; it will not be necessary in this work. 
+
+Definition 5.9 (Fourier morphism) . We write Rψd/dx for the homomorphism from 
+
+(D, +, ×) to (Prec , ⊕, ⊗) defined by (5.5) Rψd/dx (x) = ( Xψ
+
+> num
+
+, X ψ
+
+> den
+
+), Rψd/dx (∂) = ( Dψ
+
+> num
+
+, D ψ
+
+> den
+
+)
+
+and for all λ ∈ K, Rψd/dx (λ) = ( λ, 1) .The analogue of the proposition in the Taylor case gives a first algorithm for the Fourier case. It takes into account the constraints on the operations x and ∂
+
+coming from analysis. 
+
+Proposition 5.10 (Recurrences for generalized Fourier coefficients) . Let (ψn) be a family of classical orthogonal polynomials. Let t ∈ D be a differential term, L
+
+be the differential operator Dd/dx (t) and let Rψd/dx (t) = ( Rnum , Rden ). Then for any function f such that ([ ψn]( f (j))) n∈N exists for 0 ⩽ j ⩽ deg ∂ t, the sequence 
+
+([ ψn]( L · f )) n∈N also exists and they are related by 
+
+(5.6) Rnum · [ψn]( f ) = Rden · [ψn]( L · f ).
+
+In particular, if f satisfies the properties above and L · f = 0 then its sequence of Fourier coefficients is annihilated by the numerator: 
+
+Rnum · [ψn]( f ) = 0 .
+
+Proof. The proof is very similar to that of the Taylor case, using the lemmas above for the cases x and ∂. The only novelty is that it is necessary to pay attention to RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 19 
+
+the existence of the Fourier coefficients of the functions that are differentiated. The existence of that of L · f follows by linear combination. That the property holds at each step of the induction follows from the definition of degree and the hypothesis on the functions f . □
+
+Remark 5.11 . This result depends on the derivation d/dx through Lemma 5.6 only. It extends mutatis mutandis to any other derivation δ as soon as an analogue of Eq. (5.4) is available for δ. This is crucial in Section 7. 5.4.3. Associated fractions. Proposition 5.10 lets us associate fractions of recurrence operators to a linear differential operator, in the following sense. 
+
+Definition 5.12. Let L = pr (x)∂r + · · · + p0(x) be a linear differential operator in K[x]⟨∂⟩. A fraction (Pnum , P den ) ∈ Prec is said to be associated to L in degree k
+
+for a family (ψn)n∈N if there is a differential term t ∈ D with deg ∂ t ⩽ k and a derivation δ on K[x] such that 
+
+Dδ (t) = L and Rψδ (t) = ( Pnum , P den ).
+
+It is said to be associated to L (without reference to a degree) when for all j ⩾ 0,
+
+Pnum · [ψn]( ψj ) = Pden · [ψn]( L · ψj ).
+
+This definition is consistent: by Prop. 5.10, a fraction associated to L in degree k
+
+is associated to L.As in the case of Taylor coefficients, there are many fractions of recurrences associated to a given linear differential operator. They generate modules of which our algorithms compute generators. 
+
+Definition 5.13. The algebraic module of fractions associated to a linear differ-ential operator L for the family (ψn)n∈N is the left Rec-module generated by all fractions in Prec associated to L in degree deg ∂ L. It is denoted ⟨Aal (L)⟩ψn
+
+> Rec
+
+. Sim-ilarly, the analytic module of fractions associated to L for the family (ψn)n∈N is the left Rec-module generated by all fractions in Prec associated to L. It is de-noted ⟨Aan (L)⟩ψn
+
+> Rec
+
+.The motivation for considering ⟨Aal (L)⟩ψn 
+
+> Rec
+
+comes from Prop. 5.10: 
+
+Corollary 5.14. Let (ψn) be a family of classical orthogonal polynomials and L alinear differential operator. For any function f such that [ψn]( f (j))n∈N exists for 
+
+j ⩽ deg ∂ L and any (p, q ) in ⟨Aal (L)⟩ψn
+
+> Rec
+
+, p · [ψn]( f ) = q · [ψn]( L · f ). In particular, if L · f = 0 then p · [ψn]( f ) = 0 .Proof. Since (p, q ) ∈ ⟨ Aal (L)⟩ψn
+
+> Rec
+
+, there are finitely many fractions (p1, q 1), . . . , (pm, q m)
+
+in Prec associated to L in degree deg ∂ L and finitely many recurrence operators 
+
+o1, . . . , o m in Rec such that 
+
+(p, q ) = o1(p1, q 1) + · · · + om(pm, q m).
+
+By Prop. 5.10, for each i = 1 , . . . , m , pi · [ψn]( f ) = qi · [ψn]( L · f ). Multiplying on the left by oi and adding each of these recurrence equations gives the result. □
+
+A direct consequence is that ⟨Aal (L)⟩ψn 
+
+> Rec
+
+⊂ ⟨ Aan (L)⟩ψn
+
+> Rec
+
+.
+
+Proposition 5.15. Let L be a linear differential operator in K[x]⟨∂⟩ and let (ψn)
+
+be a family of classical orthogonal polynomials. Then, 20 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+(a) all nonzero fractions of ⟨Aan (L)⟩ψn 
+
+> Rec
+
+are Rec -equivalent; (b) there exists a quasi-generating fraction of both ⟨Aal (L)⟩ψn 
+
+> Rec
+
+and ⟨Aan (L)⟩ψn
+
+> Rec
+
+(see def. in Prop. 4.4); (c) if there exists an irreducible fraction in ⟨Aal (L)⟩ψn
+
+> Rec
+
+, it is a quasi-generating fraction of both ⟨Aal (L)⟩ψn 
+
+> Rec
+
+and ⟨Aan (L)⟩ψn 
+
+> Rec
+
+and all quasi-generating frac-tions of ⟨Aal (L)⟩ψn 
+
+> Rec
+
+or ⟨Aan (L)⟩ψn 
+
+> Rec
+
+are irreducible. Proof. By Prop. 4.4, Cor. 4.6, and Lemma 4.8 and the inclusion ⟨Aal (L)⟩ψn 
+
+> Rec
+
+⊂⟨Aan (L)⟩ψn
+
+> Rec
+
+, it is sufficient to show that ⟨Aan (L)⟩ψn 
+
+> Rec
+
+contains only proper fractions. Indeed, assume a fraction (P, 0) belongs to ⟨Aan (L)⟩ψn
+
+> Rec
+
+. By Cor. 5.14 applied to f = ψk, the operator P cancels the sequences ([ ψn]( ψk)) n∈N for all k. This is an infinite dimensional vector space of sequences solution of P , so that P = 0 . □
+
+6. Irreducibility and operators of minimal degree 
+
+Proposition 5.10 provides us with a family of algorithms that are fixed by choos-ing a differential term representing an input linear differential operator 
+
+L = pr (x)∂r + · · · + p0(x)
+
+with polynomial coefficients pi(x). A priori, each choice produces a different fraction of recurrence operators. Proposition 5.15 shows that they are all Rec-equivalent and that finding an irreducible one ensures that it is a quasi-generator of ⟨Aan (L)⟩ψn
+
+> Rec
+
+.In this section and the next one, we show how to compute such irreducible fractions of recurrence operators that belong to the annihilator Ann Rec ([ ψn]( f ), −[ψn]( L·f )) ,under explicit convergence constraints on the functions f whose Fourier series is considered. 
+
+Elementary computations. For polynomials p(x) = a0 + · · · + adxd in x only and no ∂, the differential term corresponding to right Horner evaluation, i.e., (6.1) Hor right (p(x)) = Rψd/dx (((( · · · (( ad × x) + ad−1)x + · · · ) + a1) × x) + a0)
+
+is associated to a fraction that is always irreducible (Prop. 6.5). Moreover, the com-putation of this fraction is efficient thanks to the special form Xψ 
+
+> den
+
+= Sn in (5.1): the denominators are all powers of Sn, cofactors in the additions and multiplica-tions of fractions (Def. 4.9) can be computed easily. Note also that this computation depends only on the pair (Xψ
+
+> num
+
+, X ψ
+
+> den
+
+) and not on the specific derivation d/dx ; this irreducibility result therefore holds for any derivation. 
+
+Left Horner evaluation. The irreducible fractions from Eq. (6.1) are the building blocks of the construction of fractions for linear differential operators. In particular, after first rewriting the operator in the form 
+
+L = ∂r qr (x) + · · · + q0(x),
+
+its left Horner evaluation is (6.2) Hor left (L) = Rψd/dx (∂(· · · ∂(∂q r (x) + qr−1(x)) + · · · + q1(x)) + q0(x)) ,
+
+where each of the coefficients qi(x) are themselves evaluated by right (not left) Horner evaluation as in Eq. (6.1). It is important to note that the special form Dψ
+
+> num
+
+= Sn in (5.3) makes the multiplications and additions easy to compute efficiently: again, the denominators are always simply powers of Sn. Thus all operations are RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 21 
+
+elementary and it is not necessary to discuss Euclid’s algorithm in that situation. Using polynomials in Sn and S−1 
+
+> n
+
+instead of fractions, special cases of this method have been developed by Paszkowski [61, T13.1, Chap. 13] for Chebyshev expan-sions, by Lewanowicz [38, §3] for Gegenbauer polynomials and later for Jacobi polynomials [39, 40], [81, §11.2.3]. Another feature of this representation is that when the leading coefficient qr (x)(= 
+
+pr (x)) is relatively prime with the polynomial σ(x) from the definition of the fam-ily (ψn) in Eq. (2.4), then the fraction is irreducible (Prop. 6.17). This makes it our method of choice in this case. A typical example is the computation of a re-currence of order 12 with coefficients of degree up to 28 for the coefficients of the expansion of the product of Hermite polynomials Hi(x)Hj (x) in the basis of Jacobi polynomials P (α,β ) 
+
+> n
+
+(x), in a matter of seconds (see Section 9.1.2). 
+
+Right Horner evaluation. When the leading coefficient of the differential equation is not relatively prime with σ(x), left Horner evaluation does not produce an ir-reducible fraction in general. This is the situation where the algebraic machinery introduced in the previous sections pays off through non-trivial applications of Eu-clid’s algorithm. The right Horner representation is (6.3) Hor right (L) = Rψd/dx (( · · · (pr (x)∂ + pr−1(x)) ∂ + · · · + p1(x)) ∂ + p0(x)) 
+
+where each of the coefficients pi(x) is itself evaluated by right Horner evaluation as in Eq. (6.1). This fraction is irreducible up to a power of Sn as possible common factor (Prop. 6.11). In particular, when Sn does not divide the numerator or the denominator, then the result is an irreducible fraction. 
+
+Example 6.1. For the expansion of exp( x) on the basis of Chebyshev polynomials, the linear differential operator ∂ − 1 ∈ K[x]⟨∂⟩ maps to the fraction 
+
+(S2 
+
+> n
+
++ 2( n + 1) Sn − 1, 1 − S2
+
+> n
+
+).
+
+Neither numerator nor denominator is divisible by Sn. Prop. 6.11 implies that the fraction is irreducible. The numerator gives a recurrence of order 2 for the coefficients of the Chebyshev expansion of exp( x). The recurrence can be checked in this example where the coefficients are known to equal the sequence 2In(1) , with 
+
+In the modified Bessel function of the first kind [57, 10.29.1]. (See Section 2.4 for the coefficient of T0.) 
+
+Combination of left and right Horner evaluation. Finally, there are cases when the leading coefficient of the differental operator is not relatively prime to σ(x) while the right Horner evaluation produces a fraction with a nonzero power of Sn in factor of both its numerator and denominator. Working in Rec rather than Sh does not allow us to conclude that the common power of Sn can be simplified out. 
+
+Example 6.2. Howell [31] gave an explicit expression for the coefficients of the expansion of the Laguerre polynomials L(α) 
+
+> m
+
+(x) in the basis L(β) 
+
+> n
+
+(x). The leading term of the differential equation is x = σ(x), so that left Horner evaluation is not expected to produce an irreducible fraction, and indeed it produces 
+
+ (n − m + β − α + 2) S2 
+
+> n
+
++ (2 m − 2n + α − β − 2) Sn + ( n − m), −(Sn − 1) 2 ,
+
+where the numerator factors as (( n − m + α + β + 2) Sn + m − n)( Sn − 1) . Right Horner evaluation produces the fraction (6.4)  (n − m + β − α + 2) S2 
+
+> n
+
++ ( m − n − 1) Sn, S n − S2
+
+> n
+
+ ,22 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+with Sn as a common factor of the numerator and denominator. By Prop. 5.10, the numerator gives a 2-term recurrence of order 2 for the coefficients. It is however possible to obtain a first order equation by subtracting termwise the second pair from the first, leading to the right factor of the quotient of the numerator of Eq. (6.4) by Sn. This is the result obtained by our implementation, see Section 9.1.1. The process outlined in this example is an instance of our algorithm in the general case. Even when the fraction produced by left Horner evaluation is not irreducible, its numerator and denominator cannot have a power of Sn in common (Cor. 6.10). Combining both fractions makes it possible to remove the common power of Sn
+
+from Hor right (L), resulting in an irreducible fraction, at the possible expense of a factor c(n) ∈ Z N. This approach is summarized in the following result. 
+
+Theorem 6.3 (Recurrences for Fourier coefficients) . Let (ψn) be a family of clas-sical orthogonal polynomials and let L ∈ K[x]⟨∂⟩ be a linear differential operator. Then Algorithm 1 with L as input returns an irreducible, therefore quasi-generating, fraction (Hnum , H den ) ∈ ⟨ Aal (L)⟩ψn
+
+> Rec
+
+. In other words, if f is a function such that 
+
+(H) the sequences ([ ψn]( f (j))) n∈N exist for j ⩽ deg ∂ L, 
+
+then the sequence ([ ψn]( L · f )) n∈N exists and 
+
+(6.5) Hnum · [ψn]( f ) = Hden · [ψn]( L · f ).
+
+In particular, if f satisfies Hyp. (H) and L · f = 0 then its sequence of generalized Fourier coefficients is annihilated by the numerator: Hnum · [ψn]( f ) = 0 .
+
+Example 6.4. In any of the bases of Table 1 except for the Laguerre polynomials, the function exp( x) satisfies Hyp. (H). Since exp( x) is cancelled by ∂ − 1 ∈ K[x]⟨∂⟩,the corresponding Fourier coefficient sequences are cancelled by a numerator of 
+
+(Dψ
+
+> num
+
+, D ψ
+
+> den
+
+) ⊕ (−1, 1) . Since Dψ 
+
+> num
+
+= Sn, one such numerator is Sn − Dψ
+
+> den
+
+,
+
+with Dψ 
+
+> den
+
+from the corresponding entry in Table 3. Here are the final expressions returned by our program in the bases Tn(x), Hn(x), C(λ) 
+
+> n
+
+(x) (the expression for 
+
+P (α,β ) 
+
+> n
+
+(x) is larger and omitted here): 
+
+> for Basis in [ChebyshevT(n,x),HermiteH(n,x),GegenbauerC(n,lambda,x)] do FunctiontoRec(exp(x),Basis,u) od; 
+
+un+2 + 2( n + 1) un+1 − un = 0 ,
+
+2( n + 1) un+1 − un = 0 ,
+
+(λ + n)un+2 + 2( λ + n)( λ + n + 2) un+1 − (λ + n + 2) un = 0 .
+
+A purely symbolic use of Thm. 6.3 for exp in the basis of Laguerre polynomials, where Hyp. (H) does not hold, results in the nonsensical un = 0 . This shows the importance of convergence considerations when using these methods. The rest of this section is devoted to a rather technical proof of the irreducibility of the fraction, that can safely be skipped in a first reading. The existence of 
+
+[ψn]( L · f ) and the recurrences then follow as in Prop. 5.10 and Cor. 5.14. Throughout, if A = Pdj=0 aj (n)Sjn ∈ Sh, then for any k ∈ Z, we write 
+
+A(n + k, S n) = 
+
+> d
+
+X
+
+> j=0
+
+aj (n + k)Sjn ∈ Sh,RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 23 
+
+Algorithm RightHornerPoly: Horner evaluation of polynomials in x
+
+Input: P = Pdi=0 pixi ∈ K[x]; the pair Xψ = ( Xψ
+
+> num
+
+, X ψ
+
+> den
+
+) from Eq. (5.1) 
+
+Output: The irreducible fraction Hor right (P ) ∈ Prec from Eq. (6.1) 
+
+S ← (0 , 1) 
+
+for i ← d to 0 do 
+
+S ← S ⊗ X // ⊗ and ⊕ from Def. 4.9 
+
+S ← S ⊕ (pi, 1) 
+
+return S
+
+which satisfies the commutation SknA(n, S n) = A(n + k, S n)Skn. Note that if k ∈ N
+
+and A(n, S n) ∈ Rec, then A(n + k, S n) ∈ Rec. 6.1. Right Horner evaluation of polynomials in x. Algorithm RightHorner-Poly implements the formula defining Hor right in Eq. (6.1). The irreducibility of its output is given by the following. 
+
+Proposition 6.5. Let P = Pdi=0 pixi be a nonzero polynomial in K[x] and let (ψn)
+
+be a family of classical orthogonal polynomials. Then the fraction Hor right (P ) from Eq. (6.1) is irreducible. Its denominator is Sdeg Pn .Proof. The proof is by induction on deg P . The statement is clear when deg P = 0 .Otherwise, P (x) = Q(x)x + p0 with deg Q = deg P − 1. The induction hypothesis gives Rψd/dx (Q) = ( B, S deg P −1 
+
+> n
+
+) and this fraction is irreducible. Def. 4.9 then gives 
+
+Rψd/dx (P ) = ( Rψd/dx (Q) ⊗ Rψd/dx (x)) ⊕ Rψd/dx (p0)= (( B, S deg P −1 
+
+> n
+
+) ⊗ (Xψ
+
+> num
+
+, S n)) ⊕ (p0, 1) = (( B)Sn Xψ
+
+> num
+
+, (Sn)B Sdeg P −1 
+
+> n
+
+) ⊕ (p0, 1) = ( B(n + 1 , S n)Xψ
+
+> num
+
+, S deg Pn ) ⊕ (p0, 1) = ( B(n + 1 , S n)Xψ 
+
+> num
+
++ Sdeg Pn p0, S deg Pn ).
+
+By irreducibility and the special case of constant polynomials, Sn is not a right divisor of B, which allows us to use Lemma 6.6 below in the fourth line and gives the irreducibility of the left ⊕ summand in that line, which implies that of the result. □
+
+Lemma 6.6. Let A ∈ Rec \ { 0} be relatively prime with Sn. Then for any j ∈ N,
+
+mclm Rec (A, S jn) = ( A(n + j, S n)) Sjn = ( Sjn)A, 
+
+where the parenthesized terms give the cofactors. Proof. That the products on the right are left multiples in Rec of both A and Sjn
+
+is clear from their presentation. In both cases, the cofactors are left-coprime since 
+
+Sn being prime with A implies that it does not divide A(n + j − k, S n). Thus the co-factors have minimal degree in Sn and this is also the case for the products. The minimality of the leading coefficient up to invertible elements in Rec × comes from the fact that the product of A by an element of Rec of degree j in Sn is a multiple of the leading coefficient of its product by Sjn. □24 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Algorithm LeftHorner: Left Horner evaluation of differential terms 
+
+Input: L = Pri=0 ∂iqi(x) ∈ K[x]⟨∂⟩;the pairs Xψ = ( Xψ
+
+> num
+
+, X ψ
+
+> den
+
+), Dψ = ( Dψ
+
+> num
+
+, D ψ
+
+> den
+
+) from Eq. (5.5) 
+
+Output: The evaluation of Hor left (L) ∈ Prec from Eq. (6.2) 
+
+S ← (0 , 1) 
+
+for i ← r to 0 do 
+
+S ← D ⊗ S // Def. 4.9 
+
+Qi ← RightHornerPoly (qi, X )
+
+S ← S ⊕ Qi // Def. 4.9 
+
+return S
+
+6.2. Left Horner. Algorithm LeftHorner is a direct implementation of Eq. (6.2), where the polynomial coefficients are still evaluated by right Horner evaluation, so as to take advantage of the efficiency of that computation and irreducibility of the result. Its use relies on the following classical observation, whose proof is a simple induction. 
+
+Lemma 6.7. Let L = Prj=0 pj (x)∂j ∈ K[x]⟨∂⟩, with pj (x) ∈ K[x], then L can be written Prj=0 ∂j qj (x), with qj (x) ∈ K[x] for j = 0 , . . . , r and qr (x) = pr (x).
+
+The polynomials qi can be computed inductively starting with qk = pk and sub-tracting ∂kqk to produce a smaller order operator. Writing a differential operator in this way was used by Paszkowski [61, Ch. 13] to derive expansions in the Cheby-shev basis. This was then extended by Lewanowicz to Gegenbauer and to Jacobi polynomials [38, 39]. The following proposition gives a synthetic formula in the general case. 
+
+Proposition 6.8. Let L = ∂r qr (x) + · · · + ∂q 1(x) + q0(x) be a linear differential operator in K[x]⟨∂⟩. Let (ψn) be a family of classical orthogonal polynomials. The fraction Hor left (L) from Eq. (6.2) is of the form 
+
+(6.6) (Hℓ, num , H ℓ, den ) = 
+
+> r
+
+X
+
+> k=0
+
+Sm−deg qk +kn Dψ
+
+> den ,r −k
+
+(n + deg qk, S n)Qk, Smn Dψ
+
+> den ,r
+
+!
+
+,
+
+with m = max k=0 ,...,r (deg qk − k)+, with x+ = max( x, 0) denoting the positive part, and for i = 0 , . . . , r , the operator Qi ∈ Rec is defined by (Qi, S deg qi 
+
+> n
+
+) = Hor right (qi),while Dψ 
+
+> den ,i
+
+is defined by 
+
+(6.7) Dψ 
+
+> den ,i
+
+=
+
+> i−1
+
+Y
+
+> j=0
+
+Dψ
+
+> den
+
+(n + i − 1 − j, S n).
+
+Proof. For i = 0 , . . . , r , let di = deg qi and recall that the fraction (Qi, S di 
+
+> n
+
+) is irre-ducible by Eq. (6.7). We prove by induction that the differential term corresponding to the left Horner evaluation of 
+
+∂r−iqr (x) + · · · + qi(x)RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 25 
+
+has for image by Rψd/dx the fraction 
+
+(Qnum, i, Q den, i) = 
+
+ X
+
+> k=i,...,r
+
+Smi−dk +k−in Dψ
+
+> den ,r −k
+
+(n + dk, S n)Qk, S mi 
+
+> n
+
+Dψ
+
+> den ,r −i
+
+ ,
+
+with mi = max k=i,...,r (deg qk + i − k)+.For i = r, mr = dr and the result (Qr , S dr 
+
+> n
+
+) is given by Prop. 6.5. If the result holds at rank k, then Horner evaluation first evaluates the product 
+
+(Sn, D ψ
+
+> den
+
+) ⊗ (Qnum, i, Q den, i) = (( Sn)Smin Dψ 
+
+> den ,r −i
+
+Qnum, i,
+
+
+
+Smi 
+
+> n
+
+Dψ
+
+> den ,r −i
+
+Sn
+
+Dψ
+
+> den
+
+)= ( S(1 −mi)+ 
+
+> n
+
+Qnum, i, S (mi−1) + 
+
+> n
+
+Dψ
+
+> den ,r −i
+
+(n + 1 , S n)Dψ
+
+> den
+
+)= ( S(1 −mi)+ 
+
+> n
+
+Qnum, i, S (mi−1) + 
+
+> n
+
+Dψ
+
+> den ,r −i+1
+
+).
+
+Next, we use mi−1 = max(( mi − 1) +, d i−1) in the addition 
+
+(S(1 −mi)+ 
+
+> n
+
+Qnum, i, S (mi−1) + 
+
+> n
+
+Dψ
+
+> den ,r −i+1
+
+) ⊕ (Qi−1, S di−1 
+
+> n
+
+)= ( Smi−1−(mi−1) + 
+
+> n
+
+S(1 −mi)+ 
+
+> n
+
+Qnum, i + Smi−1−di−1 
+
+> n
+
+Dψ
+
+> den ,r −i+1
+
+(n + di−1, S n)Qi−1,Smi−1 
+
+> n
+
+Dψ
+
+> den ,r −i+1
+
+)= ( Smi−1−(mi−1)  
+
+> n
+
+Qnum, i + Smi−1−di−1 
+
+> n
+
+Dψ
+
+> den ,r −i+1
+
+(n + di−1, S n)Qi−1,Smi−1 
+
+> n
+
+Dψ
+
+> den ,r −i+1
+
+).
+
+This gives Qden ,i −1 = Smi−1 
+
+> n
+
+Dψ 
+
+> den ,r −i+1
+
+and 
+
+Qnum ,i −1 = Smi−1−(mi−1)  
+
+> n
+
+Qnum, i + Smi−1−di−1 
+
+> n
+
+Dψ
+
+> den ,r −i+1
+
+(n + di−1, S n)Qi−1,
+
+which concludes the proof of the induction. □
+
+Before stating the next technical lemma, we recall that the valuation in Sn is the function (6.8) val Sn :
+
+> m
+
+X
+
+> k=0
+
+ak(n)Skn ∈ Rec \ { 0} 7 → min {k | ak(n)̸ = 0 }.
+
+Lemma 6.9. Under the same assumptions as Prop. 6.8, if L̸ = 0 , let m′ =min k=0 ,...,r   
+
+> s.t. Qk̸=0
+
+m − (deg qk − k), then the valuation in Sn of the numerator of the pair (6.6) is m′.Proof. By definition of m′, Sm′ 
+
+> n
+
+divides the numerator. Let 0 ⩽ k0 < · · · < k s ⩽ r
+
+be the indices such that m′ = m + kj − deg qkj for j = 0 , . . . , s . For all the other indices, the term Sm−deg qk +kn Dψ
+
+> den ,r −k
+
+(n + deg qk)Qk is divisible by Sm′+1  
+
+> n
+
+, hence cannot contribute to the term in Sm′ 
+
+> n
+
+.From Table 3, it follows that the constant term of Dψ 
+
+> den ,r −kj
+
+(n+deg qkj )Qkj is of the same order as ndeg qkj = nkj +m−m′
+
+if the ψn’s are Laguerre polynomials; nkj −r
+
+in the other cases. This implies that, whatever the polynomial family, these constant terms cannot cancel each other. Hence, the coefficient of Sm′ 
+
+> n
+
+of the numerator is nonzero. □26 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Algorithm RightHorner: Right Horner evaluation of differential terms 
+
+Input: L = Pri=0 pi(x)∂i ∈ K[x]⟨∂⟩;the pairs Xψ = ( Xψ
+
+> num
+
+, X ψ
+
+> den
+
+), Dψ = ( Dψ
+
+> num
+
+, D ψ
+
+> den
+
+) from Eq. (5.5) 
+
+Output: The evaluation of Hor right (L) ∈ Prec from Eq. (6.3) 
+
+S ← (0 , 1) 
+
+for i ← r to 0 do 
+
+S ← S ⊗ D // Def. 4.9 
+
+Pi ← RightHornerPoly (pi, X )
+
+S ← S ⊕ Pi // Def. 4.9 
+
+return S
+
+Corollary 6.10. Let L = ∂r qr (x) + · · · + ∂q 1(x) + q0(x) be a linear differential operator in K[x]⟨∂⟩, let (ψn) be a family of classical orthogonal polynomials. The pair (6.6) is such that Sn does not divide its two elements simultaneously. Its denominator is nonzero; so is its numerator if L̸ = 0 .Proof. The denominator Smn Dψ 
+
+> den ,r
+
+is nonzero. Lemma 6.9 implies that the numer-ator Hℓ, num is nonzero if L̸ = 0 . Regarding the first statement, if m = 0 , it is a consequence of Sn ∤ Dψ 
+
+> den ,r
+
+= Hℓ, den . If m ⩾ 1, then m′ from Lemma 6.9 is 0 and that lemma gives Sn ∤ Hℓ, num . □
+
+6.3. Right Horner. The next proposition shows that the fraction obtained thanks to a classical right Horner scheme as given by Eq. (6.3) is not far from irre-ducible: the gcld Sh of its numerator and denominator is a power of Sn. Algo-rithm RightHorner implements this result. It is an extension of an algorithm stated by Lewanowicz in the Gegenbauer case [38]. 
+
+Proposition 6.11. Let L = pr (x)∂r + · · · + p1(x)∂ + p0(x) be a linear differential operator in K[x]⟨∂⟩. Let (ψn) be a family of classical orthogonal polynomials. The fraction Hor right (L) from Eq. (6.3) is of the form (SℓnHnum , S ℓnHden )̸ = (0 , 0) , with 
+
+ℓ ∈ N, such that gcld Sh(Hnum , H den ) = 1 .Proof. If r = 0 , then Hor right (p0) is irreducible by Prop. 6.5 and the property holds. From there, the proof is by induction using the following lemmas. □
+
+Lemma 6.12. Let A, B be shift operators in Sh. If gcld Sh(A, B ) is a power of Sn,then so is gcld Sh(A, BS mn ) for any m ∈ N.Proof. We write |ℓ for left divisibility in Sh. In general, it is not the case that 
+
+gcld Sh(AC, BC ) = gcld Sh(A, B )C, but the situation is different with Sn that is always simultaneously a right and a left factor of the operators it divides. Thus, for d ∈ N, gcld Sh(AS dn, BS dn) = gcld Sh(A, B )Sdn. This property can be seen by multiplying by Sdn on the right the Bézout identity for (A, B ) and commuting Sdn
+
+with the cofactors. It follows that 
+
+gcld Sh(A, BS mn )|ℓ gcld Sh(AS mn , BS mn ) = gcld Sh(A, B )Smn . □
+
+Lemma 6.13. Let P ∈ Prec be the fraction (Pnum , P den ) = ( SℓnHnum , S ℓnHden ) with 
+
+gcld Sh(Hnum , H den ) = 1 . Then the product P ⊗ (Dψ
+
+> num
+
+, D ψ
+
+> den
+
+) has the same form. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 27 
+
+Proof. This product is 
+
+(( Pnum )Dψ 
+
+> den
+
+Sn,
+
+
+
+Dψ
+
+> den
+
+Pnum 
+
+Pden ).
+
+The cofactors in this pair are related to those of Hnum and Dψ
+
+> den
+
+: from 
+
+gcld Sh(( Hnum )Dψ 
+
+> den
+
+,
+
+
+
+Dψ
+
+> den
+
+Hnum 
+
+) = 1 ,
+
+which is a consequence of the definition of cofactors, it follows that 
+
+gcld Sh(Sℓn(Hnum )Dψ 
+
+> den
+
+, S ℓn
+
+
+
+Dψ
+
+> den
+
+Hnum 
+
+) = Sℓn.
+
+Since Dψ 
+
+> den
+
+is relatively prime with Sn, so is the cofactor 
+
+
+
+Dψ
+
+> den
+
+Hnum 
+
+and thus by Lemma 6.12, 
+
+gcld Sh(Sℓn(Hnum )Dψ 
+
+> den
+
+,
+
+
+
+Dψ
+
+> den
+
+Hnum (n+ℓ)
+
+) = 1 ,
+
+so that 
+
+(Pnum )Dψ 
+
+> den
+
+= Sℓn(Hnum )Dψ 
+
+> den
+
+and 
+
+
+
+Dψ
+
+> den
+
+Pnum 
+
+=
+
+
+
+Dψ
+
+> den
+
+Hnum (n+ℓ)
+
+.
+
+Thus the product above rewrites 
+
+(Sℓn(Hnum )Dψ 
+
+> den
+
+Sn,
+
+
+
+Dψ
+
+> den
+
+Hnum (n+ℓ)
+
+Pden ) = ( Sℓn(Hnum )Dψ 
+
+> den
+
+Sn, S ℓn
+
+
+
+Dψ
+
+> den
+
+Hnum 
+
+Hden ).
+
+The gcld of this pair is therefore Sℓn times gcld Sh(( Hnum )Dψ 
+
+> den
+
+Sn,
+
+
+
+Dψ
+
+> den
+
+Hnum 
+
+Hden ).By Lemma 6.14 below, the irreducibility of (Hnum , H den ) implies that 
+
+gcld Sh(( Hnum )Dψ 
+
+> den
+
+,
+
+
+
+Dψ
+
+> den
+
+Hnum 
+
+Hden ) = 1 ,
+
+whence the conclusion by Lemma 6.12. □
+
+Lemma 6.14. Let (p1, p 2) ∈ Prec 2 be an irreducible fraction and q ∈ Rec . Then the fraction (p1, p 2) ⊗ (1 , q ) is irreducible. Proof. By definition of ⊗ and irreducibility, it is sufficient to prove that 
+
+G := gcld Sh(( p1)q , (q)p1 p2) = 1 .
+
+From 
+
+G |ℓ (p1)q |ℓ (p1)q q = mclm Rec (p1, q ) = ( q)p1 p1,
+
+it follows that 
+
+G |ℓ gcld Sh(( q)p1 p1, (q)p1 p2) = ( q)p1 gcld Sh(p1, p 2) = ( q)p1 .
+
+Therefore 
+
+G |ℓ gcld Sh(( p1)q , (q)p1 ) = 1 ,
+
+where the last equality comes from the minimality of mclm Rec and Prop. 3.10. □
+
+Lemma 6.15. Let P ∈ Prec be the fraction (Pnum , P den )with gcld Sh(Pnum , P den ) = 
+
+Sℓn for some ℓ ∈ N and let q ∈ K[x] with (Q, S dn) = Hor right (q). Then the sum 
+
+P ⊕ (Q, S dn) has the same form as P .28 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Proof. The computation of the sum begins with the cofactors of Pden and Sdn in their mclm Rec . First, there exists c(n) ∈ K[n] such that c(n)Pden = Smn A with 
+
+m ⩾ ℓ, A ∈ Rec and Sn not dividing A in Sh. The cofactors then follow from 
+
+S(d−m)+ 
+
+> n
+
+c(n)Pden = S(m−d)+ 
+
+> n
+
+A(n + d, S n)Sdn = mclm Rec (Pden , S dn)
+
+and the sum of the lemma is 
+
+P ⊕(Q, S dn) = ( S(d−m)+ 
+
+> n
+
+c(n)Pnum +S(m−d)+ 
+
+> n
+
+A(n+d, S n)Q, S (m−d)+ 
+
+> n
+
+A(n+d, S n)Sdn).
+
+The proof that the gcld Sh of this pair is a power of Sn starts from 
+
+Sℓn = gcld Sh(Pnum , P den ) = gcld Sh(c(n)Pnum , c (n)Pden ).
+
+Multiplying on the left by S(d−m)+ 
+
+> n
+
+gives 
+
+Sℓ+( d−m)+ 
+
+> n
+
+= gcld( S(d−m)+ 
+
+> n
+
+c(n)Pnum , S (m−d)+ 
+
+> n
+
+A(n + d, S n)Sdn).
+
+Then the following gcld Sh are also powers of Sn:
+
+gcld Sh(S(d−m)+ 
+
+> n
+
+c(n)Pnum , S (m−d)+ 
+
+> n
+
+A(n + d, S n)) = gcld Sh(S(d−m)+ 
+
+> n
+
+c(n)Pnum + S(m−d)+ 
+
+> n
+
+A(n + d, S n)Q, S (m−d)+ 
+
+> n
+
+A(n + d, S n)) 
+
+and then, by Lemma 6.12, so is 
+
+gcld Sh(S(d−m)+ 
+
+> n
+
+c(n)Pnum + S(m−d)+ 
+
+> n
+
+A(n + d, S n)Q, S (m−d)+ 
+
+> n
+
+A(n + d, S n)Sdn),
+
+as was to be proved. □
+
+6.4. Irreducible fractions. We prove the existence of an irreducible fraction in 
+
+⟨Aal (L)⟩ψn
+
+> Rec
+
+. By Prop. 5.15, it is a quasi-generator of both ⟨Aal (L)⟩ψn 
+
+> Rec
+
+and ⟨Aan (L)⟩ψn
+
+> Rec
+
+.The proof is effective and forms the basis of Algorithm 1 below. 
+
+Proposition 6.16. Let L = pr (x)∂r + · · · + p1(x)∂ + p0(x) be a linear differential operator in K[x]⟨∂⟩. Let (ψn) be a family of classical orthogonal polynomials. There exists an irreducible fraction in the module ⟨Aal (L)⟩ψn
+
+> Rec
+
+.Proof. By Prop. 6.11, the fraction Hor right (L) ∈ ⟨ Aal (L)⟩ψn 
+
+> Rec
+
+is of the form (SℓnHnum ,SℓnHden ) with Hnum , H den relatively prime. Thus if ℓ = 0 , the fraction is irreducible and gives the result. Otherwise, the pair (Hnum , H den ) itself does not necessarily belong to Prec, but there exists q(n) ∈ K[n]ZN such that (6.9) q(n)( Hnum , H den ) =: ( A, B ) ∈ Prec with (A, B ) irreducible and q(n) can be taken of minimal degree. By Prop. 5.15, the fraction Sℓn(A, B ) and therefore also the fraction (A, B ) are 
+
+Rec-equivalent to Hor left (L). Let G be the gcld Sh of the members of Hor left (L). By Cor. 6.10, G is relatively prime to Sn. By Prop. 3.11, there exists δ(n) ∈ K[n]ZN
+
+and ˆG, C, D in Rec such that 
+
+δ(n) Hor left (L) = ( ˆGC, ˆGD ) ∈ ⟨ Aal (L)⟩ψn
+
+> Rec
+
+,
+
+with (C, D ) an irreducible fraction. By Eq. (3.1), ˆG also is relatively prime to Sn. It follows from Prop. 5.15 again that (A, B ) ≡Rec (C, D ) and since they are irreducible, they differ only by factors in K[n]ZN . Up to taking left multiples of Hor right (L) and 
+
+Hor left (L) by elements of K[n]ZN , we can assume that they are equal. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 29 
+
+As ˆG and Sn are relatively prime, there exist U and V in Rec such that U ˆG +
+
+V S ℓn = c(n) ∈ K[n]ZN \ { 0}. It follows that 
+
+U δ (n) Hor left (L) + V q (n + ℓ) Hor right (L) = c(n)( A, B )
+
+is an irreducible fraction that belongs to ⟨Aal (L)⟩ψn
+
+> Rec
+
+. □
+
+6.5. Irreducible fractions by left Horner evaluation in regular cases. An important property of Algo. LeftHorner is that under a certain coprimality condi-tion, its output is irreducible. This property and its proof are an extension of a result due to Lewanowicz [41, Lemma 3.1] for Jacobi polynomials. 
+
+Proposition 6.17. With the notation of Prop. 6.8 and 6.11, if gcd( pr (x), σ (x)) = 1, then the fraction (6.6) obtained from a left Horner evaluation is irreducible. 
+
+We first prove the following result, which gives part of the case r = 1 .
+
+Lemma 6.18. Let p ∈ K[x] \ { 0} be relatively prime with σ and (P, S dp 
+
+> n
+
+) = Hor right (p) with dp = deg p. Then the fraction 
+
+Rψd/dx (∂p ) = ( Sn, D ψ
+
+> den
+
+) ⊗ (P, S dp 
+
+> n
+
+) = ( S(1 −dp)+ 
+
+> n
+
+P, S (dp−1) + 
+
+> n
+
+Dψ
+
+> den
+
+)
+
+is irreducible. Proof. If p ∈ K, the result is obvious. For p ∈ K[x] \ K, the proof is indirect. Bézout’s identity gives the existence of u and v ∈ K[x] such that 1 = pu + σv , with 
+
+du := deg u < deg σ and dv := deg v < d p. First we note that if u = 0 , then vσ = 1 
+
+implies that deg σ = 0 , which happens only for Hermite polynomials, in which case 
+
+Dψ 
+
+> den
+
+has degree 0 and the result holds by Cor. 6.10. Also, v̸ = 0 , otherwise p ∈ K.From now on, those two cases are excluded and du, d v ⩾ 0, d p ⩾ 1.Multiplying the Bézout identity by ∂ on the left gives ∂(pu ) = ∂ −(σ∂ +σ′)v. By Cor. 4.6, this implies that the images by Rψd/dx of differential terms for both sides are 
+
+Rec-equivalent. We use the terms as parenthesized above, where the polynomials 
+
+p, u, σ, σ ′, v are presented in a right Horner form. If (U, S du 
+
+> n
+
+) = Hor right (u), the inner product in the left-hand side is mapped to (P (n + du, S n)U, S dp+du 
+
+> n
+
+). For the right-hand side, up to Rec-equivalence, the inner term σ∂ can be mapped to (Θ num , S n)
+
+from Eq. (7.2) below. Adding Rψd/dx (σ′) does not change the denominator since 
+
+deg σ′ ⩽ 1 (see Table 2). Finally, multiplying on the right by Rψd/dx (v) multiplies the denominator by Sdv 
+
+> n
+
+. In summary, we have obtained that for some A ∈ Rec, 
+
+(Sn, D ψ
+
+> den
+
+) ⊗ (P (n + du, S n)U, S dp+du 
+
+> n
+
+) ≡Rec (Sn, D ψ
+
+> den
+
+) ⊕ (A, S dv +1  
+
+> n
+
+).
+
+A direct computation on both sides gives 
+
+(S1−dp−du 
+
+> n
+
+P (n + du, S n)U, S dp+du−1 
+
+> n
+
+Dψ
+
+> den
+
+) ≡Rec 
+
+(Sdv +2  
+
+> n
+
++ Dψ
+
+> den
+
+(n + dv + 1 , S n)A, S dv +1  
+
+> n
+
+Dψ
+
+> den
+
+).
+
+Let δ = dv + 1 − (dp + du − 1) be the difference between exponents of Sn in the denominators of the left- and the right-hand sides of this equivalence. Recall that 
+
+dp > d v ⩾ 0, deg( pu ) = deg( vσ ) and 
+
+δ = dv + 1 − (dp + du − 1) = 2 − deg σ ⩾ 0.30 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+The Rec-equivalence of fractions then implies that there is an equality between numerators that can be written 
+
+SδnP (n + du, S n)U = S2+ dv 
+
+> n
+
++ Dψ
+
+> den
+
+(n + dv + 1 , S n)A. 
+
+Since Dψ 
+
+> den
+
+is relatively prime with Sn and δ ⩽ 2 + dv , this implies that there is ˜A ∈ Sh such that A = Sδn ˜A leading to 
+
+Sdp+du 
+
+> n
+
+= P (n + du, S n)U − Dψ
+
+> den
+
+(n + dp + du − 1, S n) ˜A. 
+
+This Bézout identity shows that gcld Sh(P (n + du, S n), D ψ
+
+> den
+
+(n + dp + du − 1, S n)) is a power of Sn, which has to be S0 
+
+> n
+
+= 1 since (P, S dp 
+
+> n
+
+) is irreducible. Thus 
+
+1 = gcld Sh(P (n+du, S n), D ψ
+
+> den
+
+(n+dp+du−1, S n)) = gcld Sh(P, D ψ
+
+> den
+
+(n+dp−1, S n)) = gcld Sh(P, D ψ
+
+> den
+
+(n + dp − 1, S n)Sdp−1 
+
+> n
+
+) = gcld Sh(P, S dp−1 
+
+> n
+
+Dψ
+
+> den
+
+),
+
+as was to be proved. □
+
+Proof of Prop. 6.17. By Prop. 5.15 and 6.16, the module ⟨Aal (L)⟩ψn 
+
+> Rec
+
+contains an irreducible fraction and it is sufficient to prove that the fraction in the proposition is quasi-generating in ⟨Aan (L)⟩ψn
+
+> Rec
+
+.The proof is by induction on the order r. For r = 0 , the result is given by Prop. 6.5. Now, we assume that the result is satisfied for all orders from 0 to r − 1.Let (Anum , A den ) ∈ ⟨ Aan (L)⟩ψn
+
+> Rec
+
+, i.e., (6.10) Anum · [ψn]( ψj ) = Aden · [ψn]( L · ψj ), for all j ⩾ 0.
+
+Again by Prop. 5.15, it is then sufficient to show that Aden is divisible by the denominator Sm(L) 
+
+> n
+
+Dψ 
+
+> den ,r
+
+of Hor left (L), where we write m(L) for the exponent m
+
+of Prop. 6.8. We write L in two different ways: 
+
+L = L1∂ + p0 = ∂r qr + L2,
+
+where L1 and L2 are linear differential operators of orders r1 = r − 1 and r2 ⩽ r − 1
+
+and moreover, the exponents from Prop. 6.8 satisfy m(L2) ⩽ m(L). Applying the induction hypothesis to L1, shows that any element of ⟨Aan (L1)⟩ has a denominator that is a left multiple of Sm(L1) 
+
+> n
+
+Dψ
+
+> den ,r −1
+
+.First, observe that the denominator Aden can be written Sv0 
+
+> n
+
+A′ 
+
+> den
+
+with v0 ⩾ m(L)
+
+and Sn ∤ A′
+
+> den
+
+. Indeed, if (A, B) is a quasi-generating pair of ⟨Aal (L)⟩ψn 
+
+> Rec
+
+(its existence is granted by Prop. 5.15), then there exists c ∈ K[n]ZN and C ∈ Rec such that c(n) Hor left (L) = ( CA , CB ). Corollary 6.10 implies that Sn ∤ C and therefore Sm(L) 
+
+> n
+
+| B .Next, applying Prop. 4.10 twice, 
+
+(Anum , A den ) ⊕ Rψd/dx (−p0) ∈ Ann Prec ([ ψn]( ψj ), −[ψn]( L1∂ · ψj )) ,
+
+
+
+(Anum , A den ) ⊕ Rψd/dx (−p0)
+
+
+
+⊗ (Dψ
+
+> den
+
+, S n) ∈ Ann Prec 
+
+ [ψn]( ψ′ 
+
+> j
+
+), −[ψn]  L1 · ψ′
+
+> j
+
+ .
+
+Since this holds for any j and the ψj form a basis of the polynomial ring, their derivatives ψ′ 
+
+> j
+
+generate it and therefore the fraction on the left belongs to ⟨Aan (L1)⟩.Thus, by the induction hypothesis, the denominator of that fraction, which can be computed directly to be Sv1 
+
+> n
+
+A′ 
+
+> den
+
+with v1 > v 0, is a left multiple of Sm(L1) 
+
+> n
+
+Dψ
+
+> den ,r −1
+
+.RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 31 
+
+This implies the existence of F ∈ Sh such that Sn ∤ F and (6.11) Aden = Sv0 
+
+> n
+
+F D ψ
+
+> den ,r −1
+
+.
+
+Next, we turn to the second rewriting of L. Expanding Eq. (6.10) and using 
+
+Hor left (∂r−1) = ( Sr−1 
+
+> n
+
+, D ψ
+
+> den ,r −1
+
+) from Prop. 6.8 gives that for all j ⩾ 0,
+
+Anum · [ψn]( ψj ) = Aden · [ψn]( ∂r−1∂q r · ψj ) + Aden · [ψn]( L2 · ψj )= Sv0 
+
+> n
+
+F D ψ 
+
+> den ,r −1
+
+· [ψn]( ∂r−1∂q r · ψj ) + Aden · [ψn]( L2 · ψj )= Sv0 
+
+> n
+
+F S r−1 
+
+> n
+
+· [ψn]( ∂q r · ψj ) + Aden · [ψn]( L2 · ψj ).
+
+Now, from 
+
+Hor left (L2) = ( Hℓ, num (L2), S m(L2) 
+
+> n
+
+Dψ 
+
+> den ,r 2
+
+)
+
+with m(L2) ⩽ m(L) ⩽ v0 and r2 ⩽ r − 1 and Eq. (6.11), it follows that Aden is a left multiple of this denominator, i.e., there exists G such that 
+
+Aden = GS m(L2) 
+
+> n
+
+Dψ 
+
+> den ,r 2
+
+.
+
+As a consequence, for all j ⩾ 0,
+
+Anum · [ψn]( ψj ) = Sv0 
+
+> n
+
+F S r−1 
+
+> n
+
+· [ψn]( ∂q r · ψj ) + GS m(L2) 
+
+> n
+
+Dψ 
+
+> den ,r 2
+
+· [ψn]( L2 · ψj ),
+
+(Anum − GH ℓ, num (L2)) · [ψn]( ψj ) = Sv0 
+
+> n
+
+F S r−1 
+
+> n
+
+· [ψn]( ∂q r · ψj ).
+
+Lemma 6.18 then implies that Dψ 
+
+> den
+
+is a right divisor of F S r−1 
+
+> n
+
+and thus that 
+
+Dψ
+
+> den
+
+(n − r + 1 , S n) is a right divisor of F , which concludes the proof that Dψ 
+
+> den ,r
+
+is a right divisor of A′ 
+
+> den
+
+and also that Sm(L) 
+
+> n
+
+Dψ 
+
+> den ,r
+
+is a right divisor of Aden . □
+
+Algorithm 1: Main algorithm 
+
+Input: L = Pri=0 pi(x)∂i ∈ K[x]⟨∂⟩; σ(x) from Eq. (2.4); the pairs Xψ = ( Xψ
+
+> num
+
+, X ψ
+
+> den
+
+), Dψ = ( Dψ
+
+> num
+
+, D ψ
+
+> den
+
+) from Eq. (5.5). 
+
+Output: An irreducible fraction P ∈ Prec as in Thm. 6.3 
+
+if gcd( pr (x), σ (x)) = 1 then return LeftHorner (L, X, D );
+
+(A, B ) ← RightHorner (L, X, D )
+
+ℓ ← min(val Sn A, val Sn B)
+
+if ℓ = 0 then return (A, B );
+
+/* Eq. (6.9) with q(n) minimal: */ 
+
+(A, B ) ← q(n)S−ℓn (A, B ) // Exact division by Sℓn
+
+(P, Q ) ← Hor left (∂r , X, D ) // Or use the explicit (6.7) for Dψ
+
+> den ,r
+
+G ← ˜q(n)(( Sval Sn Bn Q) ÷ B) // Exact right division by B, with ˜q(n)
+
+minimal for G ∈ Rec 
+
+U G + V S ℓn = 1 // Extended left gcd in Sh
+
+c(n) := lcm(denominators( U, V )) 
+
+return c(n)( A, B )
+
+6.6. Algorithm for irreducible fractions (Proof of Theorem 6.3). Let L be a linear differential operator in K[x]⟨∂⟩. Algorithm 1 follows the steps of the proof of Prop. 6.16, with extra steps to reduce the computational cost. First, in the situ-ation where Prop. 6.17 applies, the computation is performed by Algo. LeftHorner, 32 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+that returns an irreducible fraction, see Section 6.5, without needing expensive computations of cofactors in its operations. Otherwise, the algorithm first computes a right Horner evaluation. By Prop. 6.11, it is of the form (SℓnA, S ℓnB) with (A, B ) an irreducible fraction. If ℓ = 0 , the pair is irreducible and returned. If not, the proof of Prop. 6.16 combines (A, B ) with the fraction Hor left (L). The algorithm avoids the computation of Hor left (L) for efficiency reasons. Instead, only Dψ 
+
+> den ,r
+
+is computed. Since ˆG is relatively prime to Sn, Prop. 6.8 shows that Smn Dψ 
+
+> den ,r
+
+is equal to ˆGD = ˆGB for m = val Sn B, up to an element of K[n]ZN on the left. Thus ˆG can be computed by dividing Smn Dψ
+
+> den ,r
+
+on the right by B and multiplying by a polynomial so that the coefficients belong to K[n]ZN . This allows us to compute U, V, c (n) and return c(n)( A, B ). This is done in the last lines of Algorithm 1 and completes the proof of correctness of the algorithm. □
+
+Remark 6.19 . In all our examples, the end result is c(n) = 1 although we have not been able to find a proof of this observation in general. 7. Algorithms for singular cases 
+
+It may happen that Hyp. (H) from Thm. 6.3 does not hold: the required se-quences of generalized Fourier coefficients do not exist. Then the fraction returned by Algorithm 1 may still have a numerator that cancels the generalized Fourier coefficients, in which case another proof is needed, or this recurrence can simply fail to hold and another way of computing a recurrence is needed. This section is devoted to two extensions of Thm. 6.3 to those cases whose prob-lems originate in the behaviour of the function f at the endpoints of the support of the measure used to define the family of orthogonal polynomials. The solution consists in using a different derivation than d/dx , that incorporates some of the be-havior at the singularities. In this section, we do not consider Hermite polynomials since their σ function is 1.
+
+Example 7.1. The function (1 −x2)−1/4 is annihilated by 2(1 −x2)∂ −x ∈ K[x]⟨∂⟩.Direct application of the algorithm gives 
+
+> FunctiontoRec((1-x^2)^(-1/4),ChebyshevT(n,x),c); 
+
+(7.1) (2 n + 3) cn+2 − (2 n + 1) cn = 0 .
+
+The actual values of the Chebyshev coefficients (cn) can be computed by standard properties of the Beta integrals and turn out to be 
+
+cn =
+
+
+
+0 if n is odd,  
+
+> √2π
+> Γ(3 /4) 2
+
+if n = 0 ,
+
+> 2Γ
+
+( n   
+
+> 2+14
+
+)
+
+> √πΓ
+
+( n   
+
+> 2+34
+
+) otherwise. Thus, with the convention of Section 2.4, the recurrence is seen to be satisfied by the coefficients. However, the first derivative of this function does not have a Chebyshev expansion, so that Hyp. (H) does not hold. A proved derivation of this recurrence is given in Example 7.6 below. 
+
+Example 7.2. The function arccos x shows that convergence hypotheses are nec-essary. This function is annihilated by L = (1 − x2)∂2 − x∂ ∈ K[x]⟨∂⟩. In the basis of Chebyshev polynomials Tn(x), Hyp. (H) does not hold, since the derivative of RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 33 
+
+Name ψn Θnum 
+
+Chebyshev Tn ( n
+
+> 2 +1
+
+)S2 
+
+> n−n
+> 2
+
+Gegenbauer C(λ)   
+
+> n(n+1+2 λ)( n+2+2 λ)2( n+2+ λ)S2
+> n−n(n+1) 2( n+λ)
+
+Jacobi P (α,β )   
+
+> n
+> 2( n+2+ α)( n+2+ β)( n+3+ α+β)(2 n+4+ α+β)2S2
+> n
+> + 2( α−β)( n+1)( n+2+ α+β)(2 n+2+ α+β)(2 n+4+ α+β)Sn−2n(n+1)( n+1+ α+β)(2 n+1+ α+β)2
+
+Laguerre L(α) 
+
+> n−(n+1+ α)Sn+n
+
+Table 4. Recurrence operators Θnum associated to classical or-thogonal polynomials with non-constant σ (Θden = 1 for Laguerre, 
+
+Θden = Sn otherwise). 
+
+arccos does not have Chebyshev coefficients. Direct application of the algorithm gives the fraction (−n2, 1) . This would suggest that the generalized Fourier coeffi-cients satisfy n2cn = 0 , i.e, cn = 0 for all n > 0, but it is not the case. A correct recurrence is given in Example 7.7 below. 7.1. Combining leading coefficient and derivative. The following is an ana-logue of Lemma 5.6; it uses the polynomial σ from Table 2. 
+
+Lemma 7.3. Let f be such that both sequences ([ ψn]( f )) n∈N and ([ ψn]( σf ′)) n∈N
+
+exist. Then, their Fourier coefficients are related by 
+
+(7.2) (Θ num , Θden ) ∈ Ann Prec ([ ψn]( f ), −[ψn]( σf ′)) ,
+
+where 
+
+(Θ num , Θden ) = ( −λn+1 Dψ 
+
+> den
+
+− a1Xψ 
+
+> num
+
+− a0Sn, S n),
+
+with λn, τ (x) = a1x + a0 from Table 2. 
+
+The values of (Θ num , Θden ) for the classical orthogonal polynomials are given in Table 4. They follow from Lemma 7.3, except in the case of Laguerre polynomials, where the value is given by Lemma 7.4 below. In all cases, it can be seen that Θnum 
+
+belongs to Rec: in the case of Jacobi polynomials when α + β + 1 = 0 , the constant coefficient wrt Sn simplifies to −n(n + 1) /(2 n + 1) .
+
+Proof. Here again, part of the proof was given by Lewanowicz [43] and we write it for the sake of readability and, again, to make the required convergence assumptions explicit. A direct computation shows that 
+
+Rψδ (( a1 × x) + a0) = ( a1Xψ 
+
+> num
+
++ a0Sn, S n),
+
+independently of the derivation δ. This implies that 
+
+(a1Xψ 
+
+> num
+
++ a0Sn) · [ψn]( f ) = [ ψn+1 ]( τ f ).34 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+The proof then follows from the sequence of equalities 
+
+λn+1 Dψ 
+
+> den
+
+· [ψn]( f ) + [ ψn+1 ]( σf ′) + [ ψn+1 ]( τ f )= 1
+
+hn+1 
+
+⟨σψ ′
+
+> n+1
+
+|f ⟩ + 1
+
+hn+1 
+
+⟨σf ′|ψn+1 ⟩ + 1
+
+hn+1 
+
+⟨τ f |ψn+1 ⟩
+
+= 1
+
+hn+1 
+
+Z ba
+
+(σw )( ψn+1 f )′ + ( τ w )ψn+1 f dx 
+
+= 1
+
+hn+1 
+
+Z ba
+
+(σw )( ψn+1 f )′ + ( σw )′(ψn+1 f ) dx 
+
+= 1
+
+hn+1 
+
+[σwψ n+1 f ]ba = 0 ,
+
+which use, in this order, the definition of Dψ 
+
+> den
+
+and the structure relation (2.5), the integral definition of Fourier coefficients, Pearson’s equation (2.4), and the zero limit from the proof of Lemma 5.7. □
+
+A direct application of Lemma 7.3 to the Laguerre polynomials gives the fraction (7.3) (( −(n + 2 + α)S2 
+
+> n
+
++ ( n + 1) Sn, S n) ∈ Ann Prec ([ L(α) 
+
+> n
+
+]( f ), −[L(α) 
+
+> n
+
+]( xf ′)) ,
+
+which is not irreducible. A simpler form is given by the following. 
+
+Lemma 7.4. Let f be such that both sequences ([ L(α) 
+
+> n
+
+]( f )) n∈N and ([ L(α) 
+
+> n
+
+]( xf ′)) n∈N
+
+exist. Then, Eq. (7.2) also holds with 
+
+(Θ num , Θden ) = ( −(n + 1 + α)Sn + n, 1) .
+
+Proof. From xf ′ = ( xf )′ − f , it follows that ([ ψn](( xf )′)) n∈N exists. Prop. 5.10 then applies to give 
+
+Rψd/dx (( ∂ × x) − 1) ∈ Ann Rec ([ L(α) 
+
+> n
+
+]( f ), −[L(α) 
+
+> n
+
+]( xf ′)) .
+
+A direct computation shows that this pair is 
+
+(−(n + 2 + α)S2 
+
+> n
+
++ (2 n + 2 + α)Sn − n, S n − 1) .
+
+Subtracting this pair from that of (7.3) gives that their difference, which is the pair in the statement, belongs to the module Ann Rec ([ L(α) 
+
+> n
+
+]( f ), −[L(α) 
+
+> n
+
+]( xf ′)) . □
+
+7.2. Singularities at endpoints. Lemma 7.3 is a direct analogue of Lemma 5.6 for the derivation σd/dx . This allows us to obtain an analogue of Prop. 5.10 for linear differential operators using this derivation. For clarity, we use differential terms in a new variable θ instead of ∂ and the map Dσd/dx maps θ to σ∂ .Next, the morphism Rψσd/dx mapping D to Prec is defined like Rψd/dx in Def. 5.9, except that the image of θ is (Θ num , Θden ) from Table 4. This leads to an extension of Thm. 6.3. 
+
+Theorem 7.5 (Recurrences in singular cases) . Let (ψn) be a family of classical orthogonal polynomials with σ̸ = 1 from Table 2. Let L = pr (x)∂r + · · · + p0(x) ∈
+
+K[x]⟨∂⟩ be a linear differential operator with polynomial coefficients such that 
+
+(H ′
+
+> 1
+
+) σk | pk for k = 0 , . . . , r. 
+
+Then L can be written qr (x)( σ∂ )r +· · · +q0(x) and qr , . . . , q 0 ∈ K[x]. Let (Pnum , P den ) ∈
+
+Prec be the fraction 
+
+Hor θ, right (L) := Rψσd/dx (( · · · (qr (x)θ + qr−1(x)) θ + · · · + q1(x)) θ + q0(x)) .RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 35 
+
+Then (Pnum , P den ) is a quasi-generating fraction of ⟨Aal (L)⟩ and ⟨Aan (L)⟩.If f is a function such that 
+
+(H ′
+
+> 2
+
+) the sequence ([ ψn]( σkf (k))) n∈N exists for k = 0 , . . . , r, 
+
+then the sequence ([ ψn]( L · f )) n∈N exists and satisfies 
+
+Pnum · [ψn]( f ) = Pden · [ψn]( L · f ).
+
+In particular, if f satisfies Hyp. (H ′
+
+> 1
+
+) and (H ′
+
+> 2
+
+) and L · f = 0 , then its sequence of Fourier coefficients satisfies Pnum · [ψn]( f ) = 0 .Proof. The rewriting of L under Hyp. (H ′
+
+> 1
+
+) is by induction as in Lemma 6.7. That the pair (Pnum , P den ) belongs to ⟨Aal (L)⟩ and ⟨Aan (L)⟩ is a direct consequence of Prop. 5.10, as is the conclusion of the theorem. The only remaining statement to be proved is that (Pnum , P den ) is a quasi-generating fraction of these modules. By Prop. 5.15, it is sufficient to prove that this fraction is irreducible. The proof distinguishes two cases depending on whether Θden = 1 or Sn (La-guerre polynomials, or the other classical ones). In the first case, a simple recurrence shows that Hor θ, right (L) is ZN-equivalent to 
+
+> r
+
+X
+
+> k=0
+
+Sm−deg qk 
+
+> n
+
+QkΘk
+
+> num
+
+, S mn
+
+!
+
+with m = max k=0 ,...,r deg qk. In the second one, a similar computation shows that 
+
+Hor θ, right (L) is ZN-equivalent to 
+
+
+
+> r
+
+X
+
+> k=0
+
+Sm−deg qk −kn Qk(n + k, S n)
+
+> k−1
+
+Y
+
+> j=0
+
+Θnum (n + k − 1 − j, S n), S mn
+
+
+
+with m = max k=0 ,...,r deg qk + k.In both cases, in order to show irreducibility, it is sufficient to show that the constant coefficient of the numerator wrt Sn is nonzero. Let k be such that the exponent of Sn in the sum is 0 (the other summands do not contribute to the constant term). In view of Table 4, a direct computation shows that the degree of that summand with respect to n is exactly k + m for the Laguerre case and k in the other ones. This implies that the degree of the sum is that of the term with largest value of k and therefore is not 0. Hence, the constant term of the numerator wrt Sn is nonzero and Hor θ, right (L) is irreducible. □
+
+Note that Hyp. (H ′
+
+> 1
+
+) and (H ′
+
+> 2
+
+) make it possible to deal with some functions that are singular at ±1 for Jacobi polynomials or at 0 for Laguerre polynomials, but whose singularity is not “too bad”: it is a regular singular point [32]. 
+
+Example 7.6. The function (1 −x2)−1/4 is annihilated by 2(1 −x2)∂ −x ∈ K[x]⟨∂⟩.Recall from Example 7.1 that in the Chebyshev basis Tn(x), Hyp. (H) does not hold. However it is easy to see that Hyp. (H ′
+
+> 1
+
+) and (H ′
+
+> 2
+
+) do. Since RTn
+
+> (1 −x2)d/dx
+
+(θ) and 
+
+RTn
+
+> (1 −x2)d/d
+
+(x) have the same denominator Sn, application of the morphism reduces to adding the numerators, giving 
+
+Pnum =
+
+
+
+n + 32
+
+
+
+S2 
+
+> n
+
+− 2n + 1 2 , Pden = Sn.
+
+The theorem then proves that the numerator provides the desired recurrence for the Chebyshev coefficients. 36 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Example 7.7. In the case of the function arccos x, Hyp. (H ′
+
+> 2
+
+) holds, but none of Hyp. (H) and (H ′
+
+> 1
+
+) do. However, left multiplying L by (1 − x2) gives the operator 
+
+θ2 +xθ , which is such that Hyp. (H ′
+
+> 1
+
+) and (H ′
+
+> 2
+
+) both hold. Then the theorem proves that the coefficients satisfy 
+
+> DiffeqtoRec((1-x^2)*((1-x^2)*diff(y(x),x,x)-x*diff(y(x),x)), y(x),c(n),ChebyshevT(n,x)); 
+
+(7.4) (n + 4) 2cn+4 − 2( n + 2) 2cn+2 + n2cn = 0 .
+
+This can again be checked against the known coefficients (modulo Section 2.4 again): 
+
+cn =
+
+
+
+π/ 2 if n = 0 ,
+
+0 if n > 0 is even, 
+
+− 4 
+
+> n2π
+
+otherwise. 7.3. Singularity at one endpoint in Jacobi and special cases. The reason-ing above extends to the case of solutions of linear differential equations that are singular at only one of the endpoints of the support (a, b ) of the measure. The following is inspired by a result of Lewanowicz [40]. Exactly as before, we set τε = 1 + εx with ε = ±1, we consider the term algebra with symbols x, θ ε. The morphism Dτεd/dx maps θε to τε∂, while Rψτεd/dx maps 
+
+θε to (Θ ψn,ϵ  
+
+> num
+
+, Θψn,ϵ  
+
+> den
+
+) from Lemma 7.9 below. This leads to a right Horner scheme and the following analogue of Thm. 6.3 and 7.5, without the irreducibility of the fraction. 
+
+Proposition 7.8. Let (ψn) be the family of Jacobi, Gegenbauer or Chebyshev poly-nomials and let ε ∈ {− 1, 1} and τε = 1+ εx . Let L = p0(x)+ · · · +pr (x)∂r ∈ K[x]⟨∂⟩
+
+be a linear differential operator with polynomial coefficients such that 
+
+(H ′′  
+
+> 1
+
+) τ kε | pk for k = 0 , . . . , r. 
+
+Then L can be written qr (x)( τϵ∂)r + · · · + q0(x) with qi ∈ K[x]. Let (Pnum , P den ) ∈
+
+Prec be the fraction 
+
+(Pnum , P den ) := Rψτεd/dx (( · · · (qr (x)θε + qr−1(x)) θε + · · · + q1(x)) θε + q0(x)) .
+
+If f is a function such that 
+
+(H ′′  
+
+> 2
+
+) the sequence ([ ψn]( τ kε f (k))) n∈N exists for k = 0 , . . . , r, 
+
+then the sequence ([ ψn]( L · f )) n∈N exists and satisfies 
+
+Pnum · [ψn]( f ) = Pden · [ψn]( L · f ).
+
+In particular, if f satisfies Hyp. (H ′′  
+
+> 1
+
+) and (H ′′  
+
+> 2
+
+) and L · f = 0 , then its sequence of Fourier coefficients satisfies Pnum · [ψn]( f ) = 0 .
+
+At this stage, the only part of this result that is still unproved is the following. 
+
+Lemma 7.9. With the same notation, if f is such that both sequences ([ ψn]( f )) n∈N
+
+and ([ ψn]((1 + εx )f ′)) n∈N exist, then 
+
+(7.5) (Pnum ,ε , P den ,ε ) ∈ Ann Prec ([ ψn(f )] , −[ψn]((1 + εx )f ′)) ,RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 37 
+
+where this fraction is: (Jnum ,ε , J den ,ε ) in the Jacobi case, (Gnum ,ε , G den ,ε ) in the Gegenbauer case and (Tnum ,ε , T den ,ε ) in the Chebyshev case, with 
+
+Jnum ,ε =
+
+
+
+(α + β + n + 1) Sn +
+
+ 1 + ε
+
+2 α − 1 − ε
+
+2 β + ε(n + 1) 
+
+ 
+
+λnhn,Jden ,ε = ( α + β + n + 1) 
+
+
+
+ε(n + 1) Sn −
+
+ 1 + ε
+
+2 α + 1 − ε
+
+2 β + n + 1 
+
+ 
+
+hn,Gnum ,ε = (2 λ + n + 1)( λ + n)Sn + εn (λ + n + 1) ,Gden ,ε = ε(λ + n)Sn + ( λ + n + 2)( λ + n + 1) ,Tnum ,ε = ε(n + 1) Sn + n, Tden ,ε = −εS n + 1 
+
+and λn, h n from Tables 1 and 2. Proof. We detail the Jacobi case; the other ones are similar. With the notation of the lemma, the following identity [65, p. 262, Eqs. (3),(6)] is easily verified: (7.6) Jnum ,ε · 1 − εx λn
+
+P (α,β ) 
+
+> n
+> ′
+
+= −Jden ,ε · P (α,β ) 
+
+> n
+
+.
+
+It implies 
+
+Jden ,ε · [P (α,β ) 
+
+> n
+
+]((1 + εx )f ′) = Jden ,ε ·
+
+D
+
+(1 + εx )f ′ P (α,β )
+
+> n
+
+E
+
+> w
+
+=
+
+D
+
+(1 + εx )f ′ Jden ,ε · P (α,β )
+
+> n
+
+E
+
+> w
+
+= −
+
+
+
+(1 + εx )f ′ Jnum ,ε · 1 − εx λn
+
+P (α,β )
+
+> n
+> ′
+
+
+
+> w
+
+= −Jnum ,ε · 1
+
+λn
+
+D
+
+σf ′ P (α,β )
+
+> n
+> ′
+
+E
+
+> w
+
+= Jnum ,ε ·
+
+D
+
+P (α,β ) 
+
+> n
+
+f
+
+E
+
+> w
+
+= Jnum ,ε · [P (α,β ) 
+
+> n
+
+]f, 
+
+where the last step follows from Lemma 5.7. □
+
+8. Previous algorithms 
+
+We now discuss relations between this work and alternative algorithms by Area, Godoy, Ronveaux and Zarzo [72, 22, 83, 3, 23], Rebillard and Zakrajšek [66, 67, 68] and Lewanowicz [45]. 8.1. Navima algorithm. The Navima approach was used in the context of con-nection problems, linearization problems for various types of orthogonal polynomial families [72, 23, 22, 83, 3, 70, 30]. The relevant situation in our context is the case of expansions in a family of classical orthogonal polynomials (ψn)n∈N. These works target coefficients of polynomials Pk, so that the existence of coefficients required by our Hyp. (H), (H ′
+
+> 2
+
+) and (H ′′  
+
+> 2
+
+) automatically hold. The first step of the method is to construct a linear differential operator Lk that cancels Pk (this can be obtained using the classical closure properties of linear differential operators, starting from a small database for the classical families [75, 73]). Next, the algorithm uses the structure relation Eq. (2.5) and the three-term recurrence Eq. (2.2) repeatedly until a recurrence is found for the coefficients. 38 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+In the setting presented here, the algorithm [72] is very closely related to the discussion of Section 7.2: it rewrites the differential operator Lk, after multiplying it by a power of σ if necessary, as a polynomial in (x, σ∂ ). Next, one can apply Thm. 7.5, or directly the explicit formulas in its proof. In practice, the powers of σ that are needed in this method often lead to recurrences of order larger than necessary [22]. 8.2. Rebillard’s algorithms. If L is a linear differential operator and f, g are functions related by L · f = g, Rebillard’s method uses this relation to deduce one of the form 
+
+Pnum · [ψn]( f ) = Pden · [χn]( g),
+
+for a well-chosen family (χn) [66, 67, 68]. In its simplest variant [66, 67], the family (χn) is formed with the rth deriva-tives (ψ(r) 
+
+> n
+
+) where r is the order of L. For a classical orthogonal family (ψn), the family (ψ(r) 
+
+> n+r
+
+) is again an orthogonal family [10, p. 150], which is used to justify the method under conditions dictated by analysis [66, Prop. 10]. Algebraically, let ∫ denote the anti-differentiation operator, with commutation 
+
+∂ R = Id (but R ∂̸ = Id as can be seen by application to constants). As starting points, the same fractions D = ( Sn, D ψ
+
+> den
+
+) for differentiation and Xψ = ( Xψ
+
+> num
+
+, S n)
+
+for multiplication as in Lemmas 5.5 and 5.6 are used. Integration by parts and induction give 
+
+∫ kx∂ k = x − k ∫ , k ∈ N.
+
+Writing Iψ for the fraction (Dψ )−1 = ( Dψ
+
+> den
+
+, S n) that corresponds to integration and Xr = X ⊕ (−rI ψ ), the operator ∫ r L is then mapped to a fraction for the coefficients as follows: rX
+
+> i=0
+
+∫ r pi(x)∂r ∫ r−i 7 →
+
+> r
+
+X
+
+> i=0
+
+pi(Xr )Ir−iψ .
+
+An algorithm then follows by Horner evaluation. It is analogous to the process described by Olver and Townsend [58]. Another way of obtaining this fraction is to multiply the result of the left Horner evaluation of L from Eq. (6.6) by D−r on the left. Since Dr = ( Srn, D ψ 
+
+> den ,r
+
+), we have (Dψ )−r = ( Dψ 
+
+> den ,r
+
+, S rn) and the denominator in Eq. (6.6) simplifies in the product. It follows that when gcd( pr , σ ) = 1 , Rebillard’s method produces the same irreducible fraction as ours. Otherwise, the result of these algorithms may have different orders 
+
+Example 8.1. The Chebyshev expansion of the function (1 − x2)−1/4 has been dealt with in Examples 7.1 and 7.6, where the second order recurrence (7.1) was computed. The numerator returned by the other algorithms has order 4: 
+
+(2 n + 1) cn − 4( n + 2) cn+2 + (2 n + 7) cn+4 = 0 .
+
+This operator A = (2 n + 7) S4 
+
+> n
+
+− 4( n + 2) S2 
+
+> n
+
++ (2 n + 1) factors as (S2 
+
+> n
+
+− 1) Pnum 
+
+with Pnum as in Example 7.6. In his work with Zakrajšek, other bases of expansions are explored and a method to find a “minimal expansion basis” is given. In some cases, it returns recurrences of smaller order [68, Example 5.1]. This method is purely formal and therefore applicable without care only for the expansions of polynomials. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 39 
+
+Example 8.2. [68, Ex. 5.1] For the linear differential equation 
+
+(x + 1) 2y′′ (x) − (x + 1) y′(x) + ( x + 7 /4) y(x) = 0 ,
+
+the recurrence for the Chebyshev coefficients returned by our method and others before has order 4. With their method, Rebillard and Zakrajšek find a right divisor of it of order only 3: (8.1) 2(2 n + 1) cn+3 + (2 n + 1)(4 n2 + 24 n + 33) cn+2 
+
++ (2 n + 5)(4 n2 − 3) cn+1 + 2(2 n + 5) cn = 0 .
+
+However, the general solution of the differential equation is 
+
+c1(x + 1) J1(2 √x + 1) + c2(x + 1) Y1(2 √x + 1) ,
+
+where J1 and Y1 are Bessel functions of the first and second kinds. If c1 = 0 ,this function behaves like c(x + 1) 1/2 at x = −1 for a constant c, while it is an-alytic at x = 1 . This implies that its Chebyshev coefficients behave asymptot-ically like C(−1) n/n 2 for some constant C [15], but this is not compatible with Eq. (8.1): when cn = ( −1) nnα with α̸ = −4, the left-hand side of (8.1) is asymp-totic to 8(4 + α)( −1) nn−α−2 and thus only α = −4 can correspond to a solution. Thus, the recurrence (8.1) only holds for the Chebyshev coefficients of some of the solutions of the differential equation. 8.3. Another algorithm by Lewanowicz. Generalizing some of his previous works [41, 43, 44], Lewanowicz [45] gave an algorithm that takes advantage of factors of σ occurring in the leading coefficient of a differential equation. For instance, if a linear differential operator is of the form L = σ(x)v(x)∂n + Q with Q of order less than n, then it can be rewritten L = ∂n−2(σ(x)∂2 + τ (x)∂)v(x) + ˜Q with ˜Q of order less than n. The motivation is that the fraction associated to M := ( σ∂ 2 + τ ∂ ) is simply (−λn, 1) . Higher powers of σ can be accommodated by using higher powers of M , up to ⌊n/ 2⌋. If n = 1 , one can still use U = σ∂ + τ , whose associated pair is (λkDψ
+
+> num
+
+, D ψ
+
+> den
+
+).In the case of Jacobi polynomials P (α,β ) 
+
+> n
+
+, it is also possible to exploit leading coefficients of the form σ(x)r (x − ϵ)sw(x) with ϵ ∈ {− 1, 1}, w(−1) w(1) ̸ = 0 and 
+
+s > 0. For this, one makes use of the operators Zϵ = ( x − ϵ)∂ and Kϵ = ( Zϵ + νϵ)∂,with νϵ related to α, β and whose pair has numerator Sn and a denominator of order 2 with a right factor of order 1 that is a right divisor of Dψ
+
+> den
+
+.These considerations lead to completely explicit formulas for the pairs associated to the product ∂aKbϵ Zcϵ M dU e and an algorithm that finds which of these monomials to use as a function of the leading coefficient and order and proceeds inductively by reduction of orders. The whole method is Euclid-free, but there is no proof that the resulting fraction is irreducible. 8.4. Creative telescoping. The method of creative telescoping is a family of al-gorithms that compute linear recurrences or differential equations satisfied by def-inite sums or integrals. Initiated by Zeilberger [84], this method was improved and extended in several directions. A general purpose implementation based on 40 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+Koutschan’s algorithm [36] is available in Mathematica in his package Holonomic-Functions 3 and another one based on a recent reduction-based algorithm [7], called 
+
+CreativeTelescoping 4, can be used in Maple. In order to deal with a definite integral like the one defining the generalized Fourier coefficients an in Eq. (1.2), this methods starts from linear differential and recurrence operators annihilating the integrand f ψ nw/h n. These operators generate a left ideal I in a suitable ring of operators. Next, for increasing order p,the method looks for a shift operator T (n, S n) of order p (T is known as a telescoper )such that there exists another operator C in all relevant variables ( C is called the 
+
+certificate ) and T −∂C belongs to the ideal I. This implies that T ·f is a derivative. Under favorable conditions, the integral of T · f equals T · R ba f and the integral of the derivative ∂C · f is 0. Then, the shift operator T cancels the sequence an, i.e., it is a recurrence operator for the generalized Fourier coefficients. In many of the examples presented in this article, this general-purpose method returns the same recurrence as the one our method produces. However, the com-putation is often very much faster with Algo. 1 that takes advantage of the specific structure of the integrand. For instance, for the connection coefficients of the Jacobi polynomials P (a,b ) 
+
+> n
+
+(x) in the basis (P (c,d ) 
+
+> m
+
+(x)) , a recurrence of order 2 is obtained in less than 1 sec. by our implementation of Algo. 1. It is found in 33 sec. by Koutschan’s heuristic (using the function FindCreativeTelescoping of his package 
+
+HolonomicFunctions ), in 6 min. by reduction-based creative telescoping in Cre-ativeTelescoping and in more than 2 hours using the non-heuristic implementation of creative telescoping in HolonomicFunctions .Another issue is that a direct use of the method of creative telescoping without checking that the integral of the certificate vanishes is bound to produce wrong results. For instance, for the expansion of the product C(1)  
+
+> i
+
+(x)C(1)  
+
+> j
+
+(x) of Gegenbauer polynomials in the basis (C(1)  
+
+> n
+
+(x)) , our method produces a linear recurrence of order 4, while creative telescoping produces un+2 − un = 0 , which does not hold at n = i + j and n = |i − j| − 2. On another connection problem, from the Laguerre polynomial xL −1/2 
+
+> k
+
+(x2) to the Hermite polynomials (Hn(x)) , creative telescoping returns un = 0 , which is only correct for n > 2k + 1 , while our method produces a linear recurrence of order 4 that is valid for all n ⩾ 0.Still, there are also a few examples where creative telescoping produces a re-currence that is valid for all n ⩾ 0 and of order smaller than the one produced by Algo. 1. This happens for instance for the expansion of x exp( x) in the basis of Chebyshev polynomials (Tn(x)) , where the method presented here produces the recurrence 
+
+un+4 + 2( n + 4) un+3 + 2 nu n+1 − un = 0 ,
+
+while creative telescoping finds a recurrence of order only 2 in that case: 
+
+(n2 + n + 1) un+2 + 2( n + 1) 3un+1 − (n2 + 3 n + 3) un = 0 .
+
+For a discussion of why finding a minimal fraction does not necessarily produces a minimal recurrence, see Section 10.  
+
+> 3https://risc.jku.at/sw/holonomicfunctions/
+> 4https://github.com/HBrochet/CreativeTelescoping RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 41
+
+9. Examples 
+
+We report on the results of a Maple implementation of our algorithm on a se-lection of examples 5. Given a function as input, that package first computes a differential equation it satisfies using the package gfun [73] that constructs the equation from a database using closure properties. From there, the algorithm pre-sented here deduces a recurrence. In some cases, it is more convenient to enter a differential equation as input directly and this is also possible. The functions of the package take as input a name u for the sequence of coefficients un = [ ψn]f .
+
+Except when stated explicitly, all the examples presented in this section take less than 1 sec. with our implementation. 6
+
+9.1. Relations between polynomials. This is the situation that has been con-sidered most frequently by existing software. When expanding polynomials in a basis of classical orthogonal polynomials, the convergence conditions of Thm. 7.5 are trivially satisfied so that the output of our program is satisfied by the coefficients. 9.1.1. Connection coefficients. For a summary of previous approaches to recurrence relations for the coefficients of expansions of a family of polynomials in another one, we refer to [71] where the authors also summarize their Navima algorithm. We list here a few representative examples obtained by our algorithm. 
+
+A trivial recurrence. Expanding the kth Hermite polynomial Hk(x) in the basis 
+
+(Hn(x)) results in a recurrence of order 0: 
+
+> FunctiontoRec(HermiteH(k,x),HermiteH(n,x),u)=0; 
+
+(n − k)un = 0 
+
+The meaning of such a recurrence is that for all n̸ = k, un = 0 , as expected, while the coefficient uk is not constrained by the recurrence (it would be an initial condition of it). The same recurrence is obtained for the decomposition of the Hermite polyno-mial H2n(√x) in the Laguerre basis (L(−1/2)  
+
+> k
+
+(x)) , recovering the known relation [13, 18.7.E17] between these polynomials (in that case the initial condition is recovered from their leading coefficients). The relation between Bessel and Laguerre polyno-mials [1, Eq. (2.5)] can also be found that way. 
+
+Laguerre to Laguerre. The expansion of the Laguerre polynomial L(α) 
+
+> m
+
+(x) in the basis L(β) 
+
+> ν
+
+(x) has been given by Howell [31]. It is easily recovered automatically: 
+
+> FunctiontoRec(LaguerreL(m,alpha,x),LaguerreL(nu,beta,x),u)=0; 
+
+(−m + ν)uν + ( α − β + m − 1 − ν)uν+1 = 0 
+
+The initial condition at m = ν can be deduced from the leading coefficients of 
+
+L(α) 
+
+> ν
+
+(x) and L(β) 
+
+> ν
+
+(x).It is interesting to note that the method of Godoy et al. [22] yields a recurrence of order 2 rather than 1 for these coefficients.  
+
+> 5A session with more examples from which those presented here are extracted can be found together with the software at
+> https://perso.ens-lyon.fr/bruno.salvy/software/the-GeneralizedFourierSeries-package/
+> 6The timings were obtained with Maple2025.2 on a 2018 Mac mini. 42 A. BENOIT, N. BRISEBARRE, AND B. SALVY
+
+Jacobi to Jacobi. The most general situation is the expansion of P (a,b ) 
+
+> n
+
+(x) in the basis (P (c,d ) 
+
+> m
+
+(x)) , which leads to a recurrence of order 2 for the coefficients that we do not reproduce here due to its length (see [33, Thm. 9.1.1]). An interesting special case is the expansion in the basis (P (a,c ) 
+
+> n
+
+(x)) where the recurrence has order only 1: 
+
+> FunctiontoRec(JacobiP(n,a,b,x),JacobiP(k,a,c,x),u)=0; 
+
+(a + c + 2 k + 3)( k + a + c + 1)( k − n)( a + b + k + n + 1) uk
+
+− (a + k + 1)( a + c + 2 k + 1)( a + c + k + n + 2)( b − c − k + n − 1) uk+1 = 0 
+
+Again, the initial condition at n = k is deduced from the leading coefficients and results in the known formula for these coefficients [33, Cor. 1.2]. 
+
+Associated Laguerre to Laguerre. The associated Laguerre polynomials satisfy a lin-ear differential equation of order 4 [69] which can be given as input to our program: 
+
+> deq:=n*(n+2)*y(x)+(3*n+3*alpha+6*c-3*x)*diff(y(x),x)+ (-alpha^2+2*alpha*x+4*c*x+2*n*x-x^2+4)*diff(y(x),x$2) +5*x*diff(y(x),x$3)+x^2*diff(y(x),x$4); 
+
+n (n + 2) y(x) + (3 n + 3 α + 6 c − 3x)
+
+ ddx y(x)
+
+
+
++  −α2 + 2 xα + 4 cx + 2 nx − x2 + 4   d2
+
+dx 2 y(x)
+
+
+
++ 5 x
+
+ d3
+
+dx 3 y(x)
+
+
+
++ x2
+
+ d4
+
+dx 4 y(x)
+
+
+
+> DiffeqtoRec(deq,y(x),u(m),LaguerreL(m,alpha,x))=0; 
+
+(m + n + 2) ( m − n) um +  4cm − 3m2 + 2 nm + n2 + 6 c − 9m + 5 n − 6 um+1 
+
+− 2 (2 c − m + n − 2) ( α + 2 + m) um+2 = 0 
+
+This is a case where our algorithm returns a recurrence of smaller order than the one produced by the Navima method [72]. 9.1.2. Linearization coefficients. For a given family of orthogonal polynomials ( Pn(x; a))with parameters a, the linearization coefficients are the coefficients cm,n,k (a) in the decomposition 
+
+Pm(x; a)Pn(x; a) = 
+
+> m+n
+
+X
+
+> k=0
+
+cm,n,k (a)Pk(x; a),
+
+see for instance [33, Ch. 9]. 
+
+Hermite Polynomials . For these polynomials, the coefficients have been given by Feldheim [17]. They can be computed easily from the recurrence: 
+
+> FunctiontoRec(HermiteH(m,x)*HermiteH(n,x),HermiteH(nu,x),u)=0; 
+
+(m + n − ν) uν − (ν − n + 2 + m) ( n + 2 − m + ν) uν+2 = 0 
+
+This is a 2-term recurrence, due to the fact that the Hermite polynomials have the parity of their index. Thus only one initial condition is needed; it can be obtained from the leading coefficients of the polynomials. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 43 
+
+Laguerre Polynomials. A direct use of our program gives a 3rd order recurrence. However, there is a technique introduced by Lewanowicz [Thm. 2.6, Rem. 2.7][44] that can be applied to reduce it to order 2: start from a linear differential operator 
+
+L(x, ∂ ) that annihilates L(α) 
+
+> i
+
+(x)L(α) 
+
+> j
+
+(x) and instead of applying Thm. 7.5 to L(x, ∂ ),apply it to its derivative ∂L (x, ∂ ), provoking a simplification in the pair. 
+
+> deq:=gfun:-holexprtodiffeq( LaguerreL(i,alpha,x)*LaguerreL(j,alpha,x),y(x),false): > DiffeqtoRec(diff(deq,x),y(x),u(k),LaguerreL(k,alpha,x))=0; 
+
+− 2 (2 + k) ( k + 1) ( i + j − k) uk
+
++ (2 + k)  i2 − 2ij + 2 ik + j2 + 2 jk − 3k2 + 3 i + 3 j − 7k − 4 uk+1 
+
+− (k + 2 − j + i) ( −k − 2 − j + i) ( α + 2 + k) uk+2 = 0 
+
+The same method applies to Gegenbauer and Jacobi polynomials, where the order is decreased from 4 to 2 (the Jacobi case takes 11 sec.). 
+
+Generalized linearization problems. Ronveaux et al. [70] have proved the existence of recurrences satisfied by the coefficients of the decomposition of a product of two orthogonal polynomials not necessarily of the same family in the basis given by a 3rd family. These can be produced by our method, but the orders tend to become large. For instance: – order 9 for L(α) 
+
+> i
+
+(x)L(α) 
+
+> j
+
+(x) in the basis (Hk(x)) and Hi(x)Hj (x) in the basis 
+
+(L(α) 
+
+> k
+
+(x)) ;– order 12 for Hi(x)Hj (x) and for L(α) 
+
+> i
+
+(x)L(α) 
+
+> j
+
+(x) in the basis (P (a,b ) 
+
+> k
+
+(x)) (in 1.6 and 2.8 sec.), for P (a,b ) 
+
+> i
+
+(x)P (a,b ) 
+
+> j
+
+(x) in the bases (Hk(x)) and (L(α) 
+
+> k
+
+(x)) ;– order 20 for Hi(x)P (a,b ) 
+
+> j
+
+(x) in the basis (Hk(x)) and for L(α) 
+
+> i
+
+(x)P (a,b ) 
+
+> j
+
+(x) in the basis (L(α) 
+
+> k
+
+(x)) (the latter one in 5 sec.). 9.1.3. Other relations between polynomials. Many relations between Hermite and Laguerre polynomials, changing the argument x into x + y or cx , have been given by Feldheim [17, 18] and rederived automatically by Godoy et al. [22]; they are also found by our program, with recurrences of the same orders. Luke [50, Ch. 8] gives the coefficients of (1 − x)m in the basis of Jacobi poly-nomials. The function (1 − x)m for m ∈ N satisfies the first order equation 
+
+(1 − x)y′ + my = 0 . Our program returns the following recurrence for the Ja-cobi coefficients: 
+
+> FunctiontoRec((1-x)^m,JacobiP(n,alpha,beta,x),u)=0; 
+
+(α + β + 2 n + 3) ( α + β + n + 1) ( m − n) un
+
++ ( α + n + 1) ( α + β + 2 n + 1) ( α + β + m + n + 2) un+1 = 0 .
+
+By reduction to the Beta integral, one obtains the initial condition 
+
+u0 = 2mΓ( α + β + 2)Γ( α + m + 1) Γ( α + β + m + 2)Γ( α + 1) ,
+
+so that we recover the known formula for the coefficients [50, (30) p. 277], 
+
+(1 −x)m =
+
+> m
+
+X
+
+> n=0
+
+2mm! ( −1) n (α + β + 2 n + 1) Γ( n + α + β + 1) Γ( m + α + 1) (m − n)! Γ( m + n + β + α + 2) Γ( α + n + 1) P (α,β ) 
+
+> n
+
+(x).44 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+A similar result is obtained for xm. This time, our program returns the second-order linear recurrence 
+
+> FunctiontoRec(x^m,JacobiP(n,alpha,beta,x),u)=0; 
+
+2 (2 n + 4 + β + α) ( α + β + 2 n + 5) ( n + 2 + α + β) ( n + α + β + 1) ( m − n) un
+
++ ( α + β + 2 n + 5) ( n + 2 + α + β) ( α − β) ( α + β + 2 m + 2) ( α + β + 2 n + 1) un+1 
+
+−2 ( α + β + 2 n + 1) ( β + n + 2) ( α + n + 2) (2 n + 2 + α + β) ( m + n + 3 + α + β) un+2 = 0 .
+
+Indeed, this can be checked to be satisfied by the known coefficients [50, (28) p. 277] 
+
+xm =
+
+> m
+
+X
+
+> n=0
+
+2nm! Γ( n + α + β + 1) (m − n)! Γ( α + β + 2 n + 1) 2F1
+
+n − m, α + n + 1 2n + 2 + α + β 2
+
+
+
+P (α,β ) 
+
+> n
+
+(x).
+
+The initial conditions can again be reduced to the Beta integral and the proof of the identity is then reduced to checking these first two values. A simplification occurs for the coefficients of xm in the Gegenbauer basis C(λ) 
+
+> n
+
+(x).Our program returns a two-term recurrence 
+
+> FunctiontoRec(x^m,GegenbauerC(n,lambda,x),u)=0; 
+
+(m − n) ( λ + n + 2) un − (λ + n) ( m + 2 λ + n + 2) un+2 = 0 .
+
+Again, the initial conditions are not the objective of this work, but they can be obtained without too much work, leading to the following formula (a variant of [50, (29) p. 277]) 
+
+x2m =
+
+> m
+
+X
+
+> n=0
+
+(−1) m(2 m)! ( λ + 2 n)Γ( λ)4m(m − n)! Γ( n + m + λ + 1) C(λ)2n (x)
+
+and a similar one for x2m+1 .9.2. Generating functions. Generating functions provide good tests for our al-gorithms: by their nature, they have simple sequences of coefficients, and the extra variable can be made small enough that convergence conditions are met. A nontrivial example is provided by the function 
+
+> F:=GAMMA(nu+1/2)*exp(x*t)*(t/2*sqrt(1-x^2))^(1/2-nu) *BesselJ(nu-1/2,t*sqrt(1-x^2)); 
+
+F := Γ 
+
+
+
+ν + 12
+
+
+
+ext t√−x2 + 1 2
+
+! 12 −ν
+
+Jν− 12
+
+
+
+tp−x2 + 1 
+
+
+
+Its coefficients in the Gegenbauer basis (C(ν) 
+
+> k
+
+(x)) satisfy a 4th-order recurrence 
+
+> rec:=FunctiontoRec(F,GegenbauerC(k,nu,x),u)=0; 
+
+rec := − (ν + k + 3) t (k + 2) ( k + 1) uk
+
++ ( ν + k + 3) ( k + 2)  k2 + 2 kν − t2 + k + 2 ν uk+1 
+
+− 2t  k2 + 2 kν + 2 ν2 + 4 k + 3 ν + 3  uk+2 
+
++ (2 ν + k + 2) ( ν + k + 1)  k2 + 2 kν − t2 + 7 k + 8 ν + 12  uk+3 
+
++ ( ν + k + 1) t (2 ν + k + 2) (2 ν + k + 3) uk+4 = 0 
+
+While this is not of minimal order, Petkovšek’s algorithm readily finds the solution 
+
+tk/Γ(2 ν + k) from which the exact value [63, 5.13.1.3] follows. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 45 
+
+9.3. Chebyshev expansions. A few examples have been given before (Exam-ples 6.4, 7.2 and 7.6). Other examples can be obtained as special cases of the Fourier and Jacobi expan-sions below. We just show two more examples due to Lewanowicz. (Recall again the convention of Section 2.4.) 
+
+The Elliptic E function [38, Ex. 2.1]: 
+
+> FunctiontoRec(EllipticE(x),ChebyshevT(m,x),u)=0; 
+
+(m − 1) ( m + 1) um + ( −8 − 4m) um+2 − (m + 5) ( m + 3) um+4 = 0 
+
+The Lommel sμν (x) function [38, Ex. 3.1]. It satisfies the inhomogeneous differen-tial equation 
+
+> deq:=x^2*diff(y(x), x, x) + x*(2*mu - 1)*diff(y(x), x) + (a^2*x^2 + mu^2 - nu^2 - 2*mu + 1)*y(x) - a^2*x^2; 
+
+x2
+
+ d2
+
+dx 2 y(x)
+
+
+
++ x (2 μ − 1) 
+
+ ddx y(x)
+
+
+
++  a2x2 + μ2 − ν2 − 2μ + 1  y(x) − a2x2
+
+Since the inhomogeneous part has only finitely many nonzero Chebyshev coef-ficients, it is sufficient to apply the algorithm to the homogeneous part, which recovers Lewanowicz’ 8th order recurrence: 
+
+> hom:=deq-eval(deq,y(x)=0): > rec:=DiffeqtoRec(hom,y(x),u(m),ChebyshevT(m,x))=0; 
+
+− a2 (m + 5) um +  −4m3 − 8m2μ − 4m μ 2 + 4 m ν 2 − 2a2
+
+−28 m2 − 48 μm − 20 μ2 + 20 ν2 − 44 m − 40 μ − 20  um+2 
+
++ 2 ( m + 4)  a2 − 4m2 + 4 μ2 − 4ν2 − 32 m − 16 μ − 44  um+4 
+
++  −4m3 + 8 m2μ − 4m μ 2 + 4 m ν 2 + 2 a2 − 68 m2
+
++80 μm − 12 μ2 + 12 ν2 − 364 m + 168 μ − 588  um+6 
+
+− a2 (m + 3) um+8 = 0 
+
+9.4. Fourier expansions. Koepf and Chiadjeu give a direct algorithm for what they call trigonometric holonomic functions [35], that are solutions of linear differ-ential equations with trigonometric coefficients. This gives an algorithmic access to linear recurrences for Fourier series in a large variety of examples. There are cases where our method can also recover Fourier expansions thanks to the relation with Chebyshev polynomials. An example is provided by the func-tion [35, Ex. 4.9] 
+
+> f:=cos(t)*ln(2+cos(t)); 
+
+f := cos( t) ln(2 + cos( t)) 
+
+Expanding g = f (arccos x) in the basis Tn(x) and then evaluating at x = cos t
+
+shows that the Chebyshev coefficients of g are the Fourier coefficients of f . Starting from the inhomogeneous differential equation 
+
+> deq:=gfun:-holexprtodiffeq(eval(f,t=arccos(x)),y(x),false); 
+
+ x2 + 2 x  ddx y(x)
+
+
+
+− (x + 2) y(x) − x2
+
+and using the homogeneous part gives a simple 4th order recurrence for these coef-ficients: 46 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+> hom:=deq-eval(deq,y(x)=0): > DiffeqtoRec(hom,y(x),u(n),ChebyshevT(n,x))=0; 
+
+(n − 1) un + 4 nu n+1 + 2 ( n + 2) un+2 + 4 ( n + 4) un+3 + ( n + 5) un+4 = 0 
+
+(Koepf and Chiadjeu’s method find a more complicated recurrence, but of order 2 only, which is minimal in this case.) A basis of solutions of this recurrence can be found by Petkovšek’s algorithm and from there one can recover the correct solution for n sufficiently large (for small n, the inhomogeneous part of the differential equation plays a role). 9.5. Laguerre expansions. In view of Table 3, linear differential operators with 
+
+constant coefficients lead to recurrences that do not depend on the parameter α
+
+of the Laguerre polynomials. Thus, for the expansion of exp( cx ) (for c < 1), we obtain a recurrence that is independent of α:
+
+> FunctiontoRec(exp(c*x),LaguerreL(n,alpha,x),u)=0; 
+
+cu n + (1 − c)un+1 = 0 
+
+The actual value is easily computed from the integral representation of the Γ
+
+function. A slightly more involved expansion can be found for 
+
+> F:=exp(x-x/lambda)/lambda^(n+alpha+1)*LaguerreL(n,alpha,x/lambda); 
+
+F := λ−n−α−1ex−x/λ L(α) 
+
+> n
+
+(x/λ )
+
+> FunctiontoRec(F,LaguerreL(r,alpha,x),u)=0; 
+
+−(λ − 1)(1 + r)ur + ( n − r − 1) ur+1 = 0 
+
+In view of the simplification that takes place on the exponentials, together with or-thogonality, it follows that the coefficients are 0 for r < n . For r = n, it is sufficient to reason on the leading coefficient of L(α) 
+
+> r
+
+, which gives the initial condition ur = 1 .Thus, we recover [31, Eq. (18)]: 
+
+ex−x/λ L(α)
+
+> n
+
+ xλ
+
+
+
+= λn+α+1 X
+
+> r⩾n
+
+rn
+
+
+
+(1 − λ)r−nL(α) 
+
+> r
+
+(x), λ > 0.
+
+Convergence of the integrals makes this meaningful for λ > 0 only. Howell [31] also gives an unnecessary restriction λ < 2 coming from his derivation. 9.6. Hermitian expansions. There are several examples of expansions in the basis of Hermite polynomials in [63, sec. 5.12 and 4.5]. A simple example is 
+
+> F:=sin(2*a*x)/x; 
+
+F := sin(2 ax )
+
+x
+
+Its coefficients in the Hermite basis satisfy a 4th order recurrence: 
+
+> FunctiontoRec(F,HermiteH(k,x),u)=0; 
+
+a2uk + (2 + k)  2a2 + k + 3  uk+2 + 2 (2 + k) (3 + k) (4 + k) uk+4 = 0 
+
+Since the function is even, the initial conditions u1 = u3 = 0 are easily found. With some help, Maple also finds 
+
+u0 = √π erf( a), u2 = a
+
+2 e−a2
+
+−√π
+
+4 erf( a).RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 47 
+
+With these, one recovers [63, 5.12.3.1] 
+
+sin 2 ax x =
+
+> ∞
+
+X
+
+> k=0
+
+(−1) k
+
+(2 k)! γ
+
+
+
+k + 12 , a 2
+
+
+
+H2k(x),
+
+where γ is the incomplete gamma function. Another typical example is the function 
+
+> f:=sqrt(x)*exp(-x^2*t^2/(1-t^2))*BesselI(-1/4,t*x^2/(1-t^2)); 
+
+f := √x exp 
+
+
+
+− t2x2
+
+1 − t2
+
+
+
+I−1/4
+
+ tx 2
+
+1 − t2
+
+
+
+which is in L2((0 , ∞), e −x2
+
+) for t ∈ (0 , 1) , together with all its derivatives. Thus Thm. 7.5 implies that its coefficients in the Hermite basis satisfy 
+
+> FunctiontoRec(f,HermiteH(k,x),u)=0 
+
+t2uk − 4( k + 3)( k + 4) uk+4 = 0 
+
+This is a variant of [63, 5.12.1.22] that can also be obtained by our program, but would take more space here. We conclude with an example that is not analytic: the sign function. Starting from the first order differential equation xy ′ = 0 gives a linear recurrence of order 2: 
+
+> DiffeqtoRec(x*diff(y(x),x),y(x),u(k),HermiteH(k,x))=0; 
+
+ku k + 2( k + 2)( k + 1) uk+2 = 0 
+
+Since the function is odd, the only nontrivial initial condition is u1, easily found to be 1/(2 √π). With this, it is immediate to recover [63, 5.12.1.13] 
+
+sgn x = 1
+
+√π
+
+X
+
+> m⩾0
+
+(−1) m4−m
+
+2(2 m + 1) m! H2m+1 (x).
+
+For the convergence of this type of expansion in the complex plane, see [26, 27, 28]. 9.7. Bessel expansions. Al-Salam gave many properties of Bessel polynomials, in a notation slightly different from that of the DLMF [57], which we follow. We consider only his Eq. (7.5), giving the expansion of (−x/ 2) s for s ∈ N:
+
+> FunctiontoRec((-x/2)^s,Bessely(n,b+2,x),u)=0; 
+
+(b + 1 + n) ( b + 2 n + 3) ( n − s) un − (b + 2 n + 1) ( n + 1) ( b + n + s + 2) un+1 = 0 
+
+The initial condition at n = s is deduced from the leading coefficient of yn(x; b+2) ,leading to 
+
+− x
+
+2
+
+s
+
+=
+
+> s
+
+X
+
+> n=0
+
+(−s)n(b + 2 n + 1)( b + n)! (b + n + s + 1)! n! yn(x; b + 2) .
+
+9.8. Jacobi expansions. Examples of expansions in the basis of Jacobi polyno-mials can be found in [63, 5.14]. For instance, the function 
+
+> F:=(1+t)^(-alpha-beta-1)*hypergeom([(alpha+beta+1)/2, (alpha+beta+2)/2],[beta+1],(2*t*x+2*t)/(t+1)^2); 
+
+F := (1 + t)−α−β−1 2F1 
+
+> α
+> 2
+
++ β 
+
+> 2
+
++ 1 , α 
+
+> 2
+
++ β 
+
+> 2
+
++ 12
+
+β + 1 
+
+2tx + 2 t
+
+(1 + t)2
+
+!
+
+satisfies a linear differential equation of order 2 with respect to x, from which our code finds a recurrence of order 2 for the Jacobi coefficients: 
+
+> FunctiontoRec(F,JacobiP(k,alpha,beta,x),u)=0; 48 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+− (k + α + β + 2) ( k + α + β + 1) tu k
+
++ ( β + k + 1) (2 + k + α + β) ( t2 + 1) uk+1 
+
+− (β + k + 2) ( β + k + 1) tu k+2 = 0 
+
+The initial conditions 
+
+u0 = 1 , u1 = α + β + 1 
+
+β + 1 t
+
+can be deduced from a variant of the integral [64, 2.21.1.24] 
+
+Z 1
+
+> −12
+
+F1 
+
+> α
+> 2
+
++ β 
+
+> 2
+
++ 12 , α 
+
+> 2
+
++ β 
+
+> 2
+
++ 1 
+
+β + 1 
+
+2t (x + 1) (t + 1) 2
+
+!
+
+(1 − x)α+k (1 + x)β+ℓ dx =
+
+B(α + k + 1 , β + ℓ + 1) 2 α+β+k+ℓ+1 3F2 
+
+> α
+> 2
+
++ β 
+
+> 2
+
++ 12 , α 
+
+> 2
+
++ β 
+
+> 2
+
++ 1 , β + ℓ + 1 
+
+β + 1 , α + β + k + ℓ + 2 
+
+4t
+
+(t + 1) 2
+
+!
+
+.
+
+From these initial conditions, using Petkovšek’s algorithm on the recurrence recov-ers the expansion [63, 5.14.1.6] 
+
+F =
+
+> ∞
+
+X
+
+> k=0
+
+(α + β + 1) k
+
+(β + 1) k
+
+tkP (α,β ) 
+
+> k
+
+(x).
+
+Another recurrence of order 4 is obtained for sin( xz ) on the basis (P (α,α ) 
+
+> k
+
+(x)) :
+
+> FunctiontoRec(F,JacobiP(k,alpha,alpha,x),u)=0; 
+
+(2 α + 7 + 2 k) ( k + 3 + 2 α) (2 α + 9 + 2 k)(k + 4 + 2 α) ( k + 2 + 2 α) ( k + 2 α + 1) z2uk
+
++ ( α + 2 + k) ( α + 1 + k) ( k + 4 + 2 α) ( k + 3 + 2 α) (2 α + 9 + 2 k)(2 α + 2 k + 1)  4α2 + 8 αk + 4 k2 − 2z2 + 20 α + 20 k + 21  uk+2 
+
++ ( α + 2 + k) (2 α + 3 + 2 k) ( α + 1 + k)(2 α + 2 k + 1) ( α + 3 + k) ( α + 4 + k) z2uk+4 = 0 
+
+As that function is odd, the initial conditions u0 = u2 = 0 are clear and one obtains the other two in terms of Bessel functions as 
+
+u1 = 2α+ 32 z−α− 12 Γ  52 + α
+
+α + 1 Jα+ 32 (z) , u3 = − 16 z−α− 12 2 12 +αΓ  92 + α
+
+(3 + α) ( α + 2) (2 α + 5) Jα+ 72 (z) .
+
+At this stage, it is not clear that algorithms are available to deduce the general form [63, 5.14.5.1] 
+
+u2k+1 = ( −1) k 2α+2 k+ 12 z−α− 12
+
+(2 α + 4 k + 3) Γ( α + k + 1) Γ  α + k + 32
+
+
+
+Γ( α + 2 k + 2) J2k+α+ 32 (z),
+
+but at least, the formula can be proved by checking that it matches the initial conditions and satisfies the recurrence. We conclude by mentioning a more difficult example [63, 5.14.1.11], the function (9.1) 2F1
+
+ γ, α + β − γ + 1 
+
+α + 1 
+
+1 − t + ρ
+
+2
+
+
+
+> 2
+
+F1
+
+ γ, α + β − γ + 1 
+
+β + 1 
+
+1 + t − ρ
+
+2
+
+
+
+,RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 49 
+
+with ρ = √t2 − 2xt + 1 . For this function, and even for special values of α, β, γ, t ,our implementation returns a recurrence of order 50 with coefficients of degree 20 in x (in about 10 min.), while the solution is simply 
+
+(γ)k(α + β − γ + 1) k
+
+(α + 1) k(β + 1) k
+
+tk,
+
+solution to a recurrence of order 1. This is the worst example we have encountered. One reason for this large order is that the algorithm starts from a linear differential equation satisfied by the generating function (9.1) that has order 10 and coefficients of degree up to 32. Our algorithms return a recurrence that is satisfied by the coefficients of all solutions of that differential equation. They do not take into account the somewhat symmetric form of the generating function. 10. Final comments 
+
+10.1. Other expansions. The main tools used in this work are: recurrence rather than shift operators; their fractions and Euclid-based algorithms for their sum and products; the existence of a morphism from term algebras to fractions of recurrence operators whose numerator annihilates a target sequence. This article focuses on expansions on classical orthogonal polynomials for solu-tions of linear differential equation and, to a lesser extent, to Taylor expansions. There, we have used many ideas coming from work of Lewanowicz, Paszkowski, Rebillard and others and cast them in an algebraic framework where algorithms can be designed and shown to produce irreducible fractions. Similar ideas have also been applied to semi-classical orthogonal polynomials [48], discrete orthogo-nal polynomials [3], hypergeometric polynomials [68, 71], q-analogues [46, 47]. We expect that the tools developed in this article also apply in these cases. 10.2. Minimality issues. Our algorithm computes an irreducible fraction, which is therefore minimal in some sense. However, this does not imply that its numer-ator, which is the recurrence of interest, is also of minimal order. This appears clearly for the Chebyshev coefficients of arccos in Example 7.7: the numerator is a recurrence of order 4, whereas it is clear from the closed form of the coefficients that they satisfy a right factor of that recurrence of order only 2. A more extreme instance of that situation is provided by the product of hypergeometric functions in Eq. (9.1). Among the many questions that deserve further study is how to capture minimal generators that would be associated not only to the given linear differen-tial operator L, but also to all its left multiples (This would generalize Lewanowicz’ idea mentioned with the linearization coefficients of the Laguerre polynomials in Section 9.1.2.) Another question is how to use more information than the linear differential equation, like the local or asymptotic behavior of the solution of inter-est, so as to deal with situations like that in Example 8.2. We plan to come back to these issues in future work. 
+
+References      
+
+> [1] W. A. Al-Salam. The Bessel polynomials. Duke Math. J. , 24:529–545, 1957. [2] W. A. Al-Salam and T. S. Chihara. Another characterization of the classical orthogonal polynomials. SIAM J. Math. Anal. , 3:65–70, 1972. [3] I. Area, E. Godoy, A. Ronveaux, and A. Zarzo. Corrigendum: “Minimal recurrence rela-tions for connection coefficients between classical orthogonal polynomials: discrete case”. J. Comput. Appl. Math. , 89(2):309–325, 1998. 50 A. BENOIT, N. BRISEBARRE, AND B. SALVY
+
+[4] R. Askey. Orthogonal polynomials and special functions . Society for Industrial and Applied Mathematics, Philadelphia, Pa., 1975. [5] A. Benoit, M. Joldeş, and M. Mezzarobba. Rigorous uniform approximation of D-finite func-tions using Chebyshev expansions. Math. Comp. , 86(305):1303–1341, 2017. [6] A. Benoit and B. Salvy. Chebyshev expansions for solutions of linear differential equations. In J. May, editor, ISSAC ’09: Proceedings of the twenty-second international symposium on Symbolic and algebraic computation , pages 23–30, 2009. [7] A. Bostan, F. Chyzak, P. Lairez, and B. Salvy. Generalized Hermite reduction, creative telescoping and definite integration of D-finite functions. In ISSAC’18—Proceedings of the 2018 ACM International Symposium on Symbolic and Algebraic Computation , pages 95–102. ACM Press, 2018. [8] J. P. Boyd. Chebyshev and Fourier Spectral Methods . Dover Publications Inc., 2nd edition, 2000. [9] S. Chen, M. Kauers, and M. F. Singer. Desingularization of Ore operators. J. Symbolic Comput. , 74:617–626, 2016. [10] T. S. Chihara. An introduction to orthogonal polynomials . Mathematics and its Applications, Vol. 13. Gordon and Breach Science Publishers, New York-London-Paris, 1978. [11] C. W. Clenshaw. The numerical solution of linear differential equations in Chebyshev series. 
+
+Proc. Cambridge Philos. Soc. , 53:134–149, 1957. [12] P. M. Cohn. Free ideal rings and localization in general rings , volume 3 of New Mathematical Monographs . Cambridge University Press, Cambridge, 2006. [13] NIST Digital Library of Mathematical Functions . https://dlmf.nist.gov/ , Release 1.2.5 of 2025-12-15. F. W. J. Olver, A. B. Olde Daalhuis, D. W. Lozier, B. I. Schneider, R. F. Boisvert, C. W. Clark, B. R. Miller, B. V. Saunders, H. S. Cohl, and M. A. McClain, eds. [14] D. Elliott. The expansion of functions in ultraspherical polynomials. J. Austral. Math. Soc. ,1:428–438, 1959/1960. [15] D. Elliott. The evaluation and estimation of the coefficients in the Chebyshev series expansion of a function. Math. Comp. , 18:274–284, 1964. [16] A. Erdélyi, W. Magnus, F. Oberhettinger, and F. G. Tricomi. Higher transcendental func-tions. Vol. II . Robert E. Krieger Publishing Co., Inc., Melbourne, FL, 1981. Based on notes left by Harry Bateman, Reprint of the 1953 original. [17] E. Feldheim. Quelques nouvelles relations pour les polynômes d’Hermite. J. London Math. Soc. , 13(1):22–29, 1938. [18] E. Feldheim. Développements en série de polynomes d’Hermite et de Laguerre à l’aide des transformations de Gauss et de Hankel. I et II. Nederl. Akad. Wetensch., Proc. , 43:224–248, 1940. [19] J. L. Fields and J. Wimp. Expansions of hypergeometric functions in hypergeometric func-tions. Math. Comp. , 15:390–395, 1961. [20] L. Fox and I. B. Parker. Chebyshev polynomials in numerical analysis . Oxford University Press, London-New York-Toronto, Ont., 1968. [21] K. O. Geddes. Symbolic computation of recurrence equations for the Chebyshev series solution of linear ODE’s. In C. M. Andersen, editor, Proceedings of the 1977 MACSYMA User’s Conference , pages 405–423, 1977. NASA CP-2012. [22] E. Godoy, A. Ronveaux, A. Zarzo, and I. Area. Minimal recurrence relations for connection coefficients between classical orthogonal polynomials: continuous case. J. Comput. Appl. Math. , 84(2):257–275, 1997. [23] E. Godoy, A. Ronveaux, A. Zarzo, and I. Area. On the limit relations between classical continuous and discrete orthogonal polynomials. J. Comput. Appl. Math. , 91(1):97–105, Apr. 1998. [24] D. Gottlieb and S. A. Orszag. Numerical analysis of spectral methods: theory and applica-tions . Society for Industrial and Applied Mathematics, Philadelphia, Pa., 1977. CBMS-NSF Regional Conference Series in Applied Mathematics, No. 26. [25] J. Govaerts, M. N. Hounkonnou, and A. Z. Msezane, editors. Contemporary problems in mathematical physics . World Scientific Publishing Co., Inc., River Edge, NJ, 2002. [26] E. Hille. Contributions to the theory of Hermitian series. Duke Math. J. , 5:875–936, 1939. [27] E. Hille. Contributions to the theory of Hermitian series. II. The representation problem. 
+
+Trans. Amer. Math. Soc. , 47:80–94, 1940. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 51 
+
+[28] E. Hille. Contributions to the theory of Hermitian series. III. Mean values. Internat. J. Math. Math. Sci. , 3(3):407–421, 1980. [29] W. Hodges. A shorter model theory . Cambridge University Press, Cambridge, 1997. [30] M. N. Hounkonnou, S. Belmehdi, and A. Ronveaux. Linearization of arbitrary products of classical orthogonal polynomials. Appl. Math. (Warsaw) , 27(2):187–196, 2000. [31] W. T. Howell. On products of Laguerre polynomials. The London, Edinburgh, and Dublin Philosophical Magazine and Journal of Science , 24(161):396–405, 1937. [32] E. L. Ince. Ordinary differential equations . Dover Publications, New York, 1956. [33] M. E. H. Ismail. Classical and quantum orthogonal polynomials in one variable , volume 98 of 
+
+Encyclopedia of Mathematics and its Applications . Cambridge University Press, Cambridge, 2005. [34] R. Koekoek, P. A. Lesky, and R. F. Swarttouw. Hypergeometric orthogonal polynomials and their q-analogues . Springer Monographs in Mathematics. Springer-Verlag, Berlin, 2010. [35] W. Koepf and E. N. Chiadjeu. Algorithmic approach for formal Fourier series. Math. Comput. Sci. , 9(3):365–389, 2015. [36] C. Koutschan. A fast approach to creative telescoping. Mathematics in Computer Science ,4:259–266, 2010. [37] S. Lang. Algebra , volume 211 of Graduate Texts in Mathematics . Springer-Verlag, New York, third edition, 2002. [38] S. Lewanowicz. Construction of a recurrence relation of the lowest order for coefficients of the Gegenbauer series. Zastos. Mat. , 15(3):345–396, 1976. [39] S. Lewanowicz. Construction of the lowest-order recurrence relation for the Jacobi coefficients. 
+
+Zastos. Mat. , 17(4):655–675, 1983. [40] S. Lewanowicz. Recurrence relations for the coefficients in Jacobi series solutions of linear differential equations. SIAM J. Math. Anal. , 17(5):1037–1052, 1986. [41] S. Lewanowicz. A new approach to the problem of constructing recurrence relations for the Jacobi coefficients. Zastos. Mat. , 21(2):303–326, 1991. [42] S. Lewanowicz. Quick construction of recurrence relations for the Jacobi coefficients. J. Com-put. Appl. Math. , 43(3):355–372, 1992. [43] S. Lewanowicz. Results on the associated classical orthogonal polynomials. J. Comput. Appl. Math. , 65(1-3):215–231, 1995. [44] S. Lewanowicz. Second-order recurrence relation for the linearization coefficients of the clas-sical orthogonal polynomials. J. Comput. Appl. Math. , 69(1):159 – 170, 1996. [45] S. Lewanowicz. Recurrences for the coefficients of series expansions with respect to classical orthogonal polynomials. Appl. Math. (Warsaw) , 29(1):97–116, 2002. [46] S. Lewanowicz. Construction of recurrences for the coefficients of expansions in q-classical orthogonal polynomials. J. Comput. Appl. Math. , 153(1-2):295–309, 2003. [47] S. Lewanowicz, E. Godoy, I. Area, A. Ronveaux, and A. Zarzo. Recurrence relations for the coefficients of the Fourier series expansions with respect to q-classical orthogonal polynomials. 
+
+Numer. Algorithms , 23(1):31–50, 2000. [48] S. Lewanowicz and P. Woźny. Recurrence relations for the coefficients in series expansions with respect to semi-classical orthogonal polynomials. Numer. Algorithms , 35(1):61–79, 2004. [49] Y. L. Luke. Expansion of the confluent hypergeometric function in series of Bessel functions. 
+
+Math. Tables Aids Comput. , 13:261–271, 1959. [50] Y. L. Luke. The special functions and their approximations, Vol. I . Mathematics in Science and Engineering, Vol. 53. Academic Press, New York, 1969. [51] Y. L. Luke and R. L. Coleman. Expansion of hypergeometric functions in series of other hypergeometric functions. Math. Comp. , 15:233–237, 1961. [52] P. Maroni and Z. da Rocha. Connection coefficients between orthogonal polynomials and the canonical sequence: an approach based on symbolic computation. Numer. Algorithms ,47(3):291–314, 2008. [53] P. Maroni and Z. da Rocha. Connection coefficients for orthogonal polynomials: symbolic computations, verifications and demonstrations in the Mathematica language. Numer. Algo-rithms , 63(3):507–520, 2013. [54] J. C. Mason and D. C. Handscomb. Chebyshev Polynomials . Chapman & Hall/CRC, 2003. [55] T. Mora. Solving polynomial equation systems. Vol. IV. Buchberger theory and beyond , vol-ume 158 of Encyclopedia of Mathematics and its Applications . Cambridge University Press, Cambridge, 2016. 52 A. BENOIT, N. BRISEBARRE, AND B. SALVY 
+
+[56] A. F. Nikiforov and V. B. Uvarov. Special functions of mathematical physics . Birkhäuser Verlag, Basel, 1988. [57] F. W. J. Olver, D. W. Lozier, R. F. Boisvert, and C. W. Clark, editors. NIST Handbook of Mathematical Functions . Cambridge University Press, 2010. [58] S. Olver and A. Townsend. A fast and well-conditioned spectral method. SIAM Rev. ,55(3):462–489, 2013. [59] O. Ore. Linear equations in non-commutative fields. Ann. of Math. (2) , 32:463–477, 1931. [60] O. Ore. Theory of non-commutative polynomials. Ann. of Math. (2) , 34(3):480–508, 1933. [61] S. Paszkowski. Zastosowania numeryczne wielomianów i szeregów Czebyszewa . Państwowe Wydawnictwo Naukowe, Warsaw, 1975. Podstawowe Algorytmy Numeryczne. [Fundamental Numerical Algorithms]. [62] M. Petkovšek. Hypergeometric solutions of linear recurrences with polynomial coefficients. J. Symbolic Comput. , 14(2-3):243–264, 1992. [63] A. P. Prudnikov, Y. A. Brychkov, and O. I. Marichev. Integrals and Series. Volume 2: Special functions . Gordon and Breach, 1986. [64] A. P. Prudnikov, Y. A. Brychkov, and O. I. Marichev. Integrals and Series. Volume 3: More special functions . Gordon and Breach, 1989. [65] E. D. Rainville. Special functions . Chelsea Publishing Co., Bronx, N.Y., first edition, 1971. [66] L. Rebillard. Rational approximation in the complex plane using a τ -method and computer algebra. Numer. Algorithms , 16(2):187–208, 1997. [67] L. Rebillard. Étude théorique et algorithmique des séries de Chebyshev, solutions d’équations différentielles holonomes . PhD thesis, Institut national polytechnique de Grenoble, 1998. 
+
+https://theses.hal.science/tel-00008571/ .[68] L. Rebillard and H. Zakrajšek. Recurrence relations for the coefficients in hypergeometric series expansions. In I. Kotsireas and E. Zima, editors, Computer Algebra 2006. Latest Ad-vances in Symbolic Algorithms , pages 158–180. World Sci. Publ., Hackensack, NJ, 2007. [69] A. Ronveaux. Fourth-order differential equations for numerator polynomials. J. Phys. A ,21(15):L749–L753, 1988. [70] A. Ronveaux, M. N. Hounkonnou, and S. Belmehdi. Generalized linearization problems. J. Phys. A , 28(15):4423–4430, 1995. [71] A. Ronveaux, A. Zarzo, I. Area, and E. Godoy. Expansion of hypergeometric polynomials: several approaches. In Govaerts et al. [25], pages 446–459. [72] A. Ronveaux, A. Zarzo, and E. Godoy. Recurrence relations for connection coefficients be-tween two families of orthogonal polynomials. J. Comput. Appl. Math. , 62(1):67–73, 1995. [73] B. Salvy and P. Zimmermann. Gfun: a Maple package for the manipulation of generating and holonomic functions in one variable. ACM Trans. Math. Softw. , 20(2):163–177, 1994. [74] P. Samuel. About Euclidean rings. J. Algebra , 19:282–301, 1971. [75] R. P. Stanley. Enumerative combinatorics , volume 2. Cambridge University Press, 1999. [76] G. Szegő. Orthogonal polynomials . American Mathematical Society, Providence, R.I., fourth edition, 1975. American Mathematical Society, Colloquium Publications, Vol. XXIII. [77] R. Szwarc. Linearization and connection coefficients of orthogonal polynomials. Monatsh. Math. , 113(4):319–329, 1992. [78] H. C. Thacher, Jr. Conversion of a power to a series of Chebyshev polynomials. Comm. ACM ,7(3):181–182, 1964. [79] M. van der Put and M. F. Singer. Galois theory of difference equations , volume 1666 of 
+
+Lecture Notes in Mathematics . Springer-Verlag, Berlin, 1997. [80] A. Verma. Certain expansions of the basic hypergeometric functions. Math. Comp. , 20:151– 157, 1966. [81] J. Wimp. Computation with Recurrence Relations . Pitman, Boston, 1984. [82] J. Wimp and Y. L. Luke. Expansion formulas for generalized hypergeometric functions. Rend. Circ. Mat. Palermo (2) , 11:351–366, 1962. [83] A. Zarzo, I. Area, E. Godoy, and A. Ronveaux. Results for some inversion problems for classical continuous and discrete orthogonal polynomials. J. Phys. A , 30(3):L35, Feb. 1997. [84] D. Zeilberger. The method of creative telescoping. J. Symbolic Comput. , 11:195–204, 1991. RECURRENCE OPERATORS FOR GENERALIZED FOURIER SERIES 53 
+
+Éducation nationale, France 
+
+Email address : alexandrebenoit@yahoo.fr 
+
+Université de Lyon, CNRS, ENS de Lyon, Inria, Université Claude-Bernard Lyon 1, Laboratoire LIP (UMR 5668), Lyon, France. 
+
+Email address : Nicolas.Brisebarre@ens-lyon.fr 
+
+Université de Lyon, CNRS, ENS de Lyon, Inria, Université Claude-Bernard Lyon 1, Laboratoire LIP (UMR 5668), Lyon, France. 
+
+Email address : Bruno.Salvy@ens-lyon.fr

@@ -6,44 +6,61 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-29
-- 运行时间：2026-04-29 20:45:26 UTC
+- 最新运行日期：2026-04-30
+- 运行时间：2026-04-30 21:00:37 UTC
 - 运行状态：成功
-- 本次总论文数：7
-- 精读区：0
-- 速读区：7
+- 本次总论文数：13
+- 精读区：2
+- 速读区：11
 
 ### 今日简报（AI）
-- 今日共生成 7 篇推荐（精读 0 篇，速读 7 篇）
-- 速读：《JURY-RL: Votes Propose, Proofs Dispose for Label-Free RLVR》（7.0/10）, 《The Recurrent Transformer: Greater Effective Depth and Efficient Decoding》（6.0/10）, 《Rewarding the Scientific Process: Process-Level Reward Modeling for Agentic Data Analysis》（6.0/10）
-- 这些结果覆盖了当下较热的方向，建议先看精读区论文的关键问题与方法。
-- 详情：[/202604/29/README](/202604/29/README)
+今日精选 13 篇前沿论文，深度聚焦 GPU 加速遗传编程的性能优化与具备稳定性保障的物理方程数据驱动发现。
+重点揭示了种群规模对 BEAGLE 框架效率的影响，并提出一种能确保解有界的常微分方程多项式发现新方法。
+建议关注高性能计算与符号推理的结合，特别是多智能体系统在数学证明与物理仿真中的最新应用。
+- 详情：[/202604/30/README](/202604/30/README)
 
 ### 精读区论文标签
-- 本次无精读推荐。
+1. [The Effects of Population Size on the Performance of BEAGLE GPU-Based Genetic Programming Runs](/202604/30/2604.24968v1-the-effects-of-population-size-on-the-performance-of-beagle-gpu-based-genetic-programming-runs)  
+   标签：评分：10.0/10、query:sr-alg
+   evidence：基于 GPU 的遗传规划用于符号回归问题
+2. [Data-driven discovery of polynomial ODEs with provably bounded solutions](/202604/30/2604.26933v1-data-driven-discovery-of-polynomial-odes-with-provably-bounded-solutions)  
+   标签：评分：9.0/10、query:sr-alg
+   evidence：数据驱动的多项式常微分方程发现
 
 ### 速读区论文标签
-1. [JURY-RL: Votes Propose, Proofs Dispose for Label-Free RLVR](/202604/29/2604.25419v1-jury-rl-votes-propose-proofs-dispose-for-label-free-rlvr)  
+1. [PhysCodeBench: Benchmarking Physics-Aware Symbolic Simulation of 3D Scenes via Self-Corrective Multi-Agent Refinement](/202604/30/2604.23580v1-physcodebench-benchmarking-physics-aware-symbolic-simulation-of-3d-scenes-via-self-corrective-multi-agent-refinement)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：物理感知符号模拟基准测试与物理现象转化
+2. [QED: An Open-Source Multi-Agent System for Generating Mathematical Proofs on Open Problems](/202604/30/2604.24021v1-qed-an-open-source-multi-agent-system-for-generating-mathematical-proofs-on-open-problems)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于符号推理和 Lean 形式化验证的强化学习
-2. [The Recurrent Transformer: Greater Effective Depth and Efficient Decoding](/202604/29/2604.21215v1-the-recurrent-transformer-greater-effective-depth-and-efficient-decoding)  
+   evidence：用于生成开放数学问题证明的AI系统
+3. [DreamProver: Evolving Transferable Lemma Libraries via a Wake-Sleep Theorem-Proving Agent](/202604/30/2604.26311v1-dreamprover-evolving-transferable-lemma-libraries-via-a-wake-sleep-theorem-proving-agent)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：形式化定理证明中用于引理发现的程序归纳
+4. [Layer-wise Lipschitz-Product Control for Deep Kolmogorov--Arnold Network Representations of Compositionally Structured Functions](/202604/30/2604.26444v1-layer-wise-lipschitz-product-control-for-deep-kolmogorov--arnold-network-representations-of-compositionally-structured-functions)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：计算树与函数的 KAN 网络表示
+5. [OptProver: Bridging Olympiad and Optimization through Continual Training in Formal Theorem Proving](/202604/30/2604.23712v1-optprover-bridging-olympiad-and-optimization-through-continual-training-in-formal-theorem-proving)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于序列建模和符号任务的新型 Transformer 架构
-3. [Rewarding the Scientific Process: Process-Level Reward Modeling for Agentic Data Analysis](/202604/29/2604.24198v1-rewarding-the-scientific-process-process-level-reward-modeling-for-agentic-data-analysis)  
+   evidence：数学优化领域的形式化定理证明
+6. [OptProver: Bridging Olympiad and Optimization through Continual Training in Formal Theorem Proving](/202604/30/2604.23712v2-optprover-bridging-olympiad-and-optimization-through-continual-training-in-formal-theorem-proving)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于数学推理和数据分析的过程级奖励建模
-4. [The asymptotic oscillations of moments related to Dirichlet series with missing digits](/202604/29/2604.24754v1-the-asymptotic-oscillations-of-moments-related-to-dirichlet-series-with-missing-digits)  
+   evidence：数学优化领域的形式化定理证明
+7. [A2DEPT: Large Language Model-Driven Automated Algorithm Design via Evolutionary Program Trees](/202604/30/2604.24043v1-a2dept-large-language-model-driven-automated-algorithm-design-via-evolutionary-program-trees)  
    标签：评分：6.0/10、query:math-ai
-   evidence：Zeta级数和狄利克雷级数的数值评估
-5. [A Unifying Framework for Unsupervised Concept Extraction](/202604/29/2604.24936v1-a-unifying-framework-for-unsupervised-concept-extraction)  
+   evidence：用于自动算法设计的进化程序树
+8. [Learning with Embedded Linear Equality Constraints via Variational Bayesian Inference](/202604/30/2604.24911v1-learning-with-embedded-linear-equality-constraints-via-variational-bayesian-inference)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：从非符号表示中提取高层符号概念
-6. [Training Transformers as a Universal Computer](/202604/29/2604.25166v1-training-transformers-as-a-universal-computer)  
+   evidence：将物理知识和平衡关系嵌入学习过程
+9. [From Insight to Action: A Novel Framework for Interpretability-Guided Data Selection in Large Language Models](/202604/30/2604.25167v1-from-insight-to-action-a-novel-framework-for-interpretability-guided-data-selection-in-large-language-models)  
    标签：评分：6.0/10、query:math-ai
-   evidence：Transformer预测符号程序的执行
-7. [Sample-efficient Neuro-symbolic Proximal Policy Optimization](/202604/29/2604.25534v1-sample-efficient-neuro-symbolic-proximal-policy-optimization)  
+   evidence：数学推理的可解释性引导数据选择
+10. [AGEL-Comp: A Neuro-Symbolic Framework for Compositional Generalization in Interactive Agents](/202604/30/2604.26522v1-agel-comp-a-neuro-symbolic-framework-for-compositional-generalization-in-interactive-agents)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于策略规范的神经符号强化学习
+   evidence：归纳逻辑程序设计引擎合成新的霍恩子句
+11. [Fractions of Recurrence Operators for Generalized Fourier Series in Classical Orthogonal Polynomials](/202604/30/2604.26944v1-fractions-of-recurrence-operators-for-generalized-fourier-series-in-classical-orthogonal-polynomials)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：级数展开中递推方程的算法
 
 
 <div class="dpr-home-promo-card">

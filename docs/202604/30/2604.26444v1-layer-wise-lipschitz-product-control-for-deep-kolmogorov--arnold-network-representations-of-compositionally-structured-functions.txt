@@ -1,0 +1,704 @@
+Title: Layer-wise Lipschitz-Product Control for Deep Kolmogorov--Arnold Network Representations of Compositionally Structured Functions
+
+URL Source: https://arxiv.org/pdf/2604.26444v1
+
+Published Time: Thu, 30 Apr 2026 00:38:21 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# Layer-wise Lipschitz-Product Control for Deep Kolmogorov–Arnold Network Representations of Compositionally Structured Functions 
+
+Aleksander Tankman 
+
+Fivestar Europe O ¨U, Tallinn, Estonia 
+
+aleksander.tankman@gmail.com 
+
+April 2026 
+
+Abstract 
+
+We prove that any continuous function f : [0 , 1] n → R representable by a finite com-putation tree with N internal nodes and compositional sparsity s = O(1) (each node de-pends on at most s input variables) admits a deep Kolmogorov–Arnold Network (KAN) rep-resentation with the following properties. Each internal node is realised by a primitive KAN block Bop of block depth cop and block Lipschitz product Λ op . First, the layer-wise Lipschitz product P (KAN) = Q 
+
+> l
+
+max i Ml,i satisfies the primary (domain-sensitive) bound P (KAN f ) ≤Q 
+
+> v
+
+Λop( v),D v ≤ Q 
+
+> v
+
+max( Cop( v),D v , 1) cop( v) , where Dv is the input domain of node v determined by the quantitative range recursion and Cop( v),D v = max i Lip i(op( v)|Dv ); the bound is inde-pendent of the input dimension n. Setting C∗ := max v Cop( v),D v and Lf := P 
+
+> v
+
+cop( v) ≤
+
+cmax · N gives the simplified form P (KAN f ) ≤ max( C∗, 1) Lf . For the standard set Op = 
+
+{+, −, ×, sin , cos } with × nodes receiving [0 , 1]-bounded inputs, all Λ op( v),D v = 1, giving P (KAN) ≤
+
+1. Second, the layer widths satisfy nl ≤ n + 2 wmax · N for all layers with wmax = max op wop ,the input layer satisfies n0 = n, and the maximum layer width is O(n + N ). Third, the uniform approximation error satisfies ∥f − KAN f ∥C0 ≤ N · max( COp , 1) d(f ) · εOp , where d(f ) is the depth of the computation tree; for COp ≤ 1 this simplifies to N · εOp . For f ∈ Cm we obtain the rate O(N · max( COp , 1) d(f ) · G−(k+1) ) with B-splines of order k ≤ m − 1 on G knots. Fourth, the range bound satisfies Bf ≤ N + 1 on [0 , 1] n (tight for all-additive trees; the bound holds for additive-subtractive trees generally), and Bf = 1 for purely multiplicative or trigonometric trees. This addresses a gap noted by Liu et al. (2024): the control of Lipschitz constants in deep KAN stacks was not developed in the original work. Experiments confirm P (KAN) = 1 .0for f = xy , xyz , sin( xy ), and x1 · · · xn for n up to 10, in contrast to the classical Sprecher construction, which does not provide n-independent Lipschitz control for arbitrary continuous 
+
+f .
+
+# 1 Introduction 
+
+Liu et al. [10] introduced Kolmogorov–Arnold Networks (KANs), in which the fixed nonlinear activations of classical multilayer perceptrons are replaced by learnable univariate functions placed on edges. The design is motivated by the classical Kolmogorov–Arnold (KA) representation theorem [1, 2], which asserts that every continuous function of several variables can be written as a finite superposition of continuous functions of a single variable together with addition. In Sprecher’s refinement [3], every f ∈ C0([0 , 1] n) admits a representation of the form 
+
+f (x) = 
+
+> 2n
+
+X
+
+> q=0
+
+Φq
+
+
+
+> n
+
+X
+
+> p=1
+
+φq,p (xp)
+
+ . (1) 1
+
+> arXiv:2604.26444v1 [cs.LG] 29 Apr 2026
+
+Sprecher’s 1965 construction for arbitrary f ∈ C0([0 , 1] n) requires inner functions whose Lipschitz constants scale with n; the classical construction does not provide n-independent Lipschitz control. By contrast, Theorem 4.3 below gives the primary bound P (KAN f ) ≤ Q 
+
+> v
+
+max( Cop( v),D v , 1) cop( v) ,which simplifies to P (KAN f ) ≤ max( C∗, 1) Lf with C∗ = max v Cop( v),D v and Lf ≤ cmax · N , all independent of n, for compositionally structured f .The control of Lipschitz constants in deep KAN stacks was not developed in the original work of Liu et al. [10] (see Sections 2.2–2.3 there). The structural hypothesis under which we work is that f is obtained from a finite computation tree with N internal nodes and that each node depends on at most a constant number s of variables. The main theorem is formulated on the unit cube [0 , 1] n; Section 3 provides an explicit affine reduction from functions on a general compact set 
+
+K ⊂ Rn to this setting. This compositional sparsity hypothesis holds for a wide class of physically meaningful functions such as symbolic expressions, classical mechanics equations, and low-rank tensor decompositions. 
+
+Contributions. Our contributions are as follows. 1. We introduce the layer-wise Lipschitz product P (KAN) as the architecturally relevant quantity and distinguish it carefully from the ambient Lipschitz constant Lip(KAN). 2. We prove a main structural theorem (Theorem 4.3) that controls P (KAN f ) uniformly in the input dimension n for compositionally structured f .3. For the standard operation families treated in Section 5, we verify inductively that the quan-titative range bounds required in (A4) can be established explicitly, using the hypothesis that leaves are coordinate projections xp ∈ [0 , 1]. 4. We provide numerical experiments confirming the theoretical bounds and a Lean 4 sketch map-ping the induction to a formalizable statement in Mathlib. 
+
+Related work. The representation theorem [1, 2] and its analytic sharpenings [3, 4, 5] form the classical foundation. Mazurkiewicz [6] is invoked only for an historical comment on the generic non-differentiability of continuous functions. Neural-network realizations of compositional super-position and depth-separation results appear in Poggio et al. [9], Montanelli and Yang [7], and Schmidt-Hieber [8]. The KAN architecture itself is due to Liu et al. [10], and the hierarchical back-propagation-free variant HKAN is due to Dudek [11]. 
+
+# 2 Preliminaries 
+
+2.1 KAN definition 
+
+Let L ∈ N be a number of layers and let n0, n 1, . . . , n L be layer widths. 
+
+Definition 2.1. A Kolmogorov–Arnold Network (KAN) with widths ( n0, . . . , n L) is a family of learnable univariate functions φl,i,j : R → R for l ∈ { 0, . . . , L −1}, i ∈ { 1, . . . , n l}, j ∈ { 1, . . . , n l+1 },together with the forward pass 
+
+xl+1 ,j =
+
+> nl
+
+X
+
+> i=1
+
+φl,i,j (xl,i ), j = 1 , . . . , n l+1 . (2) Each φl,i,j is represented by a B-spline of order k with G grid points on a bounded interval [ a, b ]. 2For f ∈ Cm([ a, b ]) and B-splines of order k ≤ m−1 on a uniform grid with G knots, the classical B-spline approximation rate [4] is 
+
+∥f − sk,G (f )∥C0([ a,b ]) = O
+
+
+
+G−(k+1) 
+
+. (3) 
+
+2.2 Definitions for the main theorem 
+
+We fix a finite set Op of admissible operations; each op ∈ Op is a continuous function op : Rs → R
+
+for some arity s ≥ 1 (with s = 1 for unary operations such as sin , cos and s = 2 for binary operations such as + , −, ×). 
+
+Definition 2.2 (Computation tree and compositional depth) . A computation tree T for a function 
+
+f : [0 , 1] n → R is a rooted finite tree whose leaves are labelled by coordinate projections xp
+
+(p ∈ { 1, . . . , n }) and whose internal nodes are labelled by operations op ∈ Op. Binary operations such as + , −, × are represented as binary nodes with two children; unary operations such as sin , cos are represented as unary nodes with a single child. The compositional depth d(f ) is the length of the longest root-to-leaf path; the total node count total nodes( f ) = N is the number of internal nodes of the fixed such tree T .
+
+Definition 2.3 (Compositional sparsity, (A2)) . A computation tree has compositional sparsity s
+
+if every internal node, viewed as a sub-function of ( x1, . . . , x n), depends non-trivially on at most s
+
+coordinates. 
+
+Definition 2.4 (Layer-wise Lipschitz product) . Let Ml,i := max j Lip( φl,i,j ) be the maximum outgoing Lipschitz constant from neuron ( l, i ). We write μl := max i Ml,i for the per-layer Lipschitz factor. The layer-wise Lipschitz product is 
+
+P (KAN) := 
+
+> L−1
+
+Y
+
+> l=0
+
+max  
+
+> i
+
+Ml,i =
+
+> L−1
+
+Y
+
+> l=0
+
+μl. (4) Here l ranges over all L active transformation layers l = 0 , . . . , L − 1 (with edges φl,i,j going from layer l to layer l + 1, as in Definition 2.1). 
+
+Partial Lipschitz constants. Throughout the paper we use partial Lipschitz constants. For an operation op : Rs → R, define the partial Lipschitz constant in the i-th argument by Lip i(op) := sup  
+
+> u1,...,u s, v ̸=v′
+
+|op( u1, . . . , v, . . . , u s) − op( u1, . . . , v ′, . . . , u s)||v − v′| , (5) where the variation is only in the i-th argument. The operation Lipschitz constant used throughout is 
+
+COp := max  
+
+> op ∈Op
+
+max  
+
+> i=1 ,...,s
+
+Lip i(op) .
+
+This differs from the joint Lipschitz constant Lip(op) = sup u̸=u′ |op( u) − op( u′)| / ∥u − u′∥2. For example, for op = × on [0 , 1] 2, the joint Lipschitz constant on [0 , 1] 2 equals √2, while the partial constants are Lip 1(×) = Lip 2(×) = 1, so COp = 1. Unary operations such as sin , cos are treated as nodes in the computation tree with s = 1, and their partial Lipschitz constant coincides with the ordinary Lipschitz constant. 
+
+Definition 2.5 (KAN primitive block) . A KAN primitive block Bop for an operation op : Rs → R
+
+on a bounded input domain D ⊂ Rs is a finite KAN (in the sense of Definition 2.1) with: 3(a) block depth cop ≥ 1: the number of active transformation layers; (b) block width wop : the maximum layer width; (c) block Lipschitz product Λop := P (Bop ); (d) for any ε > 0, Bop ε-approximates op uniformly on D.
+
+2.3 Distinction: P (KAN) vs. Lip(KAN) 
+
+It is essential that P (KAN) and the ambient Lipschitz constant Lip(KAN) are not identical. The ambient constant is Lip(KAN) = sup 
+
+> x
+
+∥JKAN (x)∥op ,
+
+where J is the Jacobian and ∥·∥ op is the operator (spectral) norm. By the chain rule and the per-layer operator-norm bound established in Proposition 4.8 below (which gives ∥Jl∥op ≤ W · μl
+
+for each layer), submultiplicativity yields Lip(KAN) ≤ W L · P (KAN) , (6) where W = max l nl is the maximum layer width and L is the number of layers. In particular, for 
+
+f (x, y ) = xy on [0 , 1] 2 we have Lip( f ) = √2 ≈ 1.414, but the block-based sequential construction (Proposition 4.1) achieves P (KAN) = 1 .0. We emphasise that P (KAN) is the architecturally meaningful quantity: it is a layerwise invariant that does not require control of cross-edge Jacobian structure. 
+
+# 3 A coordinate-adapted homeomorphism 
+
+The main theorem is stated on the unit cube [0 , 1] n. For functions defined on a more general compact set K ⊂ Rn, the following lemma provides a canonical affine reduction to [0 , 1] n: compose 
+
+f with the inverse homeomorphism h−1 to obtain a function on [0 , 1] n, apply Theorem 4.3 on [0 , 1] n,and then the Lipschitz factor Lip( h−1) = 1 / min p(bp − ap) describes the cost of this reduction. 
+
+Lemma 3.1 (Coordinate-adapted homeomorphism) . Let K ⊂ Rn be a compact set and let [ap, b p]
+
+denote the p-th coordinate interval of its bounding box, with ap < b p for all p. Then the componen-twise affine map 
+
+h : [0 , 1] n →
+
+> n
+
+Y
+
+> p=1
+
+[ap, b p], hp(t) = ap + t · (bp − ap),
+
+restricts to a homeomorphism between [0 , 1] n and the bounding box of K, and 
+
+Lip( h) = max  
+
+> p
+
+(bp − ap) ≤ diam( K), Lip( h−1) = 1min p(bp − ap) .
+
+Proof. The map h is bijective, continuous, and its inverse h−1 is a componentwise affine scaling, hence continuous; so h is a homeomorphism. The Jacobian of h is the diagonal matrix diag( b1 −
+
+a1, . . . , b n − an), whose operator norm is exactly max p(bp − ap); this quantity is bounded above by diam( K), with equality when the bounding box is saturated along a coordinate axis. The Jacobian of h−1 is the reciprocal diagonal, whose operator norm is 1 / min p(bp − ap). 
+
+Remark 3.2 . Lemma 3.1 applies to any compact set via its axis-aligned bounding box; no geometric structure beyond compactness is required for the main theorem. 44 Main theorem 
+
+4.1 Primitive blocks for standard operations 
+
+Proposition 4.1 (Standard primitive blocks) . The following primitive KAN blocks exist for the standard operation set Op = {+, −, ×, sin , cos } on bounded inputs in [0 , 1] :
+
+op cop Λop Construction 
+
++, − 1 1 One layer: φ0,1,1(u) = u, φ0,2,1(v) = ±v
+
+sin , cos 1 1 Piecewise-linear interpolant (B-spline order 1) 
+
+× 3 1 Three layers via u·v = (u+v)2 
+
+> 4
+
+− (u−v)2
+
+> 4
+
+Proof. For +: the single-layer KAN with φ0,1,1(u) = u and φ0,2,1(v) = v outputs u + v exactly; both edges have Lipschitz constant 1, giving Λ + = 1. The case − is identical with φ0,2,1(v) = −v.For sin , cos: let f denote sin or cos on [0 , 1]. Fix G equally spaced grid points xr = ( r−1) /(G−1) for r = 1 , . . . , G , with spacing h = 1 /(G − 1), consistent with the convention that G denotes the number of grid points throughout (see Definition 2.1 and equation (3)). Let sG be the continuous piecewise-linear interpolant of f on this grid. On each subinterval [ xr, x r+1 ] the slope of sG equals the secant slope ( f (xr+1 ) − f (xr)) /h , which by the mean-value theorem equals f ′(ξr) for some 
+
+ξr ∈ (xr, x r+1 ). Since |f ′| ≤ 1 on [0 , 1] for both sin and cos, we get Lip( sG) ≤ 1 exactly. The piecewise-linear function sG is a B-spline of order k = 1, hence is representable as an edge function in Definition 2.1. The standard interpolation error bound for C2 functions gives 
+
+∥f − sG∥∞ ≤ h2 
+
+> 8
+
+f ′′  
+
+> ∞
+
+= O (G − 1) −2 = O(G−2),
+
+since ∥sin ′′ ∥∞ = ∥cos ′′ ∥∞ = 1. Thus the one-layer block achieves Λ sin = Λ cos = 1 with an explicit approximation rate. For ×: on [0 , 1] 2, use the algebraic identity u · v = (u+v)2 
+
+> 4
+
+− (u−v)2 
+
+> 4
+
+.
+
+• Layer l = 0: compute a = u + v ∈ [0 , 2] and b = u − v ∈ [−1, 1], together with identity wires for 
+
+u and v. This uses the separable form of Definition 2.1 (edges φ0,i,j ) and requires max i M0,i = 1 (identity and sign edges). 
+
+• Layer l = 1: compute p = a2/4 and q = b2/4 via edges φ1,i,j . The function t 7 → t2/4 is a polynomial of degree 2; B-splines of order k ≥ 2 contain all polynomials of degree ≤ k in their spline space [4], so t2/4 is exactly representable as a B-spline of order k ≥ 2 — no approximation is involved. The Lipschitz constant of this exact edge spline is sup t d/dt (t2/4) = sup t |t/ 2|, which equals 1 on [0 , 2] (attained at t = 2) and 12 on [ −1, 1] (attained at t = ±1). Hence max i M1,i ≤ 1exactly, with no appeal to approximation theory. 
+
+• Layer l = 2: compute p − q = u · v via the identity spline on p and −q (edges φ2,i,j ), again separable. max i M2,i = 1. Thus Λ × = 1 · 1 · 1 = 1. 
+
+Extension to [0 , B ]s domains. The same constructions extend to the general bounded domains 
+
+Dv arising from the range recursion of Lemma 5.1: on [0 , B ]2, the × block has Layer l = 1 Lipschitz constant B (since d/dt (t2/4) = |t/ 2| ≤ B on [0 , 2B]), giving Λ ×,[0 ,B ]2 = B = C×,[0 ,B ]2 ;and sin , cos blocks on [0 , B ] are constructed identically (piecewise-linear interpolant on [0 , B ] with spacing h = B/ (G − 1), the MVT gives Lip( sG) ≤ 1 exactly since |sin ′| , |cos ′| ≤ 1 everywhere). This confirms that assumption (A5) holds on every domain Dv supplied by Lemma 5.1. We collect the hypotheses. 5Assumption 4.2. Let f : [0 , 1] n → R be a continuous function with fixed computation tree T .(A1) Finite tree. The total node count N = total nodes( f ) is finite. (A2) Compositional sparsity. Each internal node depends on at most s = O(1) coordinate variables. (A3) Lipschitz operations. Every operation op ∈ Op is Lipschitz, and COp := max op ∈Op max i Lip i(op) <
+
+∞. By Rademacher’s theorem, op is differentiable almost everywhere; for unary op, Lip(op) = ess sup |op ′|, and for binary or higher-arity op, the joint Lipschitz constant equals ess sup ∥∇ op ∥2
+
+while the partial Lipschitz constant Lip i(op) equals ess sup |∂iop |. No continuous differentia-bility is required. (A4) Quantitative range boundedness. For every sub-function g of f realised at an internal node of T , the range bound Bg := sup [0 ,1] n |g| is known explicitly , with Bleaf = 1 for leaves. (Note: mere finiteness Bg < ∞ is automatic by continuity on the compact cube [0 , 1] n; assump-tion (A4) requires the explicit value of Bg, as provided inductively by Lemma 5.1.) (A5) Primitive-block existence (domain-sensitive). For each op ∈ Op and each bounded domain 
+
+D ⊂ Rs arising from the quantitative range bounds of the child nodes (as supplied by Lemma 5.1), there exists a primitive KAN block Bop ,D (Definition 2.5) on D whose block Lipschitz product satisfies Λop ,D ≤ max( Cop ,D , 1) cop ,
+
+where Cop ,D := max i Lip i(op |D) is the partial Lipschitz constant of op on D. (For Op = 
+
+{+, −, ×, sin , cos }, this is verified by Proposition 4.1 with domains determined inductively by Lemma 5.1.) 
+
+Theorem 4.3 (Layer-wise Lipschitz-product control) . Under Assumptions (A1)–(A5) (collected in Assumption 4.2), there exists a KAN (the block-based sequential construction of Proposition 4.1) that represents f to any prescribed tolerance and satisfies 
+
+(i) Let Lf := P   
+
+> vinternal node of T
+
+cop( v) be the total block depth of f , and let Dv ⊂ Rs denote the input domain of node v as determined inductively by Lemma 5.1. Write Cop( v),D v := max i Lip i(op( v)|Dv ) for the partial Lipschitz constant of op( v) restricted to Dv. Then the 
+
+primary (domain-sensitive) bound is 
+
+P (KAN f ) ≤ Y
+
+> v
+
+Λop( v),D v ≤ Y
+
+> v
+
+max  Cop( v),D v , 1cop( v) , (7) 
+
+independent of n. Setting C∗ := max v Cop( v),D v (the tree-uniform partial Lipschitz constant over all node-domains of T ) yields the simplified form P (KAN f ) ≤ max( C∗, 1) Lf . Since 
+
+cop ≤ cmax := max op ∈Op cop , we have Lf ≤ cmax · N . For Op = {+, −, ×, sin , cos } with the blocks of Proposition 4.1, cmax = 3 and Λop( v),D v = 1 for every node v (as verified by the explicit block constructions of Proposition 4.1; see Corollary 4.4), so P (KAN f ) ≤ 1
+
+independently of both n and N ;
+
+(ii) n0 = n and nl ≤ n + 2 wmax · N for all layers l ≥ 1, where wmax = max op ∈Op wop is the maximum primitive block width. Only the upper bound O(n + N ) on the maximum width is proved here; a matching lower bound is not established; 
+
+(iii) ∥f − KAN f ∥C0([0 ,1] n) ≤ N · max( COp , 1) d(f ) · εOp , where εOp is the worst-case B-spline error at a single node and d(f ) is the depth of the computation tree. For COp ≤ 1 (e.g. 
+
+Op = {+, −, ×, sin , cos } on [0 , 1] ) this reduces to N · εOp ;
+
+6(iv) if f ∈ Cm and every op ∈ Op is Cm on the bounded domain on which it is evaluated (automat-ically satisfied for {+, −, ×, sin , cos }; this hypothesis is needed so that node functions inherit 
+
+Cm regularity inductively from their inputs), then ∥f − KAN f ∥C0 = O
+
+
+
+N · max( COp , 1) d(f ) · G−(k+1) 
+
+for k ≤ m − 1 and B-splines of order k on G knots; for COp ≤ 1 this simplifies to O(N ·
+
+G−(k+1) ).Proof. We proceed by induction on N = total nodes( f ). 
+
+Base case N = 0. Then f = xp for some p ∈ { 1, . . . , n }. We take KAN f to be the identity univariate function on coordinate p. Every edge carries either the identity or a zero spline. Thus 
+
+P (KAN f ) = 1, since the single-layer identity KAN has M0,i = 1 for all i (the identity function has Lipschitz constant 1), so the product QL−1 
+
+> l=0
+
+max i Ml,i = 1; the primary bound (7) holds as an empty product equal to 1 (no internal nodes contribute). The layer width is 1 ≤ n + 0; the approximation error is 0. All bounds hold. 
+
+Inductive step. We treat binary and unary operations in parallel. For a binary operation, write 
+
+f = op( g, h ) where g and h have Ng and Nh internal nodes respectively with Ng + Nh + 1 = N .For a unary operation, write f = op( g) with Ng + 1 = N and no h-subtree; in this case all bounds involving h below are vacuously omitted (i.e. set Lh = 0, P (KAN h) = 1, εh = 0, and the ECL reduces to ∥f − cop( bg)∥C0 ≤ Lip(op) · εg + εop ≤ COp · εg + εop ). Let Lg = P 
+
+> v∈Tg
+
+cop( v) and 
+
+Lh = P 
+
+> v∈Th
+
+cop( v). By the inductive hypothesis, 
+
+P (KAN g) ≤ Y
+
+> v∈Tg
+
+max( Cop( v),D v , 1) cop( v) , nl(g) ≤ n + 2 wmax Ng,P (KAN h) ≤ Y
+
+> v∈Th
+
+max( Cop( v),D v , 1) cop( v) , nl(h) ≤ n + 2 wmax Nh.
+
+Block-based sequential construction. For each internal node v of T with operation op( v) and child range domain Dv (determined by Lemma 5.1), let Bop( v),D v be the primitive block guaranteed by assumption (A5). We compose the blocks sequentially : run all blocks of KAN g (the sub-network for g), then all blocks of KAN h (for h), and finally the block Bop for the root operation. Within each block, identity wires carry all active coordinates forward between layers. Concretely: 
+
+• Layers 1 , . . . , L g: execute the sequential composition of all primitive blocks for sub-tree Tg, with identity wires forwarding all n input coordinates and any already-computed intermediate values. 
+
+• Layers Lg + 1 , . . . , L g + Lh: execute the sequential composition of blocks for Th, with identity wires forwarding the output of KAN g and the n inputs. 
+
+• Final cop layers: apply block Bop to produce op( g, h ). Each layer of KAN g and KAN h contains at least one identity wire, giving per-layer factor max i Ml,i ≥
+
+1. The layers internal to Bop have per-layer factors that multiply to Λ op .
+
+Proof of (i). The Lipschitz product factorises over the three sequential regions: 
+
+P (KAN f ) ≤ P (KAN g) · P (KAN h) · Λop ,D root .
+
+By the inductive hypothesis applied to sub-trees Tg and Th,
+
+P (KAN g) ≤ Y
+
+> v∈Tg
+
+max( Cop( v),D v , 1) cop( v) , P (KAN h) ≤ Y
+
+> v∈Th
+
+max( Cop( v),D v , 1) cop( v) .
+
+7By assumption (A5), Λ op ,D root ≤ max( Cop ,D root , 1) cop . Multiplying and recognising that the root node contributes the factor for v = root, 
+
+P (KAN f ) ≤ Y
+
+> v∈T
+
+max( Cop( v),D v , 1) cop( v) ≤ max( C∗, 1) Lf , (8) where C∗ = max v Cop( v),D v . For Op = {+, −, ×, sin , cos }, Proposition 4.1 gives Λ op( v),D v = 1 for every v, so P (KAN f ) ≤ 1 regardless of Lf .
+
+Proof of (ii). At any fixed layer l of the sequential construction, the active neurons decompose into three disjoint groups: (a) Forwarded inputs : the n input coordinates x1, . . . , x n, carried forward at every layer by identity wires; (b) Internal block neurons : at most wop( v) ≤ wmax neurons belonging to the primitive block 
+
+Bop( v),D v currently executing at layer l;(c) Forwarded intermediate values : the outputs of all blocks completed before layer l whose values are still needed by later blocks — at most N −1 such values (one per completed internal node). Hence nl ≤ n + wmax + ( N − 1) ≤ n + wmax · N + N ≤ n + 2 wmax · N , where the last inequality uses N ≤ wmax · N (valid since wmax ≥ 1). The input layer reads all n coordinates directly, so 
+
+n0 = n. In particular the total number of layers is Lf = P 
+
+> v
+
+cop( v) ≤ cmax · N , and by equation (6), Lip(KAN f ) ≤ W Lf · P (KAN f ) with W ≤ n + 2 wmax N .
+
+Proof of (iii) (Error Composition Lemma). Let bg and bh be KAN approximations to g
+
+and h with errors εg = ∥g − bg∥C0 and εh = h − bh C0 , and let cop be the spline approximation of op with error εop = ∥op − cop ∥C0 . Define the worst-case single-node spline error as εOp := max op ∈Op ∥op − cop ∥C0(Dop ), taken over all operations in Op and their respective domains Dop (as supplied by Lemma 5.1). Recall that the partial Lipschitz constant in the i-th argument is Lip i(op) := sup  
+
+> u1,...,u s, v ̸=v′
+
+|op( u1, . . . , v, . . . , u s) − op( u1, . . . , v ′, . . . , u s)||v − v′| ,
+
+with variation only in the i-th argument (Section 2). For op ∈ { +, −, ×, sin , cos } on [0 , 1] one has Lip i(op) ≤ COp (here COp denotes max op ∈Op max i Lip i(op |Dv ) evaluated at the relevant node domain; for the standard set on [0 , 1]-bounded × inputs, COp = 1): for + , − trivially Lip i = 1; for × on [0 , 1] 2, Lip 1 = sup y∈[0 ,1] |y| = 1 and Lip 2 = sup x∈[0 ,1] |x| = 1; and sin , cos are unary with Lipschitz constant 1. A two-step triangle inequality, inserting the intermediate point op( bg, h ), gives the Error Com-position Lemma :
+
+f − cop( bg, bh) C0 ≤ op( g, h ) − op( bg, bh) C0 + op( bg, bh) − cop( bg, bh) C0
+
+≤ ∥op( g, h ) − op( bg, h )∥ + op( bg, h ) − op( bg, bh)  + εop 
+
+≤ Lip 1(op) · εg + Lip 2(op) · εh + εop 
+
+≤ COp (εg + εh) + εop , (9) where the last step uses Lip i(op) ≤ COp for i = 1 , 2. In parts (iii)–(iv), COp denotes the tree-uniform constant max v Cop( v),D v (a coarser bound than the node-by-node partial Lipschitz constants used 8in part (i)); for the standard operation set Op = {+, −, ×, sin , cos } on [0 , 1]-bounded inputs this reduces to COp = 1. We now write out the full induction. Let E(T ) := ∥fT − KAN fT ∥C0 for a computation tree T of depth d(T ). We prove 
+
+E(T ) ≤ NT · max( COp , 1) d(T ) · εOp ,
+
+where NT = total nodes( T ). 
+
+Base case NT = 0: E(leaf) = 0 ≤ 0. 
+
+Inductive step : T = op( Tg, T h) with Ng + Nh + 1 = NT and d(T ) = max( d(Tg), d (Th)) + 1. Set 
+
+C∗ := max( COp , 1) ≥ 1. By the inductive hypothesis applied to Tg and Th:
+
+E(Tg) ≤ Ng · (C∗)d(Tg ) · εOp , E(Th) ≤ Nh · (C∗)d(Th) · εOp .
+
+Then 
+
+E(T ) ≤ COp · E(Tg) + COp · E(Th) + εOp 
+
+≤ C∗ · Ng · (C∗)d(Tg ) · εOp + C∗ · Nh · (C∗)d(Th) · εOp + εOp 
+
+≤ (C∗)d(T ) Ng + Nh
+
+εOp + εOp ≤ (C∗)d(T ) · NT · εOp ,
+
+where we used d(Tg), d (Th) ≤ d(T ) − 1 so ( C∗)1+ d(Tg ) ≤ (C∗)d(T ) (since C∗ ≥ 1), and 1 ≤ (C∗)d(T )
+
+(the + εOp term is absorbed). This establishes claim (iii) for all COp > 0: the bound reads N ·
+
+Cd(f )Op · εOp when COp ≥ 1 and N · εOp when COp ≤ 1. 
+
+Proof of (iv). Under the hypothesis that each op ∈ Op is Cm on bounded domains, every node function inherits Cm regularity by structural induction: leaf functions are coordinate projections, which are C∞; and if g, h ∈ Cm and op is Cm, then op( g, h ) ∈ Cm by the chain rule. Applying the B-spline rate (3) at every node, 
+
+εOp = O
+
+
+
+G−(k+1) 
+
+.
+
+Substituting into the bound of part (iii) gives 
+
+∥f − KAN f ∥C0 = O
+
+
+
+N · max( COp , 1) d(f ) · G−(k+1) 
+
+,
+
+which is precisely the statement of part (iv). 
+
+Corollary 4.4 (Smooth operations on the unit interval) . Suppose Op = {+, −, ×, sin , cos }, leaf functions satisfy xp ∈ [0 , 1] , and every × node in the computation tree receives inputs bounded in 
+
+[0 , 1] (which holds in particular when no +/− node feeds a × node, e.g. for purely multiplicative or trigonometric trees; see Lemma 5.1(3)). Then, using the primitive blocks of Proposition 4.1, 
+
+COp = 1 and Λop = 1 for every operation. Consequently: 
+
+P (KAN f ) ≤ 1, nl ≤ n + 2 wmax N, ∥f − KAN f ∥ = O
+
+
+
+N · G−(k+1) 
+
+,
+
+where wmax ≤ 4 from the × block of Proposition 4.1 (so nl ≤ n + 8 N ). In particular, P (KAN f )
+
+is independent of both n and N . For the standard operation set Op = {+, −, ×, sin , cos }, assump-tion (A5) is verified explicitly by Proposition 4.1. 
+
+9Remark 4.5 (Mixed + /× trees and effective COp ). For trees in which a + node feeds a × node, the output of the + node may lie in [0 , 2] rather than [0 , 1], and so Lip i(×) at that × node equals the supremum of the other input’s magnitude, which can exceed 1. In such cases COp =1 does not hold for the effective operation Lipschitz constant, and Theorem 4.3 must be ap-plied with the larger, node-specific partial Lipschitz constants. Only × among the operations +, −, ×, sin , cos , max( ·, 0) , |·| is sensitive to input range; the remaining operations have partial Lip-schitz constant 1 globally. 
+
+Corollary 4.6 (Non-differentiable Lipschitz operations) . Suppose Op contains non-differentiable but Lipschitz operations such as max( ·, 0) , |·| , or min( ·, 0) . Then Theorem 4.3 extends to this Op 
+
+provided assumption (A5) is verified: i.e., for each such op and each bounded input domain D
+
+arising from the range bounds, a primitive KAN block Bop ,D with Λop ,D ≤ max( COp ,D , 1) cop must be constructed explicitly. Rademacher’s theorem guarantees differentiability almost everywhere and identifies Lip i(op) = ess sup |∂iop |, which supplies the operator-side data COp ,D ; however, block construction is a separate task. Proof. The general proof of Theorem 4.3 invokes only assumption (A5), not any differentiability of op. Rademacher’s theorem supplies the partial Lipschitz constants. Block construction for max( ·, 0) and |·| on [0 , B ] can be done analogously to the × block: the piecewise-linear nature of these operations means exact spline representations exist at any B-spline order k ≥ 1, with Λop ,D = 1. 
+
+Corollary 4.7 (Table of COp ). For operations acting on inputs in [0 , 1] :
+
+op COp 
+
++, −, ×, sin , cos , max( ·, 0) , |·| 1.0exp e ≈ 2.718 
+
+The table records only the operator-side quantity Cop ,D on [0 , 1] . Applying Theorem 4.3 to any listed or additional operation still requires separate verification of assumption (A5): for each node domain 
+
+Dv arising from the range recursion, one must construct a primitive KAN block with Λop ,D v ≤
+
+max( Cop ,D v , 1) cop . For × on [0 , 1] 2, the partial Lipschitz constants are Lip 1(×) = Lip 2(×) = 1 and assumption (A5) is verified by Proposition 4.1; when × receives an input of range [0 , B ] for B > 1,the effective Cop ,D v = B must be used. For exp : the operator-side constant is Lip(exp |[0 ,1] ) = e;if additionally a primitive KAN block for exp satisfying (A5) has been constructed on the relevant bounded domain, then Theorem 4.3 yields P (KAN f ) ≤ eLf (or the corresponding domain-sensitive product (7) ). The remaining tabulated operations +, −, sin , cos , max( ·, 0) , |·| have Cop ,D = 1 globally. 
+
+4.2 A Jacobian-based lower bound on P (KAN) 
+
+Proposition 4.8 (Jacobian lower bound) . For any KAN representation of a scalar-valued f :[0 , 1] n → R with L layers and layer widths bounded by W = max l nl,
+
+P (KAN) ≥ ∥Jf (x)∥2
+
+W L for every differentiability point x ∈ [0 , 1] n. (10) 
+
+Proof. Since f is scalar-valued, Jf (x) is a 1 × n row vector. For each layer l, the layer Jacobian 
+
+Jl ∈ Rnl+1 ×nl has entries ( Jl)j,i = φ′ 
+
+> l,i,j
+
+(xl,i ), so |(Jl)j,i | ≤ Ml,i ≤ μl := max i Ml,i . Using ∥A∥op ≤
+
+p∥A∥1 · ∥ A∥∞ (maximum absolute column and row sums): 10 • Column i of Jl has nl+1 entries each bounded by Ml,i ≤ μl, so ∥Jl∥1 ≤ nl+1 · μl ≤ W μ l.
+
+• Row j of Jl has nl entries, entry ( j, i ) bounded by Ml,i ≤ μl, so ∥Jl∥∞ ≤ nl · μl ≤ W μ l.Therefore ∥Jl∥op ≤ √W μ l · W μ l = W · μl. By the chain rule Jf = JL−1 · · · J0 and submultiplica-tivity, 
+
+∥Jf (x)∥2 ≤
+
+> L−1
+
+Y
+
+> l=0
+
+∥Jl∥op ≤
+
+> L−1
+
+Y
+
+> l=0
+
+W · μl = W L · P (KAN) .
+
+Rearranging gives the claim. 
+
+Remark 4.9 (Comparison with upper bound) . The Jacobian lower bound P (KAN) ≥ ∥ Jf (x)∥2 /W L
+
+grows exponentially weak with depth L, and does not pin P exactly in general. Under the block-based construction of Proposition 4.1, P (KAN xy ) ≤ Λ× = 1 from the upper bound. For the lower bound: each of the three layers of B× carries at least one identity wire (Lip = 1) forwarding an input coordinate, giving max i Ml,i ≥ 1 at every layer. Hence P (KAN xy ) ≥ 1, and combined with the upper bound, P = 1 exactly. 
+
+# 5 Inductive verification of (A4) 
+
+We show that assumption (A4) (range boundedness) is not independent: mere finiteness Bg < ∞
+
+is automatic from continuity on the compact cube [0 , 1] n (requiring only (A1) and (A3)). The real content of this section is the explicit quantitative inductive bound on Bg provided by Lemma 5.1, which requires tracing through the operation table; this is what is genuinely used in the proof of Theorem 4.3. 
+
+5.1 Operation-wise range rules 
+
+For a binary operation op on inputs with |g| ≤ Bg and |h| ≤ Bh, we collect the exact range bounds of op( g, h ): op Bop( g,h ) Justification + Bg + Bh triangle inequality 
+
+− Bg + Bh triangle inequality 
+
+× Bg · Bh submultiplicativity sin 1 |sin t| ≤ 1 for all t
+
+cos 1 |cos t| ≤ 1 for all t
+
+max( ·, 0) Bg |max( t, 0) | ≤ | t||·| Bg |t| = |t|
+
+5.2 The inductive range lemma 
+
+Lemma 5.1 (Inductive verification of (A4)) . Assume (A1) and (A3), and that leaf functions are coordinate projections xp ∈ [0 , 1] (so Bleaf = 1 ). Then for every node of the computation tree: 
+
+(1) Bf < ∞ (automatic: f is continuous on the compact cube [0 , 1] n, so boundedness is immediate without any computation); 
+
+(2a) for trees whose binary operations are +, − only (additive-subtractive trees, possibly with unary 
+
+sin , cos , max( ·, 0) , |·| ), Bf ≤ N + 1 on [0 , 1] n, with equality achieved by the all-additive binary tree with N + 1 leaves (tightness); 
+
+11 (2b) for general trees over {+, −, ×, sin , cos }, Bf is finite (by (1)) but may exceed N + 1 when ×
+
+nodes receive inputs of range greater than 1;
+
+(3) for purely multiplicative or purely trigonometric trees, Bf = 1 .Proof. We proceed by structural induction on the tree. The base case is Bleaf = 1. For the inductive step, apply the table of Section 5.1. 
+
+Worst case (additive-subtractive trees, claim (2a)). For an all-additive binary tree with N
+
+internal nodes there are exactly N + 1 leaves. Repeated application of Bg+h ≤ Bg + Bh (and 
+
+Bg−h ≤ Bg + Bh) yields Bf ≤ N + 1. This is tight: every leaf xp ∈ [0 , 1] satisfies xp ≤ 1, so the constant function 1 is the coordinate projection x1 at the maximal input, and Bf = N +1 is attained at x = (1 , . . . , 1). Note this argument applies only when the binary operations are restricted to +, − (claim (2a)); for general trees containing ×, see claim (2b) and Remark 5.2 below. 
+
+Multiplicative case. For × on inputs in [0 , 1], submultiplicativity yields B = 1 · 1 = 1; iterated multiplication preserves the bound. 
+
+Trigonometric case. For sin or cos, the output bound is 1 regardless of the input. Compositions of such operations preserve the bound B = 1. Finiteness (1) is immediate because every entry in the table is finite when Bg, B h are finite. 
+
+Remark 5.2 (Mixed-operation counterexample to (2) without restriction) . The restriction to additive-subtractive trees in (2a) is necessary. Consider f = (( x1 + x2) · (x3 + x4)) · (x5 + x6) on [0 , 1] 6. Here 
+
+N = 5, so the naive bound N + 1 = 6 would apply; but by submultiplicativity and the additive subtree bounds, Bf ≤ 2 · 2 · 2 = 8 > 6. Thus the universal bound Bf ≤ N + 1 fails for trees that mix + with ×: a × node with inputs of range > 1 multiplies, rather than adds, the input bounds. Claim (2b) only asserts finiteness in this mixed regime. 
+
+Remark 5.3 (Numerical verification) . We verified the range rules numerically by sampling 2 × 10 5
+
+points per operation and by constructing 1000 random trees of depth ≤ 5. In all instances the bounds in Section 5.1 held, and for the all-additive tree the upper bound Bf = N + 1 was attained at depths 1 through 5. 
+
+# 6 Experiments 
+
+This section presents illustrative sanity checks confirming the theoretical bounds of Theorem 4.3. The paper is primarily a concise theoretical note; the experiments are not intended as a compre-hensive empirical evaluation. 
+
+6.1 Sprecher baseline 
+
+For comparison, Sprecher’s 1965 construction [3] applies to arbitrary f ∈ C0([0 , 1] n) and pro-duces inner functions whose Lipschitz constants depend on n; the classical construction does not provide n-independent Lipschitz control. Such an n-dependent baseline is universal (it covers every continuous f ) but is wasteful for compositionally structured f , where, by Theorem 4.3, 
+
+P (KAN f ) ≤ max( COp , 1) Lf independent of n.
+
+6.2 Compositionally structured functions 
+
+We instantiate the block-based sequential construction (Proposition 4.1) on four families. 12 f n N P (KAN) 
+
+xy 2 1 1.0
+
+xyz 3 2 1.0sin( xy ) 2 2 1.0
+
+x1 · · · xn 2–10 n − 1 1.0We realise multiplication using the primitive block B× of Proposition 4.1 (three B-spline lay-ers via u · v = (u+v)2 
+
+> 4
+
+− (u−v)2 
+
+> 4
+
+, with Λ × = 1). The partial Lipschitz constants are Lip 1(×) = sup y∈[0 ,1] |y| = 1 and Lip 2(×) = sup x∈[0 ,1] |x| = 1, giving COp = 1. For f = xy with N = 1, The-orem 4.3 yields P (KAN xy ) ≤ Λ× = 1, and the identity wires in the block construction contribute Lip = 1 edges so P (KAN) ≥ 1 (Remark 4.9); hence P = 1 exactly. The remaining entries are built from ×, sin as primitive blocks: xyz uses sequential application of B× twice; sin( xy ) composes a sin-block on top of B×; and x1 · · · xn uses the binary-multiplication tree. In every case the total block depth satisfies Lf = P 
+
+> v
+
+cop( v) ≤ 3N and the Lipschitz product is exactly 1 .0. 
+
+6.3 Error-scaling verification 
+
+We verified the B-spline rate O(G−(k+1) ) on f (x) = sin( x) with cubic B-splines ( k = 3). The ratio 
+
+∥f − sk,G ∥ /h 4, where h = 1 /(G − 1) is the knot spacing on a uniform grid with G knots, should be approximately constant: 
+
+G error h4
+
+5 7.25 × 10 −5 3.91 × 10 −3
+
+12 1.52 × 10 −6 6.83 × 10 −5
+
+35 1.74 × 10 −8 7.48 × 10 −7
+
+The measured ratios are 0 .019, 0 .022, 0 .023 respectively. The approximate constancy of the ratio across two orders of magnitude in G confirms the rate O(G−4) = O(G−(k+1) ). 
+
+# 7 Discussion 
+
+7.1 What is proved 
+
+Theorem 4.3 shows that compositionally structured functions admit deep KAN representations with: 
+
+• layer-wise Lipschitz product P (KAN) ≤ max( COp , 1) Lf (with Lf = P 
+
+> v
+
+cop( v) ≤ cmax · N ) inde-pendent of the input dimension n, addressing a gap noted in Liu et al. [10]; 
+
+• layer width linear in n + N , neither quadratic nor exponential; 
+
+• approximation rate matching the optimal B-spline rate of the same order, multiplied by the node count N .
+
+7.2 Open questions 
+
+• Compositional sparsity verification (Gap b). Determining whether a given f satisfies (A2) for a fixed s appears to be computationally hard in general (verification of compositional structure is related to circuit decomposition problems); Theorem 4.3 therefore treats (A2) as an explicit 13 hypothesis. For functions with known structure (physical equations, symbolic expressions), (A2) is checkable. 
+
+• Width lower bound. Our construction gives nl ≤ n+2 wmax N , and the input layer satisfies n0 = n;interior layers can be narrower. Whether the upper bound can be tightened for all layers remains open. 
+
+• Lower bound on P (KAN) . We know of no compositionally sparse function class on which Pmin →∞ with n. The upper bound P ≤ 1 in Corollary 4.4 is attained at P = 1 for all tested examples (Proposition 4.1 and Section 6.2); whether P < 1 is achievable for a different construction is open. 
+
+• Lean 4 formalisation. The inductive structure of Theorem 4.3 maps naturally onto a CompGraph 
+
+inductive type in Mathlib; see Appendix A. 
+
+7.3 Connection to HKAN (Dudek 2025) 
+
+The hierarchical KAN of Dudek [11] stacks KAN layers without backpropagation, solving each level as a convex least-squares problem. Theorem 4.3 provides a theoretical mechanism and tem-plate for avoiding Lipschitz explosion in hierarchical KAN constructions, under the compositional and primitive-block hypotheses (A1)–(A5). It does not constitute an unrestricted guarantee for arbitrary HKAN training or stacked architectures beyond those hypotheses. Under (A1)–(A5), 
+
+P (KAN) remains bounded by max( COp , 1) Lf (with Lf ≤ cmax · N ) regardless of the depth of the stack. 
+
+# A Lean 4 sketch 
+
+The following is an informal remark on how Theorem 4.3 might eventually be formalised in Lean 4. A block-based formalisation should define an inductive type CompGraph with constructors for vari-ables, unary, and binary nodes; define block_depth : CompGraph -> Nat accumulating P 
+
+> v
+
+cop( v);and carry, for each node, a proof term of type PrimitiveBlockExists op D witnessing assump-tion (A5). The main inductive step would apply LipschitzWith.comp at each block boundary and accumulate block-product factors via Finset.prod_le_prod . A complete Lean formalisation is left for future work. 
+
+# References 
+
+[1] A. N. Kolmogorov. On the representation of continuous functions of many variables by super-position of continuous functions of one variable and addition. Doklady Akademii Nauk SSSR ,114:953–956, 1957. [2] V. I. Arnold. On functions of three variables. Doklady Akademii Nauk SSSR , 114:679–681, 1957. [3] D. A. Sprecher. On the structure of continuous functions of several variables. Transactions of the American Mathematical Society , 115:340–355, 1965. [4] G. G. Lorentz. Approximation of Functions . Holt, Rinehart and Winston, New York, 1966. 14 [5] B. L. Fridman. An improvement in the smoothness of the functions in A. N. Kolmogorov’s theorem. Soviet Mathematics Doklady , 8:1108–1111, 1967. [6] S. Mazurkiewicz. ¨Uber die Menge der differenzierbaren Funktionen. Fundamenta Mathemati-cae , 27:244–249, 1931. [7] H. Montanelli and H. Yang. Error bounds for deep ReLU networks using the Kolmogorov– Arnold superposition theorem. Neural Networks , 129:1–6, 2020. [8] J. Schmidt-Hieber. The Kolmogorov–Arnold representation theorem revisited. Neural Net-works , 137:119–126, 2021. [9] T. Poggio, H. Mhaskar, L. Rosasco, B. Miranda, and Q. Liao. Why and when can deep—but not shallow—networks avoid the curse of dimensionality. International Journal of Automation and Computing , 14(5):503–519, 2017. [10] Z. Liu, Y. Wang, S. Vaidya, F. Ruehle, J. Halverson, M. Soljaˇ ci´ c, T. Y. Hou, and M. Tegmark. KAN: Kolmogorov–Arnold networks. arXiv:2404.19756 , 2024. [11] G. Dudek. HKAN: Hierarchical Kolmogorov–Arnold networks. arXiv:2501.18393 , 2025. 15
