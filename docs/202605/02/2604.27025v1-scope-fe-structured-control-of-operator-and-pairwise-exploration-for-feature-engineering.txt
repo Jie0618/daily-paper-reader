@@ -1,0 +1,600 @@
+Title: SCOPE-FE: Structured Control of Operator and Pairwise Exploration for Feature Engineering
+
+URL Source: https://arxiv.org/pdf/2604.27025v1
+
+Published Time: Fri, 01 May 2026 00:02:57 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+## SCOPE-FE: Structured Control of Operator and Pairwise Exploration for Feature Engineering Minhee Park Seongyeon Son Yonghyun Lee Eunchan Kim 
+
+Abstract 
+
+Automatic feature engineering is an effective approach for improving predictive performance in tabular learning. How-ever, expand-and-reduce methods, such as OpenFE, be-come increasingly computationally expensive as the input dimensionality grows. This limitation arises primarily from the combinatorial explosion of candidate features generated through operator–feature combinations. To address this is-sue, we propose SCOPE-FE, a structured search space con-trol framework that improves efficiency by reducing the can-didate space prior to feature generation. SCOPE-FE jointly regulates two major sources of combinatorial growth: the operator space and feature-pair space. First, Operator-Probing estimates the dataset-specific utility of candidate operators and eliminates low-contribution operators in ad-vance. Second, FeatureClustering employs spectral embed-ding and fuzzy c-means clustering to group structurally re-lated features, thereby restricting candidate generation to relevant within-cluster combinations. In addition, we intro-duce ReliabilityScoring, which incorporates variance across subsamples to stabilize pruning decisions. Experiments on ten benchmark datasets demonstrate that SCOPE-FE sub-stantially reduces feature engineering time while maintain-ing competitive predictive performance relative to existing baselines. The efficiency gains are particularly pronounced for high-dimensional datasets. These results indicate that structured control of the search space is an effective strat-egy for scalable automatic feature engineering. The code will be made publicly available upon acceptance. 
+
+Keywords: Feature Generation, Automated Feature Engineering, Search Space Reduction, Tabular Data 
+
+1 Introduction 
+
+Automatic feature engineering (AutoFE) enhances tab-ular learning by automatically generating candidate fea-tures from the original inputs and selecting those that improve downstream predictive performance, without relying on manual feature design [1, 2, 3]. As a re-sult, AutoFE has been widely studied as an effective approach to improve tabular models while reducing the human effort required for feature construction. Existing AutoFE methods largely follow an expand-and-reduce framework, in which a large pool of can-didate features is generated using predefined operators, and retains only the most useful features through sub-sequent pruning [4, 5, 6]. Among recent approaches, OpenFE [7] is a representative method that gener-ates candidates from a predefined operator set, evalu-ates each candidate’s incremental utility via Feature-Boost, and progressively prunes the pool for down-stream tasks. This design achieves strong predictive performance without requiring retraining for each gen-erated feature set or incurring the substantial opti-mization costs commonly associated with reinforcement learning or neural network–based search methods [8, 9]. Although OpenFE improves predictive performance compared with prior work, it does not fully address the fundamental inefficiencies of broad candidate gen-eration. Its pipeline combines features and operators at a large scale in the initial stage and makes most deci-sions only after a large number of candidates have been generated. Thus, OpenFE is effective during the prun-ing phase but remains relatively permissive during the expansion phase. The total cost of feature engineering depends not only on the number of features ultimately selected but also on the number of candidates gener-ated, evaluated, and discarded throughout the process. As the number of original features or operators increase, the candidate space grows rapidly, substantially increas-ing the computational cost of both expansion and reduc-tion [10, 11, 12]. To address this limitation, we propose SCOPE-FE, a structured search-space control framework that restricts the candidate space of OpenFE, thereby making can-didate generation more selective and efficient without substantially compromising predictive performance. By preventing potentially unnecessary or invalid candidates from being generated, SCOPE-FE reduces not only the number of features passed to subsequent pruning stages but also the overall runtime of the feature generation pipeline. This is particularly important for large-scale tabular datasets. SCOPE-FE improves the efficiency of OpenFE while maintaining the stability of candidate evaluation by jointly reducing the candidate space and enhancing the reliability of early-stage scoring. The first core com-ponent is a pair-space reduction mechanism based on soft clustering. By representing each input feature us-ing fuzzy cluster memberships [13], SCOPE-FE excludes feature pairs that do not share any clusters from candi-date generation. The second component is operator-aware filtering. Before executing the full OpenFE pipeline, a lightweight probing stage is applied to each 
+
+> arXiv:2604.27025v1 [stat.ML] 29 Apr 2026
+
+operator using a subset of the data, and operators with low estimated contributions are removed in advance. The third component, ReliabilityScoring, mitigates the noise sensitivity of single-split evaluations by repeatedly scoring candidates across multiple subsamples and pe-nalizing those with high variance. The contributions of this study are summarized as follows: 
+
+• We identify unconstrained candidate expansion in OpenFE as a key bottleneck and reformulate the problem as search-space control prior to candidate generation. 
+
+• We propose FeatureClustering and OperatorProb-ing to jointly restrict the pairing and operator spa-ces before candidate generation, and introduce Re-liabilityScoring to stabilize early-stage pruning. 
+
+• Experiments on 10 benchmark datasets show that SCOPE-FE substantially reduces runtime while maintaining competitive predictive performance, with gains most pronounced for high-dimensional datasets. 
+
+2 Related Work 2.1 Expand-and-Reduce-Based AutoFE Aut-oFE has been widely studied to improve predictive performance on tabular data, with the expand-and-reduce paradigm serving as a representative framework [11, 7, 14]. FCTree [15] constructs features from decision tree splits but limits feature diversity. SAFE [16] extracts linear transformations from boosting trees without considering arithmetic interactions. AutoCross [17] generates feature crosses via beam search but shows limited applicability to dense numerical data. FETCH [3] learns a transferable feature engineering policy but does not explicitly reduce the candidate space and incurs substantial computational cost. OpenFE [7] implements this paradigm using unary, binary, and group-by operators, along with successive halving and FeatureBoost-based selection; however, its enumeration-based generation produces O(d2 · | O|)
+
+candidates, resulting in significant computational overhead. 
+
+2.2 Search-Space Reduction in Feature Gen-eration To address the combinatorial explosion, prior work has explored beam search [17], reinforcement learning [18, 19], and neural network–based approaches [20, 21] to improve search efficiency. Katz et al. (2016) proposed a meta-feature-based classifier to pre-dict feature usefulness, thereby partially reducing the search space [1]. To further constrain the search space, prior studies have leveraged feature dependencies for guided pairing [22], correlation-based filtering with pair-wise evaluation [23], clustering-based feature grouping [24, 25, 26], and interaction strength estimation [27, 28]. Soft clustering allows features to belong to multiple clus-ters, enabling more flexible modeling of overlapping re-lationships [29, 30] and addressing the rigidity of hard clustering approaches. More recently, SMARTFEAT [31] focuses on operator subset selection, whereas CN2-MCI [32] selects useful feature pairs prior to applying constructive operators. However, these methods do not jointly control both the operator and feature-pair spa-ces, which is the key contribution of our work. 
+
+3 Problem Definition 
+
+Given a supervised learning dataset D = {(xi, y i) |
+
+i = 1, . . . , n }, partitioned into a training set Dtr 
+
+and a validation set Dvld , a set of original features 
+
+T = {t1, . . . , t d}, and a set of transformation operators 
+
+O = {o1, . . . , o p}, we define the candidate feature space A(T, O ) as the set of all features constructible by applying the operators in O to the features in T . Let L
+
+denote the learning algorithm used to train the model. The goal of AutoFE is to identify a subset Tnew ⊆A(T, O ) that maximizes the predictive performance of a downstream learner, as follows: (3.1) max  
+
+> Tnew ⊆A (T,O )
+
+E L(Dtr , T ∪ Tnew ), D vld , T ∪ Tnew 
+
+
+
+where L(Dtr , T ∪ Tnew ) denotes the model trained by 
+
+L on Dtr using the augmented feature set T ∪ Tnew ,and E(·, D vld , T ∪ Tnew ) evaluates the trained model on the held-out validation set Dvld . OpenFE proposes the FeatureBoost algorithm, which evaluates the utility of each candidate feature by learning residuals on top of the existing model’s predictions, as defined in Eq. (3.2). (3.2) ∆( ϕ) = linit − lbest 
+
+A value of ∆( ϕ) > 0 indicates that the feature ϕ
+
+provides additional predictive improvement over the existing model. Although Eq. (3.1) provides a clear formulation of the feature generation problem, solving it exactly is computationally intractable. For a dataset with d base features and p operators, the size of the candidate feature space A(T, O ) grows as shown in Eq. (3.3). (3.3) |A (T, O )| = O(punary · d + pbinary · d2) = O(p · d2)
+
+In addition, each candidate is evaluated using Feature-Boost (Eq. (3.2)), which requires full boosting iterations per candidate. As a result, exhaustive search becomes prohibitively expensive for real-world datasets. More-over, effective features are typically sparse: only a small fraction of A(T, O ) yields a positive incremental im-provement, i.e., ∆( ϕ) > 0. For the majority of can-didates, there is no performance gain, and performance may even degrade. This sparsity suggests that substan-tial computational savings can be achieved by constrain-ing the search space prior to the expensive evaluation stage, rather than generating all candidates and pruning them afterward. 
+
+4 Our Approach 
+
+To address the computational challenges described above, we propose three components. We reduce the candidate feature space A(T, O ) at generation time using two complementary mechanisms. First, Fea-tureClustering partitions features into groups of related variables and restricts binary operators to intra-cluster pairs. Second, OperatorProbing preselects a compact set of effective operators via subsampled evaluation, dis-carding those that contribute little to predictive per-formance. Finally, we stabilize the candidate selection process using ReliabilityScoring . The standard OpenFE pipeline evaluates each candidate once using Feature-Boost on a single data split, which makes it susceptible to sampling noise. To address this limitation, we replace the scoring function in the first round of the successive-halving procedure with a reliability score based on a lower-confidence-bound-style criterion. Each candidate is evaluated on multiple random subsamples, and fea-tures with high variance across evaluations are penal-ized. After reducing the candidate feature space A(T, O ) at generation time, the optimization problem in Eq. (3.1) can be reformulated as (4.1) 
+
+max  
+
+> Tnew ⊂A (T,O ∗,C )
+
+E L(Dtr , T ∪ Tnew ), D vld , T ∪ Tnew 
+
+
+
+where O∗ ⊂ O denotes the reduced operator set ob-tained through OperatorProbing, and C represents the clustering structure that constrains feature pair-ing. The objective function E remains identical to that in Eq. (3.1); only the search space is reduced from 
+
+A(T, O ) to A(T, O ∗, C ). To solve Eq. (4.1), we employ a reliability-adjusted surrogate score R(ϕ), defined as a lower-confidence-bound-style metric computed from multiple subsample evaluations of ∆( ϕ). Although ∆( ϕ)
+
+approximates the incremental contribution of a candi-date feature ϕ to E, it is computed on a single data split and may therefore be sensitive to sampling noise. We define ReliabilityScoring as penalizing the mean improvement of each candidate based on its variability across subsamples. A detailed formulation is provided in Section 4.4. 
+
+4.1 Overall Architecture Algorithm 4.1 and Fig-ure 4.1 summarize the complete space-controlled OpenFE pipeline. The procedure consists of five stages: (A) feature clustering to group-related variables; (B) operator probing to select effective operators; (C) con-
+
+Algorithm 4.1 Space-Controlled OpenFE 
+
+Input: D: dataset, T : feature set, O: operator set 
+
+Output: T ∪ Tnew : generated new feature set 
+
+Stage A: Feature Clustering (Section 4.2) 
+
+S ← BuildSimilarityMatrix (D, T )
+
+C ← FeatureClustering (S)
+
+Stage B: Operator Probing (Section 4.3) 
+
+O∗ ← OperatorProbing (D, T, O )
+
+Stage C: Constrained Candidate Generation 
+
+A ← GenerateCandidates (O∗, C )
+
+Stage D: Reliability Scoring (Section 4.4) 
+
+ˆy ← BaselinePrediction (D, T )
+
+Ascored ← ReliabilityScoring (A, D, ˆy)
+
+Stage E: Feature Attribution + Selection 
+
+Afinal ← FeatureAttribution (Ascored , D, ˆy)
+
+Tnew ← Top-K (Afinal )
+
+return T ∪ Tnew 
+
+strained candidate generation using the clustering struc-ture and selected operators; (D) reliability scoring to stabilize the initial candidate ranking; and (E) final fea-ture selection through feature attribution. 
+
+4.2 Pair-space Scope Control The original OpenFE framework constructs candidate features by exhaustively pairing each feature in T with every other feature for each binary operator in O. For a dataset with d features and p binary operators, this results in 
+
+O(p · d2) candidate features, which is computationally prohibitive for large datasets. We observe that many of these feature pairs are unrelated, producing candidates that do not improve predictive performance. To address this issue, we propose FeatureClustering , which partitions T into groups of related features and restricts binary operators to intra-cluster pairs. We consider two clustering strategies: hard clustering (Section 4.2.2), which assigns each feature to exactly one cluster, and soft clustering (Section 4.2.3), which allows each feature to belong to multiple clusters with varying degrees of membership. 
+
+4.2.1 Similarity Measures To cluster the features, we first quantify pairwise similarity. Given d features, we construct a d × d symmetric similarity matrix S,where each entry Sij measures the statistical association between features ti and tj . Because different feature types require different association measures, we employ three statistics depending on the feature-type pair: absolute Pearson correlation for numeric–numeric pairs, bias-corrected Cramér’s V for categorical–categorical pairs, and eta-squared ( η2) for mixed-type pairs. These measures are combined to form the symmetric similarity matrix S. Appendix B provides the formal definitions of these measures. Figure 4.1: SCOPE-FE pipeline overview. Given input data, SCOPE-constrained expansion applies operator-space control (OperatorProbing) and pair-space control (FeatureClustering) to limit candidate generation. The resulting features are pruned via reliability-aware successive halving with stability-adjusted scoring, and the selected features are then used for importance evaluation and final model training. 
+
+4.2.2 Hard Clustering Hard clustering assigns each feature to exactly one group and restricts binary oper-ators to intra-cluster pairs. Given the similarity matrix 
+
+S, we convert similarities to distances and apply ag-glomerative clustering to partition the feature set into disjoint groups, as shown in Eqs. (4.2) and (4.3). Each feature belongs to exactly one cluster, and a binary in-dicator function restricts candidate generation to intra-cluster pairs. (4.2) ˜D = 1 − S
+
+The distance matrix ˜D is then used as input to agglom-erative clustering, which partitions the d features into K
+
+disjoint groups. The number of clusters is determined by the hyperparameter τ and the target cluster size, such that K is defined as in Eq. (4.3). (4.3) Chard : T → { 1, . . . , K }, K =
+
+ dτ
+
+
+
+Because each feature is assigned to a single cluster in-dex, the resulting partition is strictly disjoint. No fea-ture belongs to more than one cluster. To enforce this structure during candidate generation, we define a bi-nary indicator function (Eq. (4.4)), which returns 1 if two features share the same cluster label and 0 oth-erwise. Consequently, all cross-cluster pairs are ex-cluded from the candidate pool, substantially reducing the search space. (4.4) Ihard (ti, t j ) = 1Chard (ti) = Chard (tj )
+
+4.2.3 Soft Clustering Although computationally straightforward, hard clustering may exclude poten-tially useful cross-boundary feature pairs when features lie near cluster boundaries. Soft clustering addresses this limitation by allowing each feature to belong to mul-tiple clusters with varying degrees of membership. This approach preserves informative cross-boundary pairs that would otherwise be discarded. The procedure con-sists of three steps: spectral embedding, fuzzy c-means (FCM) clustering, and multi-label conversion. 
+
+Step 1: Spectral Embedding First, we embed the features into a low-dimensional Euclidean space using spectral embedding. The similarity matrix S is treated as the adjacency matrix of a weighted graph, and the symmetrically normalized similarity matrix Asym is computed. Given a diagonal degree matrix Deg with entries Deg ii = P 
+
+> j
+
+Sij , Asym and the embedding matrix 
+
+X are defined in Eq. (4.5), where v1, . . . , v q are the top q eigenvectors of Asym , and q = min(2 K, d − 1) .The choice of 2K is an empirical setting that retains sufficient spectral information beyond K clusters. (4.5) Asym = Deg −1/2SDeg −1/2, X = [ v1, . . . , v q ]
+
+We extract the top q = min(2 K, d − 1) eigenvectors of Asym to form X ∈ Rd×q . Following Ng, Jordan, and Weiss (2002), each row is normalized to unit length (Eq. (4.6)). This normalization sharpens cluster separation in the embedded space and improves the performance of the subsequent FCM step. (4.6) ˜xi = xi
+
+∥xi∥
+
+Step 2: FCM In the embedded space, we apply FCM clustering, which minimizes the following objective with respect to the membership matrix U and cluster cen-troids V :(4.7) min 
+
+> U,V d
+
+X
+
+> i=1
+> K
+
+X
+
+> k=1
+
+umik · ∥ ˜xi − vk∥2
+
+where uik denotes the membership degree of feature ti
+
+in cluster k, and m is the fuzziness parameter. When 
+
+m = 1 , this formulation reduces to the hard clustering described in Section 4.2.2. As m increases, memberships become more uniformly distributed. 
+
+Step 3: Multi-label Conversion and Soft Indi-cator We convert the continuous membership matrix into discrete multi-label assignments using thresholding. The threshold θ is empirically set to K/ 10 . Feature ti
+
+is assigned to cluster k if its membership value uik is greater than or equal to θ.Algorithm 4.2 Feature Clustering (Soft) 
+
+Input: D: dataset, T = {t1, . . . , t d}: original features, 
+
+τ : cluster size, m: fuzziness 
+
+Output: Csoft : T → 2{1,...,K }
+
+K ← ⌈| T |/τ ⌉
+
+for each pair (ti, t j ):
+
+if both numeric: S[i, j ] ← | ρ(ti, t j )|
+
+if both categorical: S[i, j ] ← CramérV (ti, t j )
+
+if mixed: S[i, j ] ← η2(tcat , t num )
+
+X ← SpectralEmbedding (S, min(2 K, d − 1)) 
+
+X ← RowNormalize (X)(U, V ) ← FCM (X, K, m )
+
+θ ← K/ 10 
+
+for each ti ∈ T :
+
+Csoft (ti) ← { k | U [i, k ] ≥ θ}
+
+if Csoft (ti) = ∅: Csoft (ti) ← { arg max k U [i, k ]}
+
+return Csoft 
+
+(4.8) Csoft (ti) = {k | uik ≥ θ}
+
+If no cluster satisfies the threshold (i.e., Csoft (ti) = ∅), the cluster with the highest membership is assigned, ensuring that every feature belongs to at least one cluster. The soft indicator function then permits a binary operator to combine features ti and tj if they share at least one cluster label, as defined in Eq. (4.9). (4.9) Isoft (ti, t j ) = 1Csoft (ti) ∩ Csoft (tj )̸ = ∅
+
+Algorithm 4.2 summarizes the complete soft clustering procedure, from similarity computation to multi-label indicator construction. 
+
+4.3 Operator-space Scope Control OpenFE em-ploys a fixed set of transformation operators (arith-metic, trigonometric, and aggregation). However, not all operators are informative for every dataset. For a dataset with d features and p operators, the number of binary candidates scales as O(p · d2). OperatorProbing 
+
+addresses this issue by introducing a lightweight pre-screening phase on a small subsample of the data, re-taining only the most promising operators for the full pipeline. We draw a probe subsample at a ratio of rprobe from the training data. The training and validation partitions are subsampled separately to preserve the training– validation structure required for out-of-fold (OOF) eval-uation. For classification tasks, stratified sampling is used to maintain the class distribution within the sam-pled set. We then compute OOF baseline predictions for the probe data and obtain the baseline loss linit .For each operator o ∈ O, we randomly construct ncand 
+
+candidate features by applying o to sampled features. The improvement of each candidate, ∆( ϕj ), is evaluated using the FeatureBoost mechanism defined in Eq. (3.2). By considering only the top-k improvements, we prevent 
+
+Algorithm 4.3 Operator Probing 
+
+Input: D: dataset, T = {t1, . . . , t d}: original features, 
+
+O = {o1, . . . , o p}: operator set 
+
+rprobe : subsample ratio, ncand : candidates per operator, 
+
+k: top-k scoring parameter, Ntop : number of operators to select 
+
+Output: O∗ ⊆ O: selected operator subset 
+
+Dtr probe , D vld probe ← subsample (D, r probe )ˆy ← Calculate OOF baseline prediction on Dtr probe ∪
+
+Dvld probe using Tlinit ← Calculate baseline loss on validation fold 
+
+(yvld , ˆyvld )
+
+for each o ∈ O:
+
+Φo ← type-aware random sampling (o, T, n cand )
+
+for each ϕj ∈ Φo:
+
+∆( ϕj ) ← FeatureBoost( Dtr probe , D vld probe , {ϕj }, ˆy)Score( o) ← Mean  Top -k{∆( ϕj )}
+
+O∗ ← top-Ntop operators by Score 
+
+return O∗
+
+strong signals from being diluted by uninformative random pairs. The operator score is computed as follows: (4.10) Score( o) = 1
+
+k
+
+X ∆( ϕj ), j ∈ Top -k(o)
+
+The final selected operator set O∗ consists of the Ntop 
+
+highest-scoring operators according to Score( o). Algo-rithm 4.3 describes the complete OperatorProbing pro-cedure. 
+
+4.4 ReliabilityScoring-based Selection In the standard OpenFE pipeline, each candidate feature is evaluated once using FeatureBoost on a single training– validation split. This single evaluation is susceptible to sampling noise: a feature may appear beneficial for one split but perform poorly for others. We introduce Re-liabilityScoring to reduce this sensitivity by evaluating each candidate nsub times on different random subsam-ples of the training data and penalizing features with high variance across evaluations. The resulting reliabil-ity score consistently favors features that provide stable improvements. For each evaluation round s = 1 , . . . , n sub , we draw a random subsample D0,s  
+
+> tr
+
+from D0tr at a ratio of rrel ,while keeping the validation set fixed. We evaluate all candidate features using FeatureBoost, as defined in Eq. (4.11). (4.11) ∆s(ϕ) = FeatureBoost  D0,s  
+
+> tr
+
+, D 0
+
+> vld
+
+, {ϕ}, ˆy
+
+Given the improvement scores ∆s(ϕ) for each candidate 
+
+ϕ, we compute the sample mean μ(ϕ) and sample standard deviation σ(ϕ) across the nsub subsamples (see Appendix C for explicit formulas). The standard error is given by SE (ϕ) = σ(ϕ)/√nsub . The reliability score is then defined as: (4.12) R(ϕ) = μ(ϕ) − λ · SE (ϕ)
+
+which penalizes the mean improvement according to its variability, with the penalty strength controlled by λ.Special cases of R(ϕ) under different hyperparameter settings are summarized in Appendix E. The complete scoring procedure applied to round 0 of successive halving is described in Algorithm C.1 (see Appendix C). Subsequent rounds follow OpenFE’s successive halving, doubling data blocks each round and eliminating low-scoring candidates. 
+
+4.5 Theoretical Analysis Starting from OpenFE’s 
+
+O(p · d2) candidate space (Eq. (3.3)), SCOPE-FE re-duces this space through two independent mechanisms. 
+
+FeatureClustering (Section 4.2) partitions the d features into K = ⌈d/τ ⌉ clusters with a target size of τ , and re-stricts binary operators to intra-cluster pairs. This re-duces the number of admissible pairs per operator from 
+
+O(d2) to O(K · τ 2) = O(d · τ ).Separately, operator-space control (Section 4.3) retains only the top Ntop operators from the original set of size p, reducing the operator space by a factor of 
+
+Ntop /p . This selection applies to both unary and binary operators, whereas clustering-based reduction targets only binary operators. By combining both mechanisms, the number of candidate features generated by binary operators in SCOPE-FE becomes: (4.13) |A binary SCOPE-FE | ≈ Ntop · O (d · τ )
+
+The overall reduction ratio for the binary-dominated candidate space is: (4.14) |A SCOPE-FE ||A OpenFE | ≈ Ntop 
+
+p × τd
+
+Because Ntop ≪ p and τ ≪ d in typical settings, these factors combine multiplicatively to yield a substantial reduction. This effect is particularly pronounced for high-dimensional datasets, where large d values cause the τ /d term to significantly shrink the quadratic pair space. The reduction propagates to the evaluation stage: because successive halving evaluates all gener-ated candidates using FeatureBoost, a smaller candidate pool directly reduces the number of evaluations in each round. Consequently, runtime savings are compounded across both the generation and selection stages of the pipeline. 
+
+5 Experiment 5.1 Datasets and Evaluation Protocol In this study, we evaluated the same ten public benchmark datasets used in OpenFE (Zhang et al., 2023): three re-gression tasks (California Housing, Medical, and Micro-soft), five binary classification tasks (Diabetes, Nomao, Vehicle, Broken Machine, and Telecom), and two mul-ticlass classification tasks (Jannis and Covertype). To ensure a fair comparison, we adopted experimental set-tings identical to those of OpenFE, including the num-ber of folds, the number of data blocks, and the number of generated features. For each random seed, Light-GBM was trained independently on the same dataset, and the final performance was reported as the mean and standard deviation over ten runs. The evaluation metrics were RMSE for regression, ROC-AUC for bi-nary classification, and accuracy for multiclass classi-fication. All experiments were conducted on a Mac-Book Air equipped with an Apple M4 chip and 24 GB of RAM. 
+
+5.2 Baseline Comparison We compared SCOPE-FE with six baselines: the original feature set (base) and five AutoFE methods, including FCTree [15], SAFE [16], AutoCross [17], FETCH [3], and OpenFE [7]. 
+
+5.3 Main Results As shown in Table 5.1, SCOPE-FE substantially reduces feature engineering runtime compared to OpenFE while maintaining competitive overall predictive performance. Runtime reductions are particularly pronounced for high-dimensional datasets, with reductions of approximately 81%, 64%, and 58% for MI, BR, and CO, respectively (up to a 5.2 × speedup on MI). These gains stem from FeatureClustering, which suppresses pair-space explosion through spectral embed-ding and FCM clustering, and OperatorProbing, which eliminates uninformative operators prior to candidate generation. Among the other baselines, FCTree, FETCH, and AutoCross exhibit substantially higher runtimes, and FETCH fails to complete within 24 hours on all three datasets. SAFE is faster but limited to a subset of task types and yields weaker predictive performance. OpenFE remains the strongest baseline in terms of bal-ancing efficiency and predictive performance, whereas SCOPE-FE consistently improves runtime with only modest changes in predictive performance. In terms of predictive performance, SCOPE-FE achieves identical scores to OpenFE on MI and NO, slightly im-proves performance on CA, DI, and JA, and shows mod-est degradation on the remaining datasets. These re-sults suggest that structured search-space control can substantially improve efficiency while preserving com-petitive predictive performance. Table 5.2 further de-composes the total runtime into feature engineering Table 5.1: Feature engineering runtime (RUN, sec) and predictive performance across 10 benchmark datasets. Lower values indicate better performance for regression (CA, MI, ME), whereas higher values indicate better performance for classification (TE, BR, DI, NO, VE, JA, CO). Results that outperform OpenFE are shown in bold; percentages below RUN denote the reduction ratio relative to OpenFE. × indicates a timeout (24 h), and – denotes unsupported tasks.                                                                                                                                                                                   
+
+> Method CA MI ME TE BR DI NO VE JA CO RUN RMSE RUN RMSE RUN RMSE RUN AUC RUN AUC RUN AUC RUN AUC RUN AUC RUN ACC RUN ACC Base /0.433 ±0.003 /0.744 ±0.000 /1128.8 ±1.639 /0.669 ±0.001 /0.747 ±0.005 /0.731 ±0.001 /0.996 ±0.000 /0.925 ±0.000 /0.721 ±0.002 /0.968 ±0.001 FCTree 20 0.443 ±0.002 20718 0.744 ±0.000 127 1074.4 ±1.215 138 0.670 ±0.001 11094 0.747 ±0.006 199 0.731 ±0.002 202 0.995 ±0.001 1354 0.926 ±0.000 973 0.721 ±0.001 2449 0.971 ±0.000 AutoCross --5034 0.646 ±0.001 26103 0.764 ±0.001 5442 0.728 ±0.001 49545 0.994 ±0.000 15309 0.921 ±0.000 --------SAFE ----29 0.674 ±0.001 107 0.749 ±0.004 30 0.730 ±0.002 34 0.996 ±0.000 86 0.925 ±0.000 ------FETCH 2394 0.437 ±0.002 ×-43986 1098.8 ±1.110 3594 0.670 ±0.001 ×-5131 0.732 ±0.002 6828 0.995 ±0.000 37526 0.927 ±0.000 12964 0.721 ±0.001 ×-OpenFE 34.9 0.421 ±0.002 4250.17 0.738 ±0.000 111.8 981.3 ±1.745 171.1 0.681 ±0.002 2143.4 0.785 ±0.002 218.68 0.888 ±0.002 306.5 0.996 ±0.000 215.72 0.928 ±0.000 326.98 0.729 ±0.001 1979.32 0.974 ±0.000 SCOPE-FE 15.44 0.420 ±0.002 809.73 0.738 ±0.000 53.86 993.3 ±1.567 40.64 0.673 ±0.001 764.66 0.771 ±0.004 63.47 0.890 ±0.001 50.55 0.996 ±0.000 79.65 0.927 ±0.000 94.16 0.731 ±0.001 833.36 0.966 ±0.001 (55.8%) (80.9%) (51.8%) (76.3%) (64.3%) (71.0%) (83.5%) (63.1%) (71.2%) (57.9%)
+
+Table 5.2: Runtime breakdown (sec) for OpenFE and SCOPE-FE. 
+
+OpenFE SCOPE-FE Dataset RUN Eval Total RUN Eval Total 
+
+CA 34.9 47 81.9 15.44 16 31.44 
+
+MI 4250.17 2153 6403.17 809.73 893 1702.73 
+
+ME 111.8 918 1029.8 53.86 346 399.86 
+
+TE 171.1 47 218.1 40.64 24 64.64 
+
+BR 2143.4 202 2345.4 764.66 226 990.66 
+
+DI 218.68 103 321.68 63.47 129 192.47 
+
+NO 306.5 58 364.5 50.55 56 106.55 
+
+VE 215.72 54 269.72 79.65 48 127.65 
+
+JA 326.98 396 722.98 94.16 341 435.16 
+
+CO 1979.32 4032 6011.32 833.36 4451 5284.36 
+
+(RUN) and evaluation (Eval). SCOPE-FE reduces RUN across all datasets. Eval time also decreases in most cases, as a smaller candidate pool directly reduces the cost of successive halving. The exceptions, DI and CO, reflect the additional overhead introduced by Reliabil-ityScoring, which evaluates each candidate across mul-tiple subsamples. However, because FeatureClustering and OperatorProbing significantly reduce the candidate pool, this overhead is offset in most settings, resulting in a shorter or comparable total evaluation time. 
+
+5.4 Contribution of Individual Components We conducted an ablation study by incrementally adding FeatureClustering (S), OperatorProbing (O), and Reli-abilityScoring (R), both individually and jointly, to the OpenFE pipeline. Table 5.3 reports the results on four datasets with substantial runtime reductions; the re-maining results are provided in Appendix D. 
+
+FeatureClustering FeatureClustering restricts candi-date pairing to intra-cluster feature pairs, resulting in substantial reductions in RUN (e.g., 326.98 →94.16 on JA and 4250.17 →915.47 on MI), while maintaining or slightly improving predictive performance. 
+
+OperatorProbing OperatorProbing eliminates low-utility operators prior to candidate generation, con-sistently reducing RUN (e.g., 326.98 →159.79 on JA). When combined with FeatureClustering, it achieves the largest reductions overall (e.g., NO: 306.5 →50.55; TE: 171.1 →40.64), confirming that joint control of the pair and operator spaces is highly effective. 
+
+Figure 5.1: Relationship between the number of original features and runtime reduction achieved by SCOPE-FE. Each point represents a dataset; the dashed line shows a linear fit, and color indicates the magnitude of reduction. Pearson and Spearman correlations quantify the association. 
+
+ReliabilityScoring ReliabilityScoring reduces the pre-mature elimination of useful candidates by evaluating each feature across multiple subsamples. However, these repeated evaluations increase RUN, making it a com-plementary component rather than a primary driver of efficiency. Overall, FeatureClustering and OperatorProbing are the primary contributors to the efficiency gains of SCOPE-FE, while ReliabilityScoring is most beneficial when evaluation noise is substantial. 
+
+5.5 Relationship Between Dataset Character-istics and Efficiency Gains To quantitatively ana-lyze how efficiency improvements depend on dataset fea-ture dimensionality, Figure 5.1 illustrates the relation-ship between feature dimensionality and the runtime reduction ratio across datasets. We observe a signifi-cant positive correlation (Pearson r = 0 .749 , p = 0 .013 ;Spearman ρ = 0 .723 , p = 0 .018 ), indicating that effi-ciency gains increase with dataset dimensionality. This finding is consistent with the quadratic growth of the candidate space: as d increases, pair-space restriction and operator pruning become proportionally more effec-tive. Therefore, SCOPE-FE is particularly well suited for high-dimensional tabular datasets. Table 5.3: Ablation study of SCOPE-FE components on four datasets (full results are provided in Appendix D).                                                                                                                 
+
+> Dataset JA MI NO TE Algorithm RUN Eval ACC RUN Eval RMSE RUN Eval AUC RUN Eval AUC OpenFE 326.98 396 0.729 4250.17 2153 0.738 306.50 58 0.996 171.10 47 0.681 FeatureClustering 94.16 341 0.731 915.47 875 0.738 110.42 53 0.996 55.32 25 0.672 OperatorProbing 159.79 384 0.732 2656.30 1781 0.738 204.85 131 0.996 157.24 58 0.671 ReliabilityScoring 604.93 372 0.728 3316.09 848 0.738 611.23 57 0.994 215.63 22 0.672 FeatureClustering + OperatorProbing 85.22 362 0.730 809.73 893 0.738 50.55 56 0.996 40.64 24 0.673 FeatureClustering + ReliabilityScoring 196.19 359 0.726 945.58 912 0.738 176.64 62 0.996 77.59 24 0.674 OperatorProbing + ReliabilityScoring 243.95 372 0.730 1397.33 807 0.738 162.65 66 0.996 109.77 23 0.671 FeatureClustering + OperatorProbing + ReliabilityScoring 119.19 358 0.728 897.32 887 0.737 67.39 58 0.996 53.61 23 0.673
+
+Figure 5.2: Sensitivity of SCOPE-FE to the target cluster size τ (total runtime). Each line represents a dataset. Runtime remains stable across values of τ , with 
+
+τ = 16 providing a good trade-off. 
+
+5.6 Hyperparameter Robustness 5.6.1 Sensitivity to Cluster Size Figure 5.2 presents the sensitivity of SCOPE-FE to the cluster size parameter in terms of total runtime. To analyze the ef-fect of clustering granularity, we vary the target cluster size τ and define the number of clusters as follows: (5.1) nclusters = max 
+
+
+
+2,
+
+ dτ
+
+ 
+
+, τ ∈ { 2, 4, 8, 16 , 32 }.
+
+Figure 5.2 shows the total runtime across different clus-ter sizes. For clearer analysis, datasets are categorized into high-dimensional ( nfeat ≥ 54 ) and low-dimensional (nfeat < 54 ) groups. When τ is small (e.g., τ = 2 or 
+
+τ = 4 ), feature pairing is strongly constrained, which significantly reduces the search space and overall fea-ture engineering time. When τ = 8 or τ = 16 , a better balance between search space reduction and representa-tional capacity is achieved, resulting in stable runtime improvements. For low-dimensional datasets (CA, ME, and DI), sensitivity to cluster size is relatively low be-cause the pairing search space is inherently limited by the small number of features. As shown in Figure 5.2, the total runtime of SCOPE-FE is generally robust with respect to the choice of cluster size τ , exhibiting limited variation across the range τ ∈ { 2, 4, 8, 16 , 32 } for most datasets. Although BR shows a slight increase in total runtime as τ increases, the overall behavior remains sta-ble. Across most datasets, τ = 16 appears to provide a reliable and stable choice. 
+
+5.6.2 Sensitivity to ReliabilityScoring Parame-ters ( λ, nsub ) We analyze the sensitivity of SCOPE-FE runtime with respect to the number of reliability sub-samples nsub and the penalty coefficient λ. As shown in 
+
+Figure 5.3: Sensitivity to ReliabilityScoring parameters. Relative runtime is measured with respect to nsub = 1 
+
+(left) and λ = 0 .2 (right). Increasing nsub raises runtime due to repeated subsampling, while larger λ yields more conservative selection with stable runtime. Figure 5.3, runtime increases gradually with nsub due to repeated subsampling. Setting nsub = 1 disables vari-ance estimation, whereas nsub ≥ 3 enables more reliable scoring; in practice, nsub = 3 provides a good balance between reliability and computational cost. The pen-alty coefficient λ controls the conservativeness of feature selection but has a negligible effect on total runtime, confirming the robustness of this parameter. 
+
+6 Conclusion 
+
+In this study, we propose SCOPE-FE, a structured search-space control framework for efficient AutoFE. SCOPE-FE simultaneously constrains the operator and pairing spaces prior to candidate generation through OperatorProbing and FeatureClustering, thereby ef-fectively reducing the candidate explosion inherent in expand-and-reduce approaches such as OpenFE. In addition, ReliabilityScoring stabilizes the early-stage pruning process by accounting for variability across subsamples. Extensive experiments on 10 benchmark datasets demonstrate that SCOPE-FE significantly re-duces runtime while maintaining competitive predictive performance. In particular, the efficiency improvements are more pronounced for high-dimensional datasets, where the search space grows rapidly. Overall, these results indicate that SCOPE-FE is a practical and scal-able approach for improving the efficiency of AutoFE. 
+
+References 
+
+[1] G. Katz, E. C. R. Shin, and D. Song. Explorekit: Automatic feature generation and selection. In 2016 IEEE 16th International Conference on Data Mining (ICDM) , pages 979–984, Piscataway, 2016. IEEE. [2] A. Harari and G. Katz. Automatic features gener-ation and selection from external sources: A DB-pedia use case. Information Sciences , 582:398–414, 2022. [3] Liyao Li, Haobo Wang, Liangyu Zha, Qingyi Huang, Sai Wu, Gang Chen, and Junbo Zhao. Learning a data-driven policy network for pre-training automated feature engineering. In The Eleventh International Conference on Learning Representations (ICLR) , 2023. [4] C. de Winter, F. Frasincar, B. de Peuter, V. Mat-siiako, E. Ido, and J. Klinkhamer. Automated fea-ture engineering for automated machine learning. 
+
+Knowledge-Based Systems , 321:113671, 2025. [5] Ambika Kaul, Saket Maheshwary, and Vikram Pudi. AutoLearn — automated feature generation and selection. In 2017 IEEE International Con-ference on Data Mining (ICDM) , pages 217–226, Piscataway, 2017. IEEE. [6] Fatemeh Nargesian, Horst Samulowitz, Udayan Khurana, Elias B. Khalil, and Deepak S. Turaga. Learning feature engineering for classification. In 
+
+Proceedings of the 26th International Joint Confer-ence on Artificial Intelligence (IJCAI) , pages 2529– 2535, 2017. [7] Tianping Zhang, Zheyu Zhang, Zhiyuan Fan, Haoyan Luo, Fengyuan Liu, Qian Liu, Wei Cao, and Jian Li. OpenFE: Automated feature gen-eration with expert-level performance. In Pro-ceedings of the 40th International Conference on Machine Learning , volume 202 of Proceedings of Machine Learning Research , pages 41880–41901. PMLR, 2023. [8] Ehtesamul Azim, Dongjie Wang, Kunpeng Liu, Wei Zhang, and Yanjie Fu. Feature interaction aware automated data representation transforma-tion. In Proceedings of the 2024 SIAM Interna-tional Conference on Data Mining (SDM) , pages 878–886. SIAM, 2024. [9] Mohamed Bouadi, Arta Alavi, Salima Benbernou, and Mourad Ouziri. KRAFT: Leveraging knowl-edge graphs for interpretable feature generation. In International Conference on Web Information Systems Engineering (WISE 2024) , pages 384–399. Springer, 2024. [10] Guanghui Zhu, Zhuoer Xu, Chunfeng Yuan, and Yihua Huang. DIFER: Differentiable automated feature engineering. In Proceedings of the First International Conference on Automated Machine Learning (AutoML) , volume 188, pages 17:1–17:17. PMLR, 2022. [11] U. Khurana, D. Turaga, H. Samulowitz, and S. Parthasarathy. Cognito: Automated feature en-gineering for supervised learning. In Proceedings of the 2016 IEEE 16th International Conference on Data Mining Workshops (ICDMW) , pages 1304– 1307, Piscataway, 2016. IEEE. [12] Franziska Horn, Robert Pack, and Michael Rieger. The autofeat Python library for automated feature engineering and selection. In Machine Learning and Knowledge Discovery in Databases. International Workshops of ECML PKDD 2019 , volume 1167 of Communications in Computer and Information Science , pages 111–120. Springer, 2019. [13] J. C. Bezdek. Pattern Recognition with Fuzzy Objective Function Algorithms . Springer Science & Business Media, 2013. [14] Lei Wang, Yu Shi, Yifei Jin, and Jian Li. OpenFE++: Efficient automated feature genera-tion via feature interaction. In Proceedings of the 2025 SIAM International Conference on Data Min-ing (SDM) , pages 21–30. SIAM, 2025. [15] W. Fan, E. Zhong, J. Peng, O. Verscheure, K. Zhang, J. Ren, R. Yan, and Q. Yang. General-ized and heuristic-free feature construction for im-proved accuracy. In Proceedings of the 2010 SIAM International Conference on Data Mining , pages 629–640. SIAM, 2010. [16] Q. Shi, Y. L. Zhang, L. Li, X. Yang, M. Li, and J. Zhou. SAFE: Scalable automatic feature engineering framework for industrial tasks. In 
+
+2020 IEEE 36th International Conference on Data Engineering (ICDE) , pages 1645–1656, Piscataway, 2020. IEEE. [17] Y. Luo, M. Wang, H. Zhou, Q. Yao, W. W. Tu, Y. Chen, and Q. Yang. AutoCross: Automatic fea-ture crossing for tabular data in real-world appli-cations. In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining , pages 1936–1945, 2019. [18] U. Khurana, H. Samulowitz, and D. Turaga. Fea-ture engineering for predictive modeling using re-inforcement learning. In Proceedings of the AAAI Conference on Artificial Intelligence , pages 3407– 3414, Menlo Park, 2018. AAAI. [19] Dongjie Wang, Yanjie Fu, Kunpeng Liu, Xiaolin Li, and Yan Solihin. Group-wise reinforcement fea-ture generation for optimal and explainable rep-resentation space reconstruction. In Proceedings of the 28th ACM SIGKDD Conference on Knowl-edge Discovery and Data Mining , pages 1826–1834, 2022. [20] X. Chen, Q. Lin, C. Luo, X. Li, H. Zhang, Y. Xu, Y. Dang, K. Sui, X. Zhang, and B. Qiao. Neural feature search: A neural architecture for automated feature engineering. In Proceedings of the 2019 IEEE International Conference on Data Mining (ICDM) , pages 71–80, Piscataway, 2019. IEEE. [21] B. Liu, R. Tang, Y. Chen, J. Yu, H. Guo, and Y. Zhang. Feature generation by convolutional neural network for click-through rate prediction. In The World Wide Web Conference (WWW ’19) ,pages 1119–1129, New York, NY, USA, 2019. As-sociation for Computing Machinery. [22] Ahmed Al-Ani. A dependency-based search strat-egy for feature selection. Expert Systems with Ap-plications , 36(10):12392–12398, 2009. [23] Elżbieta Pekalska, Artsiom Harol, Carmen Lai, and Robert P. W. Duin. Pairwise selection of features and prototypes. In Proceedings of the 4th International Conference on Computer Recognition Systems (CORES’05) , volume 30 of Advances in Soft Computing , pages 271–278. Springer, 2005. [24] D. Xu and Y. Tian. A comprehensive survey of clustering algorithms. Annals of Data Science ,2:165–193, 2015. [25] A. K. Jain. Data clustering: 50 years beyond k-means. Pattern Recognition Letters , 31(8):651–666, 2010. [26] Ling Zheng, Fei Chao, Neil Mac Parthaláin, Defu Zhang, and Qiang Shen. Feature grouping and selection: A graph-based approach. Information Sciences , 546:1256–1272, 2021. [27] J. H. Friedman and B. E. Popescu. Predictive learning via rule ensembles. The Annals of Applied Statistics , 2(3), 2008. [28] David R. Cox. Interaction. International Statistical Review , 52(1):1–31, 1984. [29] Hengrui Zhang, Yu. O. German, and Runhai He. Principles and applications of fuzzy clustering al-gorithms. In Information Technologies and Systems 2024 (ITS 2024): Proceedings of the International Scientific Conference , pages 196–197, Minsk, Be-larus, 2024. Belarusian State University of Infor-matics and Radioelectronics (BSUIR). [30] Rui Xu and Donald Wunsch. Survey of cluster-ing algorithms. IEEE Transactions on Neural Net-works , 16(3):645–678, 2005. [31] Y. Lin, B. Ding, H. V. Jagadish, and J. Zhou. SMARTFEAT: Efficient feature construction through feature-level foundation model interac-tions. In Conference on Innovative Data Systems Research (CIDR) , 2024. [32] S. Kramer. CN2-MCI: A two-step method for constructive induction. In Proceedings of the ML-COLT-94 Workshop on Constructive Induction and Change of Representation , New Brunswick, New Jersey, 1994. Appendix .
+
+A Notation 
+
+Table A.1: Summary of notation used throughout the paper. 
+
+Symbol Meaning 
+
+D Dataset 
+
+˜D Distance matrix (1 − S)
+
+T = {t1, . . . , t d} Original feature set 
+
+d Number of original features 
+
+O = {o1, . . . , o p} Operator set 
+
+p Number of operators 
+
+q Number of eigenvectors: min(2 K, d −
+
+1) 
+
+ϕ Candidate feature 
+
+Φo Candidate set for operator oA Full candidate feature set 
+
+Tnew Selected new features 
+
+S Pairwise similarity matrix 
+
+nsub Number of subsamples for reliability scoring 
+
+K Number of clusters (⌈d/τ ⌉)
+
+τ Target cluster size 
+
+θ FCM membership threshold (K/ 10) 
+
+Chard / Csoft Hard / Soft cluster assignment 
+
+Ihard / Isoft Hard / Soft indicator function 
+
+Asym Symmetrically normalized similarity matrix 
+
+Deg Degree matrix 
+
+m FCM fuzziness parameter 
+
+∆( ϕ) Improvement of candidate ϕ
+
+∆s(ϕ) Improvement on s-th subsample 
+
+Score( o) Operator score (top-k mean of ∆)
+
+Ntop Number of selected operators 
+
+O∗ Selected operator subset 
+
+rprobe Probe subsample ratio 
+
+rrel Reliability subsample ratio 
+
+μ(ϕ) Mean improvement across subsam-ples 
+
+σ(ϕ) Std. dev. of improvement across sub-samples 
+
+SE (ϕ) Standard error: σ(ϕ)/√nsub 
+
+R(ϕ) Reliability score: μ − λ · SE λ Variance penalty weight 
+
+ˆy Baseline OOF predictions 
+
+linit Baseline loss 
+
+B Similarity Measures for Feature Clustering 
+
+This appendix presents the three association statistics used to construct the similarity matrix S, as described in Section 4.2.1. 
+
+B.1 Numeric–Numeric: Absolute Pearson Cor-relation For two numeric features, ti and tj , we use the absolute value of Pearson’s correlation coefficient. (B.1) S(ti, t j ) = |ρ(ti, t j )| = Cov( ti, t j )
+
+σti · σtj
+
+B.2 Categorical–Categorical: Bias-Corrected Cramér’s V For two categorical features, we employ the bias-corrected Cramér’s V statistic, which extends the chi-square test of independence to a normalized [0 , 1] 
+
+measure of association. The raw chi-square statistic is first computed from the contingency table and then cor-rected for the upward bias induced by small samples: 
+
+φ2 = χ2
+
+n ,(B.2a) 
+
+φ2corr = max 
+
+
+
+0, φ 2 − (k − 1)( r − 1) 
+
+n − 1
+
+
+
+,(B.2b) 
+
+V =
+
+s
+
+φ2corr 
+
+min( kcorr − 1, r corr − 1) .(B.2c) 
+
+B.3 Categorical–Numeric: Eta-Squared (η2). 
+
+When one feature is categorical and the other is nu-meric, we measure their association using eta-squared, which quantifies the proportion of variance in the nu-meric feature explained by group membership defined by the categorical feature. (B.3) η2 = SS between 
+
+SS total 
+
+=
+
+X
+
+> g
+
+ng (¯ xg − ¯x)2
+
+X
+
+> i
+
+(xi − ¯x)2 .
+
+C ReliabilityScoring Procedure Algorithm C.1 Reliability Scoring 
+
+Input: D: dataset, A: candidates, nsub : number of subsamples, λ: penalty weight, rrel : subsample ratio 
+
+Output: Asort : candidate sorted by reliability score RD0
+
+> tr
+
+, D 0 
+
+> vld
+
+← DataBlocks[0] ˆy ← OOF baseline predictions on D0 
+
+> tr
+
+using T
+
+for s = 1 to nsub :
+
+Dsub ← RandomSample( D0
+
+> tr
+
+, r rel )
+
+for each ϕ ∈ A:
+
+∆s(ϕ) ← FeatureBoost( Dsub , D 0
+
+> vld
+
+, {ϕ}, ˆy)
+
+for each ϕ ∈ A:
+
+μ(ϕ) ← Mean  {∆1(ϕ), . . . , ∆nsub (ϕ)}
+
+σ(ϕ) ← Std  {∆1(ϕ), . . . , ∆nsub (ϕ)}
+
+R(ϕ) ← μ(ϕ) − λ · σ(ϕ)/√nsub 
+
+Asort ← Sorted A by R descending 
+
+return Asort 
+
+D Additional Ablation Results Table D.1: Full ablation results (Part I). S: FeatureClustering, O: OperatorProbing, and R: ReliabilityScoring.                                                                                                                                             
+
+> Dataset CA MI ME TE BR Alg. RUN Eval Metric RUN Eval Metric RUN Eval Metric RUN Eval Metric RUN Eval Metric
+> OpenFE 34.90 47 0.421 4250.17 2153 0.738 111.80 918 981.272 171.10 47 0.681 2143.40 202 0.785 S15.44 16 0.420 915.47 875 0.738 65.67 352 988.337 55.32 25 0.672 1119.62 224 0.771 O16.98 16 0.443 2656.30 1781 0.738 158.95 856 982.750 157.24 58 0.671 1881.39 567 0.787 R21.25 18 0.425 3316.09 848 0.738 103.84 350 995.605 215.63 22 0.672 4134.92 204 0.785 S+O 17.66 17 0.443 809.73 893 0.738 53.86 340 993.320 40.64 24 0.673 764.66 226 0.771 S+R 21.02 17 0.425 945.58 912 0.738 115.28 339 1003.321 77.59 24 0.674 1606.14 245 0.771 O+R 22.79 20 0.438 1397.33 807 0.738 74.01 345 1001.867 109.77 23 0.671 1138.68 229 0.787 S+O+R 22.31 20 0.438 897.32 887 0.737 70.39 340 995.262 53.61 23 0.673 778.43 235 0.772
+
+Table D.2: Full ablation results (Part II). S: FeatureClustering, O: OperatorProbing, and R: ReliabilityScoring.                                                                                                                                             
+
+> Dataset DI NO VE JA CO Alg. RUN Eval Metric RUN Eval Metric RUN Eval Metric RUN Eval Metric RUN Eval Metric
+> OpenFE 218.68 103 0.888 306.50 58 0.996 215.72 54 0.928 326.98 396 0.729 1979.32 4032 0.974 S222.64 118 0.890 110.42 53 0.996 176.24 49 0.927 94.16 341 0.731 1007.10 5083 0.966 O63.47 129 0.890 204.85 131 0.996 235.60 126 0.927 159.79 384 0.732 1411.21 3925 0.974 R383.50 119 0.890 611.23 57 0.994 308.42 57 0.927 604.93 372 0.728 3326.68 4167 0.972 S+O 70.64 129 0.890 50.55 56 0.996 79.65 48 0.927 85.22 362 0.730 833.36 4451 0.966 S+R 269.17 119 0.890 176.64 62 0.996 212.06 55 0.927 196.19 359 0.726 1456.31 5442 0.967 O+R 108.01 133 0.890 162.65 66 0.996 136.46 48 0.927 243.95 372 0.730 1700.05 3929 0.973 S+O+R 101.41 128 0.890 67.39 58 0.996 105.16 51 0.927 119.19 358 0.728 877.95 4641 0.966
+
+E Special Cases of ReliabilityScoring Table E.1 summarizes special cases of the reliability score R(ϕ) = 
+
+μ(ϕ) − λ · σ(ϕ)/√nsub under different hyperparameter settings. Table E.1: Special cases of R(ϕ) under different hyper-parameter settings. 
+
+Condition Effect Interpretation 
+
+nsub = 1 ,
+
+λ = 0 
+
+R(ϕ) = ∆ 1(ϕ) Equivalent to standard OpenFE (ablation baseline) 
+
+λ = 0 R(ϕ) = μ(ϕ) Variance ignored; only mean is used 
+
+λ → ∞ R(ϕ) ≈ − σ√nsub Selects only minimum-variance features 
+
+F Hard vs. Soft Clustering Results We com-pare hard and soft clustering for pair-space control (Ta-ble F.1). Both approaches reduce feature engineering time by limiting the feature-pair search space. Soft clus-tering typically achieves greater runtime reduction, par-ticularly for high-dimensional datasets, due to its flex-ible multi-cluster assignments. In contrast, hard clus-tering yields smaller reductions but provides more sta-ble evaluation runtimes. Overall, soft clustering offers higher efficiency, whereas hard clustering ensures more stable runtime behavior. These results highlight the effectiveness of clustering-based pairing constraints for search-space control. Table F.1: Comparison of hard and soft clustering across all datasets (RUN (sec) / Eval (sec) / metric). 
+
+BR CA Algorithm RUN Eval Metric RUN Eval Metric OpenFE 2143.4 202 0.785 34.9 47 0.421 Hard 1388.51 219 0.773 14.83 14 0.428 Soft 1119.62 224 0.771 15.44 16 0.420 CO DI Algorithm RUN Eval Metric RUN Eval Metric OpenFE 1979.32 4032 0.974 218.68 103 0.888 Hard 1856.04 3777 0.974 165.64 97 0.888 Soft 1007.1 5083 0.966 222.64 118 0.890 JA ME Algorithm RUN Eval Metric RUN Eval Metric OpenFE 326.98 396 0.729 111.8 918 981.272 Hard 185.06 365 0.733 52.32 355 981.731 Soft 94.16 341 0.731 65.67 352 988.337 MI NO Algorithm RUN Eval Metric RUN Eval Metric OpenFE 4250.17 2153 0.738 306.5 58 0.996 Hard 1288.47 945 0.738 117.78 42 0.997 Soft 915.47 875 0.738 110.42 53 0.996 TE VE Algorithm RUN Eval Metric RUN Eval Metric OpenFE 171.1 47 0.681 215.72 54 0.928 Hard 85.99 24 0.680 92.08 42 0.927 Soft 55.32 25 0.672 176.24 49 0.927 G Feature Evaluation Variability 
+
+Table G.1: Feature evaluation variability across datasets. We report μ/σ and maximum σ of candidate gains at nsub = 3 , highlighting effect strength relative to variability and the presence of unstable candidates.                     
+
+> Dataset |μ|/σ σmax Dataset |μ|/σ σmax
+> CA 1.065 0.000245 NO 0.743 0.011072 MI 0.291 0.000965 CO 0.952 0.039486 VE 0.380 0.002707 DI 0.839 0.000962
+
+To analyze the role of ReliabilityScoring, we examine feature evaluation variability in Table G.1. For each candidate, ∆ scores are computed across nsub subsam-ples to estimate the mean ( μ) and standard deviation (σ), and the ratio |μ|/σ is used to measure stability. Across MI, VE, NO, CO, and DI, this ratio is close to or below 1, indicating that the average gain is compa-rable to or smaller than its variability. This suggests that single evaluations are unreliable for distinguishing useful features. A large σmax further indicates the pres-ence of highly unstable candidates, particularly in CO. By contrast, datasets such as CA exhibit |μ|/σ > 1, in-dicating more stable evaluations. These results suggest that evaluation stability varies across datasets. Reliabil-ityScoring mitigates the impact of unstable candidates during early pruning while introducing minimal over-head for stable datasets.

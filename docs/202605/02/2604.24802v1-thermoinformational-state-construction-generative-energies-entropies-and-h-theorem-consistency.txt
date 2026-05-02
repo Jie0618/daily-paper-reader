@@ -1,0 +1,5038 @@
+Title: Thermoinformational State Construction: Generative Energies, Entropies, and H-Theorem Consistency
+
+URL Source: https://arxiv.org/pdf/2604.24802v1
+
+Published Time: Wed, 29 Apr 2026 00:01:42 GMT
+
+Number of Pages: 72
+
+Markdown Content:
+Thermoinformational State Construction: Generative Energies, Entropies, and H-Theorem Consistency 
+
+George-Rafael Domenikos ∗
+
+EMPOWER Centre, Nanyang Technological University, 11 Mandalay Road, 308232, Singapore 
+
+Lock Yue Chew 
+
+School of Mathematical and Physical Sciences, Nanyang Technological University, 21 Nanyang Link, 637371, Singapore 
+
+Victoria Leong 
+
+School of Social Sciences, Nanyang Technological University, 21 Nanyang Link, 637371, Singapore 
+
+(Dated: April 29, 2026) We introduce a constructive framework for assigning thermodynamic structure to an arbitrary data system from its measured microstates. Starting from an empirical distribution over configura-tions, we first infer a data-driven energy function by fitting a Boltzmann-type model to the observed statistics, thereby defining an energy axis that is intrinsic to the system. We then push the empirical distribution onto this energy coordinate and pose an inverse maximum-entropy problem: we learn a strictly concave trace-form entropy functional whose maximizer, under a small set of constraints extracted from the data, reproduces the observed energy-space histogram. With energy and entropy defined in this coupled, system-specific manner, macroscopic variables such as internal energy, an entropy–energy relation S(U ), and a thermoinformational temperature T −1 = ∂S/∂U follow consis-tently along admissible families of states. We demonstrate the construction on canonical unimodal and multimodal examples, including a harmonic well (recovering the classical equilibrium limit up to gauge) and a bistable double-well where global-constraint MaxEnt surrogates can obscure barrier and coexistence structure. The resulting formulation provides a principled route from microstate data to thermodynamically consistent macroscopic descriptors, with an optimized entropy matched to the empirical system. 
+
+I. INTRODUCTION 
+
+Thermodynamics provides a compact macroscopic de-scription of complex systems with linkages to microstate statistics through statistical mechanics to state variables such as internal energy, entropy, and temperature. In equilibrium statistical mechanics this link is mediated by an energy function (Hamiltonian) and a variational principle: given a fixed energy and a set of macro-scopic constraints, the equilibrium distribution is ob-tained by maximizing an entropy functional (classically Shannon/Boltzmann–Gibbs) subject to those constraints [1–3]. This variational structure is not merely aesthetic; it underpins thermodynamic consistency relations and, in stochastic settings, allows trajectory-level definitions of heat, work, and entropy production that refine the second law [4–6]. In modern empirical domains, however, we often ob-serve microstates without an underlying Hamiltonian. A broad literature therefore imports thermodynamic lan-guage into data analysis by choosing an “energy” (often a negative log-density, a loss, or a score) and then ap-plying a fixed entropy form or a fixed exponential-family model class. This perspective has proved useful in diverse contexts, from maximum-entropy constructions in com-plex systems [7–9] to energy-based learning and proba-bilistic modeling in machine learning [10–14]. Yet a basic  
+
+> ∗corresponding author: georgios.rd@ntu.edu.sg
+
+tension remains: if the energy representation is itself in-ferred from data, and the entropy functional is assumed a priori, the resulting macroscopic quantities need not be mutually compatible with a MaxEnt principle in the rep-resentation where the energy is defined. In practice this can manifest as systematic mismatch in non-Gaussian or multimodal settings, where global-constraint surrogates compress distinct basins, barriers, or tails into a single effective mode. Here we propose a constructive remedy: rather than postulating either ingredient, we construct both (i) an intrinsic energy coordinate and (ii) a system-tailored en-tropy functional directly from the observed microstate statistics. The procedure proceeds in two coupled stages. First, we infer a generative energy Egen (x) from data by fitting a structured energy family so that the induced Boltzmann-type model locally matches the empirical dis-tribution (up to an affine gauge). Second, we push the empirical microstate distribution onto the learned energy axis and solve an inverse maximum-entropy problem: we learn a strictly concave trace-form entropy generator for which the empirical energy histogram is the unique Max-Ent solution under a small set of constraints extracted from the data [2, 3]. Only after these two steps are completed do macroscopic state variables become well-defined: internal energy as the mean of Egen , an entropy– energy relation S(U ), and a thermoinformational temper-ature defined by T −1 = ∂S/∂U along admissible state families. We demonstrate the framework on canonical testbeds 
+
+> arXiv:2604.24802v1 [cond-mat.stat-mech] 27 Apr 2026
+
+2that progressively relax physical assumptions. A har-monic single-well potential provides a calibration case in which the learned energy recovers the expected quadratic landscape and temperature scaling, showing that the con-struction contains the classical Boltzmann–Gibbs limit. A bistable double-well potential provides a canonical multimodal setting where barrier and coexistence struc-ture are essential, and where fixed-form global surro-gates can obscure the underlying landscape. Finally, a mixture-of-Gaussians example treats the problem as a pure data system with no assumed Hamiltonian, illus-trating that the method constructs an effective thermo-dynamic description directly from an empirical distribu-tion. Across these examples, the emphasis is not on in-troducing additional free parameters, but on enforcing a variationally consistent micro-to-macro mapping while selecting an entropy functional that is optimized for the observed system.       
+
+> II. THERMOINFORMATIONAL STATE CONSTRUCTION: GENERATIVE ENERGY →
+> ENERGY DISTRIBUTION →GENERATIVE ENTROPY →T
+
+We present a four–step construction that starts from observed microstates, learns a data–driven energy func-tion, pushes the empirical distribution onto this learned energy axis, and then applies the generative entropy formalism to obtain thermodynamically consistent state variables (U, S, T ). The presentation below is self– contained and consistent with the definitions of genera-tive energy and generative entropy described previously.  
+
+> A. Step 1: Generative energy from microstate statistics
+> Microstate space and empirical distribution
+
+Let X denote the microstate space of the system and let 
+
+x ∈ X 
+
+denote a microstate (configuration). Repeated observa-tions yield an empirical probability distribution (or den-sity) p on X :
+
+p(x), x ∈ X ,
+
+satisfying 
+
+p(x) ≥ 0,
+
+Z
+
+> X
+
+p(x) d μ(x) = 1 ,
+
+where μ is a reference measure on X (counting measure if X is discrete; Lebesgue measure if X ⊆ Rd). 
+
+> Parametric energy family
+
+We posit a parametric family of energy functions 
+
+E( · ; θ) : X → R, θ ∈ Θ ⊆ RK ,
+
+taken to be linear in parameters: 
+
+E(x; θ) = 
+
+> K
+
+X
+
+> k=1
+
+θk ϕk(x), (1) where ϕk : X → R are fixed basis functions (features). The feature functions {ϕk}Kk=1 are user-chosen observ-ables on microstates. In classical settings they are typ-ically low-order moments or sufficient statistics (e.g. x,
+
+x2, pairwise couplings, indicator functions of regions), but the framework allows any measurable, possibly non-linear ϕk(x) that encodes a macroscopic constraint of in-terest. Vector or tensor-valued observables can be ac-commodated by including their scalar components or invariants (e.g. norms) as separate features. When ϕk
+
+are monomials (or polynomials) in x, the constraints 
+
+Ep[ϕk(X)] correspond to moment constraints; more gen-eral ϕk correspond to non-moment macroscopic observ-ables. At this stage, the choice of feature family {ϕk} is the only modelling input and it can be user-dependent. This dependence is deliberate: in many empirical sys-tems the histogram exhibits distinctive structure (e.g. asymmetry, heavy tails, multi-modality), and a domain-informed analyst can select constraints that target that structure and yield the sharpest thermodynamic descrip-tion. In principle, an infinite (complete) feature expan-sion over the support would provide enough expressiv-ity to represent arbitrary histogram geometry and thus recover an exact match in the limit; in practice, real applications require finite families and therefore intro-duce an explicit expressivity–parsimony trade-off. For user-agnostic deployment, one can replace hand-chosen constraints by automatic “failsafe” libraries that pro-vide nested, systematically improvable spans—such as Fourier/orthogonal-polynomial bases on one-dimensional or product domains, or Laplacian eigenfunction bases constructed directly on the discrete histogram support. In all cases, the residual mismatch between the induced Boltzmann surrogate and the empirical histogram pro-vides a quantitative diagnostic of whether the chosen fea-ture family is sufficiently expressive. We describe these default constructions and their recommended regimes of use in the Supplementary Note S0. For the remainder of the main text, we proceed with an abstract feature fam-ily {ϕk}, assumed to be sufficiently expressive to provide a good empirical fit for the distributions considered. 3 
+
+> Boltzmann–type model induced by E
+
+Given E(x; θ), define the induced model distribution 
+
+qθ (x) = 1
+
+Z(θ) exp   − β E(x; θ), x ∈ X , (2) with partition function 
+
+Z(θ) = 
+
+Z
+
+> X
+
+exp   − β E(x; θ) dμ(x). (3) For the purpose of defining the generative energy we set 
+
+β = 1 and absorb any global scaling into θ. Because the energy family is linear in parameters, the inverse-temperature β is not identifiable separately from the scale of θ:
+
+qθ,β (x) ∝ exp 
+
+
+
+− β X
+
+> k
+
+θkϕk(x)
+
+
+
+== exp 
+
+
+
+− X
+
+> k
+
+(βθ k)ϕk(x)
+
+
+
+= q˜θ, 1(x), ˜θ := βθ. 
+
+Hence we may fix β = 1 when defining Egen , with any global energy scaling reappearing as a temperature-unit rescaling in Step 4. (A global scaling of Egen simply rescales temperature units; cf. Step 4.)  
+
+> L2discrepancy and generative energy
+
+We measure the discrepancy between the empirical dis-tribution p and the induced model qθ by the squared 
+
+L2(μ) distance 
+
+J(θ) ≡ ∥ p − qθ ∥2 
+
+> L2(μ)
+
+=
+
+Z
+
+> X
+
+ p(x) − qθ (x)2 dμ(x). (4) In the discrete case X = {x1, . . . , x M },
+
+J(θ) = 
+
+> M
+
+X
+
+> i=1
+
+ p(xi) − qθ (xi)2.
+
+Although (2) has the familiar Boltzmann form, we do 
+
+not assume the data-generating distribution p is thermal or belongs to an exponential family. The Boltzmann map 
+
+E 7 → qθ ∝ e−E is used only as a thermodynamically con-sistent way to convert an energy function—constrained to the user-chosen basis/feature family {ϕk} (linear or non-linear)—into a normalised density. The optimisation of 
+
+J(θ) therefore identifies an energy representation within this restricted family, rather than fitting a presupposed probabilistic law to p.We use an L2 criterion (rather than KL divergence) because the goal is a stable histogram-matching energy embedding, not likelihood maximisation under a fixed model family. In particular, L2 is less sensitive to low-probability bins and to zeros in empirical frequencies, and it yields a smooth objective with a least-squares structure once discretised. If the chosen feature family is expressive, the induced 
+
+qθ⋆ can match p arbitrarily well; if it is restrictive, the mismatch quantifies exactly which aspects of p are not representable by that energy family. 
+
+Definition 1 (Generative energy) . Let p be the empirical distribution on X and let qθ be defined by (2) with energy 
+
+(1) . Any minimiser θ⋆ ∈ Θ of 
+
+θ⋆ ∈ arg min  
+
+> θ∈Θ
+
+J(θ) (5) 
+
+defines the generative energy 
+
+Egen (x) ≡ E (x; θ⋆) = 
+
+> K
+
+X
+
+> k=1
+
+θ⋆k ϕk(x). (6) Among all energies in the parametric family, Egen is the one whose induced Boltzmann distribution is closest to p
+
+in the L2(μ) sense. 
+
+Remark (least–squares in surprisal space). Define the empirical surprisal s(x) = − log p(x) (on the support where p(x) > 0). One may alternatively fit E(x; θ) to 
+
+s(x) via a weighted least–squares objective 
+
+Js(θ) = 
+
+Z
+
+> X
+
+ E(x; θ) − s(x)2 w(x) d μ(x), w(x) ≥ 0,
+
+which is quadratic in θ for linear E. We treat (5) as the primary definition and Js as a convenient implementa-tion route. In practice we use weights defined on the same discretisation as ˆ p. A stable default is w(x) = ˆ p(x)(mass-weighted least squares), which prioritises the high-probability region and avoids tail overfitting; when tail fidelity is important we use w(x) ∝ (ˆ p(x) + ε)−α with 
+
+α ∈ [0 , 1/2]. All results in this paper use w(x) = ˆ p(x)unless stated otherwise.  
+
+> B. Step 2: Energy random variable and its distribution
+
+Given Egen and the empirical microstate distribution 
+
+p, define the energy random variable 
+
+E = Egen (X),
+
+where X is a random microstate with law p:
+
+P(X ∈ A) = 
+
+Z
+
+> A
+
+p(x) d μ(x), A ⊆ X .
+
+> Pushforward to energy space
+
+The probability law of E is the pushforward of p under 
+
+Egen . For any Borel set B ⊆ R,
+
+P(E ∈ B) = 
+
+Z  
+
+> {x∈X :Egen (x)∈B}
+
+p(x) d μ(x).4If E admits a density pE with respect to Lebesgue mea-sure on R, then 
+
+pE (e) = 
+
+Z
+
+> X
+
+δ e − E gen (x) p(x) d μ(x), e ∈ R. (7) In the discrete microstate case X = {xi}Mi=1 with energies 
+
+Ei = Egen (xi), this reduces to 
+
+pE (e) = 
+
+> M
+
+X
+
+> i=1
+
+p(xi) δ(e − Ei). (8) 
+
+> Discretisation (energy histogram)
+
+Since Step 3 is posed on a finite simplex, we discre-tise energy space into bins {Ij }nj=1 with representative centres cj and define the energy histogram 
+
+pE,j ≡ pE (Ij ) = P(E ∈ Ij ) = X 
+
+> i:Ei∈Ij
+
+p(xi),
+
+> n
+
+X
+
+> j=1
+
+pE,j = 1 .
+
+(9) We write pE = ( pE, 1, . . . , p E,n ) ∈ ∆n for the resulting discrete energy–space representation.  
+
+> C. Step 3: Generative entropy via inverse maximum entropy
+
+We construct an entropy functional directly from the empirical histogram, without assuming a priori mem-bership in a particular family (Shannon, Tsallis, R´ enyi, Fermi–Dirac, etc.). The guiding principle is variational: we seek an entropy Hgen whose unique maximiser, un-der appropriately chosen linear constraints, is the em-pirical histogram itself. This is achieved by learning an entropy generator from data through two finite– dimensional quadratic programmes (QP): a core QP en-forcing global constraints, and a shape QP enforcing local structure. Throughout this step, p = (p1, . . . , p n) denotes adiscrete probability vector on a finite support C =
+
+{c1, . . . , c n}, and in our application we take p = pE from (9). In our application, C = {cj }nj=1 denotes the dis-cretised energy support (i.e. the energy-bin representa-tives/centres used in Eq. (9)), and p = pE is the corre-sponding energy histogram on that support. 
+
+> Trace–form entropies and generator
+
+We restrict attention to trace–form entropies 
+
+HG(p) = 
+
+> n
+
+X
+
+> j=1
+
+G(pj ), G ∈ C2(0 , 1) , G′′ (u) < 0,
+
+(10) where strict concavity ensures that HG is concave on the simplex and yields unique maximisers under linear con-straints. The function G : [0 , 1] → R is the entropy gen-erator .
+
+> Inverse maximum–entropy condition
+
+Let {fk(cj )}mk=0 be a collection of constraint functions on C (e.g. low–order moments for the “core”, and lo-cal masks for the “shape”). We impose expectation (moment-matching) constraints of the form 
+
+> n
+
+X
+
+> j=1
+
+qj fk(cj ) = 
+
+> n
+
+X
+
+> j=1
+
+pj fk(cj ), k = 0 , . . . , m, (11) where the feature functions fk : C → R are user-chosen and may be nonlinear in cj (e.g. moments, indicator masks, or other transforms). The constraints are linear in the decision variable q.We require that p is the maximiser of HG under these constraints: 
+
+p ∈ arg max 
+
+> q∈∆n
+
+HG(q) subject to (11) . (12) The KKT stationarity conditions at q = p yield 
+
+G′(pj ) = 
+
+> m
+
+X
+
+> k=0
+
+λkfk(cj ), j = 1 , . . . , n, (13) for some multipliers λ = ( λ0, . . . , λ m). Thus G′(p) must lie in the span of the constraint features evaluated on C. 
+
+> Linear model for G′
+
+We represent the unknown derivative G′ as a linear combination of basis functions {ψℓ(u)}Lℓ=0 on [0 , 1]: 
+
+G′(u) = 
+
+> L
+
+X
+
+> ℓ=0
+
+αℓψℓ(u), (14) with coefficients α ∈ RL+1 . Evaluating at u = pj gives 
+
+G′(pj ) = 
+
+> L
+
+X
+
+> ℓ=0
+
+αℓψℓ(pj ) = ( Aα )j ,
+
+where A ∈ Rn×(L+1) has entries Ajℓ = ψℓ(pj ). Let 
+
+F ∈ Rn×(m+1) denote the constraint matrix with entries 
+
+Fjk = fk(cj ). Then (13) becomes 
+
+Aα = F λ. (15) 5
+
+Core QP (global constraints) 
+
+We select ( α, λ ) by a regularised least–squares fit: min  
+
+> α,λ
+
+∥Aα −F λ ∥22+γ∥α∥22 subject to concavity constraints ,
+
+(16) where γ > 0 stabilises the solution and selects a minimal– norm generator derivative. Concavity is enforced discretely via 
+
+G′′ (pj ) = 
+
+> L
+
+X
+
+> ℓ=0
+
+αℓψ′
+
+> ℓ
+
+(pj ) ≤ − ε, j = 1 , . . . , n, (17) with ε > 0 small. Strict concavity prevents flat regions that can otherwise yield non–unique maximum–entropy solutions. Let ( α⋆, λ ⋆) denote a solution. Define 
+
+G′
+
+> core
+
+(u) = 
+
+> L
+
+X
+
+> ℓ=0
+
+α⋆ℓ ψℓ(u), Gcore (u) = 
+
+Z u
+
+> 0
+
+G′
+
+> core
+
+(t) d t, 
+
+with Gcore (0) = 0. 
+
+Shape QP (local structure) 
+
+Global constraints alone are typically insufficient to encode local structure (heavy tails, multimodality, pro-nounced skew, barrier–like features in energy space [15]). To capture such effects, introduce additional localised constraint functions {gr (cj )}Rr=1 (e.g. indicator masks for tails or side lobes). Let M ∈ Rn×R be the corresponding constraint matrix Mjr = gr (cj ). Although both stages use linear constraint matrices, the difference is structural: the core stage uses a low-dimensional global feature family (smooth functions of 
+
+cj ), whereas the shape stage uses localised masks that are (by construction) orthogonal to the core span so that they can adjust only local deviations without altering the global fit. Concretely, we enforce F ⊤M = 0 after Gram–Schmidt orthogonalisation (or equivalently impose (Π col( F )M )η = 0 as linear equalities), so the shape cor-rection lies in col( F )⊥.We learn a shape generator derivative by solving an analogous QP min 
+
+> α(S),η
+
+∥Aα (S) − M η ∥22 + γS ∥α(S)∥22 (18) subject to concavity constraints, again enforcing (17) (with α replaced by α(S)). In practice, we additionally ensure that the shape correction does not alter the global constraints, either by orthogonalising the shape features with respect to the core feature span or by adding linear equalities that remove any component of the shape fit lying in span( F ). Let α(S)⋆ denote the resulting coefficients and define 
+
+G′
+
+> shape
+
+(u) = 
+
+> L
+
+X
+
+> ℓ=0
+
+α(S)⋆ℓ ψℓ(u), Gshape (u) = 
+
+Z u
+
+> 0
+
+G′
+
+> shape
+
+(t) d t, 
+
+with Gshape (0) = 0. 
+
+Full generative generator and entropy 
+
+The full learned generator is the sum 
+
+Ggen (u) = Gcore (u) + Gshape (u), 0 ≤ u ≤ 1, (19) which remains strictly concave. The generative entropy 
+
+of a histogram p ∈ ∆n is then 
+
+Hgen (p) = 
+
+> n
+
+X
+
+> j=1
+
+Ggen (pj ). (20) By construction, Hgen is a data–driven, system– specific entropy: it is the (trace–form) functional whose maximum–entropy principle, under the learned con-straints, selects the empirical histogram. Classical en-tropies are recovered only in regimes where their genera-tors satisfy the same inverse optimality conditions. 
+
+D. Step 4: Internal energy, entropy–energy relation, and temperature 
+
+Internal energy 
+
+Given Egen and p, define the internal energy as the expectation 
+
+U ≡ Ep
+
+Egen (X) =
+
+Z
+
+> X
+
+Egen (x) p(x) d μ(x). (21) Equivalently, in energy space (continuous density or dis-crete histogram), 
+
+U = EpE [E] = 
+
+Z
+
+e p E (e) d e or U =
+
+> n
+
+X
+
+> j=1
+
+cj pE,j . (22) 
+
+S(U ) along an admissible state family 
+
+Consider a one–parameter family of admissible states 
+
+α 7 → pα(x), with corresponding generative energies Egen ,α 
+
+and energy histograms pE,α ∈ ∆n obtained by Step 2. For each α define 
+
+U (α) = 
+
+Z
+
+> X
+
+Egen ,α (x) pα(x) d μ(x), S(α) = Hgen 
+
+ pE,α 
+
+.
+
+If U (α) is monotone on the domain of interest, we may invert α 7 → U (α) and view entropy as a function of inter-nal energy along this family: S = S(U ). 6
+
+> Temperature from the entropy–energy slope
+
+We define (thermoinformational) temperature by the slope of S(U ) along the chosen family: 1
+
+T = ∂S ∂U along the family 
+
+=ddα S(α)ddα U (α)
+
+. (23) Writing pE,α = ( pE,α, 1, . . . , p E,α,n ), we have in discrete form ddα S(α) = 
+
+> n
+
+X
+
+> j=1
+
+G′
+
+> gen
+
+ pE,α,j 
+
+ ddα pE,α,j ,
+
+and similarly U (α) = Pnj=1 cj pE,α,j yields ddα U (α) = 
+
+> n
+
+X
+
+> j=1
+
+cj
+
+ddα pE,α,j + ( α–dependent terms Egen ,α )* .
+
+* when applicable If the learned energy map changes along the family, the bin representatives cj (energy levels) also depend on 
+
+α, and 
+
+U (α) = 
+
+> n
+
+X
+
+> j=1
+
+cj (α) pE,α,j ⇒⇒ dU dα = X
+
+> j
+
+cj (α) ddα pE,α,j + X
+
+> j
+
+pE,α,j 
+
+ddα cj (α).
+
+The first term is redistribution at fixed levels; the second is motion of the levels (work-like contribution in Supple-mentary Note S2.1). For a one-parameter family of states pα and learned energies Egen ,α , the internal-energy derivative splits as 
+
+dU dα ==
+
+Z
+
+Egen ,α (x) ∂αpα(x) dμ (x)+ 
+
+Z  ∂αEgen ,α (x) pα(x) dμ (x)
+
+dU dα ≡ δQ (α) + δW (α).
+
+The first term corresponds to redistribution on a fixed energy landscape (heat-like contribution), whereas the second captures deformation of the learned energy land-scape (work-like contribution). The ratio (23) then defines T for that state family. 
+
+a. Operational validation of temperature via ther-mal contact. To verify that the inferred temperature has an operational meaning beyond the formal identity 
+
+β(U ) = ∂S/∂U , we perform a thermal-contact test on two synthetic data systems (two Gaussian mixtures with 
+
+μ = 2 and μ = 3), using a shared learned energy axis but system-specific inferred entropies. For a fixed to-tal energy Utot (chosen in the interior of the common admissible range), the predicted equilibrium split is the maximiser of SA(UA) + SB (Utot − UA), which implies 
+
+βA(U ⋆A) = βB (U ⋆B ). In this experiment we obtain U ⋆A =3.289, U ⋆B = 3 .360 and |βA(U ⋆A) − βB (U ⋆B )| = 3 .21 × 10 −3
+
+(Fig. S5; details in Supplementary Note S10). This construction is intentionally system-specific : the objective is to obtain the most informative energy and entropy representation of a given empirical data system, rather than to impose a fixed entropy form across dis-parate systems. Because the entropy functional is in-ferred from the empirical macrostate geometry, the re-sulting thermodynamic variables ( U, S, T, F ) are then de-fined consistently via the associated MaxEnt and Legen-dre structure on that same system. Falsifiability is as-sessed by a within-system holdout test in which the en-tropy functional is learned on a training subset and then held fixed while predicting held-out distributions from held-out macrostates (Supplementary Note S3.1). 
+
+Summary. The construction proceeds as: 1. infer Egen by minimising an L2 discrepancy between 
+
+p and a Boltzmann–type model qθ ;2. push p forward under Egen to obtain an energy– space histogram pE ;3. construct Hgen by inverse maximum entropy (core + shape QPs) and set S = Hgen (pE ); 4. define U = Ep[Egen (X)] and T −1 = d S/ dU along admissible families. This yields a thermodynamically consistent description (U, S, T ) grounded in both data–driven energy and data– driven entropy.  
+
+> III. RESULTS
+
+Role of the Hamiltonian across the examples. The three validation examples are ordered from (i) systems with a known mechanistic Hamiltonian, to (ii) systems where a Hamiltonian exists in principle but is treated as unknown and inferred from samples, to (iii) non-mechanistic multimodal distributions where no a pri-ori physical Hamiltonian is available. In case (i) (har-monic/single well), the canonical Boltzmann–Gibbs form is known and Stage-I on the energy axis is therefore op-tional and mainly serves as a sanity check. In case (ii) (bistable double well), the Hamiltonian V (x) exists but we deliberately perform a Hamiltonian-free recovery from 7data; Stage-I is useful because the empirical pushfor-ward ˆ pE is sensitive to binning and barrier-region spar-sity, and the MaxEnt projection yields a strictly positive, constraint-consistent energy-state for stable computation of ( S, U, T ). In case (iii) (Gaussian mixtures), there is no physically dictated Hamiltonian; the generative en-ergy and inverse-MaxEnt steps provide the only princi-pled route to a thermodynamically consistent state-space representation.  
+
+> A. Calibration on a harmonic single–well potential
+
+We first calibrate the generative thermodynamic con-struction on a simple equilibrium system where the usual Boltzmann–Gibbs picture is known to be exact. Consider a one–dimensional overdamped particle in a harmonic po-tential, 
+
+V (x) = 12 kx 2, (24) coupled to a thermal bath at temperature T . The sta-tionary distribution over microstates is Gaussian, 
+
+p(x) = 
+
+r βk 
+
+2π exp − 12 βkx 2, β = ( kB T )−1, (25) with variance ⟨x2⟩ = kB T /k and internal energy Vphys = 
+
+> 12
+
+kB T .Here we use the known Hamiltonian as a ground-truth baseline; applying the energy-space Stage-I projection would recover the same Boltzmann–Gibbs form up to dis-cretisation error, so we omit it. In this unimodal equilib-rium regime the generative construction should reduce to the standard description: the learned generative energy should be quadratic in x, and the resulting entropy and temperature should coincide with the usual thermody-namic ones. To verify this, we drew N = 2 × 10 5 samples from the exact Gaussian distribution for several temper-atures T ∈ { 0.5, 1.0, 1.5, 2.0} (with kB = k = 1). From the empirical histogram ˆ p(x) we performed the generator step restricted to a quadratic energy family, 
+
+Egen (x; ω) = ω0 + ω2x2, (26) by fitting Egen to − log ˆ p(x) in least–squares sense (see Supplemental Material for numerical details). In the in-finite–data limit the exact relation − log p(x) = const +  
+
+> 12
+
+βkx 2 implies that the optimal generator within this family is quadratic with coefficient ω2 = 12 βk .Figure 1(a) shows the result of this procedure for 
+
+T = 1. The fitted Egen (x) is visually indistinguish-able from − log ˆ p(x) across the support of the distribu-tion, confirming that the generator recovers the expected quadratic energy landscape from finite data. Panel 1(b) summarizes the fitted quadratic coefficient ω2 as a func-tion of β = 1 /T for all temperatures. The points lie on the theoretical line ω2 = 12 βk to within a few percent, with typical relative errors below 5%. This calibration demonstrates that, for a simple harmonic single–well, the generative energy coincides with the usual Hamiltonian up to the expected affine gauge freedom, and the frame-work contains classical Boltzmann–Gibbs thermodynam-ics as a special unimodal limit.  
+
+> B. Bistable double–well potential
+
+To test the framework on a genuinely multimodal sys-tem we consider a one–dimensional particle in a bistable quartic potential, 
+
+V (x) = ax 4 − bx 2, a > 0, b > 0, (27) sampled in thermal equilibrium at inverse temperatures 
+
+β ∈ { 0.5, 1, 2}. For each β we generate N = 10 5 samples from the canonical density pβ (x) ∝ exp[ −βV (x)] using Metropolis–Hastings dynamics. The resulting stationary distribution is strongly bimodal, with mass concentrated near the two minima of V (x). Although V (x) is known in this synthetic test, we treat the Hamiltonian as un-known and infer the energy representation from samples; Stage-I is used here to stabilise the energy-space state by projecting the empirical pushforward onto the MaxEnt manifold induced by the learned generator. 
+
+Generator recovery from − log ˆ p(x). From each tra-jectory we estimate the empirical density ˆ p(x) by kernel density estimation and then fit a quartic generator 
+
+Egen (x) = w0 + w2x2 + w4x4 (28) by least squares to the curve − log ˆ p(x) over a central window containing both wells. Figure 2 shows the fit for all three inverse temperatures. In each case the recov-ered generator tracks − log ˆ p(x) closely across the entire bimodal region, and after an affine rescaling it is almost indistinguishable from the true potential V (x). This con-firms that the generative–energy step recovers the cor-rect energy landscape, even in the presence of two stable basins separated by a barrier. 
+
+Energy–space Stage-I (trace-form) reconstruction and internal energy. Given Egen , we push the empirical dis-tribution onto energy space and discretize the result-ing energy histogram ˆpE on a fixed grid {Ej }. On this energy axis we perform the Stage-I (core) trace-form construction: we learn a strictly concave genera-tor derivative G′(·) whose values on the empirical his-togram bins satisfy a low-dimensional slope-in-span con-dition, G′(ˆ pE,j ) ≈ (F θ )j for a chosen feature family 
+
+F (E), with concavity enforced by monotonicity of G′
+
+in probability. The corresponding MaxEnt distribution on the same grid is then obtained in KKT-closed form as p⋆E,j = ( G′)−1(( F θ )j ), followed by normalization (see SM for numerical details and diagnostics). We define the generative internal energy from this reconstructed distri-bution as 
+
+Ugen = X
+
+> j
+
+Ej p⋆E (Ej ) ∆ E. (29) 8                                     
+
+> FIG. 1. Harmonic-well calibration of the generative energy. (a) Empirical surprisal −log ˆ p(x) (blue) obtained from samples of the exact Gaussian equilibrium distribution in a quadratic potential at T= 1, shown together with the fitted generative energy Egen (x) (orange). The fit recovers the expected quadratic landscape (up to an additive constant) across the sampled support. (b) Fitted quadratic coefficient ω2of Egen (x)≈ω2x2+ω0versus inverse temperature β= 1 /T over the calibration sweep. The fitted coefficients follow the theoretical prediction ω2=12βk (line), confirming the correct temperature scaling and the expected affine gauge freedom in the learned energy.
+> FIG. 2. Double–well generator calibration. For each inverse temperature β∈ { 0.5,1,2}we show the empirical curve −log ˆ p(x)(blue points), the fitted generator Egen (x) (orange line), and the true quartic potential V(x) after an optimal affine rescaling (green dashed line). The generative energy reconstructs the bistable landscape across the full range of x, including both minima and the barrier region.
+
+Across the three inverse temperatures we obtain 
+
+Ugen ≈ { 1.25 , 0.90 , 0.48 }, which decrease monotonically with β as expected for a cooling bistable system (Fig. 3, orange curve). For comparison we also compute the conventional canonical internal energy USh (β) = Epβ [V (x)], which is negative because the minima of V (x) lie below zero. As β increases, the canonical energy USh becomes more negative, whereas the generative internal energy Ugen 
+
+moves towards lower positive values. branches of the same underlying energy landscape: USh measures how deeply the canonical ensemble sits in the wells of the physical potential V (x), while Ugen measures how far into the low–energy band of the data–driven generator the system has progressed. This illustrates that, even for the same microscopic potential, Shannon–based and generative thermodynamics can assign different, comple-mentary internal–energy scales. We do not expect USh 
+
+and Ugen to coincide numerically, even for the same mi-croscopic system, because they are defined on different representations and gauges. USh (β) = Epβ [V (x)] uses the physical potential with its chosen zero, whereas Ugen 
+
+is the mean of the learned energy coordinate (defined only up to affine gauge) computed under the MaxEnt-consistent energy-space reconstruction p⋆E . The invari-ant comparison is therefore the ordering/trend with β
+
+and the consistency relations (e.g. T −1 = dS/dU ), not equality of absolute values. In the harmonic case, the energy distribution can be obtained in closed form (and is smooth and strictly posi-tive on its support), so applying the energy-space Stage-I MaxEnt projection is not necessary for defining the state variables and would be redundant. We therefore use the harmonic system primarily as a ground-truth san-ity check. In contrast, for the bistable potential the em-pirical pushforward histogram ˆ p E is highly sensitive to finite-sample and binning effects (notably near the bar-rier region), and may contain empty or near-empty bins. Because the thermodynamic construction uses state func-tions and derivatives such as T −1 = dS/dU , these arte-facts can propagate and obscure the intended structural comparisons. We therefore compute ( U, S, T ) on the Stage-I energy-space MaxEnt state p⋆E , i.e. the unique distribution that maximizes the learned trace-form en-9               
+
+> FIG. 3. Internal energy as a function of inverse temperature for the double–well system. Blue: canonical Shannon inter-nal energy USh (β) = Epβ[V(x)] from the known potential. Orange: generative internal energy Ugen (β) computed from the QP energy distribution p⋆E. Both energies vary monoton-ically with βbut live on different scales: USh is negative and becomes more negative as the ensemble cools, whereas Ugen is positive and moves towards lower values as probability mass concentrates in the lowest generative–energy band.
+
+tropy under the chosen constraint family. This projection yields a strictly positive, constraint-satisfying macrostate for which the KKT relations hold exactly, ensuring that the subsequent thermodynamic relations are evaluated on the same MaxEnt manifold induced by the learned generator, rather than on a noisy finite-sample histogram ˆpE . More generally, Stage-I on energy space is optional when ˆ pE is already smooth/positive and derivatives are stable, but it is recommended for multimodal systems where ˆ pE is noisy and thermodynamic derivatives are sensitive. 
+
+> Mixture-of-Gaussians “data system”: discovering structure without a known Hamiltonian
+
+As a third example we consider a purely data–driven setting where no physical Hamiltonian is specified. In this example there is no a priori mechanistic Hamilto-nian that would dictate a canonical Boltzmann–Gibbs form; the energy and entropy are therefore inferred di-rectly from the observed distribution via the generative construction. We draw samples from a one–dimensional, symmetric mixture of Gaussians 
+
+p(x) = 12 N (−μ, 1) + 12 N (+ μ, 1) ,
+
+with mixture separation μ ∈ { 1, 2, 3}. In contrast to the double–well system, here the mixture is treated as an ar-bitrary “data system”: the only inputs to the construc-tion are the observed microstates xn and their empirical density ˆ p(x); there is no notion of a true potential V (x). We first fit a generative energy Egen (x) by regressing a sixth–order polynomial onto − log ˆ p(x), exactly as in the double–well example. The centre panel of Fig. 4 shows the result for the most separated mixture ( μ = 3). The orange curve gives the fitted generator Egen (x), which develops a clear multi–well structure aligned with the mixture modes, closely tracking the empirical − log ˆ p(x)(blue points). For comparison we overlay (green dashed) the quadratic energy corresponding to the Shannon Max-Ent solution with the same mean and variance as the mixture. As expected, this Gaussian MaxEnt energy is strictly unimodal and therefore incompatible with the multimodal data: it can match the overall spread of 
+
+x, but not the arrangement of probability mass across modes. Having constructed the generator, we push the empiri-cal distribution into energy space and solve the generative quadratic program on the energy axis. The left panel of Fig. 4 shows the empirical energy histogram pE (E)(blue bars) together with the QP solution p⋆E (E) (red) for μ = 3. The QP solution captures both the sharp low–energy concentration and the long, structured tail induced by the mixture. For comparison we also plot a Shannon–style exponential prior ∝ exp( −λE ) (blue dashed), fitted to match the empirical mean energy. This exponential form is the natural MaxEnt solution if one constrains only the mean energy in the Shannon frame-work; it produces a single–scale decay and necessarily washes out the multi–scale structure in pE (E) that the generative solution retains. The right panel of Fig. 4 summarizes how the ther-modynamic variables respond as we increase the mixture separation. The blue curve shows the canonical second moment E[x2] of the mixture, which grows rapidly with 
+
+μ, reflecting that the two components are moving fur-ther apart. In contrast, the generative internal energy 
+
+Ugen (orange) increases much more gently with separa-tion. This illustrates a key property of the thermoin-formational construction: internal energy is defined with respect to the learned generator in energy space, not di-rectly from the raw coordinate spread, so it is sensitive to deformation of the energy landscape rather than to the mere fact that the data occupy a wider range of x–values. In particular, once the generator has organized the mix-ture into a multi–well energy structure, further separa-tion of the wells changes Ugen only modestly, whereas the Shannon description in x–space continues to inflate with 
+
+E[x2]. Full panels for μ = 1 and μ = 2, including the corre-sponding generator fits and energy–space distributions, are provided in Supplementary Fig. S2, together with the behaviour of the generative entropy Hgen , which re-mains nearly constant across mixture separations while the Shannon entropy in x–space increases markedly. 
+
+a. Within-system holdout test (distributional predic-tion). A train/validation split is performed at the mi-crostate level. The generative energy map Egen (x), fixed energy support/binning, and the learned entropy func-tional are inferred using the training subset only. On the held-out subset, only the macroscopic constraints are re-10                           
+
+> FIG. 4. Thermoinformational state construction for an agnostic mixture-of-Gaussians data system. Left: energy–space quadratic–program solution p⋆E(red) versus the empirical energy histogram (blue bars) and a Shannon–style exponential prior ∝exp( −λE ) (dashed blue) for a two–component Gaussian mixture with separation μ= 3. The QP solution captures the sharp low–energy peak and long tail induced by the mixture, whereas the exponential prior smooths over these features. Mid-dle: generator fit in microstate space. We fit a sixth-order polynomial generator Egen (x) (orange) to −log ˆ p(x) (blue points); the Gaussian MaxEnt quadratic energy (green dashed) matches only the global variance and cannot represent the multimodal structure of the mixture. Right: internal energy as a function of mixture separation μ∈ { 1,2,3}.The canonical second moment E[x2] (blue) grows rapidly with separation, while the generative internal energy Ugen (orange) increases much more gently, reflecting that the thermodynamic description is controlled by structure in energy space rather than by raw spread in
+> x. Results for μ= 1 and μ= 2 (including the corresponding generator and energy–space plots) are provided in Supplementary Fig. S2.
+
+computed and the MaxEnt solution is obtained with the learned functional held fixed. For a representative split (seed = 1, N = 200 ,000, μ = 2 .0), the validation predic-tion achieves JS = 5 .44 × 10 −4 and W1 = 3 .42 × 10 −4
+
+relative to the held-out empirical ˆ pE , whereas a Shannon MaxEnt baseline under the same band constraints yields JS = 9 .57 × 10 −2 and W1 = 3 .25 × 10 −1. This demon-strates that the learned functional captures distributional structure that fixed-form entropies discard under identi-cal constraint information.  
+
+> IV. THERMODYNAMIC STRUCTURE AND CONSISTENCY
+
+The generative construction above is not just a con-venient way of organising data: it carries a full thermo-dynamic structure that is precisely analogous to classical equilibrium thermodynamics. Here we summarise the main results; detailed statements and proofs are given in Supplementary Notes S1–S3. 
+
+a. Inverse–MaxEnt representation. Given any finite microstate space C = {cj }, any empirical histogram 
+
+p = ( pj ) on C, and any finite family of macroscopic ob-servables fk(cj ) used as constraints, there exists a strictly concave trace–form generator G such that p is the unique maximum–entropy solution of max  
+
+> q
+
+HG(q) s.t. X
+
+> j
+
+qj fk(cj ) = X
+
+> j
+
+pj fk(cj ) ∀k, 
+
+where HG(q) is the generative entropy induced by G.Under a mild richness condition on the constraint fam-ily, this G is unique up to an affine gauge transformation 
+
+G 7 → G + αu + β (Supplementary Theorem S1.1), where 
+
+u ∈ (0 , 1] denotes a probability argument (e.g. u = pj ), and α, β ∈ R are constants (a linear term and an ad-ditive offset). Our energy–space quadratic program is a finite–dimensional approximation of this inverse–MaxEnt map: as the generator basis on the energy axis is den-sified, the fitted Egen converges to the inverse–MaxEnt generator for the underlying histogram and constraints. The inverse–MaxEnt step admits a precise finite-dimensional interpretation. For any interior histogram 
+
+p on a finite support and any full-rank constraint fam-ily, there exists a strictly concave trace-form generator G
+
+such that p is the unique maximum-entropy solution un-der those constraints. Under a mild richness condition on the constraint family, this generator is unique up to the affine gauge transformation G(u) 7 → G(u)+ αu +β, where 
+
+u ∈ (0 , 1] is a probability argument and α, β ∈ R are con-stants. Moreover, our energy-space quadratic program is a finite-dimensional approximation of this inverse– MaxEnt map: as the generator basis is densified, the fitted generator converges to the inverse–MaxEnt gener-ator associated with the underlying histogram and con-straints. Proofs and precise hypotheses are given in Sup-plementary Note S1. 
+
+b. Generative thermodynamic laws. For a smooth path of systems ε 7 →  pε, E gen ,ε 
+
+ we define internal en-ergy, entropy and temperature by 
+
+U (ε) = X
+
+> x
+
+Egen ,ε (x) pε(x), S(ε) = Hgen (pE,ε ),T −1(ε) = dS/ dε
+
+dU/ dε .11 With these definitions the usual thermodynamic laws hold. (i) First law: there is a canonical split d U =˙Q dε + ˙W dε into “heat” ˙Q coming from changes in pε
+
+at fixed Egen ,ε and “work” ˙W coming from deforma-tions of Egen ,ε at fixed pε (Supplementary Note S2.1). Pure reshuffling at fixed generator has ˙W = 0, whereas pure deformation at fixed p has ˙Q = 0. (ii) Second law (H–theorem): for the projected gradient flow of genera-tive entropy on the constraint manifold in energy space, 
+
+S(t) = Hgen (pE (t)) is non–decreasing and every trajec-tory converges to the unique generative MaxEnt state 
+
+p⋆E (Supplementary Theorem S2.2). (iii) Zeroth law: for two weakly coupled generative systems the equilibrium condition is equality of generative temperatures T1 = T2,with the usual entropy additivity and energy exchange arguments (Supplementary Note S2.3). 
+
+Generalised H-theorem (statement). Let p⋆ denote the unique MaxEnt state associated with the learned trace-form entropy and the imposed constraints. Un-der the projected gradient-ascent flow on the constraint manifold, the constraints are preserved, the entropy is nondecreasing, 
+
+ddt HG(p(t)) ≥ 0,
+
+and equality holds only at the stationary point p⋆. Hence 
+
+p⋆ is a Lyapunov maximiser for the induced dynamics. The formal statement and proof are given in Supplemen-tary Note S2. A simple numerical illustration of the H–theorem is given in the mixture–of–Gaussians data system at separa-tion μ = 3. Starting from the empirical energy histogram 
+
+p(0)  
+
+> E
+
+and iterating a discrete projected gradient–ascent step for the generative micro–entropy Hmicro under fixed band–mass constraints, we observe approximately expo-nential decay of ∥p(t) 
+
+> E
+
+− p⋆E ∥2 and a monotone increase of Hmicro (p(t) 
+
+> E
+
+) to the QP optimum Hmicro (p⋆E ) (Supple-mentary Fig. S3). This confirms that generative entropy acts as a Lyapunov functional for relaxation toward the MaxEnt state in this fully data–driven system. 
+
+Thermal contact and equilibrium prediction. Under weak contact, additive entropies, and conserved total en-ergy Utot , define 
+
+Stot (UA) := SA(UA) + SB
+
+ Utot − UA
+
+.
+
+The predicted equilibrium split is 
+
+U ⋆A = arg max 
+
+> UA
+
+Stot (UA), U ⋆B = Utot − U ⋆A.
+
+At an interior optimum, the first-order condition yields the operational equalisation rule 
+
+βA(U ⋆A) = βB (U ⋆B ),
+
+i.e. energy flows until the inferred inverse temperatures match. 
+
+c. Legendre structure and free energies. The gener-ative entropy induces the standard equilibrium Legendre machinery. Defining the microcanonical entropy S(U, X )as the supremum of Hgen over all states with fixed inter-nal energy U and other conserved observables X = ( Xi), and the dual potential Φ( ω, θ ) via a constrained Legen-dre transform, we obtain that S is concave, Φ is convex, and the usual conjugacy relations 
+
+ω = ∂S ∂U , θi = ∂S ∂X i
+
+, U = ∂Φ
+
+∂ω , Xi = ∂Φ
+
+∂θ i
+
+hold, together with Maxwell relations and response co-efficients (Supplementary Theorem S3.1). In the dou-ble–well and mixture examples, the numerically com-puted ( U, S, T ) follow these relations, so the associated generative free energy behaves as a bona fide thermody-namic potential on the learned state space. 
+
+d. Gauge, coarse–graining and geometry. Affine rescalings of the generator, Egen 7 → aE gen + b, shift the numerical value of U and rescale the conjugate vari-ables but leave Hgen and all MaxEnt predictions invari-ant; generative thermodynamics therefore has an en-ergy–gauge freedom analogous to the choice of zero in classical thermodynamics. Coarse–graining of the mi-crostate space corresponds to a stochastic map on the simplex under which Hgen is non–decreasing, and the negative Hessian of Hgen restricted to the simplex de-fines an entropy–induced Riemannian metric that re-duces to Fisher information in the Shannon case (Sup-plementary Note S3.2). Together, these results show that the data–driven construction of Egen and Hgen re-covers the full thermodynamic backbone— conservation laws, second law, Legendre structure and geometric con-sistency—on the empirical state spaces studied in this work.  
+
+> A. Heat, work, and the first law on learned energy state spaces
+
+A common failure mode in “thermodynamics-inspired” data analyses is that one defines entropy- or energy-like scalars but never specifies process-level bookkeeping :what counts as heat versus work, and whether an ana-logue of the first law is satisfied. In our construction, these notions are defined on the learned energy state space and follow a transparent decomposition under pro-tocols. 
+
+Protocol and representation. Let a protocol be an ex-ternally controlled parameter λ (e.g. bath temperature, mixture separation, stimulus intensity) that changes the empirical microstate ensemble. At each λ the system in-duces an energy-space distribution pE (E; λ) on a fixed discretisation {Ej }Mj=1 of the learned energy axis. When the energy map is held fixed along the protocol (as in the 12 harmonic and protocol checks), the internal energy is 
+
+U (λ) = 
+
+> M
+
+X
+
+> j=1
+
+pj (λ) Ej ∆E, pj (λ) ≈ pE (Ej ; λ). (30) More generally, if the representation itself depends on the protocol (e.g. the fitted generator changes with λ so that the induced energy levels shift), we write Ej (λ) and keep the same grid indexation across λ by construction (see SM for the implementation details). 
+
+Heat–work decomposition. The differential change of 
+
+U (λ) admits the standard thermodynamic split, 
+
+dU = X
+
+> j
+
+Ej d(pj ∆E) + X
+
+> j
+
+(pj ∆E) dE j ≡ δQ + δW. 
+
+(31) The first term, δQ , is the energy change due to re-distribution of probability mass across energy states at fixed levels; it quantifies protocol-driven reweighting of already-defined energy states. The second term, δW , is the change due to motion of the energy levels themselves 
+
+under λ (i.e. changes in the learned energy map), and is therefore the natural work-like contribution on the in-ferred state space. Eq. (31) is an identity once a consis-tent discretisation is fixed. 
+
+First-law consistency in the demonstrations. In the harmonic calibration and the operational temperature protocol, the learned energy map is fixed (quadratic form with fitted parameters) and the energy grid {Ej } is held constant; therefore dE j = 0 and δW ≡ 0, so that 
+
+dU = δQ and all changes in U are heat-like. In con-trast, when the representation is allowed to vary with λ
+
+(e.g. re-fitting Egen at each condition), δW captures the portion of U -change attributable to deformation of the inferred energy landscape rather than mere reweighting. In all cases, the framework provides an explicit process-level accounting and a first-law statement on the learned energy state space (details and numerical checks are re-ported in the SM).  
+
+> V. DISCUSSION AND OUTLOOK
+
+We introduced a constructive route for assigning ther-modynamic structure to an arbitrary empirical system starting from microstate data. The central point is pro-cedural: we first infer a generative energy that defines an intrinsic energy coordinate for the observed statis-tics, and then learn a system–tailored entropy functional 
+
+via an inverse maximum–entropy construction in the re-sulting energy representation. Only after this coupled energy–entropy specification do macroscopic variables such as internal energy, an entropy–energy relation S(U ), and a temperature defined by T −1 = ∂S/∂U along ad-missible state families become well-defined and thermo-dynamically consistent. The examples illustrate both calibration and necessity. In the harmonic (unimodal) limit, the generative energy recovers the expected quadratic landscape and its tem-perature scaling (up to the usual affine gauge freedom), demonstrating that classical Boltzmann–Gibbs thermo-dynamics is contained as a special case. In contrast, multimodal settings (double well; Gaussian mixtures) show why learning additional structure beyond global constraints can matter: barrier/coexistence features in the learned energy representation can be preserved rather than collapsed into a single effective mode. More broadly, the mixture example emphasizes that the construction is not restricted to physical Hamiltonians; it applies to em-pirical distributions where the “energy” is learned rather than assumed. Several limitations and extensions are natural. The inferred energy depends on the chosen feature family 
+
+E(x; θ) and the learned entropy depends on the selected constraint family in energy space; these choices con-trol resolution and should be treated as modelling deci-sions. Finite-sample effects, especially in tails, motivate regularisation and careful discretisation (detailed in the Supplementary Notes). Looking forward, important di-rections include multidimensional state representations (multiple learned energy coordinates), automated con-straint discovery, and dynamic/non-equilibrium proto-cols where the constructed ( U, S, T ) and associated Leg-endre structure could be used to define response functions in empirical systems. 
+
+> DATA AVAILABILITY STATEMENT
+
+The computational codes used to generate the synthetic datasets and replicate the results of the figures presented in this study are openly available in the ”Generative Thermodynamics” repository at github.com/RDomenikos/Generative Thermodynamics. The provided scripts are self-contained and do not require additional external data sources. 
+
+> DECLARATION OF INTERESTS
+
+The authors declare no competing interest. 
+
+> AUTHOR CONTRIBUTIONS
+
+G.R.D. Conceptualization, Mathematical and Physics Analysis, Coding, writing manuscript, creating fig-ures. C.L.U. Mathematical and Physics analysis, writing manuscript, review of concept and paper. V.L. supervi-sion, acquisition of funds. 
+
+> FUNDING
+
+This research is supported by the RIE2025 Human Potential Programme Prenatal/Early Childhood Grant 13 (H24P2M0008), administered by A*STAR. 
+
+[1] C. E. Shannon, A mathematical theory of communica-tion, Bell System Technical Journal 27 , 379 (1948). [2] E. T. Jaynes, Information theory and statistical mechan-ics, Physical Review 106 , 620 (1957). [3] S. Press´ e, K. Ghosh, J. Lee, and K. A. Dill, Principles of maximum entropy and maximum caliber in statistical physics, Reviews of Modern Physics 85 , 1115 (2013). [4] U. Seifert, Stochastic thermodynamics: principles and perspectives, The European Physical Journal B 64 , 423 (2008). [5] G. E. Crooks, Entropy production fluctuation theorem and the nonequilibrium work relation for free energy dif-ferences, Physical Review E 60 , 2721 (1999). [6] J. M. R. Parrondo, J. M. Horowitz, and T. Sagawa, Thermodynamics of information, Nature Physics 11 , 131 (2015). [7] J. Park and M. E. J. Newman, Statistical mechanics of networks, Physical Review E 70 , 066117 (2004). [8] J. R. Banavar, A. Maritan, and I. Volkov, Applications of the principle of maximum entropy: from physics to ecol-ogy, Journal of Physics: Condensed Matter 22 , 063101 (2010). [9] A. De Martino and D. De Martino, An introduction to the maximum entropy approach and its application to inference problems in biology, Heliyon 4, e00596 (2018). [10] D. H. Ackley, G. E. Hinton, and T. J. Sejnowski, A learn-ing algorithm for Boltzmann machines, Cognitive Science 
+
+9, 147 (1985). [11] G. E. Hinton, Training products of experts by minimiz-ing contrastive divergence, Neural Computation 14 , 1771 (2002). [12] Y. LeCun, S. Chopra, R. Hadsell, M. Ranzato, and F. J. Huang, A tutorial on energy-based learning, in Predict-ing Structured Data , edited by G. Bakir, T. Hofmann, B. Sch¨ olkopf, A. Smola, and B. Taskar (MIT Press, 2006). [13] A. Hyv¨ arinen, Estimation of non-normalized statistical models by score matching, Journal of Machine Learning Research 6, 695 (2005). [14] M. J. Wainwright and M. I. Jordan, Graphical models, exponential families, and variational inference, Founda-tions and Trends in Machine Learning 1, 1 (2008). [15] Phenomena such as multimodality can, in principle, be represented either in the core (by including mode-resolving features in F ) or in the shape term (via local-ized constraints). In practice we default to capturing such local structure in the shape correction, which keeps the core feature family low-dimensional and simplifies con-cavity enforcement, unless a specific application moti-vates encoding it directly in the core. [16] E. Schneidman, M. J. Berry, R. Segev, and W. Bialek, Weak pairwise correlations imply strongly correlated net-work states in a neural population, Nature 440 , 1007 (2006). [17] K. Friston, The free-energy principle: a unified brain the-ory?, Nature Reviews Neuroscience 11 , 127 (2010). Supplementary Material 
+
+# for 
+
+# Thermoinformational State Construction: Generative Energies, Entropies, and H-Theorem Consistency 
+
+George-Rafael Domenikos & Lock Yue Chew & Victoria Leong 
+
+# Contents 
+
+1 Numerical details for the harmonic calibration 7
+
+1.1 Sampling and histogram construction . . . . . . . . . . . . . . . . . . . . . . . . . 81.2 Generator fitting . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 81.3 Entropy and thermodynamic consistency . . . . . . . . . . . . . . . . . . . . . . . 8
+
+2 Double–well energy–space Stage-I (trace-form) details 93 Mixture-of-Gaussians “data system”: full construction and additional panels 11 
+
+3.1 Holdout validation of the learned energy–entropy representation (Gaussian mixture) 12 
+
+4 H-theorem Numerical proof 15 
+
+4.1 Numerical illustration of the H-theorem . . . . . . . . . . . . . . . . . . . . . . . 15 
+
+5 Inverse Maximum-Entropy Representation of the Generative Entropy 17 
+
+5.1 Existence for a fixed ( p, F ) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 5.2 Global uniqueness up to affine gauge . . . . . . . . . . . . . . . . . . . . . . . . . 19 5.3 Approximation by quadratic programmes . . . . . . . . . . . . . . . . . . . . . . 21 5.4 Function space and basis . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 5.4.1 The QP formulation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22 5.5 Summary of the inverse-MaxEnt representation . . . . . . . . . . . . . . . . . . . 24 
+
+6 First, Second and Zero-th law 24 
+
+6.1 First law decomposition . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25 6.1.1 Gauge and reparametrisation properties . . . . . . . . . . . . . . . . . . . 25 6.1.2 Canonical cases: pure reshuffling vs pure deformation . . . . . . . . . . . 27 6.2 Second law: a generalised H-theorem . . . . . . . . . . . . . . . . . . . . . . . . . 27 6.2.1 Constraint manifold and MaxEnt state . . . . . . . . . . . . . . . . . . . . 27 6.2.2 Projected gradient flow . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28 6.3 Zeroth law: equilibrium of weakly coupled systems . . . . . . . . . . . . . . . . . 29 6.3.1 Subsystem entropies and temperatures . . . . . . . . . . . . . . . . . . . . 29 6.3.2 Total entropy maximisation under fixed total energy . . . . . . . . . . . . 29 6.4 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30 17 Composition, Extensivity, and Thermodynamic Limit for Generative Trace-Form Entropies 30 
+
+7.1 Setting . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30 7.2 Entropy composition for bipartite systems . . . . . . . . . . . . . . . . . . . . . . 30 7.2.1 Joint and marginal entropies . . . . . . . . . . . . . . . . . . . . . . . . . 30 7.2.2 Decomposition into marginal, nonextensivity, and correlation parts . . . . 31 7.2.3 Tsallis pseudo-additivity as a special case . . . . . . . . . . . . . . . . . . 32 7.3 Extensivity and thermodynamic limit . . . . . . . . . . . . . . . . . . . . . . . . 33 7.3.1 Sequences of N -particle systems . . . . . . . . . . . . . . . . . . . . . . . 34 7.3.2 Assumptions on probabilistic structure . . . . . . . . . . . . . . . . . . . . 34 7.3.3 Generator condition: log-extensive small-u asymptotics . . . . . . . . . . 34 7.3.4 Main result . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 35 7.3.5 Proof of Theorem 7.10 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 35 
+
+8 Legendre Structure and Free Energies for Generative Thermodynamics 37 
+
+8.1 Setting . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 37 8.2 Microcanonical entropy as a concave state function . . . . . . . . . . . . . . . . . 38 8.2.1 Constraint manifold and microcanonical entropy . . . . . . . . . . . . . . 38 8.3 Legendre dual potential and conjugate variables . . . . . . . . . . . . . . . . . . . 39 8.3.1 Definition of the dual potential . . . . . . . . . . . . . . . . . . . . . . . . 39 8.3.2 Conjugate relations and entropy representation . . . . . . . . . . . . . . . 39 8.3.3 Monotonicity of the β ↔ U mapping . . . . . . . . . . . . . . . . . . . . . 40 8.4 Maxwell relations and response coefficients . . . . . . . . . . . . . . . . . . . . . . 41 8.4.1 Maxwell-type relations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 41 8.4.2 Heat capacity and susceptibilities . . . . . . . . . . . . . . . . . . . . . . . 42 8.5 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43 
+
+9 Geometry of Generative Entropy: Metric and Curvature on Probability Manifolds 43 
+
+9.1 Setting and entropy-induced metric on the simplex . . . . . . . . . . . . . . . . . 43 9.1.1 Hessian and tangent space . . . . . . . . . . . . . . . . . . . . . . . . . . . 44 9.1.2 Entropy-induced metric . . . . . . . . . . . . . . . . . . . . . . . . . . . . 44 9.2 Induced metric on parametric families and Fisher case . . . . . . . . . . . . . . . 44 9.2.1 Parametric model and pullback metric . . . . . . . . . . . . . . . . . . . . 44 9.2.2 Shannon generator and Fisher information . . . . . . . . . . . . . . . . . . 45 9.3 Tsallis generator and escort-geometry . . . . . . . . . . . . . . . . . . . . . . . . 45 9.3.1 Tsallis metric . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 46 9.4 Equilibrium manifolds and curvature . . . . . . . . . . . . . . . . . . . . . . . . . 46 9.4.1 Equilibrium family . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47 9.4.2 General form of the metric in terms of “generalised covariances” . . . . . 47 9.5 Curvature and phase behaviour . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47 9.5.1 Scalar curvature in two dimensions . . . . . . . . . . . . . . . . . . . . . . 48 9.5.2 Connection to response functions . . . . . . . . . . . . . . . . . . . . . . . 48 9.5.3 Tsallis example: curvature with escort weights . . . . . . . . . . . . . . . 49 9.6 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49 
+
+10 Gauge and Coarse-Graining Invariance for Generative Thermodynamics 50 
+
+10.1 Setting . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 50 10.2 Energy gauge invariance (Target K) . . . . . . . . . . . . . . . . . . . . . . . . . 50 10.2.1 Affine gauge transformations of the generative energy . . . . . . . . . . . 50 210.2.2 Effect on internal energy and entropy . . . . . . . . . . . . . . . . . . . . 51 10.2.3 Effect on temperature and free energies . . . . . . . . . . . . . . . . . . . 51 10.2.4 Gauge invariance of canonical MaxEnt distributions . . . . . . . . . . . . 52 10.3 Coarse-graining stability (Target L) . . . . . . . . . . . . . . . . . . . . . . . . . 53 10.3.1 Coarse-graining as a stochastic map . . . . . . . . . . . . . . . . . . . . . 53 10.3.2 Entropy of the lumped macro-variable . . . . . . . . . . . . . . . . . . . . 54 10.3.3 Internal energy and temperature under lumping (energy-space setting) . . 54 10.3.4 Remark on alternative “coarse-grained entropies” . . . . . . . . . . . . . . 55 10.3.5 Internal energy under energy coarse-graining . . . . . . . . . . . . . . . . 55 10.3.6 Temperature from coarse-grained ( S, U ) . . . . . . . . . . . . . . . . . . . 56 10.4 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 57 3Supplementary Note S0 User-agnostic “failsafe” feature fami-lies for choosing {ϕk}
+
+Context and purpose. In the main text, the feature family {ϕk} is the only modelling input: it specifies the span in which the energy E(·; θ) is assumed to live, and therefore controls the expressivity–parsimony trade-off. When a domain-informed choice is available, selecting 
+
+{ϕk} to target visible histogram structure (asymmetry, heavy tails, multi-modality) can yield the sharpest thermodynamic description. However, in user-agnostic deployments it is useful to have automatic, systematically improvable “failsafe” libraries. This note records three such default constructions: (i) Fourier/orthogonal-polynomial bases on 1D (or product) domains; (ii) tensor-product extensions for low-dimensional Cartesian supports; and (iii) graph Laplacian eigenfunction bases built directly on the discrete histogram support. All three provide nested spans indexed by K (number of basis functions), enabling controlled refinement. 
+
+S0.1 General setup on a discrete support 
+
+Let the empirical histogram be p ∈ ∆n on a finite support C = {cj }nj=1 (bin centres or discrete microstates), with pj > 0 and Pnj=1 pj = 1. Given a feature family {ϕk : C → R}Kk=1 , define the energy 
+
+E(cj ; θ) = 
+
+> K
+
+X
+
+> k=1
+
+θk ϕk(cj ), θ ∈ RK , (1) and the induced Boltzmann-type model 
+
+qθ(j) = exp   − E(cj ; θ)
+
+Z(θ) , Z(θ) = 
+
+> n
+
+X
+
+> j=1
+
+exp   − E(cj ; θ). (2) The constant offset (“gauge”) in E does not affect qθ and can be fixed by either including a constant feature ϕ0 ≡ 1 and leaving its coefficient free, or by enforcing a constraint such as P 
+
+> j
+
+E(cj ; θ) = 0. 
+
+Exact representability in the full discrete space. On a finite support, any strictly posi-tive histogram p is exactly representable by an energy E⋆(cj ) = − log pj + const, since qθ⋆ ≡ p
+
+if E(·; θ) can express − log p. Hence, a failsafe library is conceptually a way to approximate the target function s(cj ) = − log pj by a truncated expansion in a chosen basis. 
+
+S0.2 Fitting θ and the residual mismatch diagnostic 
+
+Surprisal regression (recommended, stable on discrete supports). Define the empir-ical surprisal on the support 
+
+sj = − log  pj + ε, (3) with a small ε > 0 to prevent divergence in empty/near-empty bins (e.g. ε = 10 −12 or a fraction of 1 /N if N samples). Let Φ ∈ Rn×K be the design matrix with entries Φ jk = ϕk(cj ). A simple and robust estimator of θ is the (weighted) ridge regression 
+
+θ(K) = arg min  
+
+> θ∈RK
+
+W1/2 Φθ − s 22 + λ∥θ∥22, (4) where s = ( s1, . . . , s n)⊤, W = diag( w1, . . . , w n), and λ ≥ 0 is a regularisation parameter. Aconvenient default is wj = pj (emphasises high-mass regions) or wj = √pj . If tail fidelity is important, one may upweight low-probability bins, e.g. wj ∝ (pj + ε)−α with α ∈ [0 , 1/2]. 4Residual mismatch as a “no-go” diagnostic. After fitting, compute qθ(K) and evaluate a discrepancy between p and qθ(K) . Useful diagnostics include 
+
+DKL (p∥q) = 
+
+> n
+
+X
+
+> j=1
+
+pj log pj
+
+qj
+
+, (5) 
+
+DJS (p, q ) = 12 DKL 
+
+
+
+p p+q
+
+> 2
+
+
+
++ 12 DKL 
+
+
+
+q p+q
+
+> 2
+
+
+
+, (6) 
+
+∥p − q∥22 =
+
+> n
+
+X
+
+> j=1
+
+(pj − qj )2. (7) A persistently large mismatch indicates that the selected span span {ϕk}Kk=1 is insufficient. This is not a failure mode of the framework; rather, it quantifies which aspects of the empirical geometry are not expressible under the current feature set. 
+
+Choosing K (nested-span model selection). Because all failsafe libraries below are nested in K, one can select K by: (i) an “elbow” in the mismatch curve K 7 → D(p∥qθ(K) ); (ii) held-out evaluation using a sample split (recommended: split the original samples, build two histograms 
+
+ptr , pva on the same support, fit on ptr and score on pva ); or (iii) information criteria (AIC/BIC) treating K as effective degrees of freedom (approximate under ridge). A safe default is to increase K until the mismatch stops decreasing appreciably on held-out data. 
+
+Avoiding unintended “Gaussianisation.” Gaussian-like behaviour is imposed only if the energy is explicitly restricted to a quadratic form (equivalently, only first/second-order moment constraints). The failsafe libraries below do not enforce Gaussian structure; however, choosing 
+
+K too small can over-smooth the energy landscape. The nested selection procedure above mitigates this by increasing K until multi-modality/tails present in p are captured. 
+
+S0.3 Failsafe I: Fourier and orthogonal-polynomial bases (1D and product domains) 
+
+S0.3.1 Fourier basis on a bounded 1D interval 
+
+Assume a 1D support mapped to x ∈ [−L, L ] (e.g. via bin centres cj ∈ [−L, L ]). A real Fourier library can be defined as 
+
+ϕ0(x) = 1 , (8) 
+
+ϕ2m−1(x) = cos 
+
+ mπ L x
+
+
+
+, m = 1 , 2, . . . , (9) 
+
+ϕ2m(x) = sin 
+
+ mπ L x
+
+
+
+, m = 1 , 2, . . . . (10) Truncation at K yields a K-dimensional span, with increasing K adding finer-scale structure. Fourier bases are most appropriate when the energy landscape is smooth on the chosen support and boundary artefacts are acceptable (or when periodicity is natural). 
+
+Practical notes. (i) Rescale x to [ −L, L ] for numerical stability. (ii) Use ridge regularisation in (4) to prevent high-frequency overfitting. (iii) If boundary behaviour is problematic, use polynomial/spline alternatives (below) or enlarge support. 
+
+S0.3.2 Orthogonal polynomials on [−1, 1] (Legendre/Chebyshev) 
+
+Map x ∈ [−L, L ] to u = x/L ∈ [−1, 1]. Legendre polynomials {Pm(u)}m≥0 form an orthogonal basis on [ −1, 1] under the uniform weight. Define ϕm(x) = Pm(x/L ) and truncate at degree 5d (so K = d + 1). Chebyshev polynomials can be used similarly and often have favourable approximation properties for smooth functions. 
+
+When to use. Polynomial bases are a good default when the support is bounded and the target s(x) = − log p(x) is well-approximated by smooth global functions. They can represent multi-modality and heavy tails on bounded supports when d is sufficiently large (selected by mismatch diagnostics). 
+
+S0.3.3 Product domains (low-dimensional Cartesian supports) 
+
+For x = ( x(1) , . . . , x (d)) with each coordinate scaled to [ −1, 1], build a product library 
+
+ϕα(x) = 
+
+> d
+
+Y
+
+> r=1
+
+ψαr
+
+ x(r), (11) where ψαr is a 1D basis element (Fourier or polynomial) and α = ( α1, . . . , α d) is a multi-index. To control combinatorial growth, restrict to a maximum total degree/order P 
+
+> r
+
+αr ≤ D or include only low-order interactions. This is appropriate for d ≤ 3 (or modest d with strong sparsity constraints). 
+
+S0.4 Failsafe II: Graph Laplacian eigenfunctions on the discrete histogram support 
+
+Motivation. When the support C is irregular, non-Cartesian, or effectively manifold-like (even within Rd), a basis constructed directly on the discrete support can be preferable. Graph Lapla-cian eigenfunctions provide an orthonormal family ordered by increasing oscillation, yielding a nested approximation space. 
+
+S0.4.1 Graph construction 
+
+Given support points {cj }nj=1 ⊂ Rd (bin centres or discrete microstates), build a weighted graph: 
+
+• Connect each node j to its knn nearest neighbours (or all nodes within radius r). 
+
+• Set weights, for example, 
+
+Wij =
+
+(
+
+exp   − ∥ ci − cj ∥22/σ 2, i ∼ j, 
+
+0, otherwise , (12) where σ is a scale parameter (default: median neighbour distance; or a local σi for self-tuning kernels). 
+
+• Let D = diag( d1, . . . , d n) with di = P 
+
+> j
+
+Wij .
+
+S0.4.2 Laplacian eigenfunctions 
+
+Use the (symmetric) normalised Laplacian 
+
+Lsym = I − D−1/2W D −1/2. (13) Compute its eigenpairs ( λℓ, v ℓ) with 0 = λ0 ≤ λ1 ≤ · · · , where v0 is (approximately) constant on a connected graph. Define basis functions on the support by 
+
+ϕℓ(cj ) = vℓ(j), ℓ = 1 , 2, . . . , (14) typically excluding the constant mode (or including it as ϕ0 ≡ 1 for gauge). Truncation to the first K nontrivial eigenvectors yields a smooth-to-oscillatory nested span. 6Recommended defaults. knn ∈ [10 , 30] (increase for noisy supports; decrease for sharply clustered supports); σ set to the median distance among knn edges (or local self-tuning). Select 
+
+K by the mismatch diagnostics in §0.2; increase K to capture multi-modality. 
+
+Identifiability and numerical notes. Eigenvectors are defined up to sign; and within nearly degenerate eigenspaces may rotate. This does not affect the span or the fitted qθ if the fitting objective depends only on the span. For reproducibility, fix random seeds in nearest-neighbour routines and use deterministic eigensolvers when available. 
+
+When to use. Graph Laplacian eigenfunctions are preferred when: (i) the support is non-Cartesian or highly irregular; (ii) multi-modality is strongly tied to the geometry of C; or (iii) coordinate-wise bases (Fourier/polynomial) are ill-conditioned or require too many terms. 
+
+S0.5 Summary table and “quick-start” checklist 
+
+Which failsafe should I use? 
+
+• Fourier basis (1D / periodic / smooth) : fast, simple, good for smooth energy land-scapes on known intervals. 
+
+• Orthogonal polynomials (1D bounded) : good default on bounded supports; increase degree until mismatch saturates. 
+
+• Graph Laplacian eigenfunctions (irregular support / manifold-like) : best generic default when the support is discrete/irregular and geometry matters. 
+
+Quick-start (recommended). 
+
+1. Fix the support C and histogram p (ensure pj > 0 via smoothing if needed). 2. Choose a failsafe library and build Φ jk = ϕk(cj ) for k = 1 , . . . , K max .3. For each K ≤ Kmax : fit θ(K) by (4); compute qθ(K) .4. Select K by held-out mismatch or the elbow of DJS (p, q θ(K) ). 5. Report K⋆, the chosen mismatch value, and (optionally) the residual structure. 
+
+# Supplementary Notes for Applications 
+
+# 1 Numerical details for the harmonic calibration 
+
+This section gives implementation details for the harmonic single–well calibration in Sec. III A of the main text. 71.1 Sampling and histogram construction 
+
+We fix kB = k = 1 and consider temperatures T ∈ { 0.5, 1.0, 1.5, 2.0}, with corresponding variances σ2 = T . For each temperature we draw N = 2 × 10 5 independent samples 
+
+xn ∼ N (0 , σ 2), n = 1 , . . . , N, (15) directly from the Gaussian stationary distribution of the harmonic well. To approximate the empirical density ˆ p(x) we build a fixed histogram on a symmetric interval [ −L, L ], where L = 5 σmax and σmax = √max T T is the largest standard deviation across temperatures. We use 300 uniformly spaced bins, so that the bin edges xi and centres ¯xi are the same for all T . The histogram is density-normalized so that P 
+
+> i
+
+ˆp(¯ xi) ∆ x ≈ 1 on this grid. Bins with zero counts are discarded when taking logarithms to avoid numerical issues. 
+
+1.2 Generator fitting 
+
+In the calibration we restrict the generative energy to the quadratic family 
+
+Egen (x; ω) = ω0 + ω2x2, (16) which is the simplest nontrivial basis consistent with the symmetry p(x) = p(−x) and the known harmonic form of − log p(x). Given the empirical histogram, we define the target values 
+
+yi = − log ˆ p(¯ xi), (17) for all bins i with ˆ p(¯ xi) > 0, and construct the design matrix 
+
+Xi =  1, ¯x2
+
+> i
+
+. (18) The generator step is implemented here as a simple least–squares regression, 
+
+ω⋆ = arg min 
+
+> ω
+
+X
+
+> i
+
+ Xi · ω − yi
+
+2, (19) solved using standard linear algebra routines. This corresponds to an L2 projection of − log ˆ p(x)onto the chosen energy family; more general generator classes and loss functions are described in the main text. In the exact Gaussian case one has 
+
+− log p(x) = const + 12 βkx 2, (20) so the optimal coefficient within this family is ωth 2 = 12 βk up to the additive constant ω0.Numerically we find (for T = 0 .5, 1.0, 1.5, 2.0) that the fitted ω2 agrees with ωth 2 to within 2– 5%; the ω2–vs– β plot in Fig. 1(b) of the main text shows an excellent linear relation with the expected slope 12 k.
+
+1.3 Entropy and thermodynamic consistency 
+
+For the one–dimensional harmonic single–well at equilibrium, the stationary microstate distri-bution in x is Gaussian with variance σ2 = kB T /k . Its differential Shannon entropy is 
+
+Sx(T ) = −
+
+Z
+
+p(x) log p(x) dx = 12 log  2πe k B T /k , (21) and the corresponding physical mean potential energy is 
+
+Uphys = E 12 kx 2 = 12 kB T, (22) 8so that ∂S x
+
+∂U phys 
+
+= 1
+
+T . (23) In the generative framework, when the generator family is restricted to the quadratic form above and the observed microstate distribution is exactly Gaussian, the learned energy is equivalent (up to the standard affine gauge) to the physical quadratic Hamiltonian, and the induced entropy–temperature relation reduces to the classical Boltzmann–Gibbs form for this unimodal equilibrium limit. Here we use the harmonic example primarily as a numerical calibration of the generator step and as a consistency check on the expected quadratic scaling; we do not attempt to estimate Tgen numerically from finite differences of S(U ) in this note. 
+
+# 2 Double–well energy–space Stage-I (trace-form) details 
+
+This note provides additional detail on the Stage-I (core) construction of the energy–space distribution pE (E) for the bistable double–well system, together with the corresponding plots. 
+
+Energy grid, feature family and Stage-I core fit 
+
+For each inverse temperature β we map samples xn to energies En = Egen (xn) and construct an energy grid {Ej }Mj=1 spanning the bulk of observed energies (we use a robust percentile range to avoid rare extremes dominating the discretisation). We represent the empirical energy distribution by a histogram ˆ pE ∈ ∆M on this fixed grid. Stage-I learns a strictly concave trace-form generator H[p] = PMj=1 G(pj ) from ˆpE by en-forcing the core slope-in-span condition on the histogram bins: 
+
+sj ≡ G′(ˆ pE,j ) ≈ (F θ )j , j = 1 , . . . , M, (24) where F ∈ RM ×d is a low-dimensional feature family on the energy axis (constant term plus multiscale radial basis functions centered at energy quantiles), and θ ∈ Rd are coefficients. Strict concavity is enforced numerically by requiring G′ to be monotone as a function of probability (implemented by isotonic projection of the slopes on the probability-sorted active bins), and two anchor equalities are imposed on the highest- and lowest-probability bins to fix the addi-tive/multiplicative gauge of the slope scale. The resulting learned object is the monotone slope map G′(·) together with coefficients θ such that F θ approximates the fitted slopes. 
+
+Energy–space MaxEnt reconstruction (KKT closed form) 
+
+Given the Stage-I fit, the corresponding MaxEnt distribution on the same energy grid follows directly from the KKT stationarity condition for trace-form entropies: 
+
+G′(p⋆E,j ) = ( F θ )j , j = 1 , . . . , M, (25) hence 
+
+p⋆E,j =  G′−1 (F θ )j
+
+, j = 1 , . . . , M, (26) followed by normalization onto the simplex. We emphasize that this reconstruction is KKT-consistent with the learned trace-form generator: no additional smoothing or fidelity objective is introduced at this stage; the only regularization is the low-dimensional span restriction and the strict concavity (monotonicity) constraint in Stage-I. 9Figure 1: Energy–space Stage-I/KKT solutions and comparison with a Shannon mean-matched exponential baseline for the double–well system. For each inverse temperature β ∈ { 0.5, 1, 2}
+
+we show the empirical energy histogram (blue bars), obtained by mapping samples xn through the fitted generator Egen (xn), together with the Stage-I/KKT MaxEnt reconstruction p⋆E (E)(red line) and the Shannon mean-matched exponential baseline pSh (E) ∝ e−λE (blue dashed), where λ is chosen so that EpSh [E] = EˆpE [E] on the same energy grid. The learned trace-form solution captures the sharp low–energy peak and the long empirical tail, whereas the fixed-form Shannon exponential produces a single-scale decay that cannot reproduce the detailed core/shape structure. 
+
+Energy distributions and Shannon comparator 
+
+Figure 1 shows the empirical energy histograms ˆ pE (E) for β = 0 .5, 1, 2 (blue bars) together with the Stage-I/KKT MaxEnt reconstruction p⋆E (E) (red line). In all cases the solution exhibits a narrow peak at the lowest accessible energies and an approximately exponential tail. Small discrepancies arise from finite histogram resolution and from the fact that the learned slope family F θ is low-dimensional, hence it cannot fit an arbitrary histogram exactly. To contrast with the learned functional we also construct a fixed-form Shannon MaxEnt distribution on the same energy grid under a single mean-energy constraint :
+
+pSh (E) ∝ exp( −λE ), (27) where λ is chosen such that EpSh [E] = EˆpE [E] on the same discretization. This “mean-matched exponential” baseline isolates the effect of the learned (trace-form) functional from a standard Shannon MaxEnt assumption on the energy axis. 
+
+Entropy values on the learned energy state space 
+
+Given the learned trace-form generator G, a generative entropy value on the energy state space is computed as 
+
+Sgen =
+
+> M
+
+X
+
+> j=1
+
+G p⋆E,j 
+
+, (28) where G is obtained (up to an additive constant) by integrating the learned slope map G′
+
+(with the convention G(0) = 0). Across the three inverse temperatures we obtain only mild variations of Sgen (typically at the percent level), consistent with the interpretation that the learned generator primarily encodes the geometry of the energy state space rather than the precise canonical weighting across the two wells. For reference, the canonical Shannon entropies SSh (β) = − R pβ (x) log pβ (x) dx decrease substantially with β. The contrast between these two entropy curves highlights the conceptual difference between a Shannon entropy on configuration space and the inferred trace-form entropy on the learned energy state space. 10 3 Mixture-of-Gaussians “data system”: full construction and additional panels 
+
+This section expands the mixture-of-Gaussians example described in the main text and provides full details of the construction, together with additional diagnostic panels. 
+
+Data–level system. We consider a one–dimensional, symmetric Gaussian mixture with mix-ture separation μ ∈ { 1, 2, 3}. In the numerical implementation used for the diagnostic panels (Fig. S2), the data are generated from a three–component symmetric mixture 
+
+p(x) = w− N (−μ, σ 2
+
+> −
+
+) + w0 N (0 , σ 20 ) + w+ N (+ μ, σ 2+),
+
+with ( w−, w 0, w +) = (0 .3, 0.4, 0.3) and ( σ−, σ 0, σ +) = (0 .4, 0.8, 0.4) (as in the accompanying code). For each μ we draw N = 200 ,000 independent samples xn and form an empirical density ˆp(x) on a uniform grid via a regularized histogram. Unless otherwise stated, the generator fit and energy–axis construction in this diagnostic figure use a fixed training subset (e.g. 70% of the samples under a fixed seed) for numerical stability; the remaining samples are not used for fitting in this panel set. 
+
+Generator fit in x–space. The generative energy is parameterized as a sixth–order even polynomial 
+
+Egen (x) = w0 + w2x2 + w4x4 + w6x6,
+
+and is fitted by least–squares regression of − log ˆ p(x) onto the basis {1, x 2, x 4, x 6}, discarding empty histogram bins. This is exactly the same procedure used for the double–well system but without reference to any underlying Hamiltonian. The bottom row of Fig. S2 shows the resulting fits (orange curves) for each value of μ against the empirical − log ˆ p(x) (blue points). As the separation increases from μ = 1 to μ = 3, the generator smoothly transitions from a nearly flat, broad well to a clearly multi–well energy landscape that mirrors the multimodal structure of the mixture. For comparison we also construct the Shannon MaxEnt Gaussian with the same mean and variance as the mixture. Since the mixture is symmetric, this is N (0 , σ 2) where σ2 = E[x2]is the empirical second moment. Its associated energy EGauss (x) ∝ x2/σ 2 is shown as a green dashed curve in the bottom row of Fig. S2. By construction this Shannon MaxEnt energy is strictly unimodal and cannot reproduce the multi–well structure learned by Egen (x) when μ is large. 
+
+Energy mapping and trace-form MaxEnt reconstruction in E–space. Given the fitted generator, we map the microstates xn into energy space via En = Egen (xn) and form an energy histogram with M bins, yielding empirical probabilities ˆ pE (Ej ) at bin centres Ej .On this discretised energy axis we implement the Stage-I (core) trace-form learning described in the main text: we seek a strictly concave trace-form generator Ggen such that, on the empirical histogram, its slope values 
+
+sj = G′
+
+> gen
+
+(ˆ pE,j )lie (approximately) in the span of a small, interpretable feature family on the energy axis. Concretely, we construct a multiscale feature matrix F ∈ RM ×d whose columns consist of a constant term and a set of broad and narrow radial basis functions centred at quantiles of the empirical energy support. Stage-I then finds coefficients θ ∈ Rd such that 
+
+s ≈ F θ, 
+
+while enforcing strict concavity through a monotonicity constraint on the slope ordering (i.e. 
+
+G′ 
+
+> gen
+
+is monotone as a function of p, implemented numerically by isotonic projection on the 11 probability-sorted bins). Two anchor equalities are imposed at the highest- and lowest-probability bins to fix the additive/multiplicative gauge of the slope scale. (This is a numerically stable sur-rogate of the Stage-I QP described in the main text: it solves the same slope-in-span condition with strict concavity, but is implemented directly in slope space.) 
+
+Trace-form MaxEnt reconstruction. Once θ and the monotone slope map G′ 
+
+> gen
+
+have been learned from ˆ pE , the corresponding MaxEnt distribution on the same fixed energy grid is obtained directly from the KKT stationarity condition. In trace-form MaxEnt, the optimum satisfies 
+
+G′
+
+> gen
+
+(p⋆E,j ) = ( F θ )j ,
+
+hence 
+
+p⋆E,j =  G′
+
+> gen
+
+−1 (F θ )j
+
+, j = 1 , . . . , M, 
+
+followed by normalisation onto the simplex. This KKT-consistent closed-form reconstruction produces the red curve p⋆E (E) in the top row of Fig. S2. 
+
+Shannon exponential prior in energy space. To contrast with the generative solution we construct a purely Shannon MaxEnt prior on the same energy axis. If one constrains only the mean energy E[E] in the Shannon framework, the maximizing distribution is exponential, 
+
+pSh (E) ∝ exp( −λE ),
+
+with decay rate λ > 0 chosen such that EpSh [E] = Uemp . In practice λ is obtained by solving this moment–matching condition numerically on the same discretized energy grid. 
+
+Six–panel diagnostic figure. Across all three separations, the panels illustrate the same qualitative pattern: the thermoinformational construction learns a multi–well generator and an energy–space distribution that preserves the observed core/shape structure, while the corre-sponding Shannon MaxEnt approximations (Gaussian in x–space and exponential in E–space) necessarily smooth this structure into unimodal, single–scale forms. In the main text (Fig.1 of the main text) we summarize this behaviour by showing the μ = 3 panels together with the dependence of Ugen on mixture separation. 
+
+3.1 Holdout validation of the learned energy–entropy representation (Gaus-sian mixture) 
+
+Goal. This note documents a within-system holdout test designed to assess falsifiability with-out departing from the one system → one inferred functional principle. The entropy functional is inferred on a training subset and then held fixed; on held-out data, only the macrostates are updated and the corresponding MaxEnt prediction is compared to the held-out empirical distribution on a common energy discretisation. 
+
+Setup and split. Microstates x are generated from the Gaussian mixture model specified in Supplementary Note S ⟨MoG ⟩ (same parameters as the main demonstration). A random split produces disjoint training and validation sets, Dtr and Dval , with proportions ρ and 1 − ρ (e.g. 
+
+ρ = 0 .7) under a fixed random seed. All quantities defining the representation (energy map, discretisation, constraint functions, and the learned entropy functional) are inferred using Dtr 
+
+only. 
+
+Training stage (learn Egen and the entropy functional). An energy map Egen (x) is fitted on Dtr (train-only fit). Training energies are obtained as Etr = {Egen (x) : x ∈ D tr }. A fixed energy support [ Emin , E max ] and a fixed binning {Ej }nj=1 are defined from training only 12 Figure 2: Mixture-of-Gaussians data system: generator fits and energy–space so-lutions for all separations. Each column corresponds to a different mixture separation 
+
+μ ∈ { 1, 2, 3} (left to right). Top row: empirical energy histogram pE (E) (blue bars) obtained by mapping samples xn through the fitted generator Egen (xn), together with the trace-form MaxEnt reconstruction p⋆E (E) (red solid) and a Shannon exponential prior pSh (E) ∝ exp( −λE )(blue dashed) with λ chosen so that EpSh [E] = Uemp . The generative solution captures the sharp low–energy peak and the structured tail induced by the mixture, whereas the Shannon prior produces a single–scale decay that cannot reproduce this structure. Bottom row: em-pirical negative log–density − log ˆ p(x) (blue points) with the fitted generator Egen (x) (orange) and the Gaussian MaxEnt energy associated with the matching mean/variance Gaussian (green dashed). For visual comparability, the displayed Egen (x) curve may be monotone-calibrated to 
+
+− log ˆ p(x) (a plot-only alignment that does not affect the energy mapping or the energy–space distributions). For small separation ( μ = 1) the system is close to unimodal and the generator remains broad and nearly flat; as μ increases the generator develops multiple wells aligned with the mixture modes, while the Gaussian MaxEnt energy remains strictly unimodal and increas-ingly mismatched to the data. and then frozen. The training empirical energy histogram is denoted ˆ pE, tr ∈ ∆n. Macroscopic constraints are computed as 
+
+μtr  
+
+> k
+
+=
+
+> n
+
+X
+
+> j=1
+
+ˆpE, tr (j) fk(Ej ),
+
+where fk are the constraint functions used in the MoG demonstration. Using (ˆ pE, tr , {μtr  
+
+> k
+
+}), an entropy functional is then inferred by the same QP-based procedure as in the main MoG example; denote it by H⋆[·]. 
+
+Validation stage (functional fixed, macrostates updated). Validation energies are com-puted by pushing forward held-out microstates through the same train-fitted energy map, 
+
+Eval = {Egen (x) : x ∈ D val }. The held-out empirical energy histogram ˆ pE, val is formed on the same frozen bins {Ej }nj=1 . Held-out macrostates are computed as 
+
+μval  
+
+> k
+
+=
+
+> n
+
+X
+
+> j=1
+
+ˆpE, val (j) fk(Ej ).
+
+13 Figure 3: Holdout validation in the Gaussian mixture example. The entropy functional and generative energy map are inferred from the training subset only (fixed binning and band cutpoints). On held-out data, only the macroscopic band-mass constraints are recomputed and the MaxEnt solution is obtained with the functional fixed. The QP-learned functional closely matches the held-out empirical energy distribution, while Shannon MaxEnt under the same constraints fails to reproduce bimodality (seed = 1, μ = 2 .0, N = 200 ,000, ρ = 0 .7). A MaxEnt prediction on validation is obtained by solving 
+
+p⋆E, val = arg max 
+
+> p∈∆n
+
+H⋆[p] s.t. 
+
+> n
+
+X
+
+> j=1
+
+p(j) fk(Ej ) = μval  
+
+> k
+
+, k = 1 , . . . , K, 
+
+with H⋆ held fixed (train-learned). 
+
+Evaluation metrics. Prediction quality is quantified by the Jensen–Shannon divergence JS(ˆ pE, val , p ⋆E, val ) and the 1-Wasserstein distance W1(ˆ pE, val , p ⋆E, val ) computed on the common energy axis. (Any numerical smoothing/regularisation used for stability is applied identically across methods.) 
+
+Baseline: Shannon MaxEnt under identical constraints. A fixed-form comparator is obtained by Shannon MaxEnt under the same constraint information. In the band-constraint setting used here, Shannon MaxEnt yields a distribution that is uniform within each band and matches the prescribed band masses; this baseline isolates the effect of the learned functional from the constraint family. 
+
+Representative result and robustness to split realisation. For μ = 2 .0, N = 200 ,000, training fraction ρ = 0 .7, and seed = 1, the held-out prediction achieves JS = 5 .44 × 10 −4
+
+and W1 = 3 .42 × 10 −4, whereas the Shannon MaxEnt baseline yields JS = 9 .57 × 10 −2 and 
+
+W1 = 3 .25 × 10 −1. Repeating the same experiment across multiple random seeds yields the same qualitative conclusion (code provided), indicating that the result is not sensitive to a particular split realisation. 14 Figure 4: Numerical H-theorem for generative entropy in the mixture-of-Gaussians data system. We use the μ = 3 mixture and the corresponding generative MaxEnt solution p⋆E
+
+obtained from the quadratic program in Fig.4 in the main. Starting from the empirical energy histogram p(0)  
+
+> E
+
+we iterate a projected gradient–ascent step for the generative micro–entropy 
+
+Hmicro under fixed band-mass constraints Ap E = b. Left: Euclidean distance ∥p(t) 
+
+> E
+
+− p⋆E ∥2 vs. iteration t on a logarithmic vertical axis, showing approximately exponential convergence to the MaxEnt state. Right: generative micro–entropy Hmicro (p(t) 
+
+> E
+
+) along the same relaxation (blue) compared with the MaxEnt value Hmicro (p⋆E ) from the QP (black dashed). As predicted by the H-theorem, the generative entropy is monotonically non–decreasing and saturates at the QP optimum. 
+
+# Supplementary Notes for Proofs 
+
+# 4 H-theorem Numerical proof 
+
+The abstract H-theorem for generative entropy (Theorem X in the Supplementary Material) states that if we evolve the energy–space distribution pE (t) according to the projected gradi-ent–ascent flow of Hmicro on the constraint manifold {pE : Ap E = b}, then Hmicro (pE (t)) is non–decreasing and the dynamics converge to the generative MaxEnt state p⋆E that solves the quadratic program. To illustrate this numerically, we reuse the mixture-of-Gaussians data system at separation 
+
+μ = 3 and the corresponding generative MaxEnt solution p⋆E from Fig.4 of the main text. We take the empirical energy histogram p(0)  
+
+> E
+
+as an initial condition and iterate a discrete projected gradient–ascent step, 
+
+p(t+1)  
+
+> E
+
+= Π {Ap =b, p ≥0}
+
+ p(t) 
+
+> E
+
++ η ∇Hmicro (p(t) 
+
+> E
+
+),
+
+with a small step size η and projection onto the linear constraints and simplex (Methods). Figure 4 shows that ∥p(t) 
+
+> E
+
+− p⋆E ∥2 decays approximately exponentially in t while the generative micro–entropy Hmicro (p(t) 
+
+> E
+
+) increases monotonically to the QP optimum value Hmicro (p⋆E ). This numerical H-theorem confirms that the generative entropy behaves as a bona fide Lyapunov functional for relaxation toward the MaxEnt state in this data system. 
+
+4.1 Numerical illustration of the H-theorem 
+
+We report a numerical H-theorem for the mixture-of-Gaussians data system at separation μ = 3. Here we give the details of the discrete relaxation scheme used in Fig. 4. We work on the finite energy grid {Ei}ni=1 defined by the generative energy histogram of the mixture system, with microstate probabilities p = ( p1, . . . , p n) constrained by Ap = b
+
+15 where A ∈ Rm×n encodes normalization and band-mass constraints (Sec. Sx.x). The generative micro–entropy has the quadratic form 
+
+Hmicro (p) = c⊤p − 12 p⊤Qp, 
+
+with gradient ∇Hmicro (p) = c − Qp . Given a current iterate p(t) we perform an explicit Euler step along the unconstrained gradient and then project back onto the constraint set: ˜p(t+1) = p(t) + η (c − Qp (t)), p(t+1) = arg min  
+
+> Ap =b, p ≥0
+
+∥˜p(t+1) − p∥22.
+
+The projection is a small quadratic program with only m equality constraints, solved with the same SLSQP routine used for the main QP. For sufficiently small step size η this scheme is a discrete approximation of the projected gradient flow guaranteed by Theorem Sx.x, and as expected we observe monotone increase of Hmicro (p(t)) and convergence to the unique MaxEnt solution p⋆ (Supplementary Fig. 4). 16 Thermodynamic Consistency Theoretical Proofs 
+
+# 5 Inverse Maximum-Entropy Representation of the Generative Entropy 
+
+Let C = {c1, . . . , c n} be a finite alphabet, and let ∆n := 
+
+n
+
+p ∈ Rn : pj ≥ 0,
+
+> n
+
+X
+
+> j=1
+
+pj = 1 
+
+o
+
+denote the probability simplex. We write ∆ ◦ 
+
+> n
+
+for its interior: ∆◦ 
+
+> n
+
+:= {p ∈ ∆n : pj > 0 ∀j}.
+
+A trace-form entropy is a functional of the form 
+
+HG(p) := 
+
+> n
+
+X
+
+> j=1
+
+G(pj ),
+
+where G : (0 , 1] → R is twice continuously differentiable and strictly concave: 
+
+G′′ (u) < 0, ∀u ∈ (0 , 1) . (29) We consider linear constraints defined by a finite family of functions 
+
+fk : C → R, k = 0 , . . . , m, 
+
+with f0 ≡ 1 encoding normalisation. For a probability vector p ∈ ∆n, the associated constraint set is 
+
+C(p, F ) := 
+
+n
+
+q ∈ ∆n :
+
+> n
+
+X
+
+> j=1
+
+qj fk(cj ) = 
+
+> n
+
+X
+
+> j=1
+
+pj fk(cj ), k = 0 , . . . , m 
+
+o
+
+, (30) where F ∈ Rn×(m+1) is the matrix 
+
+Fjk := fk(cj ), j = 1 , . . . , n, k = 0 , . . . , m. 
+
+Definition 5.1 (Inverse-MaxEnt generator for a fixed ( p, F )) . Let p ∈ ∆◦ 
+
+> n
+
+and let F be a constraint matrix as above. A function G satisfying (29) is called an inverse-MaxEnt generator for (p, F ) if the trace-form entropy HG has p as a unique maximiser under the constraints: 
+
+p ∈ C (p, F ) and HG(p) > H G(q), ∀q ∈ C (p, F ), q ̸ = p. 
+
+The usual Lagrangian/KKT conditions for constrained maximisation yield a necessary con-dition for G to be an inverse-MaxEnt generator: there must exist Lagrange multipliers λ =(λ0, . . . , λ m)⊤ such that 
+
+G′(pj ) = 
+
+> m
+
+X
+
+> k=0
+
+λkfk(cj ), j = 1 , . . . , n. (31) Strict concavity then guarantees that p is the unique maximiser. We now formalise three goals: (i) Existence of an inverse-MaxEnt generator for each fixed pair ( p, F ). (ii) Global uniqueness up to affine “gauge” transformations, under a richness assumption on the family of admissible constraint sets. (iii) Approximation of the ideal generator G∗ by the finite-dimensional quadratic programmes (QPs) used in the generative entropy construction. 17 5.1 Existence for a fixed (p, F )
+
+We first show that for any interior p and any full-rank constraint matrix F , there exists a strictly concave G such that p is the unique MaxEnt solution under the constraints. 
+
+Assumption 5.2 (Nondegenerate constraints for fixed ( p, F )) . For each fixed p ∈ ∆◦ 
+
+> n
+
+and constraint matrix F ∈ Rn×(m+1) , we assume that: 1. f0 ≡ 1 is included among the constraint functions, i.e. the first column of F is the all-ones vector. 2. rank F = m + 1. 3. The feasible set C(p, F ) has nonempty relative interior in ∆ n.
+
+Lemma 5.3 (Existence of a generator for ( p, F )) . Let p ∈ ∆◦ 
+
+> n
+
+and F satisfy Assumption 5.2. Then there exists a G ∈ C2((0 , 1]) with G′′ (u) < 0 for all u ∈ (0 , 1) such that p is the unique maximiser of HG on C(p, F ).Proof. Fix p ∈ ∆◦ 
+
+> n
+
+and a constraint matrix F as in the assumption. Since F has full column rank, its column space has dimension m + 1 and, in particular, for any given vector g ∈ col( F )there exists λ ∈ Rm+1 such that 
+
+gj =
+
+> m
+
+X
+
+> k=0
+
+λkfk(cj ), j = 1 , . . . , n. 
+
+Choose any vector eg ∈ col( F ) with arbitrary values egj (for instance, by picking any λ). We will construct a strictly concave G with 
+
+G′(pj ) = egj , j = 1 , . . . , n. (32) This will guarantee that the KKT stationarity condition (31) holds for that λ.Since p ∈ ∆◦
+
+> n
+
+, we have pj ∈ (0 , 1) for all j. Let 
+
+{p(1) , . . . , p (n)}
+
+be a reordering of {p1, . . . , p n} in strictly increasing order, p(1) < · · · < p (n), and let σ be the permutation such that p(j) = pσ(j). Define corresponding reordered target values eg(j) = egσ(j).We now define a continuous, piecewise linear function g : (0 , 1] → R such that 
+
+g(p(j)) = eg(j), j = 1 , . . . , n, 
+
+and with strictly negative slope on each interval [ p(j), p (j+1) ]. For concreteness, set: 
+
+• Pick any strictly decreasing sequence of slopes sj < 0 for j = 1 , . . . , n − 1. 
+
+• Define g on [ p(j), p (j+1) ] by 
+
+g(u) = eg(j) + sj (u − p(j)).
+
+At the right endpoint u = p(j+1) , we require 
+
+eg(j+1) = eg(j) + sj (p(j+1) − p(j)),
+
+which simply fixes sj :
+
+sj = eg(j+1) − eg(j)
+
+p(j+1) − p(j)
+
+.
+
+We can always shift eg by an overall affine term if needed; in particular, since eg was arbitrary in col( F ), we can choose it so that these slopes are negative. For instance, adding a sufficiently large negative multiple of the all-ones vector to eg preserves the fact that eg ∈ col( F ) (because f0 ≡ 1) and makes all sj < 0. 18 Thus we have constructed a continuous, piecewise linear function g on [ p(1) , p (n)] that is strictly decreasing there, with g(p(j)) = eg(j). Extend g to (0 , p (1) ] and [ p(n), 1] by any strictly decreasing C1 function that joins smoothly at the endpoints (for example, append short C1
+
+tails with negative derivative). This yields a g ∈ C1((0 , 1]) with 
+
+g′(u) < 0, u ∈ (0 , 1) ,
+
+and g(pj ) = egj for all j.Define 
+
+G(u) := 
+
+Z u
+
+> 0
+
+g(t) dt + c, 
+
+with c any constant (e.g. chosen so that G(0) = 0). Then G ∈ C2((0 , 1]) and G′′ (u) = g′(u) < 0for all u ∈ (0 , 1), so G is strictly concave on (0 , 1). Moreover, 
+
+G′(pj ) = g(pj ) = egj ,
+
+so (32) holds. Since eg ∈ col( F ), there exists λ with 
+
+egj =
+
+> m
+
+X
+
+> k=0
+
+λkfk(cj ),
+
+which is exactly the KKT stationarity condition (31) at q = p.Finally, strict concavity of HG on the convex set C(p, F ) implies that any feasible stationary point is the unique maximiser; since p is feasible and satisfies the KKT conditions, it is the unique maximiser. This completes the proof. 
+
+Remark 5.4 . The construction is highly non-unique; many different strictly concave generators 
+
+G can realise the same ( p, F ). In the next section we study the uniqueness of a generator that works simultaneously for a family of pairs ( p, F ). 
+
+5.2 Global uniqueness up to affine gauge 
+
+We now consider a class F of admissible constraint matrices and ask: if a trace-form entropy 
+
+HG has the inverse-MaxEnt property for all pairs ( p, F ) in ∆ ◦ 
+
+> n
+
+× F , is G essentially unique? We need a mild richness assumption on F stating that the constraint vectors span all directions orthogonal to the normalisation constraint. 
+
+Assumption 5.5 (Richness of constraint family) . Let F be a family of matrices F ∈ Rn×(m+1) 
+
+satisfying Assumption 5.2, and suppose: 1. For every F ∈ F , the first column f0 is the all-ones vector. 2. For every vector v ∈ Rn with Pnj=1 vj = 0 (i.e. orthogonal to the all-ones vector), there exist F ∈ F and a multiplier vector λ such that 
+
+v = F λ. 
+
+In other words, the union of the column spaces of F contains every zero-sum vector. Intuitively, this says that by choosing suitable combinations of moments and local “shape masks”, we can span all directions in probability space that preserve normalisation. 19 Theorem 5.6 (Global uniqueness up to affine gauge) . Let F satisfy Assumption 5.5. Suppose 
+
+G1, G 2 ∈ C2((0 , 1]) satisfy G′′  
+
+> i
+
+(u) < 0 for all u ∈ (0 , 1) , and that for every p ∈ ∆◦ 
+
+> n
+
+and every 
+
+F ∈ F , both G1 and G2 are inverse-MaxEnt generators for (p, F ); i.e. for each pair (p, F ), the entropy functionals 
+
+HGi (q) = 
+
+> n
+
+X
+
+> j=1
+
+Gi(qj )
+
+have p as the unique maximiser under the constraints (30) . Then there exist constants α, β ∈ R
+
+such that 
+
+G1(u) = G2(u) + αu + β, ∀u ∈ (0 , 1] .
+
+In particular, the entropies differ only by an additive constant and a linear term, corresponding to a shift of entropy and a rescaling of the conjugate variable (temperature). Proof. Let D(u) := G1(u) − G2(u) and d(u) := D′(u) = G′
+
+> 1
+
+(u) − G′
+
+> 2
+
+(u). Then d ∈ C1((0 , 1]). Fix any p ∈ ∆◦ 
+
+> n
+
+and F ∈ F . Since G1 and G2 are both inverse-MaxEnt generators for ( p, F ), there exist multipliers λ(1) , λ (2) ∈ Rm+1 such that the KKT conditions hold for each: 
+
+G′
+
+> 1
+
+(pj ) = 
+
+> m
+
+X
+
+> k=0
+
+λ(1)  
+
+> k
+
+fk(cj ), G′
+
+> 2
+
+(pj ) = 
+
+> m
+
+X
+
+> k=0
+
+λ(2)  
+
+> k
+
+fk(cj ), j = 1 , . . . , n. 
+
+Subtracting, we find 
+
+d(pj ) = 
+
+> m
+
+X
+
+> k=0
+
+(λ(1)  
+
+> k
+
+− λ(2)  
+
+> k
+
+)fk(cj ), j = 1 , . . . , n. 
+
+Equivalently, the vector d(p) = ( d(p1), . . . , d (pn)) ⊤ lies in the column space of F :
+
+d(p) ∈ col( F ), ∀p ∈ ∆◦
+
+> n
+
+, ∀F ∈ F . (33) Let 1 = (1 , . . . , 1) ⊤. Decompose d(p) into its average and zero-sum parts: 
+
+d(p) = ¯d(p) 1 + ed(p),
+
+where ¯d(p) := 1
+
+n
+
+> n
+
+X
+
+> j=1
+
+d(pj ),
+
+> n
+
+X
+
+> j=1
+
+ed(pj ) = 0 .
+
+Since the first column of F is 1, its column space always contains 1, so the component ¯d(p)1
+
+is automatically in col( F ). Thus (33) implies that the zero-sum part ed(p) must also lie in col( F ): 
+
+ed(p) ∈ col( F ), ∀F ∈ F .
+
+Now fix a particular p ∈ ∆◦
+
+> n
+
+. By Assumption 5.5, the union of column spaces {col( F ) : 
+
+F ∈ F} contains all zero-sum vectors in Rn. Conversely, if a zero-sum vector w is orthogonal to col( F ) for every F ∈ F , then necessarily w = 0. Hence, the only vector that lies in every 
+
+column space col( F ) is a multiple of the all-ones vector 1.But for fixed p, we have just seen that ed(p) ∈ col( F ) for all F ∈ F . Therefore, ed(p) must be proportional to 1; however, by construction ed(p) has zero sum, so the only possibility is 
+
+ed(p) = 0 .
+
+Thus, for each fixed p ∈ ∆◦
+
+> n
+
+,
+
+d(pj ) = ¯d(p) for all j = 1 , . . . , n. (34) 20 In words: the n-vector of values d(pj ) is constant across j.Now we use the fact that p ∈ ∆◦ 
+
+> n
+
+was arbitrary. Take any u ∈ (0 , 1) and construct a probability vector p ∈ ∆◦ 
+
+> n
+
+that places one coordinate at u, i.e. choose 
+
+p1 = u, p2, . . . , p n > 0,
+
+> n
+
+X
+
+> j=2
+
+pj = 1 − u. 
+
+By (34), 
+
+d(u) = d(p1) = d(p2) = · · · = d(pn),
+
+so d is constant on the finite set {u, p 2, . . . , p n}. Varying the choice of the remaining probabilities 
+
+{p2, . . . , p n}, we can arrange that this set contains any desired collection of values in (0 , 1), provided the resulting p lies in the simplex interior. A standard connectedness argument then shows that d(u) must be constant on (0 , 1): if d took different values at two points u, v ∈ (0 , 1), continuity of d would entail a non-constant behaviour; but (34) forces d to be constant on arbitrary finite subsets of (0 , 1) containing u and v, which is impossible unless d is constant. Thus there exists a constant α ∈ R such that 
+
+d(u) = α, ∀u ∈ (0 , 1) .
+
+Integrating, we obtain 
+
+D(u) = G1(u) − G2(u) = αu + β, 
+
+for some constant β. This proves the claimed affine relationship between G1 and G2.
+
+Remark 5.7 . The affine freedom G 7 → G + αu + β leaves the MaxEnt solution invariant: adding a constant β leaves HG unchanged up to an additive constant, and adding αu corresponds to adding a linear functional α P 
+
+> j
+
+qj to HG, which is absorbed by a shift in the normalisation multiplier. From a thermodynamic perspective, this is the usual gauge freedom in the zero of entropy and the scale of the conjugate variable. 
+
+5.3 Approximation by quadratic programmes 
+
+We now show that the finite-dimensional QP construction used in the generative entropy frame-work converges to the ideal inverse-MaxEnt generator, under a density assumption on the basis used to parameterise G′.
+
+5.4 Function space and basis 
+
+Let G be a function space of admissible generator derivatives: 
+
+G := 
+
+n
+
+g ∈ C1((0 , 1]) : g′(u) ≤ − ε < 0 ∀u ∈ (0 , 1) 
+
+o
+
+,
+
+for some fixed ε > 0. Every g ∈ G defines a strictly concave generator 
+
+G(u) := 
+
+Z u
+
+> 0
+
+g(t) dt + c. 
+
+Let {ψℓ}ℓ≥0 be a countable collection of C1 basis functions on (0 , 1] such that the linear span 
+
+G∞ := 
+
+n LX
+
+> ℓ=0
+
+αℓψℓ : L < ∞, α ℓ ∈ R
+
+o
+
+is dense in G with respect to the supremum norm on compact subsets of (0 , 1]. Typical choices include polynomials, B-splines, or radial basis functions. 21 For each L, consider the finite-dimensional subspace 
+
+GL := 
+
+n
+
+gL(u) = 
+
+> L
+
+X
+
+> ℓ=0
+
+αℓψℓ(u) : α ∈ RL+1 o
+
+.
+
+Fix p ∈ ∆◦ 
+
+> n
+
+and F ∈ F , and let G∗ be an inverse-MaxEnt generator for ( p, F ), unique up to affine gauge by Theorem 5.6. Let 
+
+g∗(u) := G∗′
+
+(u) ∈ G .
+
+We now describe the QP that approximates g∗ in the finite-dimensional class GL.
+
+5.4.1 The QP formulation 
+
+Define the n × (L + 1) matrix A by 
+
+Ajℓ := ψℓ(pj ), j = 1 , . . . , n, ℓ = 0 , . . . , L, 
+
+and let α ∈ RL+1 be the coefficient vector. For each ( p, F ), the ideal KKT condition for the generator G∗ is 
+
+g∗(pj ) = 
+
+> m
+
+X
+
+> k=0
+
+λ∗
+
+> k
+
+fk(cj ),
+
+for some λ∗ ∈ Rm+1 . Writing g∗(p) for the vector ( g∗(p1), . . . , g ∗(pn)) ⊤, this reads 
+
+g∗(p) ∈ col( F ).
+
+In the finite-dimensional class GL, we seek α and λ such that 
+
+Aα ≈ F λ, 
+
+and we regularise α to avoid overfitting. The QP is therefore min  
+
+> α,λ
+
+∥Aα − F λ ∥22 + γ∥α∥22 subject to g′
+
+> L
+
+(pj ) ≤ − ε, j = 1 , . . . , n, (35) where γ > 0 is a regularisation parameter, and g′
+
+> L
+
+(pj ) denotes the derivative of gL(u) = P 
+
+> ℓ
+
+αℓψℓ(u) evaluated at u = pj :
+
+g′
+
+> L
+
+(pj ) = 
+
+> L
+
+X
+
+> ℓ=0
+
+αℓψ′
+
+> ℓ
+
+(pj ).
+
+Theorem 5.8 (Convergence of the QP generators) . Let p ∈ ∆◦
+
+> n
+
+, F ∈ F , and G∗ be an inverse-MaxEnt generator for (p, F ), with derivative g∗ ∈ G . Assume that the basis {ψℓ} is dense in G
+
+as above, and that for any δ ∈ (0 , 1) , g∗ can be approximated uniformly on [δ, 1] by functions in 
+
+G∞ that satisfy the same concavity bounds g′(u) ≤ − ε.For each L, let (α(L), λ (L)) be a minimiser of the QP (35) , and define 
+
+gL(u) := 
+
+> L
+
+X
+
+> ℓ=0
+
+α(L) 
+
+> ℓ
+
+ψℓ(u), GL(u) := 
+
+Z u
+
+> 0
+
+gL(t) dt. 
+
+Then, for every compact interval K ⊂ (0 , 1] ,
+
+sup 
+
+> u∈K
+
+|gL(u) − g∗(u)| → 0 as L → ∞ ,
+
+and consequently 
+
+sup 
+
+> u∈K
+
+|GL(u) − G∗(u)| → 0 as L → ∞ .
+
+In particular, the trace-form entropies HGL converge uniformly to HG∗ on sets of the form 
+
+{p ∈ ∆◦ 
+
+> n
+
+: pj ∈ K ∀j}.
+
+22 Proof. Fix a compact interval K = [ δ, 1] with 0 < δ < 1. By the density assumption, for every 
+
+η > 0 there exists an L0 and a function gapprox ∈ G L0 such that sup 
+
+> u∈K
+
+|gapprox (u) − g∗(u)| < η, 
+
+and gapprox satisfies the same concavity bounds as g∗ (this can be ensured by slight adjustments of the approximant while preserving uniform closeness). For any L ≥ L0, we can extend gapprox to an element of GL by padding zeros in the additional coefficients. Denote the corresponding coefficient vector by αapprox ∈ RL+1 . Let λ∗ ∈ Rm+1 be any multiplier vector such that g∗(p) ∈ col( F ); i.e. F λ ∗ = g∗(p). Then 
+
+∥Aα approx − F λ ∗∥2 = ∥gapprox (p) − g∗(p)∥2 ≤ √n sup 
+
+> u∈K
+
+|gapprox (u) − g∗(u)| < √n η. 
+
+Therefore, 
+
+∥Aα approx − F λ ∗∥22 + γ∥αapprox ∥22 ≤ nη 2 + γ∥αapprox ∥22.
+
+By definition, ( α(L), λ (L)) minimises the objective in (35), so 
+
+∥Aα (L) − F λ (L)∥22 + γ∥α(L)∥22 ≤ ∥ Aα approx − F λ ∗∥22 + γ∥αapprox ∥22 ≤ nη 2 + γ∥αapprox ∥22.
+
+In particular, {α(L)} is bounded in RL+1 (for fixed L) and the residual ∥Aα (L) − F λ (L)∥2 is bounded by a quantity that can be made arbitrarily small by choosing η small. Standard arguments for Tikhonov-regularised least squares in Hilbert spaces (see, e.g., any textbook on inverse problems) then imply that, as L → ∞ and the approximation spaces GL
+
+become dense in G, the functions gL converge to the unique element of G that both satisfies the concavity constraints and minimises the regularised functional 
+
+J(g) := ∥g(p) − g∗(p)∥22 + γ∥g∥2
+
+> H
+
+,
+
+where ∥ · ∥ H is an appropriate Hilbert norm induced by the basis {ψℓ}. Since g∗ itself satisfies the concavity constraints and makes the residual zero (by choosing λ∗ so that F λ ∗ = g∗(p)), it is the unique minimiser of J. Hence sup 
+
+> u∈K
+
+|gL(u) − g∗(u)| → 0, L → ∞ .
+
+The convergence of GL to G∗ follows by integration: 
+
+|GL(u) − G∗(u)| =
+
+Z u
+
+> 0
+
+ gL(t) − g∗(t) dt ≤
+
+Z u
+
+> 0
+
+|gL(t) − g∗(t)| dt. 
+
+On K = [ δ, 1] we have sup 
+
+> u∈K
+
+|GL(u) − G∗(u)| ≤ (1 − δ) sup 
+
+> t∈K
+
+|gL(t) − g∗(t)| → 0.
+
+Finally, for any p ∈ ∆◦ 
+
+> n
+
+with pj ∈ K for all j, we have 
+
+|HGL (p) − HG∗ (p)| =
+
+> n
+
+X
+
+> j=1
+
+ GL(pj ) − G∗(pj ) ≤ n sup 
+
+> u∈K
+
+|GL(u) − G∗(u)| → 0,
+
+which establishes uniform convergence of the entropies on such subsets. 
+
+Remark 5.9 . The theorem shows that, under the stated assumptions, the QP construction for the generator derivative recovers, in the limit of a dense basis, the unique inverse-MaxEnt generator G∗ (up to the affine gauge established in Theorem 5.6). In particular, the “generative entropy” Hgen computed from the QP solution is not merely a convenient construction but is forced by the inverse-MaxEnt axioms. 23 5.5 Summary of the inverse-MaxEnt representation 
+
+Collecting the results: 
+
+• For each fixed ( p, F ) with p ∈ ∆◦ 
+
+> n
+
+and nondegenerate F , there exists at least one strictly concave trace-form generator G that has p as unique maximiser of HG under the con-straints (Lemma 5.3). 
+
+• Under a richness assumption on the admissible constraint family F, any two generators that realise the inverse-MaxEnt property for all ( p, F ) ∈ ∆◦ 
+
+> n
+
+× F differ only by an affine term (Theorem 5.6). 
+
+• Given a dense basis for generator derivatives and the QP construction (35), the finite-dimensional generators GL converge uniformly (on compact subsets of (0 , 1]) to the ideal generator G∗ that realises the inverse-MaxEnt property (Theorem 5.8). Thus, within the trace-form class and under the axioms specified by F, the generative entropy constructed by the QP is the unique entropy (up to standard thermodynamic gauge freedoms) that makes the empirical histogram p MaxEnt-consistent under its data-driven con-straints. 
+
+# 6 First, Second and Zero-th law 
+
+We work in the finite-dimensional setting of the main text. Let X denote a finite or σ-finite microstate space with reference measure μ, and let 
+
+pα(x), x ∈ X, 
+
+be a family of probability densities parametrised by a scalar control parameter α ∈ I ⊂ R, with 
+
+pα(x) ≥ 0,
+
+Z
+
+> X
+
+pα(x) dμ (x) = 1 , ∀α ∈ I. 
+
+For each α, let Egen ,α : X → R denote the generative energy, constructed as in the main document via the L2 projection of pα onto the Boltzmann model family. We assume ( α, x ) 7 →
+
+Egen ,α (x) is differentiable in α for pα-almost every x.The internal energy is 
+
+U (α) := 
+
+Z
+
+> X
+
+Egen ,α (x) pα(x) dμ (x). (36) The generative entropy S(α) is defined by applying the generative entropy functional Hgen 
+
+to the energy distribution pE,α (pushforward of pα under Egen ,α ), as in the main text. Along any sufficiently regular path α 7 → pα, we can regard S(α) and U (α) as scalar functions and define temperature by 1
+
+T (α) := dS dU (α) = dS/dα dU/dα , (37) whenever dU/dα ̸ = 0. The goal of this note is to make precise: 
+
+• a first-law decomposition dU = δQ + δW ;
+
+• a second-law (H-theorem) for a canonical class of dynamics; 
+
+• a zeroth-law equilibrium condition for weakly coupled systems. 24 6.1 First law decomposition 
+
+We begin by differentiating U (α) along a smooth path. 
+
+Lemma 6.1 (Decomposition of dU/dα ). Assume α 7 → pα and α 7 → Egen ,α are differentiable and that differentiation can be passed under the integral in (36) . Then 
+
+dU dα =
+
+Z
+
+> X
+
+Egen ,α (x) ∂αpα(x) dμ (x) + 
+
+Z
+
+> X
+
+∂αEgen ,α (x) pα(x) dμ (x). (38) 
+
+Proof. Differentiating (36) under the integral sign, 
+
+dU dα =
+
+Z
+
+> X
+
+∂α(Egen ,α (x) pα(x)) dμ (x) = 
+
+Z
+
+> X
+
+ ∂αEgen ,α (x) pα(x) dμ (x)+ 
+
+Z
+
+> X
+
+Egen ,α (x) ∂αpα(x) dμ (x),
+
+which is (38). This motivates the following definitions. 
+
+Definition 6.2 (Thermoinformational heat and work) . Along a differentiable path α 7 → (pα, E gen ,α ), we define: 
+
+δQ (α) := 
+
+Z
+
+> X
+
+Egen ,α (x) ∂αpα(x) dμ (x), (39) 
+
+δW (α) := 
+
+Z
+
+> X
+
+∂αEgen ,α (x) pα(x) dμ (x). (40) Then (38) becomes 
+
+dU dα = δQ (α) + δW (α). (41) The interpretation is that: 
+
+• δQ captures changes in U due to redistribution of probability mass across fixed energy levels; 
+
+• δW captures changes in U due to deformation of the energy landscape at fixed distribution. 
+
+6.1.1 Gauge and reparametrisation properties 
+
+We now show that this decomposition behaves in a well-defined way under the natural “gauge” freedoms of the generative energy and the parametrisation. 
+
+Assumption 6.3 (Energy gauge) . We allow additive gauge transformations of the generative energy of the form eEgen ,α (x) = Egen ,α (x) + c(α), (42) where c : I → R is a smooth scalar function independent of x.
+
+Proposition 6.4 (Gauge behaviour of δQ and δW ). Under the gauge transformation (42) , the internal energy transforms as eU (α) = U (α) + c(α),
+
+and the heat/work terms become 
+
+fδQ (α) = δQ (α) + c(α)
+
+Z
+
+> X
+
+∂αpα(x) dμ (x),
+
+gδW (α) = δW (α) + c′(α).
+
+25 Since R 
+
+> X
+
+pα dμ = 1 for all α, we have R 
+
+> X
+
+∂αpα dμ = 0 , and hence 
+
+fδQ (α) = δQ (α), gδW (α) = δW (α) + c′(α).
+
+In particular, the identity 
+
+d eUdα = fδQ + gδW 
+
+holds and differs from (41) only by the trivial additive term c′(α) in both d eU /dα and gδW .Proof. From (42), 
+
+eU (α) = 
+
+Z
+
+> X
+
+eEgen ,α (x) pα(x) dμ (x) = 
+
+Z
+
+> X
+
+ Egen ,α (x)+ c(α) pα(x) dμ (x) = U (α)+ c(α)
+
+Z
+
+> X
+
+pα dμ = U (α)+ c(α).
+
+For the heat term, 
+
+fδQ (α) = 
+
+Z
+
+> X
+
+eEgen ,α (x) ∂αpα(x) dμ (x) = 
+
+Z
+
+> X
+
+Egen ,α (x) ∂αpα(x) dμ (x) + c(α)
+
+Z
+
+> X
+
+∂αpα(x) dμ (x).
+
+Since R 
+
+> X
+
+pα dμ (x) = 1 for all α, differentiating gives R 
+
+> X
+
+∂αpα dμ = 0, so fδQ (α) = δQ (α). For the work term, 
+
+∂α eEgen ,α (x) = ∂αEgen ,α (x) + c′(α),
+
+so 
+
+gδW (α) = 
+
+Z
+
+> X
+
+∂α eEgen ,α (x) pα(x) dμ (x) = δW (α) + c′(α)
+
+Z
+
+> X
+
+pα dμ (x) = δW (α) + c′(α).
+
+Then 
+
+d eUdα = dU dα + c′(α) = δQ (α) + δW (α) + c′(α) = fδQ (α) + gδW (α),
+
+as claimed. 
+
+Proposition 6.5 (Reparametrisation invariance) . Let α 7 → pα and α 7 → Egen ,α be as above, and let β = φ(α) be a smooth strictly monotone reparametrisation with inverse α = ψ(β). Define 
+
+bpβ (x) := pψ(β)(x), bEgen ,β (x) := Egen ,ψ (β)(x),
+
+and bU (β), cδQ (β), dδW (β) analogously. Then 
+
+d bUdβ (β) = dU dα (ψ(β)) ψ′(β),
+
+cδQ (β) = δQ (ψ(β)) ψ′(β),
+
+dδW (β) = δW (ψ(β)) ψ′(β),
+
+so the first-law identity 
+
+d bUdβ = cδQ + dδW 
+
+is equivalent to (41) . In particular, the notions of “heat” and “work” are invariant up to the scalar Jacobian factor dα/dβ .Proof. By the chain rule, 
+
+d bUdβ (β) = dU dα (ψ(β)) ψ′(β).
+
+Similarly, 
+
+∂β bpβ (x) = ∂αpα(x) α=ψ(β)ψ′(β), ∂β bEgen ,β (x) = ∂αEgen ,α (x) α=ψ(β)ψ′(β),
+
+and substituting into the definitions of cδQ, dδW yields the stated relations. 26 6.1.2 Canonical cases: pure reshuffling vs pure deformation Definition 6.6 (Purely stochastic reshuffling) . We say the path α 7 → (pα, E gen ,α ) is a pure reshuffling at α0 if 
+
+∂αEgen ,α (x) α=α0 = 0 for pα0 -almost every x. Equivalently, the energy function is fixed at α0 and only the distribution changes. 
+
+Definition 6.7 (Purely deterministic deformation) . We say the path is a pure deformation at 
+
+α0 if 
+
+∂αpα(x) α=α0 = 0 for μ-almost every x. Equivalently, the distribution is fixed at α0 and only the energy landscape changes. 
+
+Proposition 6.8 (Heat–work split in the canonical cases) . At a pure reshuffling point α0,
+
+δW (α0) = 0 , dU dα (α0) = δQ (α0).
+
+At a pure deformation point α0,
+
+δQ (α0) = 0 , dU dα (α0) = δW (α0).
+
+Proof. Immediate from the definitions (39), (40) and (38). Thus the decomposition dU = δQ +δW has a clear operational meaning: changes in internal energy due to changes in the distribution at fixed energy are “heat-like”, while changes due to deformations of the energy landscape at fixed distribution are “work-like”. 
+
+6.2 Second law: a generalised H-theorem 
+
+We now exhibit a canonical class of dynamics for which the generative entropy S acts as a Lyapunov functional, providing a thermoinformational analogue of the second law. 
+
+6.2.1 Constraint manifold and MaxEnt state 
+
+Let C = {c1, . . . , c n} be a finite support for a scalar observable (e.g. energy bins), and let 
+
+p = ( p1, . . . , p n) ∈ ∆n denote a discrete histogram on C. Fix a collection of constraint functions 
+
+fk : C → R, k = 0 , . . . , m , with f0 ≡ 1, and define the constraint manifold 
+
+M := 
+
+n
+
+p ∈ ∆◦ 
+
+> n
+
+:
+
+> n
+
+X
+
+> j=1
+
+pj fk(cj ) = ck, k = 0 , . . . , m 
+
+o
+
+, (43) where the constants ck are fixed. Let Hgen (p) be the generative entropy functional constructed as in the main text. By the inverse-MaxEnt representation theorem, there exists a generator G such that 
+
+Hgen (p) = 
+
+> n
+
+X
+
+> j=1
+
+G(pj ),
+
+and Hgen is strictly concave on ∆ ◦
+
+> n
+
+. The MaxEnt state p⋆ ∈ M is defined by 
+
+p⋆ ∈ arg max  
+
+> p∈M
+
+Hgen (p).
+
+Strict concavity implies that p⋆ is unique. Let S(p) := Hgen (p) and write ∇S(p) for the gradient with respect to the standard Euclidean inner product on Rn.27 6.2.2 Projected gradient flow 
+
+The tangent space to M at p is 
+
+TpM =
+
+n
+
+v ∈ Rn :
+
+> n
+
+X
+
+> j=1
+
+vj fk(cj ) = 0 , k = 0 , . . . , m 
+
+o
+
+.
+
+Let Π p : Rn → TpM denote the orthogonal projector onto TpM with respect to the Euclidean inner product. We consider the dynamical system on M given by 
+
+dp dt = Π p∇S(p), (44) with initial condition p(0) ∈ M .
+
+Theorem 6.9 (Generalised H-theorem for Hgen ). Let p(t) be a solution of (44) with initial condition p(0) ∈ M . Then: 1. The constraints are preserved: p(t) ∈ M for all t ≥ 0.2. The entropy S(p(t)) is nondecreasing: 
+
+ddt S(p(t)) ≥ 0, ∀t ≥ 0.
+
+3. The only stationary point of (44) in M is the MaxEnt state p⋆, and every trajectory p(t)
+
+converges to p⋆ as t → ∞ .Proof. (1) Preservation of constraints follows because dp/dt ∈ TpM by construction, so the constraints are constant along the flow. (2) The time derivative of S along the flow is 
+
+ddt S(p(t)) = ∇S(p(t)) · dp dt = ∇S(p(t)) · Πp(t)∇S(p(t)) .
+
+Since Π p(t) is the orthogonal projector onto Tp(t)M, it is symmetric and positive semidefinite. Hence ddt S(p(t)) = ∥Πp(t)∇S(p(t)) ∥2 ≥ 0.
+
+(3) A stationary point p ∈ M of (44) satisfies 0 = Π p∇S(p),
+
+i.e. ∇S(p) is orthogonal to TpM. Equivalently, ∇S(p) lies in the span of the constraint gradients, i.e. there exist multipliers λk such that 
+
+∂S ∂p j
+
+(p) = 
+
+> m
+
+X
+
+> k=0
+
+λkfk(cj ), j = 1 , . . . , n. 
+
+These are exactly the KKT conditions for p to be a maximiser of S on M. Strict concavity of 
+
+S on M implies that any such stationary point is the unique global maximiser p⋆. Thus the only stationary point is p⋆.Moreover, since S is strictly concave on the convex set M, the projected gradient flow (44) is a gradient ascent flow of a strictly concave functional on a convex manifold. Standard results on gradient flows in finite dimensions (or a direct LaSalle-type argument) then imply that p(t) → p⋆ as t → ∞ .This theorem realises the second law in a thermoinformational setting: for the canonical class of gradient-flow dynamics that maximise the generative entropy subject to fixed constraints, 
+
+Hgen is a Lyapunov functional, and the unique stationary state is the MaxEnt distribution selected by Hgen .28 6.3 Zeroth law: equilibrium of weakly coupled systems 
+
+We now formulate a zeroth-law analogue for two weakly coupled systems A and B.
+
+6.3.1 Subsystem entropies and temperatures 
+
+Let UA, U B denote the internal energies of two systems A and B, and let SA(UA), S B (UB )denote their generative entropies as functions of internal energy, along families of admissible states where other constraints are held fixed. Assume: 1. SA and SB are differentiable and strictly concave functions of their arguments. 2. The temperatures are defined by 1
+
+TA(UA) := dS A
+
+dU A
+
+(UA), 1
+
+TB (UB ) := dS B
+
+dU B
+
+(UB ),
+
+and are strictly decreasing functions of UA and UB , respectively. 
+
+6.3.2 Total entropy maximisation under fixed total energy 
+
+Let the total internal energy Utot of the composite system be fixed: 
+
+Utot = UA + UB .
+
+Assuming weak coupling (no interaction term in the entropy), the total entropy is 
+
+Stot (UA) := SA(UA) + SB (Utot − UA),
+
+where we regard UB = Utot − UA as a function of UA.
+
+Theorem 6.10 (Zeroth-law analogue) . Let SA, S B satisfy the above assumptions. Then Stot (UA)
+
+has a unique maximiser U ⋆A, and at this maximiser the temperatures of the two subsystems are equal: 
+
+TA(U ⋆A) = TB (U ⋆B ), U ⋆B = Utot − U ⋆A.
+
+Moreover, if two systems are each in equilibrium with a third, they share a common temperature (transitivity). Proof. Differentiating Stot (UA), 
+
+dS tot 
+
+dU A
+
+= dS A
+
+dU A
+
+(UA) + dS B
+
+dU B
+
+(UB ) dU B
+
+dU A
+
+= 1
+
+TA(UA) − 1
+
+TB (UB ) ,
+
+since UB = Utot − UA implies dU B /dU A = −1. At a stationary point U ⋆A we must have 
+
+dS tot 
+
+dU A
+
+(U ⋆A) = 0 ⇐⇒ 1
+
+TA(U ⋆A) = 1
+
+TB (U ⋆B ) ,
+
+i.e. TA(U ⋆A) = TB (U ⋆B ), which is the equilibrium condition. Strict concavity of SA and SB implies that Stot is strictly concave in UA (the sum of strictly concave functions of UA and Utot − UA). Hence Stot has at most one stationary point, which is therefore the unique maximiser U ⋆A.For transitivity, suppose systems A and B can exchange internal energy at fixed UA + UB ,and similarly B and C at fixed UB + UC , and that in both cases the equilibrium condition is equality of temperatures. If TA = TB at equilibrium for ( A, B ) and TB = TC at equilibrium for ( B, C ), then TA = TC , so any two systems in equilibrium with a third share a common temperature. This recovers the usual zeroth-law structure: equilibrium between weakly coupled systems is characterised by equality of thermoinformational temperature, and temperature is a transitive equilibrium parameter. 29 6.4 Summary 
+
+In this note we have: 
+
+• Defined a canonical decomposition of internal-energy changes dU along a path into “heat-like” and “work-like” components δQ and δW based on the generative energy and the evolving distribution, and analysed their behaviour under gauge and parametrisation changes. 
+
+• Exhibited a class of projected gradient-flow dynamics on the constraint manifold for which the generative entropy Hgen is a Lyapunov functional, proving a generalised H-theorem and identifying the unique stationary state as the MaxEnt distribution. 
+
+• Derived a zeroth-law analogue for weakly coupled systems by maximising total entropy under a fixed total internal energy constraint, recovering equality of temperatures at equilibrium and transitivity of the equilibrium relation. Together with the static construction of the thermoinformational state variables ( U, S, T )and the inverse-MaxEnt representation of Hgen , these results provide a thermodynamically complete structure for the generative framework. 
+
+# 7 Composition, Extensivity, and Thermodynamic Limit for Generative Trace-Form Entropies 
+
+7.1 Setting 
+
+We consider finite systems with discrete microstate spaces. A probability distribution p = ( pi)i∈I
+
+on a finite index set I defines a trace-form entropy 
+
+HG(p) := X
+
+> i∈I
+
+G(pi),
+
+where G : (0 , 1] → R is twice differentiable, strictly concave, 
+
+G′′ (u) < 0, u ∈ (0 , 1) , (45) and typically normalised so that G(0) = 0 by continuous extension. In the generative-entropy framework, G is the data-driven generator constructed by the inverse-MaxEnt procedure. For the composition and scaling properties studied here, we work at the level of an abstract generator G satisfying (68) and some mild additional regularity. 
+
+7.2 Entropy composition for bipartite systems 
+
+7.2.1 Joint and marginal entropies 
+
+Let A and B be two subsystems with finite microstate sets XA = {a1, . . . , a nA } and XB =
+
+{b1, . . . , b nB }. A joint state is a pair ( ai, b j ) ∈ XA × XB , and a joint distribution is 
+
+pAB =  pij 
+
+  
+
+> 1≤i≤nA,1≤j≤nB
+
+, pij ≥ 0, X
+
+> i,j
+
+pij = 1 .
+
+The marginal distributions are 
+
+pAi =
+
+> nB
+
+X
+
+> j=1
+
+pij , i = 1 , . . . , n A, pBj =
+
+> nA
+
+X
+
+> i=1
+
+pij , j = 1 , . . . , n B .
+
+30 We define the entropies of the joint and marginal systems by 
+
+S(A ∪ B) := HG(pAB ) = X
+
+> i,j
+
+G(pij ),S(A) := HG(pA) = X
+
+> i
+
+G(pAi ),S(B) := HG(pB ) = X
+
+> j
+
+G(pBj ).
+
+7.2.2 Decomposition into marginal, nonextensivity, and correlation parts 
+
+We now obtain a general composition identity that isolates: 
+
+• a marginal entropy part S(A) + S(B), 
+
+• a nonextensivity term that appears even for independent subsystems, 
+
+• a correlation term that vanishes when pAB factorises. 
+
+Definition 7.1 (Product reference and correlation deviations) . For a given joint distribution 
+
+pAB with marginals pA, p B , define the product reference distribution (pA ⊗ pB )ij := pAi pBj .
+
+Define the correlation deviations 
+
+cij := pij − pAi pBj .
+
+Then X
+
+> j
+
+cij = 0 , ∀i, X
+
+> i
+
+cij = 0 , ∀j, 
+
+and pij = pAi pBj + cij .
+
+Definition 7.2 (Nonextensivity and correlation functionals) . Define Φprod (pA, p B ) := X
+
+> i,j
+
+G(pAi pBj ) − X
+
+> i
+
+G(pAi ) − X
+
+> j
+
+G(pBj ), (46) Φcorr (pAB ) := X
+
+> i,j
+
+G(pij ) − G(pAi pBj ). (47) 
+
+Proposition 7.3 (General composition law) . For any bipartite distribution pAB ,
+
+S(A ∪ B) = S(A) + S(B) + Φ prod (pA, p B ) + Φ corr (pAB ), (48) 
+
+with Φprod , Φcorr as in (46) , (47) . Moreover: 1. If pAB is independent, i.e. pij = pAi pBj for all i, j , then Φcorr (pAB ) = 0 and 
+
+S(A ∪ B) = S(A) + S(B) + Φ prod (pA, p B ).
+
+2. If G(u) = −u log u (Shannon generator), then Φprod ≡ 0 and 
+
+S(A ∪ B) = S(A) + S(B) + Φ corr (pAB ),
+
+with Φcorr reducing to the negative mutual information: Φcorr (pAB ) = −I(A; B).
+
+31 Proof. By adding and subtracting P 
+
+> i,j
+
+G(pAi pBj ), we write 
+
+S(A ∪ B) = X
+
+> i,j
+
+G(pij ) = X
+
+> i,j
+
+G(pAi pBj ) + X
+
+> i,j
+
+G(pij ) − G(pAi pBj ).
+
+The second sum is precisely Φ corr (pAB ). Adding and subtracting the marginal entropies in the first sum gives 
+
+X
+
+> i,j
+
+G(pAi pBj ) = X
+
+> i
+
+G(pAi ) + X
+
+> j
+
+G(pBj ) + 
+
+ X
+
+> i,j
+
+G(pAi pBj ) − X
+
+> i
+
+G(pAi ) − X
+
+> j
+
+G(pBj )
+
+
+
+,
+
+so the bracket is Φ prod (pA, p B ), and (48) follows. If pij = pAi pBj , then G(pij ) = G(pAi pBj ) for all i, j , so Φ corr (pAB ) = 0 by (47). For the Shannon generator G(u) = −u log u we have Φ prod ≡ 0 since 
+
+X
+
+> i,j
+
+G(pAi pBj ) = − X
+
+> i,j
+
+pAi pBj log( pAi pBj ) = − X
+
+> i
+
+pAi log pAi − X
+
+> j
+
+pBj log pBj = S(A) + S(B).
+
+Moreover, for G(u) = −u log u,Φcorr (pAB ) = X
+
+> i,j
+
+
+
+G(pij ) − G(pAi pBj )
+
+
+
+= − X
+
+> i,j
+
+pij log pij + X
+
+> i,j
+
+pAi pBj log( pAi pBj )= H(A, B ) + X
+
+> i,j
+
+pAi pBj (log pAi + log pBj )= H(A, B ) + X
+
+> i
+
+pAi log pAi + X
+
+> j
+
+pBj log pBj
+
+= H(A, B ) − H(A) − H(B) = −I(A; B),
+
+where we used P 
+
+> j
+
+pBj = 1 and P 
+
+> i
+
+pAi = 1. Remark. The equality above uses the identity 
+
+I(A; B) = S(A) + S(B) − S(A, B ). It is not a term-by-term identification with the KL-form 
+
+I(A; B) = D(pAB ∥ pA ⊗ pB ), whose integrand is weighted by pij .Thus the composition law (48) cleanly separates: 
+
+• an intrinsic nonextensivity term Φ prod governed only by the functional form of G and the marginals; 
+
+• a correlation term Φ corr measuring deviation from the product reference, which vanishes when A and B are independent. Shannon entropy is the unique trace-form case (up to gauge) for which the intrinsic nonexten-sivity term vanishes exactly for all product measures. 
+
+7.2.3 Tsallis pseudo-additivity as a special case 
+
+We now show that Tsallis entropy fits into the above decomposition with its well-known pseudo-additive rule. 
+
+Definition 7.4 (Tsallis generator) . For q ∈ R \ { 1}, the Tsallis-q generator is 
+
+Gq(u) := u − uq
+
+q − 1 .
+
+32 The corresponding entropy is 
+
+Sq(p) := X
+
+> i
+
+Gq(pi) = 1 − P 
+
+> i
+
+pqi
+
+q − 1 .
+
+Proposition 7.5 (Tsallis pseudo-additivity for independent subsystems) . Let q ∈ R \ { 1} and 
+
+G = Gq. If A and B are independent, i.e. pij = pAi pBj , then 
+
+Sq(A ∪ B) = Sq(A) + Sq(B) + (1 − q)Sq(A)Sq(B). (49) 
+
+Proof. For the product distribution pij = pAi pBj ,
+
+Sq(A ∪ B) = 1 − P 
+
+> i,j
+
+(pAi pBj )q
+
+q − 1 = 1 −   P 
+
+> i
+
+(pAi )q  P  
+
+> j
+
+(pBj )q
+
+q − 1 .
+
+Write ΣA := X
+
+> i
+
+(pAi )q, ΣB := X
+
+> j
+
+(pBj )q.
+
+Then 
+
+Sq(A) = 1 − ΣA
+
+q − 1 , Sq(B) = 1 − ΣB
+
+q − 1 .
+
+Expand 
+
+Sq(A) + Sq(B) + (1 − q)Sq(A)Sq(B) = 1 − ΣA
+
+q − 1 + 1 − ΣB
+
+q − 1 + (1 − q) (1 − ΣA)(1 − ΣB )(q − 1) 2
+
+= 1 − ΣA + 1 − ΣB
+
+q − 1 − (1 − ΣA)(1 − ΣB )
+
+q − 1= 2 − ΣA − ΣB − (1 − ΣA − ΣB + Σ AΣB )
+
+q − 1= 1 − ΣAΣB
+
+q − 1 = Sq(A ∪ B).
+
+This is (49). Comparing (49) with Proposition 7.3, we see that for Tsallis entropies the intrinsic nonex-tensivity term has the explicit multiplicative form Φprod (pA, p B ) = (1 − q)Sq(A)Sq(B),
+
+while the correlation term Φ corr still measures deviations from independence. In the generative-entropy framework, Tsallis-like pseudo-additivity therefore appears when-ever the learned generator Ggen approximates Gq over the range of probabilities relevant to the joint system, and the admissible constraints factorise across subsystems. 
+
+7.3 Extensivity and thermodynamic limit 
+
+We now address the scaling of HG for large systems and the existence of a thermodynamic limit. The key point is that, for N -particle systems, typical microstate probabilities p(N )(xN )become exponentially small in N , so only the small-probability behaviour of the generator G
+
+controls whether HG is extensive. We therefore separate (i) a probabilistic assumption ensuring the existence of a Shannon entropy rate and (ii) a generator condition expressing log-extensive 
+
+small-u asymptotics. This formulation avoids any circularity: the small-u condition is stated explicitly and can be checked numerically for a learned G.33 7.3.1 Sequences of N -particle systems 
+
+Let X be a finite single-particle state space with |X| = M , and for each N ∈ N let p(N ) be a probability distribution on XN . An N -particle microstate is a sequence xN = ( x1, . . . , x N ) ∈
+
+XN and p(N )(xN ) its probability. 
+
+Definition 7.6 (Entropy of an N -particle system) . Given a generator G, the N -particle entropy is 
+
+SGN := HG(p(N )) = X 
+
+> xN∈XN
+
+G p(N )(xN ).
+
+For comparison, the Shannon entropy is 
+
+HN := HSh (p(N )) = − X
+
+> xN
+
+p(N )(xN ) log p(N )(xN ).
+
+We are interested in the asymptotic behaviour of SGN as N → ∞ , and in particular in whether 
+
+SGN is asymptotically extensive, SGN ∼ N s .
+
+7.3.2 Assumptions on probabilistic structure 
+
+We do not need a full stochastic-process formalism; we simply assume that the Shannon entropy has a well-defined specific limit. 
+
+Assumption 7.7 (Shannon entropy rate) . There exists s ≥ 0 such that lim  
+
+> N→∞
+
+HN
+
+N = s, (50) and 
+
+HN = N s + o(N ). (51) In particular, HN = O(N ). Assumption 7.7 holds, for example, for: 
+
+• i.i.d. sequences p(N ) = p⊗N , where s = HSh (p); 
+
+• stationary ergodic Markov chains with finite state space (Shannon–McMillan–Breiman); 
+
+• more general stationary processes with finite entropy rate. 
+
+7.3.3 Generator condition: log-extensive small-u asymptotics 
+
+To ensure that the trace-form entropy HG remains extensive on exponentially large state spaces, the generator must have the same leading growth as u log(1 /u ) as u ↓ 0 (up to a unit constant). We state this explicitly as a small-u asymptotic condition, which can be checked for any learned 
+
+G.
+
+Assumption 7.8 (Log-extensive small-probability asymptotics) . The generator G ∈ C2((0 , 1]) satisfies: 1. G′′ (u) < 0 for all u ∈ (0 , 1) (strict concavity), and G(0) = 0 by continuous extension; 2. there exists a constant κ > 0 and a continuous function ρ : (0 , 1] → R with lim u↓0 ρ(u) = 0 such that, for all sufficiently small u,
+
+G(u) = κ u log 1
+
+u + ρ(u) u log u . (52) 34 Equivalently, lim 
+
+> u↓0
+
+G(u)
+
+u log(1 /u ) = κ. 
+
+The constant κ sets the entropy units; choosing units so that κ = 1 recovers the standard normalisation. 
+
+Remark 7.9 . Why (52) is the right notion of “thermodynamic compatibility” For the uniform distribution on W equiprobable states, pi = 1 /W ,
+
+HG(p) = W G (1 /W ).
+
+Thus (52) is equivalent to W G (1 /W ) = κ log W + o(log W ) as W → ∞ , i.e. the entropy grows 
+
+logarithmically with the number of accessible microstates, as required for extensivity when log W = Θ( N ). 
+
+7.3.4 Main result Theorem 7.10 (Thermodynamic limit for log-extensive generators) . Let {p(N )}N ≥1 be a se-quence of N -particle distributions on XN satisfying Assumption 7.7, and let G satisfy Assump-tion 7.8. Then 
+
+lim  
+
+> N→∞
+
+SGN
+
+N = κ s, 
+
+i.e. SGN is asymptotically extensive. Moreover, 
+
+SGN = κ H N + o(N ),
+
+so the leading extensive term is proportional to that of Shannon, with proportionality constant 
+
+κ (entropy units), and the difference is subextensive. In particular, in the normalisation κ = 1 
+
+one has SGN = HN + o(N ) and lim N →∞ SGN /N = s.Remark 7.11 (Relation to learned generators and numerical verification) . Assumption 7.8 is a small-u property of the learned generator and can be verified numerically on the relevant probability range. A convenient diagnostic is 
+
+R(u) := G(u)
+
+u log(1 /u ) and ˜ρ(u) := G(u) − κu log(1 /u )
+
+u| log u| ,
+
+evaluated for u down to numerical resolution (or down to the smallest realised p(N )(xN ) in simulation). In Supplementary Fig. S# we report R(u) for the Ggen used in this work and confirm convergence to a constant κ over the active range. 
+
+7.3.5 Proof of Theorem 7.10 
+
+We give a self-contained proof based on simple estimates. Write 
+
+HN = X
+
+> xN
+
+p(N )(xN ) log 1
+
+p(N )(xN ) , SGN = X
+
+> xN
+
+G p(N )(xN ).
+
+Define ∆( u) := G(u) − κ u log 1
+
+u (u ∈ (0 , 1]) .
+
+Then 
+
+SGN − κH N = X 
+
+> xN∈XN
+
+∆ p(N )(xN ). (53) 35 By (52), for sufficiently small u,∆( u) = ρ(u) u| log u|. (54) For larger u, ∆ is continuous on a compact set, hence bounded. Fix ε ∈ (0 , 1) and split the sum (53) into 
+
+SGN − κH N = Σ (N )small + Σ (N )large ,
+
+where Σ(N )small := X   
+
+> xN:p(N)(xN)≤ε
+
+∆ p(N )(xN ),
+
+Σ(N )large := X   
+
+> xN:p(N)(xN)>ε
+
+∆ p(N )(xN ).
+
+Large-probability states. Since p(N ) is a probability distribution, the number of states with 
+
+p(N )(xN ) > ε is at most ε−1. On this set, |∆| ≤ Cε := sup u∈[ε, 1] |∆( u)|, hence 
+
+|Σ(N )large | ≤ ε−1Cε,
+
+and therefore 1
+
+N |Σ(N )large | ≤ ε−1Cε
+
+N → 0 as N → ∞ . (55) 
+
+Small-probability states. For u ≤ ε sufficiently small, (54) gives |∆( u)| ≤ | ρ(u)| u| log u|.Since ρ is continuous and ρ(u) → 0 as u ↓ 0, given any δ > 0 we can choose ε > 0 such that 
+
+|ρ(u)| ≤ δ, ∀u ∈ (0 , ε ]. (56) Then 
+
+|∆( u)| ≤ δ u | log u|, ∀u ∈ (0 , ε ],
+
+and hence 
+
+|Σ(N )small | ≤ δ X   
+
+> xN:p(N)(xN)≤ε
+
+p(N )(xN ) log p(N )(xN ) .
+
+Split the Shannon sum into the same two sets. On {p(N ) > ε } one has | log p(N )| ≤ | log ε| and P  
+
+> p(N)>ε
+
+p(N ) ≤ 1, hence 
+
+X   
+
+> xN:p(N)(xN)>ε
+
+p(N )(xN ) log p(N )(xN ) ≤ | log ε|.
+
+Therefore there exists a finite constant C′ 
+
+> ε
+
+such that 
+
+X   
+
+> xN:p(N)(xN)≤ε
+
+p(N )(xN ) log p(N )(xN ) ≤ HN + C′
+
+> ε
+
+.
+
+By Assumption 7.7, HN = O(N ), so HN ≤ KN for all large N and some K > 0. Hence 
+
+|Σ(N )small | ≤ δ(HN + C′
+
+> ε
+
+) ≤ δ(KN + C′
+
+> ε
+
+).
+
+Dividing by N yields 1
+
+N |Σ(N )small | ≤ δK + δ C′
+
+> ε
+
+N . (57) 36 Conclusion. Combining (55) and (57) gives lim sup  
+
+> N→∞
+
+1
+
+N SGN − κH N ≤ δK. 
+
+Since δ > 0 was arbitrary, lim  
+
+> N→∞
+
+SGN − κH N
+
+N = 0 .
+
+Dividing by N and using HN /N → s yields lim  
+
+> N→∞
+
+SGN
+
+N = lim  
+
+> N→∞
+
+
+
+κ HN
+
+N + SGN − κH N
+
+N
+
+
+
+= κs. 
+
+This proves the theorem. 
+
+# 8 Legendre Structure and Free Energies for Generative Thermodynamics 
+
+8.1 Setting 
+
+We use the same finite discrete setting as in the other technical notes. Let X = {x1, . . . , x n} be a finite microstate set. A probability vector p = ( p1, . . . , p n) ∈ ∆n
+
+describes the state, and the generative entropy is a trace–form functional 
+
+S(p) := HG(p) = 
+
+> n
+
+X
+
+> j=1
+
+G(pj ),
+
+with generator G : (0 , 1] → R twice differentiable and strictly concave: 
+
+G′′ (u) < 0, ∀u ∈ (0 , 1) . (58) Hence S is strictly concave on ∆ ◦
+
+> n
+
+.We consider a collection of linear observables: 
+
+• an “energy” E : X → R with Ej := E(xj ), and 
+
+• additional observables Fi : X → R, i = 1 , . . . , m , with Fij := Fi(xj ). Their expectations under p are 
+
+U (p) := 
+
+> n
+
+X
+
+> j=1
+
+Ej pj ,Xi(p) := 
+
+> n
+
+X
+
+> j=1
+
+Fij pj .
+
+We will: 
+
+• define microcanonical entropy S(U, X) by constrained maximisation of S(p); 
+
+• construct a Legendre dual potential Φ( β, λ) and prove conjugacy relations; 
+
+• obtain Maxwell-type relations and response coefficients from second derivatives of Φ. 37 8.2 Microcanonical entropy as a concave state function 
+
+8.2.1 Constraint manifold and microcanonical entropy 
+
+Fix values U ∈ R and X = ( X1, . . . , X m) ∈ Rm. Consider the constraint set 
+
+M(U, X) := 
+
+n
+
+p ∈ ∆◦ 
+
+> n
+
+: U (p) = U, X i(p) = Xi, i = 1 , . . . , m 
+
+o
+
+. (59) We assume this set is nonempty for the ( U, X) of interest. 
+
+Definition 8.1 (Microcanonical entropy) . The microcanonical entropy at ( U, X) is 
+
+S(U, X) := sup 
+
+> p∈M (U, X)
+
+S(p). (60) When the supremum is attained at a unique p⋆(U, X), we write S(U, X) = S(p⋆(U, X)). 
+
+Assumption 8.2 (Regularity and strict concavity on M(U, X)) . For each ( U, X) in an open domain D ⊂ Rm+1 , the constraint set M(U, X) is nonempty, convex, and the restriction of S(p)to M(U, X) is strictly concave and upper semicontinuous. Moreover, the supremum in (60) is attained at a unique p⋆(U, X) ∈ M (U, X). Under Assumption 8.2, S(U, X) is a well-defined finite-valued function, and standard argu-ments show that it is concave in ( U, X). 
+
+Proposition 8.3 (Concavity of microcanonical entropy) . Under Assumption 8.2, S(U, X) is a concave function on D. If the maximiser p⋆(U, X) is unique for all (U, X) ∈ D and S is strictly concave in p, then S(U, X) is strictly concave in (U, X).Sketch. Let ( U (1) , X(1) ) and ( U (2) , X(2) ) be two points in D. For θ ∈ [0 , 1], let (U θ, Xθ) := θ(U (1) , X(1) ) + (1 − θ)( U (2) , X(2) ).
+
+For each k = 1 , 2, let p(k) = p⋆(U (k), X(k)) denote the unique maximiser on M(U (k), X(k)). Then the convex combination 
+
+pθ := θp (1) + (1 − θ)p(2) 
+
+lies in ∆ ◦ 
+
+> n
+
+and satisfies 
+
+U (pθ) = U θ, Xi(pθ) = Xθi , i = 1 , . . . , m, 
+
+i.e. pθ ∈ M (U θ, Xθ). By concavity of S(p), 
+
+S(pθ) ≥ θS (p(1) ) + (1 − θ)S(p(2) ) = θS (U (1) , X(1) ) + (1 − θ)S(U (2) , X(2) ).
+
+Since S(U θ, Xθ) is the supremum of S(p) over M(U θ, Xθ), we have 
+
+S(U θ, Xθ) ≥ S(pθ),
+
+hence 
+
+S(U θ, Xθ) ≥ θS (U (1) , X(1) ) + (1 − θ)S(U (2) , X(2) ),
+
+which is concavity. If S(p) is strictly concave and the maximisers p(k) are distinct, then the above inequality is strict, giving strict concavity of S(U, X). 38 8.3 Legendre dual potential and conjugate variables 
+
+8.3.1 Definition of the dual potential 
+
+We now define a thermodynamic potential by Legendre transform with respect to the extensive variables ( U, X). 
+
+Definition 8.4 (Dual potential) . For ( β, λ) ∈ Rm+1 , define Φ( β, λ) := sup 
+
+> (U, X)∈D
+
+n
+
+βU +
+
+> m
+
+X
+
+> i=1
+
+λiXi − S(U, X)
+
+o
+
+. (61) This is the Legendre–Fenchel transform of S(U, X) (up to sign conventions). Since S is concave, Φ is convex in ( β, λ). Under additional regularity, the supremum in (61) is attained at a unique point ( U ⋆, X⋆) for each ( β, λ) in an open domain. 
+
+Assumption 8.5 (Regular Legendre duality) . Assume: 1. S(U, X) is strictly concave and continuously differentiable on D.2. For each ( β, λ) in an open domain B ⊂ Rm+1 , there exists a unique ( U ⋆(β, λ), X⋆(β, λ)) ∈D achieving the supremum in (61). 
+
+Remark 8.6 . Assumption 8.5 is a standard “essential smoothness” condition ensuring that S
+
+and Φ are Legendre duals in the classical sense: smooth, strictly concave/convex, and with one-to-one gradient mapping between ( U, X) and ( β, λ). 
+
+8.3.2 Conjugate relations and entropy representation 
+
+We now prove the basic conjugacy identities. 
+
+Theorem 8.7 (Conjugate variables and entropy representation) . Under Assumptions 8.2 and 8.5, the following hold. 1. The supremum in (61) is attained at the unique point (U ⋆, X⋆) satisfying the first-order conditions 
+
+β = ∂S ∂U (U ⋆, X⋆), λi = ∂S ∂X i
+
+(U ⋆, X⋆), i = 1 , . . . , m. (62) 
+
+2. At this point, 
+
+S(U ⋆, X⋆) = βU ⋆ +
+
+> m
+
+X
+
+> i=1
+
+λiX⋆i − Φ( β, λ). (63) 
+
+3. The dual potential Φ is differentiable on B and 
+
+∂Φ
+
+∂β (β, λ) = U ⋆(β, λ), ∂Φ
+
+∂λ i
+
+(β, λ) = X⋆i (β, λ). (64) 
+
+Proof. (1) Since S(U, X) is strictly concave and differentiable, the function Ψ( U, X; β, λ) := βU +
+
+> m
+
+X
+
+> i=1
+
+λiXi − S(U, X)is strictly convex in ( U, X) for fixed ( β, λ), and the supremum in (61) is attained at a unique point ( U ⋆, X⋆) where the gradient with respect to ( U, X) vanishes: 0 = ∂Ψ
+
+∂U = β − ∂S ∂U (U ⋆, X⋆),
+
+39 0 = ∂Ψ
+
+∂X i
+
+= λi − ∂S ∂X i
+
+(U ⋆, X⋆), i = 1 , . . . , m. 
+
+This yields (62). (2) By definition, Φ( β, λ) = βU ⋆ +
+
+> m
+
+X
+
+> i=1
+
+λiX⋆i − S(U ⋆, X⋆),
+
+so rearranging gives (63). (3) The differentiability of Φ and the identities (64) follow from standard envelope-theorem arguments. For completeness, we sketch the computation for ∂Φ/∂β .By definition, Φ( β, λ) = Ψ( U ⋆(β, λ), X⋆(β, λ); β, λ).
+
+Differentiate with respect to β:
+
+∂Φ
+
+∂β = ∂Ψ
+
+∂U (U ⋆, X⋆; β, λ) ∂U ⋆
+
+∂β + X
+
+> i
+
+∂Ψ
+
+∂X i
+
+(U ⋆, X⋆; β, λ) ∂X ⋆i
+
+∂β + ∂Ψ
+
+∂β (U ⋆, X⋆; β, λ).
+
+The first two terms vanish because ( U ⋆, X⋆) satisfies the stationarity conditions ∂Ψ/∂U = 0 and ∂Ψ/∂X i = 0. Thus 
+
+∂Φ
+
+∂β = ∂Ψ
+
+∂β (U ⋆, X⋆; β, λ) = U ⋆.
+
+Similarly, differentiating with respect to λi yields 
+
+∂Φ
+
+∂λ i
+
+= X⋆i .
+
+Remark 8.8 (Thermodynamic interpretation) . The variables ( U, X) are extensive, and ( β, λ)play the role of intensive variables (inverse temperature and generalised forces). The identities (63) and (64) show that: 
+
+• S(U, X) is the Legendre transform of Φ( β, λ); 
+
+• U and Xi are given by first derivatives of Φ; 
+
+• β and λi are given by first derivatives of S: β = ∂S/∂U , λi = ∂S/∂X i.In particular, in the single-variable case ( m = 0), (63) reduces to 
+
+S(U ) = βU − Φ( β),
+
+and (64) gives U = ∂β Φ( β), matching the usual “Massieu potential” structure with Φ( β) con-jugate to U .
+
+8.3.3 Monotonicity of the β ↔ U mapping 
+
+In the single-constraint case ( m = 0), we can show that the map U 7 → β is monotone under a curvature condition on S(U ). 
+
+Assumption 8.9 (Strict concavity in U ). Assume S(U ) (with other constraints fixed) is twice continuously differentiable on an interval I ⊂ R and satisfies 
+
+d2SdU 2 (U ) < 0, ∀U ∈ I. 
+
+40 Proposition 8.10 (Monotonic map between U and β). Under Assumption 8.9, β(U ) := dS/dU 
+
+is strictly decreasing on I, hence invertible. The map U 7 → β is one-to-one and onto its image, and its inverse β 7 → U is also differentiable and strictly decreasing. Proof. By definition, 
+
+β(U ) = dS dU (U ).
+
+Differentiating, 
+
+dβ dU (U ) = d2SdU 2 (U ) < 0by Assumption 8.9. Thus β(U ) is strictly decreasing on I. A strictly monotone continuous func-tion has a continuous inverse on its image, and the inverse is also differentiable with derivative given by the reciprocal of dβ/dU , which is negative. This establishes the usual thermodynamic intuition: a strictly concave S(U ) gives a strictly monotone relationship between U and its conjugate β.
+
+8.4 Maxwell relations and response coefficients 
+
+8.4.1 Maxwell-type relations 
+
+Since Φ( β, λ) is convex and (under our assumptions) twice continuously differentiable on B, its mixed second derivatives commute by Schwarz’s theorem: 
+
+∂2Φ
+
+∂β∂λ i
+
+= ∂2Φ
+
+∂λ i∂β .
+
+We can rewrite these in terms of response functions. 
+
+Theorem 8.11 (Generalised Maxwell relations) . Under the assumptions of Theorem 8.7, we have: 
+
+∂U ∂λ i β = ∂2Φ
+
+∂λ i∂β = ∂2Φ
+
+∂β∂λ i
+
+= ∂X i
+
+∂β λ, (65) 
+
+and similar relations for all pairs of conjugate variables: 
+
+∂X i
+
+∂λ j β,λ k̸ =j
+
+= ∂X j
+
+∂λ i β,λ k̸ =i
+
+. (66) 
+
+Proof. From Theorem 8.7, 
+
+U (β, λ) = ∂Φ
+
+∂β , Xi(β, λ) = ∂Φ
+
+∂λ i
+
+.
+
+Differentiating U with respect to λi at fixed β,
+
+∂U ∂λ i β = ∂2Φ
+
+∂λ i∂β .
+
+Similarly, 
+
+∂X i
+
+∂β λ = ∂2Φ
+
+∂β∂λ i
+
+.
+
+Since Φ is C2, mixed partial derivatives commute: 
+
+∂2Φ
+
+∂λ i∂β = ∂2Φ
+
+∂β∂λ i
+
+,
+
+41 so (65) holds. For (66), differentiate Xi with respect to λj at fixed ( β, λ k̸ =j ): 
+
+∂X i
+
+∂λ j β,λ k̸ =j
+
+= ∂2Φ
+
+∂λ j ∂λ i
+
+.
+
+Symmetry of the Hessian of Φ gives 
+
+∂2Φ
+
+∂λ j ∂λ i
+
+= ∂2Φ
+
+∂λ i∂λ j
+
+= ∂X j
+
+∂λ i β,λ k̸ =i
+
+,
+
+yielding (66). These are the generalised Maxwell relations: cross-derivatives of the free energy encode symmetric response coefficients. 
+
+8.4.2 Heat capacity and susceptibilities 
+
+We now express typical response coefficients (heat capacities, susceptibilities) in terms of second derivatives of Φ. For simplicity, consider the single-constraint case ( m = 0) with dual potential Φ( β). Then 
+
+U (β) = ∂β Φ( β) and 
+
+dU dβ = ∂2Φ
+
+∂β 2 (β).
+
+Thermodynamicists usually work with temperature T = 1 /β ; we can define a heat capacity at fixed other constraints as 
+
+C := dU dT .
+
+Proposition 8.12 (Generalised heat capacity in terms of Φ) . Let m = 0 and suppose Φ( β) is twice differentiable on an interval J ⊂ (0 , ∞). Define U (β) = ∂β Φ( β) and T = 1 /β . Then the heat capacity 
+
+C(T ) := dU dT 
+
+satisfies 
+
+C(T ) = −β2 dU dβ = −β2 ∂2Φ
+
+∂β 2 (β), β = 1
+
+T . (67) 
+
+Proof. By the chain rule, 
+
+dU dT = dU dβ dβ dT = dU dβ 
+
+
+
+− 1
+
+T 2
+
+
+
+= −β2 dU dβ .
+
+Since U (β) = ∂β Φ( β), we have dU/dβ = ∂2Φ/∂β 2, so (67) follows. Similarly, for a general observable Xi with conjugate λi at fixed β, the susceptibility (gen-eralised compressibility / response) can be defined as 
+
+χi := ∂X i
+
+∂λ i β .
+
+Using Theorem 8.7, 
+
+χi = ∂2Φ
+
+∂λ 2
+
+> i
+
+(β, λ),
+
+and cross-susceptibilities 
+
+χij := ∂X i
+
+∂λ j β = ∂2Φ
+
+∂λ j ∂λ i
+
+are symmetric by Theorem 8.11. 42 Remark 8.13 . Under positivity conditions (e.g. stability), one expects C > 0 and χi > 0 on physically relevant domains. In the generative-entropy setting, this translates into convexity properties of Φ and thus into curvature constraints on S(U, X). These can be checked on a per-application basis (FD gases, Schelling, finance, etc.) by examining second derivatives. 
+
+8.5 Summary 
+
+In this note we have: 
+
+• Defined the microcanonical entropy S(U, X) by maximisation of the generative entropy 
+
+S(p) under linear constraints on internal energy and other observables, and established its concavity in the extensive variables. 
+
+• Constructed the Legendre dual potential Φ( β, λ) and proved that it satisfies the standard conjugacy relations: 
+
+β = ∂S ∂U , λi = ∂S ∂X i
+
+, U = ∂Φ
+
+∂β , Xi = ∂Φ
+
+∂λ i
+
+,
+
+together with the entropy representation 
+
+S = βU + X
+
+> i
+
+λiXi − Φ.
+
+• Shown that, under strict concavity, the mapping between U and its conjugate β is strictly monotone and invertible. 
+
+• Derived Maxwell-type relations and response coefficients (heat capacity and susceptibili-ties) from the second derivatives of Φ, establishing that the generative free energy behaves as a proper thermodynamic potential in the sense used by thermodynamicists. Together with the inverse-MaxEnt representation, composition/extensivity properties, and dynamical H-theorem, this Legendre structure completes the core thermodynamic skeleton for the generative entropy framework. 
+
+# 9 Geometry of Generative Entropy: Metric and Curvature on Probability Manifolds 
+
+9.1 Setting and entropy-induced metric on the simplex 
+
+Let X = {x1, . . . , x n} be a finite microstate set and 
+
+p = ( p1, . . . , p n) ∈ ∆◦ 
+
+> n
+
+:= 
+
+n
+
+pj > 0,
+
+> n
+
+X
+
+> j=1
+
+pj = 1 
+
+o
+
+be a strictly positive probability vector. The generative entropy is a trace-form functional 
+
+HG(p) = 
+
+> n
+
+X
+
+> j=1
+
+G(pj ),
+
+where G : (0 , 1] → R is twice continuously differentiable and strictly concave: 
+
+G′′ (u) < 0, u ∈ (0 , 1) . (68) 43 9.1.1 Hessian and tangent space 
+
+The gradient and Hessian of HG with respect to the ambient Euclidean structure on Rn are 
+
+∂H G
+
+∂p i
+
+(p) = G′(pi), ∂2HG
+
+∂p i∂p j
+
+(p) = G′′ (pi) δij .
+
+Thus the Hessian is diagonal: Hess HG(p) = diag  G′′ (p1), . . . , G ′′ (pn).
+
+The simplex ∆ ◦ 
+
+> n
+
+is an ( n − 1)–dimensional manifold embedded in Rn. Its tangent space at 
+
+p is 
+
+Tp∆◦ 
+
+> n
+
+=
+
+n
+
+v ∈ Rn :
+
+> n
+
+X
+
+> j=1
+
+vj = 0 
+
+o
+
+. (69) 
+
+9.1.2 Entropy-induced metric Definition 9.1 (Entropy-induced metric on ∆ ◦
+
+> n
+
+). Define a symmetric bilinear form gp : Tp∆◦ 
+
+> n
+
+×
+
+Tp∆◦ 
+
+> n
+
+→ R by 
+
+gp(u, v ) := −
+
+> n
+
+X
+
+> j=1
+
+G′′ (pj ) uj vj , u, v ∈ Tp∆◦
+
+> n
+
+. (70) Equivalently, in coordinates, the components of the metric in the ambient basis are 
+
+gij (p) = −G′′ (pi) δij on Tp∆◦
+
+> n
+
+, (71) with the constraint P 
+
+> j
+
+uj = P 
+
+> j
+
+vj = 0 understood. 
+
+Proposition 9.2 (Positive definiteness on the tangent space) . For each p ∈ ∆◦
+
+> n
+
+, the bilinear form gp is an inner product on Tp∆◦
+
+> n
+
+, i.e. it is symmetric and positive definite. Hence {∆◦
+
+> n
+
+, g }
+
+is a Riemannian manifold. Proof. Symmetry is immediate from (70). For any nonzero v ∈ Tp∆◦
+
+> n
+
+,
+
+gp(v, v ) = −
+
+> n
+
+X
+
+> j=1
+
+G′′ (pj ) v2 
+
+> j
+
+.
+
+Since G′′ (pj ) < 0 for all j by (68), we have −G′′ (pj ) > 0. Moreover, v̸ = 0 implies at least one 
+
+vj̸ = 0. Thus gp(v, v ) > 0. Hence gp is positive definite on Tp∆◦
+
+> n
+
+.
+
+Remark 9.3 . Geometrically, − Hess HG is positive definite when restricted to the probability simplex; the metric g is precisely this restriction. For Shannon, this coincides with the classical Fisher information metric, as we show next. 
+
+9.2 Induced metric on parametric families and Fisher case 
+
+9.2.1 Parametric model and pullback metric 
+
+Let Θ ⊂ Rd be an open parameter domain, and 
+
+θ 7 → p(θ) ∈ ∆◦
+
+> n
+
+a smooth map assigning to each parameter θ = ( θ1, . . . , θ d) a probability vector p(θ) =  p1(θ), . . . , p n(θ).44 Definition 9.4 (Pullback metric on parameter space) . The entropy-induced metric on Θ is the pullback of g via p(·): 
+
+gab (θ) := gp(θ)
+
+ ∂ap(θ), ∂ bp(θ) = −
+
+> n
+
+X
+
+> j=1
+
+G′′  pj (θ) ∂p j
+
+∂θ a (θ) ∂p j
+
+∂θ b (θ), (72) where ∂a ≡ ∂/∂θ a.This defines a Riemannian metric on Θ whenever the Jacobian  ∂apj (θ) has rank d and 
+
+G′′ < 0. 
+
+9.2.2 Shannon generator and Fisher information 
+
+For the Shannon generator, 
+
+GSh (u) = −u log u, u ∈ (0 , 1] ,
+
+we have 
+
+G′
+
+> Sh
+
+(u) = −(log u + 1) , G′′ 
+
+> Sh
+
+(u) = − 1
+
+u .
+
+Thus −G′′ 
+
+> Sh
+
+(u) = 1 /u and 
+
+gSh  
+
+> ab
+
+(θ) = 
+
+> n
+
+X
+
+> j=1
+
+1
+
+pj (θ) ∂apj (θ) ∂bpj (θ). (73) On the other hand, the classical Fisher information metric for the parametric family {p(θ)} is 
+
+Iab (θ) = 
+
+> n
+
+X
+
+> j=1
+
+pj (θ) ∂a log pj (θ) ∂b log pj (θ).
+
+Using ∂a log pj = ( ∂apj )/p j , we obtain 
+
+Iab (θ) = 
+
+> n
+
+X
+
+> j=1
+
+pj (θ) ∂apj (θ)
+
+pj (θ)
+
+∂bpj (θ)
+
+pj (θ) =
+
+> n
+
+X
+
+> j=1
+
+1
+
+pj (θ) ∂apj (θ) ∂bpj (θ).
+
+Thus gSh  
+
+> ab
+
+(θ) = Iab (θ). 
+
+Proposition 9.5 (Shannon case: Fisher metric) . For G(u) = −u log u, the entropy-induced metric (72) coincides with the Fisher information metric of the parametric family {p(θ)}:
+
+gab (θ) = Iab (θ).
+
+Remark 9.6 . Hence the metric g defined in (70) is a direct generalisation of the Fisher informa-tion metric to arbitrary generative entropies HG, derived from the Hessian of HG.
+
+9.3 Tsallis generator and escort-geometry 
+
+We now specialise to the Tsallis-q generator to see how the geometry deforms. 45 9.3.1 Tsallis metric 
+
+For q ∈ R \ { 1}, the Tsallis generator is 
+
+Gq(u) = u − uq
+
+q − 1 .
+
+Then 
+
+G′
+
+> q
+
+(u) = 1 − qu q−1
+
+q − 1 , G′′  
+
+> q
+
+(u) = −qu q−2,
+
+so 
+
+−G′′  
+
+> q
+
+(u) = qu q−2 > 0for u ∈ (0 , 1) and q > 0. The induced metric on Θ is 
+
+g(q) 
+
+> ab
+
+(θ) = q
+
+> n
+
+X
+
+> j=1
+
+pj (θ)q−2∂apj (θ) ∂bpj (θ). (74) Using ∂apj = pj ∂a log pj , we can rewrite 
+
+pq−2 
+
+> j
+
+∂apj ∂bpj = pqj ∂a log pj ∂b log pj .
+
+Thus 
+
+g(q) 
+
+> ab
+
+(θ) = q
+
+> n
+
+X
+
+> j=1
+
+pj (θ)q ∂a log pj (θ) ∂b log pj (θ). (75) Define the escort distribution (for fixed θ)˜pj (θ) := pj (θ)q
+
+Pnk=1 pk(θ)q .
+
+Then nX
+
+> j=1
+
+pj (θ)q = Zq(θ) := 
+
+> n
+
+X
+
+> k=1
+
+pk(θ)q,
+
+and we can rewrite (75) as 
+
+g(q) 
+
+> ab
+
+(θ) = qZ q(θ)
+
+> n
+
+X
+
+> j=1
+
+˜pj (θ) ∂a log pj (θ) ∂b log pj (θ). (76) 
+
+Proposition 9.7 (Tsallis geometry as escort Fisher metric) . For the Tsallis generator Gq, the entropy-induced metric on Θ is proportional to the Fisher information metric computed with respect to the escort distribution ˜pj (θ):
+
+g(q) 
+
+> ab
+
+(θ) = qZ q(θ) Iescort  
+
+> ab
+
+(θ),
+
+where 
+
+Iescort  
+
+> ab
+
+(θ) := 
+
+> n
+
+X
+
+> j=1
+
+˜pj (θ) ∂a log pj (θ) ∂b log pj (θ).
+
+Remark 9.8 . This matches the structure of Tsallis thermodynamics, where expectations and variances are often taken with respect to escort distributions. In the generative-entropy setting, the metric naturally implements this escort reweighting when Ggen is Tsallis-like. 
+
+9.4 Equilibrium manifolds and curvature 
+
+We now consider the geometry of equilibrium manifolds : parametric families of MaxEnt distri-butions obtained from the generative entropy. 46 9.4.1 Equilibrium family 
+
+Let θ = ( β, λ) denote the intensive thermodynamic parameters (inverse temperature and gener-alised forces) introduced in the Legendre-structure note. For each θ in some domain Θ ⊂ Rm+1 ,let p⋆(θ) denote the unique MaxEnt distribution (with generator G) under the constraints de-termined by θ.We then have a smooth map 
+
+θ 7 → p⋆(θ) ∈ ∆◦
+
+> n
+
+,
+
+and the pullback metric (72) defines a Riemannian metric gab (θ) on the equilibrium manifold Θ. 
+
+9.4.2 General form of the metric in terms of “generalised covariances” 
+
+Let T a(xj ; θ) denote the sufficient statistics appearing in the generative-MaxEnt solution for 
+
+p⋆(θ). For example, in the Shannon case we have the exponential-family form log p⋆j (θ) = ψ(θ) − X
+
+> a
+
+θaT a(xj ),
+
+so ∂a log p⋆j = − T a(xj ) − ⟨ T a⟩p⋆
+
+.For a general trace-form generator G that yields a deformed exponential family, we still have 
+
+∂ap⋆j (θ) = p⋆j (θ) ∂a log p⋆j (θ),
+
+so the metric (72) can be written as 
+
+gab (θ) = 
+
+> n
+
+X
+
+> j=1
+
+w p⋆j (θ) ∂a log p⋆j (θ) ∂b log p⋆j (θ), (77) with weight function 
+
+w(u) := −G′′ (u) u2 > 0.
+
+Remark 9.9 . In the Shannon case, w(u) = u, and gab is the standard Fisher metric, i.e. the covariance matrix of the score functions. In the Tsallis case, w(u) = qu q, giving escort-weighted covariances as in (76). For a general generative G, the metric uses the weight w(u) determined by the second derivative of the learned generator. In particular, for an equilibrium manifold parametrised by ( β, λ ) corresponding to energy and a single additional observable F , we can label the sufficient statistics T 1 = E, T 2 = F and write 
+
+∂β log p⋆j = − T 1 
+
+> j
+
+− ⟨ T 1⟩w
+
+, ∂λ log p⋆j = − T 2 
+
+> j
+
+− ⟨ T 2⟩w
+
+,
+
+where ⟨·⟩ w denotes expectation with respect to the weight w(p⋆j ) (normalised appropriately). Then gab is, up to a multiplicative constant, a weighted covariance matrix of the sufficient statistics. 
+
+9.5 Curvature and phase behaviour 
+
+We now discuss how the curvature of the equilibrium manifold encodes response properties and their singularities. We focus on a two-dimensional equilibrium manifold, where curvature is captured by a scalar. 47 9.5.1 Scalar curvature in two dimensions 
+
+Let θ = ( θ1, θ 2) be coordinates on a two-dimensional equilibrium manifold Θ, with metric components gab (θ) and determinant 
+
+g(θ) := det[ gab (θ)] .
+
+The (Gaussian) scalar curvature R(θ) of this 2D Riemannian manifold can be expressed in terms of gab and its derivatives. In local coordinates, one convenient expression is 
+
+R = 1
+
+√g
+
+∂1
+
+ Γ212 
+
+√g − ∂1
+
+ Γ122 
+
+√g + ∂2
+
+ Γ121 
+
+√g − ∂2
+
+ Γ211 
+
+√g ,
+
+where Γ cab are the Christoffel symbols of g. In practice, R is a rational combination of gab , ∂cgab ,and ∂c∂dgab , with denominators involving positive powers of g.Thus, singularities in R(θ) can arise from: 
+
+• divergence or vanishing of det g(θ), or 
+
+• divergence of derivatives of gab (e.g. when the metric components themselves become non-analytic). 
+
+9.5.2 Connection to response functions 
+
+For an equilibrium manifold parametrised by ( β, λ ), the metric entries gab (β, λ ) are, as discussed, weighted covariances of the sufficient statistics E and F :
+
+gab (β, λ ) ∼ Cov w
+
+ T a, T b,
+
+where the precise weights depend on G via w(u) = −G′′ (u)u2 (Shannon: ordinary covariances; Tsallis: escort covariances; general G: w-covariances). Response functions such as heat capacity and susceptibilities are likewise given by appro-priate variances and covariances: 
+
+• Heat capacity (at fixed λ) is proportional to the variance of energy: 
+
+C(β, λ ) ∝ Var w(E).
+
+• Susceptibility with respect to λ is proportional to the variance of F :
+
+χ(β, λ ) ∝ Var w(F ).
+
+• Cross-responses (mixed derivatives of U and X) involve covariances Cov w(E, F ). In particular, the metric matrix (up to overall smooth factors) is 
+
+g(β, λ ) ∝
+
+ Var w(E) Cov w(E, F )Cov w(E, F ) Var w(F )
+
+
+
+.
+
+Hence det g(β, λ ) ∝ Var w(E) Var w(F ) − Cov w(E, F )2,
+
+which is exactly the determinant of the covariance matrix of ( E, F ) under the w-weighted measure. 48 Assumption 9.10 (Critical behaviour) . Assume that at a thermodynamic critical point ( βc, λ c), at least one response function diverges, e.g. the heat capacity 
+
+C(β, λ ) ∝ Var w(E) → ∞ as ( β, λ ) → (βc, λ c),
+
+while w remains bounded away from zero and infinity on the support of p⋆(θ). 
+
+Theorem 9.11 (Curvature singularities and response divergences) . Let the equilibrium man-ifold be two-dimensional with coordinates (β, λ ) and metric gab (β, λ ) induced by a generative entropy HG with smooth G. Under Assumption 9.10, the scalar curvature R(β, λ ) has a singu-larity at (βc, λ c): either |R| → ∞ or R is undefined there due to non-analyticity. In particular, divergence of the heat capacity (or other susceptibilities) is accompanied by a singularity in the curvature of the generative-entropy metric. Proof sketch. Under the assumptions, gab (β, λ ) is a smooth positive-definite covariance-like ma-trix away from ( βc, λ c), and its determinant det g(β, λ ) is positive. Near the critical point, divergence of a response function such as Var w(E) implies that at least one component of gab 
+
+diverges (up to smooth, nonzero prefactors determined by w). Since the scalar curvature R is a rational combination of gab , their first and second deriva-tives, and powers of det g in the denominator, any divergence in the metric components or their derivatives typically induces a divergence in R unless there is an exact cancellation. Such cancellations are non-generic and would require fine-tuned relations between G and the critical behaviour. Conversely, if at a first-order transition the equilibrium distribution p⋆(β, λ ) jumps discon-tinuously, the metric gab is discontinuous as well, so R is not defined on the transition line. Thus, singular behaviour of response functions (heat capacity, susceptibilities) manifests as curvature singularities of the entropy-induced metric on the equilibrium manifold. 
+
+9.5.3 Tsallis example: curvature with escort weights 
+
+In the Tsallis case, the metric is expressed in terms of escort covariances: 
+
+g(q) 
+
+> ab
+
+(θ) = qZ q(θ) Cov ˜p
+
+ Sa, S b
+
+,
+
+where ˜ p is the escort distribution and Sa(xj ) are the sufficient statistics in log p⋆j (θ). Thermody-namic response coefficients (e.g. q-generalised heat capacity) are also defined via escort averages in Tsallis thermodynamics. Therefore, for Tsallis canonical families: 
+
+• Divergence of escort-variance-based heat capacity or susceptibilities implies divergence of the corresponding entries of g(q) 
+
+> ab
+
+.
+
+• The scalar curvature R(q)(θ) of the Tsallis metric thus develops singularities exactly where 
+
+q-generalised thermodynamic response functions diverge. This provides a geometric characterisation of Tsallis-type phase behaviour in the generative framework: the equilibrium manifold is curved according to the escort Fisher metric, and its scalar curvature R(q) encodes critical phenomena via singularities in response. 
+
+9.6 Summary 
+
+In this note we have: 
+
+• Defined an entropy-induced Riemannian metric on the interior of the probability simplex by restricting the negative Hessian of the generative entropy HG to the tangent space. 49 • Shown that, for parametric families {p(θ)}, the pullback of this metric yields a generalised information geometry on parameter space: 
+
+gab (θ) = − X
+
+> j
+
+G′′ (pj (θ)) ∂apj ∂bpj .
+
+• Proved that, for the Shannon generator G(u) = −u log u, this reproduces the classical Fisher information metric, and for Tsallis generators Gq it yields an escort Fisher metric, consistent with Tsallis thermodynamics. 
+
+• Interpreted the metric on equilibrium manifolds as a covariance-like object with weights determined by G, and argued that the scalar curvature of this metric develops singularities at thermodynamic critical points where response functions (heat capacity, susceptibilities) diverge. This provides a natural geometric layer on top of the generative thermodynamic framework: 
+
+HG induces a Riemannian structure whose curvature encodes information–thermodynamic sta-bility and phase transitions. 
+
+# 10 Gauge and Coarse-Graining Invariance for Generative Thermodynamics 
+
+10.1 Setting 
+
+We adopt the notation of the previous technical notes. Let X be a finite microstate set, p(x)a strictly positive probability distribution on X (so p ∈ ∆◦
+
+> n
+
+), and HG(p) = P 
+
+> j
+
+G(pj ) the generative entropy with strictly concave generator G,
+
+G′′ (u) < 0, u ∈ (0 , 1) .
+
+Let Egen : X → R be the generative energy and 
+
+U := ⟨Egen ⟩p = X
+
+> x∈X
+
+Egen (x) p(x)the internal energy. Along a smooth path α 7 → pα of distributions (and the associated internal energy U (α) and entropy S(α) := HG(pα)), we define the temperature via 1
+
+T (α) := dS dU (α) = dS/dα dU/dα ,
+
+whenever dU/dα ̸ = 0. We also consider the microcanonical S(U ) and Legendre-structure picture as in earlier notes, but here we focus on gauge transformations of Egen and on coarse-graining of the underlying state space. 
+
+10.2 Energy gauge invariance (Target K) 
+
+10.2.1 Affine gauge transformations of the generative energy Definition 10.1 (Energy gauge transformation) . Let a ∈ R \ { 0} and b ∈ R. An energy gauge transformation is an affine map 
+
+Egen (x) 7 → E′
+
+> gen
+
+(x) := a E gen (x) + b. (78) We will mostly consider a > 0 (monotone rescaling), but allow a < 0 in remarks. 50 10.2.2 Effect on internal energy and entropy Proposition 10.2 (Internal energy under gauge) . Let U be the internal energy associated with 
+
+Egen and p, and U ′ the internal energy associated with E′ 
+
+> gen
+
+and the same distribution p. Then 
+
+U ′ = aU + b. (79) 
+
+Proof. By definition, 
+
+U ′ = X
+
+> x
+
+E′
+
+> gen
+
+(x) p(x) = X
+
+> x
+
+ aE gen (x) + bp(x) = a X
+
+> x
+
+Egen (x)p(x) + b X
+
+> x
+
+p(x) = aU + b. 
+
+Assumption 10.3 (Entropy depends only on p). We assume that the generative entropy S is defined as a functional of the probability distribution p (or of the energy distribution pE , which is determined by p and Egen up to reparametrisation of the energy axis), but not on the choice of affine gauge for Egen . In particular, if pα is held fixed and Egen is replaced by E′ 
+
+> gen
+
+as in (78), then 
+
+S′(α) = S(α).
+
+This is natural in the generative framework: HG is defined in terms of probabilities, and an affine reparametrisation of the energy variable does not change the underlying histogram of microstate probabilities. 
+
+10.2.3 Effect on temperature and free energies Theorem 10.4 (Transformation of temperature under gauge) . Let α 7 → pα be a smooth path, with associated internal energy U (α) and entropy S(α). Let U ′(α) = aU (α) + b be the internal energy obtained after the gauge transformation (78) , and define temperature via 
+
+1
+
+T (α) = dS dU (α), 1
+
+T ′(α) = dS ′
+
+dU ′ (α).
+
+Under Assumption 10.3, we have S′(α) = S(α) and 
+
+T ′(α) = a T (α). (80) 
+
+In particular, additive shifts ( a = 1 ) leave T invariant. Proof. Since S′(α) = S(α), we have dS ′/dα = dS/dα . From U ′(α) = aU (α) + b, differentiating with respect to α yields 
+
+dU ′
+
+dα = a dU dα .
+
+By definition, 1
+
+T (α) = dS/dα dU/dα , 1
+
+T ′(α) = dS ′/dα dU ′/dα .
+
+Thus 1
+
+T ′(α) = dS/dα a dU/dα = 1
+
+a
+
+1
+
+T (α) ,
+
+so T ′(α) = a T (α). 
+
+Remark 10.5 . For a > 0, the sign of T is preserved, and temperature is simply rescaled. For 
+
+a < 0, the temperature changes sign: T ′ = aT < 0 when T > 0, corresponding to a reversal of the energy ordering (this is the usual “negative temperature” scenario when the energy spectrum is bounded above and we flip it). 51 We can also track free energies under gauge. Consider for simplicity the Helmholtz-like free energy 
+
+F := U − T S 
+
+defined along a path, and its gauge-transformed counterpart F ′ = U ′ − T ′S′.
+
+Proposition 10.6 (Transformation of free energy) . Under the gauge transformation (78) with 
+
+a > 0, and under Assumption 10.3, we have 
+
+F ′ = aF + b. (81) 
+
+Proof. By Proposition 10.2, U ′ = aU + b. By Theorem 10.4, T ′ = aT and S′ = S. Hence 
+
+F ′ = U ′ − T ′S′ = ( aU + b) − (aT )S = a(U − T S ) + b = aF + b. 
+
+Remark 10.7 (Gauge-invariant quantities) . From (80), (81) and U ′ = aU + b, we see that: 
+
+• Entropy S is gauge invariant .
+
+• Internal energy U and Helmholtz free energy F transform affinely. 
+
+• Temperature T rescales linearly under energy rescaling and is invariant under energy shifts. 
+
+• Heat capacity is gauge invariant: along a path, 
+
+C := dU dT , C′ := dU ′
+
+dT ′ .
+
+Using U ′ = aU + b and T ′ = aT ,
+
+C′ = dU ′
+
+dT ′ = a dU a dT = C. 
+
+• More generally, any dimensionless response coefficient built from derivatives dU/dT and derivatives of expectation values with respect to intensive parameters is invariant under affine energy gauges. 
+
+10.2.4 Gauge invariance of canonical MaxEnt distributions 
+
+We briefly show that the canonical (MaxEnt) distributions themselves are gauge invariant, up to reparametrisation of Lagrange multipliers. Consider a canonical MaxEnt solution with generator G, obtained by maximising HG(p)under constraints X
+
+> x
+
+p(x) = 1 , X
+
+> x
+
+Egen (x)p(x) = U, 
+
+with Lagrange multipliers α (normalisation) and β (energy constraint). The first-order condi-tions read 
+
+G′(p(x)) + α + βE gen (x) = 0 , ∀x. (82) 
+
+Proposition 10.8 (Canonical probabilities are gauge invariant) . Let p⋆ satisfy (82) for some 
+
+(α, β ) and energy Egen . Under the gauge transformation (78) with a̸ = 0 , there exist multipliers 
+
+(α′, β ′) such that the same p⋆ satisfies 
+
+G′(p⋆(x)) + α′ + β′E′
+
+> gen
+
+(x) = 0 , ∀x. (83) 
+
+Explicitly, one can take 
+
+β′ = β/a, α′ = α + βb/a. (84) 52 Proof. Starting from (82) and using E′
+
+> gen
+
+(x) = aE gen (x) + b, compute 
+
+α′ + β′E′
+
+> gen
+
+(x) = ( α + βb/a ) + ( β/a )( aE gen (x) + b) = α + βE gen (x) + 2 βb/a. 
+
+To satisfy (83), we need 
+
+G′(p⋆(x)) + α′ + β′E′
+
+> gen
+
+(x) = 0 , ∀x. 
+
+Using (82), 
+
+G′(p⋆(x)) + α′ + β′E′
+
+> gen
+
+(x) = −βE gen (x) + α′ + β′E′
+
+> gen
+
+(x) − α. 
+
+We therefore choose ( α′, β ′) so that 
+
+α′ + β′E′
+
+> gen
+
+(x) = α + βE gen (x)for all x. This is achieved by (84), since then 
+
+α′ + β′E′
+
+> gen
+
+(x) = α + βb/a + ( β/a )( aE gen (x) + b) = α + βE gen (x) + 2 βb/a, 
+
+and adding a constant to both sides of (82) leaves the solution p⋆ unchanged (we can absorb constants into α). More explicitly, we can reabsorb the extra constant into a redefined nor-malisation multiplier, so there exist ( α′, β ′) which reproduce the same p⋆. Hence the canonical probabilities are unchanged, only the multipliers are reparameterised. 
+
+Remark 10.9 . Concretely: affine changes in Egen leave the MaxEnt distribution p⋆ invariant, while renormalising the Lagrange multipliers. This is the usual statement that additive and multiplicative gauges in the energy are physically irrelevant for the canonical ensemble. 
+
+10.3 Coarse-graining stability (Target L) 
+
+We now address how entropy, internal energy, and temperature behave under coarse-graining of the state (or energy) space. A central point is that the phrase “coarse-graining increases entropy” is used in the literature for two different objects. In this paper we work with the 
+
+lumped (macro) distribution obtained by pushing forward p through a partition map, and we study the corresponding macro-entropy HG(pP ). This quantity is the entropy of the coarse variable (block label) and behaves monotonically under refinement for Shannon (and, more generally, for generators satisfying the log-extensive small-u condition introduced earlier). When one instead defines a coarse-grained entropy by adding within-block uncertainty (a conditional term), one obtains a different object with different monotonicity properties; we briefly comment on this distinction at the end of the section. 
+
+10.3.1 Coarse-graining as a stochastic map 
+
+Let X be the (fine) microstate space, |X| = n, and let p ∈ ∆◦ 
+
+> n
+
+be a distribution on X.
+
+Definition 10.10 (Partition and coarse-graining map) . Let P = {B1, . . . , B K } be a partition of 
+
+X into disjoint nonempty blocks Bk ⊂ X. The coarse-graining (lumping) map CP : ∆ n → ∆K
+
+is (CP p)k := X
+
+> x∈Bk
+
+p(x), k = 1 , . . . , K. 
+
+We write pP := CP p for the lumped (macro) distribution on block labels. 
+
+Definition 10.11 (Refinement) . Let P′ and P be two partitions. We say that P′ is a refinement 
+
+of P (denoted P′ ⪰ P ) if every block B ∈ P ′ is contained in some block A ∈ P . In this case P′
+
+is the finer partition and P the coarser one. Moreover, there exists a stochastic matrix R (a block-merging map) such that 
+
+CP = R C P′ ,
+
+i.e. one obtains the coarser lumping by first lumping to the finer blocks and then merging them. 53 10.3.2 Entropy of the lumped macro-variable 
+
+We focus first on the entropy of the block-label random variable Y = CP (X), i.e. 
+
+SG
+
+> lump
+
+(P; p) := HG(pP ).
+
+For Shannon entropy, this is exactly H(Y ) and satisfies standard data-processing monotonicity: refining the partition (tracking more labels) cannot decrease the entropy of the label, while lumping (merging labels) cannot increase it. 
+
+Lemma 10.12 (Shannon: merging decreases lumped entropy) . Let q ∈ ∆m and let ˜q be obtained by merging a subset of components {qi}i∈I into their sum r = P 
+
+> i∈I
+
+qi. Then 
+
+HSh (˜ q) ≤ HSh (q),
+
+with equality iff at most one of the qi (i ∈ I) is nonzero. Proof. Write HSh (q) = − Pmi=1 qi log qi. Only the merged components change, hence 
+
+HSh (q)−HSh (˜ q) = 
+
+
+
+−X
+
+> i∈I
+
+qi log qi
+
+
+
+− −r log r = X
+
+> i∈I
+
+qi log rqi
+
+= r X
+
+> i∈I
+
+qi
+
+r log 1
+
+qi/r = r H Sh ({ qi 
+
+> r
+
+}i∈I ) ≥ 0,
+
+with equality iff the conditional distribution on the merged group is degenerate (i.e. at most one nonzero component). 
+
+Proposition 10.13 (Shannon: refinement increases lumped entropy) . Let P′ ⪰ P be partitions of X, with pP and pP′
+
+their lumped distributions. Then 
+
+HSh (pP′
+
+) ≥ HSh (pP ). (85) 
+
+In particular, HSh (pP ) ≤ HSh (p) for every P.Proof. Since P′ ⪰ P , there is a merging matrix R such that pP = R p P′
+
+. The vector pP
+
+is obtained from pP′
+
+by a finite sequence of merges, each of which (by Lemma 10.12) cannot increase HSh . Thus HSh (pP ) ≤ HSh (pP′
+
+). Finally, the finest partition (singletons) yields pP = p,so HSh (pP ) ≤ HSh (p). 
+
+Corollary 10.14 (Existence of a refinement limit for lumped Shannon entropy) . Let {P n}n≥1
+
+be a refining sequence ( Pn+1 ⪰ P n) and Sn := HSh (pPn ). Then (Sn) is monotone nondecreasing and bounded above by HSh (p), hence converges: 
+
+lim  
+
+> n→∞
+
+Sn = S∞ ≤ HSh (p).
+
+10.3.3 Internal energy and temperature under lumping (energy-space setting) 
+
+We now specialise to the setting of this paper, where the coarse-graining acts on the energy axis. Let C = {cj }nj=1 be the discretised energy support and let pE ∈ ∆◦ 
+
+> n
+
+be a distribution on C (e.g. an empirical energy histogram or its Stage-I MaxEnt projection). A partition P = {Bk}Kk=1 
+
+groups energy bins into macro-bins. Define the macro probabilities pP 
+
+> E
+
+= CP pE as above. To define internal energy after coarse-graining, one must choose a representative energy level for each macro-bin. A natural choice is the conditional mean energy within each macro-bin: ¯ck := E[c | c ∈ Bk] = 
+
+P 
+
+> j∈Bk
+
+cj pE,j 
+
+P 
+
+> j∈Bk
+
+pE,j 
+
+=
+
+P 
+
+> j∈Bk
+
+cj pE,j 
+
+(pP 
+
+> E
+
+)k
+
+, (86) with the convention that ¯ ck is arbitrary if ( pP 
+
+> E
+
+)k = 0 (which does not affect expectations). The coarse-grained internal energy is then 
+
+U P := 
+
+> K
+
+X
+
+> k=1
+
+(pP 
+
+> E
+
+)k ¯ck. (87) 54 Proposition 10.15 (Energy is preserved under energy-axis lumping) . With ¯ck defined by (86) ,one has 
+
+U P =
+
+> n
+
+X
+
+> j=1
+
+pE,j cj =: U, 
+
+i.e. coarse-graining on the energy axis preserves internal energy. Proof. Substitute (86) into (87): 
+
+U P =
+
+> K
+
+X
+
+> k=1
+
+(pP 
+
+> E
+
+)k
+
+P 
+
+> j∈Bk
+
+cj pE,j 
+
+(pP 
+
+> E
+
+)k
+
+=
+
+> K
+
+X
+
+> k=1
+
+X
+
+> j∈Bk
+
+cj pE,j =
+
+> n
+
+X
+
+> j=1
+
+cj pE,j = U. 
+
+For temperature, recall that in our framework T −1 is defined from the thermodynamic relation T −1 = dS/dU along a family of states. Since U is preserved by energy-axis lumping, temperature changes under coarse-graining only through the entropy functional evaluated on the lumped distribution. In particular, when using Shannon as an illustrative baseline, refinement increases the lumped entropy and therefore (for fixed U ) decreases T −1 along the coarse-grained family. For general learned Ggen , the corresponding statement depends on the specific generator and on whether one evaluates S on pE or on its Stage-I projection; we therefore use this section primarily to emphasise energy preservation and the need to specify the entropy notion. 
+
+10.3.4 Remark on alternative “coarse-grained entropies” 
+
+Many statements in statistical physics that “coarse-graining increases entropy” refer not to the macro-entropy HSh (pP ) of the block label, but to a renormalised or conditional coarse-grained entropy that adds the within-block uncertainty. For Shannon, if Y = CP (X) denotes the block label, then 
+
+HSh (X) = HSh (Y ) + HSh (X | Y ),
+
+so one can define a coarse-grained entropy as HSh (Y )+ HSh (X | Y ), which is invariant under the partition and coincides with the microstate entropy. More general coarse-graining conventions (including renormalisation procedures) are discussed in, e.g., K. Lindgren, Entropy 17 , 3332 (2015). In this paper we focus on the lumped macro distribution because it is the natural object on the energy axis, where macro-bins represent aggregated energy levels and internal energy is preserved by choosing conditional means (86). 
+
+10.3.5 Internal energy under energy coarse-graining 
+
+Now suppose that coarse-graining is performed along the energy axis. For simplicity, assume 
+
+Egen takes real values in a compact interval [ Emin , E max ] and that we coarse-grain by partitioning this interval. 
+
+Definition 10.16 (Energy partition and approximate internal energy) . Let I = {I1, . . . , I K }
+
+be a partition of [ Emin , E max ] into intervals Ik, and choose a representative energy Ek ∈ Ik for each bin. Define the coarse-grained probabilities 
+
+pk := X
+
+> x:Egen (x)∈Ik
+
+p(x),
+
+and the approximate internal energy 
+
+U I := 
+
+> K
+
+X
+
+> k=1
+
+Ekpk.
+
+55 Proposition 10.17 (Uniform bound on internal-energy error) . Let δ(I) := max k diam( Ik) be the mesh of the energy partition. Then 
+
+|U I − U | ≤ δ(I). (88) 
+
+In particular, as δ(I) → 0, U I → U .Proof. Write 
+
+U = X
+
+> x
+
+Egen (x)p(x) = X
+
+> k
+
+X
+
+> x:Egen (x)∈Ik
+
+Egen (x) p(x).
+
+Then 
+
+U I − U = X
+
+> k
+
+Ekpk − X
+
+> k
+
+X
+
+> x:Egen (x)∈Ik
+
+Egen (x)p(x)= X
+
+> k
+
+X
+
+> x:Egen (x)∈Ik
+
+ Ek − Egen (x)p(x).
+
+Taking absolute values and using the triangle inequality, 
+
+|U I − U | ≤ X
+
+> k
+
+X
+
+> x:Egen (x)∈Ik
+
+Ek − Egen (x) p(x).
+
+For any x with Egen (x) ∈ Ik, we have Ek − Egen (x) ≤ diam( Ik) ≤ δ(I). Thus 
+
+|U I − U | ≤ δ(I) X
+
+> x
+
+p(x) = δ(I).
+
+Remark 10.18 . This shows that internal energy computed from a coarse-grained energy his-togram converges uniformly to the true U as the maximal bin width shrinks. No assumption on G is needed. 
+
+10.3.6 Temperature from coarse-grained (S, U )Finally, we consider how temperature defined via 1 /T = dS/dU behaves when both S and U
+
+are approximated by coarse-grained quantities. Let {P n} be a sequence of partitions refining both the state space and the energy axis in a consistent way (each energy bin defining a block of states), and define 
+
+Sn(α) := HG(pPn 
+
+> α
+
+), Un(α) := U In (α)along a smooth path α 7 → pα.
+
+Assumption 10.19 (Smoothness and uniform convergence) . Assume: 1. S(α) and U (α) are C1 on a compact interval I ⊂ R.2. Sn(α) ↑ S(α) pointwise on I and the convergence is uniform. 3. Un(α) → U (α) uniformly on I as n → ∞ .Define approximate temperatures Tn(α) via 1
+
+Tn(α) := dS n
+
+dU n
+
+(α) = dS n/dα dU n/dα ,
+
+where derivatives are taken with respect to α and the ratio is understood where dU n/dα ̸ = 0. 56 Theorem 10.20 (Convergence of coarse-grained temperatures) . Under Assumption 10.19, and assuming dU/dα does not vanish on I, we have 
+
+Tn(α) → T (α)
+
+uniformly on I as n → ∞ , where T (α) is defined by 
+
+1
+
+T (α) = dS dU (α).
+
+Proof sketch. By uniform convergence of Sn to S and standard results on differentiation of uni-formly convergent sequences of C1 functions (or by the mean value theorem and equicontinuity), we can ensure that dS n/dα → dS/dα uniformly on I; similarly, from uniform convergence of Un
+
+to U and smoothness of U , we obtain uniform convergence of dU n/dα to dU/dα . Since dU/dα 
+
+is bounded away from zero on I, for sufficiently large n also dU n/dα is bounded away from zero, and dS n/dα dU n/dα → dS/dα dU/dα 
+
+uniformly. Thus 1 /T n(α) → 1/T (α) uniformly on I, and hence Tn(α) → T (α) uniformly as well. 
+
+Remark 10.21 . In practice, one often approximates derivatives via finite differences in α; the theorem still applies, with Tn interpreted as the ratio of finite differences of coarse-grained Sn
+
+and Un, provided the finite-difference scheme converges and the uniform convergence conditions are met. The key point is that the effect of coarse-graining on S and U is controlled and vanishes as the partitions are refined, so the inferred temperature is stable in the limit. 
+
+10.4 Summary 
+
+In this note we have: 
+
+• Analysed affine energy gauge transformations Egen 7 → aE gen + b and shown that: 
+
+– Internal energy transforms as U ′ = aU +b;
+
+– Entropy S is gauge invariant (depends only on p); 
+
+– Temperature rescales as T ′ = aT under energy rescaling and is invariant under additive shifts; 
+
+– Free energies transform affinely, while response quantities such as heat capacity C =
+
+dU/dT are gauge invariant. 
+
+• Shown that canonical MaxEnt distributions are gauge invariant : an affine change in Egen 
+
+can be absorbed into a reparametrisation of the Lagrange multipliers without changing the probabilities. 
+
+• Established coarse-graining stability of the generative entropy: coarse-graining via parti-tions of the state space (or energy axis) yields entropies that are monotone nondecreasing under refinement and converge to an upper limit (the microstate-level entropy). 
+
+• Provided uniform error bounds for internal energy under energy-bin coarse-graining, and, under mild smoothness assumptions, shown that temperatures defined via 1 /T = dS/dU 
+
+computed from coarse-grained ( S, U ) converge to the true temperature as the coarse-graining is refined. These results ensure that the thermodynamic quantities in the generative framework are 
+
+gauge-stable (insensitive to affine reparametrisations of the energy) and coarse-graining-stable 
+
+(robust under changes in the resolution at which the energy distribution is represented). 57 Operational temperature validation by thermal contact 
+
+Goal. Reviewer concerns about “temperature defined only as a slope” typically reduce to the question of whether the inferred temperature predicts an operational outcome. Here we use the standard equilibrium criterion from thermal contact: when two subsystems exchange energy under a fixed total energy constraint, equilibrium is achieved at equal inverse temperatures 
+
+β = ∂S/∂U .
+
+Systems and shared energy axis. We consider two synthetic data systems: Gaussian-mixture observations with separation parameters μA = 2 and μB = 3. A shared generative energy map Eref (x) is learned once from pooled samples from both systems (by fitting a low-degree even polynomial to − log ˆ p(x)). This shared map ensures that energies and total-energy conservation are defined on a common scale. Each system is then represented on the same discrete energy support {Ej } by empirical histograms ˆ pA(Ej ) and ˆ pB (Ej ). 
+
+System-specific entropy functionals and microcanonical curves. Although the energy axis is shared, the entropy functional is inferred separately for each system (using the same construction pipeline as in the main text). For each system s ∈ { A, B } we compute the micro-canonical entropy curve 
+
+Ss(U ) = max 
+
+> p∈∆n
+
+Hs[p] s.t. X
+
+> j
+
+pj Ej = U, 
+
+and obtain the inverse temperature along this admissible family as 
+
+βs(U ) = ∂S s
+
+∂U .
+
+Thermal-contact protocol and equilibrium prediction. We define a contact protocol in which the composite system can exchange energy between subsystems while conserving total energy Utot . To avoid boundary artefacts associated with truncated feasibility intervals, we choose Utot in the interior of the common admissible range (here the midpoint protocol used in the accompanying code). Under the usual weak-contact assumption (additive entropies and conserved total energy), define the total entropy as a function of the split, 
+
+Stot (UA) := SA(UA) + SB
+
+ Utot − UA
+
+.
+
+The predicted equilibrium split is obtained by maximising Stot :
+
+U ⋆A = arg max 
+
+> UA
+
+Stot (UA), U ⋆B = Utot − U ⋆A.
+
+At an interior optimum, the first-order condition yields the operational equalisation rule 
+
+βA(U ⋆A) = βB (U ⋆B ),
+
+i.e. energy flows until the inferred inverse temperatures match. 
+
+Result. For μA = 2 and μB = 3 (seed 1; N = 2 × 10 5 samples per system), the protocol selects Utot = 6 .648 with feasible interval UA ∈ [2 .054 , 4.594]. The entropy maximiser occurs at U ⋆A = 3 .289 and U ⋆B = 3 .360, with inverse-temperature mismatch |βA(U ⋆A) − βB (U ⋆B )| =3.21 × 10 −3. Figure S5 shows the corresponding microcanonical curves, inverse temperatures, and the predicted equilibrium split distribution P (UA) ∝ exp( SA(UA) + SB (Utot − UA)). The accompanying code allows verification across multiple seeds. 58 Figure 5: Operational temperature validation by thermal contact (Gaussian mix-tures). Two synthetic data systems (Gaussian mixtures with separations μ = 2 and μ = 3) are mapped to a shared learned energy axis Eref , while their entropy functionals are in-ferred separately, producing microcanonical curves SA(U ) and SB (U ) (left). Inverse tem-peratures βs(U ) = ∂S s/∂U (right) determine the predicted equilibrium energy split under weak thermal contact at fixed total energy Utot . The equilibrium split is the maximiser of 
+
+SA(UA) + SB (Utot − UA), implying βA(U ⋆A) = βB (U ⋆B ). For the shown run ( N = 2 × 10 5 per system, seed 1; Utot = 6 .648), the predicted equilibrium is U ⋆A = 3 .289 and U ⋆B = 3 .360 with mismatch |∆β| = 3 .21 × 10 −3 (dashed lines). The bottom panel shows the induced contact distribution P (UA) ∝ exp( SA(UA) + SB (Utot − UA)) on the feasible interval. 59

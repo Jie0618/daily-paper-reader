@@ -6,55 +6,59 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-01
-- 运行时间：2026-05-01 20:03:47 UTC
+- 最新运行日期：2026-05-02
+- 运行时间：2026-05-02 19:50:00 UTC
 - 运行状态：成功
-- 本次总论文数：11
-- 精读区：1
-- 速读区：10
+- 本次总论文数：12
+- 精读区：0
+- 速读区：12
 
 ### 今日简报（AI）
-今日深度解析 11 篇 AI 前沿进展，重点聚焦机器集体智能驱动的可解释科学发现。
-满分论文揭示了集体智能在科研中的巨大潜力，同时神经符号系统与数学推理评估框架正重塑 AI 的逻辑边界。
-推荐优先研读集体智能如何赋能科学探索，并关注 LLM 在复杂逻辑验证中的评测新标准。
-- 详情：[/202605/01/README](/202605/01/README)
+今日速览 12 篇前沿论文，重点聚焦符号计算优化与几何 AI 的可靠性验证。
+推荐关注多等式约束下的 CAD 算法增强，以及为提升预测可靠性而设计的 GeoCert 几何 AI 框架。
+建议对形式语言或自动化推理感兴趣的读者，深入探索 $q$-导数文法与量词消去的新进展。
+- 详情：[/202605/02/README](/202605/02/README)
 
 ### 精读区论文标签
-1. [Machine Collective Intelligence for Explainable Scientific Discovery](/202605/01/2604.27297v1-machine-collective-intelligence-for-explainable-scientific-discovery)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：利用符号主义和启发式算法自主发现控制方程
+- 本次无精读推荐。
 
 ### 速读区论文标签
-1. [Beyond the Training Distribution: Mapping Generalization Boundaries in Neural Program Synthesis](/202605/01/2604.27551v1-beyond-the-training-distribution-mapping-generalization-boundaries-in-neural-program-synthesis)  
+1. [Enhanced CAD-Based Quantifier Elimination With Multiple Equational Constraints](/202605/02/2604.23873v1-enhanced-cad-based-quantifier-elimination-with-multiple-equational-constraints)  
    标签：评分：7.0/10、query:math-ai
-   evidence：使用算术语法的神经程序合成
-2. [Towards Neuro-symbolic Causal Rule Synthesis, Verification, and Evaluation Grounded in Legal and Safety Principles](/202605/01/2604.28087v1-towards-neuro-symbolic-causal-rule-synthesis-verification-and-evaluation-grounded-in-legal-and-safety-principles)  
+   evidence：通过 CAD 获得未知数关于参数的符号表达式
+2. [$q$-Derivative Grammar](/202605/02/2604.23959v1-q-derivative-grammar)  
    标签：评分：7.0/10、query:math-ai
-   evidence：使用强化学习进行神经符号因果规则合成
-3. [Rethinking Math Reasoning Evaluation: A Robust LLM-as-a-Judge Framework Beyond Symbolic Rigidity](/202605/01/2604.22597v1-rethinking-math-reasoning-evaluation-a-robust-llm-as-a-judge-framework-beyond-symbolic-rigidity)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：超越符号僵化性的数学推理评估
-4. [On (not) learning the Möbius function](/202605/01/2604.23427v1-on-not-learning-the-mbius-function)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：学习莫比乌斯或刘维尔等数学函数
-5. [Extracting Exact Lie Derivatives Without Backpropagation: A Dual Compiler for Neural Control Barrier Functions](/202605/01/2604.23995v1-extracting-exact-lie-derivatives-without-backpropagation-a-dual-compiler-for-neural-control-barrier-functions)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：无需反向传播即可提取精确导数的神经网络架构
-6. [QED: An Open-Source Multi-Agent System for Generating Mathematical Proofs on Open Problems](/202605/01/2604.24021v2-qed-an-open-source-multi-agent-system-for-generating-mathematical-proofs-on-open-problems)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：为开放研究问题生成数学证明
-7. [NeSyCat: A Monad-Based Categorical Semantics of the Neurosymbolic ULLER Framework](/202605/01/2604.24612v1-nesycat-a-monad-based-categorical-semantics-of-the-neurosymbolic-uller-framework)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：用于学习和推理的神经符号框架
-8. [Arboretum.hs: Symbolic manipulation for algebras of graphs](/202605/01/2604.25879v1-arboretumhs-symbolic-manipulation-for-algebras-of-graphs)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：代数和组合结构的符号操作
-9. [Observable Neural ODEs for Identifiable Causal Forecasting in Continuous Time](/202605/01/2604.26070v1-observable-neural-odes-for-identifiable-causal-forecasting-in-continuous-time)  
+   evidence：基于语法的多项式生成函数发现
+3. [GeoCert: Certified Geometric AI for Reliable Forecasting](/202605/02/2604.23474v1-geocert-certified-geometric-ai-for-reliable-forecasting)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：使用神经常微分方程进行可辨识的连续时间因果预测
-10. [Grounding vs. Compositionality: On the Non-Complementarity of Reasoning in Neuro-Symbolic Systems](/202605/01/2604.26521v1-grounding-vs-compositionality-on-the-non-complementarity-of-reasoning-in-neuro-symbolic-systems)  
+   evidence：预测中物理定律的数据驱动发现与执行
+4. [Benchmarking Testing in Automated Theorem Proving](/202605/02/2604.23698v1-benchmarking-testing-in-automated-theorem-proving)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于多步演绎的可微架构
+   evidence：定理证明中语义正确性的基准测试
+5. [Understanding and Improving Automated Proof Synthesis for Interactive Theorem Provers](/202605/02/2604.24354v1-understanding-and-improving-automated-proof-synthesis-for-interactive-theorem-provers)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：自动证明合成与定理证明
+6. [Primitive Recursion without Composition: Dynamical Characterizations, from Neural Networks to Polynomial ODEs](/202605/02/2604.24356v1-primitive-recursion-without-composition-dynamical-characterizations-from-neural-networks-to-polynomial-odes)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：神经网络和多项式常微分方程中原始递归的动力学表征
+7. [Thermoinformational State Construction: Generative Energies, Entropies, and H-Theorem Consistency](/202605/02/2604.24802v1-thermoinformational-state-construction-generative-energies-entropies-and-h-theorem-consistency)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：从测量的微观状态推断数据驱动的能量函数
+8. [Encoded Forward Backward Stochastic Neural Network for High-Dimensional Backward Stochastic Differential Equations and Parabolic Partial Differential Equations](/202605/02/2604.25147v1-encoded-forward-backward-stochastic-neural-network-for-high-dimensional-backward-stochastic-differential-equations-and-parabolic-partial-differential-equations)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：求解高维偏微分方程的深度学习方法
+9. [Auto-Relational Reasoning](/202605/02/2604.26507v1-auto-relational-reasoning)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：机器学习与严密推理的协同结合
+10. [Compositional Meta-Learning for Mitigating Task Heterogeneity in Physics-Informed Neural Networks](/202605/02/2604.26999v1-compositional-meta-learning-for-mitigating-task-heterogeneity-in-physics-informed-neural-networks)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：将物理定律嵌入神经网络
+11. [SCOPE-FE: Structured Control of Operator and Pairwise Exploration for Feature Engineering](/202605/02/2604.27025v1-scope-fe-structured-control-of-operator-and-pairwise-exploration-for-feature-engineering)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：通过算子-特征组合进行自动特征工程
+12. [Learning to Reason: Targeted Knowledge Discovery and Fuzzy Logic Update for Robust Image Recognition](/202605/02/2604.27759v1-learning-to-reason-targeted-knowledge-discovery-and-fuzzy-logic-update-for-robust-image-recognition)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：目标知识发现与符号知识集成
 
 
 <div class="dpr-home-promo-card">

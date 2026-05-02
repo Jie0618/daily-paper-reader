@@ -1,0 +1,594 @@
+Title: Learning to Reason: Targeted Knowledge Discovery and Fuzzy Logic Update for Robust Image Recognition
+
+URL Source: https://arxiv.org/pdf/2604.27759v1
+
+Published Time: Fri, 01 May 2026 01:04:15 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# Learning to Reason: Targeted Knowledge Discovery and Fuzzy Logic Update for Robust Image Recognition 
+
+## Gurucharan Srinivas *∗ Joshua Niemeijer ∗ Frank K¨ oster German Aerospace Center (DLR) 
+
+{Gurucharan.Srinivas, Joshua.Niemeijer, Frank.Koester }@dlr.de 
+
+## Abstract 
+
+Integrating domain knowledge into deep neural networks is a promising way to improve generalization. Existing meth-ods either encode prior knowledge in the loss function or apply post-processing modules, but both depend on iden-tifying useful symbolic knowledge to integrate. Since such rules are often unavailable in real-world vision tasks, we propose a method for targeted knowledge discovery. We propose a Differentiable Knowledge Unit (DKU) that enables modulating the classifier logits, yielding refined class probabilities. The DKU uses implication rules to represent relationships between task classes and implicit concepts learned entirely from the main task supervision, without requiring concept labels. Concepts are identified by dedicated classifiers, whose probabilities are passed to DKU alongside the primary class probabilities. DKU com-putes a logic-based adjustment vector via fuzzy inference, which modulates the primary class logits to yield refined class probabilities. When concept classifiers represent con-cepts that do not support the logical rule structure, the re-sulting adjustments to the class probabilities do not directly minimize the supervision loss. Consequently, optimizing the supervision loss on these adjusted class probabilities im-plicitly trains the concept classifiers. We construct the rule base so that bidirectional logical relations connect concepts and classes. We enforce the concepts to be distinct from each other and with respect to the classes. This design en-forces a clean supervision signal for concept learning. We evaluate our methods on the PASCAL-VOC, COCO, and MedMNIST datasets. We demonstrate improvement through our knowledge integration across these datasets. We conduct domain generalization and hard-sample abla-tion studies and find that our implicit knowledge discovery and integration outperforms the baseline. Code is avail-able: https://github.com/DLR-TS/KLUE.git 
+
+> *Equal contribution.
+
+Figure 1. The figure shows the impact of integrating self-discovered implicit concepts via our Differentiable Knowledge Unit. Shown: input image, ground truth, initial probabilities 
+
+p(yk |z), refined probabilities p∆(yk |ˆz), and visualizations of con-cept activations to provide insight into the learned semantics. 
+
+## 1. Introduction 
+
+Deep Neural Networks (DNNs) for perception have enabled the training of discriminative models that yield high ac-curacy. They are trained data-driven and, in the process, optimize encoders that extract image features relevant for classification. Network architectures are typically black-box functions, which sets them apart from traditional com-puter vision systems that rely on human feature engineering. Such handcrafted systems were therefore more explana-tory and often more robust, even though their overall per-formance was lower. Neural-Symbolic (NeSy) approaches aim to combine the advantages of data-driven DNNs and the explainability/robustness of handcrafted systems. Such approaches try to integrate prior knowledge into DNNs. 
+
+> arXiv:2604.27759v1 [cs.CV] 30 Apr 2026
+
+There are two major approaches for this integration. Ei-ther the predicted class probabilities are post-processed us-ing known logical relationships to detect inconsistencies or correlations, or a loss function is designed to embed such relations into the encoder’s weights during training. A typ-ical example of the latter is physics-informed networks, in which a DNN learns physical rules to predict trajectories. In discriminative perception tasks, however, it is much less ob-vious what knowledge matters to the network. The fact that acquiring and integrating such knowledge is challenging is likely why feature engineering did not perform as well. The motivation for our work, therefore, is the targeted discovery of knowledge that matters for the neural network. Therefore, we aim to enable the network to discover task-optimal implicit knowledge referred to as support concepts. We define implication rules between several unique support concepts and the target classes. The DKU encodes these im-plication rules using fuzzy inference mechanisms to update the class probabilities. However, since no training labels are available for these support concepts, the concept classi-fiers must be learned implicitly. The implication rules must meaningfully update the class probabilities in order to min-imize the overall classification loss. Thus, the support con-cepts forming the rules’ elements must encode meaningful information, enabling their implicit training via the standard classification loss. To avoid trivial self-implications (e.g., a class implying itself), we introduce uniqueness constraints ensuring that each concept remains distinct from its class and from other concepts. We further impose a bidirectional correspondence between each class and the set of support concepts that define it. We test the resulting classification network on several datasets: Pascal-VOC 2012, COCO 2014, and the ChestM-NIST from the MedMNIST collection. We demonstrate im-provements over the baseline networks, even with the strong transformer architectures. Additionally, we present ablation studies that demonstrate improved performance in corner cases and across domains, as well as enhanced resistance to overfitting. We therefore introduce the first approach to automatic, implicit targeted knowledge discovery for neuro-symbolic DNNs. We refer to this method as KLUE (Knowl-edge and Logic Update for Enhanced Recognition). 
+
+## 2. Related Work 
+
+Rule-based and Knowledge-Integrated Deep Learning: 
+
+Integrating symbolic knowledge into neural networks has long been pursued to improve interpretability and incorpo-rate domain expertise. Early work, such as KBANN [21], demonstrated how domain theories represented as propo-sitional logical rules can be mapped into the initial archi-tecture and weights of a neural network. Furthermore, re-searchers have developed frameworks to inject logical con-straints during training. Hu et al. [9] introduced an iter-ative distillation method to transfer first-order logic rules into neural network weights, effectively using a teacher-student model to enforce rule satisfaction. Whereas Xu 
+
+et al. [24] proposed a semantic loss function that mea-sures violation of logical constraints, which can be added to training objectives. More recently, Serafini et al. [20] and Badreddine et al. [3] proposed Logic Tensor Networks (LTNs), which integrate first-order logic with real-valued neural computation by grounding logical symbols in tensors and fuzzy logic to enable end-to-end differentiable learning that incorporates logical constraints. In contrast to LTN, our work shares the goal of integrating logic with deep learn-ing, but differs in the mechanism. Instead of a separate loss or distillation process, we embed the rules directly in the model as a differentiable module. This is related to LNN [19], which construct networks corresponding to logic formulas with learnable gates, though our formulation is a fuzzy-logic instantiation for multi-label tasks. Our ap-proach is also related to concept bottleneck models (CBMs) and attribute-based classifiers [10]. In concept bottleneck models, a network first predicts a set of human-interpretable concept labels from the input, then uses those predicted concepts to predict the final task labels. Our model also includes an intermediate concept-prediction layer; unlike standard concept bottlenecks that rely on ground-truth con-cept annotations, our approach learns concepts implicitly via logical rules. Supervision is applied only to the final labels, while the rules guide the concept outputs to align with meaningful visual patterns. While Li et al. [11] pro-posed LogicSeg, which uses structured hierarchical class labels to define constraints grounded in the data and net-work and facilitate logic-induced training, our approach does not rely on labeled hierarchical information. Further-more, a Neuro-Symbolic computing (NeSy) paradigm for data and knowledge integration has been studied and pur-sued in [6, 12, 16, 23]. 
+
+Methods of Discovering Knowledge: To utilize vanilla variants of LTN or the CBMs, access to domain knowledge is essential for creating a closed rule set [3] or having la-beled concepts and attributes [10, 17], respectively. In sce-narios where domain knowledge is unavailable or difficult to define, as in common vision tasks, association rule min-ing algorithms [1, 8, 14, 28] can be used to derive rules of the form A =⇒ C. However, applying these methods to large-scale datasets poses significant challenges due to their high computational complexity and data noise, and they do not guarantee the discovery of a closed set of rules. Nevertheless, to compare with KLUE, we employ the rule mining algorithm proposed in [8] to extract rules and use them within the LTN framework. Such knowledge dis-covery, however, is untargeted, meaning there is no opti-mization incentive to ensure the generated rules are mean-ingful for the classification task. KLUE, on the other hand, directly optimizes the rules to improve classification. 
+
+## 3. Methods 
+
+Given a dataset D = {(xi, y i)}Ni=1 , (xi ∈ X , y i ∈ Y ),where N is the total number of images and Yi ∈ { 0, 1}K , is a multi-label ground-truth vector for the i-th image, where 
+
+k ∈ [K] denotes classes, our goal is to learn a robust clas-sifier. This classifier should implicitly identify meaningful support concepts ( s ∈ [S]) from the images and refine its predictions using symbolic logical rules defined over these concepts. The network architecture, as shown in Fig. 3, comprises a shared backbone, two independent prediction heads, and a Differentiable Knowledge Unit (DKU). A shared backbone fBB : RH×W ×C → RD maps each image to a D–dimensional feature vector ei = fBB (xi) ∈ RD .
+
+The primary head is denoted as hclass , and is defined by the mapping function hclass : RD → RK computes the class-wise probability p(k|hclass (ei)) , which in the interest of brevity we denote it as p(k|z). Similarly, a secondary head denoted as hconcept , defined by the mapping function 
+
+hconcept : RD → RS computes concept-wise probability 
+
+p(s|hconcept (ei)) , for brevity it is denoted as p(s|z). The primary head is called a primary classifier, and the latter head is a support-concept classifier in our paper. Here, z
+
+denotes the pre-logit space of the respective classifiers. The DKU takes as input the class probabilities p(k|z),the probabilities of the supporting concepts p(s|z), and a set of predefined rules Rk ∈ R for each class (k). The DKU then determines an adjustment vector A ∈ RK to compute the refined class probabilities p∆(k|ˆz).
+
+∆k = DKU 
+
+
+
+p(k|z), {p(s|z) : s ∈ S k}, Rk
+
+
+
+(1) 
+
+ˆzk = zk + αtemp · ∆k (2) The predicted probabilities for the support concepts associ-ated with class k are denoted as  {p(s|z) : s ∈ S k}. Here, 
+
+Sk ⊂ S is a subset of support concepts that are associ-ated with class k.  Rk is the set of logical rules assigned to class  k. These rules consist of logical relationships between the support concepts Sk and the class k itself. The mod-ule  DKU (·) serves as an update mechanism that integrates the evaluation of these rules to generate ˆz, which subse-quently refines the probability distribution to  p∆(k|ˆz). The DKU uses differentiable fuzzy-logic semantics and learn-able functions to compute ˆz during the forward pass, en-abling gradient propagation and effective model optimiza-tion. The Sec.3.2 provides further details about the DKU. 
+
+Implicit knowledge discovery: However, the function DKU (·) relies on the probability estimates produced by a support-concept classifier. An important question regarding DKU is how to determine the probabilities for the support concepts. Training the support concept classifier is non-obvious because the ground-truth labels for these concepts are not available. One of the research objectives is to de-velop a learning mechanism that allows the support classi-fier to learn from weak supervision. This can be thought of as discovering useful knowledge that the DKU can inte-grate. To achieve this, we create a rule-based framework that encodes the relationships between the latent support concepts and the target class label. Sec. 3.1 describes fur-ther details of the rule generation. rk ∈ R 
+
+rk,l :   ^
+
+> ai∈A k,l
+
+ai
+
+ −→ yk (3) where Ak,l = {ak, 1, . . . , a k,l }, and ak,l ⊂ S is the set of concepts that make up the antecedent of rk,l for class k ∈ K
+
+and l is the number of rules per class. Our idea is to uti-lize the logical relationship in Equation 3 between the sup-port concepts and the classes in order to train hconcept . We achieve this by directly optimizing the classification loss on the refined class probabilities p∆, which are updated via the 
+
+DKU . The intuition is that by minimizing the loss function on p∆, we implicitly train hconcept .
+
+Lclass = −
+
+> K
+
+X
+
+> k=1
+
+yk log p∆(k|ˆz) (4) Given that Lclass is minimized, the update based on the rules Rk must have increased the probability for the cor-rect class yk. For the logical relationships in Rk as defined using Eq.( 3), the identified support concepts must be mean-ingful. Otherwise, the described implication relationship would increase Lclass . Therefore, hconcept is trained implic-itly to identify concepts in the given image that are relevant for the given classes, given the rules. 
+
+3.1. Synthetic Knowledge Base Generation 
+
+To enforce the model’s reasoning capabilities and promote implicit concept learning, we generated a synthetic knowl-edge base R composed of logical structure as provided in Eq.( 3) and illustrated in Fig. 2. Let S = {s1, s 2, . . . , s T }
+
+denote set of undefined concepts and Y = {y1, y 2, . . . , y K }
+
+be the set of task classes respectively. The rule base is composed of two complementary rule sets: (a) Forward Implication Ra: Represents positive and negative associ-ations between concepts and classes. For each target class 
+
+yk ∈ Y , we randomly sample l distinct concept combina-tions to generate rules of the form ” concepts =⇒ class ”. The combination length is chosen empirically. To encour-age concept overlap with other classes, individual concepts may be resampled to form distinct concept combinations for other classes, i.e., yj ∈ Yother classes = Y \ { yk}, where 
+
+j̸ = k. Figure 2 (left) shows one distinct rule for ”Dog” and ”Person” classes, where concept ” S5” appears in the rule of Figure 2. Illustrates the rules structure in the knowledge base. The rules are organized into two complementary properties. Property        
+
+> I (left): Forward associations Raencodes lrandom and distinct concept-to-class mappings per class, while their corresponding negative rules (middle; depicted for one distinct rule) encode the concept-to-¬(class) associations. Property II (right): Converse rules Rbare derived from the forward and negative associations for each distinct class rule. Together, they form logical constraints that enforce a bidirectional structure in the rule base.
+
+both the classes. For example, ” S5”can be any shared visual concept between the ”Dog” and ”Person” class. By hav-ing such shared property in the rule construction, we enable the model to learn the shared attributes between the classes. However, the assignment of shared concepts is randomized in our rule generation step. Correspondingly, negative asso-ciations are derived under the assumption that concept com-bination supporting a target class yk imply conflicting rela-tionships with non-target classes Ynon −target = Y \ { yk}.This enforces the constraint that a unique set of concepts implies only a single class. Figure 2 (middle) illustrates such negative rules derived from one distinct positive rule. 
+
+(b) Inverse implications Rb: These rules encode class-to-concepts (converse rule) relation derived from the distinct positive and negative forward associations (i.e., from Ra). Each class implies the union of concepts that imply the class in any of its associated implication rules. Together, Ra and 
+
+Rb forms the synthetic rule base R = {Ra, R b}, encoding bi-directionality. For the concrete algorithm to construct the knowledge base, cf. the supplementary material. 
+
+3.2. Differentiable Knowledge Unit 
+
+The purpose of the differentiable knowledge unit DKU is to estimate the adjustment ∆ to attenuate the original logits 
+
+z of the primary classifier, such that it refines the probabil-ity estimate p∆(k|ˆz). As Eq.( 1) describes, it takes p(k|z),a set of rules Rk associated with class k, and the concept probabilities p(s|z) as input. The DKU integrates symbolic knowledge, expressed via fuzzy logic, into deep learning models. The DKU is structured around the following fun-damental principles: rule-based knowledge representation, probabilistic grounding, and fuzzy inference. Knowledge is captured using a structured rule base R, where each rule ”Ra ⊂ R ” following the canonical Eq.( 3), and their in-verse rules ” Rb ⊂ R ” are grounded using fuzzy relaxation [4, 7, 22] to enable smooth differentiation. Antecedents rep-resent conjunctions of concepts drawn from a support con-cept set S.Whereas, Consequent corresponds to the class from the set K in Ra. However, the rules are the other way around in Rb. Each support concept si can occur in mul-tiple rules. If a support concept occurs in multiple rules, and these rules are associated with different classes. In that case, the optimization enforces the support concept, requir-ing that the support of each class be unequal. Probabilis-tic grounding in the DKU associates truth values of con-cepts and classes directly with corresponding neural net-work classifier outputs. Each concept si has an associ-ated truth value p(si|z), estimated from a dedicated concept classifier. Similarly, category truth values are grounded us-ing the primary classifier’s estimate p(k|z).
+
+Evaluating the Concept Combination: To obtain the membership of the set of concepts ai ⊂ A k,l in Eq.( 3) be-longing to individual rules, we explore two different fuzzy logic connectors. The first is the parameterized activation connector that we propose: 
+
+A(x, y ) = σ(αx + βy + γx · y + δ) (5) where the parameters α, β, γ and δ are optimized during network training, and σ(·) is a sigmoid function. Whereas, the second connector is the Yager t-norm [25]. The param-eterized activation connector is a learnable operator that ap-proximates a fuzzy operator, enabling it to learn a smooth and differentiable function during optimization. 
+
+Evaluating the implication: Given the antecedent and consequent truth-ness for each rule rk,l ∈ R, the rule satis-faction is computed using the Implication functions. We ex-plore two different implication operations. On the one hand, Reichenbach Implication [18] and on the other hand, the Figure 3. The figure presents an overview of the KLUE architecture. The DKU uses initial-class and implicit-concepts probabilities to compute the adjustment (∆) . Which enables to modulate the initial class logits ( z → ˆz) to obtain refined class probabilities p∆(yk /ˆz).The binary cross-entropy and the other auxiliary loss terms implicitly train the concepts. 
+
+Sigmoidal Reichenbach Implication proposed in [22]. The main difference between these two functions lies in their smoothness and differentiability. 
+
+Aggregation: As mentioned in Sec. 3.1, each class has 
+
+M and N positive and negative rules. Therefore, the truth-ness of all associated rules should be aggregated in a mean-ingful way to obtain the adjustment factor ∆k for each class K. To facilitate rule truthness aggregation, contrary to Softmin([16]) we use the following function softmax-weighted average aggregator Eq.( 6): 
+
+Softmax-WA: Agg  I±
+
+> k
+
+ = X
+
+> i
+
+exp  τ t ±
+
+> i
+
+X
+
+> j
+
+exp  τ t ±
+
+> j
+
+ t± 
+
+> i
+
+. (6) where ti and tj represent the individual truth values of rules for a given class k. For each class yk, the category-specific adjustment ∆k is computed as the difference be-tween aggregated positive and negative truth values. 
+
+∆k = Agg (I+ 
+
+> k
+
+) − Agg (I− 
+
+> k
+
+) (7) Finally, predictions from the primary classifier are re-fined by adjusting its logits with the calculated adjustment terms across all categories: ˆz = z + αtemp · ∆. A sig-moid layer σ(·) transforms the updated logits ˆz to the final probabilities: p∆(yk|ˆz) = σ(ˆ z). Through these principles, the DKU effectively leverages the implicit support concepts learnt via the defined rule construct to enhance performance in the classification task. 
+
+3.3. Enforcing the Rule Base Properties 
+
+For our rules, the support concepts must represent unique categories. I.e., they must be different from one another and also represent different categories from the classes. Oth-erwise, the implicit optimization of the support categories could fall into a local minimum, where the respective class is classified again, since a class is completely causally re-lated to itself. We tackle this problem by designing a uniqueness loss. Our classifier heads for the support con-cepts and our classes are a single fully connected layer that takes the shared latent space as input. Since the weights all operate on the same input, we can identify the similar-ities of the classes/concepts expressed by these classifiers directly by comparing their weights. We use cosine simi-larity to compare the weights and aim to minimize it. In mathematical terms, if we let ˜WK ∈ RK×d denote the ma-trix whose rows are the normalized weight vectors of hclass 
+
+˜wk = wk  
+
+> ∥wk∥2
+
+, and ˜WS ∈ RS×d vice versa is the matrix that represents the normalized weight of hconcept . Then we can compute the two loss terms based on cosine similarity. 
+
+Lconcept  
+
+> uniq
+
+= ∥ ˜WS ˜W ⊤ 
+
+> S
+
+− I∥2 
+
+> F
+
+(8) which enforces orthogonality between the weights of the concept classifiers themselves ( I identity matrix) and 
+
+Lclass  
+
+> uniq
+
+= ∥ ˜WS ˜W ⊤ 
+
+> K
+
+∥2 
+
+> F
+
+(9) which enforces orthogonality between the concept classi-fiers and the class classifiers. 
+
+Bidirectional relationship: We enforce a bidirectional relationship between the classes and their support concepts. This property of the rule base ensures that each class implies the conjunction of its support concepts. Formally, for each class  k in the give training sample, converse rules Rb ⊂ R 
+
+of the nature”  ¯rk : yk →  V  
+
+> ai∈A k,l
+
+ai
+
+” is considered. We evaluate the truth degree of these rules using the previously defined fuzzy logic operators and SAT-Aggregator proposed in [3] to obtain the Satisfiability SAT ¯r degree of valid rules. 
+
+LSAT = 1 − SAT ¯r (10) 
+
+3.4. KLUE Assembling the Bricks 
+
+We name our method KLUE (Knowledge and Logic 
+
+Update for Enhanced Recognition). To integrate KLUE into a given architecture, one can follow the steps described in the previous sections: First, we need to generate a set of rules for each given class as described in Sec. 3.1. Second, we integrate the DKU (see Sec. 3.2) to compute the ∆ to update the initial classifier probabilities. Depending on the logic functions, we define two versions of KLUE, which have different implementations of the conjunction, impli-cation, and aggregation functions: KLUE(v1): conjunction Eq.( 5), Reichenbach implication and aggregation Eq.( 6) and KLUE(v2): conjunction yager tnorm and sigmoidal Re-ichenbach implication and aggregation Eq.( 6). The training of a network with KLUE integrated utilizes the following loss function: 
+
+Lclass +λclass Lclass  
+
+> uniq
+
++λconcept Lconcept  
+
+> uniq
+
++λSAT LSAT  (11) Where λclass , λconcept , and λSAT influence the weight that the rules’ properties have in the optimization process. As described in Sec. 3.3, Lclass implicitly trains the concept classification heads and thereby enables the discovery of feasible knowledge to integrate with the rules. 
+
+## 4. Experiments 
+
+Our experiments are designed to test the robustness that is introduced by our KLUE approach. In order to do so, we provide the classification results on three different datasets: Although PASCAL VOC 2012 [5] and COCO [13] are pri-marily object-detection benchmarks with bounding boxes, in our experiments, we repurpose them for multi-label clas-sification by treating each image’s annotation as a binary presence/absence vector. Additionally, we provide abla-tion studies on the medical ChestMNIST dataset, which is part of the MNISTv2 [26] collection. It also represents a multi-label classification task with 14 binary class deci-sions. These datasets represent two domains of applica-tion: natural and medical gray value images. The back-bone networks we use are the WideResNet-101 [27] (WRN-101) and the Swin-V2-Tiny [15](SWIN) architecture. The vanilla version of these models with standard loss is consid-ered a baseline. We integrate KLUE into the decision layer of these networks and tag these models as KLUE variants. The results are compared using the mean average precision (mAP) with thresholds between 0.5 and 0.95, and the area under the receiver operating characteristic curve (AUC) on                                                                                                
+
+> Table 1. Average mAP and AUC (3 seeds) on the validation set of COCO and PASCAL VOC 2012. E: use of external rules Rext .
+> Enc. Model LSAT ECOCO PASCAL VOC mAP AUC mAP AUC WRN-101
+> Baseline ✗✗71.97 96.83 87.73 97.76 LTN (v1) ✗✓41.08 92.46 88.74 97.97 LTN (v2) ✗✓40.84 92.40 87.70 97.69 KLUE (v1) ✗✗74.06 97.08 89.24 98.02 KLUE (v2) ✗✗72.96 97.05 88.07 97.75 KLUE (v1) ✓✗80.79 97.88 91.32 98.37
+> KLUE (v2) ✓✗80.80 97.91 90.22 98.10
+> SWIN
+> Baseline ✗✗82.24 98.29 91.32 98.60 LTN (v1) ✗✓80.47 98.03 91.00 98.65 LTN (v2) ✗✓79.46 97.64 91.81 98.75
+> KLUE (v1) ✗✗82.78 98.30 92.30 98.65 KLUE (v2) ✗✗81.93 98.13 92.10 98.58 KLUE (v1) ✓✗82.71 98.23 92.38 98.58 KLUE (v2) ✓✗82.22 98.13 92.02 98.51
+> Note: v1/v2 denote different fuzzy operator instantiations (see Sec. 3.4)
+
+the validation set of the respective datasets. All our exper-iments are run with 3 seeds to ensure reliable results. If the Optuna framework [2] is not used for the hyperparam-eter finetuning as in Sec. 4.4, then we choose the learning rate (LR), weight decay (WD), and learning rate step size (SZ) to be: Wide ResNet-101 LR: 1e − 4 SZ: 7 WD: 1e − 5,Swin LR: 5e − 5 WD: 1e − 5. Unless otherwise specified, we employ 100 concept classifiers, with 5 positive and 95 neg-ative rules for PASCAL VOC. For COCO, with 80 classes, this yields 395 negative rules. As explained in Sec. 3.1, each positive rule for a class generates negative rules for all other classes. The rule system is generated as described in Sec. 3.1. We set the temperature parameter αtemp to be 5.0
+
+the orthogonality losses λconcepts : 0 .1, λclass : 0 .01 , and 
+
+λSAT : 1 .0.Given that in our scenario no external rules are provided, finding a direct comparison method is difficult, as, to our knowledge, no other framework can automatically derive rules. Therefore, to position our proposed approach’s per-formance with the NeSy approach, we consider the LTN variants of the above models, which are optimized with standard loss and SAT LOSS [3] on external mined rules Rext .These rules constitute statistical correlations expressed as associations between classes [1]. 
+
+4.1. Results on PASCAL VOC and COCO 
+
+Table 1 reports the mean average precision (mAP) and area under the ROC curve (AUC), averaged over three random seeds, for all models on PASCAL VOC 2012, MS COCO. Across both datasets, our KLUE architecture consistently outperforms the WRN-101 baseline and the LTN variant. The effect is especially strong for the WRN-101, where the Table 2. Domain generalization performance: Mean Average Pre-cision (mAP) and AUC of models trained on PASCAL VOC and evaluated on the COCO validation set. WRN-101: WideResNet-101; Swin: Swin-V2-Tiny. E use of external rules. 
+
+Model LSAT E WRN-101 SWIN mAP AUC mAP AUC 
+
+Baseline ✗ ✗ 64.26 92.44 72.51 94.95 
+
+LTN ✗ ✓ 63.54 92.24 71.63 94.82 KLUE ✗ ✗ 68.30 93.55 72.44 94.41 KLUE ✓ ✗ 74.44 94.32 72.40 94.65 
+
+best KLUE variant improves the mAP by 12 .27% and the AUC by 1.11% relative to the baseline on COCO. Whereas, on PACAL VOC 2012, it outperforms by 4.09% mAP and 
+
+0.2% AUC. However, for the SWIN-based KLUE models, the improvements are not as strong as those of the WRN-101 KLUE versions. Nonetheless, the mAP is better than the baseline and LTN variants. For qualitative results, cf. supplementary. 
+
+4.2. Domain Generalization 
+
+One of the primary motivations for introducing knowledge into neural networks is to enhance their ability to general-ize. We use the generalization across unseen data domains to test this feature of KLUE. To assess how well our models transfer beyond the source domain, we train on PASCAL VOC 2012 and evaluate on the COCO validation set, uti-lizing the overlapping classes. Table 2 reports the mean average precision (mAP) and ROC AUC obtained on this unseen domain. The WRN-101 baseline achieves an mAP of 64.26% and an AUC of 92.44%. Our best KLUE version of WRN-101 boosts mAP by 15 .84% and AUC by 2.03% 
+
+relative to the baseline version. Transformer-based archi-tectures generally have better generalization performance, as reflected in Tab. 2. The SWIN baseline is slightly better than the other variants. However, the LTN-enhanced SWIN version shows a drop in mAP. In contrast, the KLUE-based SWIN version matches the baseline’s performance. On the one hand, Tab. 2 shows that the LTN variant performs worse than other model variants. This observation provides empir-ical evidence that the externally mined rules do not transfer well to unseen domains, validating our argument that such rules often constitute untargeted knowledge. On the other hand, the model variants with the KLUE bottleneck demon-strate either a significant performance gain over the base-line( WRN-101) or comparable performance (SWIN), indi-cating that learning implicit concepts under a logical induc-tive bias helps the model capture targeted and semantically meaningful rules that generalize better.                                      
+
+> Table 3. Performance of WideResNet-101 (WRN-101) and KLUE-WideResNet-101 (KLUE-WRN-101) on the PASCAL VOC full validation set and 90th percentile high-entropy samples.
+> Euse of external rules.
+> Model LSAT EFull Validation Set Hard Samples mAP AUC mAP AUC
+> Baseline ✗✗87.84 97.76 79.75 96.46 LTN ✗✓88.75 97.96 85.67 96.15 KLUE ✗✗89.20 98.02 87.03 97.11 KLUE ✓✗91.32 98.40 89.96 98.16
+
+4.3. Robustness towards Corner Case Samples 
+
+Apart from improvements within a data domain and for domain generalization, the integration of knowledge is ex-pected to improve robustness to corner-case data. To mea-sure corner-case performance, we split the PASCAL VOC validation set into (i) the full validation set, and (ii) the top 10% most uncertain images under the baseline model (hard samples). The latter are determined by the baseline model’s entropy, which measures the network’s uncertainty. Table 3 compares the baseline WRN-101 and the KLUE variant of WRN-101. For the full validation set, KLUE improves the mAP by around 4% compared to the baseline. For the hard sample set, the baseline mAP drops by 9.2% to 79.75%, whereas the KLUE model performs very similarly on the hard samples and the full set, at 91.32% vs. 89.96%. Hence, KLUE loses very little performance on the hard samples and is even roughly on par with the baseline’s performance on the full validation set. Here, the bijective property of the rule base enforced by LSAT is especially relevant. Without this property, even KLUE performance drops by 2.4% com-pared to the full validation set, but it is still better than LTN. The external rules integrated into the LTN also enhance robustness. Our more targeted, automatically discovered rules, however, perform better. These results demonstrate that the knowledge self-discovered by KLUE not only im-proves in-domain performance but also generalizes to novel distributions, thereby increasing robustness to corner cases. 
+
+4.4. KLUE v1 and v2 
+
+As Sec. 3.4 describes, we have different instantiations of KLUE. They differ in how the fuzzy logic operators are in-stantiated. To compare their performance fairly with each other, we employed the Optuna framework to speed up the search over the hyperparameters: LR, SZ, WD, αtemp , or-thogonality loss weights λconcepts and λclass , and λSAT for WRN-101 with KLUE. Table 4 shows the mAP achieved after tuning for the PASCAL VOC 2012 dataset and the ChestMNIST dataset. Both KLUE versions outperform the baseline, even with substantial effort invested in hy-Table 4. Comparison of KLUE (v1) and KLUE (v2) w.r.t. mean Average Precision (mAP) and AUC on PASCAL VOC 2012 and ChestMNIST. All models use a WRN-101. E use of external rules.                                      
+
+> Model LSAT EPASCAL VOC 2012 ChestMNIST mAP AUC mAP AUC
+> WRN-101 ✗✗89.65 98.14 23.0 82.3 KLUE (v1) ✗✗92.34 98.65 23.7 83.0 KLUE (v2) ✗✗90.27 98.21 23.8 83.1
+> KLUE (v1) ✓✗92.63 98.62 23.6 82.5 KLUE (v2) ✓✗91.50 98.47 24.2 83.0
+
+Table 5. The mAP values on the validation set of PASCAL VOC for different concept numbers in KLUE. Backbone WRN-101.                                    
+
+> LSAT #1 #2 #3 #4 #5 #6 #7 #8 num concepts ✗10 20 100 120 130 140 150 160 KLUE(v1) ✗92.17 92.22 92.18 92.08 92.15 92.17 92.17 92.10 KLUE(v1) ✓92.44 92.32 92.51 92.30 92.39 92.39 92.17 92.38
+
+Figure 4. Functional relationship between the rules per category and the maximum number of concepts in the antecedence 
+
+perparameter optimization. Since both versions of KLUE (v1) and (v2) yield an improvement, this suggests a cer-tain robustness of the framework towards the implementa-tion of fuzzy logic. KLUE(v1) performs better for the PAS-CAL VOC dataset, while KLUE(v2) performs better for the ChestMNIST data. Generally speaking, there is no clear winner; however, taking the values from Tab.1 into account, one can conjecture that (v1) performs better on natural im-ages and v2 has an advantage in medical images. 
+
+4.5. Hyperparameters of the Rulebase 
+
+The number of concepts utilized to create the rules is an interesting parameter, as it represents the ”parameters” of the Differentiable Knowledge Unit (DKU). We therefore present an ablation study by varying the number of learned concepts in our DKU from 10 to 160. Table 5 reports the validation mAP for each setting on the PASCAL VOC dataset. One can observe that the overall difference in mAP over the number of concepts is rather small, both for KLUE (v1) and (v2). This suggests a certain robustness towards the hyperparameter ”number of concepts”. But it also sug-gests a certain redundancy in the meaning of the concepts 
+
+1 2 3 4 5 6 7 8 9 10 
+
+70 
+
+72 
+
+74 
+
+76 
+
+78 
+
+80 
+
+82 
+
+84 
+
+Training Epoch AUC (%) Baseline KLUE 
+
+Figure 5. AUC over training steps for Baseline vs. KLUE for the ChestMNIST validation set. Averaged over 3 seeds. 
+
+discovered by KLUE. Future work is to investigate loss functions to make the concepts more diverse. Figure 4 shows how the number of concepts in the antecedence in-teracts with the number of positive rules per category with respect to the mAP. One can see that these hyperparameters of the rule base are quite robust w.r.t variations, as there are little absolute differences between the tested combinations (range 92.4%-91.2%). This indicates KLUE’s robustness. 
+
+4.6. Prevention of Overfitting 
+
+Figure 5 shows the validation AUC of the baseline and KLUE on the ChestMNIST over the epochs. One can observe that the baseline after epoch 5 declines quickly, whereas KLUE remains much more stable. This effect is especially useful when no validation set is available for model selection. It is more likely to choose a bad base-line model than a good one for KLUE. Such a case is the domain generalization for which we have shown superior performance. This further shows that integrating the self-discovered knowledge makes the classification more robust. 
+
+## 5. Discussion 
+
+Integrating knowledge into deep neural networks is chal-lenging, not only because of the methodology for inte-grating rules and logic, but also because the knowledge to be integrated must be relevant. Especially for perception tasks, such knowledge is seldom available. This work in-troduces KLUE, a framework that enables networks to dis-cover knowledge that optimally integrates within a given set of rules. This work has demonstrated KLUE’s ability to enhance both in-domain and out-of-domain generaliza-tion, as well as the increased robustness it provides against corner-case images and overfitting. Since KLUE, unlike other neuro-symbolic AI systems, does not require external knowledge, it can be applied to any classification problem. KLUE can also be thought of as an architecture. KLUE can generate a logic update for feature maps. Acknowledgement 
+
+This work was funded by the Horizon Europe programme of the European Union, under grant agreement 101146542 (project SYNERGIES). Views and opinions expressed here are however those of the author(s) only and do not necessar-ily reflect those of the European Union or CINEA. Neither the European Union nor the granting authority can be held responsible for them. 
+
+## References 
+
+[1] Rakesh Agrawal and Ramakrishnan Srikant. Fast algorithms for mining association rules in large databases. In Proceed-ings of the 20th International Conference on Very Large Data Bases , page 487–499, San Francisco, CA, USA, 1994. Mor-gan Kaufmann Publishers Inc. 2, 6 [2] Takuya Akiba, Shotaro Sano, Toshihiko Yanase, Takeru Ohta, and Masanori Koyama. Optuna: A next-generation hyperparameter optimization framework. In Proceedings of the 25th ACM SIGKDD International Conference on Knowl-edge Discovery and Data Mining , page 2623–2631, 2019. 6[3] Samy Badreddine, Artur d’Avila Garcez, Luciano Serafini, and Michael Spranger. Logic tensor networks. Artificial In-telligence , 303:103649, 2022. 2, 6 [4] Ivan Donadello, Luciano Serafini, and Artur d’Avila Garcez. Logic tensor networks for semantic image interpretation, 2017. 4 [5] Mark Everingham, Luc Van Gool, Christopher KI Williams, John Winn, and Andrew Zisserman. The pascal visual object classes (voc) challenge. International journal of computer vision , 88(2):303–338, 2010. 6 [6] Artur d’Avila Garcez, Marco Gori, Luis C Lamb, Luciano Serafini, Michael Spranger, and Son N Tran. Neural-symbolic computing: An effective methodology for princi-pled integration of machine learning and reasoning. arXiv preprint arXiv:1905.06088 , 2019. 2 [7] Petr H´ ajek. Metamathematics of fuzzy logic . Springer Sci-ence & Business Media, 2001. 4 [8] Jiawei Han, Jian Pei, and Yiwen Yin. Mining frequent pat-terns without candidate generation. In Proceedings of the 2000 ACM SIGMOD International Conference on Manage-ment of Data , page 1–12, New York, NY, USA, 2000. Asso-ciation for Computing Machinery. 2 [9] Zhiting Hu, Xuezhe Ma, Zhengzhong Liu, Eduard Hovy, and Eric Xing. Harnessing deep neural networks with logic rules, 2020. 2 [10] Pang Wei Koh, Thao Nguyen, Yew Siang Tang, Stephen Mussmann, Emma Pierson, Been Kim, and Percy Liang. Concept bottleneck models. In Proceedings of the 37th In-ternational Conference on Machine Learning , pages 5338– 5348. PMLR, 2020. 2 [11] Liulei Li, Wenguan Wang, and Yi Yang. Logicseg: Parsing visual semantics with neural logic learning and reasoning. In 
+
+Proceedings of the IEEE/CVF international conference on computer vision , pages 4122–4133, 2023. 2 [12] Jiayi Lin, Jiabo Huang, and Shaogang Gong. Neuro-symbolic spatial reasoning in segmentation, 2025. 2 [13] Tsung-Yi Lin, Michael Maire, Serge Belongie, James Hays, Pietro Perona, Deva Ramanan, Piotr Doll´ ar, and C. Lawrence Zitnick. Microsoft coco: Common objects in context. In 
+
+Computer Vision – ECCV 2014 , pages 740–755, Cham, 2014. Springer International Publishing. 6 [14] Bing Liu, Wynne Hsu, and Yiming Ma. Mining association rules with multiple minimum supports. In Proceedings of the Fifth ACM SIGKDD International Conference on Knowl-edge Discovery and Data Mining , page 337–341, New York, NY, USA, 1999. Association for Computing Machinery. 2 [15] Ze Liu, Han Hu, Yutong Lin, Zhuliang Yao, Zhenda Xie, Yixuan Wei, Jia Ning, Yue Cao, Zheng Zhang, Li Dong, et al. Swin transformer v2: Scaling up capacity and resolution. In 
+
+Proceedings of the IEEE/CVF conference on computer vi-sion and pattern recognition , pages 12009–12019, 2022. 6 [16] Robin Manhaeve, Sebastijan Dumancic, Angelika Kimmig, Thomas Demeester, and Luc De Raedt. Deepproblog: Neu-ral probabilistic logic programming. In Advances in Neural Information Processing Systems (NeurIPS) , 2018. 2, 5 [17] Francesco Manigrasso, Filomeno Davide Miro, Lia Morra, and Fabrizio Lamberti. Faster-ltn: a neuro-symbolic, end-to-end object detection architecture. In Artificial Neural Net-works and Machine Learning–ICANN 2021: 30th Interna-tional Conference on Artificial Neural Networks, Bratislava, Slovakia, September 14–17, 2021, Proceedings, Part II 30 ,pages 40–52. Springer, 2021. 2 [18] Ernest Nagel. Hans reichenbach. note on probability impli-cation. bulletin of the american mathematical society, vol. 47 (1941), pp. 265–267. Journal of Symbolic Logic , 6(2):66–66, 1941. 4 [19] Ryan Riegel, Alexander Gray, Francois Luus, Naweed Khan, Ndivhuwo Makondo, Ismail Yunus Akhalwaya, Haifeng Qian, Ronald Fagin, Francisco Barahona, Udit Sharma, Sha-jith Ikbal, Hima Karanam, Sumit Neelam, Ankita Likhyani, and Santosh Srivastava. Logical neural networks, 2020. 2 [20] Luciano Serafini and Artur d’Avila Garcez. Logic tensor net-works: Deep learning and logical reasoning from data and knowledge. arXiv preprint arXiv:1606.04422 , 2016. 2 [21] Geoffrey G Towell and Jude W Shavlik. Knowledge-based artificial neural networks. Artificial intelligence , 70(1-2): 119–165, 1994. 2 [22] Emile Van Krieken, Erman Acar, and Frank Van Harmelen. Analyzing differentiable fuzzy logic operators. Artificial In-telligence , 302:103602, 2022. 4, 5 [23] Wenguan Wang, Yi Yang, and Fei Wu. Towards data-and knowledge-driven ai: A survey on neuro-symbolic comput-ing. IEEE Transactions on Pattern Analysis and Machine Intelligence , 47(2):878–899, 2025. 2 [24] Jingyi Xu, Zilu Zhang, Tal Friedman, Yitao Liang, and Guy Van den Broeck. A semantic loss function for deep learning with symbolic knowledge. In Proceedings of the 35th In-ternational Conference on Machine Learning , pages 5502– 5511. PMLR, 2018. 2 [25] Ronald R. Yager. On a general class of fuzzy connectives. 
+
+Fuzzy Sets and Systems , 4(3):235–242, 1980. 4 [26] Jiancheng Yang, Rui Shi, Donglai Wei, Zequan Liu, Lin Zhao, Bilian Ke, Hanspeter Pfister, and Bingbing Ni. Medm-nist v2-a large-scale lightweight benchmark for 2d and 3d biomedical image classification. Scientific Data , 10(1):41, 2023. 6 [27] Sergey Zagoruyko and Nikos Komodakis. Wide residual net-works. arXiv preprint arXiv:1605.07146 , 2016. 6 [28] M.J. Zaki. Scalable algorithms for association mining. IEEE Transactions on Knowledge and Data Engineering , 12(3): 372–390, 2000. 2 Learning to Reason: Targeted Knowledge Discovery and Fuzzy Logic Update for Robust Image Recognition 
+
+# Supplementary Material 
+
+## 6. Synthetic Rule Base Generation 
+
+Algorithm 1: Constructing Rule Base R
+
+Input: T : Number of implicit concepts, K: Target classes, S: Concepts {s1, . . . , s T }, Y :Classes {y1, . . . , y K }, l: Rules per category (i.e . concepts ⇒ class ), and qmin , q max :min/max concept combination set size  
+
+> 1
+
+Procedure Main( S, Y, l, q min , q max ) 
+
+> 2
+
+Ra ← ∅ , Rb ← ∅ ; 
+
+> 3
+
+O ← { s 7 → 0 | ∀ s ∈ S};
+
+// Phase 1: Core phase  
+
+> 4
+
+forall yi ∈ Y do  
+
+> 5
+
+for j ← 1 to l do  
+
+> 6
+
+q ← RandomInt (qmin , q max ); 
+
+> 7
+
+A ← Sample (S, q ); // Sample concepts  
+
+> 8
+
+foreach s ∈ A do O[s] ← O[s] + 1 ; 
+
+> 9
+
+Ra ← Ra ∪ { A =⇒ { yi}} ;
+
+Rb ← Rb ∪ {{ yi} =⇒ A}; 
+
+> 10
+
+if Pneg > 0 then  
+
+> 11
+
+Yother ← Y \ { yi}; 
+
+> 12
+
+Nneg ← ⌊ Pneg · | Yother |⌋ ; 
+
+> 13
+
+ˆYneg ← Sample (Yother , N neg ); 
+
+> 14
+
+forall yneg ∈ ˆYneg do  
+
+> 15
+
+Ra ← Ra ∪ { A =⇒ {¬ yneg }} ;
+
+Rb ← Rb∪{{¬ yneg } =⇒ A};
+
+// Phase 2: concept-coverage phase  
+
+> 16
+
+Sunused ← { s ∈ S | O[s] = 0 }; 
+
+> 17
+
+forall s∗ ∈ Sunused do  
+
+> 18
+
+q ← RandomInt (qmin , q max ); 
+
+> 19
+
+A′ ← Sample (S \ { s∗}, max(0 , q − 1)) ; 
+
+> 20
+
+A ← A′ ∪ { s∗}; 
+
+> 21
+
+y∗ ← Choice (Y ); 
+
+> 22
+
+Ra ← Ra ∪ { A =⇒ { y∗}} ; 
+
+> 23
+
+Rb ← Rb ∪ {{ y∗} =⇒ A}; 
+
+> 24
+
+foreach s ∈ A do O[s] ← O[s] + 1  
+
+> 25
+
+R ← Ra ∪ Rb 
+
+> 26
+
+return Shuffle (R)
+
+To provide a logical inductive bias for the proposed methodology, we synthesize a knowledge base, denoted as 
+
+R. This rule base guides the network to learn implicit support concepts by enforcing meaningful relationships be-tween abstract concepts and downstream classes. The syn-thesis procedure, outlined in Algorithm 1, is divided into two phases: a Core Phase to establish foundational class-concept links, and a Concept-Coverage Phase to ensure semantic grounding of all available concepts. Let S = {s1, s 2, . . . , s T } denote the set of abstract con-cepts and Y = {y1, y 2, . . . , y K } denote the set of target classes. The final rule base is the union of compositional rules and their converses, R ← Ra ∪ Rb.
+
+6.1. Phase 1: Core Rule Generation 
+
+In the initial phase, we generate a minimum of l distinct positive rules for each class yk ∈ Y . For the l-th rule of class yk, we determine the antecedent size q by sampling uniformly from the integer interval [qmin , q max ]. In our ex-periment setup, we fix [qmin = 2 , q max = 4] . We then sam-ple a support set of concepts Ak,l ⊂ S such that |A k,l | = q,strictly without replacement. This support set Ak,l forms the basis for compositional rules (Ra), as illustrated in Figure 2 (left and middle pan-els). First, we define the positive implication that maps the conjunction of selected concepts to the specific category: 
+
+ ^
+
+> s∈A k,l
+
+s
+
+ =⇒ yk. (12) To enforce mutual exclusivity among classes—ensuring a specific concept combination maps uniquely to one cate-gory—we explicitly construct negative associations against all other classes ym ∈ Y \ { yk}:
+
+ ^
+
+> s∈A k,l
+
+s
+
+ =⇒ ¬ ym, ∀m̸ = k.  (13) Furthermore, to impose a bidirectional logical structure, we generate converse rules (Rb). For every positive and neg-ative implication defined above, we add its converse to the knowledge base. For instance, the converse of the positive association in Eq. (12) is defined as: 
+
+yk =⇒
+
+ ^
+
+> s∈A k,l
+
+s
+
+ . (14) Converse rules for the negative associations are generated analogously. 6.2. Phase 2: Concept-Coverage 
+
+A stochastic sampling strategy may leave a subset of con-cepts in S unselected, rendering them semantically un-grounded. To mitigate this, the second phase identifies all unused concepts and explicitly generates rules for them. We repeat the logic of the Core Phase (generating positive, negative, and converse implications) for these specific con-cepts, ensuring that every s ∈ S is grounded in at least one positive compositional rule within R.
+
+## 7. Qualitative Results 
+
+7.1. Positive Cases 
+
+Table 6 highlights the qualitative benefits of integrating the KLUE bottleneck into the WideResNet-101 (WRN-101) ar-chitecture for multi-label classification. We compare the baseline WRN-101 against two KLUE variants: the stan-dard KLUE and KLUE + LSAT . Both variants utilize WRN-101 as their backbone. The KLUE + LSAT variant is trained with an additional loss term applied to a subset of rules Ra (cf. Sec. 4 in the main paper). All models were hyperparameter-optimized using the Optuna framework on the PASCAL VOC Train set; general performance metrics are detailed in the main paper (cf. Table 4). For this qualita-tive evaluation, we selected the best-performing model from each category. As shown in Table 6, KLUE variants demon-strate strong performance gains over the baseline. For ex-ample, in image (a), the best KLUE model improves the probability for the Ground-Truth (GT) class ”dog” by ap-proximately 32% , while simultaneously suppressing prob-abilities for the Non-GT ”bottle” class. A similar trend is observed in images (b) and (c). Notably, in image (c), the KLUE + LSAT variant yields a significant improvement for the ”pottedplant” class. This suggests that the additional 
+
+LSAT term induces a bidirectional logical structure, pro-viding better learning signals during optimization. This al-lows the model to learn meaningful implicit concepts, effec-tively treating the learned rules as targeted knowledge that enhances final classification performance. 
+
+7.2. Failure Cases 
+
+Table 7 presents an evaluation of the models on ”hard” ex-amples where all the models struggles. We observe that in certain scenarios, the KLUE variants are unable to cor-rect the predictions. For instance, in image (d), the KLUE models fail to improve the probability for the ”motorbike” class. Similarly, in image (e), the probability for the ”per-son” class remains low, likely due to the visual ambiguity of the subject in the scene; however, it is worth noting that the model significantly improves confidence for the ”car” class in the same image. A similar limitation is seen in image (f) for the ”pottedplant” class. We attribute this to partial visi-bility, where the learned concepts fail to sufficiently validate the class presence to refine the probability. 
+
+Conclusion . In general, KLUE shows limitations when dealing with heavy occlusion or partial visibility in a multi-label classification setting. However, we hypothesize that this could be overcome in an object detection framework. In detection tasks, the model receives additional learning sig-nals from the object’s spatial location, which KLUE could leverage to direct its attention more effectively. Validat-ing this hypothesis remains a promising direction for future work. The corresponding tables for these assessments are pre-sented on the subsequent pages. 
+
+7.3. Activation Comparison  
+
+> Figure 6. Activation comparison: Baseline WRN-101 (yellow), KLUE concepts (red), KLUE final (green).
+
+Fig. 6, recurring concepts (e.g., x20/x29/x58) activate consistently for semantically similar images and differ for a distinct one; compared to the baseline, KLUE yields more localized, refined activations. 
+
+7.4. Scalability / Overhead 
+
+> Figure 7. Minimal parameter overhead (left) and constant latency (right) across concept scales. Backbone: WRN-101
+
+Fig. 7 shows KLUE is lightweight: < 0.5% parameter overhead as classes/concepts grow and nearly constant in-ference latency from 10–240 concepts. (a) (b) (c) 
+
+Image Label Type Label WRN-101 (Baseline) KLUE KLUE + LSAT 
+
+pcls ∗ pcls p∆ p∆ − pcls ∗ pcls p∆ p∆ − pcls ∗
+
+(a) GT person 0.81 0.82 0.99  ↑ +0 .17  ↑ +0 .18  0.81 1.00  ↑ +0 .19  ↑ +0 .19 
+
+GT dog 0.59 0.77 0.98  ↑ +0 .21  ↑ +0 .39  0.59 0.91  ↑ +0 .32  ↑ +0 .32 
+
+Non-GT bottle 0.37 0.44 0.31  ↓ − 0.13  ↓ − 0.06  0.37 0.00  ↓ − 0.37  ↓ − 0.37 
+
+(b) GT person 0.75 0.82 1.00  ↑ +0 .18  ↑ +0 .25  0.92 1.00 ↑ +0 .08  ↑ +0 .25 
+
+GT car 0.22 0.77 0.99 ↑ +0 .22  ↑ +0 .55  0.63 0.97 ↑ +0 .34  ↑ +0 .61 
+
+GT horse 0.65 0.97 1.00  ↑ +0 .35  0.85 1.00  ↑ +0 .15  ↑ +0 .35 
+
+Non-GT bottle 0.04 0.34 0.09 ↓ − 0.25  ↑ − 0.05  0.28 0.00  ↓ − 0.28  ↓ − 0.04 
+
+(c) GT person 0.36 0.99 1.00  ↑ +0 .64  0.92 1.00 ↑ +0 .08  ↑ +0 .64 
+
+GT chair 0.59 0.99 1.00  ↑ +0 .41  0.69 0.99 ↑ +0 .30  ↑ +0 .40 
+
+GT diningtable 0.24 0.76 0.98 ↑ +0 .22  ↑ +0 .74  0.61 0.95 ↑ +0 .34  ↑ +0 .71 
+
+GT pottedplant 0.16 0.29 0.09 ↓ − 0.20  ↓ − 0.07  0.55 0.79  ↑ +0 .24  ↑ +0 .63 
+
+Table 6. Comparison of Baseline WideResNet-101 (WRN-101), the WRN-101-KLUE variant, and WRN-101-KLUE+ LSAT trained with additional loss. All models are trained on PASCAL VOC train set. The top row displays input images (a–c) from PASCAL VOC Val set. We denote the baseline class probability as p∗
+
+> cls
+
+. For KLUE variants, we report the initial probability ( pcls ) and the refined probability (p∆). The values adjacent to arrows within the ( p∆) column represent the internal refinement magnitude ( p∆ − pcls ). The separate column 
+
+p∆ − pcls ∗ quantifies the absolute performance gain/loss of the final refined probability over the original baseline. Rows denote Ground-Truth (GT) labels and Non-GT labels (shown in gray). Green and red text indicate positive and negative effects, respectively. For clarity, absolute difference values smaller than 0.05 (5%) are omitted from the table. (d) (e) (f) 
+
+Image Label Type Label WRN-101 (Baseline) KLUE KLUE + LSAT 
+
+pcls ∗ pcls p∆ p∆ − pcls ∗ pcls p∆ p∆ − pcls ∗
+
+(d) GT person 0.98 1.00 1.00  ↑ +0 .02  0.98 1.00  ↑ +0 .02 
+
+GT bicycle 0.89 1.00 1.00  ↑ +0 .11  0.99 1.00  ↑ +0 .11 
+
+GT motorbike 0.18 0.05 0.00  ↓ − 0.05  ↓ − 0.18  0.20 0.00 ↓ − 0.20  ↓ − 0.20 
+
+(e) GT person 0.30 0.32 0.06 ↓ − 0.26  ↓ − 0.30  0.45 0.23 ↓ − 0.22  ↓ − 0.07 
+
+GT bus 0.88 1.00 1.00  ↑ +0 .12  0.88 1.00 ↑ +0 .12  ↑ +0 .12 
+
+GT car 0.62 0.97 1.00  ↑ +0 .38  0.85 1.00  ↑ +0 .15  ↑ +0 .38 
+
+(f) GT chair 0.82 1.00 1.00  ↑ +0 .18  0.96 1.00  ↑ +0 .18 
+
+GT diningtable 0.32 0.85 1.00 ↑ +0 .15  ↑ +0 .68  0.82 0.99 ↑ +0 .17  ↑ +0 .67 
+
+GT pottedplant 0.18 0.19 0.00 ↓ − 0.19  ↓ − 0.18  0.35 0.02 ↓ − 0.33  ↓ − 0.16 
+
+Table 7. Comparison of Baseline WideResNet-101 (WRN-101), the WRN-101-KLUE variant, and WRN-101-KLUE+ LSAT trained with additional loss. All models are trained on PASCAL VOC train set. The top row displays input images (d–f) from PASCAL VOC Val set. We denote the baseline class probability as p∗
+
+> cls
+
+. For KLUE variants, we report the initial probability ( pcls ) and the refined probability (p∆). The values adjacent to arrows within the ( p∆) column represent the internal refinement magnitude ( p∆ − pcls ). The separate column 
+
+p∆ − pcls ∗ quantifies the absolute performance gain/loss of the final refined probability over the original baseline. Rows denote Ground-Truth (GT) labels, whereas green and red text indicate positive and negative effects, respectively. For clarity, absolute difference values smaller than 0.05 (5%) are omitted from the table.
