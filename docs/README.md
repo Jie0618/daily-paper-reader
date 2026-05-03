@@ -6,59 +6,38 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-02
-- 运行时间：2026-05-02 19:50:00 UTC
+- 最新运行日期：2026-05-03
+- 运行时间：2026-05-03 20:22:28 UTC
 - 运行状态：成功
-- 本次总论文数：12
+- 本次总论文数：5
 - 精读区：0
-- 速读区：12
+- 速读区：5
 
 ### 今日简报（AI）
-今日速览 12 篇前沿论文，重点聚焦符号计算优化与几何 AI 的可靠性验证。
-推荐关注多等式约束下的 CAD 算法增强，以及为提升预测可靠性而设计的 GeoCert 几何 AI 框架。
-建议对形式语言或自动化推理感兴趣的读者，深入探索 $q$-导数文法与量词消去的新进展。
-- 详情：[/202605/02/README](/202605/02/README)
+今日速览 5 篇前沿论文，重点聚焦算法自动发现框架与 Transformer 的数学本质解析。
+推荐关注 SeaEvo 提出的策略空间演化算法发现技术，以及将 Transformer 视为得分变分流欧拉离散化的理论视角。
+建议对自动化算法设计感兴趣的读者优先研读 SeaEvo，探索如何通过演化机制实现更高效的算法搜索。
+- 详情：[/202605/03/README](/202605/03/README)
 
 ### 精读区论文标签
 - 本次无精读推荐。
 
 ### 速读区论文标签
-1. [Enhanced CAD-Based Quantifier Elimination With Multiple Equational Constraints](/202605/02/2604.23873v1-enhanced-cad-based-quantifier-elimination-with-multiple-equational-constraints)  
+1. [SeaEvo: Advancing Algorithm Discovery with Strategy Space Evolution](/202605/03/2604.24372v1-seaevo-advancing-algorithm-discovery-with-strategy-space-evolution)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：使用大语言模型引导的进化搜索进行自动算法发现
+2. [Enumerating Multi-Operator Monomials in Commutative and Noncommutative Settings](/202605/03/2604.25731v1-enumerating-multi-operator-monomials-in-commutative-and-noncommutative-settings)  
    标签：评分：7.0/10、query:math-ai
-   evidence：通过 CAD 获得未知数关于参数的符号表达式
-2. [$q$-Derivative Grammar](/202605/02/2604.23959v1-q-derivative-grammar)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：基于语法的多项式生成函数发现
-3. [GeoCert: Certified Geometric AI for Reliable Forecasting](/202605/02/2604.23474v1-geocert-certified-geometric-ai-for-reliable-forecasting)  
+   evidence：多算子单项式的枚举与生成函数
+3. [Transformer as an Euler Discretization of Score-based Variational Flow](/202605/03/2604.23740v1-transformer-as-an-euler-discretization-of-score-based-variational-flow)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：预测中物理定律的数据驱动发现与执行
-4. [Benchmarking Testing in Automated Theorem Proving](/202605/02/2604.23698v1-benchmarking-testing-in-automated-theorem-proving)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：定理证明中语义正确性的基准测试
-5. [Understanding and Improving Automated Proof Synthesis for Interactive Theorem Provers](/202605/02/2604.24354v1-understanding-and-improving-automated-proof-synthesis-for-interactive-theorem-provers)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：自动证明合成与定理证明
-6. [Primitive Recursion without Composition: Dynamical Characterizations, from Neural Networks to Polynomial ODEs](/202605/02/2604.24356v1-primitive-recursion-without-composition-dynamical-characterizations-from-neural-networks-to-polynomial-odes)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：神经网络和多项式常微分方程中原始递归的动力学表征
-7. [Thermoinformational State Construction: Generative Energies, Entropies, and H-Theorem Consistency](/202605/02/2604.24802v1-thermoinformational-state-construction-generative-energies-entropies-and-h-theorem-consistency)  
+   evidence：Transformer 架构作为连续时间动力系统的理论基础
+4. [Transformer Approximations from ReLUs](/202605/03/2604.24878v1-transformer-approximations-from-relus)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：从测量的微观状态推断数据驱动的能量函数
-8. [Encoded Forward Backward Stochastic Neural Network for High-Dimensional Backward Stochastic Differential Equations and Parabolic Partial Differential Equations](/202605/02/2604.25147v1-encoded-forward-backward-stochastic-neural-network-for-high-dimensional-backward-stochastic-differential-equations-and-parabolic-partial-differential-equations)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：求解高维偏微分方程的深度学习方法
-9. [Auto-Relational Reasoning](/202605/02/2604.26507v1-auto-relational-reasoning)  
+   evidence：将 ReLU 近似转化为用于乘法和原语的 softmax 注意力
+5. [BoostLoRA: Growing Effective Rank by Boosting Adapters](/202605/03/2604.27308v1-boostlora-growing-effective-rank-by-boosting-adapters)  
    标签：评分：6.0/10、query:math-ai
-   evidence：机器学习与严密推理的协同结合
-10. [Compositional Meta-Learning for Mitigating Task Heterogeneity in Physics-Informed Neural Networks](/202605/02/2604.26999v1-compositional-meta-learning-for-mitigating-task-heterogeneity-in-physics-informed-neural-networks)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：将物理定律嵌入神经网络
-11. [SCOPE-FE: Structured Control of Operator and Pairwise Exploration for Feature Engineering](/202605/02/2604.27025v1-scope-fe-structured-control-of-operator-and-pairwise-exploration-for-feature-engineering)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：通过算子-特征组合进行自动特征工程
-12. [Learning to Reason: Targeted Knowledge Discovery and Fuzzy Logic Update for Robust Image Recognition](/202605/02/2604.27759v1-learning-to-reason-targeted-knowledge-discovery-and-fuzzy-logic-update-for-robust-image-recognition)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：目标知识发现与符号知识集成
+   evidence：用于 MATH-500 等数学推理任务的提升适配器
 
 
 <div class="dpr-home-promo-card">
