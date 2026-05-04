@@ -1,0 +1,1190 @@
+Title: Bayesian Environment Invariant Regression
+
+URL Source: https://arxiv.org/pdf/2604.25754v1
+
+Published Time: Wed, 29 Apr 2026 01:08:11 GMT
+
+Number of Pages: 31
+
+Markdown Content:
+# Bayesian Environment Invariant Regression 
+
+## Ruqian Zhang ∗ Juan Shen ∗ Yijiao Zhang †
+
+Abstract 
+
+The availability of data from multiple heterogeneous environments has motivated methods that remain reliable under distributional shifts. When the joint distribution of response and predictors varies across environments, the response may still depend on a subset of predictors through an invariant mechanism. Existing methods typically assess candidate invariant sets through pooled stability criteria, treating environmental vari-ation as nuisance. In this paper, we propose a Bayesian framework that explicitly sep-arates a shared response mechanism from environment-specific or response-dependent associations, exploiting heterogeneity as evidence for structure learning. A competitive spike-and-slab prior is designed to force each predictor to compete between invariant and non-invariant spurious effects. Under a tractable working model, we establish in-variant model selection consistency and posterior contraction for invariant coefficients. We further study the presence of irrelevant predictors, characterize posterior concen-tration on an equivalent invariant class, and introduce a post-selection refinement that consistently recovers the minimal invariant model. Simulations and a real application illustrate the robustness and finite-sample efficiency of the proposed method. 
+
+Keywords: Bayesian model selection; data heterogeneity; invariant learning; robust mod-eling; spike-and-slab prior 
+
+> ∗
+
+Department of Statistics and Data Science, Fudan University, Shanghai, China. 
+
+> †
+
+Department of Biostatistics, Epidemiology and Informatics, University of Pennsylvania, Philadelphia, PA, USA. Corresponding author: yijiao.zhang@pennmedicine.upenn.edu. 
+
+1
+
+> arXiv:2604.25754v1 [stat.ME] 28 Apr 2026
+
+# 1 Introduction 
+
+Data collected from multiple environments are common in scientific studies, where combin-ing related yet heterogeneous data is often essential for efficient inference and prediction. Environmental perturbations can alter the joint distribution of response and predictors, vi-olating the classical assumption that training and test samples are identically distributed. In the presence of such heterogeneity, models trained within a single environment may ex-ploit spurious associations that fail to generalize under distribution shifts, leading to poor out-of-distribution performance. A well-known illustration is the cow-camel image classification example in Arjovsky et al. [1]. In Internet images, both background color and body shape can be predictive of the animal label. A classifier trained in that environment may use background color as a shortcut and achieve strong in-distribution accuracy. Yet when it is deployed on farm images with nearly homogeneous backgrounds, predictive performance can deteriorate sharply even though body shape remains informative. This example highlights a statistical challenge: some predictors are linked to a stable causal mechanism governing the response, whereas others are predictive solely due to environment-specific associations with the response. Robust learning from multiple environments has therefore received increasing attention in statistics and machine learning [8, 11]. In many applications, scientific knowledge suggests that, despite distributional heterogeneity, the response depends on a subset of predictors through a mechanism that remains stable across environments. This observation motivates the pursuit of invariant learning, which aims to identify stable structure in heterogeneous environments and to uncover causal response mechanisms. 
+
+## 1.1 Related work 
+
+A growing literature has studied invariant learning from different perspectives. The seminal work of Peters et al. [15] adopts a causal framework and identifies invariant predictors as 2direct causes of the response in structural causal models. They propose a hypothesis testing procedure for detecting predictor subsets whose regression residual distributions remain in-variant across environments. This approach has been extended to nonlinear settings [9] and to sequentially ordered data [16]. While conceptually appealing, testing-based approaches can be conservative for model selection and may lose power in finite samples [5]. An alternative line of work learns invariance through regularized optimization. Anchor regression [19] augments pooled empirical risk with a penalty on projected residuals after regressing out candidate predictors. Fan et al. [5] study invariant conditional expectation in multi-environment linear least squares by introducing penalties on correlations between residuals and predictors; related nonlinear extensions are discussed in Gu et al. [7]. Shen et al. [21] further consider invariant gradient learning, trading off in-distribution prediction and causality-oriented invariance. These methods generally treat heterogeneity as a constraint to be controlled via tuning parameters, so their practical performance and statistical guarantees depend on appropriate penalty calibration. Within the Bayesian paradigm, Wu et al. [24] propose a Bayesian invariant prediction framework that expresses invariance through structured probabilistic models. They then per-form posterior inference over candidate invariant sets based on pooled conditional likelihood. Despite these advances, many existing approaches continue to evaluate candidate invariant sets through pooled performance or pooled stability criteria, treating environment-specific variation mainly as nuisance to be neutralized rather than as information to be modeled. This raises a fundamental question: can environmental heterogeneity itself be exploited as a statistical resource for identifying invariant structures? We argue that environmental heterogeneity can be leveraged through modeling the joint distribution, rather than being eliminated. From this perspective, our key task is to dis-entangle invariant effects in the shared response mechanism from spurious effects, which arise through environment-specific or response-dependent associations. Consequently, in-stead of relying solely on the predictive aspect of invariance, we aim to identify predictors 3that participate in the shared mechanism, which is the object of causal interest. 
+
+## 1.2 Our approach: Bayesian structural competition 
+
+We propose Bayesian Environment Invariant Regression ( BEIR ), a Bayesian framework that simultaneously models the invariant response mechanism and the spurious associations within a joint probabilistic formulation. The invariant structure is represented through latent indicators. Unlike the standard Bayesian variable selection framework, where a binary indica-tor only determines whether a predictor is active [6, 10], our indicator specifies the structural role of a predictor: it is either assigned a common coefficient in the invariant response model, or assigned environment-specific coefficients in the response-dependent association model. We implement this idea through a competitive spike-and-slab prior that induces block-wise competition between these two mutually exclusive explanations for each predictor. Pos-terior inference therefore balances cross-environment stability against environment-specific flexibility, turning heterogeneity into posterior evidence for structural learning. Under this formulation, our results yield the following theoretical insights. First, hetero-geneity can facilitate identification of the structural invariant set, including settings where homogeneous environments lead to non-identifiability. Second, under a simplified working model designed for scalable posterior inference, both invariant set selection consistency and true invariant coefficient estimation consistency are guaranteed. Third, when environment-specific and response-dependent associations are ignored, the pooling-based Bayesian infer-ence can be systematically biased towards including predictors outside the shared response mechanism. These results formalize environmental heterogeneity as a valuable resource rather than a nuisance. We further study the practically important case involving irrelevant predictors, which have no association with the response in all environments. In the presence of such predictors, the invariant set is no longer uniquely defined, but forms an equivalent invariant set class consisting of supersets of the true structural invariant set, which may include irrelevant 4predictors. We establish posterior concentration on this equivalent class and characterize a phase transition in posterior preference within the class driven by the prior hyperparameters. Moreover, we propose a refinement procedure ( BEIR+ ), which combines invariant screening (BEIR ) with an additional feature selection step to consistently recover the minimal invariant set, which only contains all truly influential predictors in the invariant response mechanism. 
+
+## 1.3 Organization 
+
+Section 2 formalizes invariant learning via probabilistic factorization and presents a Gaussian linear instantiation, together with a scalable working model. Section 3 proposes BEIR , in-cluding the competitive spike-and-slab prior and the posterior inference via a Gibbs sampler. Section 4 establishes theoretical guarantees of BEIR . Section 5 extends the methodology to a general case with irrelevant predictors and introduces the refinement procedure BEIR+ . Sec-tion 6 reports simulation studies and the Sachs’ protein signaling application. Concluding remarks are given in Section 7. 
+
+# 2 Problem Setup 
+
+## 2.1 Structural invariant learning from a probabilistic factorization 
+
+Let E be the environment set with its size E := |E| . Let D(e) = {(y(e) 
+
+> i
+
+, x(e) 
+
+> i
+
+)}n(e) 
+
+> i=1
+
+be i.i.d. samples from environment e, with response y(e) 
+
+> i
+
+∈ R and predictors x(e) 
+
+> i
+
+∈ Rp, and D =
+
+{D (e)}e∈E . We allow for heterogeneity across environments, where the joint distribution 
+
+p(e)(y(e), x(e)) may vary with e, capturing possible distribution shifts induced by interventions or unobserved contextual changes. A broad notion of predictive invariance characterizes stable association at the conditional distribution level and assumes that there exists an index set I ⊆ [p] such that, for any e, e ′ ∈ E ,
+
+p(e)(y(e) | x(e) 
+
+> I
+
+) = p(e′)(y(e′) | x(e′) 
+
+> I
+
+),
+
+5where x(e) 
+
+> I
+
+denotes the subvector of x(e) corresponding to I. However, predictive invariance may include variables whose stable association with the response arises through response-dependent pathways, rather than the shared response mechanism of interest. For example, downstream readouts in biological systems or post-outcome variables in economic studies may appear predictively invariant without actually being part of the underlying scientific mechanism. Motivated by this association distinction, we adopt a more conservative and mechanism-oriented notion of invariance through a probabilistic factorization of the joint distribution. Specifically, for any invariant set I and any environment e ∈ E ,
+
+p(e)(y(e), x(e) 
+
+> I
+
+, x(e) 
+
+> Ic
+
+) = p(e)(x(e) 
+
+> Ic
+
+| y(e), x(e) 
+
+> I
+
+)g(y(e) | x(e) 
+
+> I
+
+)p(e)(x(e) 
+
+> I
+
+), (1) where the conditional distribution g(y(e) | x(e) 
+
+> I
+
+) is shared across E and other predictors are modeled via p(e)(x(e) 
+
+> Ic
+
+| y(e), x(e) 
+
+> I
+
+), which may vary with e or depend on y(e). Such a structure inspires an invariant spirit focusing on the response mechanism, which strengthens purely predictive invariance and aligns closely with the causal interpretation emphasized by Peters et al. [15]. 
+
+Definition 1 (Structural invariant set) . An index set I ⊆ [p] is called a structural invariant set if there exists some g(·) such that, for all e ∈ E ,
+
+p(e)(y(e) | x(e) 
+
+> I
+
+) = g(y(e) | x(e) 
+
+> I
+
+),
+
+with {x(e) 
+
+> j
+
+}j∈I independent of the noise in the data-generating process of y(e).Compared with predictive invariance, a structural invariant set excludes variables whose stable association with the response is induced through response-dependent behavior, and therefore targets a more mechanism-based concept of invariance. Predictors in I are termed structural invariant predictors, whereas predictors in Ic are referred to as spurious predic-6tors. The spurious set Ic includes both environment-heterogeneous predictors and response-dependent predictors. Accordingly, our goal is to identify predictors that contribute to the invariant response mechanism while screening out predictors whose associations are not structurally stable. The factorization in Eq.(1) accommodates a broad class of response mechanisms. In this paper, we adopt a Gaussian linear representation for all components to simplify presentation and enhance interpretability. In this section, we focus on the setting where all predictors are associated with the response, which will be relaxed in Section 5. Given the invariant set I,for all j ∈ Ic, we model the predictors x(e) 
+
+> j
+
+to explicitly depend on y by 
+
+x(e) 
+
+> j
+
+= μ(e) 
+
+> j
+
++ α(e) 
+
+> j
+
+y(e) + ( x(e) 
+
+> I
+
+)T ζ(e) 
+
+> j
+
++ ξ(e) 
+
+> j
+
+, ξ(e) 
+
+> j
+
+∼ N (0 , (σ(e) 
+
+> x,j
+
+)2), (2) where μ(e) 
+
+> j
+
+is the intercept, ζ(e) 
+
+> j
+
+denotes the dependence between spurious and invariant predictors given the response, and α(e) 
+
+> j
+
+, referred to as the spurious coefficient, captures the association between x(e) 
+
+> j
+
+and y(e) with at least one α(e)
+
+> j
+
+̸ = 0 for e ∈ E . The invariant response mechanism is modeled by 
+
+y(e) = ( x(e) 
+
+> I
+
+)T βI + ε(e), ε(e) ∼ N (0 , σ 2 
+
+> y
+
+), (3) where βI , referred to as invariant coefficient, is shared across environments and βj̸ = 0 for 
+
+j ∈ I. The non-zero assumptions in Eq.(2)-(3) represent a multi-environment version of causal minimality to guarantee identifiability [13, 14]. To complete the joint distribution, for invariant predictors x(e) 
+
+> j
+
+for j ∈ I, we specify 
+
+x(e) 
+
+> j
+
+= μ(e) 
+
+> j
+
++ ξ(e) 
+
+> j
+
+, ξ(e) 
+
+> j
+
+∼ N (0 , (σ(e) 
+
+> x,j
+
+)2). (4) Under the data-generating process of ( y(e), x(e)) for e ∈ E defined in Eq.(2)-(4), we denote the true structural invariant set as I0.7While x(e) 
+
+> Ic
+
+are allowed to depend on x(e) 
+
+> I
+
+in the true joint distribution, fitting the full model would substantially increase model complexity. Since our objective is to capture the invariant response mechanism rather than the spurious predictors, we consider a tractable working specification that retains the response-dependent component of the association structure. We keep Eq.(3) and (4) unchanged and consider a simplified version of Eq.(2) as the working spurious model to be fitted, where for j ∈ Ic,
+
+x(e) 
+
+> j
+
+= μ(e) 
+
+> j
+
++ α(e) 
+
+> j
+
+y(e) + ξ(e) 
+
+> j
+
+, ξ(e) 
+
+> j
+
+∼ N (0 , (σ(e) 
+
+> x,j
+
+)2). (5) This working model reduces the complexity for modeling spurious predictors and enables scalable implementation. We denote parameters under I in the working model by θ(I) =(βI , σ 2 
+
+> y
+
+, {α(e) 
+
+> Ic
+
+, μ(e), Σ(e) 
+
+> x
+
+}Ee=1 ), with μ(e) = ( μ(e)1 , . . . , μ (e) 
+
+> p
+
+)T and Σ (e) 
+
+> x
+
+= diag(( σ(e)
+
+> x, 1
+
+)2, . . . , (σ(e)
+
+> x,p
+
+)2). Let |I| denote the size of I.
+
+Remark 1 (Working conditional independence) . The working model (5) assumes that, con-ditional on y(e), each x(e) 
+
+> j
+
+for j ∈ Ic is independent of x(e) 
+
+> I
+
+. This simplification yields a scalable computation scheme, whose robustness and computational efficiency are examined in simulation studies. As will be shown in Theorem 2 in Section 4, the proposed inference procedure based on the working likelihood can still consistently recover the true invariant set I0 defined through Eq.(2)-(4) under certain conditions. 
+
+## 2.2 Identifiability of structural invariance 
+
+In this subsection, we study the identifiability of the true structural invariant set. Specifi-cally, under the true data-generating mechanism defined in Eq.(2)-(4), we examine whether the structural invariant set is identifiable by the joint distribution, which justifies it as a meaningful scientific target. In the presence of multiple environments, we have the following results. 
+
+Proposition 1 (Identifiability under the true model) . Under the true model class defined 
+
+8in Eq. (2) -(4) , an invariant set I is identifiable, if for any ˜I̸ = I:(a) If ˜I ⊂ I, assume ∃e, e ′ ∈ E such that P  
+
+> j∈I\˜I
+
+βj μ(e)
+
+> j
+
+̸ = P  
+
+> j∈I\˜I
+
+βj μ(e′) 
+
+> j
+
+or P  
+
+> j∈I\˜I
+
+β2 
+
+> j
+
+(σ(e) 
+
+> x,j
+
+)2̸ =
+
+P  
+
+> j∈I\˜I
+
+β2 
+
+> j
+
+(σ(e′) 
+
+> x,j
+
+)2.(b) If I ⊂ ˜I, assume ∃e, e ′ ∈ E such that P   
+
+> j∈˜I\I
+> (α(e)
+> j)2
+> (σ(e)
+> x,j )2
+
+̸ = P    
+
+> j∈˜I\I
+> (α(e′)
+> j)2
+> (σ(e′)
+> x,j )2
+
+.(c) If neither ˜I ⊂ I nor I ⊂ ˜I, assume ∃e, e ′ ∈ E such that (M (e))−1c(e)̸ = ( M (e′))−1c(e′)
+
+with M (e) and c(e) defined in Eq.(S1.3) and (S1.4), respectively. 
+
+Proposition 1 establishes identifiability of the scientific target under the true joint model in Eq.(2)-(4) and highlights the role of cross-environment heterogeneity in identifying the true structural invariant set I0. Intuitively, assumption (a) ensures that omitting true invari-ant predictors breaks invariance across environments; assumption (b) ensures that including additional spurious predictors introduces environment heterogeneous associations; assump-tion (c) rules out the case where omitted invariant signals can be exactly compensated for by spurious predictors. These assumptions are sufficient with detailed arguments in Sec-tion S1.1. In Section S1.2 of the supplementary materials, we consider the simplified joint distri-bution in Eq.(3)-(5) as a special case to more transparently illustrate the necessity of cross-environment heterogeneity. Proposition S1.1 demonstrates that introducing heterogeneous environments can resolve the intrinsic non-identifiability under homogeneous environments in certain scenarios, which is empirically illustrated in Section 6.1.1. 
+
+# 3 Bayesian Environment Invariant Regression 
+
+We propose BEIR , a Bayesian method that fits the working model and recovers the true invariant structure by jointly exploiting shared and spurious associations. 93.1 Competitive spike-and-slab prior 
+
+The joint distribution of ( y(e), x(e) 
+
+> I
+
+, x(e) 
+
+> Ic
+
+) encodes invariance through a structural factorization by I, which motivates us to treat I as a structural indicator and perform invariant learning by letting each predictor compete between an invariant role and a spurious role. We introduce binary indicators Ij ∈ { 0, 1} for j ∈ [p], where Ij = 1 indicates that predictor xj is modeled by Eq.(3) and belongs to the invariant set I = {j : Ij = 1 }, and Ij = 0 indicates that it is assigned to the response-dependent modeling defined in Eq.(5). To capture this structural information, we introduce a competitive spike-and-slab prior based on Ij . This prior has two complementary components that jointly model invariant and spurious effects. Conditional on I, for each j ∈ [p], 
+
+βj | Ijind 
+
+∼ Ij N (0 , σ 2 
+
+> y
+
+τ 2) + (1 − Ij )δ0, Ijiid 
+
+∼ Bern( γ), (6) where δ0 denotes the point mass at 0, τ controls the slab variance for invariant effects, and 
+
+γ is the prior inclusion probability. The point-mass spike prior ensures that the nonzero components of β coincide with I in the posterior distribution. The indicator Ij simultaneously governs the response-dependent models (5). For each 
+
+e ∈ E and j ∈ [p], the prior on spurious coefficient α(e) 
+
+> j
+
+is specified as 
+
+α(e) 
+
+> j
+
+| Ijind 
+
+∼ Ij δ0 + (1 − Ij )N (0 , (σ(e) 
+
+> x,j
+
+)2η2), (7) where η controls the slab variance for spurious effects. Thus, Ij = 1 forces α(e) 
+
+> j
+
+≡ 0 for all e,whereas Ij = 0 forces βj ≡ 0. The joint prior then factorizes as 
+
+π(I, β, {α(e)}Ee=1 ) = 
+
+> p
+
+Y
+
+> j=1
+
+"
+
+π(Ij ) π(βj | Ij )
+
+> E
+
+Y
+
+> e=1
+
+π(α(e) 
+
+> j
+
+| Ij )
+
+#
+
+.
+
+Unlike conventional variable selection, where an indicator controls whether a coefficient is active, the priors in Eq.(6)-(7) allow Ij to select between two mutually exclusive parame-10 terizations: a shared invariant coefficient versus E environment-specific coefficients. In this way, the posterior of each Ij no longer evaluates whether a predictor is useful, but instead induces a block-wise competition for each xj , between an invariant explanation and a spu-rious explanation on its association with the response. Rather than solely focusing on the invariant likelihood g(y | xI ), the posterior directly incorporates cross-environment varia-tion into inference and utilizes heterogeneous information to distinguish invariant response mechanism. 
+
+Remark 2 (Structural competition) . In the competitive prior, the invariant mode activates one shared parameter βj , while the spurious mode activates E environment-specific pa-rameters α(e) 
+
+> j
+
+. The two modes differ in their complexity. Consider a standardized setting. The log-posterior contributions under two modes are log γ − 12 log τ 2 under Ij = 1 and log(1 − γ) − E 
+
+> 2
+
+log η2 under Ij = 0 up to constants. The preference of assigning xj to the invariant role rather than the spurious role is ∆ := log γ
+
+1 − γ − 12 log τ 2 + E
+
+2 log η2.
+
+A positive value of ∆ indicates a higher complexity cost for the spurious mode and a stronger prior preference towards the invariant role. This complexity difference reveals how the slab hyperparameters, η and τ , affect the structural allocation. 
+
+## 3.2 Joint posterior and Gibbs sampler 
+
+For nuisance parameters, we adopt conjugate priors, where the priors for the noise variances are specified as inverse gamma distributions σ2 
+
+> y
+
+∼ IG( a0, b 0) and ( σ(e) 
+
+> x,j
+
+)2 ∼ IG( c0, d 0), respec-tively, and the priors for the intercepts are set as Gaussian distributions μ(e) 
+
+> j
+
+∼ N (0 , (σ(e) 
+
+> x,j
+
+)2σ2
+
+> μ
+
+)for j ∈ [p] and e ∈ E , with hyperparameters a0, b0, c0, d0, and σ2
+
+> μ
+
+. The full joint prior is 11 denoted as π(I, θ(I)). Under the working model (3)-(5), the joint likelihood factorizes as 
+
+Ln(D | I, θ(I)) = 
+
+> E
+
+Y
+
+> e=1
+> n(e)
+
+Y
+
+> i=1
+
+p(e)(x(e) 
+
+> i,I c
+
+| y(e) 
+
+> i
+
+, x(e) 
+
+> i,I
+
+)g(y(e) 
+
+> i
+
+| x(e) 
+
+> i,I
+
+)p(e)(x(e) 
+
+> i,I
+
+),
+
+and the joint posterior distribution follows from the Bayes’ theorem as 
+
+π(I, θ(I) | D ) ∝ Ln(D | I, θ(I))π(I, θ(I)).
+
+Posterior inference is carried out via a Gibbs sampler. Invariant selection is performed based on the posterior probability of each Ij . Notably, the simplification under our working model avoids sampling ζ(e) 
+
+> j
+
+for j ∈ [p] and e ∈ E . Detailed updates for all parameters are deferred to Section 4 of the supplementary materials. 
+
+# 4 Theoretical Guarantees 
+
+## 4.1 Posterior behavior of BEIR 
+
+We now establish theoretical guarantees for BEIR . Our main results characterize the behavior of the working posterior in Eq.(3)-(5) while the true data-generating mechanism is allowed to be more general. In particular, we study whether the working posterior still concentrates on the true structural invariant set I0 and the true invariant coefficients β0,I 0 defined by Eq.(2)-(4), where x(e) 
+
+> j
+
+depends on x(e) 
+
+> I0
+
+through ζ(e)0,j in the true spurious mechanism for j ∈ Ic 
+
+> 0
+
+and 
+
+e ∈ E . To simplify exposition, we assume known noise variances and omit intercepts by centering, which does not affect the conclusions. Throughout this section, we work under the identifiability conditions in Section 2.2, so that the true invariant set I0 is unique. Let ( y(e), X(e)) denote the response vector and design matrix in environment e. We stack response vectors and design matrices across E and denote them as ˜ y = (( y(1) )T , . . . , (y(E))T )T
+
+and ˜X = (( X(1) )T , . . . , (X(E))T )T , respectively, with total sample size N = PEe=1 n(e).12 For any candidate invariant model I ⊆ [p], let ˜XI denote the stacked design restricted to coordinates in I.We first provide regularity assumptions for posterior concentration under the competitive spike-and-slab formulation. 
+
+Assumption 1. For each e ∈ E , (i) n(e)/N ≥ CN for some constant CN ∈ (0 , 1), (ii) 
+
+∥X(e)β0∥22 ≤ C1n(e)σ2 
+
+> y
+
+for some constant C1 > 0. Assumption 1(i) prevents any environment from being negligible, which is common in multi-source analysis [4, 27]. Assumption 1(ii) gives an upper bound on the environment-wise total true signal strength [25]. 
+
+Assumption 2. For any candidate model I and some constants 0 < λ l < λ u < ∞, (i) the stacked Gram matrix satisfies λl ≤ λmin ( ˜XTI ˜XI 
+
+> N
+
+) ≤ λmax ( ˜XTI ˜XI 
+
+> N
+
+) ≤ λu, and (ii) for each e ∈ E ,
+
+λl ≤ λmin ((X(e)   
+
+> I)TX(e)
+> I
+> n(e)
+
+) ≤ λmax ((X(e)   
+
+> I)TX(e)
+> I
+> n(e)
+
+) ≤ λu.Assumption 2 is a multi-environment version of restricted eigenvalue conditions and en-sures identifiability for candidate models [12]. 
+
+Assumption 3. For some constants Cτ , C η ≥ 1 and Cγ > 0, (i) τ 2N ≍ N Cτ , (ii) η2N ≍ N Cη ,(iii) γ/ (1 − γ) = Cγ .Assumption 3 specifies the scaling of the spike-and-slab hyperparameters and matches standard regimes in Bayesian variable selection [2]. 
+
+Assumption 4. For some constant Cβ , C α, C u, C ζ > 0, (i) min j∈I0 |β0,j |2 ≥ Cβ σ2 
+
+> y
+
+log N/N ,(ii) min j∈Ic
+
+> 0
+
+PEe=1 |α(e)0,j |2/(σ(e) 
+
+> x,j
+
+)2 ≥ Cα log N/N , (iii) ∥β0,I 0 ∥∞ ≤ Cu, and (iv) |α(e)0,j |2σ2 
+
+> y
+
+≥
+
+Cζ ∥ζ(e)0,j ∥22 for all j ∈ Ic 
+
+> 0
+
+and e ∈ E .Assumption 4(i)-(ii) impose beta-min type conditions for separating invariant and spuri-ous mechanisms under posterior competition. The spurious minimum signal strength condi-tion is required at the cross-environment level, which is weaker than the single-environment 13 analogue [3]. Assumption 4(iii) excludes diverging invariant coefficients [17]. Assump-tion 4(iv) ensures that the additional dependence of spurious predictors on invariant predic-tors is dominated by the response-dependent signal. 
+
+Theorem 2 (Invariant model selection consistency) . Under Assumptions 1-4, the working posterior probability of the true structural invariant model I0 satisfies 
+
+Π( I0 | D ) ≥ 11 + c1N −c2 ,
+
+with probability at least 1 − c3e−c4N for some constants c1, c 2, c 3, c 4 > 0.
+
+Theorem 2 shows that, even when the true spurious likelihood is misspecified, the working posterior continues to concentrate on the true structural invariant set, which justifies the use of the simplified working model (5). Since the working model only simplifies the modeling of spurious variables, while preserving the target invariant mechanism of y, consistent identi-fication of I0 further ensures consistent estimation of the true invariant coefficients through the working posterior, as established in the following theorem. Let β0 ∈ Rp denote the full coefficient vector, with subvector β0,I 0 ∈ R|I0| on I0 and zeros on its complement Ic 
+
+> 0
+
+.
+
+Theorem 3 (Estimation of invariant coefficients) . Under Assumptions 1-4, the posterior induced by the working model satisfies 
+
+Π ∥β − β0∥2 ≥
+
+rM σ 2 
+
+> y
+
+|I0| log NN | D 
+
+!
+
+≤ c5N −c6
+
+with probability at least 1 − c7|I0|N −c8 , for some constants M, c 5, c 6, c 7, c 8 > 0.
+
+Theorem 3 shows that the working posterior continues to allocate most of its mass around the true β0 despite the simplified working specification for spurious predictors in Eq.(5). The posterior contraction rate depends on the total sample size N , reflecting that invariant effects are learned by integrating evidence across environments under the shared response mechanism. 14 4.2 Model selection bias from pooling 
+
+We contrast BEIR with a pooling-based analysis that ignores the structural factorization in Eq.(1) and instead fits a single regression of y on all predictors. Specifically, consider the misspecified joint distribution 
+
+p(e)(y(e), x(e)) = g(y(e) | x(e))p(e)(x(e)),
+
+in which, under the linear regression setup, g(y(e) | x(e)) is y(e) = ( x(e))T β + ε(e). Using the traditional spike-and-slab prior for β, for each j ∈ [p], 
+
+βj | Ijind 
+
+∼ Ij N (0 , σ 2 
+
+> y
+
+τ 2) + (1 − Ij )δ0, Ijiid 
+
+∼ Bern( γ).
+
+Under the true joint distribution in Eq.(2)-(4), pooling fails to distinguish the invariant mechanism from the environment-specific mechanisms. Let I(e) denote the sample indices from environment e, and hii denote the ith diagonal element of ˜XI0 ( ˜XTI0
+
+˜XI0 )−1 ˜XTI0 . The following result shows that, under a sufficient condition preventing cross-environment can-cellation of spurious effects, model misspecification can lead to a systematic model selection bias towards including spurious predictors. 
+
+Assumption 5. For some constants Cl, C m, C Z > 0 and each j ∈ Ic 
+
+> 0
+
+, (i) | PEe=1 α(e)0,j w(e)| ≥ 
+
+Cl
+
+plog N/N with w(e) = P 
+
+> i∈I (e)
+
+(1 −hii )/N , (ii) max e∈E |α(e)0,j | ≤ Cm, and (iii) PEe=1 ∥ζ(e)0,j ∥22 ≤
+
+CZ .Assumption 5(i) requires that the weighted average of spurious coefficients does not vanish, preventing their cancellation after pooling. Assumption 5(ii)-(iii) bound the spurious coefficients and dependence of x(e) 
+
+> Ic
+> 0
+
+on x(e) 
+
+> I0
+
+, respectively. 
+
+Proposition 4. Under Assumptions 1-3 and 5, suppose Ic
+
+> 0
+
+̸ = ∅. The pooling posterior 
+
+ˇΠ( · | D ) satisfies 
+
+ˇΠ( I0 | D )ˇΠ([ p] | D )
+
+> P
+
+−→ 0 as N → ∞ .
+
+15 Proposition 4 implies that, when the invariant structure is ignored, the pooled posterior places vanishing mass on the true invariant set relative to sets that include spurious predic-tors. Whenever a spurious predictor exists, the pooling posterior tends to include it. This finding underscores the necessity of explicitly modeling the invariant response mechanism together with the environment-specific structure. 
+
+# 5 Refinement for Irrelevant Predictors 
+
+Our earlier development assumes that each predictor belongs either to the invariant set or the spurious set. In realistic applications, the observed predictors may also include features that are uninformative for response and unaffected by environmental perturbations. To address the presence of irrelevant predictors, this section introduces a refinement procedure to recover the minimal invariant structure. 
+
+## 5.1 Concentration on an equivalent invariant class 
+
+Assume there exists a subset of indices Z ⊂ [p] such that for each j ∈ Z,
+
+β0,j = 0 and α(e)0,j = 0 , ∀e ∈ E .
+
+Predictors in Z neither influence the response through the invariant mechanism nor are influenced by the response in the spurious model. We define Z as the irrelevant set . Under this extension, the joint distribution in e is augmented as 
+
+p(e)(y(e), x(e) 
+
+> I
+
+, x(e) 
+
+> Ic
+
+, x(e) 
+
+> Z
+
+) = p(e)(x(e) 
+
+> Ic
+
+| y(e), x(e) 
+
+> I
+
+)g(y(e) | x(e) 
+
+> I
+
+)p(e)(x(e) 
+
+> I
+
+)p(e)(x(e) 
+
+> Z
+
+). (8) Since predictors in Z are independent of both the invariant and spurious mechanisms, they can be viewed as structurally invariant across environments. Consequently, the definition of invariant set in Definition 1 does not distinguish truly influential invariant predictors from 16 irrelevant predictors. Although BEIR remains applicable in the presence of Z, there are two concerns. First, from the competitive prior, the indicator I is designed to distinguish nonzero invariant and spurious effects, which is not directly defined for zero effects in Z. Second, from the theoretical results, consistently identifying the invariant set requires the minimum signal strength on either β0,j or {α(e)0,j }Ee=1 . However, for irrelevant predictors in Z, both signals vanish. These concerns raise the natural question of how the posterior behaves in the presence of irrelevant predictors? To construct an appropriate target set that incorporates irrelevant predictors in invariant model selection, we define the equivalent invariant class as 
+
+Meq = {I : I0 ⊆ I ⊆ (I0 ∪ Z)}.
+
+Each model in Meq retains all truly influential invariant predictors and excludes any spurious predictors, while possibly including irrelevant predictors. The following theorem shows that 
+
+BEIR remains valid with its posterior concentrating on Meq .
+
+Theorem 5 (Equivalent invariant class selection consistency) . Under Assumptions 1-4, the working posterior probability of the equivalent invariant class Meq satisfies 
+
+Π( Meq | D ) ≥ 11 + c′
+
+> 1
+
+N −c′
+
+> 2
+
+,
+
+with probability at least 1 − c′
+
+> 3
+
+e−c′ 
+
+> 4N
+
+for some constants c′
+
+> 1
+
+, c ′
+
+> 2
+
+, c ′
+
+> 3
+
+, c ′ 
+
+> 4
+
+> 0.
+
+Theorem 5 implies that BEIR continues to separate the invariant mechanism from the spurious association with high probability. Any model selected from the posterior contains all predictors in I0 and excludes spurious predictors in Ic 
+
+> 0
+
+. The remaining ambiguity is confined to deciding whether the minimal invariant model I0 is favored by the posterior within this class. The subsequent result characterizes a phase transition governed by the 17 relative scaling of the slab variances in Assumption 3. 
+
+Proposition 6 (Selection within Meq ). (i) If Cτ /E > C η, the posterior favors more parsi-monious models. For any I′ 
+
+> 0
+
+satisfying I0 ⊆ I′ 
+
+> 0
+
+⊂ (I0 ∪ Z) and any j ∈ Z ∩ (I′
+
+> 0
+
+)c,
+
+Π( I′ 
+
+> 0
+
+∪ { j} | D )Π( I′ 
+
+> 0
+
+| D )
+
+> P
+
+−→ 0 as N → ∞ .
+
+(ii) If Cη > C τ /E + 2 , the posterior favors larger models. For any I′ 
+
+> 0
+
+satisfying I0 ⊂ I′ 
+
+> 0
+
+⊆
+
+(I0 ∪ Z) and any j ∈ Z ∩ I′
+
+> 0
+
+,
+
+Π( I′ 
+
+> 0
+
+\ { j} | D )Π( I′ 
+
+> 0
+
+| D )
+
+> P
+
+−→ 0 as N → ∞ .
+
+Proposition 6 shows that within the equivalent class, posterior model preference can switch between parsimonious and expansive regimes. This behavior aligns with the struc-tural competition discussed in Remark 2, where adding an irrelevant predictor j ∈ Z in I
+
+activates an invariant slab coefficient, while the competing spurious mode would activate E
+
+environment-specific coefficients. As a result, the relative scaling of ( τ, η ) and the number of environments E jointly determine whether the posterior tends to absorb irrelevant predictors into the invariant model. 
+
+## 5.2 Post-selection refinement 
+
+The asymptotic regimes in Proposition 6 provide insights into hyperparameter effects, but finite-sample behavior may not exhibit a clear separation. Motivated by Theorem 5, we propose a post-selection refinement strategy. Since BEIR asymptotically isolates Meq , where any I′ 
+
+> 0
+
+contains I0 and excludes spurious predictors, the remaining task is to remove irrelevant predictors from I′
+
+> 0
+
+, which is a feature selection problem. We therefore combine BEIR with a feature selection method V, which can be any valid procedure, such as the lasso [22] or spike-and-slab inference [18]. After 18 running BEIR , we obtain a candidate model ˆI from posterior inclusion probabilities. We then apply method V on ˆI to remove irrelevant predictors in Z. This yields a family of hybrid procedures, denoted by BEIR+ , which combines invariant learning with an additional sparsity refinement step. We summarize BEIR+ in Algorithm 1. 
+
+Algorithm 1 Post-Selection Refinement: BEIR+ 
+
+Input: Dataset D = {(y(e), X(e))}Ee=1 ; Spike-and-slab hyperparameters ( τ, η, γ ); Posterior inclusion probability threshold κ ∈ (0 , 1); Feature selection method V.
+
+Output: Refined invariant set ˆI0.
+
+Step 1: Invariant screening via BEIR  
+
+> 1:
+
+Run BEIR via the Gibbs sampler on D and obtain the estimated posterior inclusion probabilities ˆΠ( Ij = 1 | D ) for j = 1 , . . . , p . 
+
+> 2:
+
+Define candidate set as ˆI = {j ∈ [p] : ˆΠ( Ij = 1 | D ) ≥ κ}.
+
+Step 2: Post-selection feature selection  
+
+> 3:
+
+Restrict the data to predictors in ˆI: DˆI = {(y(e), X(e)ˆI )}Ee=1 . 
+
+> 4:
+
+Apply V on DˆI to obtain the refined invariant set ˆI0 ⊆ ˆI.
+
+Return ˆI0.
+
+Remark 3 (Guarantee of BEIR+ ). By Theorem 5, ˆI produced by BEIR belongs to Meq with high probability. Therefore, any method V that is model selection consistent on the reduced problem DˆI yields consistent recovery of the true invariant set I0.
+
+# 6 Numerical Studies 
+
+## 6.1 Simulation 
+
+In this section, we conduct simulation studies to evaluate the finite-sample performance of 
+
+BEIR and BEIR+ . Unless otherwise specified, all results are averaged over 100 replications. 
+
+6.1.1 Illustration of the role of heterogeneous environments 
+
+We begin with a toy experiment to illustrate that adding an extra environment with potential heterogeneity is distinct from merely increasing the sample size. Data are generated from the working distribution defined in Eq.(3)-(5) with p = 10 and n ∈ { 25 , 50 , 100 } observations 19 per environment. The true invariant set I0 has size s ∈ { 1, 2, 3}, and the true invariant coef-ficients are set as β0,j = 0 .5ϵj for j ∈ I0, where ϵj are independent Rademacher variables. All remaining predictors are spurious and act through environment-specific {α(e)0,j }j∈Ic 
+
+> 0
+
+without introducing {ζ(e)0,j }j∈Ic 
+
+> 0
+
+.We construct five environments with different levels of heterogeneity. In the baseline environment E1 , for each j ∈ Ic 
+
+> 0
+
+, we draw α(1) 0,j ∼ Unif(1 /2, 1) ϵj . Environment E2 is ho-mogeneous with E1 by setting α(2) 0,I c 
+
+> 0
+
+= α(1) 0,I c 
+
+> 0
+
+. Environment E3 is strongly heterogeneous by flipping all spurious signs, that is α(3) 0,I c 
+
+> 0
+
+= −α(1) 0,I c 
+
+> 0
+
+. Environments E4 and E5 represent moder-ate heterogeneity via perturbations around E1, where α(e)0,I c 
+
+> 0
+
+∼ N (α(1) 0,I c 
+
+> 0
+
+, 0.25 2I) for e ∈ { 4, 5}.Intercepts μ(e) 
+
+> j
+
+are set as 0 with σ(e) 
+
+> x,j
+
+= σy = 1 for all j ∈ [p] and e ∈ E . We enlarge the training set by sequentially incorporating environments from E1 to E5. We compare BEIR to a pooled Bayesian spike-and-slab baseline ( Pool ; 18), which ignores the invariant structure and fits a regression model on the aggregated data. We set hyperpa-rameters τ = η = 1 and γ = 0 .1 throughout our simulation studies. A sensitivity analysis on ( τ, η ) and the role of homogeneous environment splitting is reported in Section 5.1. Figure 1 reports the exact recovery frequency of I0 and the ℓ2 estimation error ∥ ˆβ −
+
+β0∥2. We observe three patterns. First, BEIR improves as the number of environments increases, while Pool benefits little. Note that the gain for BEIR is not solely explained by increased sample size. The inclusion of the highly heterogeneous E3 yields a markedly greater improvement than adding an identical E2, even when the total sample size is smaller, for example, E = 3 for n = 25 (line BEIR-n-25 ) versus E = 2 for n = 50 (line BEIR-n-50 ). This highlights that heterogeneity in spurious mechanisms provides valuable information beyond what is obtained from homogeneous replication. Second, when s = 1, if only identical environments (E1 and E2) are observed, exact recovery remains poor regardless of n, reflecting the ambiguity discussed in Proposition S1.1. Once environment E3 is introduced, BEIR recovers I0 with a higher frequency. When s ∈{2, 3}, recovery becomes feasible even under identical environments as n grows, consistent 20 s=1 s=2 s=3                                
+
+> 123451234512345
+> 0.00 0.25 0.50 0.75 1.00
+> Exact invariant recovery
+> s=1 s=2 s=3
+> 123451234512345
+> 0.25 0.50 0.75
+> Number of environment
+> Estimation error
+> methods BEIR−n−100
+> BEIR−n−25
+> BEIR−n−50
+> Pool−n−100
+> Pool−n−25
+> Pool−n−50
+
+Figure 1: Toy simulation under different heterogeneous levels. Top: frequency of exact invariant set recovery. Bottom: ℓ2 estimation error of invariant coefficients. with the identifiability conditions for |I0| ≥ 2 under Eq.(3)-(5). This demonstrates the effectiveness of BEIR in screening out stable yet response-dependent predictors. Finally, we observe possible improvement when adding the identical environment E2, part of which we attribute to the competitive prior. Increasing the number of environments enlarges the spurious complexity penalty, encouraging the posterior to favor the invariant representation across environments. 
+
+6.1.2 Performance without irrelevant predictors 
+
+We compare BEIR against pooling-based and invariant learning methods in settings without irrelevant predictors. We set p = 10, n = 50, and s = 2 with β0,j = 0 .5ϵj for j ∈ I0.Spurious effects in the baseline environment E1 are α(1) 0,j ∼ Unif(1 /2, 1) ϵj for j ∈ Ic 
+
+> 0
+
+. For other environments e ≥ 2, we perturb α(e)0,I c 
+
+> 0
+
+= α(1) 0,I c 
+
+> 0
+
++ rd(e), where r ∈ { 0.5, 1, 1.5, 2} controls 21 the heterogeneity strength and d(e) specifies the heterogeneity direction. The number of environments is E ∈ { 2, . . . , 10 }. If E = 2, d(2) is sampled uniformly from the unit sphere. If E > 2, we construct approximately orthonormal directions, which are centered around 
+
+α(1) 0,I c 
+
+> 0
+
+with PEe=2 d(e) = 0 to ensure monotonically increasing heterogeneity. For j ∈ Ic 
+
+> 0
+
+and 
+
+e ∈ E , we sample ζ(e)0,j ∼ N (0, 0.25 2I) to introduce moderate dependence of X(e) 
+
+> Ic
+> 0
+
+on X(e) 
+
+> I0
+
+.A more challenging case is provided in Section S5.5 of the supplementary materials. Each intercept μ(e) 
+
+> j
+
+is randomly sampled from N (0 , 0.52) and the noise standard deviations are 
+
+σ(e) 
+
+> x,j
+
+= σy = 1. We compare BEIR against pooled lasso ( Pooled lasso ; 22) and spike-and-slab variational Bayes ( Pooled svb ; 18), as well as invariant learning methods EILLS [5], ICP [15], and BIP 
+
+[24]. All competing methods use default implementation configurations and recommended hyperparameter settings. Figure 2 reports the exact recovery frequencies with estimation errors deferred to Sec-tion S5.2. Performance of invariant learning methods improves with both the number of environments and heterogeneity strength, reflecting accumulation of cross-environment ev-idence for stability. Across all settings, BEIR achieves the highest recovery rate, with BIP 
+
+ranking second, highlighting the advantage of explicitly encoding invariance through a struc-tured probabilistic formulation. These results also support the effectiveness of the working model despite its simplification. We further increase the per-environment sample size to n = 200 and provide the results in Figure 3. All invariant learning methods improve substantially as n increases, suggest-ing that sufficient sample sizes can alleviate the challenge for invariant learning. However, pooled methods show limited improvement, indicating that simply adding samples cannot compensate for structural misspecification. Among invariant methods, BEIR continues to perform overall the best. Notably, BEIR achieves comparable performance with fewer envi-ronments and smaller samples, demonstrating its ability to efficiently use cross-environment information. 22 r=0.5 r=1 r=1.5 r=2                     
+
+> 246810 246810 246810 246810
+> 0.00 0.25 0.50 0.75 1.00
+> Number of environment
+> Exact invariant recovery
+> methods BEIR
+> BIP
+> Pooled_lasso
+> Pooled_svb
+> EILLS
+> ICP
+
+Figure 2: Frequency of exact invariant set recovery under different heterogeneity strengths 
+
+r and number of environments E when the per-environment sample size is n = 50. r=0.5 r=1 r=1.5 r=2                     
+
+> 246810 246810 246810 246810
+> 0.00 0.25 0.50 0.75 1.00
+> Number of environment
+> Exact invariant recovery
+> methods BEIR
+> BIP
+> Pooled_lasso
+> Pooled_svb
+> EILLS
+> ICP
+
+Figure 3: Frequency of exact invariant set recovery under different heterogeneity strengths 
+
+r and number of environments E when the per-environment sample size is n = 200. 
+
+6.1.3 Performance with irrelevant predictors and refinement 
+
+In this subsection, we assess performance in the presence of irrelevant predictors and evaluate the refinement procedure BEIR+ , with further investigation on the phase transition behavior of BEIR in Section S5.3 of the supplementary materials. We adopt the setting in Section 6.1.2 with r = 2 and n = 50, and augment the predictor set by adding dZ = 4 Gaussian irrelevant predictors, which are independent of other components as in Eq.(8), with β0,Z = 0 and 
+
+α(e)0,Z = 0 for all e.We compare BEIR with two post-selection variants, BEIR lasso and BEIR svb , which 23 apply the lasso and spike-and-slab variational Bayes, respectively, as the feature selection method V in Algorithm 1 after the initial BEIR step. The evaluation metrics in Figure 4 in-clude: the true positive rate for selecting influential invariant predictors ( TPR ), the fraction of irrelevant predictors incorrectly selected as invariant ( ZERO ), and the exact recovery of the influential invariant set ( ACC ). TPR ZERO ACC                  
+
+> 246810 246810 246810
+> 0.00 0.25 0.50 0.75 1.00
+> 0.00 0.25 0.50 0.75 1.00
+> 0.7 0.8 0.9 1.0
+> Number of environment
+> methods BEIR BEIR_lasso BEIR_svb
+
+Figure 4: Performance on TPR, ZERO, and ACC from BEIR and two BEIR+ variants with 
+
+dZ = 4 irrelevant predictors. All BEIR -based procedures achieve TPR close to 1 as E increases, indicating reliable screening of truly invariant predictors. However, the naive BEIR retains a non-negligible fraction of irrelevant predictors, reducing exact recovery accuracy. This behavior is consistent with Section 5, where the posterior concentrates on an equivalent invariant class that may include elements of Z. Both refinements reduce ZERO and improve ACC. The BEIR lasso 
+
+improves sparsity but may miss exact recovery in finite samples, due to the lack of general model selection guarantee for lasso [28]. In contrast, BEIR svb yields the strongest overall performance and achieves near-exact recovery across a wide range of E, owing to the selection consistency of spike-and-slab variational Bayes [27]. We therefore use BEIR svb , denoted as 
+
+BEIR+ , in subsequent comparisons. Table 1 reports the comparison with pooled spike-and-slab ( Pool ), EILLS , and BIP under 
+
+dZ = 4; ICP is removed due to intractability. We further include the false discovery rate 24 among nonzero predictors ( FDR ) and the ℓ2 estimation error of β0 (RMSE ). Results for 
+
+dZ = 8 are provided in Section S5.4. Table 1: Comparison under irrelevant predictors with dZ = 4. Results are averaged over 100 replications with standard errors in brackets. Bold values indicate the best performance for each metric, and underlined values indicate the second best. 
+
+E Method TPR FDR ZERO ACC RMSE 
+
+E = 2 BEIR+ 0.670 (0.422) 0.130 (0.284) 0.060 (0.118) 0.350 (0.479) 0.417 (0.269) 
+
+EILLS 0.515 (0.351) 0.726 (0.189) 0.158 (0.194) 0.010 (0.100) 0.725 (0.136) 
+
+BIP 0.275 (0.329) 0.338 (0.414) 0.150 (0.167) 0.030 (0.171) 0.683 (0.176) 
+
+Pool 0.540 (0.374) 0.829 (0.113) 0.150 (0.236) 0.000 (0.000) 0.697 (0.096) 
+
+E = 4 BEIR+ 0.990 (0.070) 0.000 (0.000) 0.022 (0.072) 0.900 (0.302) 0.104 (0.075) 
+
+EILLS 0.220 (0.328) 0.250 (0.400) 0.003 (0.025) 0.060 (0.239) 0.658 (0.181) 
+
+BIP 0.250 (0.392) 0.000 (0.000) 0.040 (0.099) 0.170 (0.378) 0.568 (0.240) 
+
+Pool 0.530 (0.354) 0.855 (0.090) 0.045 (0.097) 0.000 (0.000) 0.725 (0.061) 
+
+E = 6 BEIR+ 1.000 (0.000) 0.000 (0.000) 0.013 (0.055) 0.950 (0.219) 0.068 (0.035) 
+
+EILLS 0.145 (0.304) 0.013 (0.105) 0.003 (0.025) 0.070 (0.256) 0.635 (0.170) 
+
+BIP 0.620 (0.363) 0.000 (0.000) 0.025 (0.075) 0.400 (0.492) 0.360 (0.257) 
+
+Pool 0.995 (0.050) 0.779 (0.020) 0.185 (0.224) 0.000 (0.000) 0.601 (0.038) 
+
+Overall, BEIR+ achieves the best ACC and RMSE across all settings, while maintaining the lowest ZERO and FDR, highlighting its effectiveness in the presence of irrelevant predic-tors. Competing methods are less reliable for distinguishing truly invariant predictors and spurious predictors, resulting in higher FDR. The runtimes under dZ = {4, 8} and E ∈ { 2, . . . , 10 } are provided in Figure 5. Our BEIR+ 
+
+scales favorably and remains comparable to pooling baselines in runtime, while EILLS and 
+
+BIP become much slower as the number of environments grows and the dimension increases. This efficiency is mainly due to the simplified working model Eq.(5), which avoids estimating the dense dependence between xI and xIc .
+
+## 6.2 Analysis of Sachs’ protein signaling data 
+
+We apply BEIR to the multivariate flow cytometry data of Sachs et al. [20], which quantify signaling activity in human primary na¨ ıve CD4 + T cells under a collection of perturbations. Each sample consists of measurements on 11 phosphorylated proteins and phospholipids. The 25 dim_zero=4 dim_zero=8              
+
+> 246810 246810
+> 050 100 150
+> Number of environment
+> Runtime in second
+> methods BEIR+ Pool EILLS BIP
+
+Figure 5: Runtime in second under different dimensions of irrelevant predictors and numbers of environments. data comprise 14 perturbations with different stimulatory cues or inhibitory interventions, whose sample sizes range from 707 to 927. Following standard practice for this benchmark data [23, 26], we treat each perturbation as an environment. A consensus network based on biological knowledge is available and has been widely used as a reference in causal discovery studies. We use the verified causal sets implied by this consensus network as the ground truth for evaluating invariant set identification; details are provided in Section S6. We focus on ten target proteins that admit environment-invariant causes. For each target, the remaining ten proteins are used as candidate predictors. To avoid direct distribution shifts induced by interventions on the response, we exclude environments in which the target is perturbed. We assess cross-environment generalization using a leave-one-environment-out setup. In each environmental split, we identify the invariant predictors and fit the corresponding model using the training environments, and then evaluate the predictive performance on the held-out environment. We compare BEIR with EILLS [5], ICP [15], and BIP [24]. The ICP proce-dure does not select invariant predictors across significance levels α ∈ { 0.001 , 0.01 , 0.05 , 0.1}
+
+and is therefore omitted from subsequent comparisons. Table 2 reports the target-wise re-26 sults, excluding PLCg and PIP2 since no invariant set is identified by any method. Table 2: Invariant predictor identification and leave-one-environment-out prediction for pro-teins in the Sachs’ protein signaling data. Results are averaged over all environmental splits. In each row, bold values indicate the best performance for each metric, and underlined values indicate the second best.                                                                                    
+
+> BEIR BIP EILLS
+> Protein Precision Recall RMSE Precision Recall RMSE Precision Recall RMSE
+> Raf 0.500 0.771 0.824 0.500 0.743 0.826 0.167 0.014 0.972
+> Mek 0.612 0.792 0.759 0.595 0.778 0.763 0.250 0.014 0.804
+> Erk 0.823 0.755 0.972 0.825 0.714 0.971 0.119 0.041 0.544
+> Akt 0.760 0.615 0.816 0.731 0.531 0.816 1.000 0.042 0.996
+> PKA 0.509 0.808 0.932 0.480 0.731 0.934 0.000 0.000 0.837
+> PKC 0.196 0.394 1.050 0.176 0.364 1.070 0.000 0.000 0.948
+> p38 0.488 0.757 0.773 0.495 0.771 0.808 0.500 0.529 0.681
+> JNK 0.455 0.671 0.941 0.449 0.629 0.972 0.000 0.000 0.939
+
+Overall, BEIR exhibits strong performance across targets. For most proteins, BEIR 
+
+achieves the highest precision and recall, indicating effective recovery of biologically sup-ported invariant predictors. Although EILLS has smaller RMSE for some targets, this often coincides with near-empty selected sets and low precision and recall. While BIP can be com-petitive in invariant set identification for some targets, its prediction errors are less consistent across proteins. These results support the practical benefit of BEIR , which explicitly models environment-specific spurious mechanisms. 
+
+# 7 Discussion 
+
+We propose BEIR , a Bayesian framework for invariant learning from heterogeneous environ-ments, where the joint distribution is explicitly factorized into a shared response mechanism and environment-specific or response-dependent associations. By forcing predictors to com-pete between invariant and spurious roles through a competitive spike-and-slab prior, BEIR 
+
+turns environmental heterogeneity into a source of evidence rather than a nuisance. At the modeling level, BEIR uses a simplified working model that supports efficient implementation. At the theoretical level, we show that the working posterior consistently selects the true in-27 variant set and contracts around the true invariant effects. We also show that pooling-based inference can be systematically biased towards selecting spurious predictors. When irrele-vant predictors are present, we establish posterior concentration on an equivalent invariant class and propose a post-selection refinement BEIR+ that consistently recovers the minimal invariant set. Several directions merit further investigation. First, our current analysis relies on a simplified working specification for computational tractability. Although the theory and simulations support this choice, richer dependence structures between invariant and spuri-ous predictors could broaden its applicability. For example, low-rank factors may capture stronger dependence while preserving tractability. Second, extension to high-dimensional settings remains important. While BEIR+ offers one practical route, it would be valuable to develop unified one-step Bayesian procedures with complexity control, potentially through hierarchical shrinkage priors and scalable variational approximations. Finally, the framework can be extended beyond Gaussian linear models. Incorporating generalized linear models or nonlinear mechanisms would widen the scope of scientific applications. 
+
+# 8 Acknowledgments 
+
+This work is supported in part by the fund from the National Nature Science Foundation of China 12331009. 
+
+# References 
+
+[1] M. Arjovsky, L. Bottou, I. Gulrajani, and D. Lopez-Paz. Invariant risk minimization, 2020. URL https://arxiv.org/abs/1907.02893 .[2] H. D. Bondell and B. J. Reich. Consistent high-dimensional Bayesian variable selection 28 via penalized credible regions. Journal of the American Statistical Association , 107 (500):1610–1624, 2012. [3] P. B¨ uhlmann and S. Van De Geer. Statistics for high-dimensional data: methods, theory and applications . Springer Science & Business Media, 2011. [4] Y. Duan and K. Wang. Adaptive and robust multi-task learning. The Annals of Statis-tics , 51(5):2015 – 2039, 2023. [5] J. Fan, C. Fang, Y. Gu, and T. Zhang. Environment invariant linear least squares. The Annals of Statistics , 52(5):2268 – 2292, 2024. [6] E. I. George and R. E. McCulloch. Variable selection via Gibbs sampling. Journal of the American Statistical Association , 88(423):881–889, 1993. [7] Y. Gu, C. Fang, P. B¨ uhlmann, and J. Fan. Causality pursuit from heterogeneous environments via neural adversarial invariance learning. The Annals of Statistics , 53 (5):2230 – 2257, 2025. [8] Z. Guo. Statistical inference for maximin effects: Identifying stable associations across multiple studies. Journal of the American Statistical Association , 119(547):1968–1984, 2024. [9] C. Heinze-Deml, J. Peters, and N. Meinshausen. Invariant causal prediction for nonlin-ear models. Journal of Causal Inference , 6(2):20170016, 2018. [10] H. Ishwaran and J. S. Rao. Spike and slab variable selection: Frequentist and Bayesian strategies. The Annals of Statistics , 33(2):730 – 773, 2005. [11] N. Meinshausen and P. B¨ uhlmann. Maximin effects in inhomogeneous large-scale data. 
+
+The Annals of Statistics , 43(4):1801 – 1830, 2015. 29 [12] N. N. Narisetty, J. Shen, and X. He. Skinny Gibbs: A consistent and scalable Gibbs sampler for model selection. Journal of the American Statistical Association , 114(527): 1205–1217, 2019. [13] G. Park. Identifiability of additive noise models using conditional variances. Journal of Machine Learning Research , 21(75):1–34, 2020. [14] J. Peters and P. B¨ uhlmann. Identifiability of gaussian structural equation models with equal error variances. Biometrika , 101(1):219–228, 2013. [15] J. Peters, P. B¨ uhlmann, and N. Meinshausen. Causal inference by using invariant pre-diction: Identification and confidence intervals. Journal of the Royal Statistical Society Series B: Statistical Methodology , 78(5):947–1012, 2016. [16] N. Pfister, P. B¨ uhlmann, and J. Peters. Invariant causal prediction for sequential data. 
+
+Journal of the American Statistical Association , 114(527):1264–1276, 2019. [17] G. Raskutti, M. J. Wainwright, and B. Yu. Minimax rates of estimation for high-dimensional linear regression over ℓq -balls. IEEE Transactions on Information Theory ,57(10):6976–6994, 2011. [18] K. Ray and B. Szab´ o. Variational Bayes for high-dimensional linear regression with sparse priors. Journal of the American Statistical Association , 117(539):1270–1281, 2022. [19] D. Rothenh¨ ausler, N. Meinshausen, P. B¨ uhlmann, and J. Peters. Anchor regression: Heterogeneous data meet causality. Journal of the Royal Statistical Society Series B: Statistical Methodology , 83(2):215–246, 2021. [20] K. Sachs, O. Perez, D. Pe’er, D. A. Lauffenburger, and G. P. Nolan. Causal protein-signaling networks derived from multiparameter single-cell data. Science , 308(5721): 523–529, 2005. 30 [21] X. Shen, P. B¨ uhlmann, and A. Taeb. Causality-oriented robustness: Exploiting general noise interventions. Journal of the American Statistical Association , 0(0):1–12, 2026. [22] R. Tibshirani. Regression shrinkage and selection via the lasso. Journal of the Royal Statistical Society: Series B (Methodological) , 58(1):267–288, 1996. [23] Y. Wang, L. Solus, K. Yang, and C. Uhler. Permutation-based causal inference al-gorithms with interventions. In Advances in Neural Information Processing Systems ,volume 30, 2017. [24] L. Wu, M. Yin, Y. Wang, J. P. Cunningham, and D. Blei. Bayesian invariance mod-eling of multi-environment data. In Workshop on Spurious Correlation and Shortcut Learning: Foundations and Solutions , 2025. [25] Y. Yang, M. J. Wainwright, and M. I. Jordan. On the computational complexity of high-dimensional Bayesian variable selection. The Annals of Statistics , 44(6):2497 – 2532, 2016. [26] Y. Yuan, X. Shen, W. Pan, and Z. Wang. Constrained likelihood for reconstructing a directed acyclic gaussian graph. Biometrika , 106(1):109–125, 12 2018. [27] R. Zhang, Y. Zhang, J. Shen, Z. Zhu, and A. Qu. Covariate-elaborated robust partial information transfer with conditional spike-and-slab prior. Journal of the American Statistical Association , 0(0):1–13, 2026. [28] P. Zhao and B. Yu. On model selection consistency of lasso. Journal of Machine Learning Research , 7(90):2541–2563, 2006. 31
