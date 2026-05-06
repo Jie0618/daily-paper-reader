@@ -1,0 +1,455 @@
+Title: RCProb: Probabilistic Rule Extraction for Efficient Simplification of Tree Ensembles
+
+URL Source: https://arxiv.org/pdf/2604.25304v1
+
+Published Time: Wed, 29 Apr 2026 00:37:24 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# RCProb: Probabilistic Rule Extraction for Efficient Simplification of Tree Ensembles 
+
+Josue Obregon Department of Industrial Engineering Seoul National University of Science and Technology 
+
+jobregon@seoultech.ac.kr 
+
+Abstract 
+
+Tree ensembles are widely used in industrial machine learning due to their strong pre-dictive performance and efficient training procedures. However, as the number of trees in an ensemble grows, the resulting models become increasingly difficult for humans to inter-pret. To address this limitation, explainable artificial intelligence (XAI) studies methods that generate interpretable models capable of explaining complex predictors. One approach consists of extracting decision rules from tree ensembles while attempting to preserve the predictive performance of the original model. In previous work, we introduced RuleCOSI+, a greedy heuristic algorithm for extracting compact rule-based models from tree ensembles. Although RuleCOSI+ produces accurate and interpretable rule sets, it relies on repeated empirical frequency counting over the training data to estimate rule confidence, which be-comes computationally expensive for large datasets. In this paper, we propose RCProb, a probabilistic reformulation of RuleCOSI+ designed to reduce the computational cost of rule extraction. RCProb estimates rule statistics using Dirichlet-smoothed class priors and Beta-smoothed condition likelihoods combined through a Naive Bayes formulation, avoiding repeated dataset scans. Experiments on 33 benchmark datasets show that RCProb main-tains competitive predictive performance while reducing runtime by approximately 22 ×
+
+compared with RuleCOSI+, while producing more compact rule sets on average. 
+
+# 1 Introduction 
+
+Tree ensemble learning methods, such as Random Forests (RF) and Gradient Boosting Machines (GBM), have become dominant predictive models due to their strong empirical performance and robustness. They are widely deployed in high-impact domains including manufacturing quality monitoring, credit risk assessment, fraud detection, and medical decision support [1]. Despite their predictive strength, ensemble models grow increasingly complex as the number of trees and splits increases, reducing interpretability and limiting adoption in applications where transparency and accountability are critical. This limitation has motivated extensive research on post-hoc explainability for tree ensem-bles [2, 3]. Rule extraction techniques are particularly attractive because they transform ensem-bles into human-readable IF–THEN rules that explicitly describe decision regions. Several ap-proaches have been proposed. RuleFit (RFIT) [4] converts tree leaves into rules and fits a sparse linear model for selection, often producing accurate but large rulesets. The inTrees framework (IT) [5] extracts and prunes rules to construct a simplified learner, while DefragTrees (DFT) [6] adopts a Bayesian model selection perspective to approximate ensembles with compact rule sets. Forest-based trees (FBTs) [7, 8] generate a single decision tree surrogate, improving struc-tural simplicity at the cost of potentially large tree size. Optimization-driven approaches [9–11] further attempt to explicitly control rule size, coverage, and overlap, but may incur substantial computational cost. 1
+
+> arXiv:2604.25304v1 [cs.LG] 28 Apr 2026
+
+Probabilistic rule learners have also been proposed to model uncertainty in rule-based clas-sifiers. However, these approaches are typically designed either as standalone probabilistic classifiers or as leaf-level smoothing procedures, rather than as uncertainty-aware simplification mechanisms integrated into greedy ensemble compression. In earlier work, we introduced RuleCOSI (RC) [12], a greedy rule combination and simplifi-cation framework for extracting interpretable rules from boosted ensembles in imbalanced set-tings. RC merges and prunes rules using pessimistic error estimates to obtain compact decision lists. This framework was later generalized to RuleCOSI+ (RC+) [13], extending applicability to both bagging and boosting ensembles and improving scalability. RC+ demonstrated that greedy rule combination guided by coverage and confidence constraints can produce concise, non-redundant rulesets that closely approximate ensemble behavior. However, both RC and RC+ rely on repeated empirical counting over the training data to compute rule coverage, confidence, and generalization estimates during the greedy search pro-cess. As ensemble size and dataset scale increase, these repeated scans become a computational bottleneck. Additionallyl, recent probabilistic smoothing techniques have been explored to reg-ularize tree predictions and improve robustness, such as post-hoc Beta-Binomial leaf smoothing [14]. In this paper, we introduce RCProb , a Bayesian-smoothed rule evaluation extension of RC+. RCProb replaces repeated count-based rule evaluation with conjugate probabilistic inference. Instead of estimating rule confidence via empirical frequencies, RCProb models rule posteri-ors using Dirichlet-smoothed class priors and Beta-smoothed condition likelihoods aggregated through a Naive Bayes formulation. This additive evidence structure enables efficient evaluation of merged rules without repeated data scans. Additionally, RCProb incorporates leaf-level class distributions from the original ensemble as informative priors, enabling support-dependent pos-terior shrinkage for low-coverage rules. By shifting rule evaluation from empirical counting to posterior inference, RCProb substantially reduces computational overhead during rule merging and pruning while preserving predictive performance. The main contributions of this work are summarized as follows: 
+
+• We propose RCProb, a probabilistic rule extraction framework that extends RC+ by re-placing count-based rule evaluation with posterior class probability modeling using Dirich-let and Beta-smoothed estimates. 
+
+• We introduce an efficient atomic-condition inference mechanism with additive evidence reuse and leaf-informed Dirichlet smoothing, enabling rule merging and pruning without repeated data scans. 
+
+• We empirically demonstrate that RCProb reduces computational cost during rule sim-plification while maintaining predictive performance and producing more compact rule sets. The remainder of this paper is organized as follows. Section 2 reviews related work on rule extraction and ensemble explainability. Section 3 introduces the necessary preliminaries and notation. Section 4 presents the RCProb methodology in detail. Section 5 describes the experimental design, followed by results analysis and discussion in Section 6. Finally, Section 7 concludes the paper and points out limitations and future work. 
+
+# 2 Related Work 
+
+The interpretation of tree-based ensemble models has been widely studied in explainable artifi-cial intelligence (XAI) and knowledge discovery. Existing approaches can be broadly categorized into (i) feature-based explanation methods [15, 16] , (ii) surrogate and approximation models 2[17], and (iii) rule-based post-hoc ensemble simplification techniques. RCProb belongs to the third category and is most closely related to rule extraction and ensemble compression methods. 
+
+2.1 Rule extraction from tree ensembles 
+
+Rule-based post-hoc methods aim to extract IF–THEN rules that represent the decision logic of an ensemble. RuleFit [4] converts tree leaves into new features, to posteriorly fit a sparse linear model (i.e., LASSO regressor) to automatically select relevant features. RuleFit often achieves strong predictive performance but frequently produces large and redundant rule sets. The inTrees framework [5] extracts decision rules from tree ensembles and prunes them by balancing rule complexity and error rate, then further removes redundant rules using feature selection to produce a simplified tree ensemble learner. Optimization-driven approaches have further explored the trade-off between accuracy and interpretability in rule extraction from ensembles. The two-stage framework in [9], built on a Random Forest, first performs local rule extraction by simplifying individual rules to reduce the number of conditions, and then applies a global selection stage using ensemble feature selection and Non-dominated Sorting Genetic Algorithm II (NSGA-II). The multi-objective fitness function jointly minimizes predictive error and maximizes interpretability metrics, such as reducing the number of rules and conditions, with additional filtering via LASSO, Ridge, Elastic Net, and chi-square methods. Similarly, [10] formulate rule selection as a mixed-integer optimization problem to construct an Optimized Rule Ensemble (ORE) that balances predictive performance, coverage, and model size (number of rules, rule length, and overlap). Starting from a Random Forest, rules are extracted and preselected based on coverage and confidence, then a constrained optimization step selects a subset that minimizes complexity and overlap while maximizing coverage and rule contribution, maintaining performance comparable to the original forest. Association rule mining is further used to refine and enrich the final rule set. Structural constraints on extracted models have also been investigated to enforce non-overlapping and compact rule representations. In [18], rules are first extracted from a Random Forest and all pairwise combinations are analyzed to measure overlap in their coverage regions. These relationships are represented as a graph in which nodes correspond to rules and edges encode non-overlapping relations. Maximal cliques are then identified, each representing a set of mutually non-overlapping rules that define distinct and interpretable decision regions. The resulting rule sets are evaluated via cross-validation to select models that balance predictive performance and structural simplicity. Likewise, [19] propose a reduction framework that com-bines heuristic search and sparsity-inducing regularization. Starting from rules extracted from tree ensembles, hill-climbing is used to iteratively refine the rule subset, while sparse group lasso further enforces compactness by shrinking and selecting rules in a structured manner. The ob-jective is to reduce the number of rules and enhance interpretability while preserving predictive accuracy. Logic-based extraction has been formulated through declarative optimization in [11], where rule extraction from ensembles is cast as an Answer Set Programming problem with global and pairwise constraints. Although optimization and logic-based approaches can produce compact rule sets, they may incur substantial computational cost when applied to large ensembles. Complementary to extraction, scalable visualization techniques have been proposed. The framework in [20] organizes extracted rules using matrix-based representations to improve in-terpretability and highlight anomalous patterns. While valuable for analysis, such methods are not primarily designed for ensemble simplification. 
+
+2.2 Probabilistic smoothing and probabilistic rule models 
+
+Probabilistic representations have been used to regularize predictions and improve robustness in low-support regions. Post-hoc Beta-Binomial smoothing of leaf probabilities was introduced 3in [14], improving generalization while preserving tree structure. Beyond leaf-level smoothing, fully probabilistic rule models have also been proposed. In [21], a Bayesian framework for learning interpretable rule sets was introduced, where prior dis-tributions explicitly control rule size and structure, and posterior inference is used to construct compact disjunctive rule models. Such approaches provide principled uncertainty modeling and structural regularization but are typically designed as standalone classifiers learned directly from data rather than as post-hoc simplifications of pre-trained ensemble models. While these probabilistic and Bayesian methods improve robustness and uncertainty mod-eling, they do not explicitly address scalable rule merging and simplification within greedy ensemble compression frameworks. RCProb differs by integrating conjugate probabilistic in-ference directly into the rule combination process, enabling uncertainty-aware rule evaluation, significantly reducing computation time and mantaining similar performance to RC+. 
+
+2.3 RC, RC+ and positioning of RCProb 
+
+RC introduced a greedy rule combination framework for simplifying boosted tree ensembles, using pessimistic error estimates and pruning to obtain compact decision lists. However, it worked only with small boosted trees [12]. RC+ later generalized the approach to both bagging and boosting ensembles and improved scalability, making it capable of working with hundreds of trees [13]. However, despite these advances, rule evaluation in RC+ relies on repeated empirical counting to compute coverage, confidence, and generalization estimates during rule merging. RCProb extends this framework by replacing count-based evaluation with conjugate probabilistic inference, enabling uncertainty-aware rule merging while reducing computational overhead. 
+
+# 3 Preliminaries 
+
+This section introduces the notation and definitions required to describe RCProb. We formalize the classification setting, define decision rules and rulesets, and specify the inference mechanisms considered in this work. 
+
+3.1 Classification setting 
+
+Let D = {(xi, y i)}Ni=1 denote a labeled dataset, where xi ∈ Rm is a feature vector and yi ∈ Y =
+
+{y1, . . . , y C } is a class label. We consider supervised binary classification problems only. A trained tree ensemble model H = {h1, . . . , h K } produces predictions through aggregation of individual trees. RCProb operates post-hoc on a trained ensemble and does not modify its internal structure. 
+
+3.2 Decision rules and rulesets 
+
+A decision rule r is defined as r : A → y, where A is the antecedent consisting of a conjunction of atomic conditions a ∈ A, and y ∈ RC is the head of the rule expressed as class probability vector associated with the rule. Each atomic condition has the form xj ≤ t or xj > t . The antecedent A of a rule r, denoted by r.A , encloses a region φr in the feature space Rm of the training set D. A rule r is said to fire or cover an instance xi if xi ∈ φr.The set of rules R = {r1, . . . , r L} extracted from a tree ensemble can be considered an ordered set of rules and are generally called decision lists. It can also be considered as an unordered set of rules, which simply called rulesets. RCProb generates unordered set of rules, in which given a set of rules R, all rules that fire for an instance xi contribute to the final 4prediction. Let 
+
+R(x) = {ri ∈ R : x ∈ φri }.
+
+The aggregated probability distribution is computed as ˜y(x) = X
+
+> r∈R (x)
+
+yr,
+
+followed by normalization 
+
+y(x) = ˜y(x)
+
+PCc=1 ˜yc(x) .
+
+The final prediction is ˆy(x) = arg max  
+
+> c
+
+yc(x).
+
+3.3 Rule performance metrics 
+
+Let r be a rule defined over a dataset D. The coverage of a rule measures the proportion of records in D that satisfy the rule body. Formally, it is defined as cov( r) = |r. A| |D| ,
+
+where |r. A| denotes the number of records whose feature values satisfy the antecedent A of rule 
+
+r, and |D| is the total number of records in the dataset. The confidence or accuracy of a rule measures the fraction of the covered records that also satisfy the rule head (class prediction). It is defined as conf( r) = |r. A ∩ r.y ||r. A| ,
+
+where |r. A∩ r.y | denotes the number of records that satisfy both the rule body and the predicted class label of the rule. 
+
+3.4 Problem formulation 
+
+Let H = {h1, . . . , h K } be a trained classification tree ensemble with the training dataset D ,the goal is to derive a simplified ruleset R = {r1, . . . , r L} such that 
+
+R(x) ≈ H(x)for most inputs x.The details of how we solve this problems are described in the next section. 
+
+# 4 RCProb: Probabilistic rule extraction from tree ensembles 
+
+This section presents RCProb, a probabilistic extension of RC+ for post-hoc simplification of classification tree ensembles. RCProb retains the algorithmic foundation of RC+, includ-ing its greedy rule combination and simplification framework, while introducing probabilistic mechanisms to estimate rule coverage and confidence more efficiently during rule merging and generalization. Algorithm 1 summarizes the overall procedure. Given a trained tree ensemble H and training data D, RCProb converts each tree hk ∈ H into a set of decision rules by transforming every root-to-leaf path into a rule. Each rule consists of (i) a conjunction of atomic conditions Ar
+
+and (ii) a class distribution derived from leaf-level statistics. 5The algorithm initializes a simplified ruleset using the rules extracted from the first tree. It then iteratively processes the remaining trees in the ensemble. At each iteration, rules from the current simplified ruleset are combined with rules extracted from the next tree, generating candidate rules by merging conditions and intersecting coverage regions. In contrast to RC+, candidate rule evaluation in RCProb relies on probabilistic estimates rather than repeated empirical dataset scans. Specifically, rule coverage is approximated using marginal condition probabilities, while rule confidence is obtained from a hybrid posterior that combines Naive Bayes evidence aggregation with leaf-informed shrinkage. This posterior de-pends on three parameters: a smoothing parameter η controlling additive smoothing of priors and likelihoods, a shrinkage parameter τ governing the strength of leaf-informed regularization, and a support-adaptive mixing parameter n0 that balances Naive Bayes and leaf-based evidence. After candidate generation, the expanded ruleset is simplified using two stages. First, se-quential covering pruning selects high-confidence rules while removing covered samples. This step retains the original empirical counting formulation of RC+. Second, rule generalization reduces rule complexity by iteratively removing conditions based on a pessimistic error estimate controlled by the confidence level c.After simplification, the resulting ruleset is compared with the previous one and the better-performing ruleset on the training data is retained. The process continues until all trees have been processed or an early stopping condition is reached. Finally, a default rule predicting the majority class of the remaining uncovered instances is appended to the simplified ruleset. RCProb therefore preserves the extract–combine–prune–generalize structure of RC+ while modifying how rule statistics are estimated during rule combination and simplification. The probabilistic formulation of the new algorithm is described in the following sections. 
+
+4.1 Probabilistic rule modeling 
+
+Let a rule r have antecedent 
+
+Ar = a1 ∧ a2 ∧ · · · ∧ aL
+
+RCProb treats atomic conditions ai as independent evidence contributors under a Naive Bayes formulation. For each class yi ∈ Y , the probability of class y for rule r is given by: 
+
+p(y | r) ∝ p(y) Y
+
+> a∈A r
+
+p(a | y) (1) Inference is performed in log-space: log p(y | r) = log p(y) + X
+
+> a∈A r
+
+log p(a | y) (2) Class priors are estimated using additive (Laplace) smoothing, which corresponds to the posterior mean under a symmetric Dirichlet prior over the multinomial class distribution. Let 
+
+Ny denote the number of training instances belonging to class y, and let N be the total number of instances. The smoothed prior is defined as 
+
+p(y) = Ny + αN + Cα ,
+
+where α > 0 is a symmetric prior strength and C is the number of classes. For each atomic condition a and class y, the class-conditional likelihood p(a | y) is estimated from the training data using additive smoothing corresponding to a symmetric Beta prior. Let 
+
+Na,y denote the number of training instances of class y satisfying condition a, the smoothed likelihood is computed as 
+
+p(a | y) = Na,y + βNy + 2 β ,
+
+6Algorithm 1 RCProb 
+
+Require: Tree ensemble H = {h1, . . . , h K }, training set D, confidence threshold ϵconf , coverage threshold ϵcov , confidence level c, smoothing parameter η, shrinkage parameter τ , mixing parameter n0
+
+Ensure: Simplified ruleset R⋆ 
+
+> 1:
+
+Estimate smoothed class priors and atomic class-conditional likelihoods using η 
+
+> 2:
+
+Extract ruleset R1 from h1 
+
+> 3:
+
+R⋆ ← R1 
+
+> 4:
+
+for k = 2 to K do  
+
+> 5:
+
+Extract ruleset Rk from hk 
+
+> 6:
+
+Initialize empty candidate set Rnew  
+
+> 7:
+
+for all ri ∈ R⋆ do  
+
+> 8:
+
+for all rj ∈ Rk do  
+
+> 9:
+
+Merge conditions of ri and rj to form candidate rule r 
+
+> 10:
+
+Remove redundant or subset conditions  
+
+> 11:
+
+Estimate NB posterior and approximate coverage of r 
+
+> 12:
+
+Estimate hybrid posterior confidence of r using τ and n0 
+
+> 13:
+
+if coverage( r) > ϵ cov and confidence( r) ≥ ϵconf then  
+
+> 14:
+
+Add r to Rnew  
+
+> 15:
+
+end if  
+
+> 16:
+
+end for  
+
+> 17:
+
+end for  
+
+> 18:
+
+Compute sequential covering pruning on Rnew  
+
+> 19:
+
+Estimate pessimistic error during rule generalization using c 
+
+> 20:
+
+Keep the better-performing ruleset between Rnew and R⋆ 
+
+> 21:
+
+if R⋆ achieves perfect performance then  
+
+> 22:
+
+break  
+
+> 23:
+
+end if  
+
+> 24:
+
+end for  
+
+> 25:
+
+Compute majority class of uncovered samples  
+
+> 26:
+
+Add default rule predicting that class  
+
+> 27:
+
+return R⋆
+
+7where β > 0 controls the amount of smoothing. In summary, RCProb employs additive smoothing at two levels: a symmetric Dirichlet prior for class priors and symmetric Beta priors for atomic class-conditional likelihoods. For simplicity, RCProb uses a shared additive smoothing parameter η for both the class prior and the atomic class-conditional likelihoods, i.e., α = β = η.All atomic likelihoods and class priors are computed for every condition ai ∈ A, once and stored. Evaluating a candidate rule therefore reduces to summing precomputed log-likelihood terms using equation 2, avoiding repeated scans of the training dataset during rule merging. This significantly reduces the computational cost of rule evaluation in RCProb. 
+
+4.2 Leaf-informed smoothing 
+
+For rules whose empirical coverage is explicitly computed during the algorithm, RCProb incor-porates leaf-level class statistics to stabilize estimates in low-support regions. Let nr = ( nr,y )y∈Y 
+
+denote the class-count vector associated with rule r. A Dirichlet-smoothed posterior mean is computed as ˜p(y | r) = nr,y + τ π y
+
+P 
+
+> y′
+
+nr,y ′ + τ ,
+
+where πy = p(y) is the smoothed class prior and τ > 0 controls the strength of shrinkage toward the prior. This regularization improves stability when rule coverage is small. 
+
+4.3 Hybrid posterior estimation 
+
+To balance efficiency and robustness, RCProb combines the Naive Bayes posterior with the leaf-informed estimate. Let cov( r) denote the estimated rule coverage. We define the support-adaptive weight 
+
+λ(r) = cov( r)cov( r) + n0
+
+,
+
+where n0 > 0 controls the transition between the two estimators. Let pN B (r) denote the Naive Bayes posterior and ˜ p(r) the leaf-informed posterior. The final hybrid posterior is ˆp(r) = λ(r)pN B (r) +  1 − λ(r)˜p(r)This mechanism shrinks low-support rules toward empirical statistics while allowing high-support rules to rely on aggregated atomic evidence. 
+
+Merge-time evidence computation. During greedy rule merging, RCProb exploits addi-tive evidence aggregation. Let E(r) denote the log-likelihood evidence term 
+
+E(r) = X
+
+> a∈A r
+
+log p(a | y)For two candidate rules r1 and r2, the merged evidence is computed as 
+
+E(r1 ∪ r2) = E(r1) + E(r2) − E (r1 ∩ r2),
+
+which prevents double counting of shared conditions and enables efficient merge-time scoring before computing exact rule coverage. 84.4 Integration with the RC+ framework 
+
+RCProb preserves the extract-combine-simplify structure of RC+ while replacing several counting-based heuristics with probabilistic estimates. 
+
+Precomputation. Global class priors and atomic likelihood tables are computed once at initialization. Each rule maintains a class-wise log-evidence vector 
+
+e(r) = X
+
+> a∈A r
+
+log p(a | y),
+
+allowing rapid posterior evaluation without scanning the dataset. 
+
+Greedy rule merging. During rule combination, rule confidence is estimated using the Naive Bayes posterior. Candidate merges are scored through additive evidence aggregation. Early rejection is applied using inexpensive bounds: if cov( r1 ∩r2) ≤ ϵcov (i.e., the coverage threshold), or if the posterior confidence is below the required threshold ϵconf , the candidate is discarded before exact coverage computation. 
+
+Ruleset simplification. The first process for simplifying the ruleset is sequential covering. This step is kept in its original empirical counting form to support reliable pruning decisions during iterative rule removal. The second component of the simplification stage is ruleset generalization, where rule com-plexity is reduced to prevent overfitting. As in RC+, pruning decisions are guided by a pes-simistic error criterion based on the upper bound of the normal approximation to a binomial error model. In RCProb, this criterion is used as a fast heuristic surrogate, where both rule cov-erage and training error are approximated from probabilistic estimates rather than computed from exact empirical counts. RCProb therefore uses the same pessimistic error formulation: 
+
+eupper (nr, e r, c ) = 
+
+er + z2 
+
+> c/ 2
+> 2nr
+
++ zc/ 2
+
+r   
+
+> er(1 −er)
+> nr
+
++ z2
+
+> c/ 2
+> 4n2
+> r
+
+1 + z2
+
+> c/ 2
+> nr
+
+where nr denotes the rule coverage, er the rule training error, c the confidence level, and 
+
+zc/ 2 the standardized value of the normal distribution. The parameter c is a configurable hyperparameter controlling the strength of rule generalization. Following C4.5 and RC+, we use the default value c = 25%, which yields zc/ 2 = 1 .15. In RCProb, the quantities nr and er are approximated during the inner loop of rule simplifi-cation instead of being obtained through exact empirical counting. Let Ar denote the antecedent of rule r. The rule posterior distribution ˆ p(y | r) is first estimated using Eq. 1. The rule training error is then approximated as the expected misclassification probability of the rule: 
+
+er = 1 − max  
+
+> y
+
+ˆp(y | r).
+
+Since the exact rule coverage is not available at this stage, RCProb approximates the cov-erage probability of the rule by assuming independence among atomic conditions: ˆP (r) = Y
+
+> a∈A r
+
+P (a),
+
+which leads to the coverage estimate 
+
+nr ≈ N ˆP (r),
+
+9where N is the number of training instances. These probabilistic approximations are used only for fast heuristic evaluation inside the rule generalization loop, thereby avoiding repeated scans of the training data. Exact empirical coverage and class counts are recomputed only after the rule generalization process converges. 
+
+# 5 Experimental Design 
+
+This section describes the protocol used to evaluate RCProb using empirical experiments.The proposed algorithm was implemented as a Python library 1 (updated upon publication), based on the scikit-learn package v1.8.0. 
+
+5.1 Datasets 
+
+The evaluation is conducted on 33 publicly available benchmark classification datasets span-ning diverse domains and exhibiting varying levels of dimensionality and class imbalance. The datasets differ substantially in the number of instances, number of features, and imbalance ratio (IR), providing heterogeneous evaluation conditions. A detailed summary of dataset characteristics is provided in Table 1, including the number of instances, number of attributes, class definitions, and imbalance ratio when applicable. All datasets are processed using standard preprocessing procedures. Stratified partitioning is applied during cross-validation to preserve class distributions. 
+
+5.2 Ensemble Training 
+
+RCProb is evaluated as a post-hoc simplification method applied to trained tree ensembles. Two representative algorithms are considered: Random Forest (RF) [22] as an independent tree ensemble learning algorithm, and Gradient Boosting Machine (GBM) [23] as the dependent ensemble learning algorithm. For each dataset, ensembles are trained using fixed hyperparame-ter configurations to ensure fair comparison across post-hoc simplification methods. The same trained ensemble is supplied to all competing approaches. 
+
+5.3 Simplification Methods 
+
+RCProb is compared against established rule extraction and ensemble simplification approaches: 
+
+• RuleCOSI+ (RC+) [13],is the deterministic rule extraction and simplification algorithm on which RCProb is built. 
+
+• RuleFit (RFIT) [4], is a classic rule ensemble method that extracts rules from tree en-sembles and fits a sparse linear model over these rules using regularization. The Python implementation provided by the imodels package was used. 
+
+• inTrees (IT) [5], extracts rules from tree ensembles and performs rule pruning and selec-tion based on rule quality metrics and rule interactions. The original R implementation provided by the author was used. 
+
+• DefragTrees (DFT) [6], formulates ensemble simplification as a probabilistic model selec-tion problem, merging regions of the feature space to construct a compact interpretable model. The Python implementation provided by the authors was used. 
+
+• A single Decision Tree (DT) as an intrinsically interpretable model baseline. 
+
+> 1https://github.com/jobregon1212/rulecosi
+
+10 Table 1: Summary of the 33 datasets used in the experiments. Dataset Class (minor; major) IR #inst. #atts. australian (approved; not approved) 1.24 690 14 bands (band; noband) 1.70 365 19 banknote (genuine; forged) 1.25 1,372 4biodeg (ready; not ready) 1.96 1,055 40 cardiotoc (presence; absence) 3.51 2,126 21 credit (default; not default) 11.11 666 51 cryotherapy (yes; no) 1.14 90 6divorce (yes; no) 1.02 170 54 ecoli0vs1 (im; cp) 1.86 220 7ecoli1 (im; remainder) 3.36 336 7ecoli2 (pp; remainder) 5.46 336 7ecoli3 (imU; remainder) 8.60 336 7glass (non-window glass; remainder) 3.20 214 9glass0 (build-win-float-proc; remainder) 2.06 214 9glass1 (build-win-non-float-proc; remainder) 1.82 214 9glass6 (headlamps; remainder) 6.38 214 9haberman (5yr.surv.; not surv.) 2.77 303 3heart (absence; presence) 1.25 270 13 ionosphere (bad; good) 1.78 351 34 maintenance (failure; normal) 28.50 10,000 6mammographic (benign; malignant) 1.06 830 5new-thyroid1 (hyper; remainder) 5.14 215 5new-thyroid2 (hypo; remainder) 4.92 215 5occupancy (not; occupied) 3.71 8,143 5pageblocks (valid; cum) 8.79 5,472 10 pima (positive; negative) 1.90 768 8segment0 (brickface; remainder) 6.02 2,308 19 tic-tac-toe (positive; negative) 1.29 958 27 vehicle2 (bus; remainder) 2.52 846 18 vehicle3 (opel; remainder) 2.52 846 18 wisconsin (malignant; benign) 1.86 683 9yeast1 (nuc; remainder) 2.46 1,484 8yeast3 (me3; remainder) 8.11 1,484 811 Table 2: Hyperparameter search space for simplification and baseline algorithms. 
+
+Algorithm Parameters RCProb ϵconf ∈ { 0.5, 0.95 }, ϵcov ∈ { 0, 0.001 , 0.01 }, c ∈ { 10% , 25% , 40% }
+
+η ∈ { 0.3, 1, 3}, τ ∈ { 0, 20 }, n0 ∈ { 25 , 50 , 100 }
+
+RuleCOSI+ (RC+) α ∈ { 0.5, 0.95 }, β ∈ { 0, 0.01 , 0.1}, c ∈ { 10% , 25% , 40% }
+
+RuleFit (RFIT) α ∈ { 0, 1, 10 , 100 }, include linear ∈ { True , False }
+
+inTrees (IT) maxdecay ∈ { 0.05 , 0.01 }, minfreq ∈ { 0, 0.1, 0.01 }
+
+DefragTrees (DFT) maxitr ∈ { 50 , 100 }, maxrules ∈ { 4, 8, 16 }
+
+Decision Tree (DT) d ∈ { no limit , 2, 3, 4, 6}, α ∈ { 0, 0.005 , 0.01 }
+
+5.4 Model Evaluation and Hyperparameter Optimization 
+
+All experiments employ a stratified 3 × 10 cross-validation scheme, corresponding to a 10-fold cross-validation repeated three times. For each fold, the tree ensemble is first trained on the training partition, and the corresponding post-hoc simplification method is then applied exclusively to the trained ensemble. The resulting interpretable model is evaluated on the held-out test partition. This protocol prevents information leakage and provides an unbiased estimate of predictive fidelity. Hyperparameters for the ensemble models and simplification methods are optimized using cross-validation within the training data. First, a 5-fold cross-validation grid search is used to tune the ensemble hyperparameters. Two parameters are considered: the number of trees 
+
+ntrees ∈ { 10 , 25 , 50 , 100 , 250 , 500 }, and the maximum tree depth d ∈ { 2, 3, 4, 5, 6}.Once the ensemble configuration is determined, an additional 3-fold cross-validation search is used to optimize the hyperparameters of the simplification and interpretable baseline methods. The search spaces for all methods are summarized in Table 2. 
+
+5.5 Statistical Analysis 
+
+The experimental results are validated using non-parametric statistical tests following the rec-ommendations of Demˇ sar [24]. First, an individual dataset pairwise comparison is performed us-ing the Wilcoxon signed-rank test over the 30 results obtained from the repeated cross-validation procedure. The null hypothesis assumes that, for a randomly drawn training set of fixed size, the original ensemble and the simplified model achieve equivalent classification performance on a randomly drawn test sample. Second, comparisons across multiple datasets are conducted using the Friedman test to de-termine whether statistically significant differences exist among the evaluated algorithms. When the null hypothesis is rejected, a post-hoc Wilcoxon signed-rank test with Holm’s correction is applied to control the family-wise error rate [25]. 
+
+5.6 Performance Metrics 
+
+Predictive performance is evaluated using standard classification metrics, including F-measure (F1) and accuracy. These metrics are widely used in the evaluation of classification models and allow direct comparison with previous rule extraction and ensemble simplification studies. To evaluate interpretability, we focus on the structural complexity of the extracted model. Following common practice in rule extraction literature, interpretability is measured using the total number of rules in the resulting ruleset. A smaller ruleset generally corresponds to a simpler and more interpretable model. For tree ensembles, the size of an ensemble can be expressed as the total number of decision rules obtained by converting each root-to-leaf path into a rule. Let ψ(h) denote the function that transforms a tree h into a set of rules. The number of rules in an ensemble H is therefore 12 defined as 
+
+Nrules (H) = 
+
+> K
+
+X
+
+> k=1
+
+|ψ(hk)|.
+
+In the context of post-hoc simplification methods such as RCProb, interpretability improve-ments are assessed by comparing the number of rules in the simplified ruleset with the number of rules induced from the original ensemble. 
+
+# 6 Experimental Results 
+
+In this section, the experimental results and their analysis are presented. The goal of the experimental evaluation is to demonstrate that the proposed probabilistic formulation preserves competitive predictive performance while improving computational practicality. 
+
+Random Forests results Table 3 presents the predictive performance obtained when (RF) is used as the base ensemble. Among the RF-derived simplification methods, RF-RC+ achieves the highest average F1 score across the datasets. However, the difference between RF-RC+ and RF-RCProb at the aggregate level remains reasonable, indicating that the probabilistic formulation maintains competitive predictive accuracy. Furthermore, RCProb is not consistently dominated by the remaining simplification algorithms. A closer inspection of the dataset-level results shows that RF-RCProb attains the best performance on several datasets, including australian , bands , divorce , heart and ionosphere .These results suggest that the probabilistic extension preserves strong predictive behavior across diverse problems. 
+
+Gradient boosting Machines results Table 4 reports the results obtained when GBM is used as the base ensemble. Gradient Boosting Machines, along with their variants such as XGBoost and LightGBM, are among the strongest tree-based ensemble methods in the field. Compared with the RF-based experiments, GBM-RCProb does not perform as strongly as its RF counterpart. In terms of the average F-measure across the models, it ranks fourth among the six methods considered. Nevertheless, its performance remains competitive, frequently achiev-ing results close to the best score. These results suggest that the probabilistic reformulation preserves much of the predictive strength of RC+ even when applied to a stronger ensemble backbone such as GBM. Overall, both the RF-based and GBM-based experiments indicate that the probabilistic estimation employed by RCProb does not substantially degrade predictive performance while enabling a more efficient simplification process. 
+
+Statistical significance analysis The symbols reported in Tables 3 and 4 correspond to the Wilcoxon signed-rank test relative to the original ensemble baseline. These indicators highlight whether the observed differences are statistically significant across folds. The results show that RCProb maintains statistically comparable performance to the base-line ensemble in a large portion of the datasets. In particular, for the RF experiments 13 datasets are either statistically better or not significantly different from the baseline, while in the GBM experiments this occurs in 22 datasets. These findings further support the claim that RCProb often preserves the predictive behavior of the base ensemble while producing simplified rule-based models. 
+
+Global statistical comparison Figure 1 presents the critical difference diagram obtained from the Friedman test followed by the Wilcoxon-Holm post-hoc procedure across all datasets. Unlike the pairwise comparisons shown in the tables, this analysis evaluates the average rank 13 Table 3: Comparison of F1 scores ( μ±σ) for RF and RCProb under 3 ×10-fold cross-validation. Symbols indicate Wilcoxon signed-rank test results relative to RF: + better, − worse, no mark not statistically different ( p > 0.05). RF-RC+ RF-RCProb RF-IT RF-DFT RF-RFIT RF-DT F-measure ( μ ± σ) F-measure ( μ ± σ) F-measure ( μ ± σ) F-measure ( μ ± σ) F-measure ( μ ± σ) F-measure ( μ ± σ)australian 83.33 ± 4.34 83.93 ± 4.09 73.34 ± 25.48 - 82.96 ± 3.83 - 82.91 ± 5.69 - 84.66 ± 2.99 bands 76.47 ± 5.94 - 77.48 ± 1.16 - 73.66 ± 8.46 - 74.52 ± 6.02 - 77.16 ± 2.18 - 70.49 ± 5.95 -banknote 98.72 ± 0.93 93.74 ± 2.92 - 98.58 ± 1.16 95.76 ± 1.75 - 99.48 ± 0.66 + 97.85 ± 1.50 -biodeg 88.40 ± 3.17 - 86.67 ± 3.65 - 88.06 ± 2.68 - 83.59 ± 3.37 - 88.37 ± 2.46 - 86.47 ± 2.77 -cardiotcg 96.36 ± 1.14 94.71 ± 1.16 - 96.25 ± 1.07 94.04 ± 1.08 - 96.17 ± 1.01 95.78 ± 1.17 credit 98.83 ± 3.03 + 98.28 ± 3.52 + 97.23 ± 9.40 + 97.47 ± 4.33 98.47 ± 4.37 + 99.14 ± 2.64 + cryotherapy 87.71 ± 11.88 - 86.64 ± 10.47 - 86.92 ± 12.43 - 86.91 ± 10.41 - 91.19 ± 10.59 89.97 ± 11.14 divorce 96.66 ± 4.27 97.44 ± 3.59 96.10 ± 4.80 97.24 ± 3.61 97.24 ± 3.22 97.90 ± 3.44 ecoli0vs1 98.86 ± 1.65 98.98 ± 1.59 98.28 ± 2.89 99.10 ± 1.51 98.73 ± 1.95 98.99 ± 1.57 ecoli1 92.59 ± 3.55 91.75 ± 3.97 - 92.85 ± 2.93 93.36 ± 3.11 92.78 ± 3.67 93.71 ± 3.50 ecoli2 96.37 ± 1.82 - 96.10 ± 2.63 96.05 ± 2.05 - 96.22 ± 1.96 - 96.80 ± 1.85 96.25 ± 2.13 -ecoli3 96.17 ± 1.75 94.75 ± 2.53 - 95.39 ± 2.76 95.83 ± 1.84 96.20 ± 1.62 95.39 ± 1.74 glass 95.87 ± 3.60 95.00 ± 4.09 95.63 ± 3.87 95.12 ± 4.51 95.73 ± 3.40 95.99 ± 3.21 glass0 89.70 ± 4.71 83.34 ± 9.03 - 87.21 ± 6.04 83.10 ± 9.51 - 87.35 ± 7.41 - 85.49 ± 7.76 -glass1 85.87 ± 8.02 79.50 ± 6.00 - 84.85 ± 6.54 79.04 ± 7.71 - 82.35 ± 9.61 - 80.21 ± 9.16 -glass6 97.53 ± 2.17 97.56 ± 2.21 - 97.90 ± 2.07 97.42 ± 2.15 97.95 ± 2.61 96.33 ± 3.07 -haberman 84.54 ± 1.67 84.55 ± 2.32 83.86 ± 5.66 84.66 ± 3.77 84.81 ± 1.36 83.81 ± 4.96 heart 83.31 ± 6.18 - 85.10 ± 5.77 - 77.16 ± 9.88 - 81.55 ± 7.62 - 80.77 ± 8.49 - 81.09 ± 8.60 -ionosphere 93.56 ± 3.29 - 94.17 ± 3.34 - 92.43 ± 4.51 - 92.85 ± 4.14 - 93.36 ± 3.66 - 91.54 ± 3.31 -maintenance 62.99 ± 9.60 + 51.29 ± 6.64 + 59.59 ± 10.92 + 35.94 ± 10.77 - 61.85 ± 7.94 + 69.58 ± 5.93 + mammographic 82.47 ± 4.31 82.17 ± 4.41 - 22.56 ± 30.78 - 82.29 ± 4.65 - 82.66 ± 5.19 82.40 ± 4.83 newthyroid1 98.33 ± 2.16 98.41 ± 2.31 98.74 ± 1.87 98.62 ± 2.03 98.90 ± 1.37 97.66 ± 2.13 -newthyroid2 98.28 ± 2.17 - 98.43 ± 1.89 98.07 ± 2.44 98.15 ± 1.84 - 98.64 ± 2.00 97.58 ± 2.28 -occupancy 99.58 ± 0.16 99.25 ± 0.28 - 99.53 ± 0.15 99.21 ± 0.22 - 99.58 ± 0.13 99.57 ± 0.16 pageblocks 98.50 ± 0.35 98.06 ± 0.41 - 98.22 ± 0.39 - 97.60 ± 0.49 - 98.36 ± 0.44 - 98.38 ± 0.43 -pima 81.14 ± 3.00 - 80.89 ± 4.01 - 78.45 ± 5.35 - 80.75 ± 3.34 - 80.31 ± 3.45 - 80.54 ± 4.09 -segment0 99.71 ± 0.24 - 99.49 ± 0.54 - 99.75 ± 0.28 99.47 ± 0.34 - 99.78 ± 0.24 99.54 ± 0.35 -tic-tac-toe 100.00 ± 0.00 100.00 ± 0.00 100.00 ± 0.00 100.00 ± 0.00 100.00 ± 0.00 100.00 ± 0.00 vehicle2 98.20 ± 1.73 - 97.04 ± 2.14 - 97.95 ± 1.54 - 95.70 ± 2.20 - 98.59 ± 1.05 - 97.12 ± 1.59 -vehicle3 87.37 ± 1.83 85.67 ± 0.93 - 86.45 ± 2.70 - 85.94 ± 2.32 - 85.07 ± 1.58 - 85.82 ± 1.75 -wisconsin 96.47 ± 2.01 - 96.54 ± 2.07 - 96.00 ± 2.73 - 96.61 ± 2.30 - 97.40 ± 1.83 96.28 ± 2.03 -yeast1 84.38 ± 1.93 - 83.43 ± 2.24 - 82.95 ± 2.58 - 83.28 ± 2.04 - 82.84 ± 1.56 - 83.13 ± 2.32 -yeast3 97.09 ± 0.98 97.40 ± 0.95 95.91 ± 1.27 - 97.11 ± 0.86 97.30 ± 0.87 97.09 ± 1.13 average 91.68 ± 3.14 90.54 ± 3.12 88.66 ± 5.38 89.74 ± 3.50 91.49 ± 3.13 91.08 ± 3.32 14 Table 4: Comparison of F1 scores ( μ ± σ) for GBM and RCProb under 3 × 10-fold cross-validation. Symbols indicate Wilcoxon signed-rank test results relative to GBM: + better, −
+
+worse, no mark not statistically different ( p > 0.05). GBM-RC+ GBM-RCProb GBM-IT GBM-DFT GBM-RFIT GBM-DT F-measure ( μ ± σ) F-measure ( μ ± σ) F-measure ( μ ± σ) F-measure ( μ ± σ) F-measure ( μ ± σ) F-measure ( μ ± σ)australian 83.56 ± 3.36 82.48 ± 4.92 26.25 ± 26.02 - 83.14 ± 4.47 84.25 ± 4.00 84.66 ± 2.99 bands 75.63 ± 4.56 - 76.87 ± 2.05 78.88 ± 5.03 73.50 ± 4.63 - 77.23 ± 2.43 70.49 ± 5.95 -banknote 98.55 ± 1.13 - 94.95 ± 2.64 - 96.04 ± 2.41 - 95.91 ± 2.04 - 99.67 ± 0.55 97.85 ± 1.50 -biodeg 89.16 ± 2.97 - 87.13 ± 2.70 - 79.77 ± 1.63 - 84.54 ± 3.17 - 88.61 ± 2.59 - 86.47 ± 2.77 -cardiotcg 96.79 ± 0.78 - 94.79 ± 1.26 - 93.21 ± 1.99 - 93.66 ± 1.32 - 96.43 ± 1.13 - 95.78 ± 1.17 -credit 99.44 ± 2.14 98.28 ± 3.52 98.90 ± 3.94 99.44 ± 2.14 99.14 ± 2.64 99.14 ± 2.64 cryotherapy 89.34 ± 10.23 + 90.38 ± 10.33 87.82 ± 12.42 88.55 ± 10.88 90.68 ± 10.48 + 89.97 ± 11.14 divorce 97.38 ± 3.34 97.48 ± 3.15 95.58 ± 5.10 96.79 ± 3.78 97.44 ± 3.20 97.90 ± 3.44 ecoli0vs1 98.99 ± 1.57 98.99 ± 1.57 99.11 ± 1.74 99.09 ± 1.54 98.61 ± 2.18 98.99 ± 1.57 ecoli1 93.48 ± 3.30 92.97 ± 3.37 89.16 ± 2.95 - 93.06 ± 3.52 93.07 ± 3.44 93.71 ± 3.50 ecoli2 95.99 ± 1.84 - 96.85 ± 1.81 92.58 ± 2.12 - 95.75 ± 2.13 - 96.61 ± 1.73 96.25 ± 2.13 ecoli3 95.68 ± 1.66 94.80 ± 2.39 - 95.09 ± 3.21 95.90 ± 2.01 96.30 ± 1.79 95.39 ± 1.74 glass 95.86 ± 3.03 95.82 ± 3.32 93.57 ± 4.45 95.57 ± 3.35 96.19 ± 3.31 95.99 ± 3.21 glass0 86.76 ± 6.87 86.10 ± 8.00 81.03 ± 8.12 - 85.62 ± 8.14 - 87.71 ± 7.84 85.49 ± 7.76 -glass1 83.80 ± 8.22 80.20 ± 8.02 - 78.29 ± 7.28 - 80.14 ± 7.26 - 84.83 ± 8.90 80.21 ± 9.16 -glass6 97.26 ± 2.25 96.82 ± 2.93 96.93 ± 2.47 97.59 ± 2.50 97.47 ± 2.72 96.33 ± 3.07 -haberman 84.11 ± 2.64 84.95 ± 0.28 + 84.46 ± 5.54 84.11 ± 3.90 85.16 ± 2.56 + 83.81 ± 4.96 heart 82.70 ± 5.88 81.10 ± 9.40 70.18 ± 8.19 - 81.49 ± 7.80 - 81.62 ± 7.66 - 81.09 ± 8.60 -ionosphere 92.05 ± 3.47 - 93.39 ± 3.71 93.52 ± 3.55 93.20 ± 3.63 94.37 ± 3.20 91.54 ± 3.31 -maintenance 75.82 ± 5.84 57.50 ± 8.38 - 68.08 ± 8.43 - 32.54 ± 11.65 - 76.24 ± 6.49 69.58 ± 5.93 -mammographic 81.87 ± 4.24 81.96 ± 4.71 4.07 ± 15.72 - 81.95 ± 4.34 82.01 ± 5.20 82.40 ± 4.83 newthyroid1 98.26 ± 1.56 97.87 ± 2.04 98.09 ± 1.94 99.26 ± 1.24 + 98.99 ± 1.35 97.66 ± 2.13 -newthyroid2 98.09 ± 2.00 97.96 ± 1.61 98.05 ± 2.35 98.27 ± 1.80 98.83 ± 1.67 97.58 ± 2.28 occupancy 99.55 ± 0.17 99.25 ± 0.21 - 94.36 ± 3.77 - 99.31 ± 0.25 - 99.63 ± 0.16 99.57 ± 0.16 -pageblocks 98.48 ± 0.36 98.14 ± 0.48 - 96.01 ± 0.93 - 97.60 ± 0.42 - 98.59 ± 0.40 98.38 ± 0.43 -pima 82.48 ± 3.73 81.20 ± 3.28 - 78.74 ± 4.10 - 81.20 ± 2.86 - 78.94 ± 3.88 - 80.54 ± 4.09 -segment0 99.66 ± 0.31 - 99.52 ± 0.34 - 99.53 ± 0.32 - 99.54 ± 0.35 - 99.86 ± 0.21 99.54 ± 0.35 -tic-tac-toe 100.00 ± 0.00 100.00 ± 0.00 100.00 ± 0.00 100.00 ± 0.00 100.00 ± 0.00 100.00 ± 0.00 vehicle2 98.01 ± 1.50 - 97.53 ± 1.48 - 95.90 ± 2.43 - 96.38 ± 2.00 - 98.59 ± 1.19 - 97.12 ± 1.59 -vehicle3 86.79 ± 1.62 85.77 ± 1.76 86.11 ± 2.45 85.72 ± 3.08 84.97 ± 2.65 - 85.82 ± 1.75 wisconsin 96.69 ± 1.88 - 96.45 ± 2.07 - 94.91 ± 2.88 - 96.83 ± 1.68 97.69 ± 1.57 + 96.28 ± 2.03 -yeast1 85.14 ± 1.74 84.15 ± 2.45 - 82.97 ± 2.41 - 83.87 ± 1.93 - 83.29 ± 1.89 - 83.13 ± 2.32 -yeast3 97.20 ± 1.12 97.19 ± 0.95 94.29 ± 1.10 - 97.14 ± 0.94 97.47 ± 0.87 97.09 ± 1.13 average 91.96 ± 2.89 90.87 ± 3.19 85.50 ± 4.76 89.90 ± 3.36 92.14 ± 3.03 91.08 ± 3.32 15 Figure 1: Critical difference diagram of F-measure based on Wilcoxon-Holm post-hoc procedure for RF and GBM base ensembles, post-hoc simplification methods and single benchmark model (initial Friedman test result Ff = 125 .96 , p ≈ 0. of each method across datasets. The Friedman test rejected the null hypothesis, that is, all the algorithms had the same performance in terms of the F-measure ( Ff = 125 .96 , p ≈ 0). The results indicate that there is no statistically significant difference between RC+, RFIT and RCProb, as these algorithms are connected by the thick line in the diagram. This means that although RC+ and RFIT achieve the best overall rank, RCProb remains within the same sta-tistical group of top-performing methods. Consequently, the probabilistic approach approaches the predictive ranking of the strongest methods without incurring a statistically significant loss in performance. 
+
+Number of rules Figure 2 analyzes the structural complexity of the extracted rule sets by comparing the number of rules generated by each method. The number of rules serves as a proxy for model compactness and interpretability. The results show that RCProb produces relatively compact rule sets compared to most com-peting simplification methods, with only DFT occasionally producing smaller rule sets. This indicates that RCProb maintains the ability to generate concise and interpretable rule represen-tations while preserving competitive predictive performance. The probabilistic simplification strategy therefore improves the balance between model compactness and predictive effectiveness. 
+
+Computational efficiency. Figure 3 illustrates the computational advantage of RCProb across the 33 datasets considered in the experiments. The boxplots summarize the distribution of training or simplification times obtained for the different methods under both RF and GBM ensembles. Across both ensemble settings, RCProb consistently exhibits substantially lower runtimes than RC+. The aggregated results show that the average runtime of GBM-RC+ is 47.04 s and 62.01 s for RF-RC+, whereas RCProb reduces this to 2.13 s and 3.00 s, respectively. This corresponds to a speedup of approximately 22 × for Gradient Boosting and 21 × for Random Forest. Because the figure uses a logarithmic scale, the visual separation between the boxplots may appear moderate, but it actually reflects more than one order of magnitude improvement in computational efficiency across the evaluated datasets. 
+
+Summary of findings. The experimental results consistently show that RCProb achieves predictive performance comparable to RC+ across both RF and GBM ensembles while sig-nificantly reducing computational cost. Although RC+ attains the highest average F1 score, the difference is relatively small and RCProb remains statistically competitive according to the critical difference analysis. Furthermore, RCProb maintains compact rule sets comparable to 16 Figure 2: Boxplots comparing the number of rules ( Nrules ) obtained across the experiments for RF (a) and GBM (b) base ensembles. other simplification approaches while substantially improving scalability. These results indicate that the proposed probabilistic formulation provides a favorable trade-off between predictive performance, interpretability, and computational efficiency. 
+
+# 7 Conclusion 
+
+In this paper, we presented RCProb, a probabilistic rule extraction and simplification method designed to improve the scalability of rule-based explanations derived from tree ensembles. The proposed approach extends the RC+ framework by introducing a probabilistic formulation for rule evaluation based on Bayesian smoothing and leaf-informed estimation. This formulation replaces the repeated exact recalculation of rule statistics required during the rule combination and pruning stages with computationally efficient probabilistic estimates. As a result, the method preserves the ability to produce interpretable rule sets while significantly reducing the computational cost associated with rule simplification. An extensive experimental evaluation was conducted using multiple datasets and two widely used ensemble models, RF and GBM. The results demonstrate that RCProb maintains com-petitive predictive performance while producing highly compact rule sets. In particular, the method reduces the number of rules generated by RC+ by nearly a factor of two on average, while preserving most of the predictive performance of the original models. At the same time, RCProb provides substantial computational benefits, reducing the runtime of the rule extrac-tion and simplification process by more than one order of magnitude. These results indicate that probabilistic rule modeling provides an effective mechanism for improving the scalability of rule extraction from tree ensembles without sacrificing interpretability. Despite these encouraging results, several limitations remain. First, the current formula-tion focuses on binary classification problems, and additional work is required to extend the probabilistic rule modeling framework to multi-class settings. Second, although the evalua-tion includes a diverse set of benchmark datasets, larger-scale datasets and higher-dimensional problems could further stress the scalability of the approach. Future research should therefore investigate the behavior of the method under more demanding data conditions. The proposed framework also opens several directions for future work. One interesting extension is the incorporation of regression tasks into the probabilistic rule extraction process, which would require revisiting the mechanisms used to estimate predicted values during rule 17 Figure 3: Boxplots comparing the training or simplification time (seconds) obtained across the experiments using 33 datasets. The y-axis is shown in logarithmic scale. combination. Another promising direction is the exploration of alternative probabilistic or information-theoretic measures for rule evaluation and pruning, which could further improve the balance between predictive performance and model compactness. Finally, the probabilistic formulation introduced in RCProb may provide a foundation for incorporating uncertainty estimates into rule-based explanations, enabling future work on uncertainty-aware interpretable models for complex ensemble predictors. 
+
+# Acknowledgments 
+
+This study was supported by the Research Program funded by the SeoulTech(Seoul National University of Science and Technology). 
+
+# References 
+
+[1] Ibomoiye Domor Mienye and Yanxia Sun. A Survey of Ensemble Learning: Concepts, Algorithms, Applications, and Prospects. IEEE Access , 10:99129–99149, 2022. ISSN 2169-3536. doi: 10.1109/ACCESS.2022.3207287. [2] Alejandro Barredo Arrieta, Natalia D´ ıaz-Rodr´ ıguez, Javier Del Ser, Adrien Bennetot, Si-ham Tabik, Alberto Barbado, Salvador Garcia, Sergio Gil-Lopez, Daniel Molina, Richard Benjamins, Raja Chatila, and Francisco Herrera. Explainable Artificial Intelligence (XAI): Concepts, taxonomies, opportunities and challenges toward responsible AI. Information Fusion , 58:82–115, June 2020. ISSN 1566-2535. doi: 10.1016/J.INFFUS.2019.12.012. [3] Josue Obregon and Jae Yoon Jung. Explanation of ensemble models. In Human-Centered Artificial Intelligence: Research and Applications , pages 51–72. Academic Press, January 2022. ISBN 978-0-323-85648-5. doi: 10.1016/B978-0-323-85648-5.00011-6. [4] Jerome H. Friedman and Bogdan E. Popescu. Predictive learning via rule ensembles. Annals of Applied Statistics , 2(3):916–954, 2008. ISSN 19326157. doi: 10.1214/07-AOAS148. [5] Houtao Deng. Interpreting tree ensembles with inTrees. International Journal of Data Sci-ence and Analytics , 7(4):277–287, 2019. ISSN 2364-415X. doi: 10.1007/s41060-018-0144-8. 18 [6] Satoshi Hara and Kohei Hayashi. Making Tree Ensembles Interpretable: A Bayesian Model Selection Approach. In Amos Storkey and Fernando Perez-Cruz, editors, Proceedings of the Twenty-First International Conference on Artificial Intelligence and Statistics , volume 84, pages 77–85. PMLR, July 2018. [7] Omer Sagi and Lior Rokach. Explainable decision forest: Transforming a decision forest into an interpretable tree. Information Fusion , 61:124–138, September 2020. ISSN 1566-2535. doi: 10.1016/J.INFFUS.2020.03.013. [8] Omer Sagi and Lior Rokach. Approximating XGBoost with an interpretable decision tree. 
+
+Information Sciences , 572:522–542, September 2021. ISSN 0020-0255. doi: 10.1016/J.INS. 2021.05.055. [9] Lu-an Dong, Xin Ye, and Guangfei Yang. Two-stage rule extraction method based on tree ensemble model for interpretable loan evaluation. Information Sciences , 573:46–64, September 2021. ISSN 0020-0255. doi: 10.1016/j.ins.2021.05.063. [10] Haddouchi Maissae and Berrado Abdelaziz. Forest-ORE: Mining Optimal Rule Ensemble to interpret Random Forest models, March 2024. [11] Akihiro Takemura and Katsumi Inoue. Generating Explainable Rule Sets from Tree-Ensemble Learning Methods by Answer Set Programming. Electron. Proc. Theor. Comput. Sci. , 345:127–140, September 2021. ISSN 2075-2180. doi: 10.4204/EPTCS.345.26. [12] Josue Obregon, Aekyung Kim, and Jae-Yoon Jung. RuleCOSI: Combination and simplifi-cation of production rules from boosted decision trees for imbalanced classification. Expert Systems with Applications , 126, 2019. ISSN 09574174. doi: 10.1016/j.eswa.2019.02.012. [13] Josue Obregon and Jae Yoon Jung. RuleCOSI+: Rule extraction for interpreting classi-fication tree ensembles. Information Fusion , 89:355–381, January 2023. ISSN 1566-2535. doi: 10.1016/J.INFFUS.2022.08.021. [14] Bastian Pfeifer, Arne Gevaert, Markus Loecher, and Andreas Holzinger. Tree smoothing: Post-hoc regularization of tree ensembles for interpretable machine learning. Information Sciences , 690:121564, February 2025. ISSN 0020-0255. doi: 10.1016/j.ins.2024.121564. [15] Gilles Louppe, Louis Wehenkel, Antonio Sutera, and Pierre Geurts. Understanding variable importances in forests of randomized trees. In Advances in Neural Information Processing Systems , volume 26, pages 431–439, 2013. [16] Scott M. Lundberg, Gabriel Erion, Hugh Chen, Alex DeGrave, Jordan M. Prutkin, Bala Nair, Ronit Katz, Jonathan Himmelfarb, Nisha Bansal, and Su-In Lee. From local expla-nations to global understanding with explainable AI for trees. Nature Machine Intelligence 2020 2:1 , 2(1):56–67, January 2020. ISSN 2522-5839. doi: 10.1038/s42256-019-0138-9. [17] Thibaut Vidal and Maximilian Schiffer. Born-Again Tree Ensembles. In International Conference on Machine Learning , pages 9743–9753. PMLR, November 2020. [18] Bogdan Gulowaty and Michal Wo´ zniak. Extracting Interpretable Decision Tree Ensemble from Random Forest. In 2021 International Joint Conference on Neural Networks (IJCNN) ,pages 1–8, July 2021. doi: 10.1109/IJCNN52387.2021.9533601. [19] Morteza Mashayekhi and Robin Gras. Rule Extraction from Decision Trees Ensembles: New Algorithms Based on Heuristic Search and Sparse Group Lasso Methods. Int. J. Info. Tech. Dec. Mak. , 16(06):1707–1727, November 2017. ISSN 0219-6220. doi: 10.1142/ S0219622017500055. 19 [20] Zhen Li, Weikai Yang, Jun Yuan, Jing Wu, Changjian Chen, Yao Ming, Fan Yang, Hui Zhang, and Shixia Liu. RuleExplorer: A Scalable Matrix Visualization for Understanding Tree Ensemble Classifiers. IEEE Transactions on Visualization and Computer Graphics ,31(9):6370–6384, September 2025. ISSN 1941-0506. doi: 10.1109/TVCG.2024.3514115. [21] Tong Wang, Cynthia Rudin, Finale Doshi-Velez, Yimin Liu, Erica Klampfl, and Perry MacNeille. A Bayesian Framework for Learning Rule Sets for Interpretable Classification. 
+
+Journal of Machine Learning Research , 18(70):1–37, 2017. ISSN 1533-7928. [22] Leo Breiman. Random forests. Machine Learning , 45(1):5–32, October 2001. ISSN 08856125. doi: 10.1023/A:1010933404324. [23] Jerome H. Friedman. Greedy function approximation: A gradient boosting machine. An-nals of Statistics , 29(5):1189–1232, 2001. ISSN 00905364. doi: 10.2307/2699986. [24] Janez Demˇ sar. Statistical Comparisons of Classifiers over Multiple Data Sets. Journal of Machine Learning Research , 7:1–30, 2006. [25] Alessio Benavoli, Giorgio Corani, and Francesca Mangili. Should We Really Use Post-Hoc Tests Based on Mean-Ranks? Journal of Machine Learning Research , 17:1–10, 2016. 20

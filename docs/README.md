@@ -6,61 +6,49 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-05
-- 运行时间：2026-05-05 20:41:38 UTC
+- 最新运行日期：2026-05-06
+- 运行时间：2026-05-06 20:22:11 UTC
 - 运行状态：成功
-- 本次总论文数：13
-- 精读区：3
-- 速读区：10
+- 本次总论文数：9
+- 精读区：4
+- 速读区：5
 
 ### 今日简报（AI）
-今日深度复盘 13 篇前沿成果，重点聚焦符号回归在变分推理与通用属性预测领域的满分突破。
-核心结论显示，深度学习与符号回归的结合正显著提升科学公式发现的精度，尤其在组合加权属性预测上表现卓越。
-建议关注 AI 如何通过符号化建模提升科学发现的可解释性，这是通往通用物理属性预测的关键路径。
-- 详情：[/202605/05/README](/202605/05/README)
+今日聚焦符号回归领域双满分突破，深度解析 LLM 增强与复数域梯度下降的最新进展。
+重点推荐通过程序化上下文优化 LLM 建模，以及利用复数域有理回归解决复杂方程学习难题。
+建议关注物理嵌入式流模型（PerFlow），探索 AI 在高维动力学重构与不确定性量化中的实战潜力。
+- 详情：[/202605/06/README](/202605/06/README)
 
 ### 精读区论文标签
-1. [Deep Variational Inference Symbolic Regression](/202605/05/2605.01067v1-deep-variational-inference-symbolic-regression)  
+1. [Programmatic Context Augmentation for LLM-based Symbolic Regression](/202605/06/2605.03101v1-programmatic-context-augmentation-for-llm-based-symbolic-regression)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：深度符号回归的变分贝叶斯扩展，用于不确定性量化
-2. [Composition-Weighted Symbolic Regression for General-Purpose Property Prediction](/202605/05/2605.02267v1-composition-weighted-symbolic-regression-for-general-purpose-property-prediction)  
+   evidence：基于大语言模型的符号回归与程序化上下文增强
+2. [Complex Equation Learner: Rational Symbolic Regression with Gradient Descent in Complex Domain](/202605/06/2605.03841v1-complex-equation-learner-rational-symbolic-regression-with-gradient-descent-in-complex-domain)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：结合MCTS和遗传算法的符号回归用于材料属性预测
-3. [Discover Fast Power Allocation Solution for Multi-Target Tracking via AlphaEvolve Evolution](/202605/05/2605.01794v1-discover-fast-power-allocation-solution-for-multi-target-tracking-via-alphaevolve-evolution)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：大语言模型引导的进化搜索，自主发现闭式功率分配方案
+   evidence：复数域内基于梯度下降的有理符号回归
+3. [Chebyshev-Augmented One-Shot Transfer Learning for PINNs on Nonlinear Differential Equations](/202605/06/2605.01634v1-chebyshev-augmented-one-shot-transfer-learning-for-pinns-on-nonlinear-differential-equations)  
+   标签：评分：8.0/10、query:sr-alg
+   evidence：将控制方程嵌入物理信息神经网络以求解非线性微分方程
+4. [Analytic summation of series involving higher-order derivatives of Chebyshev polynomials of the second kind and their applications to convolved linear recurrent sequences](/202605/06/2605.03200v1-analytic-summation-of-series-involving-higher-order-derivatives-of-chebyshev-polynomials-of-the-second-kind-and-their-applications-to-convolved-linear-recurrent-sequences)  
+   标签：评分：8.0/10、query:math-ai
+   evidence：级数的解析求和与闭式公式
 
 ### 速读区论文标签
-1. [Convolution-to-sum identities for Mittag-Leffler type functions](/202605/05/2605.01079v1-convolution-to-sum-identities-for-mittag-leffler-type-functions)  
+1. [Neural networks as fuzzy logic formulas](/202605/06/2605.03064v1-neural-networks-as-fuzzy-logic-formulas)  
    标签：评分：7.0/10、query:math-ai
-   evidence：Mittag-Leffler型函数的数学恒等式
-2. [New Bounds for Zarankiewicz Numbers via Reinforced LLM Evolutionary Search](/202605/05/2605.01120v1-new-bounds-for-zarankiewicz-numbers-via-reinforced-llm-evolutionary-search)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：用于生成数学构造的LLM进化搜索
-3. [Lifting Traces to Logic: Programmatic Skill Induction with Neuro-Symbolic Learning for Long-Horizon Agentic Tasks](/202605/05/2605.01293v1-lifting-traces-to-logic-programmatic-skill-induction-with-neuro-symbolic-learning-for-long-horizon-agentic-tasks)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：用于程序化技能归纳和逻辑基础程序的神经符号学习
-4. [Selector-Guided Autonomous Curriculum for One-Shot Reinforcement Learning from Verifiable Rewards](/202605/05/2605.01823v1-selector-guided-autonomous-curriculum-for-one-shot-reinforcement-learning-from-verifiable-rewards)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：基于可验证奖励的强化学习提升数学推理能力
-5. [KANs need curvature: penalties for compositional smoothness](/202605/05/2605.02190v1-kans-need-curvature-penalties-for-compositional-smoothness)  
+   evidence：将神经网络表征为模糊逻辑公式
+2. [Meta-Inverse Physics-Informed Neural Networks for High-Dimensional Ordinary Differential Equations](/202605/06/2605.03511v1-meta-inverse-physics-informed-neural-networks-for-high-dimensional-ordinary-differential-equations)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：用于科学机器学习的可解释单变量函数组合
-6. [Controllable and Verifiable Process Data Synthesis for Process Reward Models](/202605/05/2605.02395v1-controllable-and-verifiable-process-data-synthesis-for-process-reward-models)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：构建正确的符号推理链
-7. [ResRL: Boosting LLM Reasoning via Negative Sample Projection Residual Reinforcement Learning](/202605/05/2605.00380v1-resrl-boosting-llm-reasoning-via-negative-sample-projection-residual-reinforcement-learning)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：利用可验证奖励的强化学习提升大模型推理
-8. [PILIR: Physics-Informed Local Implicit Representation](/202605/05/2605.00385v1-pilir-physics-informed-local-implicit-representation)  
+   evidence：揭示物理系统中的未知参数和动力学
+3. [PerFlow: Physics-Embedded Rectified Flow for Efficient Reconstruction and Uncertainty Quantification of Spatiotemporal Dynamics](/202605/06/2605.03548v1-perflow-physics-embedded-rectified-flow-for-efficient-reconstruction-and-uncertainty-quantification-of-spatiotemporal-dynamics)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：物理嵌入的生成模型用于时空动力学和PDE约束
+4. [RCProb: Probabilistic Rule Extraction for Efficient Simplification of Tree Ensembles](/202605/06/2604.25304v1-rcprob-probabilistic-rule-extraction-for-efficient-simplification-of-tree-ensembles)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：用于求解偏微分方程的物理信息神经网络
-9. [Segment-Aligned Policy Optimization for Multi-Modal Reasoning](/202605/05/2605.01327v1-segment-aligned-policy-optimization-for-multi-modal-reasoning)  
+   evidence：提取紧凑的规则模型以提高可解释性
+5. [Neuron-Anchored Rule Extraction for Large Language Models via Contrastive Hierarchical Ablation](/202605/06/2605.03058v1-neuron-anchored-rule-extraction-for-large-language-models-via-contrastive-hierarchical-ablation)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于分步推理和策略优化的强化学习
-10. [Entropic Strict Minimum Message Length and Its Connections to PAC-Bayes and NML](/202605/05/2605.02099v1-entropic-strict-minimum-message-length-and-its-connections-to-pac-bayes-and-nml)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：最小信息长度 (MML) 是模型选择中平衡复杂度和准确性的基本原理
+   evidence：以符号形式表达大语言模型的决策逻辑
 
 
 <div class="dpr-home-promo-card">
