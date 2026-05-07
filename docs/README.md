@@ -6,49 +6,70 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-06
-- 运行时间：2026-05-06 20:22:11 UTC
+- 最新运行日期：2026-05-07
+- 运行时间：2026-05-07 21:06:27 UTC
 - 运行状态：成功
-- 本次总论文数：9
-- 精读区：4
-- 速读区：5
+- 本次总论文数：16
+- 精读区：6
+- 速读区：10
 
 ### 今日简报（AI）
-今日聚焦符号回归领域双满分突破，深度解析 LLM 增强与复数域梯度下降的最新进展。
-重点推荐通过程序化上下文优化 LLM 建模，以及利用复数域有理回归解决复杂方程学习难题。
-建议关注物理嵌入式流模型（PerFlow），探索 AI 在高维动力学重构与不确定性量化中的实战潜力。
-- 详情：[/202605/06/README](/202605/06/README)
+今日精选 16 篇前沿论文，深度聚焦神经网络符号回归与物理规律的自动化发现。
+重点推荐通过视频数据直接推导非线性偏微分方程（PDE）的突破性进展，以及利用神经网络实现高精度符号回归的新范式。
+建议关注 AI 与物理科学的交叉应用，尝试将神经符号方法引入逻辑推理与规则提取任务中。
+- 详情：[/202605/07/README](/202605/07/README)
 
 ### 精读区论文标签
-1. [Programmatic Context Augmentation for LLM-based Symbolic Regression](/202605/06/2605.03101v1-programmatic-context-augmentation-for-llm-based-symbolic-regression)  
+1. [Symbolic Regression via Neural Networks](/202605/07/2605.04337v1-symbolic-regression-via-neural-networks)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：基于大语言模型的符号回归与程序化上下文增强
-2. [Complex Equation Learner: Rational Symbolic Regression with Gradient Descent in Complex Domain](/202605/06/2605.03841v1-complex-equation-learner-rational-symbolic-regression-with-gradient-descent-in-complex-domain)  
+   evidence：通过神经网络进行符号回归以识别控制方程的新方法
+2. [From Video-to-PDE: Data-Driven Discovery of Nonlinear Dye Plume Dynamics](/202605/07/2605.04535v1-from-video-to-pde-data-driven-discovery-of-nonlinear-dye-plume-dynamics)  
    标签：评分：10.0/10、query:sr-alg
-   evidence：复数域内基于梯度下降的有理符号回归
-3. [Chebyshev-Augmented One-Shot Transfer Learning for PINNs on Nonlinear Differential Equations](/202605/06/2605.01634v1-chebyshev-augmented-one-shot-transfer-learning-for-pinns-on-nonlinear-differential-equations)  
-   标签：评分：8.0/10、query:sr-alg
-   evidence：将控制方程嵌入物理信息神经网络以求解非线性微分方程
-4. [Analytic summation of series involving higher-order derivatives of Chebyshev polynomials of the second kind and their applications to convolved linear recurrent sequences](/202605/06/2605.03200v1-analytic-summation-of-series-involving-higher-order-derivatives-of-chebyshev-polynomials-of-the-second-kind-and-their-applications-to-convolved-linear-recurrent-sequences)  
+   evidence：通过弱形式稀疏回归从视频数据中识别有效的传输定律
+3. [Automated Formal Proofs of Combinatorial Identities via Wilf-Zeilberger Guidance and LLMs](/202605/07/2605.04472v1-automated-formal-proofs-of-combinatorial-identities-via-wilf-zeilberger-guidance-and-llms)  
+   标签：评分：9.0/10、query:math-ai
+   evidence：使用神经符号框架自动证明组合恒等式
+4. [Exhaustive Symbolic Integration: Integration by Differentiation and the Landscape of Symbolic Integrability](/202605/07/2605.04978v1-exhaustive-symbolic-integration-integration-by-differentiation-and-the-landscape-of-symbolic-integrability)  
+   标签：评分：9.0/10、query:math-ai
+   evidence：枚举符号函数并在算子基中确定闭式原函数
+5. [A Ceiling Continued Fraction Approach to the Erdős-Straus Conjecture: Heuristic finiteness of counterexamples](/202605/07/2605.04551v1-a-ceiling-continued-fraction-approach-to-the-erds-straus-conjecture-heuristic-finiteness-of-counterexamples)  
    标签：评分：8.0/10、query:math-ai
-   evidence：级数的解析求和与闭式公式
+   evidence：数学猜想的连分数方法
+6. [Average Attention Transformers and Arithmetic Circuits](/202605/07/2605.04683v1-average-attention-transformers-and-arithmetic-circuits)  
+   标签：评分：8.0/10、query:math-ai
+   evidence：Transformer编码器模拟用于符号函数的算术电路
 
 ### 速读区论文标签
-1. [Neural networks as fuzzy logic formulas](/202605/06/2605.03064v1-neural-networks-as-fuzzy-logic-formulas)  
+1. [ANDRE: An Attention-based Neuro-symbolic Differentiable Rule Extractor](/202605/07/2605.04193v1-andre-an-attention-based-neuro-symbolic-differentiable-rule-extractor)  
    标签：评分：7.0/10、query:math-ai
-   evidence：将神经网络表征为模糊逻辑公式
-2. [Meta-Inverse Physics-Informed Neural Networks for High-Dimensional Ordinary Differential Equations](/202605/06/2605.03511v1-meta-inverse-physics-informed-neural-networks-for-high-dimensional-ordinary-differential-equations)  
+   evidence：神经符号规则提取与连续规则空间优化
+2. [A Foundation Model for Zero-Shot Logical Rule Induction](/202605/07/2605.04916v1-a-foundation-model-for-zero-shot-logical-rule-induction)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：从数据中进行零样本逻辑规则归纳
+3. [Reinforcement Learning for Compositional Generalization with Outcome-Level Optimization](/202605/07/2605.04920v1-reinforcement-learning-for-compositional-generalization-with-outcome-level-optimization)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：用于组合泛化的强化学习
+4. [Understanding In-Context Learning for Nonlinear Regression with Transformers: Attention as Featurizer](/202605/07/2605.05176v1-understanding-in-context-learning-for-nonlinear-regression-with-transformers-attention-as-featurizer)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：揭示物理系统中的未知参数和动力学
-3. [PerFlow: Physics-Embedded Rectified Flow for Efficient Reconstruction and Uncertainty Quantification of Spatiotemporal Dynamics](/202605/06/2605.03548v1-perflow-physics-embedded-rectified-flow-for-efficient-reconstruction-and-uncertainty-quantification-of-spatiotemporal-dynamics)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：物理嵌入的生成模型用于时空动力学和PDE约束
-4. [RCProb: Probabilistic Rule Extraction for Efficient Simplification of Tree Ensembles](/202605/06/2604.25304v1-rcprob-probabilistic-rule-extraction-for-efficient-simplification-of-tree-ensembles)  
+   evidence：用于非线性回归和特征构建的Transformer网络
+5. [State Stream Transformer (SST) V2: Parallel Training of Nonlinear Recurrence for Latent Space Reasoning](/202605/07/2605.00206v1-state-stream-transformer-sst-v2-parallel-training-of-nonlinear-recurrence-for-latent-space-reasoning)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：提取紧凑的规则模型以提高可解释性
-5. [Neuron-Anchored Rule Extraction for Large Language Models via Contrastive Hierarchical Ablation](/202605/06/2605.03058v1-neuron-anchored-rule-extraction-for-large-language-models-via-contrastive-hierarchical-ablation)  
+   evidence：具有潜空间推理上下文和非线性递归的Transformer架构
+6. [Neural Decision-Propagation for Answer Set Programming](/202605/07/2605.01797v1-neural-decision-propagation-for-answer-set-programming)  
    标签：评分：6.0/10、query:math-ai
-   evidence：以符号形式表达大语言模型的决策逻辑
+   evidence：用于神经符号推理的神经网络架构
+7. [Formalizing the Prime-Field Singer Construction and Sidon Set Infrastructure in Lean 4](/202605/07/2605.03274v1-formalizing-the-prime-field-singer-construction-and-sidon-set-infrastructure-in-lean-4)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：在 Lean 4 中形式化数学构造
+8. [Correct Is Not Enough: Training Reasoning Planners with Executor-Grounded Rewards](/202605/07/2605.03862v2-correct-is-not-enough-training-reasoning-planners-with-executor-grounded-rewards)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：用于推理规划器和中间产物的强化学习
+9. [The Scaling Properties of Implicit Deductive Reasoning in Transformers](/202605/07/2605.04330v1-the-scaling-properties-of-implicit-deductive-reasoning-in-transformers)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：研究 Transformer 中隐式演绎推理的缩放特性
+10. [Probing Structural Mathematical Reasoning in Language Models with Algebraic Trapdoors](/202605/07/2605.04352v1-probing-structural-mathematical-reasoning-in-language-models-with-algebraic-trapdoors)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：语言模型中的结构化数学推理
 
 
 <div class="dpr-home-promo-card">
