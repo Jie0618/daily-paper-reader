@@ -6,63 +6,49 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-08
-- 运行时间：2026-05-08 20:41:56 UTC
+- 最新运行日期：2026-05-09
+- 运行时间：2026-05-09 20:06:22 UTC
 - 运行状态：成功
-- 本次总论文数：14
-- 精读区：2
-- 速读区：12
+- 本次总论文数：9
+- 精读区：1
+- 速读区：8
 
 ### 今日简报（AI）
-今日精选 14 篇前沿论文，重点聚焦 KAN 网络在动力系统建模及 LLM 在图论难题上的跨界突破。
-核心成果包括利用 Deep-Koopman-KANDy
-- 详情：[/202605/08/README](/202605/08/README)
+今日精选 9 篇前沿论文，深度聚焦物理结构保持的机器学习与 AI 数学推理。
+重点关注通过离散欧拉-拉格朗日方程实现结构保持的高斯过程，以及将大模型推理编译为符号求解器以提升程序合成效率。
+建议关注物理约束与符号逻辑如何共同提升 AI 在复杂科学计算与数学证明中的严谨性。
+- 详情：[/202605/09/README](/202605/09/README)
 
 ### 精读区论文标签
-1. [Deep-Koopman-KANDy: Dictionary Discovery for Deep-Koopman Operators with Kolmogorov-Arnold Networks for Dynamics](/202605/08/2605.06000v1-deep-koopman-kandy-dictionary-discovery-for-deep-koopman-operators-with-kolmogorov-arnold-networks-for-dynamics)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：使用 Kolmogorov-Arnold 网络对动力系统进行事后符号字典读取
-2. [New Bounds for Zarankiewicz Numbers via Reinforced LLM Evolutionary Search](/202605/08/2605.01120v2-new-bounds-for-zarankiewicz-numbers-via-reinforced-llm-evolutionary-search)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：用于发现数学结构的LLM进化搜索
+1. [Structure-Preserving Gaussian Processes Via Discrete Euler-Lagrange Equations](/202605/09/2605.06246v1-structure-preserving-gaussian-processes-via-discrete-euler-lagrange-equations)  
+   标签：评分：8.0/10、query:sr-alg
+   evidence：通过欧拉-拉格朗日方程进行数据驱动的物理动力学发现
 
 ### 速读区论文标签
-1. [A Unified Approach to Beta Moments, Combinatorial Identities, and Random Walks](/202605/08/2605.05420v1-a-unified-approach-to-beta-moments-combinatorial-identities-and-random-walks)  
+1. [ReaComp: Compiling LLM Reasoning into Symbolic Solvers for Efficient Program Synthesis](/202605/09/2605.05485v1-reacomp-compiling-llm-reasoning-into-symbolic-solvers-for-efficient-program-synthesis)  
    标签：评分：7.0/10、query:math-ai
-   evidence：组合恒等式的概率证明
-2. [LANTERN: LLM-Augmented Neurosymbolic Transfer with Experience-Gated Reasoning Networks](/202605/08/2605.05478v1-lantern-llm-augmented-neurosymbolic-transfer-with-experience-gated-reasoning-networks)  
+   evidence：将推理编译为符号求解器以进行程序合成
+2. [AI Co-Mathematician: Accelerating Mathematicians with Agentic AI](/202605/09/2605.06651v1-ai-co-mathematician-accelerating-mathematicians-with-agentic-ai)  
    标签：评分：7.0/10、query:math-ai
-   evidence：强化学习中的神经符号迁移
-3. [Multifractal analysis of power means for the Schneider map on $p\mathbb{Z}_p$](/202605/08/2605.05484v1-multifractal-analysis-of-power-means-for-the-schneider-map-on-pmathbbzp)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：与 Schneider 连分数映射相关的系数
-4. [MOSAIC: Module Discovery via Sparse Additive Identifiable Causal Learning for Scientific Time Series](/202605/08/2605.05524v1-mosaic-module-discovery-via-sparse-additive-identifiable-causal-learning-for-scientific-time-series)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：在科学时间序列中发现可解释的结构和物理量
-5. [Intentmaking and Sensemaking: Human Interaction with AI-Guided Mathematical Discovery](/202605/08/2605.05921v1-intentmaking-and-sensemaking-human-interaction-with-ai-guided-mathematical-discovery)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：人类与AI引导的数学发现之间的交互
-6. [Can RL Teach Long-Horizon Reasoning to LLMs? Expressiveness Is Key](/202605/08/2605.06638v1-can-rl-teach-long-horizon-reasoning-to-llms-expressiveness-is-key)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：用于逻辑推理和符号数学的强化学习
-7. [Injecting Distributional Awareness into MLLMs via Reinforcement Learning for Deep Imbalanced Regression](/202605/08/2605.01402v1-injecting-distributional-awareness-into-mllms-via-reinforcement-learning-for-deep-imbalanced-regression)  
+   evidence：用于数学工作流和理论构建的AI智能体
+3. [Deep Wave Network for Modeling Multi-Scale Physical Dynamics](/202605/09/2605.04198v1-deep-wave-network-for-modeling-multi-scale-physical-dynamics)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：用于深度不平衡回归的强化学习
-8. [Error analysis for learning fractional stochastic differential equations with applications in neural approximations](/202605/08/2605.04168v1-error-analysis-for-learning-fractional-stochastic-differential-equations-with-applications-in-neural-approximations)  
+   evidence：利用深度学习模拟多尺度物理动力学
+4. [Transformers Provably Implement In-Context Reinforcement Learning with Policy Improvement](/202605/09/2605.05755v1-transformers-provably-implement-in-context-reinforcement-learning-with-policy-improvement)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：利用神经网络近似学习分数阶随机微分方程
-9. [Theta functions and transformations of bilateral basic hypergeometric series](/202605/08/2605.05094v1-theta-functions-and-transformations-of-bilateral-basic-hypergeometric-series)  
+   evidence：Transformer实现上下文强化学习
+5. [Reward Shaping and Action Masking for Compositional Tasks using Behavior Trees and LLMs](/202605/09/2605.05795v1-reward-shaping-and-action-masking-for-compositional-tasks-using-behavior-trees-and-llms)  
    标签：评分：6.0/10、query:math-ai
-   evidence：超几何级数的变换公式
-10. [Analytical Angle-Finding and Series Expansions for Quantum Signal Processing via Orthogonal Polynomial Theory](/202605/08/2605.05321v1-analytical-angle-finding-and-series-expansions-for-quantum-signal-processing-via-orthogonal-polynomial-theory)  
+   evidence：强化学习中奖励塑形的符号结构
+6. [Policy-Guided Stepwise Model Routing for Cost-Effective Reasoning](/202605/09/2605.06116v1-policy-guided-stepwise-model-routing-for-cost-effective-reasoning)  
    标签：评分：6.0/10、query:math-ai
-   evidence：量子信号处理的级数展开
-11. [ZAYA1-8B Technical Report](/202605/08/2605.05365v1-zaya1-8b-technical-report)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：专注于数学和编程基准测试的推理模型
-12. [Model Form Identification in High-Dimensional Functional Linear Regressions](/202605/08/2605.05458v1-model-form-identification-in-high-dimensional-functional-linear-regressions)  
+   evidence：用于数学基准测试和推理的强化学习
+7. [Transformers Efficiently Perform In-Context Logistic Regression via Normalized Gradient Descent](/202605/09/2605.06609v1-transformers-efficiently-perform-in-context-logistic-regression-via-normalized-gradient-descent)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：函数线性回归中的模型形式识别
+   evidence：Transformer执行上下文逻辑回归
+8. [Verifier-Backed Hard Problem Generation for Mathematical Reasoning](/202605/09/2605.06660v1-verifier-backed-hard-problem-generation-for-mathematical-reasoning)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：数学推理的难题生成
 
 
 <div class="dpr-home-promo-card">
