@@ -1,0 +1,3251 @@
+Title: A Behavioral Framework for Data-Driven Modeling of Nonlinear Systems in Vector-Valued Reproducing Kernel Hilbert Spaces
+
+URL Source: https://arxiv.org/pdf/2605.07052v1
+
+Published Time: Mon, 11 May 2026 00:26:14 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+> 1
+
+# A Behavioral Framework for Data-Driven Modeling of Nonlinear Systems in Vector-Valued Reproducing Kernel Hilbert Spaces 
+
+Boya Hou 1 and Maxim Raginsky 2
+
+Abstract —We generalize Jan Willems’ behavioral approach to a class of discrete-time nonlinear systems in a vector-valued reproducing kernel Hilbert space (RKHS). Apart from linear time-invariant systems, this class covers nonlinear systems modeled by Volterra series and their autoregressive variants, as well as systems admitting Hammerstein-type state-space realizations. We apply the proposed framework to the problem of data-driven modeling of such systems, i.e., when simulation or control objectives for an unknown system are carried out without an explicit system identification step. To that end, we link the behavioral approach to two data-driven modeling methods in a vector-valued RKHS: (1) minimum-norm interpolation and (2) subspace identification. 
+
+I. I NTRODUCTION 
+
+The mathematical study of dynamical systems seeks to describe the evolution of a given system over time under its governing laws, initial conditions, and inputs (if any). This evolution can be studied internally through state-space methods or externally via the system’s behavior. Pioneered by Jan Willems in a series of papers starting with [ 1 ] (see [ 2 ] for an overview), the behavioral approach identifies dynamical systems with sets of their trajectories. For linear time-invariant systems, the cornerstone of this framework is the so-called 
+
+fundamental lemma [ 3 ], which asserts that the set of all trajectories of a controllable linear time-invariant system over a finite time horizon can be reconstructed from a single trajectory driven by a persistently exciting input. This result has become central to recent advances of data-driven control; see, e.g., [4, 5, 6, 7, 8] and references therein. The philosophy underlying these data-driven approaches, as clearly articulated in the paper by Markovsky and Rapisarda [ 5 ], is that simulation or control should be carried out without an explicit system identification step. In the context of simulation of linear systems, for example, this principle is supported by the fact that, given an initial condition and a subsequent input of interest, one can combine it with previous measurements of the system behavior to predict the resulting output without identifying the system transfer function, impulse response, or state-space model. Rather, simulation can be viewed as a “missing data” problem, to be solved directly using the available trajectories. While this viewpoint has led to a rich and mature liter-ature for linear systems, extending it to nonlinear systems is substantially more challenging, as the trajectory sets no   
+
+> This work was supported in part by the NSF under award CCF-2348624 (”Towards a control framework for neural generative modeling”).
+> 1Boya Hou is with the Carl R. Woese Institute for Genomic Biology and the Coordinated Science Laboratory, University of Illinois Urbana-Champaign, Urbana, IL, 61801 USA
+
+boyahou2@illinois.edu           
+
+> 2Maxim Raginsky is with Department of Electrical and Computer Engineering and the Coordinated Science Laboratory, University of Illinois Urbana-Champaign, Urbana, IL, 61801 USA
+
+maxim@illinois.edu 
+
+longer form linear subspaces. Several works have explored nonlinear analogues of the fundamental lemma for structured nonlinear systems. Examples include bilinear systems [ 9], second-order Volterra systems [ 10 ], flat nonlinear systems [11 ], Hammerstein and Wiener systems [ 12 ], and a Koopman-type linear embedding posited in [ 13 ]. A promising direction is to use a reproducing kernel Hilbert space (RKHS) to lift the trajectories of nonlinear systems into a (possibly infinite-dimensional) feature space. In this vein, Huang, Lygeros, and D ¨orfler [ 14 ] investigated kernelized data-enabled predictive control, where the resulting models are regression-based approximations rather than behavioral characterizations. More recently, Molodchyk and Faulwasser [ 15 ] established the link between kernel regression and Willems’ fundamental lemma, and showed that several existing nonlinear extensions of the fundamental lemma, such as those for Hammerstein and flat systems, can be interpreted as instances of kernel regression with specific choices of kernel when the induced RKHS is finite-dimensional. In this paper, we extend the behavioral framework beyond the linear settings for characterizing the behavior of nonlin-ear systems in RKHS via minimum-norm interpolation and subspace identification repurposed for nonlinear systems. We reinterpret both minimum-norm interpolation and subspace identification through the behavioral lens, and clarify the role of various structural assumptions on the system, the offline and online data, and the space of functions used to represent the nonlinear aspects of the system. A unifying theme across these two methods is that, like in the modern data-driven schemes and in the spirit of the fundamental lemma, predictors and the desired “online” trajectories can be expressed in terms of the kernelized “offline” examples. When working in an RKHS, as noted by Molodchyk and Faulwasser [ 15 ], this structure further mirrors the representer theorem [ 16 ]: the solution can be written as a finite linear combination of kernel evaluations along the observed trajectories. The remainder of this paper is organized as follows. In Sec-tion II, we recall the fundamental lemma of Willems for linear time-invariant systems and introduce basic concepts regarding scalar-valued and vector-valued RKHSs. In Section III, we introduce a class of nonlinear systems whose nonlinearity is encoded by an element in the vector-valued RKHS of functions on the set of finite-length sequences of inputs. In Section IV, we establish a Behavior Representer Theorem for nonlinear systems using minimum-norm interpolation and contrast it with the fundamental lemma. Compared with the work of Molodchyk and Faulwasser [ 15 ], we consider minimum-norm interpolation instead of (regularized) least-squares regression in a vector-valued RKHS. We further establish an error estimate that holds with equality as in Lemma 4, rather than the inequaliity in [ 15 ,
+
+> arXiv:2605.07052v1 [eess.SY] 8 May 2026 2
+
+Lemma 2]. In Section V, we present a subspace identification framework for nonlinear systems in an RKHS and provide a fundamental lemma characterization of finite-length trajectories with kernelized input vectors and outputs. II. P RELIMINARIES 
+
+A. Notation and definitions 
+
+We will make use of the following notation and definitions throughout the paper. We will use Z+ to denote the set of nonnegative integers. The Moore–Penrose pseudoinverse of a matrix A will be denoted by A†. Given the matrices A ∈ Rp×k,
+
+B ∈ Rq×k, and C ∈ Rr×k, the oblique projection of the rowspace of A on the rowspace of C along the rowspace of 
+
+B is defined as 
+
+A/ 
+
+> B
+
+C := A CT BT CC T CB T
+
+BC T BB T
+
+†!  
+
+> first rcolumns
+
+C
+
+(see [ 17 , Section 1.4.2]). Given a finite sequence of vectors 
+
+w0: T −1 = {wt}T −1 
+
+> t=0
+
+in Rq , the Hankel matrix of depth L is the (Lq ) × (T − L + 1) matrix given by 
+
+HL(w0: T −1) := 
+
+
+
+w0 w1 . . . wT −L
+
+w1 w2 . . . wT −L+1 
+
+... ... . . . ...
+
+wL−1 wL . . . wT −1
+
+ .
+
+We say that w0: T −1 is persistently exciting (PE) of order L
+
+if the Hankel matrix HL(w0: T −1) has full row rank. Given a signal (discrete-time vector-valued sequence) {wt}t∈Z+ , σ
+
+is the backward shift operator defined by (σw )t := wt+1 .Additional notation will be introduced as needed. 
+
+B. A review of the fundamental lemma 
+
+In the behavioral framework, a linear time-invariant system with q variables is identified with a linear subspace B of the space of all one-sided sequences of q-dimensional real vectors denoted as (Rq )Z+ which is shift-invariant, i.e., σB ⊆ B. One can work with various equivalent representations of 
+
+B, such as autoregressive, input/output, or input/state/output representations [ 1]. Notions like controllability or observability can be defined solely in terms of set-theoretic properties of B,without referring to a particular representation [2]. One of these structural properties pertains to the partition of the variables of B into inputs and outputs. Without getting too much into technical details, the idea is that, up to a permutation of coordinates, each trajectory w ∈ B can be partitioned into an input trajectory u : Z+ → Rm and an output trajectory 
+
+y : Z+ → Rp as w =
+
+uy
+
+
+
+, such that the input is free in the sense that 
+
+
+
+u : Z+ → Rm
+
+uy
+
+
+
+∈ B for some y : Z+ → Rp
+
+
+
+≃ (Rm)Z+
+
+,
+
+and the output is determined by the input, subject to the system laws and the initial condition. It can be shown that the number of inputs m, the number of outputs p, and the dimension n of any minimal state space realization of B are system invariants that depend only on B and not on the particular representation of B [1]. Let B be a controllable linear time-invariant system with m
+
+inputs, p outputs, and minimum state dimension n. The main result of [ 3 ], now commonly referred to as the fundamental lemma , is as follows: 
+
+Lemma 1. For each t = 1 , 2, . . . , let B| t denote the restriction of B to times s ∈ { 0, . . . , t −1}. Let a trajectory wd0: T −1 ∈ B| T
+
+be given, such that the input part of wd0: T −1 is persistently exciting of order L + n. Then B| L is equal to the column space of the Hankel matrix HL(wd0: T −1).
+
+The main message of Lemma 1 is that the length-L behavior 
+
+B| L can be reconstructed, exactly and in a representation-independent manner, from a single input/output trajectory of length T ≥ L + ( L + n)m − 1, provided the input is persistently exciting and the system is controllable. This makes the fundamental lemma a key ingredient in data-driven approaches to system simulation and control. 
+
+C. Reproducing Kernel Hilbert Spaces 
+
+In this paper, we make extensive use of vector-valued reproducing kernel Hilbert spaces. We start by describing the more familiar definition of a scalar-valued RKHS; we refer interested readers to [ 18 ] for details. Let X be a set. A Hilbert space 1 H with inner product ⟨· , ·⟩ H is an RKHS on X if its elements are functions from X to R and if for each x ∈ X there exists a positive constant Cx, such that |f (x)| ≤ Cx∥f ∥H for all f ∈ H . In other words, H is an RKHS on X if the evaluation functional δx(f ) := f (x) is bounded (hence continuous) for all 
+
+x ∈ X. To each RKHS, we can associate a reproducing kernel ,i.e., a mapping κ : X × X → R that satisfies the positivity condition 
+
+> n
+
+X
+
+> i,j =1
+
+cicj κ(xi, x j ) ≥ 0,
+
+for all n ∈ N, c1, . . . , c n ∈ R, and x1, . . . , x n ∈ X, such that 
+
+κ(·, x ) is an element of H for each x ∈ X and the following property (called the reproducing kernel property holds: 
+
+f (x) = ⟨f, κ (·, x )⟩H, for all f ∈ H , x ∈ X. 
+
+Moreover, the set {κ(·, x ) : x ∈ X} is total in H (i.e., its linear span is dense in H). The map ϕ : X → H defined by ϕ(x) := κ(·, x ) is called the canonical feature map . By the Moore–Aronszajn theorem [ 19 ], the reproducing kernel κ
+
+specifies H uniquely up to linear isomorphism. We now describe the vector-valued generalization of the above definition [ 20 ]. Let K be a Hilbert space, and let L(K)
+
+denote the Hilbert space of bounded linear operators on K with the Hilbert–Schmidt norm. Then we say that H is a K-valued RKHS on X if its elements are functions from X to K and if the evaluation map δx(f ) := f (x) from H to K is bounded 
+
+> 1Unless indicated otherwise, all Hilbert spaces in this paper are assumed to be defined over the reals. 3
+
+(hence continuous) for all x ∈ X, i.e., there exists a positive constant Cx such that ∥f (x)∥K ≤ Cx∥f ∥H. The vector-valued analogue of the reproducing kernel is an operator-valued map 
+
+κ : X × X → L (K) of the positive type, i.e., such that the inequality 
+
+> n
+
+X
+
+> i,j =1
+
+cicj ⟨κ(xi, x j )v, v ⟩K ≥ 0,
+
+holds for all n ∈ N, c1, . . . , c n ∈ R, x1, . . . , x n ∈ X, and 
+
+v ∈ K . The reproducing kernel property then takes the form 
+
+⟨f (x), v ⟩K = ⟨f, κ (·, x )v⟩H, for all f ∈ H , x ∈ X, v ∈ K 
+
+where, for each x ∈ X, κ(·, x ) is an element of the linear space L(K, H) of bounded operators from K to H. The map 
+
+x 7 → κ(·, x ) from X into L(K, H) is the (operator-valued) canonical feature map. A basic example of a vector-valued RKHS which will be used frequently in the sequel is H = L(V, W), where V and W are finite-dimensional inner-product spaces and where we equip H
+
+with the Hilbert–Schmidt inner product ⟨A, B ⟩H = Tr (A∗B).For the sake of completeness, we present the straightforward proof of the following lemma in Appendix A. 
+
+Lemma 2. H is a W-valued reproducing kernel Hilbert space on V with the operator-valued reproducing kernel κ (v, v ′) = 
+
+⟨v, v ′⟩V IW , where IW is the identity operator on W.
+
+III. N ONLINEAR SYSTEMS IN A VECTOR -V ALUED RKHS We now introduce a class of discrete-time nonlinear systems, where the nonlinearity is represented by an element of a given vector-valued RKHS of functions on the set of finite-length sequences of inputs. We will use the following notation throughout:  
+
+> •
+
+U := Rm is the space of inputs;  
+
+> •
+
+Y := Rp is the space of outputs;  
+
+> •
+
+U := UL+1 is the space of length-(L+1) input sequences, where L ∈ Z+ is a fixed lag;  
+
+> •
+
+Y := YL is the space of length-L output sequences;  
+
+> •
+
+Z := U × Y.We introduce the system model in Section III-A and the associated behavioral constructs in Section III-B , and close by discussing several examples in Section III-C. 
+
+A. System model 
+
+Let HU be a vector-valued RKHS of functions from U into Y,with the operator-valued kernel κU of positive type. 2 We con-sider systems parametrized by (L + 1) -tuples (A1, . . . , A L, g ),where A1, . . . , A L ∈ L (Y) and g ∈ H U. The input/output relation corresponding to (A1, . . . , A L, g ) is given by 
+
+yt+L +
+
+> L
+
+X
+
+> k=1
+
+Akyt+L−k = g (ut:t+L) , t ∈ Z+ (1) 
+
+> 2Here and elsewhere, all finite-dimensional vector spaces are automatically treated as Hilbert spaces with the usual Euclidean inner product.
+
+where ut:t+L is the restriction of the input sequence u ∈ U Z+
+
+to the set {t, t + 1 , . . . , t + L}. By the reproducing kernel property, we can also write 
+
+g(ut:t+L) = κU(·, u t:t+L)∗g, 
+
+where κU (·, u t:t+L)∗ ∈ L(HU, Y) is the adjoint of the canonical feature map κU (·, u t:t+L) ∈ L (Y, HU).It is also convenient to cast (1) in an alternative nonlinear regression form. For each t, let yt+ denote the output yt+L at time t + L and define the regression vectors 
+
+zt := [ uT
+
+> t
+
+, · · · , u T
+
+> t+L
+
+, y T
+
+> t
+
+, · · · yT
+
+> t+L−1
+
+]T ∈ Z , (2) which is in analogy to the corresponding construct for linear systems [ 21 , 22 ]. As we now show, we can introduce a Y-valued RKHS HZ of functions from Z into Y, such that the autoregressive nonlinear model of (1) can be represented as 
+
+yt+ = f (zt), (3) for some f ∈ H Z that depends on (A1, . . . , A L, g ).To that end, let us first express (1) as 
+
+yt+L = A−yt:t+L−1 + g (ut:t+L)=: f (ut:t+L, y t:t+L−1) , (4) where A− ∈ L (Y, Y) is the linear operator defined by 
+
+A−y := − A1 A2 . . . AL
+
+ y, y ∈ Y.
+
+By Lemma 2, HY = L(Y, Y) is a Y-valued RKHS on Y with the reproducing kernel κY (y, y ′) = ( yTy′)IY . Consider the direct-sum Hilbert space HZ = HU ⊕ H Y, whose elements 
+
+f : Z → Y are pairs (g, h ) where g ∈ H U, h ∈ H Y, and for each z = ( u, y ) ∈ Z , f (z) = g(u) + h(y). The inner product in HZ is 
+
+⟨f1, f 2⟩HZ = ⟨g1, g 2⟩HU + ⟨h1, h 2⟩HY ,
+
+for f1 = ( g1, h 1), f2 = ( g2, h 2). Since HU, HY are Y-valued RKHSs with operator-valued kernels κU and κY, HZ is also an RKHS with operator-valued kernel defined by 
+
+κZ (z1, z 2) = κU(u1, u 2) + κY (y1, y 2) ,z1 = ( u1, y 1) , z 2 = ( u2, y 2) ∈ Z .
+
+This can be proved as follows: for any f ∈ H Z and v ∈ Y ,we have 
+
+⟨f (z), v ⟩Y = ⟨g(z), v ⟩Y + ⟨h(z), v ⟩Y
+
+= ⟨g, κ U(·, u )v⟩HU + ⟨h, κ Y(·, y )v⟩HY
+
+= ⟨f, (κU(·, u ) + κY(·, y )) v⟩HZ ,
+
+where the second line follows from the reproducing kernel property. In particular, (3) holds with the function f defined in (4). 4
+
+B. Behaviors 
+
+In this section, we introduce several behavioral constructs related to the system model of Section III-A. Given (A1, . . . , A L, g ), define the operator P (σ) := A0σL +PLk=1 AkσL−k (with A0 = IY ), where σ is the shift operator acting on output sequences. Then (1) is equivalent to 
+
+(P (σ)y) ( t) = κU (·, u t:t+L)∗ g, t ∈ Z+, (5) and we can define the behavior of (A1, . . . , A L, g ) as the following subset of the space of all input/output sequences: 
+
+B(A1, . . . , A L, g )
+
+≡ B (P, g ):= 
+
+ uy
+
+
+
+∈ (U × Y )Z+ (5) holds for all t ∈ Z+
+
+
+
+.
+
+(6) For t ∈ Z+, the restriction of the behavior B(P, g ) to the finite time interval {t, . . . , t + L} is defined by 
+
+B(P, g )|t:t+L =
+
+ ut:t+L
+
+yt:t+L
+
+
+
+∃
+
+¯u
+
+¯y
+
+
+
+∈ B (P, g )
+
+such that 
+
+¯ut:t+L
+
+¯yt:t+L
+
+
+
+=
+
+ut:t+L
+
+yt:t+L
+
+ 
+
+.
+
+When t = 0, we will use B(P, g )|L as shorthand for 
+
+B(P, g )|t:t+L.Next, we turn to the nonlinear regression form in (3) . Recall that the identity 
+
+f (z) = κZ (·, z )∗f
+
+holds by the reproducing kernel property. Define the operator 
+
+R : ( U × Y )Z+ → L (HZ , Y) × Y by 
+
+R
+
+uy
+
+
+
+:= ( κZ (·, z 0)∗, y 0+ ),
+
+where 
+
+z0 = [ uT
+
+> 0
+
+, · · · , u T
+
+> L
+
+, y T
+
+> 0
+
+, · · · yT
+
+> L−1
+
+]T, y0+ = yL, (7) is the regression vector at time t = 0 [cf. Eq. (2)] and y0+ is the output at time t = L. We say that (H, y ) ∈ L (HZ , Y) × Y 
+
+is an input-output (i/o) pair of the system (3) if Hf = y. This leads naturally to the following behavioral description: 
+
+B(f ) := 
+
+( uy
+
+
+
+∈ (U × Y )Z+ Rσ t
+
+uy
+
+
+
+is an i/o pair of (3) for each t ∈ Z+
+
+)
+
+.
+
+When (A1, . . . , A L, g ) and f are related via (3) , it is easily verified that 
+
+B(A1, . . . , A L, g )|L =
+
+ u0: L
+
+y0: L
+
+
+
+κZ (·, z 0)∗f = y0+
+
+
+
+, (8) where z0 and y0+ are defined in (7). 
+
+C. Examples 1) LTI Systems: Let HU consist of all linear operators from 
+
+U into Y, i.e., HU = L(U, Y). By Lemma 2, this is a Y-valued RKHS on U. Any g ∈ H U can be represented as g(u0: L) = 
+
+BLu0 + · · · + B0uL for some linear operators B0, . . . , B L ∈L(U, Y). Then Eq. (1) describes a linear autoregressive model of order L:
+
+yt+L +
+
+> L
+
+X
+
+> k=1
+
+Akyt+L−k =
+
+> L
+
+X
+
+> l=0
+
+Blut+L−l.
+
+The operator-valued kernel map is given by 
+
+κU(u0: L, v 0: L) = ⟨u0: L, v 0: L⟩UIY ,
+
+where 
+
+⟨u0: L, v 0: L⟩U =
+
+> L
+
+X
+
+> l=0
+
+uT 
+
+> l
+
+vl,
+
+is the l2 inner product on U viewed as a direct sum of L + 1 
+
+Hilbert spaces U = Rm with the Euclidean inner product 
+
+⟨u, v ⟩ = uTv.
+
+2) Volterra series: When Ak = 0 for all k = 1 , · · · , L , the nonlinear autoregressive model in (1) reduces to 
+
+yt+L = g(ut:t+L), ∀t ∈ N. (9) This system has finite memory of length L+1 , since the output at each time t ≥ L is determined by the inputs in the finite time window {t, t − 1, . . . , t − L} of length L + 1 . Systems of this type are often represented using Volterra series. De Figueiredo and Dwyer [ 23 ] used the formalism of weighted Fock spaces to connect Volterra series representation to the RKHS framework. Let us assume for simplicity that p = 1 (i.e., the outputs yt
+
+are scalar). Let ρ = ( ρk)k≥0 be a sequence of positive reals, such that the infinite series 
+
+q(λ) = 
+
+> ∞
+
+X
+
+> k=0
+
+1
+
+k!ρk
+
+λk,
+
+converges for all λ ∈ R, and let HU denote the RKHS of functions from U into R with the reproducing kernel 
+
+κU(u0: L, v 0: L) := q(⟨u0: L, v 0: L⟩U).
+
+Let h0 and (hk(i1, . . . , i k) : k ∈ N, i 1, . . . , i k ∈ { 0, . . . , L })
+
+be a collection of real coefficients satisfying the condition 
+
+> ∞
+
+X
+
+> k=0
+
+ρk
+
+k! ∥hk∥2 
+
+> k
+
+< ∞,
+
+where ∥h0∥0 := |h0| and 
+
+∥hk∥k := 
+
+> L
+
+X
+
+> i1=0
+
+· · · 
+
+> L
+
+X 
+
+> ik=1
+
+|hk(i1, . . . , i k)|2
+
+!1/2
+
+for k = 1 , 2, . . . . Then any function g : U → R of the form 
+
+g(u0: L) = h0 +
+
+> ∞
+
+X
+
+> k=1
+
+X 
+
+> i1,...,i k∈{ 0,...,L }
+
+hk(i1, . . . , i k)
+
+> k
+
+Y
+
+> j=1
+
+uij
+
+is an element of HU [23]. 5
+
+Removing the restriction A1 = · · · = AL = 0 yields a broader class of nonlinear systems that subsumes the models studied in [23]. 
+
+3) State-space models: Consider a Hammerstein state-space model of the form 
+
+xt+1 = Ax t + Bψ 1 (ut) ,yt = Cx t + Dψ 2 (ut) , (10) where ψ1, ψ 2 : U → Rq are two (nonlinear) functions. We assume that the state xt takes values in Rn, so A ∈ Rn×n,
+
+B ∈ Rn×q , C ∈ Rp×n, and D ∈ Rp×q . We can obtain an input-output representation (1) from the state-space representation (10) as follows. Introduce the Markov parameters Mj := CA j B ∈ Rp×q for 
+
+j ≥ 0. Define the L-step controllablity matrix CL, the L-step observability matrix OL, the reversed L-step controllability matrix ∆L, and the modified block Toeplitz operator eTL as 
+
+CL := B AB A2B · · · AL−1B ,
+
+OL := 
+
+
+
+CCA 
+
+...
+
+CA L−1
+
+ ,
+
+∆L := AL−1B · · · AB B ,
+
+eTL =
+
+
+
+0 0 · · · 0 0
+
+M0 0 · · · 0 0
+
+M1 M0 · · · 0 0
+
+... ... · · · ... ...
+
+ML−2 ML−2 · · · M0 0
+
+
+
+.
+
+(11) Let us assume that L ≥ n is such that rank( OL) = n. Then from (10), for k = 0 , · · · , L , we have 
+
+yt−L+k =CA kxt−L +
+
+> k−1
+
+X
+
+> j=0
+
+Mj ψ1(ut−L+k−1−j )+ Dψ 2(ut−L+k).
+
+(12) Define the vectors 
+
+Yt := 
+
+
+
+yt−L
+
+...
+
+yt−1
+
+ ∈ RpL ,Et := 
+
+
+
+ψ1(ut−L)
+
+...
+
+ψ1(ut−1)
+
+ ∈ RqL ,Ft := 
+
+
+
+ψ2(ut−L)
+
+...
+
+ψ2(ut−1)
+
+ ∈ RqL .
+
+Then, stacking the equations in (12) for k = 0 to k = L − 1,we have 
+
+Yt = OLxt−L + eTLEt + ( IL ⊗ D) Ft.
+
+Since rank( OL) = n, we can solve for xt−L:
+
+xt−L = O†
+
+> L
+
+
+
+Yt − eTLEt − (IL ⊗ D) Ft
+
+
+
+. (13) On the other hand, when k = L, we have 
+
+yt = CA Lxt−L +
+
+> L−1
+
+X
+
+> j=0
+
+Mj ψ1(ut−1−j ) + Dψ 2(ut).
+
+Plugging in the expression for xt−L from (13), 
+
+yt = CA LO†
+
+> L
+
+
+
+Yt − eTLEt − (IL ⊗ D) Ft
+
+
+
++
+
+> L−1
+
+X
+
+> j=0
+
+Mj ψ1(ut−1−j ) + Dψ 2(ut).
+
+The matrix Q := CA LO† 
+
+> L
+
+∈ Rp×pL can be written in block form as Q = [ QL−1, · · · , Q 0] with Qi ∈ Rp×p for 
+
+i = 0 , · · · , L − 1. Setting Ak := −Qk for k = 1 , · · · , L − 1
+
+and moving them to the LHS of the above equation, we have 
+
+yt +
+
+> L
+
+X
+
+> k=1
+
+Akyt−k =
+
+> L−1
+
+X
+
+> j=0
+
+Mj ψ1(ut−1−j ) − Q eTLEt
+
+− Q (IL ⊗ D) Ft + Dψ 2(ut).
+
+With M = [ ML−1, · · · M0] ∈ Rp×mL , we can write the RHS as a function of on ut−L:t as 
+
+yt +
+
+> L
+
+X
+
+> k=1
+
+Akyt−k
+
+=
+
+h
+
+M − Q eTL −Q (IL ⊗ D) D
+
+i| {z }
+
+> =: S
+
+
+
+Et
+
+Ft
+
+ψ2(ut)
+
+| {z }
+
+> =: ψ(ut−L:t)
+
+=: g(ut−L:t),
+
+where S ∈ Rp×q(2 L+1) , ψ(ut−L:t) ∈ Rq(2 L+1) , and g defined above is a mapping from U into Y = Rp. Assume now that ψ1, ψ 2 are elements of some Rq -valued RKHS H on 
+
+U. Thus, by definition, the evaluation maps ψ1 7 → ψ1(u) and 
+
+ψ2 7 → ψ2(u) are bounded for each u ∈ U . Consider the direct-sum Hilbert space K := H⊕(2 L+1) with inner product 
+
+⟨h, h ′⟩H⊕(2 L+1) = P2Lj=0 ⟨hj , h ′ 
+
+> j
+
+⟩H for h = h0 ⊕ · · · ⊕ h2L.The function g defined above is an element of the linear space 
+
+F of functions f : U → Y of the form 
+
+f (u0: L) = S0h0(u0) + 
+
+> L
+
+X
+
+> j=1
+
+Sj hj (uj ) + 
+
+> 2L
+
+X
+
+> j=L+1
+
+Sj hj (uj−L),
+
+where h = h0 ⊕ · · · ⊕ h2L ranges over K and where 
+
+S0, S 1, . . . , S 2L are linear operators from Rq into Y = Rp.For each u0: L, the evaluation map f 7 → f (u0: L) is continuous on F. Thus, g belongs to some Y-valued RKHS on U.IV. B EHAVIOR REPRESENTER THEOREM VIA MINIMUM 
+
+NORM INTERPOLATION 
+
+Let (ud 
+
+> t
+
+, y d 
+
+> t
+
+)T +L−1 
+
+> t=0
+
+be a finite input-output trajectory gener-ated by an unknown system of the form (1) . In other words, there exists an unknown (L + 1) -tuple (A1, . . . , A L, g ), such that ud0: T +L−1
+
+yd0: T +L−1
+
+
+
+∈ B (A1, . . . , A L, g )|T +L−1.6
+
+The problem of data-driven behavioral modeling is to reconstruct the unknown length-L behavior segment 
+
+B(A1, . . . , A L, g )|L from the data without explicitly estimating 
+
+A1, . . . , A L, g .Let f be the regression representation of (A1, . . . , A L, g ) as in (3) . Using the definitions of zt in (2) and yt+ := yt+L,we can represent the data (ud 
+
+> t
+
+, y d 
+
+> t
+
+)T +L−1 
+
+> t=0
+
+equivalently by 
+
+(zd 
+
+> t
+
+, y d 
+
+> t+
+
+)T −1 
+
+> t=0
+
+, such that f (zd 
+
+> t
+
+) = yt+ holds for all t =0, . . . , T − 1. In other words, for each t = 0 , . . . , T − 1,
+
+(κZ (·, z d 
+
+> t
+
+)∗, y d 
+
+> t+
+
+) is a valid i/o pair for (3) . In view of the equivalence (8) , the question we would like to answer is whether we can reconstruct the set of all valid i/o pairs of the unknown f from the given data. The following result is easy to establish: 
+
+Theorem 3. For any collection of real coefficients c0, . . . , c T −1,PT −1 
+
+> j=0
+
+cj κZ (·, z d 
+
+> j
+
+)∗, PT −1 
+
+> j=0
+
+cj yd
+
+> j+
+
+
+
+is a valid i/o pair for the model (3) .
+
+Theorem 3 shows that any linear combination of  κZ (·, z d 
+
+> t
+
+)∗, y d
+
+> t+
+
+T −1 
+
+> t=0
+
+is a valid i/o pair of (3) . We now analyze the reverse direction by relating it to minimum-norm interpolation in a vector-valued RKHS [ 24 ]. Let finite input-output data {(zi, y i)}N −1 
+
+> i=0
+
+⊂ Z × Y be given and consider the following problem: minimize ∥f ∥2
+
+> HZ
+
+subject to f (zj ) = yj , j = 0 , · · · , N − 1. (14) Define the sampling operator SN : HZ → YN by 
+
+SN f = (f (z0), · · · , f (zN −1)) . By [24 , Theorem 3], if 
+
+(y0, . . . , y N −1) ∈ range (SN ), then the minimum norm inter-polation problem in (14) has a unique solution given by 
+
+fN = 
+
+> N−1
+
+X
+
+> j=0
+
+κZ (·, z j )vj , (15) where (v0, . . . , v N −1) ∈ Y N solves the system of equations  
+
+> N−1
+
+X
+
+> l=0
+
+κZ (zj , z l)vl = yj , j = 0 , . . . , N − 1. (16) We can express this more succinctly as follows. Since Y = Rp, for each z ∈ Z we can view κZ (·, z ) as a mapping from Rp into HZ , i.e., for each v ∈ Rp, κZ (·, z )v ∈HZ . Define the mapping ΦN : RpN → H Z as 
+
+ΦN ¯v = 
+
+> N−1
+
+X
+
+> j=0
+
+κZ (·, z j )vj ,
+
+where ¯v = ( v0, · · · , v N −1) ∈ RpN . In particular, fN = Φ N ¯v,where ¯v is the solution of (16). Next, define the block kernel matrix KN := Φ ∗ 
+
+> N
+
+ΦN ∈ RpN ×pN whose blocks are given by [KN ]ij = κZ (zi, z j ) for i, j = 0 , · · · , N − 1, as well as the block row vector kN (z) := κZ (·, z )∗ΦN ∈ Rp×pN with blocks [kN (z)] j = κZ (z, z j ) for j = 0 , · · · , N − 1. Using the reproducing property and the above definitions, we can write 
+
+fN (z) = κZ (·, z )∗fN
+
+= κZ (·, z )∗ΦN K† 
+
+> N
+
+yN
+
+= kN (z)K† 
+
+> N
+
+YN , (17) where YN := [yT
+
+> 0
+
+, . . . , y T 
+
+> N−1
+
+]T. Finally, for each z define 
+
+ΣN (z) ∈ Rp×p as 
+
+ΣN (z) := κZ (z, z ) − kN (z)K† 
+
+> N
+
+kN (z)∗. (18) We now present two key lemmas. The first one is a structural characterization of ΣN :
+
+Lemma 4. For each z, the operator ΣN (z) is symmetric and positive semi-definite, and ΣN (z) = 0 iff range ( κZ (·, z )) ⊆
+
+range(Φ N ).
+
+The second one is an extension of a result of Liang and Recht [25 , Lemma 1] to the minimum-norm interpolation problem in the vector-valued RKHS HZ :
+
+Lemma 5. Suppose that the problem (14) admits unique solutions fN and fN +1 given the respective data {(zi, y i)}N −1
+
+> i=0
+
+and {(zi, y i)}N −1 
+
+> i=0
+
+∪ { (zN , y N )}. Then the following holds: 1) If ΣN (zN ) = 0 , then yN − fN (zN ) = 0 .2) If ΣN (zN ) ≻ 0, we have 
+
+∥fN +1 ∥2 
+
+> HZ
+
+− ∥ fN ∥2
+
+> HZ
+
+= ΣN (zN )−1/2 (yN − fN (zN )) 2
+
+> Y
+
+. (19) Lemma 5 characterizes the error incurred when we use 
+
+byN = fN (zN ) as a predictor of yN = fN +1 (zN ), where 
+
+fN is the solution to the minimum norm interpolation problem on {(zi, y i)}N −1 
+
+> i=0
+
+. In particular, the prediction is exact when 
+
+ΣN (zN ) = 0 . If ΣN (zN ) is nonzero but still positive definite, the identity (19) expresses the squared norm of the weighted prediction error ΣN (zN )−1/2(yN − byN ) in terms of the norms of fN +1 and fN .In a scalar-valued RKHS, ΣN (z) is equal to 
+
+dist 2(κZ (·, z ), span( κZ (·, z 0), · · · , κ Z (·, z N −1))) = min      
+
+> h∈span( κZ(·,z 0),··· ,κ Z(·,z N−1))
+
+∥κZ (·, z ) − h∥2 
+
+> HZ
+
+, (20) which is the squared distance from κZ (·, z ) to the linear span of kernel functions centered at the observed samples [ 25 ]. While Lemma 5 applies to any vector-valued RKHS of Y-valued functions on HZ , a natural choice of the operator-valued kernel could be κZ (z1, z 2) = κs 
+
+> Z
+
+(z1, z 2)IY , where κs 
+
+> Z
+
+is a scalar-valued kernel function. Let Ks 
+
+> N
+
+= [ κs 
+
+> Z
+
+(zi, z j )] N −1 
+
+> i,j =0
+
+∈ RN ×N
+
+be the Gram matrix defined by the scalar-valued kernel κs
+
+> Z
+
+on the points z0, . . . , z N −1, let ks 
+
+> N
+
+(z) ∈ R1×N be the row vector with [ks 
+
+> N
+
+(z)] j = κs 
+
+> Z
+
+(z, z j ), KN = Ks 
+
+> N
+
+⊗ IY , and 
+
+KN (zN ) = ks 
+
+> N−1
+
+(z) ⊗ IY . Finally, define 
+
+sN := dist {span ( κs 
+
+> Z
+
+(·, z 0), · · · , κ s 
+
+> Z
+
+(·, z N −1)) , κ s 
+
+> Z
+
+(·, z N )} ,
+
+where the distance is computed in the scalar-valued RKHS induced by κs 
+
+> Z
+
+, cf. (20) . Then, using the properties of the Kronecker product ⊗, we can compute ΣN (zN ) as follows: 
+
+ΣN (zN )= κZ (zN , z N ) − KN (zN )K† 
+
+> N
+
+KN (zN )∗
+
+= κs 
+
+> Z
+
+(zN , z N )IY
+
+−  ks 
+
+> N−1
+
+(zN ) ⊗ IY
+
+∗  Ks  
+
+> N−1
+
+⊗ IY
+
+†  ks 
+
+> N−1
+
+(zN ) ⊗ IY
+
+7
+
+=  κs 
+
+> Z
+
+(zN , z N ) − ks 
+
+> N−1
+
+(zN )T(Ks 
+
+> N−1
+
+)†ks 
+
+> N−1
+
+(zN ) IY
+
+= s2 
+
+> N
+
+IY .
+
+Hence, the equality in Lemma 5 reduces to 
+
+s2
+
+> N
+
+
+
+∥fN +1 ∥2 
+
+> HZ
+
+− ∥ fN ∥2
+
+> HZ
+
+
+
+= ∥yN − fN (zN )∥2 
+
+> Y
+
+.
+
+This indicates that, given a new (zN , y N ), if sN = 0 , we have 
+
+∥yN − fN (zN )∥22 = 0 . Given Lemmas 4 and 5, the following is immediate: 
+
+Theorem 6 (Behavior Representer Theorem) . Let  zd 
+
+> t
+
+, y d
+
+> t+
+
+T −1
+
+> t=0
+
+be a length-T trajectory of regression and output vectors for an unknown f⋆ ∈ H Z , i.e., 
+
+yd 
+
+> t+
+
+= f⋆(zd 
+
+> t
+
+) for each t = 0 , . . . , T − 1.
+
+Let [uT
+
+> 0: L
+
+, y T
+
+> 0: L
+
+]T be an element of B(f⋆)|L, and let (z0, y 0+ )
+
+be computed according to (7) . Then the following holds: 1) If ΣT (z0) = 0 , then y0+ = kT (z0)K† 
+
+> T
+
+YT , where KT and 
+
+YT are computed from the data according to (17) and 
+
+YT := [( yd0+ )T, · · · , (yd(T −1) + )T]T.2) If ΣT (z0) ≻ 0, then 
+
+∥ΣT (z0)−1/2(y0+ − kT (z0)K† 
+
+> T
+
+YT )∥2
+
+> Y
+
+= ∥fT +1 ∥2 
+
+> HZ
+
+− ∥ fT ∥2
+
+> HZ
+
+≤ ∥ f⋆∥2 
+
+> HZ
+
+− ∥ fT ∥2 
+
+> HZ
+
+,
+
+(21) 
+
+where fT (respectively, fT +1 ) is the minimum-norm interpolator of {(zd 
+
+> t
+
+, y d 
+
+> t+
+
+)}T −1 
+
+> t=0
+
+(respectively, of 
+
+{(zd 
+
+> t
+
+, y d 
+
+> t+
+
+)}T −1 
+
+> t=0
+
+∪ { (z0, y 0+ )}.
+
+The condition ΣT (z0) = 0 describes the setting when exact reconstruction is possible. By Lemma 4, this will be the case for all pairs (z, y + = f⋆(z)) for which range( κZ (·, z )) ⊆
+
+range(Φ T )}. If z0 does not satisfy this condition but ΣT (z0) ≻
+
+0, we can quantify the reconstruction error using (21) . For LTI systems, a sufficient condition for the existence of unique minimum-norm interpolating solutions is  
+
+> T−1
+
+X
+
+> t=0
+
+zd 
+
+> t
+
+(zd 
+
+> t
+
+)T ≻ 0,
+
+which is the classical persistence of excitation condition [ 21 , 22 ]. Exact reconstruction is possible when z0 ∈
+
+span( zd0 , . . . , z d 
+
+> T−1
+
+). In the nonlinear setting, the condition 
+
+ΣT (z0) = 0 plays an analogous role via Lemma 4. It is useful to compare Theorem 6 with the fundamental lemma for LTI systems (cf. Section II). The latter characterizes behaviors through the image of the Hankel matrix built from observed input-output trajectories. Theorem 6 of this section is conceptually analogous, but is phrased in terms of a different data representation based on regression vectors, which are formed from inputs and past outputs. V. S UBSPACE IDENTIFICATION IN THE VECTOR -V ALUED 
+
+RKHS S ETTING 
+
+We now revisit systems that arise from state-space repre-sentations, as in Section III-C 3. We will focus on a particular class of such systems, namely ones that can be represented as 
+
+xt+1 = Ax t + Bϕ (ut) ,yt = Cx t + Dϕ (ut) , (22) where ϕ : U → Rq is a mapping from the input space U = Rm
+
+into Rq .Given (A, B, C, D ), we construct the L-step controllability matrix CL, the L-step observability matrix OL, the reversed 
+
+L-step controllability matrix ∆L, and the L-step modified Toeplitz matrix eTL exactly as in (11) . The L-step Toeplitz matrix is given by 
+
+TL := eTL + IL ⊗ D. 
+
+Let (ud 
+
+> t
+
+, y d
+
+> t
+
+}T −1 
+
+> t=0
+
+denote input/output data of length T
+
+collected from measurements of (22) starting from some initial condition x0 ∈ Rn. In the LTI case (i.e., when q = m and 
+
+ϕ is the identity map), subspace identification methods [ 17 ]allow one to reconstruct, under certain regularity conditions, the state trajectory xL, . . . , x T −L and the observability matrix 
+
+OL directly from the input/output data without knowledge of the system matrices A, B, C, D .In this section, we show that these methods can be extended to the set-up of (22) when ϕ is an element of a suitable vector-valued RKHS on U. Moreover, we obtain a result in the spirit of the fundamental lemma for LTI systems, namely that the set of all valid length-L input/output trajectories of (22) can be reconstructed directly from the data (ud 
+
+> t
+
+, y d
+
+> t
+
+}T −1 
+
+> t=0
+
+without an intermediate system identification step. 
+
+A. The construction of a vector-valued RKHS 
+
+There are various ways of instantiating the state-space model (22) in the vector-valued RKHS framework presented in Section III-C , i.e., choosing a suitable Rq -valued RKHS Hκ on the input space U with reproducing kernel κ so that ϕ ∈ H κ.Perhaps the simplest one is to define the operator-valued map 
+
+κ : U × U → L (Rq ) by 
+
+κ(u, u ′) := ϕ(u) ⊗ ϕ(u′),
+
+which is readily seen to be of the positive type since, for any 
+
+n, any α1, . . . , α n ∈ R, any u1, . . . , u n ∈ U , and any v ∈ Rq ,
+
+> n
+
+X
+
+> i,j =1
+
+αiαj ⟨κ(ui, u j )v, v ⟩Rq
+
+=
+
+> n
+
+X
+
+> i,j =1
+
+αiαj ⟨ϕ(ui), v ⟩Rq ⟨ϕ(uj ), v ⟩Rq
+
+=
+
+> n
+
+X
+
+> i=1
+
+αi⟨ϕ(ui), v ⟩Rq
+
+!2
+
+≥ 0.
+
+By [ 20 , Prop. 2.3], there is a unique Rq -valued RKHS Hκ of functions on U with reproducing kernel κ. The kernel κ has the convenient property 
+
+⟨ϕ(u), ϕ (u′)⟩Rq = Tr (κ(u, u ′)) . (23) 
+
+B. Subspace identification using RKHS methods 
+
+We now have all the ingredients in place for putting together a subspace identification framework analogous to the one for LTI systems [17]. 8
+
+Let the input/output data (ud 
+
+> t
+
+, y d
+
+> t
+
+}T −1 
+
+> t=0
+
+be given. Introduce the Hankel-type block matrices 
+
+"Yp
+
+Yf
+
+#
+
+:= 
+
+
+
+yd0 · · · yd 
+
+> T−2L
+
+... ...
+
+yd 
+
+> L−1
+
+· · · yd 
+
+> T−L−1
+
+yd 
+
+> L
+
+· · · yd 
+
+> T−L
+
+... ...
+
+yd2L−1 · · · yd 
+
+> T−1
+
+
+
+. (24) and 
+
+"U ϕ
+
+> p
+
+U ϕ
+
+> f
+
+#
+
+:= 
+
+
+
+ϕ  ud0
+
+ · · · ϕ  ud 
+
+> T−2L
+
+
+
+... ...
+
+ϕ  ud
+
+> L−1
+
+ · · · ϕ  ud 
+
+> T−L−1
+
+
+
+ϕ  ud
+
+> L
+
+ · · · ϕ  ud 
+
+> T−L
+
+
+
+... ...
+
+ϕ  ud2L−1
+
+ · · · ϕ  ud 
+
+> T−1
+
+
+
+, (25) where p and f designates a partition into “past” and “future” data. Let Hp and Hf denote, respectively, the concatenations of Up and Yp and of Uf and Yf :
+
+Hp := 
+
+Up
+
+Yp
+
+
+
+, Hf := 
+
+Uf
+
+Yf
+
+
+
+.
+
+Similar to the linear case, let Π denote the oblique projection of the rowspace of Yf onto the rowspace of Hp along the rowspace of Uf :
+
+Π := Yf / 
+
+> Uϕ
+> f
+
+Hp,
+
+which satisfies rank(Π) ≤ T − 2L + 1 . Let the SVD of Π be given by 
+
+Π = U1 U2
+
+ Σ1 00 0
+
+  V T
+
+> 1
+
+V T
+
+> 2
+
+
+
+= U1Σ1V T 
+
+> 1
+
+.
+
+Following [ 17 ], let Xf := xL xL+1 . . . xT −L
+
+, where 
+
+xt is the state trajectory of (22) determined by the initial state 
+
+x0 and the inputs ud 
+
+> t
+
+. In the LTI case, Xf can be recovered, up to a similarity transformation, via the formula Xf = Σ 1/21 V T
+
+> 1
+
+(see, e.g., [ 17 , Theorem 2, Chapter 2]). In fact, the same result holds in the present nonlinear case (the idea is to view vk := 
+
+ϕ(uk) as an input to an LTI system given by (A, B, C, D )). Given the input/output data, let 
+
+U ϕ := 
+
+
+
+ϕ  ud0
+
+ · · · ϕ  ud 
+
+> T−2L−n
+
+
+
+... ...
+
+ϕ  ud2L−1
+
+ · · · ϕ  ud 
+
+> T−n
+
+
+
+ϕ  ud2L
+
+ · · · ϕ  ud 
+
+> T−n
+
+
+
+... ...
+
+ϕ  ud2L−1+ n
+
+ · · · ϕ  ud 
+
+> T−1
+
+
+
+, (26) and form the input Gram matrix of depth 2L + n as Ku := (U ϕ)TU ϕ with entries [Ku]ij = P2L+n−1 
+
+> k=0
+
+κ
+
+
+
+ud
+
+> i+k
+
+, u d
+
+> j+k
+
+
+
+.The following theorem is a straightforward adaptation of subspace identification results for LTI systems: 
+
+Theorem 7. Let ud 
+
+> i
+
+, y d  
+
+> i
+> T−1
+> i=0
+
+be a sequence of length T
+
+generated by the system (22) , where (A, B ) is controllable and (A, C ) is observable. Suppose that the input sequence is such that rank( Ku) = (2 L + n)q. Then, Π = OLXf and 
+
+Xf = Σ 1/21 V T 
+
+> 1
+
+.
+
+The process of computing the oblique projection and con-structing the state vector can be carried out using Gram matrices computed from pairwise kernel evaluations κ, without explicitly using ϕ. Specifically, define the Gram matrices 
+
+Ku 
+
+> p
+
+=  U ϕ
+
+> p
+
+T
+
+U ϕ 
+
+> p
+
+, Ku 
+
+> f
+
+=
+
+
+
+U ϕ
+
+> f
+
+T
+
+U ϕ 
+
+> f
+
+, and Ky 
+
+> p
+
+= YpTYp, whose entries are 
+
+[Ku 
+
+> p
+
+]ij =
+
+> L−1
+
+X
+
+> k=0
+
+ϕ(ud
+
+> i+k
+
+), ϕ (ud
+
+> j+k
+
+) RM
+
+> (a)
+
+=
+
+> L−1
+
+X
+
+> k=0
+
+Tr  κ  ud
+
+> i+k
+
+, u d
+
+> j+k
+
+ ,
+
+[Ku 
+
+> f
+
+]ij =
+
+> L−1
+
+X
+
+> k=0
+
+ϕ(ud
+
+> i+L+k
+
+), ϕ (ud
+
+> j+L+k
+
+) RM
+
+> (b)
+
+=
+
+> L−1
+
+X
+
+> k=0
+
+Tr  κ  ud
+
+> i+L+k
+
+, u d
+
+> j+L+k
+
+ ,
+
+[Ky 
+
+> p
+
+]ij =
+
+> L−1
+
+X
+
+> k=0
+
+yd
+
+> i+k
+> T
+
+yd
+
+> j+k
+
+,
+
+respectively, where (a) and (b) follow from (23). The oblique projection can be computed as 
+
+Π = Yf / 
+
+> Uϕ
+> f
+
+Hp
+
+=Yf
+
+h
+
+HpT (U ϕ 
+
+> f
+
+)T
+
+i "
+
+Hp
+
+U ϕ
+
+> f
+
+# h
+
+HpT (U ϕ 
+
+> f
+
+)T
+
+i!† Hp
+
+0
+
+
+
+=Yf
+
+h
+
+HpT (U ϕ 
+
+> f
+
+)T
+
+i "
+
+Hp
+
+U ϕ
+
+> f
+
+#! † h
+
+HpT (U ϕ 
+
+> f
+
+)T
+
+i Hp
+
+0
+
+
+
+=Yf
+
+ Ku 
+
+> p
+
++ Ky 
+
+> p
+
++ Ku
+
+> f
+
+†  Ku 
+
+> p
+
++ Ky
+
+> p
+
+ ,
+
+(27) where the second-to-last line follows from the identity 
+
+x(xTx)† = ( xx T)†x.To construct the state vector, instead of directly performing SVD on Π, we construct U , Σ, and V such that Π = U ΣV T
+
+via eigendecomposition of ΠTΠ and ΠΠ T. Denote Kp,f := 
+
+Ku 
+
+> p
+
++ Ky 
+
+> p
+
++ Ku 
+
+> f
+
+and Kp := Ku 
+
+> p
+
++ Ky 
+
+> p
+
+and notice that we have 
+
+ΠTΠ = KT
+
+> p
+
+
+
+K†
+
+> p,f
+
+T
+
+(Yf TYf ) K† 
+
+> p,f
+
+Kp
+
+=KT
+
+> p
+
+
+
+K†
+
+> p,f
+
+T
+
+Ky 
+
+> f
+
+K† 
+
+> p,f
+
+Kp
+
+=KT
+
+> p
+
+K† 
+
+> p,f
+
+Ky 
+
+> f
+
+K† 
+
+> p,f
+
+Kp.
+
+Then, we can obtain 
+
+
+
+σ1/2 
+
+> i
+
+, v i
+
+
+
+as the eigenvalues and right eigenvectors of ΠTΠ. Likewise, we have 
+
+ΠΠ T =Yf K† 
+
+> p,f
+
+KpKT
+
+> p
+
+K† 
+
+> p,f
+
+Yf T.9
+
+Denote Γ := K† 
+
+> p,f
+
+KpKT
+
+> p
+
+K† 
+
+> p,f
+
+. Then, we have 
+
+Yf ΓYf T (Yf zi) = σ1/2 
+
+> i
+
+(Yf zi) ⇔ Γ Yf TYf
+
+| {z } 
+
+> =: Ky
+> f
+
+ξi = σ1/2 
+
+> i
+
+ξi.
+
+That is, ΠΠ T = Yf ΓYf T has an eigenvector ui = Yf ξi
+
+associated with eigenvalue σ1/2 
+
+> i
+
+iff ξi is an eigenvector of ΓKy
+
+> f
+
+corresponding to the same eigenvalue. With U = [ u1, · · · , u n],
+
+Σ = diag (σ1, · · · , σ n), and V = [ v1, · · · , v n], we can define the extended observability matrix OL and states Xf (up to a similarity transform) as 
+
+OL = U Σ1/2, Xf = V Σ1/2.
+
+The following corollary is immediate from the above process. 
+
+Corollary 8 (Construction of state vectors) . Suppose that (A, B ) is controllable and (A, C ) is observable, i.e., 
+
+rank( OL) = rank( CL) = n. Let input-output data 
+
+{(ud 
+
+> t
+
+, y d 
+
+> t
+
+)}T −1 
+
+> t=0
+
+of length T be given. Suppose the input sequence is such that rank( Ku
+
+> 2L+n
+
+) = (2 L+n)q. Let (Σ 1/2, V )
+
+be the eigenpair of KT
+
+> p
+
+
+
+Kp,f
+
+> −1
+
+T
+
+Ky 
+
+> f
+
+Kp,f
+
+> −1
+
+Kp, and 
+
+(Σ 1/2, Ξ) be the eigenpair of Kp,f
+
+> −1
+
+KpKT
+
+> p
+
+
+
+Kp,f
+
+> −1
+
+T
+
+Ky 
+
+> f
+
+.Define U = Yf Ξ. Then the extended observability matrix is 
+
+OL = U Σ1/2, and the state sequence is Xf = V Σ1/2 (both up to a similarity transformation). 
+
+The next result explicitly connects subspace identification to an RKHS version of the fundamental lemma for nonlinear systems admitting state-space realization (22). 
+
+Theorem 9. Consider the state-space model (22) , where (A, B )
+
+is controllable and (A, C ) is observable. Let input-output data 
+
+{(ud 
+
+> t
+
+, y d 
+
+> t
+
+)}T −1 
+
+> t=0
+
+of length T be given, and suppose the input Gram matrix is such that rank( Ku
+
+> 2L+n
+
+) = (2 L + n)q and that 
+
+L is chosen so that OL has full column rank. Then a length-2L
+
+sequence 
+
+u0:2 L−1
+
+y0:2 L−1
+
+
+
+is a valid input/output trajectory of the system (22) if and only if there exists ξ ∈ RT −2L+1 such that 
+
+ku
+
+> p
+
+ky
+
+> p
+
+
+
+=
+
+Ku
+
+> p
+
+Ky
+
+> p
+
+
+
+ξ and 
+
+ku
+
+> f
+
+ky
+
+> f
+
+
+
+=
+
+Ku
+
+> f
+
+Ky
+
+> f
+
+
+
+ξ, 
+
+where, for Φ0:2 L−1 := [ϕ(u0)T, . . . , ϕ (u2L−1)T]T, the vec-tors ku 
+
+> p
+
+= (U ϕ 
+
+> p
+
+)TΦ0:2 L−1 and ku 
+
+> f
+
+= (U ϕ 
+
+> f
+
+)TΦ0:2 L−1 have entries given by [ku 
+
+> p
+
+]j = PL−1 
+
+> r=0
+
+κ(ud
+
+> j+r
+
+, u r ), [ku 
+
+> f
+
+]j =
+
+PL−1 
+
+> r=0
+
+κ(ud 
+
+> j+L+r
+
+, u L+r ); and ky 
+
+> p
+
+= Y T 
+
+> p
+
+y0: L−1, ky 
+
+> f
+
+=
+
+Y T 
+
+> f
+
+yL:2 L−1 are the Euclidean inner products of outputs. 
+
+In the context of the above theorem, we can view 
+
+(Ku 
+
+> p
+
+, K y 
+
+> p
+
+, K u 
+
+> f
+
+, K y 
+
+> f
+
+) as kernel matrices of the “offline” training data generated by (22) . By splitting the kernel vector of the “online” testing sequence Φ0:2 L−1 into two parts (past and future), we test whether one can interpolate the kernel matrices of past and future using the same coefficients, where the initial length-L segment of the testing sequence specifies the initial condition for the subsequent length-L segment. A similar observation for LTI systems on the specification of initial condition has been given in [ 5, Proposition 1]. In the proof of Theorem 9, we further show that the trajectory passes through a state bxL at time L that is a linear combination of states from the training data, i.e., bxL = Xf ξ for some ξ.In light of Theorem 9, we can compute the predictor byL:2 L−1
+
+via 
+
+byL:2 L−1 = ( Y T 
+
+> f
+
+)†ky 
+
+> f
+
+= ( Y T 
+
+> f
+
+)†Ky 
+
+> f
+
+ξ, 
+
+where ξ is the solution of the following equation, 
+
+
+
+ku
+
+> p
+
+ky
+
+> p
+
+ku
+
+> f
+
+ =
+
+
+
+Ku
+
+> p
+
+Ky
+
+> p
+
+Ku
+
+> f
+
+ ξ. 
+
+The interpolation-based method in Section IV characterizes the future output Yf using kernelized offline data to make predictions regarding the online data. On the other hand, the realization-based method aims to capture the output 
+
+yt+L−1 as linear functions of states Xf and kernelized input vectors ϕ(ut), . . . , ϕ (ut+L−1). The preference between the two approaches depends on the memory length L and the state dimension n. E.g., in the regime L ≫ n, the states serve as an efficient representation of the system’s history. VI. C ONCLUSION 
+
+In this paper, we have put forward a behavioral framework for modeling a class of nonlinear systems in a vector-valued RKHS. This formulation is rich enough to cover LTI systems as well as nonlinear systems modeled by Volterra series, autoregressive models based on Volterra series, and Hammerstein-type state-space models. Using this framework, we have analyzed two methods for data-driven modeling of such systems, minimum-norm interpolation and subspace identification. We have clarified the role of various structural assumptions on the system, the data (both offline and online), and the vector-valued RKHS that represents the nonlinear aspects of the system. More broadly, this work expands the scope of behavioral systems theory to nonlinear systems. In doing so, it reinforces the conceptual shift underlying data-driven control: rather than aiming to recover the state evolution, one can directly actualize the desired behaviors using observed trajectories. APPENDIX APROOF OF LEMMA 2Let ∥ · ∥ V and ∥ · ∥ W be the Hilbert-space norms on V and 
+
+W induced by their respective inner products. Consider the evaluation functional δv : L(V, W) → W given by δv (A) = 
+
+Av . It is bounded since 
+
+∥δv (A)∥W = ∥Av ∥W
+
+≤ ∥ A∥L(V,W) ∥v∥V
+
+≤ ∥ A∥H ∥v∥V ,
+
+where the last step follows from the relation 
+
+∥A∥L(V,W) = sup   
+
+> v∈V ,∥v∥V=1
+
+p⟨Av, Av ⟩W
+
+= sup   
+
+> v∈V ,∥v∥V=1
+
+p⟨v, A ∗Av ⟩V
+
+≤ ∥ A∥H.10 
+
+Hence, H is an RKHS. We next show that κ (v, v ′) =
+
+⟨v, v ′⟩V IW is the reproducing kernel. It is obvious that κ
+
+is of the positive type. To show it satisfies the reproducing property, notice that for any v ∈ V and w ∈ W we have 
+
+⟨Av, w ⟩W = Tr (A∗(w ⊗ v)) = ⟨A, w ⊗ v⟩H ,
+
+where w ⊗ v ∈ H is the rank-one linear operator (w ⊗ v)v′ =
+
+⟨v, v ′⟩V w.On the other hand, for w ∈ W , we have 
+
+κ (v′, v ) w = ⟨v′, v ⟩V w = ( w ⊗ v′)v. 
+
+Hence, we have 
+
+⟨A, κ (·, v )w⟩H = ⟨Av, w ⟩W .
+
+That is, κ satisfies the reproducing property. APPENDIX BPROOFS FOR RESULTS IN SECTION IV 
+
+A. Proof of Theorem 3 
+
+Let c0, · · · , c T −1 ∈ R be given. For each j = 0 , · · · , T − 1,the relation 
+
+⟨yd 
+
+> j+
+
+, v ⟩Y = ⟨f, κ Z (·, z d 
+
+> j
+
+)v⟩HZ
+
+holds for all v ∈ Y . Multiplying both sides by cj and summing over j = 0 , · · · , T − 1, we have 
+
+*T −1X
+
+> j=0
+
+cj yd 
+
+> j+
+
+, v 
+
++
+
+> Y
+
+=
+
+*
+
+f,  
+
+> T−1
+
+X
+
+> j=0
+
+cj κZ (·, z d 
+
+> j
+
+)v
+
++
+
+> HZ
+
+=
+
+*T −1X
+
+> j=0
+
+cj f (zd 
+
+> j
+
+), v 
+
++
+
+> HZ
+
+,
+
+for all v ∈ Y , where the last line follows from the reproducing property. Hence, the pair 
+
+PT −1 
+
+> j=0
+
+cj κZ (·, z d 
+
+> j
+
+), PT −1 
+
+> j=0
+
+cj yd
+
+> j+
+
+
+
+satisfies Eq. (3) as claimed. 
+
+B. Proof of Lemma 4 
+
+Define the following subspace HN of HZ :
+
+HN := span {κZ (·, z i)v, i = 0 , · · · , N − 1, v ∈ Y} 
+
+= range(Φ N ). (28) Let ΠN denote the orthogonal projection onto HN and notice that ΠN = Φ N (Φ ∗ 
+
+> N
+
+ΦN )† Φ∗ 
+
+> N
+
+. Using this in the definition of 
+
+ΣN (z) in (18), we get 
+
+ΣN (z) = κZ (z, z ) − kN (z)K† 
+
+> N
+
+kN (z)∗
+
+= κZ (·, z )∗κZ (·, z )
+
+− κZ (·, z )∗ΦN (Φ ∗ 
+
+> N
+
+ΦN )† (κZ (·, z )∗ΦN )∗
+
+= κZ (·, z )∗ I − ΦN (Φ ∗ 
+
+> N
+
+ΦN )†Φ∗
+
+> N
+
+κZ (·, z )= κZ (·, z )∗(I − ΠN )κZ (·, z ).
+
+Hence, for any v ∈ Rp,
+
+vTΣN (z)v =vTκZ (·, z )∗(I − ΠN )κZ (·, z )v
+
+= ∥(I − ΠN )κZ (·, z )v∥HZ .
+
+Hence, ΣN (z) is positive semi-definite. In particular, ΣN (z) = 0 iff (I − ΠN )κZ (·, z )v = 0 for all v ∈ Rp, that is, if 
+
+κZ (·, z )v ∈ H N = range(Φ N ).
+
+C. Proof of Lemma 5 
+
+Since fN +1 interpolates {(zi, y i)}N −1 
+
+> i=0
+
+, we have for all v ∈Y and i = 0 , · · · , N − 1,
+
+⟨fN +1 , κ Z (·, z i)v⟩HZ = ⟨fN +1 (zi), v ⟩Y = ⟨yi, v ⟩Y .
+
+On the other hand, for i = 0 , · · · , N − 1 and all v ∈ Y ,
+
+⟨fN +1 , κ Z (·, z i)v⟩HZ
+
+= ΠN [fN +1 ] + Π ⊥ 
+
+> N
+
+[fN +1 ], κ Z (·, z i)v HZ
+
+= ⟨ΠN [fN +1 ], κ Z (·, z i)v⟩HZ ,
+
+where Π⊥ 
+
+> N
+
+= I − ΠN and ΠN is the orthogonal projection onto HN . Since v is arbitrary, ΠN [fN +1 ]( zi) = yi for 
+
+i = 0 , · · · , N − 1, i.e., both fN and ΠN [fN +1 ] interpolate 
+
+{(zi, y i)}N −1 
+
+> i=0
+
+. Since fN is the unique minimum-norm solution in HN , it must be the case that fN = Π N [fN +1 ]. Hence, 
+
+fN +1 − fN = fN +1 − ΠN [fN +1 ] ∈ H ⊥ 
+
+> N
+
+.
+
+That is, there exists some ξN ∈ Y such that 
+
+fN +1 − fN = Π ⊥ 
+
+> N
+
+[κZ (·, z N )ξN ]. (29) We now determine ξN . By the reproducing property, we have 
+
+⟨fN +1 (zN ), v ⟩Y
+
+= ⟨fN +1 , κ Z (·, z N )v⟩HZ
+
+= fN + Π ⊥ 
+
+> N
+
+[κZ (·, z N )ξN ], κ Z (·, z N )v HZ
+
+= ⟨fN , κ Z (·, z N )v⟩HZ
+
++ Π⊥ 
+
+> N
+
+[κZ (·, z N )ξN ], κ Z (·, z N )v HZ
+
+.
+
+(30) For the last line, applying the reproducing property again, we can write the first term as ⟨fN , κ Z (·, z N )v⟩HZ =
+
+⟨fN (zN ), v ⟩Y . For the second term, by orthogonality we have 
+
+Π⊥ 
+
+> N
+
+[κZ (·, z N )ξN ], κ Z (·, z N )v HZ
+
+= Π⊥ 
+
+> N
+
+[κZ (·, z N )ξt], Π⊥ 
+
+> N
+
+[κZ (·, z N )v] HZ
+
+= ⟨ξN , κ Z (zN , z N )v⟩HZ
+
+− ⟨ ΠN [κZ (·, z N )ξN ], ΠN [κZ (·, z N )v]⟩HZ ,
+
+where we have used the fact that, since ΠN is an orthogonal projection, 
+
+⟨ΠN h, ΠN h′⟩HZ = ⟨h, ΠN h′⟩HZ = ⟨ΠN h, h ′⟩HZ
+
+for all h, h ′ ∈ H Z . Since ΠN is an orthogonal projection onto 
+
+HN , we have 
+
+ΠN [κZ (·, z N )ξN ] =  
+
+> N−1
+
+X
+
+> j=0
+
+κZ (·, z j )αj ,
+
+and 
+
+ΠN [κZ (·, z N )v] =  
+
+> N−1
+
+X
+
+> j=0
+
+κZ (·, z j )βj ,11 
+
+where ¯α = (α0, · · · αN −1) ∈ YN −1 and ¯β =(β0, . . . , β N −1) ∈ YN −1 are the solutions of KN ¯α =
+
+kN (zN )ξN and KN ¯β = kN (zN )v. Therefore, 
+
+⟨ΠN [κZ (·, z N )ξN ], ΠN [κZ (·, z N )v]⟩HZ
+
+=
+
+*N −1X
+
+> j=0
+
+κZ (·, z j )αj , 
+
+> N−1
+
+X
+
+> j=0
+
+κZ (·, z j )βj
+
++
+
+> HZ
+
+= ¯α, K N ¯β Y⊕(N −1) 
+
+=
+
+D
+
+K† 
+
+> N
+
+kN (zN )ξN , K N K† 
+
+> N
+
+kN (zN )v
+
+E 
+
+> Y⊕(N−1)
+
+=
+
+D
+
+ξN , k ∗ 
+
+> N
+
+(zN )K† 
+
+> N
+
+kN (zN )v
+
+E
+
+> Y
+
+,
+
+where the last line holds since K† 
+
+> N
+
+KN K† 
+
+> N
+
+= K† 
+
+> N
+
+.Putting everything together and using the definition of 
+
+ΣN (zN ), we arrive at 
+
+Π⊥ 
+
+> N
+
+[κZ (·, z N )ξN ], Π⊥ 
+
+> N
+
+[κZ (·, z N )v] HZ
+
+= ⟨ξN , κ Z (zN , z N )v⟩Y −
+
+D
+
+ξN , k ∗ 
+
+> N
+
+(zN )K† 
+
+> N
+
+kN (zN )v
+
+E
+
+> Y
+
+= ⟨ξN , ΣN (zN )v⟩Y .
+
+Plugging the above relation back into (30) and using the fact that v ∈ Y is arbitrary and that ΣN (zN ) is self-adjoint, we see that ξN is determined by the relation 
+
+fN +1 (zN ) = fN (zN ) + Σ N (zN )ξN .
+
+As fN +1 interpolates (zN , y N + ), i.e., yN + = fN +1 (zN ), we can further write 
+
+ΣN (zN )ξN = yN + − fN (zN ). (31) Hence, when ΣN (zN ) = 0, we will have fN (zN ) =
+
+fN +1 (zN ) = yN + .Next, applying the Pythagorean theorem in (29), we have 
+
+∥fN +1 ∥2 
+
+> HZ
+
+= ∥fN ∥2 
+
+> HZ
+
++ Π⊥ 
+
+> N
+
+[κZ (·, z N )ξt] 2
+
+> HZ
+
+= ∥fN ∥2 
+
+> HZ
+
++ ⟨ξN , ΣN (zN )ξN ⟩Y ,
+
+where the last line follows from the definition of ΣN . When 
+
+ΣN (zN ) ≻ 0, from (31) we have 
+
+∥fN +1 ∥2 
+
+> HZ
+
+− ∥ fN ∥2
+
+> HZ
+
+= Σ−1 
+
+> N
+
+(zN ) ( yN + − fN (zN )) , y N + − fN (zN ) Y
+
+= Σ−1/2 
+
+> N
+
+(zN ) ( yN + − fN (zN )) 2
+
+> Y
+
+.
+
+This concludes the proof. APPENDIX CPROOFS FOR RESULTS IN SECTION V
+
+A. Proof of Theorem 9 
+
+In our model (22) , we can view v = ϕ(u) as the 
+
+q-dimensional input to the LTI system parametrized by 
+
+(A, B, C, D ). Consequently, the argument in the proof in [ 26 ,Theorem 1] extends directly to our setting and guarantees that the matrix 
+
+M := 
+
+
+
+U ϕ
+
+> p
+
+U ϕ
+
+> f
+
+X0
+
+ ∈ R(2 Lq +n)×(T −2L+1) 
+
+has full row rank. 
+
+(⇒): Suppose that 
+
+Φ0:2 L−1
+
+y0:2 L−1
+
+
+
+is a valid input-output trajec-tory of (22). Then there exists an initial state bx0 such that 
+
+y0: L−1 = OL bx0 + TLΦ0: L−1.
+
+Since M has full row rank, for any 
+
+
+
+Φ0: L−1
+
+ΦL:2 L−1
+
+bx0
+
+ ∈ R2Lq ⊕ Rn,there exists some ξ ∈ RT −2L+1 such that 
+
+
+
+Φ0: L−1
+
+ΦL:2 L−1
+
+bx0
+
+ = Mξ. 
+
+Thus, we have 
+
+Φ0: L−1
+
+y0: L−1
+
+
+
+=
+
+ I 0
+
+TL OL
+
+  Φ0: L−1
+
+bx0
+
+
+
+=
+
+ I 0
+
+TL OL
+
+  U ϕ
+
+> p
+
+X0
+
+
+
+ξ
+
+=
+
+U ϕ
+
+> p
+
+Yp
+
+
+
+ξ. 
+
+Moreover, from the dynamics (22), we have 
+
+Xf = ALX0 + ∆ LU ϕ 
+
+> p
+
+. (32) Hence, at time t = L,
+
+bxL =AL bx0 + ∆ LΦ0: L−1
+
+=  ALX0 + ∆ LU ϕ
+
+> p
+
+ ξ
+
+=Xf ξ. 
+
+Thus, starting from bxL = Xf ξ with input sequence ΦL:2 L−1 =
+
+U ϕ 
+
+> f
+
+ξ, we have 
+
+ΦL:2 L−1
+
+yL:2 L−1
+
+
+
+=
+
+ I 0
+
+TL OL
+
+  ΦL:2 L−1
+
+bxL
+
+
+
+=
+
+ I 0
+
+TL OL
+
+ "
+
+U ϕ
+
+> f
+
+Xf
+
+#
+
+ξ
+
+=
+
+"
+
+U ϕ
+
+> f
+
+Yf
+
+#
+
+ξ. 
+
+(⇐) Since 
+
+u0: L−1
+
+y0: L−1
+
+
+
+=
+
+U ϕ
+
+> p
+
+Yp
+
+
+
+ξ, and 
+
+U ϕ
+
+> p
+
+Yp
+
+
+
+is constrained by (22), we have 
+
+Φ0: L−1
+
+y0: L−1
+
+
+
+=
+
+U ϕ
+
+> p
+
+Yp
+
+
+
+ξ =
+
+ I 0
+
+TL OL
+
+  U ϕ
+
+> p
+
+X0
+
+
+
+ξ. 
+
+Hence, 
+
+y0: L−1 = Ypξ = OLX0ξ + TLU ϕ 
+
+> p
+
+ξ
+
+Since Φ0: L−1 = U ϕ 
+
+> p
+
+ξ, we conclude that y0: L−1 is the output from bx0 := X0ξ with input u0: L−1. As (Φ 0: L−1, y 0: L−1) is a valid input-output trajectory, we can use (22) and Xf defined in (32) to obtain the state vector at time L as 
+
+bxL = AL bx0 + ∆ LΦ0: L−1 = ALX0ξ + ∆ LU ϕ 
+
+> p
+
+ξ = Xf ξ. 
+
+(33) 12 
+
+For the second segment, using the assumptions and the matrix input-output relation for U ϕ 
+
+> f
+
+, Yf , we have 
+
+ΦL:2 L−1
+
+yL:2 L−1
+
+
+
+=
+
+"
+
+U ϕ
+
+> f
+
+Yf
+
+#
+
+ξ =
+
+ I 0
+
+TL OL
+
+ "
+
+U ϕ
+
+> f
+
+Xf
+
+#
+
+ξ. 
+
+Thus, we have 
+
+yL:2 L−1 = Yf ξ
+
+= OLXf ξ + TLU ϕ 
+
+> f
+
+ξ
+
+= OL bxL + TLΦL:2 L−1,
+
+where the last equality follows from (33) . Therefore, we conclude that yL:2 L−1 is the output from bxL = Xf ξ with input ΦL:2 L−1.Putting everything together, we have 
+
+Φ0: L−1
+
+y0: L−1
+
+
+
+=
+
+U ϕ
+
+> p
+
+Yp
+
+
+
+ξ, 
+
+ΦL:2 L−1
+
+yL:2 L−1
+
+
+
+=
+
+"
+
+U ϕ
+
+> f
+
+Yf
+
+#
+
+ξ. 
+
+Multiplying both sides of the first equation by 
+
+U ϕ 
+
+> p
+> ∗
+
+00 Y ∗
+
+> p
+
+
+
+and the second equation by 
+
+"
+
+U ϕ
+
+> f
+> ∗
+
+00 Y ∗
+
+> f
+
+#
+
+proves the claim. REFERENCES 
+
+[1] J. C. Willems, “From time series to linear system—part i. finite dimensional linear time invariant systems,” Automatica , vol. 22, no. 5, pp. 561–580, 1986. [2] ——, “Paradigms and puzzles in the theory of dynamical systems,” IEEE Transactions on Automatic Control , vol. 36, no. 3, pp. 259–294, 1991. [3] J. C. Willems, P. Rapisarda, I. Markovsky, and B. L. De Moor, “A note on persistency of excitation,” Systems & Control Letters ,vol. 54, no. 4, pp. 325–329, 2005. [4] I. Markovsky, J. C. Willems, S. Van Huffel, and B. De Moor, 
+
+Exact and approximate modeling of linear systems: A behavioral approach . SIAM, 2006. [5] I. Markovsky and P. Rapisarda, “Data-driven simulation and control,” International Journal of Control , vol. 81, no. 12, pp. 1946–1959, 2008. [6] J. Coulson, J. Lygeros, and F. D ¨orfler, “Data-enabled predictive control: In the shallows of the deepc,” in 2019 18th European control conference (ECC) . IEEE, 2019, pp. 307–312. [7] F. D ¨orfler, J. Coulson, and I. Markovsky, “Bridging direct and indirect data-driven control formulations via regularizations and relaxations,” IEEE Transactions on Automatic Control , vol. 68, no. 2, pp. 883–897, 2022. [8] H. J. Van Waarde, J. Eising, M. K. Camlibel, and H. L. Trentelman, “The informativity approach to data-driven analysis and control,” IEEE Control Systems Magazine , vol. 43, no. 6, pp. 32–66, 2023. [9] I. Markovsky and F. D ¨orfler, “Data-driven dynamic interpolation and approximation,” Automatica , vol. 135, p. 110008, 2022. [10] J. G. Rueda-Escobedo and J. Schiffer, “Data-driven internal model control of second-order discrete volterra systems,” in 
+
+2020 59th IEEE Conference on Decision and Control (CDC) .IEEE, 2020, pp. 4572–4579. [11] M. Alsalti, J. Berberich, V. G. Lopez, F. Allg ¨ower, and M. A. M ¨uller, “Data-based system analysis and control of flat nonlinear systems,” in 2021 60th IEEE Conference on Decision and Control (CDC) . IEEE, 2021, pp. 1484–1489. [12] J. Berberich and F. Allg ¨ower, “A trajectory-based framework for data-driven system analysis and control,” in 2020 European Control Conference (ECC) . IEEE, 2020, pp. 1365–1370. [13] X. Shang, J. Cort ´es, and Y. Zheng, “Willems’ fundamental lemma for nonlinear systems with koopman linear embedding,” 
+
+IEEE Control Systems Letters , 2024. [14] L. Huang, J. Lygeros, and F. D ¨orfler, “Robust and kernelized data-enabled predictive control for nonlinear systems,” IEEE Transactions on Control Systems Technology , vol. 32, no. 2, pp. 611–624, 2023. [15] O. Molodchyk and T. Faulwasser, “Exploring the links between the fundamental lemma and kernel regression,” IEEE Control Systems Letters , vol. 8, pp. 2045–2050, 2024. [16] B. Sch ¨olkopf, R. Herbrich, and A. J. Smola, “A generalized rep-resenter theorem,” in International conference on computational learning theory . Springer, 2001, pp. 416–426. [17] P. Van Overschee and B. De Moor, Subspace identification for linear systems: Theory—Implementation—Applications . Kluwer, 1996. [18] A. Berlinet and C. Thomas-Agnan, Reproducing kernel Hilbert spaces in probability and statistics . Springer Science & Business Media, 2011. [19] N. Aronszajn, “Theory of reproducing kernels,” Transactions of the American mathematical society , vol. 68, no. 3, pp. 337–404, 1950. [20] C. Carmeli, E. De Vito, and A. Toigo, “Vector valued reproducing kernel Hilbert spaces of integrable functions and Mercer theorem,” 
+
+Analysis and Applications , vol. 04, no. 04, pp. 377–408, Oct. 2006. [21] J. Moore, “Persistence of excitation in extended least squares,” 
+
+IEEE Transactions on Automatic Control , vol. 28, no. 1, pp. 60–68, 1983. [22] M. Green and J. B. Moore, “Persistence of excitation in linear systems,” Systems & Control Letters , vol. 7, no. 5, pp. 351–360, 1986. [23] R. De Figueiredo and T. Dwyer, “A best approximation frame-work and implementation for simulation of large-scale nonlinear systems,” IEEE Transactions on circuits and systems , vol. 27, no. 11, pp. 1005–1014, 1980. [24] C. A. Micchelli and M. Pontil, “On learning vector-valued functions,” Neural computation , vol. 17, no. 1, pp. 177–204, 2005. [25] T. Liang and B. Recht, “Interpolating classifiers make few mistakes,” Journal of Machine Learning Research , vol. 24, no. 20, pp. 1–27, 2023. [26] H. J. Van Waarde, C. De Persis, M. K. Camlibel, and P. Tesi, “Willems’ fundamental lemma for state-space systems and its extension to multiple datasets,” IEEE Control Systems Letters ,vol. 4, no. 3, pp. 602–607, 2020.
