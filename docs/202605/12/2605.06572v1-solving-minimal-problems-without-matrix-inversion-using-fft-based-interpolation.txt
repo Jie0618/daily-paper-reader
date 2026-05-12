@@ -1,0 +1,486 @@
+Title: Solving Minimal Problems Without Matrix Inversion Using FFT-Based Interpolation
+
+URL Source: https://arxiv.org/pdf/2605.06572v1
+
+Published Time: Fri, 08 May 2026 01:38:12 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# Solving Minimal Problems Without Matrix Inversion Using FFT-Based Interpolation 
+
+## Haidong Wu Snehal Bhayani Janne Heikkil¨ aCenter for Machine Vision and Signal Analysis University of Oulu, Oulu, Finland   
+
+> Haidong.Wu@oulu.fi, Snehal.Bhayani@oulu.fi, Janne.Heikkila@oulu.fi
+
+## Abstract 
+
+Estimating camera geometry typically involves solving min-imal problems formulated as systems of multivariate poly-nomial equations, which often pose computational chal-lenges when using existing Gr¨ obner-basis or resultant-based methods due to matrix inversion needed in the on-line solver. Here we propose a sampling-based, matrix inversion-free method that constructs the solvers using sparse hidden-variable resultants. The determinant poly-nomial in the hidden variable is efficiently reconstructed via inverse fast Fourier transform interpolation from sam-pled evaluations, avoiding symbolic expansion. Solving this polynomial yields the hidden variable, and the remaining unknowns are recovered by identifying rank-1 deficient sub-matrices and applying Cramer’s rule. A greatest common divisor-based criterion ensures robust submatrix identifica-tion under noise. Experiments on diverse minimal problems demonstrate that the proposed solver achieves strong nu-merical stability and competitive runtime, particularly for small-scale problems, providing a practical alternative to traditional Gr¨ obner-basis and resultant-based solvers. 
+
+## 1. Introduction 
+
+Estimating camera geometry is a fundamental problem in computer vision, with applications in structure-from-motion [34], visual navigation [33], large-scale 3D re-construction [19], and image localization [32]. In prac-tice, such estimation often relies on noisy measurements or sparse correspondences, which necessitates the use of ro-bust methods. A widely adopted strategy is to solve so-called minimal problems [22, 24, 30] within a RANSAC framework [8, 15, 31]. These problems estimate model parameters from the minimal number of point correspon-dences and in most cases reduce to solving systems of poly-nomial equations. Many camera pose estimation and calibration problems can be formulated as minimal problems. A classical ex-ample is the P3P (Perspective-Three-Point) problem, which estimates the camera pose (rotation and translation) from three 3D-2D point correspondences [16]. Several recent methods address the P3P problem by formulating it as find-ing the intersection of two conics [10, 28, 40]. Another clas-sical example is the five-point problem, which estimates the relative pose between two calibrated views from five point correspondences [30]. The relative pose problem has been extended to include additional unknown parameters, such as focal length and radial distortion [20, 23, 38]. Minimal problems often result in complex systems of multivariate polynomial equations in several variables. Awidely used approach for solving such systems in com-puter vision is based on Gr¨ obner basis method [4, 6, 22, 24, 26, 28]. Its use was popularized by Stew´ enius [35], and early solvers based on this approach were typically hand-crafted [37, 38], often exhibiting limited numerical stabil-ity [36]. Later research focused on automating solver gen-eration [24, 26, 27], improving numerical robustness [4, 5], and optimizing runtime performance [26–28]. In particu-lar, Kukelova et al . [24] and Larsson et al . [26] developed tools for the automatic generation of efficient and numeri-cally stable Gr¨ obner basis solvers, and Li et al . [29] subse-quently introduced GAPS as an improved and more stable extension of this framework. An alternative approach is based on multipolynomial re-sultants, which eliminates variables to yield a univariate polynomial in a hidden variable whose roots correspond to the solutions of the original system [9]. Classical resultants, such as the Macaulay resultant, often need most polyno-mial coefficients to be nonzero, the roots to be distinct, and no solutions to exist at infinity. However, in practical en-gineering problems, the equations are often sparse, which limits the applicability of classical resultants. To address this limitation, sparse resultants [1, 13, 14, 18] were de-veloped to exploit the sparsity structure of polynomial sys-tems, enabling effective handling of equations with many zero coefficients. Compared to classical resultants, sparse 
+
+> arXiv:2605.06572v1 [cs.CV] 7 May 2026
+
+resultants often yield more compact resultant matrices. The determinant of such a matrix defines a univariate polyno-mial in the hidden variable, from which the solutions can be recovered. However, computing such determinants sym-bolically is nontrivial in practice. An N × N determinant may involve up to N ! terms, leading to factorial growth in computational complexity. For high-dimensional matrices, such direct symbolic evaluation becomes computationally infeasible and prone to numerical instability. Beyond Gr¨ obner basis and resultant-based approaches, Kukelova et al . [25] reformulated systems of polynomial equations as polynomial eigenvalue problems (PEPs), en-abling minimal relative pose problems to be solved using linear algebra techniques. However, this method may lead to unnecessarily high-dimensional vector spaces and intro-duce spurious roots, resulting in numerical instability when solving sparse polynomial systems with high degrees. To address this, an improved algorithm based on sparse elimi-nation theory was introduced in [18], which selects a more compact monomial basis, yielding more valid solutions and improved numerical stability. Nevertheless, it may pro-duce rank-deficient elimination matrices, which undermine solver stability. A further improvement was achieved by Bhayani et al ., who introduced an additional equation of a special form and reformulated the resultant constraint as a regular eigenvalue problem [1], and further enhanced its ef-ficiency and stability in [3]. Building upon this approach, a hidden-variable resultant method was presented in [2], which yields a larger eigenvalue problem but avoids unsta-ble matrix inversions, achieving higher numerical stability. In this paper, we build upon sparse resultants and address the bottlenecks of symbolic determinant expansion from a numerical perspective. We propose a novel sampling-based, matrix inversion-free method for constructing efficient and numerically stable minimal solvers. Our main contributions include: • We replace symbolic determinant expansion with an inverse fast Fourier transform (IFFT)-based interpola-tion scheme, further accelerated by a tensor-wise fast Fourier transform (FFT) implementation. • We recover the remaining variables using Cramer’s rule and introduce a greatest common divisor (GCD)-based criterion for robust identification of the rank-1 deficient submatrix under floating-point noise. • The proposed solver achieved higher numerical stabil-ity and comparable accuracy and runtime to state-of-the-art methods. 
+
+## 2. Theoretical background and related work 
+
+We formulate the minimal problem as a system of m multi-variate polynomial equations 
+
+f1(x1, . . . , x n) = 0 , . . . , f m(x1, . . . , x n) = 0 , (1) in n unknown variables x1, . . . , x n. These variables are ordered and concatenated to form a vector x =x1, . . . , x n
+
+⊤ 1 , and the monomials xαi,j are defined by 
+
+xαi,j =
+
+> n
+
+Y
+
+> k=1
+
+xαi,j,k  
+
+> k
+
+, (2) where αi,j,k ∈ N is the order of the variable xk in the jth term of the ith polynomial. Thus, each polynomial can be expressed as a linear combination of monomials 
+
+fi(x) = X 
+
+> αi,j ∈Nn
+
+ci, αi,j xαi,j , (3) where ci, αi,j is the coefficient of the monomial  xαi,j  in the 
+
+ith polynomial. 
+
+2.1. Resultant-based approach to polynomial solv-ing 
+
+Resultants provide a classical algebraic approach for solv-ing systems of polynomial equations. A resultant is defined for a system consisting of  m = n + 1  polynomials in  n
+
+variables. For a system (1) with  m = n + 1 , the resultant is an irreducible polynomial in the coefficients  ci, αi,j  , de-noted by  Res ([ ci, αi,j ]) , which vanishes if and only if the system has a non-trivial common solution. For a more for-mal treatment of resultants and their properties, we refer the reader to Cox et al . [9]. A step in a resultant-based method is to expand the input polynomials  f1, . . . , f m into a set of linearly independent polynomials that can be represented as a matrix product as 
+
+M([ ci, αi,j ]) u = 0 , (4) where  M([ ci, αi,j ])  is square and full rank for generic values of the coefficients  ci, αi,j  , and  u is a vector of monomials of  xαi,j  . If  f1, . . . f m have a common root, the determinant of  M([ ci, αi,j ])  must vanish. According to the definition of resultants,  Res ([ ci, αi,j ]) = 0  implies that the polynomials 
+
+f1, . . . f m have a common root [9]. These two statements imply that, 
+
+Res ([ ci, αi,j ]) = 0 = ⇒ det M([ ci, αi,j ]) = 0 . (5) Thus, the condition  det M([ ci, αi,j ]) = 0  can be used as a necessary constraint on the coefficients  ci, αi,j  for which the system  f1, . . . , f m admits a non-trivial solution. As resultants are defined for a system of one more poly-nomial than the number of variables, we can employ them for solving a system of  n polynomials in  n variables. One way is to hide one of the  n original variables in the co-efficient field and treat it as a constant. Another way is to add an additional polynomial together with a new vari-able and then hide this variable in the coefficient field. In 
+
+> 1The ordering can be chosen arbitrarily without loss of generality.
+
+both cases, the resulting system contains one more equation than the number of variables. The  u-resultant [9] approach adopts the latter strategy by introducing an additional poly-nomial into the original system, thereby transforming it into a form suitable for constructing a square resultant matrix. Inspired by the  u-resultant, Bhayani et al . [1] proposed a special form of the extra polynomial  xi − λ, where  λ is the new variable and  xi is one of the original  n variables. The resultant  Res ([ ci, αi,j ], λ ) is computed then with  λ treated as a constant, producing a matrix  M([ ci, αi,j ], λ ) that is lin-ear in  λ. By selecting an appropriate submatrix, its Schur complement can be used to form a compact eigenvalue problem whose eigenvectors correspond to the solutions for 
+
+x1, . . . , x n.The most common alternative approach for solving sys-tems with  m = n (see (1)) is to hide one of the  n variables by treating it as a constant. Without loss of generality, we assume that the hidden variable is  x1. Then,  x1 is regarded as part of the coefficient field in the original system (1), leading to a new system of polynomial equations in the re-maining variables: 
+
+g1(x2, . . . , x n) = 0 , . . . , g m(x2, . . . , x n) = 0 . (6) This yields  m = n polynomials in  n − 1 variables, to which the resultant-based approach can be applied. The resultant, denoted as Res ([ ci, αi,j ], x 1), is a polynomial in both the coefficients  ci, αi,j  and the hidden variable  x1. Algorithms based on hiding a variable expand the system  g1, . . . , g m
+
+into a linearly independent set of polynomials, which can be represented in a matrix form as 
+
+M([ ci, αi,j ], x 1) b = 0 , (7) where  M([ ci, αi,j ], x 1) is a square matrix whose entries are polynomials in  ci, αi,j  and  x1, and  b is a vector of monomi-als in  x2, . . . , x n. For simplicity, we denote  M([ ci, αi,j ], x 1)
+
+by  M(x1). This resultant obtained in this way, referred to as the hidden variable resultant , is a univariate polynomial in  x1 , whose roots are  x1-coordinates of the common so-lutions to the original system. For theoretical details and proofs, we refer the reader to Cox et al . [9]. Kukelova et al . [22, 25] and Hartley et al . [17] applied the hidden vari-able approach to relative pose problems, such as the 5-point problem for calibrated cameras and the 6-point problem with unknown focal length. In these problems, the original polynomial systems can be directly rewritten in the form (7) after hiding one variable. For more complex minimal prob-lems, the hidden-variable resultant method often requires generating an extended set of linearly independent polyno-mials to construct a valid matrix. Approaches based on the Dixon resultant [21] and modified Macaulay methods [22] for this expansion tend to be computationally expensive. 
+
+2.2. Sparse resultants 
+
+In practice, many polynomial systems arising in computer vision are sparse, with a large portion of coefficients equal to zero. For such systems, it is possible to obtain more compact resultants using specialized algorithms. These resultants are commonly referred to as sparse resultants. Emiris et al . [7, 11] proposed a general approach for constructing sparse resultants using mixed subdivisions of Newton polytopes. This method was applied to the 5-point relative pose problem in [12], but the resulting solver was not particularly efficient in practice. Heikkil¨ a [18] later pro-posed an improved algorithm based on sparse elimination theory, which selects a more compact monomial basis. This method transforms (7) to a generalized eigenvalue problem (GEP) and solves for eigenvalues and eigenvectors to com-pute solutions to unknowns. However, the method may still yield a rank-deficient matrix  M(x1), compromising solver stability. Moreover, both [12] and [18] require the input sys-tem to contain as many polynomials as unknowns to com-pute a valid resultant, which limits their applicability since many minimal problems in computer vision involve more equations than unknowns. Bhayani et al . [1] further im-proved the sparse resultant method by introducing an addi-tional equation of a special form and computing the Schur complement of a selected submatrix of the resultant matrix, thereby transforming the resultant constraint into a compact eigenvalue problem. They also extended the approach to support systems where the number of equations is greater than or equal to the number of unknowns. However, solvers based on resultant-based methods [1] or constructed using Gr¨ obner-basis methods [28, 29] typi-cally involve a step of explicit matrix inversion. This step is computationally expensive and often unstable when the matrix is close to singular or ill-conditioned, as observed in noisy or degenerate configurations of minimal problems. In practice, the inversion often causes numerical errors, re-sulting in inaccurate eigenvalues or failed solver generation. While the method of Bhayani et al . [2] also avoids explicit matrix inversion, it typically leads to a larger eigenvalue for-mulation and higher computational cost. Motivated by this bottleneck, our approach eliminates the need for explicit matrix inversion by directly reconstructing the determinant polynomial from sampled evaluations via an efficient FFT-based interpolation strategy, as detailed in Section 3. 
+
+## 3. Proposed method 
+
+We begin by constructing a matrix with the same form as in (7) by hiding one of the variables, say  x1, using the hid-den variable resultant-based method. Next, we compute the coefficients of the determinant of  M([ ci, αi,j ], x 1) as a uni-variate polynomial in  x1. Our approach avoids performing matrix inversion or symbolic expansion for this purpose. In-Select  x₁ &                              
+
+> Construct M( x₁)
+> Input
+> polynomial
+> system
+> Compute degree
+> k& root count r
+> GCD check:
+> find valid ( i, j )
+> Substitute
+> co efficients
+> into M(x₁)
+> FFT
+> determinant
+> evaluation
+> IFFT
+> coefficient
+> recovery
+> Extract ( j₁, j₂)
+> Indices
+> Solve
+> hidden
+> variable x₁
+> Recover x₂…xₙ
+> (Cramer ’srule)
+> Offline Stage
+> Online Stage
+> Load solver parameters
+> Save solver
+> parameters
+> Verify & Output
+> rsolutions
+> Select x₁&
+> Construct M( x₁)
+> Input
+> polynomial
+> system
+> Compute degree
+> k& root count r
+> GCD check:
+> find valid ( i, j )
+> Substitute
+> co efficients
+> into M(x₁)
+> FFT
+> determinant
+> evaluation
+> IFFT
+> coefficient
+> recovery
+> Extract ( j₁, j₂)
+> Indices
+> Solve
+> hidden
+> variable x₁
+> Recover x₂…xₙ
+> (Cramer ’srule)
+> Offline Stage
+> Online Stage
+> Load solver parameters
+> Save solver
+> parameters
+> Verify & Output
+> rsolutions
+
+Figure 1. High-level overview of the proposed solver pipeline, illustrating the offline construction and online numerical stages. 
+
+stead, we reconstruct the determinant coefficients numeri-cally from sampled evaluations using IFFT-based interpola-tion, thereby obtaining a univariate polynomial in the hid-den variable. Solving this polynomial yields the solution to the hidden variable. Subsequently, we can recover the solutions to the remaining variables by identifying a rank-1 deficient submatrix and computing monomial ratios us-ing Cramer’s rule. To ensure robustness against floating-point noise, we introduce a GCD-based criterion to reliably identify the correct submatrix. The overall pipeline of the proposed solver, including both the offline construction and online recovery stages, is illustrated in Fig. 1. 
+
+3.1. Hidden variable resultant construction 
+
+We adopt the hidden variable approach to transform the original polynomial system (1) into the form (6), where  x1
+
+is treated as the hidden variable. Specifically, we consider systems (1) with at least as many equations as unknowns, i.e., m ≥ n, which generically admit a finite number of solutions. Our objective is to compute all such solutions. While Bhayani’s method [1] constructs sparse resultants using an extra variable, we adapt the underlying sparse re-sultant matrix construction technique to our hidden-variable formulation. We apply this construction to the hidden-variable system (6), yielding 
+
+M(x1)b = 0, (8) where  M(x1) is the resulting  N × N resultant matrix. Here, 
+
+N denotes the size of the matrix, determined by the chosen monomial basis. The determinant of M(x1) is a univariate polynomial in x1, which can be expressed as 
+
+det( M(x1)) = ckxk 
+
+> 1
+
++ ck−1xk−11 + . . . + c0 = 0 , (9) whose roots either correspond to the solutions of the orig-inal polynomial system (1) or to spurious roots. Let r de-note the number of solutions (counting multiplicities) to (1). This number  r can be determined for a given problem us-ing algebraic tools such as Gr¨ obner bases or computer alge-bra systems (e.g., Macaulay2 or Maple). Note that  r ≤ k.When  r = k, all roots of (9) correspond to valid solutions of (1). When  r < k , some roots are spurious, introduced by an extraneous factor that typically arises during elimination. Therefore, the determinant of  M(x1) can be expressed in a factorized form 
+
+det( M(x1)) = q(x1)p(x1) (10) 
+
+=( qtxt 
+
+> 1
+
++ . . . + q1)( pr xr 
+
+> 1
+
++ . . . + p0) (11) 
+
+=0 , (12) where t = k−r is the degree of the extraneous factor q(x1),and p(x1) is the univariate polynomial whose r roots corre-spond to the true solutions of (1). In practice, the extraneous factor  q(x1) introduces spurious roots that must be filtered out by verifying each candidate solution against the original system (1) through residual evaluation. 
+
+3.2. Solving the hidden variable with FFT 
+
+3.2.1. IFFT-based coefficient recovery 
+
+The coefficients ck, c k−1, ..., c 0 in (9) are multivariate poly-nomials in the original coefficients ci, αi,j . Computing these coefficients through symbolic expansion and evaluat-ing them numerically is often infeasible in practice since an 
+
+N ×N determinant may involve up to N ! terms. To address this challenge, we reconstruct the coefficients of det( M(x1)) 
+
+numerically from sampled evaluations using IFFT-based in-terpolation, evaluating the determinant at uniformly spaced points on the complex unit circle to ensure stability. For a given minimal problem, the polynomial degree k
+
+of det( M(x1)) is first determined in an offline stage by as-signing random numerical values to the symbolic coeffi-cients and computing the determinant once (e.g., in Maple or MATLAB). The obtained degree k depends only on the problem formulation and remains constant for all subse-quent solver instances. Once the degree k is determined, det( M(x1)) is evaluated at k + 1 uniformly spaced points on the complex unit circle, defined as 
+
+x(j)1 = ω−j , ω = e2πi/ (k+1) , (13) where j = 0 , 1, . . . , k . At each sampling point x(j)1 , the determinant is computed numerically as 
+
+y(j) = det( M(x(j)1 )) . (14) This yields a set of k + 1 evaluations {y(0) , y (1) , . . . , y (k)}.Collecting these evaluations into a vector gives 
+
+y = y(0) y(1) · · · y(k)⊤ = Vc, (15) where c = [ c0, c 1, . . . , c k]⊤ denotes the coefficient vector of the univariate polynomial in (9) and V is a Vandermonde matrix defined by 
+
+V =
+
+
+
+1 x(0) 1 (x(0) 1 )2 · · · (x(0) 1 )k
+
+1 x(1) 1 (x(1) 1 )2 · · · (x(1) 1 )k
+
+... ... ... . . . ...
+
+1 x(k)1 (x(k)1 )2 · · · (x(k)1 )k
+
+ . (16) Directly inverting the Vandermonde matrix  V to recover the coefficient vector  c is often numerically unstable, as 
+
+V is typically ill-conditioned. To overcome this, we ex-ploit the fact that when the sampling points  x(j)1 are cho-sen as the  (k + 1) -th roots of unity,  V becomes equivalent to the discrete Fourier transform (DFT) matrix up to scal-ing [39]. Leveraging this correspondence, we recover  c by applying an IFFT to the sampled values  y, achieving a ma-trix inversion-free and numerically stable computation. The IFFT computes each coefficient cl as 
+
+cl = 1
+
+k + 1 
+
+> k
+
+X
+
+> j=0
+
+y(j) ωjl , (17) where l = 0 , 1, . . . , k. This IFFT-based reconstruction re-quires only O(k log k) operations, reducing the compu-tational complexity compared with both symbolic expan-sion and traditional Vandermonde interpolation. Sampling on the unit circle ensures numerical stability, because all sampling points have unit modulus, preventing exponential growth or decay in the monomial terms. Moreover, com-puting the coefficients via the IFFT avoids explicit matrix inversion, which further enhances numerical robustness. 
+
+3.2.2. Tensor-wise FFT implementation 
+
+To efficiently compute the determinant evaluations {y(j)},the matrices M(x(j)1 ) are evaluated simultaneously using an FFT-based scheme. Each entry of the matrix M(x1) corre-sponds to a univariate polynomial in the hidden variable x1.The (r, c )-th entry of M(x1) is 
+
+prc (x1) = 
+
+> d
+
+X
+
+> l=0
+
+arc,l xl
+
+> 1
+
+, (18) and M(x1) can be compactly represented as 
+
+M(x1) = 
+
+> d
+
+X
+
+> l=0
+
+Alxl
+
+> 1
+
+, (19) where Al = [ arc,l ]Nr,c =1 ∈ CN ×N . Stacking the coeffi-cient matrices {Al} along the polynomial-degree axis yields a three-dimensional tensor A ∈ CN ×N ×(d+1) . Evaluating 
+
+M(x1) at all sampled unit-circle points (as defined in (13)) is then equivalent to applying a one-dimensional FFT along the third dimension of A:
+
+Mfft (: , :, j ) = 
+
+> d
+
+X
+
+> l=0
+
+Ale−2πijl/ (d+1) . (20) where  j = 0 , 1, . . . , d , and Mfft (: , :, j ) denotes the tensor slice corresponding to the evaluated matrix M(x(j)1 ), from which the determinant values  y(j) = det( Mfft (: , :, j ))  are computed in a single batched operation. This tensor-wise FFT formulation replaces sequential polynomial evalua-tions, reducing the overall computational cost while main-taining numerical stability. Once the coefficient vector is recovered, the resulting univariate polynomial in x1 is solved numerically using the companion-matrix eigenvalue method (as implemented in MATLAB’s roots function) to obtain all candidate values of 
+
+x1, from which the remaining unknowns are recovered as described in the following section. 
+
+3.3. Recovering remaining variables 
+
+3.3.1. Variable recovery via Cramer’s rule 
+
+After obtaining the hidden variable x1, substituting it back into (8) yields a homogeneous system. Since the system ad-mits a nontrivial solution, the matrix M(x1) is rank-deficient by one. Accordingly, one row i and one column j can be selected from M(x1) such that, after removing them, a full-rank submatrix M′(x1) is obtained. The system can then be reorganized as a reduced linear system that can be solved for the remaining variables: 
+
+M′(x1) m′
+
+> j
+
+m′T 
+
+> i
+
+mij 
+
+  b′
+
+bj
+
+
+
+= 0, (21) where m′ 
+
+> j
+
+denotes the jth column of M(x1) with its ith row removed, m′T 
+
+> i
+
+denotes the ith row with its jth column re-moved, mij is the (i, j )th element of M(x1), bj is the mono-mial corresponding to the jth column, and b′ contains the remaining monomials of b. This yields a linear system: 
+
+M′(x1)b′/b j = −m′ 
+
+> j
+
+. (22) Because M′(x1) is in general full rank, the vector b′/b j
+
+can be solved accordingly. Instead of explicitly inverting 
+
+M′(x1), Cramer’s rule is applied to compute each monomial ratio as  bk
+
+bj
+
+= |˜M′
+
+> k
+
+(x1)||M′(x1)| , (23) where ˜M′
+
+> k
+
+(x1) denotes the matrix obtained by replacing the 
+
+kth column of M′(x1) with −m′ 
+
+> j
+
+. This formulation en-ables direct extraction of the remaining variables x2, . . . , x n
+
+from the computed ratios of monomials. For example, if 
+
+b1 = x42x3 and b2 = x32x3, we get x2 = ( b1/b j )/(b2/b j ) ,independently of the choice of bj . Let us generalize this by assuming that (j1, j 2) is a pair of indices to the elements of 
+
+b′ giving the ratio for solving the unknown xw. The value of xw is then obtained as 
+
+xw(x1) = |˜M′ 
+
+> j1
+
+(x1)||˜M′ 
+
+> j2
+
+(x1)| . (24) This process is repeated for each root of x1 and the corre-sponding xw, where w = 2 , . . . , n , to recover all solutions of the original system (1) (Algorithm 1). 
+
+3.3.2. Robust identification of rank-deficient submatrices 
+
+Theoretically, substituting a root x1 into M(x1) yields a rank-1 deficient matrix. In practice, floating-point errors may lead to inaccurate rank estimation, causing the matrix to be mistakenly treated as full rank. In such cases, all sub-matrices obtained by deleting a single row and column may also appear full rank. This makes it difficult to identify a valid pair whose corresponding submatrix enables reliable recovery of the remaining variables. To address this issue, we propose a more robust iden-tification strategy. For all possible row-column dele-tion pairs (i, j ) in M(x1), we construct the correspond-ing submatrix M′(i,j )(x1) and test whether det( M(x1)) and 
+
+det( M′(i,j )(x1)) are symbolically coprime. Since x1 is a root of det( M(x1)) = 0 but not of det( M′(i,j )(x1)) = 0 , the two polynomials should be coprime, and their GCD should be a constant: 
+
+gcd (det( M(x1)) , det( M′(x1))) = c,  (25) where  c ∈ R \ { 0}. However, direct symbolic expansion of the determinant, which depends on the symbolic coeffi-cients and the hidden variable x1, is computationally pro-hibitive for large matrices. Instead, we adopt a random specialization strategy. We assign random prime values to all symbolic coefficients, while keeping x1 symbolic. We then compute the determinant of M(x1) and each candidate 
+
+M′(i,j )(x1), evaluate their GCD as in (25). Since only x1
+
+remains symbolic in M(x1), the determinant computation becomes considerably faster than full symbolic expansion. The GCD obtained after specialization is equivalent to the symbolic GCD and thus reliably indicates symbolic copri-mality. In our experiments, this approach consistently identified valid row-column pairs across all problems, demonstrating its robustness. Hence, if the GCD between det( M(x1)) and 
+
+det( M′(i,j )(x1)) is a constant, the pair (i, j ) is accepted as a valid deletion yielding a submatrix of rank (N − 1) . This process is performed once in the offline stage and reused for all instances of the same minimal problem, improving solver stability and generalizability (see Algorithm S1 in the Supplementary Material). 
+
+Algorithm 1 Online Stage 
+
+Input: Coefficients {ci, αi,j } of the polynomial system (1); outputs from the offline stage (see Algorithm S1 in the Sup-plementary Material) 
+
+Output: Valid solutions {x} to the system  
+
+> 1:
+
+Substitute the coefficient values into M(x1). 
+
+> 2:
+
+Generate d+1 sampling points x(j)1 as in (13).  
+
+> 3:
+
+Evaluate all M(x(j)M 
+
+> 1
+
+) using FFT along the degree axis (19), and compute det( M(x(j)1 )) as in (14).  
+
+> 4:
+
+Compute coefficients of det( M(x1)) via IFFT.  
+
+> 5:
+
+Form p(x1) and solve p(x1)=0 to obtain all candidate roots of x1. 
+
+> 6:
+
+for each root x(i)1 do  
+
+> 7:
+
+for each xj ∈ { x2, . . . , x n} do  
+
+> 8:
+
+Find (j1, j 2) associated with xj . 
+
+> 9:
+
+Substitute x(i)1 and (j1, j 2) into (24) to compute 
+
+x(i) 
+
+> j
+
+. 
+
+> 10:
+
+end for  
+
+> 11:
+
+end for  
+
+> 12:
+
+For cases with extra candidate roots, select the r valid solutions. 
+
+## 4. Experiments 
+
+We evaluate the performance of the proposed solver in terms of numerical stability and computational efficiency, and compare it with two state-of-the-art approaches: the sparse resultant-based solver by Bhayani et al. [1] (re-ferred to as SparseR) and the Gr¨ obner basis solver gener-ator GAPS by Li et al. [29]. The evaluation covers a diverse set of minimal problems in computer vision, including both relative and absolute pose estimation, which enable the ver-ification of the proposed solver’s generality and robustness. To make a fair comparison, all solvers are implemented in MATLAB and tested on an Intel Core i5-13500H (2.6 GHz) CPU with 16 GB RAM. 
+
+4.1. Numerical stability 
+
+All experiments in this section and Section 4.2 are con-ducted on the same synthetic dataset generated following Table 1. Numerical stability comparison among our solver, SparseR, and GAPS across different minimal problems. 
+
+# Problem Our SparseR [1] GAPS [29] mean med. fail(%) mean med. fail(%) mean med. fail(%) 1 Rel. pose F+ λ 8pt -13.17 -13.50 0 -12.71 -13.29 0.2 -12.62 -13.21 0.1 2 Rel. pose E+ f 6pt -12.07 -12.42 0 -12.56 -12.80 0 -12.48 -12.84 0
+
+3 Rel. pose f +E+ f 6pt -11.41 -11.87 0 -11.40 -11.86 0 -11.05 -11.64 0
+
+4 Stitching f λ +R+ f λ 3pt -12.92 -13.15 0 -12.73 -13.05 0 -12.74 -13.05 0
+
+5 Rel. pose E+ f λ 7pt (elim. λ) -10.99 -11.58 0 -11.41 -11.77 0 -11.25 -11.63 0
+
+6 Triangulation from satellite im. -11.88 -12.17 0 -11.64 -11.94 0.02 -11.50 -11.84 0.02 7 Optimal PnP (Hesch) -11.16 -11.46 0 -11.09 -11.39 0.04 -11.35 -11.71 0.04 8 Rolling shutter pose -11.14 -11.55 0 -12.43 -12.64 0 -12.26 -12.46 0
+
+9 Abs. Pose P4Pfr (elim. f ) -11.19 -11.59 0 -11.26 -11.55 0.04 -11.67 -11.93 0
+
+10 Rel. pose E+ f λ 7pt -7.83 -9.98 0 -9.75 -10.13 0.02 -7.65 -8.07 0.3 11 Abs. pose refractive P5P -11.24 -11.61 0 -10.68 -11.07 0.06 -9.96 -10.38 0.18 12 Abs. pose quivers -9.68 -10.04 0 -9.54 -9.83 0.04 -9.03 -9.47 0.38 13 Optimal PnP (Cayley) -8.33 -8.76 0 -8.76 -9.13 0.12 -8.78 -9.14 0.08 14 Rel. pose λ1+F+ λ2 9pt -8.83 -9.42 0 -8.76 -9.33 1.24 -8.66 -9.22 1.04 the procedure in [1]. Specifically, 5K random instances of data points are created to evaluate and compare the stability and runtime performance of our solver, the SparseR solver, and the solvers generated using GAPS. The stability measures include the mean and median of log 10 of the normalized equation residuals for all com-puted solutions, as well as the percentage of solver fail-ures, as presented in Tab. 1. For each candidate solution 
+
+x, we substitute it back into the original system of polyno-mial equations (1), and compute the absolute residual for each equation as |fi(x)|. The largest residual among all equations is taken as the error of that solution, denoted as 
+
+r(x) = max |fi(x)|. To account for the scale of the so-lution vector, this error is further normalized by the Eu-clidean norm of x, resulting in the normalized residual 
+
+ˆr(x) = r(x)/∥x∥2, as defined in [1]. A smaller ˆr(x) in-dicates a solution that more accurately satisfies the poly-nomial system. Solver failures are defined as instances in which all computed solutions have normalized residu-als greater than 10 −3. The failure rate (fail %) represents the proportion of such instances among all 5K trials. As shown in Tab. 1, across all minimal problems, our proposed sampling-based, matrix inversion-free solvers exhibits no failures, whereas SparseR and GAPS solvers show a small percentage of failures in several cases. These failures are typically below 0.2% , which indicates occasional numerical instability due to floating-point arithmetic. Furthermore, the mean and median log 10 residuals achieved by our method are consistently comparable to, or slightly better than, those of SparseR and GAPS, confirming that the proposed de-terminant computation maintains high numerical precision without matrix inversion. As shown in the roots column of Tab. 2, which reports the number of valid computed solutions, our solver pro-duces the exact theoretical number of valid solutions for the first seven problems. For the remaining problems the recon-structed determinant polynomial yields slightly more roots than expected. Compared to SparseR, our solver yields fewer candidate roots than SparseR in several problems, in-cluding the Rel. pose F+ λ 8pt, Rel. pose f +E+ f 6pt, and Abs. pose refractive P5P cases, resulting in a cleaner and more compact set of valid solutions. In our solver, cases with extra candidate roots are verified by back-substitution into the original polynomial equations, and their normal-ized residuals ˆr(x) are computed. This residual evaluation serves as a filtering step that removes incorrect or spuri-ous roots arising from numerical errors. All candidate roots are then ranked according to their residual magnitudes, and only the top-r solutions with the smallest residuals are re-tained as the final valid results used for evaluation. We fur-ther visualize the distribution of normalized equation resid-uals for three representative minimal problems from Tab. 1. As shown in Fig. 2, the log 10 equation residual histograms are consistent with the quantitative results in Tab. 1, indi-cating that our proposed solver achieves stable performance with low residuals. 
+
+4.2. Runtime Comparison 
+
+Tested on the same dataset, our solver is compared with both SparseR [1] and GAPS [29] in terms of average runtime and the number of computed roots, as presented in Tab. 2, where the time column indicates the average run-time per instance. As shown in table, our solver consis-tently achieves faster execution for the first five small-scale Table 2. Runtime comparison among our solver, SparseR, and GAPS across different minimal problems. Values marked with ∗ denote results before filtering spurious roots. 
+
+# Problem Our SparseR [1] GAPS [29] time (ms) roots time (ms) roots time (ms) roots 1 Rel. pose F+ λ 8pt (8 sols) 0.086 8 0.101 9 0.106 82 Rel. pose E+ f 6pt (9 sols) 0.154 9 0.345 9 0.235 93 Rel. pose f +E+ f 6pt (15 sols) 0.287 15 0.597 18 0.515 15 4 Stitching f λ +R+ f λ 3pt (18 sols) 0.213 18 0.232 18 0.241 18 5 Rel. pose E+ f λ 7pt (elim. λ) (19 sols) 0.417 19 0.637 19 0.545 19 6 Triangulation from satellite im. (27 sols) 2.923 27 0.552 27 0.554 27 7 Optimal PnP (Hesch) (27 sols) 2.773 27 0.688 27 1.454 27 8 Rolling shutter pose (8 sols) 1.526 ∗ 11 0.543 8 0.320 89 Abs. Pose P4Pfr (elim. f ) (12 sols) 0.773 ∗ 14 0.662 12 0.718 12 10 Rel. pose E+ f λ 7pt (19 sols) 1.254 ∗ 24 1.623 19 1.445 19 11 Abs. pose refractive P5P (16 sols) 5.863 ∗ 24 1.802 25 4.022 16 12 Abs. pose quivers (20 sols) 3.221 ∗ 24 0.947 24 2.996 20 13 Optimal PnP (Cayley) (40 sols) 7.442 ∗ 43 1.393 40 3.005 40 14 Rel. pose λ1+F+ λ2 9pt (24 sols) 9.520 ∗ 36 1.102 27 4.377 24 
+
+> Figure 2. Histograms of Log10 of normalized equation residual error for three selected minimal problems.
+
+problems, reducing the runtime by approximately 30% on average (ranging from 10% to 50%) compared to SparseR and GAPS. It can be observed that the runtime of our solver tends to increase with the number of computed roots. This is because our solver evaluates the resultant polynomial for each candidate root of the hidden variable and performs variable recovery repeatedly for all roots. As the num-ber of roots increases, these repeated evaluations and back-substitutions accumulate, leading to an approximately lin-ear growth in runtime. For problems with a similar num-ber of roots, the runtime of our solver is mainly influenced by the size of the resultant matrix and the complexity of computing its polynomial entries. The corresponding ma-trix sizes are provided in Supplementary Material. We note that there is a straightforward possibility of parallelizing the implementation using a GPU to improve the speed for large resultant matrices. However, this is left for future work. 
+
+## 5. Conclusion 
+
+We propose a sampling-based, matrix inversion-free method for constructing efficient minimal solvers. The method constructs a resultant matrix with respect to a se-lected hidden variable and numerically reconstructs its de-terminant coefficients via an IFFT-based strategy, avoiding symbolic expansion and explicit matrix inversion. With a robust strategy for identifying rank-deficient submatri-ces, the proposed solver maintains numerical stability under floating-point noise and enables efficient recovery of all un-knowns via Cramer’s rule. Experiments on a diverse set of relative and absolute pose estimation problems demonstrate strong numerical stability and competitive runtime perfor-mance, particularly on small-scale problems. These results indicate that the method offers a practical and scalable al-ternative to traditional Gr¨ obner-basis and resultant-based solvers. The code is available at: https://github. com/hayden-86/fft-minimal-solvers .6. Acknowledgement 
+
+This work was supported by Research Council of Fin-land under the project ”Methods and Applications for High-Efficiency Polynomial Solvers” (grant no. 355970). 
+
+## References 
+
+[1] Snehal Bhayani, Zuzana Kukelova, and Janne Heikkila. Asparse resultant based method for efficient minimal solvers. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. 1, 2, 3, 4, 6, 7, 8 [2] Snehal Bhayani, Zuzana Kukelova, and Janne Heikkil¨ a. Computing stable resultant-based minimal solvers by hiding a variable. In 2020 25th International Conference on Pattern Recognition (ICPR) , pages 6104–6111. IEEE, 2021. 2, 3 [3] Snehal Bhayani, Janne Heikkil¨ a, and Zuzana Kukelova. Sparse resultant-based minimal solvers in computer vision and their connection with the action matrix. Journal of Math-ematical Imaging and Vision , 66(3):335–360, 2024. 2 [4] Martin Byrod, Klas Josephson, and Kalle Astrom. Improv-ing numerical accuracy of gr¨ obner basis polynomial equa-tion solvers. In 2007 IEEE 11th International Conference on Computer Vision , pages 1–8. IEEE, 2007. 1 [5] Martin Byr¨ od, Klas Josephson, and Kalle ˚Astr¨ om. Acolumn-pivoting based strategy for monomial ordering in numerical gr¨ obner basis calculations. In Computer Vision– ECCV 2008: 10th European Conference on Computer Vi-sion, Marseille, France, October 12-18, 2008, Proceedings, Part IV 10 , pages 130–143. Springer, 2008. 1 [6] Martin Byr¨ od, Klas Josephson, and Kalle ˚ Astr¨ om. Fast and stable polynomial equation solving and its application to computer vision. International Journal of Computer Vision ,84(3):237–256, 2009. 1 [7] John F Canny and Ioannis Z Emiris. A subdivision-based al-gorithm for the sparse resultant. Journal of the ACM (JACM) ,47(3):417–451, 2000. 3 [8] Ondˇ rej Chum, Jiˇ r´ ı Matas, and Josef Kittler. Locally opti-mized ransac. In Joint pattern recognition symposium , pages 236–243. Springer, 2003. 1 [9] David A Cox, John Little, and Donal O’shea. Using alge-braic geometry . Springer, 1998. 1, 2, 3 [10] Yaqing Ding, Jian Yang, Viktor Larsson, Carl Olsson, and Kalle ˚ Astr¨ om. Revisiting the p3p problem. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 4872–4880, 2023. 1 [11] Ioannis Emiris and John Canny. A practical method for the sparse resultant. In Proceedings of the 1993 international symposium on Symbolic and algebraic computation , pages 183–192, 1993. 3 [12] Ioannis Z Emiris. A general solver based on sparse resul-tants. arXiv preprint arXiv:1201.5810 , 2012. 3 [13] Ioannis Z Emiris and John F Canny. Efficient incremental algorithms for the sparse resultant and the mixed volume. 
+
+Journal of Symbolic Computation , 20(2):117–149, 1995. 1 [14] Ioannis Z Emiris and Victor Y Pan. Symbolic and numeric methods for exploiting structure in constructing resultant matrices. Journal of Symbolic Computation , 33(4):393–413, 2002. 1 [15] MA FISCHLER AND. Random sample consensus: aparadigm for model fitting with applications to image analy-sis and automated cartography. Commun. ACM , 24(6):381– 395, 1981. 1 [16] Robert M Haralick, Chung-nan Lee, Kars Ottenburg, and Michael N¨ olle. Analysis and solutions of the three point per-spective pose estimation problem. In CVPR , pages 592–598, 1991. 1 [17] Richard Hartley and Hongdong Li. An efficient hidden vari-able approach to minimal-case camera motion estimation. 
+
+IEEE transactions on pattern analysis and machine intelli-gence , 34(12):2303–2314, 2012. 3 [18] Janne Heikkila. Using sparse elimination for solving min-imal problems in computer vision. In Proceedings of the IEEE International Conference on Computer Vision (ICCV) ,2017. 1, 2, 3 [19] Heinly Jared, Johannes L Schonberger, Enrique Dunn, and Jan-Michael Frahm. Reconstructing the world in six days. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2015. 1 [20] Fangyuan Jiang, Yubin Kuang, Jan Erik Solem, and Kalle ˚Astr¨ om. A minimal solution to relative pose with unknown focal length and radial distortion. In Asian Conference on Computer Vision , pages 443–456. Springer, 2014. 1 [21] Yoni Kasten, Meirav Galun, and Ronen Basri. Resultant based incremental recovery of camera pose from pairwise matches. In 2019 IEEE Winter Conference on Applications of Computer Vision (WACV) , pages 1080–1088. IEEE, 2019. 3[22] Zuzana Kukelova. Algebraic methods in computer vision .PhD thesis, Czech Technical University, 2013. 1, 3 [23] Zuzana Kukelova and Tomas Pajdla. A minimal solution to the autocalibration of radial distortion. In 2007 IEEE Con-ference on Computer Vision and Pattern Recognition , pages 1–7. IEEE, 2007. 1 [24] Zuzana Kukelova, Martin Bujnak, and Tomas Pajdla. Auto-matic generator of minimal problem solvers. In Computer Vision–ECCV 2008: 10th European Conference on Com-puter Vision, Marseille, France, October 12-18, 2008, Pro-ceedings, Part III 10 , pages 302–315. Springer, 2008. 1 [25] Zuzana Kukelova, Martin Bujnak, and Tomas Pajdla. Poly-nomial eigenvalue solutions to minimal problems in com-puter vision. IEEE Transactions on Pattern Analysis and Machine Intelligence , 34(7):1381–1393, 2011. 2, 3 [26] Viktor Larsson, Kalle Astrom, and Magnus Oskarsson. Effi-cient solvers for minimal problems by syzygy-based reduc-tion. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition , pages 820–829, 2017. 1 [27] Viktor Larsson, Kalle Astrom, and Magnus Oskarsson. Poly-nomial solvers for saturated ideals. In Proceedings of the IEEE International Conference on Computer Vision , pages 2288–2297, 2017. 1 [28] Viktor Larsson, Magnus Oskarsson, Kalle Astrom, Alge Wallis, Zuzana Kukelova, and Tomas Pajdla. Beyond grob-ner bases: Basis selection for minimal solvers. In Proceed-ings of the IEEE Conference on Computer Vision and Pattern Recognition , pages 3945–3954, 2018. 1, 3 [29] Bo Li and Viktor Larsson. Gaps: Generator for automatic polynomial solvers. arXiv preprint arXiv:2004.11765 , 2020. 1, 3, 6, 7, 8 [30] David Nist´ er. An efficient solution to the five-point relative pose problem. IEEE transactions on pattern analysis and machine intelligence , 26(6):756–770, 2004. 1 [31] Rahul Raguram, Ondrej Chum, Marc Pollefeys, Jiri Matas, and Jan-Michael Frahm. Usac: A universal framework for random sample consensus. IEEE transactions on pattern analysis and machine intelligence , 35(8):2022–2038, 2012. 1[32] Torsten Sattler, Bastian Leibe, and Leif Kobbelt. Efficient & effective prioritized matching for large-scale image-based localization. IEEE transactions on pattern analysis and ma-chine intelligence , 39(9):1744–1756, 2016. 1 [33] Davide Scaramuzza and Friedrich Fraundorfer. Visual odom-etry [tutorial]. IEEE robotics & automation magazine , 18(4): 80–92, 2011. 1 [34] Noah Snavely, Steven M Seitz, and Richard Szeliski. Model-ing the world from internet photo collections. International journal of computer vision , 80:189–210, 2008. 1 [35] Henrik Stew´ enius. Gr¨ obner basis methods for minimal prob-lems in computer vision . Citeseer, 2005. 1 [36] Henrik Stew´ enius, Frederik Schaffalitzky, and David Nist´ er. How hard is 3-view triangulation really? In Tenth IEEE In-ternational Conference on Computer Vision (ICCV’05) Vol-ume 1 , pages 686–693. IEEE, 2005. 1 [37] Henrik Stewenius, Christopher Engels, and David Nist´ er. Recent developments on direct relative orientation. ISPRS Journal of Photogrammetry and Remote Sensing , 60(4):284– 294, 2006. 1 [38] Henrik Stew´ enius, David Nist´ er, Fredrik Kahl, and Frederik Schaffalitzky. A minimal solution for relative pose with un-known focal length. Image and Vision Computing , 26(7): 871–877, 2008. 1 [39] Joachim Von Zur Gathen and J¨ urgen Gerhard. Modern com-puter algebra . Cambridge university press, 2003. 5 [40] Haidong Wu, Snehal Bhayani, and Janne Heikkil¨ a. A conic transformation approach for solving the perspective-three-point problem. In 2025 IEEE/CVF Winter Conference on Applications of Computer Vision (WACV) , pages 3237–3245. IEEE, 2025. 1

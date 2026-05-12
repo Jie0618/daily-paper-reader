@@ -1,0 +1,670 @@
+Title: Gyan: An Explainable Neuro-Symbolic Language Model
+
+URL Source: https://arxiv.org/pdf/2605.04759v1
+
+Published Time: Thu, 07 May 2026 00:49:54 GMT
+
+Number of Pages: 31
+
+Markdown Content:
+# GYAN : A N EXPLAINABLE NEURO -S YMBOLIC LANGUAGE 
+
+# MODEL 
+
+A P REPRINT 
+
+Venkat Srinivasan 
+
+Innospark 
+
+venkat@innospark.vc 
+
+Vishaal Jatav 
+
+Gyan AI Inc. 
+
+vishaal@gyanai.com 
+
+Anushka Chandrababu 
+
+Gyan AI Inc. 
+
+anushka.chandrababu@gyanai.com 
+
+Geetika Sharma 
+
+Gyan AI Inc. 
+
+geetika.sharma@gyanai.com 
+
+May 7, 2026 
+
+# ABSTRACT 
+
+Transformer based pre-trained large language models have become ubiquitous. There is increasing evidence to suggest that even with large scale pre-training, these models do not capture complete compositional context and certainly not, the full human analogous context. Besides, by the very nature of the architecture, these models hallucinate, are difficult to maintain, are not easily interpretable and require enormous compute resources for training and inference. Here, we describe Gyan, an explainable language model based on a novel non-transformer architecture, without any of these limitations. Gyan achieves SOTA performance on 3 widely cited data sets and superior performance on two proprietary data sets. The novel architecture decouples the language model from knowledge acquisition and representation. The model draws on rhetorical structure theory, semantic role theory and knowledge-based computational linguistics. Gyan’s meaning representation structure captures the complete compositional context and attempts to mimic humans by expanding the context to a ‘world model’. AI model adoption critically depends on trust and transparency especially in mission critical use cases. Collectively, our results demonstrate that it is possible to create models which are trustable and reliable for mission critical tasks. We believe our work has tremendous potential for guiding the development of transparent and trusted architectures for language models. 
+
+# 1 Introduction 
+
+Large language models based on a neural, generative architecture - BERT ([ 1 ]), ELMo [ 2 ], OpenAI/GPT ([ 3]), Gopher ([ 4]), ERNIE ([ 5 ]), Llama ([ 6], [ 7]), Gemma ([ 8]), Qwen ([ 9]), Mistral ([ 10 ]) have evolved rapidly reporting significant improvements in performance on a variety of NLP tasks ([ 7]). Despite these advances, there still remain significant limitations with such models, main among them being their lack of interpretability, explainability, hallucination, potential for misuse, inability to fully capture compositional ‘context’, and challenges relating to tractability ([ 11 ]; [ 12 ]; [13]; [14]; [15]; [16]). More recently, LLMs have introduced Large Reasoning Models (LRMs) such as OpenAI’s o1/o3 ([ 17 ]; [ 18 ]), DeepSeek-R1 ([ 19 ]), Claude 3.7 Sonnet Thinking ([ 20 ]), and Gemini Thinking ([ 21 ]) with impressive results across reasoning benchmarks. However, the fundamental architectural characteristics and limitations of LRMs largely remain the same as that of the earlier versions of these models. The implied hypothesis at the heart of these large models is that they can gain a human analogous level of knowledge and inferencing ability through sophisticated statistical models based on patterns and distributional semantics from a large amount of data ([ 22 ], [ 23 ]). Brunila and LaViolette [24] observe that of the two approaches to distributional semantics - Harris’s approach ([ 25 ], [ 26 ]) dominates the current makeup of LLMs. Firth’s approach ([ 27 ], [ 28 ] and 
+
+> arXiv:2605.04759v1 [cs.CL] 6 May 2026
+
+Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Figure 1: High Level Architecture of Gyan [29 ]) is closer to models of human cognition where humans expand context both with episodic details and in an abstract fashion. Human understanding of language critically depends on understanding the complete composition and the inter-related semantic roles of different constituent parts in the full composition. In forming their understanding, humans also use their prior knowledge not explicitly stated in the document being processed. Any machine meaning representation therefore has to be able to reflect the meaning of the full composition, incorporate relevant ‘global’ knowledge and allow for a level of abstraction. In this paper, we describe Gyan, an explainable compositional language model, based on a novel, non-transformer architecture where the Gyan model is decoupled from data or knowledge. Gyan attempts to also explicitly construct a ‘world model’ in an attempt to reach human analogous understanding. Gyan combines knowledge-based linguistics, thematic roles and rhetorical structure to create its rich and complete compositional encoding of meaning from natural language. To demonstrate the relative efficacy of Gyan’s neuro-symbolic architecture, we provide comparative performance data from 3 widely cited - MS Marco ([ 30 ]), PubMedQA ([ 31 ]) and MMLU-Medicine ([ 32 ]) data sets, a proprietary data set of 20 random queries and a real world essay grading data set. Gyan-4.4 achieves SOTA performance on PubMedQA, MMLU-Medicine and is in the top 3 in MS Marco. Gyan shows significantly improved relevance determination over search engines (re-ranking) on the 20 query data set. Gyan also achieved 100% acceptable results on a proprietary essay grading data set. Collectively, these findings validate the efficacy of Gyan’s novel architecture for natural language in cases where explainability, tractability, transparency are critical. The reasoning illustrated using these data sets demonstrate that the architecture can continually approach human analogous understanding of language as new knowledge is made accessible. 
+
+# 2 Gyan LM decouples knowledge from its model 
+
+Neural transformer-based LLMs are very large neural networks trained on an incredibly large amount of natural language content. These LLMs are probabilistic models of word sequences and associations. In this architecture, the model is inseparably coupled with data. By pre-training these models on large amounts of data, these LLMs are presumed to have acquired generalizable ‘knowledge’ contained in the training data. In contrast, the Gyan model is not a statistical model of word patterns and is not pre-trained like the transformer based models are. The Gyan architecture decouples the model from data (Figure 1a). The Gyan LM is a deep linguistic pipeline based on knowledge-based linguistics including syntactic representation, semantic roles and rhetorical structure. The Gyan LM decomposes the entire document into a meaning representation graph (GMR) which preserves the composition fully. With its deep linguistic pipeline, it can process any document in English (currently) without any training. See the Methods section for a formal description of the model. Gyan acquires its knowledge real time in three ways - (i) a base level of knowledge from dictionaries and ontologies; (ii) document collections which can be enterprise proprietary and/or public like PubMed, (iii) dynamically from the internet and other private sources accessible to the user. In the case of the internet, Gyan LLM retrieves results using search engines and processes them real time. All knowledge from pre-processed documents or acquired dynamically 2Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Figure 2: Knowledge Layers in Gyan from the internet are stored in data stores referred to as ’Knowledge Stores’ (KS), separate from the Gyan LLM. These are transparent stores of GMRs of the documents processed using Gyan. Pre-processed Knowledge Stores serve the same purpose in Gyan as pre-training in transformer LLMs but without the challenges associated with models based purely on word patterns. Asymptotically, the amount of knowledge accessible to Gyan and neural LLMs will be the same if the training data used to train the neural LLMs are used to create equivalent Gyan ’knowledge stores’. We can view Gyan’s knowledge repository in four layers as shown in Figure 2. The first layer is factual knowledge from dictionaries, taxonomies and other factual repositories. The second level of knowledge is from expert studies most commonly in the form of academic research, e.g., PubMed. The third layer of knowledge is expert opinions, e.g., analyst reports. The final layer of knowledge can be speculative, e.g., blog posts and other social media content. All four layers together form the knowledge network for that domain. Gyan’s pre-processed knowledge stores enable it to provide fast response. Gyan can behave as a small or large language model as a function of the number of KS that are used. Because Gyan’s meaning representation graphs are a deterministic representation of the underlying document and completely invertible, Gyan is fully explainable and traceable, will not hallucinate, cannot be manipulated or misused with data and is transferable across domains easily. The Gyan LM needs a fraction of the compute resources neural LLMs need both for training and inference. As is well known, updating transformer based models can cause instability ([ 33 ]). In contrast, the Gyan LM is easily maintained. With its decoupled and explicit meaning representation architecture, Gyan LM is able to reflect new knowledge continuously. New knowledge can be maintained independent of existing knowledge or merged. 
+
+# 3 Gyan LM attempts to mimic human knowledge organization and retrieval 
+
+Human understanding of natural language discourse and organization of knowledge in it, is a combination of two essential elements – the discourse or document on the one hand and pre-existing human knowledge on the other. Humans interpret or understand a document in the context of what we know already or our pre-existing cognitive perception ([ 34 ]; [ 35 ]). Concepts or areas in the discourse we have no prior knowledge of, constitute new knowledge which we attempt to integrate with our existing knowledge ([ 36 ]). Such integration involves creating a cognitive perception of the new knowledge. Over time, this consolidation also semanticizes memories such that episodic details fade away and what remains is a more abstract version of the encoded memory ([36]). Complete machine understanding of a composition needs a holistic understanding of the ‘concepts and relationships among them expressed in the composition using formal linguistics – semantic structure of the composition made up of semantic roles of words, phrases, paragraphs, and rhetorical arguments used to express relationships among the ‘concepts’ in the composition, using rules of semantics ([ 37 ]). Any approach to understand it by breaking up the composition into words or phrases or sentences will be less than complete, e.g., Smith [14]. Neural LLMs have attempted to address this largely by innovating methods to ingest more context at the time of training the models ([ 38 ]; [ 39 ]; [ 40 ]; [ 41 ]; [ 42 ]; [ 43 ]; [ 44 ]). Hermann and Blunsom [45] suggest the use of Combinatory Categorical Grammar (CCG) based autoencoders. Smith [14] reviews the use of contextual word representations but concludes that it is an open question how much of the work of understanding can be done at the level of words in 3Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+context. Besides, while useful, ingesting more context at a word or even sentence level, does not fully reflect full compositionality and does not address other fundamental limitations of the architecture such as transparency and hallucination. On a broader level, how well do transformer-based LLMs mimic human understanding or organization of knowledge? Knowledge organization in these models is largely influenced by distributional semantics. Brunila and LaViolette [24] observe that the main proponents of distributional semantics - Harris [25] , Harris [26] , Firth [27] , Firth [28] and Firth [29] had two very different approaches to defining distributional semantics and Harris’s approach dominates the current model frameworks. Yet, Firth’s approach is closer to models of human cognition where humans expand context both with episodic details and in an abstract fashion. Dentella et al. [15] point out that good performance in benchmark data sets reflect memorized specialized knowledge but not necessarily a solid understanding of language, such that LLMs may fail at comparatively easier tasks ( Moravecs paradox ). Reasoning in machines using these LLMs is harder for simple, effortless tasks that human minds do easily. Using questions on a set of 26,680 short texts featuring high frequency linguistic construction, they find that LLMs perform at chance accuracy and waver considerably in their answers. Based on their findings, they conclude that despite their usefulness in various tasks, current AI models fall short of understanding language in a way that matches humans, and that this may be a lack of an ability to regulate grammatical and semantic information. Recently Shani et al. [16] argue that humans organize knowledge into compact categories through semantic compression by mapping diverse instances to abstract representations while preserving meaning. With a novel information-theoretic framework, they find that while LLMs form broad conceptual categories that align with human judgment, they struggle to capture the fine-grained semantic distinctions crucial for human understanding. Recent body of evidence clearly suggests that current models do not adequately capture the full compositional context and certainly not the expanded human analogous context. The Gyan LM and knowledge architecture attempt to reflect both aspects of human cognition mentioned earlier – the full compositional context of the document and the expanded human ‘world model’. Its meaning representation model reflects the full compositional semantics of the document. The Gyan LM then expands the query and the document semantically using its stored knowledge to approximate a ‘model of the world’ for the composition the way a human would see it. In constructing the full compositional representation, Gyan also creates an extended pathway from the specific language used in the document to more abstract descriptions of the various discourse elements, e.g. if ‘parrot’ is a concept in the document, Gyan’s meaning representation will construct a dynamic pathway in representation from parrot to ‘bird’ and to ‘collective noun’. Similarly the rhetorical phrase ‘results in’ is mapped by Gyan to a more rhetorical relation type ‘causal’. Gyan’s meaning representation coupled with the expansion to integrate prior knowledge yields a meaning representation structure that is analogous to human understanding. The hierarchical pathway from the surface level language (‘parrot’) to more abstract concepts like ‘bird’ and ‘collective noun’ also address the need for knowledge organization to be flexible enough to go from fine-grained expressions to abstract versions. We believe the Gyan architecture allows a seamless bridging of expressive fidelity and semantic compression Shani et al. [16]. 
+
+# 4 Gyan LM creates an explainable meaning encoding of the complete composition 
+
+Gyan LM’s meaning encoding referred to as Gyan Meaning Representation (GMR) is fully explainable as it preserves the full composition in place. It has its roots in Rhetorical Structure Theory ([46], [47]; [48]; [49]), Abstract Meaning Representation ([50]) and Knowledge Graphs ([51]; [52]). To construct GMR, the Gyan model decomposes the document step by step starting with Discourse Units (DUs) and ending with the concepts and phrases in every sentence. Gyan detects DUs, identifies sentences that belong to each DU, and breaks down the sentences into concepts and relations. In the Gyan LM, DUs can be nested within DUs and are modeled as structural or semantic. Relations can be at several levels – DU level, inter-sentence and intra-sentence. The set of sentences which belong to a DUs are judged by the Gyan LM to be closely related semantically to the subject of the DU. At the sentence level, Gyan LM breaks down sentences into concepts and relations. Similar to DUs, concepts may have sub-concepts. The Gyan LM defines a document ( D) to be a set of Ideas or Discourse Units ( DU ) on a subject. The DU s in turn are expressed as a set of sentences ( S) and each sentence is composed of linguistic elements including concepts, roles and rhetorical relations (E, R ) between them. For example, a simple sentence can be thought of as having a subject and an object which are linked through a verb phrase reflecting a rhetorical relationship type. Both concepts and rhetorical relations (E, R) in turn are mapped to a hierarchy which goes from being highly fine-grained or descriptive to higher levels of aggregation or abstraction, e.g., parrot → bird → collectivenoun .4Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Figure 3: Gyan Meaning Representation Graph Figure 3 shows an illustrative GMR. From left to right, it shows the first level decomposition by Gyan of a document, D, into its discourse units, DUs. DU2 shows the second level decomposition into a set of sentences which belong to the DU because of the strength of their semantic relationship to the DU’s head sentence. SE12 is the surface level sentence relation between S1 and S2 which is mapped to an abstract relation type, SR12. SR12 in turn maps to a hierarchy of increasingly more abstract relation types. Next, Figure 3 illustrates the next level of decomposition where each of the sentences are decomposed into their constituent concepts and relations. Gyan expands the sentences to reveal their compositional structure in the form of concepts and relationships between them. Relationships between sentences are also effectively relationships between concepts in those sentences. For example, a sentence starting with a pronoun refers to a person in the sentence it is related to. A concept can be a noun or a phrase or a normalized form of a noun or verb phrase. If a sentence can be mapped to multiple DUs, Gyan LM resolves the conflict by mapping to the DU with the higher semantic strength. Gyan LM determines the strength of the semantic relationship using linguistic and rhetorical characteristics. As an example, a sentence whose subject is a coreference of an object of a preceding sentence may be ranked lower in terms of relationship strength between those two sentences compared to a sentence whose subject is a direct coreference of the subject of the preceding sentence. An important underpinning of the Gyan architecture is that word or phrase or sentence frequencies do not play any role. The user can unpeel one section of the GMR at a time either based on concepts and/or rhetorical relationship types (R). A multi-layered meaning representation allowing a gradual unpeeling of meaning also mimics human processing of natural language. Often we read a document several times each time improving our understanding. Figure 3 also illustrates how Gyan LM expands the meaning representation to create a ‘World Model’ for the document context. Gyan LM automatically expands the GMR for both the user’s query and the documents being processed, using knowledge stores and content source(s) it has access to. Gyan looks for related concepts outside of the current query or document which might have a bearing on the meaning representation for the current query or document. This is illustrated for a document in Figure 3 by the blue nodes. The expanded GMR allows Gyan to establish semantic relationships between concepts in the document which cannot be inferred from processing the document alone. Humans reading the document would have readily made the same association with their prior knowledge. Gyan LM can create a synthesized GMR representing multiple documents. The GMR from each document is merged substituting semantic co-references at a concept-sense level . The consolidated GMR is often not a simple union of constituent GMRs. It is a union of expanded GMRs without loss of knowledge or surface form. The consolidated GMR can have more nodes and more edges than a simple union of two GMRs. This is illustrated in the Appendix section. 
+
+# 5 Results 
+
+The Gyan GMR can be decoded to perform a wide range of NLU tasks - searches for relevant documents, topic modeling, tagging, summarization, synthesis of multiple documents, question-answering/inferencing, document analysis or review 5Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Figure 4: Gyan 4.3 on MSMarco Passage Ranking Figure 5: Gyan 4.4 on PubMedQA dataset e.g., essay grading, legal document markup and document generation. We report results from several experiments below including 3 widely cited benchmark data sets – MSMarco, PubMedQA and MMLU-Medicine. 
+
+5.1 Gyan achieves Top 3 performance in a zero-shot test on MS MARCO 
+
+To determine relative efficacy of the Gyan architecture, we benchmarked Gyan against the MS Marco dataset for passage ranking ([ 30 ]) with minimal data in the Knowledge Store, without any additional domain specific knowledge and no training. The only data in the Gyan Knowledge Store for this experiment were synonyms from WordNet ([ 53 ]). Gyan-4.3 was SOTA for 71.7% of the queries, in the Top 2 on the leaderboard for 86.9% of the queries and in the Top 3 for all the queries (Figure 4). As Gyan Knowledge Stores grow in coverage for concepts in the MS Marco dataset, we can expect Gyan to further improve on the leaderboard. The query-wise performance details are available from the authors on request. 
+
+5.2 Gyan achieves SOTA performance on PubMedQA 
+
+The PubmedQA dataset ([ 31 ]) is a widely cided data set and contains all PubMed articles with question titles, and manually labeled answers for 1k of them for cross-validation and testing. In order to process the PubmedQA dataset, we created an initial Gyan Knowledge Store (KS) for medicine from 32 different domain specific datasets comprising medical dictionaries and MESH. A detailed description of these data sets is available from the authors on request. The PQA-L dataset of 1K questions and abstracts has been further divided into 500 for training and 500 for validation. Gyan-4.4 used the KS for Medicine to answer the Test Set comprising 500 questions. Since the Gyan architecture does not rely on pre-training, the pre-training data was not used. As shown in Figure 5, Gyan-4.4 answered 87.08% of the questions correctly. As we can see from the table and from the leaderboard [https://pubmedqa.github.io/], as of Nov 30, 2024, Gyan-4.4 has already reached SOTA performance levels. Gyan’s reasoning is transparent and understandable. Illustrations of Gyan’s reasoning for a PubMedQA questions are available from the authors on request. 
+
+5.3 Gyan achieves SOTA performance on MMLU-Medicine 
+
+The Massive Multitask Language Understanding (MMLU) data set ([ 32 ]) has gained significant popularity because it assesses the breadth and depth of language understanding capabilities across a diverse range of subjects. For the purposes of this study, we only considered a subset comprising 9 clinical subjects as also done in Singhal et al. [54] .The dataset contains 15908 questions in total, which are split into a few-shot development set, a validation set, and a test set. The few-shot development set has 5 questions per subject, the validation set is made of 1540 questions, and the test set has 14079 questions. Each subject contains 100 test examples at the minimum. Each question contains 4 options out of which the model has to choose the correct one. The nature of reasoning required for MMLU is different from PubMedQA. MMLU requires the model to examine all options and rule in/out options. PubMedQA required the model to provide a Boolean answer to the question based on the content in the associated abstract. As shown in Figure 6, Gyan-4.4 achieves SOTA performance on the original MMLU data set. 6Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Figure 6: MMLU Leaderboard (May 12-2025) Using the KS for Medicine, we evaluated Gyan LM on all the MMLU variants. The detailed results are available from the authors on request. Gyan-4.4 performance is stable across all these data sets validating the robustness of the Gyan architecture to errors in data. Gyan-4.4 was relatively unaffected by purely representational edits like changes in the order of the options, increase in the number of options from 4 to 10 and also from errors in the data set. Gyan-4.4 provides a detailed trace of its reasoning and inferencing for any question including in some cases declaring that there is not enough knowledge in the Knowledge Store to answer a question. In such cases, Gyan also will suggest to the user that it can attempt to fetch the missing knowledge dynamically from the internet and other sources it may have access to. A detailed trace for an example question is available from the authors on request. 
+
+5.4 Gyan improves relevance ranking on a proprietary 20 Query Dataset 
+
+Our hypothesis is that Gyan LM with its more complete meaning encoding will be better at finding relevant documents. We tested this hypothesis on two data sets on a random set of 20 internet queries from various queries submitted by users of Gyan. The MS MARCO passage ranking data set reported earlier is also a relevance classification data set. On the 20 random internet queries we used Google as the search engine to retrieve baseline results. We selected queries with one, two and three words including queries with highly ambiguous words. For each query, 2 human experts reviewed and labeled all the articles in the entire result set from the search engine(s). Results from Google were compared with the labeled data set. The data were then processed using the BM-25 re-ranker and compared with the labeled data. Finally, the data were processed through Gyan. [dataset available from the authors] The page-wise distribution of results are displayed in Fig 9a. The page here is the default organization priority in Google search. In Figure 7a, green represents relevant articles, red irrelevant and yellow are non-articles. The chart on the left shows the results according to Gyan, followed by Google and BM-25. In the charts, we can see a very high portion of its results in earlier pages are relevant articles compared to BM-25 and Google. We then computed the nDCG metric both on a cumulative basis and on a 20-item rolling window basis to remove any arbitrary pagination effect. Windows of 10-items and 30-items did not show any material difference. Figure 7b shows the nDCG metrics. It shows the rolling nDCG and the cumulative nDCG by page. We can see that the nDCG for Gyan outperforms both Google and BM-25. Figure 7c displays the weighted accuracy metrics where we varied the relative costs for relevant and irrelevant classification from 1:2 for Relevant: Irrelevant, 1:1 and then 2:1. The metrics confirm that Gyan outperforms both Google and BM-25 on these queries across both the relevant and irrelevant categories. 
+
+# 6 GMR provides traceable, explainable responses to queries 
+
+Enterprise knowledge processed and stored in Gyan KS is a source of uncontaminated truth. Gyan LM and KS enable an enterprise to create a responsible, trustable AI stack. Gyan generates synthesized responses to queries, graphs for visual exploration, analysis of documents wrt a rubric, e.g., proposal evaluation, analytical summary of results as per a template, e.g., experiments, among other natural language 7Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Figure 7: Ranking Results on the 20 Query Dataset [Google, MS Azure, Gyan] tasks. Synthesized responses to queries can be of different verbosity levels. A comparative response from Gyan, GPT-4 and Gemini to the question ‘What is Brain Computer Interface’ is avaibale from the authors on request. In the Gyan response, the trace back to the precise source document is illustrated only for the first sentence of the summary for brevity. In addition to trace back to the exact locations from where the summary was created, Gyan can also provide complete reasoning for any part of its inference – why a specific source document was found relevant to the query, and how text from different documents were combined. Gyan responses are extractive. When multiple documents are combined, Gyan does so with very minimal paraphrasing to create a consolidated summary or synthesis. Gyan of course removes redundant ideas in creating such a synthesis. Extractive summaries are effectively a subset of the document text which summarize the full discourse. The text is not modified in any way. Gyan will not co-mingle responses from different KS unless needed to ensure that enterprise data is not co-mingled. 
+
+# 7 Gyan requires negligible compute resources 
+
+Most neural LLMs require an enormous amount of compute infrastructure for training and inference. While the cost of training and inference is decreasing, it is still quite sizable. The carbon impact of LLMs is a substantial issue. The surge in LLM adoption has, in turn, exacerbated the already considerable environmental impacts associated with machine learning (ML) ([55]). Gyan, on the other hand, requires a negligible amount of compute resources both for training and inference. Gyan does not need a GPU. Gyan’s physical architecture is highly scalable, parallelized and the processing architecture auto scales with demand. Gyan is thus highly energy efficient and sustainable from an environmental perspective. Figure 8 shows the details of the physical architecture. 
+
+# 8 Discussion 
+
+In this paper, we have presented a language model based on a novel architecture which addresses fundamental challenges with transformer-based language models, and attempts to create a closer human analogous machine meaning representation of knowledge. The architecture decouples the language model from knowledge and simulates a knowledge architecture that mimics humans. Gyan moves away from purely statistical patterns of words to retain the complete 8Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Figure 8: Gyan Physical Architecture composition in its surface form and expand it to a world model to fully understand the composition in a human analogous context. It is closer to the Firth approach to distributional semantics rather than Harris. We demonstrated the relative efficacy of the architecture by comparing Gyan performance on 3 widely cited benchmark data sets. While there has been recent criticism of benchmarks as indicators of knowledge completeness, our primary goal is to demonstrate the relative efficacy of Gyan’s architecture. Gyan achieved SOTA performance in 2 of them and is in the Top 3 in the third. The performance was achieved with limited amount of domain knowledge. It is also important to note that Gyan only needs non-overlapping sets of such knowledge from credible sources contrasted with transformer based LLMs which need to be pre-trained on very large amounts of language data to be effective. Gyan can continue to improve its performance on these data sets if it is provided the missing knowledge. Missing knowledge is identified by Gyan explicitly in response to a user query. We illustrated the transparency of every step in inference and reasoning in Gyan with examples from PubMedQA and MMLU-Medicine. While the PubMedQA reasoning was to generate a Yes/No response, MMLU-Medicine required Gyan to evaluate each option and choose the best answer for the query. We also demonstrated Gyan’s stability and invariance to perturbations in data representation e.g., changes in order or number of options, to errors in the data set. The only aspect that will affects Gyan’s performance will be underlying errors in its knowledge store. We also provided evidence of Gyan’s performance on a couple of real world proprietary data sets. In a proprietary data set of 20 random search queries, Gyan meaning based relevance classification demonstrated significantly better results in finding more relevant documents compared to search engines. We also found our model to be effective in analysis of documents with respect to a rubric in a small sample of open text responses in a higher educational setting. These results are available from the authors on request. The Gyan LM was able to correctly grade open text responses for 57 students in online courses across two globally respected higher educational institutions. In one of these instances, Gyan LM grades were compared to 3 human graders and peer grades. In the other case, Gyan LM grades were reviewed by the professor. The ability of Gyan to function with very sparse data is a major advantage. In a tactical sense, however this does require that Gyan locate and pre-process the knowledge that is relevant to an enterprise or use case. The completeness and accuracy of Gyan’s meaning representation is a function of how accurate the Gyan LM is in parsing the linguistic and rhetorical structure of documents. While we have created an extensive set of pre and post processing rules to correct errors in syntactic parsing of language data, this will need to continue to improve over time. Are there benefits for Gyan to operate in conjunction with transformer based LLMs? We envision several scenarios for Gyan and transformer-based LLMs to co-exist. First, Gyan KS can be used as the source of truth by an LLM. Gyan KS 9Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+can be integrated as part of an LLM as it is MCP compliant. Gyan KS can be updated easily and remain completely transparent. Based on how the LLM processes the Gyan KS, this can substantially reduce hallucination and also enable more precise traceability and explainability in the LLM output. Second, Gyan LM can generate its normal output and also generate LLM output to look for any incremental knowledge that Gyan KS may not have obtained and attempt to validate such incremental knowledge. It can include such additional knowledge in its output with an annotation on whether it was validated or not. As a corollary, in a third scenario, Gyan LM can be used to validate and explain LLM output. In this case, Gyan will process the LLM output through its normal process and attempt to validate as much of the LLM output as it can. This can make some or all of the LLM output traceable and explainable. The final scenario is for Gyan to create its meaning representation expansion of the user query to generate a contextually richer prompt to the LLM. Does Gyan create bias? Gyan does not generate bias in its processing. But it does not eliminate bias that may be in the document being processed. Since it is explainable and tractable, the user can immediately discern if the source data carries any bias. Gyan also allows users to assign credibility levels to sources. The Gyan LM is easily transferable across domains. It will without any training be able to create a GMR of language data in a new domain, e.g., material science. Gyan LM can incorporate domain specific reference data, domain specific rhetorical relationships which will make Gyan LM even more suitable for that domain. Future work is being directed in two areas – building a large base level knowledge store which has factual knowledge on many concepts and in generating abstractive output similar to the transformer based LLMs but without losing the advantages of the novel Gyan architecture. The Gyan LM is most appropriate for use cases where explainability, tractability, reliability, repeatability, privacy (no co-mingling) is mission critical. The model architecture is a useful framework for not just language data but also for development of explainable and tractable models for other types of data. 
+
+# References 
+
+[1] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. BERT: Pre-training of deep bidirectional transformers for language understanding. In Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers) , pages 4171–4186, Minneapolis, Minnesota, June 2019. Association for Computational Linguistics. doi: 10.18653/v1/N19-1423. URL https://aclanthology.org/N19-1423/ .[2] Matthew E. Peters, Mark Neumann, Mohit Iyyer, Matt Gardner, Christopher Clark, Kenton Lee, and Luke Zettlemoyer. Deep contextualized word representations. In Proceedings of the 2018 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long Papers) , pages 2227–2237, New Orleans, Louisiana, June 2018. Association for Computational Linguistics. doi: 10.18653/v1/N18-1202. URL https://aclanthology.org/N18-1202/ .[3] Alec Radford, Karthik Narasimhan, Tim Salimans, and Ilya Sutskever. Improving language understand-ing by generative pre-training, 2018. URL https://www.cs.ubc.ca/~amuham01/LING530/papers/ radford2018improving.pdf .[4] Jack W. Rae, Sebastian Borgeaud, Trevor Cai, Katie Millican, Jordan Hoffmann, Francis Song, John Aslanides, Sarah Henderson, Roman Ring, Susannah Young, Eliza Rutherford, Tom Hennigan, Jacob Menick, Albin Cassirer, Richard Powell, George van den Driessche, Lisa Anne Hendricks, Maribeth Rauh, Po-Sen Huang, Amelia Glaese, Johannes Welbl, Sumanth Dathathri, Saffron Huang, Jonathan Uesato, John Mellor, Irina Higgins, Antonia Creswell, Nat McAleese, Amy Wu, Erich Elsen, Siddhant Jayakumar, Elena Buchatskaya, David Budden, Esme Sutherland, Karen Simonyan, Michela Paganini, Laurent Sifre, Lena Martens, Xiang Lorraine Li, Adhiguna Kuncoro, Aida Nematzadeh, Elena Gribovskaya, Domenic Donato, Angeliki Lazaridou, Arthur Mensch, Jean-Baptiste Lespiau, Maria Tsimpoukelli, Nikolai Grigorev, Doug Fritz, Thibault Sottiaux, Mantas Pajarskas, Toby Pohlen, Zhitao Gong, Daniel Toyama, Cyprien de Masson d’Autume, Yujia Li, Tayfun Terzi, Vladimir Mikulik, Igor Babuschkin, Aidan Clark, Diego de Las Casas, Aurelia Guy, Chris Jones, James Bradbury, Matthew Johnson, Blake Hechtman, Laura Weidinger, Iason Gabriel, William Isaac, Ed Lockhart, Simon Osindero, Laura Rimell, Chris Dyer, Oriol Vinyals, Kareem Ayoub, Jeff Stanway, Lorrayne Bennett, Demis Hassabis, Koray Kavukcuoglu, and Geoffrey Irving. Scaling language models: Methods, analysis and insights from training gopher, 2022. URL 
+
+https://arxiv.org/abs/2112.11446 .[5] Yu Sun, Shuohuan Wang, Shikun Feng, Siyu Ding, Chao Pang, Junyuan Shang, Jiaxiang Liu, Xuyi Chen, Yanbin Zhao, Yuxiang Lu, Weixin Liu, Zhihua Wu, Weibao Gong, Jianzhong Liang, Zhizhou Shang, Peng Sun, Wei Liu, Xuan Ouyang, Dianhai Yu, Hao Tian, Hua Wu, and Haifeng Wang. Ernie 3.0: Large-scale knowledge enhanced pre-training for language understanding and generation, 2021. URL https://arxiv.org/abs/2107.02137 .10 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+[6] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, Aurelien Rodriguez, Armand Joulin, Edouard Grave, and Guillaume Lample. Llama: Open and efficient foundation language models, 2023. URL https: //arxiv.org/abs/2302.13971 .[7] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, Dan Bikel, Lukas Blecher, Cristian Canton Ferrer, Moya Chen, Guillem Cucurull, David Esiobu, Jude Fernandes, Jeremy Fu, Wenyin Fu, Brian Fuller, Cynthia Gao, Vedanuj Goswami, Naman Goyal, Anthony Hartshorn, Saghar Hosseini, Rui Hou, Hakan Inan, Marcin Kardas, Viktor Kerkez, Madian Khabsa, Isabel Kloumann, Artem Korenev, Punit Singh Koura, Marie-Anne Lachaux, Thibaut Lavril, Jenya Lee, Diana Liskovich, Yinghai Lu, Yuning Mao, Xavier Martinet, Todor Mihaylov, Pushkar Mishra, Igor Molybog, Yixin Nie, Andrew Poulton, Jeremy Reizenstein, Rashi Rungta, Kalyan Saladi, Alan Schelten, Ruan Silva, Eric Michael Smith, Ranjan Subramanian, Xiaoqing Ellen Tan, Binh Tang, Ross Taylor, Adina Williams, Jian Xiang Kuan, Puxin Xu, Zheng Yan, Iliyan Zarov, Yuchen Zhang, Angela Fan, Melanie Kambadur, Sharan Narang, Aurelien Rodriguez, Robert Stojnic, Sergey Edunov, and Thomas Scialom. Llama 2: Open foundation and fine-tuned chat models, 2023. URL https://arxiv.org/abs/2307.09288 .[8] Gemma Team, Thomas Mesnard, Cassidy Hardin, Robert Dadashi, Surya Bhupatiraju, Shreya Pathak, Laurent Sifre, Morgane Rivière, Mihir Sanjay Kale, Juliette Love, Pouya Tafti, Léonard Hussenot, Pier Giuseppe Sessa, Aakanksha Chowdhery, Adam Roberts, Aditya Barua, Alex Botev, Alex Castro-Ros, Ambrose Slone, Amélie Héliou, Andrea Tacchetti, Anna Bulanova, Antonia Paterson, Beth Tsai, Bobak Shahriari, Charline Le Lan, Christopher A. Choquette-Choo, Clément Crepy, Daniel Cer, Daphne Ippolito, David Reid, Elena Buchatskaya, Eric Ni, Eric Noland, Geng Yan, George Tucker, George-Christian Muraru, Grigory Rozhdestvenskiy, Henryk Michalewski, Ian Tenney, Ivan Grishchenko, Jacob Austin, James Keeling, Jane Labanowski, Jean-Baptiste Lespiau, Jeff Stanway, Jenny Brennan, Jeremy Chen, Johan Ferret, Justin Chiu, Justin Mao-Jones, Katherine Lee, Kathy Yu, Katie Millican, Lars Lowe Sjoesund, Lisa Lee, Lucas Dixon, Machel Reid, Maciej Mikuła, Mateo Wirth, Michael Sharman, Nikolai Chinaev, Nithum Thain, Olivier Bachem, Oscar Chang, Oscar Wahltinez, Paige Bailey, Paul Michel, Petko Yotov, Rahma Chaabouni, Ramona Comanescu, Reena Jana, Rohan Anil, Ross McIlroy, Ruibo Liu, Ryan Mullins, Samuel L Smith, Sebastian Borgeaud, Sertan Girgin, Sholto Douglas, Shree Pandya, Siamak Shakeri, Soham De, Ted Klimenko, Tom Hennigan, Vlad Feinberg, Wojciech Stokowiec, Yu hui Chen, Zafarali Ahmed, Zhitao Gong, Tris Warkentin, Ludovic Peran, Minh Giang, Clément Farabet, Oriol Vinyals, Jeff Dean, Koray Kavukcuoglu, Demis Hassabis, Zoubin Ghahramani, Douglas Eck, Joelle Barral, Fernando Pereira, Eli Collins, Armand Joulin, Noah Fiedel, Evan Senter, Alek Andreev, and Kathleen Kenealy. Gemma: Open models based on gemini research and technology, 2024. URL https://arxiv.org/abs/2403.08295 .[9] Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong Deng, Yang Fan, Wenbin Ge, Yu Han, Fei Huang, Binyuan Hui, Luo Ji, Mei Li, Junyang Lin, Runji Lin, Dayiheng Liu, Gao Liu, Chengqiang Lu, Keming Lu, Jianxin Ma, Rui Men, Xingzhang Ren, Xuancheng Ren, Chuanqi Tan, Sinan Tan, Jianhong Tu, Peng Wang, Shijie Wang, Wei Wang, Shengguang Wu, Benfeng Xu, Jin Xu, An Yang, Hao Yang, Jian Yang, Shusheng Yang, Yang Yao, Bowen Yu, Hongyi Yuan, Zheng Yuan, Jianwei Zhang, Xingxuan Zhang, Yichang Zhang, Zhenru Zhang, Chang Zhou, Jingren Zhou, Xiaohuan Zhou, and Tianhang Zhu. Qwen technical report, 2023. URL 
+
+https://arxiv.org/abs/2309.16609 .[10] Siddharth* Karamcheti, Laurel* Orr, Jason Bolton, Tianyi Zhang, Karan Goel, Avanika Narayan, Rishi Bom-masani, Deepak Narayanan, Tatsunori Hashimoto, Dan Jurafsky, Christopher D. Manning, Christopher Potts, Christopher Ré, and Percy Liang. Mistral - a journey towards reproducible language model training, 2021. URL 
+
+https://github.com/stanford-crfm/mistral .[11] Emily M. Bender, Timnit Gebru, Angelina McMillan-Major, and Shmargaret Shmitchell. On the dangers of stochastic parrots: Can language models be too big? In Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency , FAccT ’21, page 610–623, New York, NY, USA, 2021. Association for Computing Machinery. ISBN 9781450383097. doi: 10.1145/3442188.3445922. URL https://doi.org/10. 1145/3442188.3445922 .[12] Gary Marcus. Nonsense on stilts, 2022. URL https://garymarcus.substack.com/p/ nonsense-on-stilts .[13] Gary Marcus. Llms: Dishonest, unpredictable and potentially dangerous, 2025. URL https://garymarcus. substack.com/p/llms-dishonest-unpredictable-and .[14] Noah A. Smith. Contextual word representations: A contextual introduction, 2020. URL https://arxiv.org/ abs/1902.06006 .[15] Vittoria Dentella, Fritz Günther, Elliot Murphy, Gary Marcus, and Evelina Leivada. Testing ai on language comprehension tasks reveals insensitivity to underlying meaning. Scientific Reports , 14, 11 2024. doi: 10.1038/ s41598-024-79531-8. 11 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+[16] Chen Shani, Liron Soffer, Dan Jurafsky, Yann LeCun, and Ravid Shwartz-Ziv. From tokens to thoughts: How llms and humans trade compression for meaning, 2025. URL https://arxiv.org/abs/2505.17117 .[17] OpenAI, Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richardson, Ahmed El-Kishky, Aiden Low, Alec Helyar, Aleksander Madry, Alex Beutel, Alex Carney, Alex Iftimie, Alex Karpenko, Alex Tachard Passos, Alexander Neitz, Alexander Prokofiev, Alexander Wei, Allison Tam, Ally Bennett, Ananya Kumar, Andre Saraiva, Andrea Vallone, Andrew Duberstein, Andrew Kondrich, Andrey Mishchenko, Andy Applebaum, Angela Jiang, Ashvin Nair, Barret Zoph, Behrooz Ghorbani, Bohan Zhang, Ben Rossen, Benjamin Sokolowsky, Boaz Barak, Bob McGrew, Borys Minaiev, Botao Hao, Bowen Baker, Brandon Houghton, Brandon McKinzie, Brydon Eastman, Camillo Lugaresi, Cary Bassin, Cary Hudson, Chak Ming Li, Charles de Bourcy, Chelsea Voss, Chen Shen, Chong Zhang, Chris Koch, Chris Orsinger, Christopher Hesse, Claudia Fischer, Clive Chan, Dan Roberts, Daniel Kappler, Daniel Levy, Daniel Selsam, David Dohan, David Farhi, David Mely, David Robinson, Dimitris Tsipras, Doug Li, Dragos Oprica, Eben Freeman, Eddie Zhang, Edmund Wong, Elizabeth Proehl, Enoch Cheung, Eric Mitchell, Eric Wallace, Erik Ritter, Evan Mays, Fan Wang, Felipe Petroski Such, Filippo Raso, Florencia Leoni, Foivos Tsimpourlas, Francis Song, Fred von Lohmann, Freddie Sulit, Geoff Salmon, Giambattista Parascandolo, Gildas Chabot, Grace Zhao, Greg Brockman, Guillaume Leclerc, Hadi Salman, Haiming Bao, Hao Sheng, Hart Andrin, Hessam Bagherinezhad, Hongyu Ren, Hunter Lightman, Hyung Won Chung, Ian Kivlichan, Ian O’Connell, Ian Osband, Ignasi Clavera Gilaberte, Ilge Akkaya, Ilya Kostrikov, Ilya Sutskever, Irina Kofman, Jakub Pachocki, James Lennon, Jason Wei, Jean Harb, Jerry Twore, Jiacheng Feng, Jiahui Yu, Jiayi Weng, Jie Tang, Jieqi Yu, Joaquin Quiñonero Candela, Joe Palermo, Joel Parish, Johannes Heidecke, John Hallman, John Rizzo, Jonathan Gordon, Jonathan Uesato, Jonathan Ward, Joost Huizinga, Julie Wang, Kai Chen, Kai Xiao, Karan Singhal, Karina Nguyen, Karl Cobbe, Katy Shi, Kayla Wood, Kendra Rimbach, Keren Gu-Lemberg, Kevin Liu, Kevin Lu, Kevin Stone, Kevin Yu, Lama Ahmad, Lauren Yang, Leo Liu, Leon Maksin, Leyton Ho, Liam Fedus, Lilian Weng, Linden Li, Lindsay McCallum, Lindsey Held, Lorenz Kuhn, Lukas Kondraciuk, Lukasz Kaiser, Luke Metz, Madelaine Boyd, Maja Trebacz, Manas Joglekar, Mark Chen, Marko Tintor, Mason Meyer, Matt Jones, Matt Kaufer, Max Schwarzer, Meghan Shah, Mehmet Yatbaz, Melody Y. Guan, Mengyuan Xu, Mengyuan Yan, Mia Glaese, Mianna Chen, Michael Lampe, Michael Malek, Michele Wang, Michelle Fradin, Mike McClay, Mikhail Pavlov, Miles Wang, Mingxuan Wang, Mira Murati, Mo Bavarian, Mostafa Rohaninejad, Nat McAleese, Neil Chowdhury, Neil Chowdhury, Nick Ryder, Nikolas Tezak, Noam Brown, Ofir Nachum, Oleg Boiko, Oleg Murk, Olivia Watkins, Patrick Chao, Paul Ashbourne, Pavel Izmailov, Peter Zhokhov, Rachel Dias, Rahul Arora, Randall Lin, Rapha Gontijo Lopes, Raz Gaon, Reah Miyara, Reimar Leike, Renny Hwang, Rhythm Garg, Robin Brown, Roshan James, Rui Shu, Ryan Cheu, Ryan Greene, Saachi Jain, Sam Altman, Sam Toizer, Sam Toyer, Samuel Miserendino, Sandhini Agarwal, Santiago Hernandez, Sasha Baker, Scott McKinney, Scottie Yan, Shengjia Zhao, Shengli Hu, Shibani Santurkar, Shraman Ray Chaudhuri, Shuyuan Zhang, Siyuan Fu, Spencer Papay, Steph Lin, Suchir Balaji, Suvansh Sanjeev, Szymon Sidor, Tal Broda, Aidan Clark, Tao Wang, Taylor Gordon, Ted Sanders, Tejal Patwardhan, Thibault Sottiaux, Thomas Degry, Thomas Dimson, Tianhao Zheng, Timur Garipov, Tom Stasi, Trapit Bansal, Trevor Creech, Troy Peterson, Tyna Eloundou, Valerie Qi, Vineet Kosaraju, Vinnie Monaco, Vitchyr Pong, Vlad Fomenko, Weiyi Zheng, Wenda Zhou, Wenting Zhan, Wes McCabe, Wojciech Zaremba, Yann Dubois, Yinghai Lu, Yining Chen, Young Cha, Yu Bai, Yuchen He, Yuchen Zhang, Yunyun Wang, Zheng Shao, and Zhuohan Li. Openai o1 system card, 2026. URL https://arxiv.org/abs/2412.16720 .[18] OpenAI. Introducing openai o1, 2024. URL https://openai.com/o1/ .[19] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu, Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, Xiaokang Zhang, Xingkai Yu, Yu Wu, Z. F. Wu, Zhibin Gou, Zhihong Shao, Zhuoshu Li, Ziyi Gao, Aixin Liu, Bing Xue, Bingxuan Wang, Bochao Wu, Bei Feng, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chong Ruan, Damai Dai, Deli Chen, Dongjie Ji, Erhang Li, Fangyun Lin, Fucong Dai, Fuli Luo, Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang, Hanwei Xu, Honghui Ding, Huazuo Gao, Hui Qu, Hui Li, Jianzhong Guo, Jiashi Li, Jingchang Chen, Jingyang Yuan, Jinhao Tu, Junjie Qiu, Junlong Li, J. L. Cai, Jiaqi Ni, Jian Liang, Jin Chen, Kai Dong, Kai Hu, Kaichao You, Kaige Gao, Kang Guan, Kexin Huang, Kuai Yu, Lean Wang, Lecong Zhang, Liang Zhao, Litong Wang, Liyue Zhang, Lei Xu, Leyi Xia, Mingchuan Zhang, Minghua Zhang, Minghui Tang, Mingxu Zhou, Meng Li, Miaojun Wang, Mingming Li, Ning Tian, Panpan Huang, Peng Zhang, Qiancheng Wang, Qinyu Chen, Qiushi Du, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, R. J. Chen, R. L. Jin, Ruyi Chen, Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shengfeng Ye, Shiyu Wang, Shuiping Yu, Shunfeng Zhou, Shuting Pan, S. S. Li, Shuang Zhou, Shaoqing Wu, Tao Yun, Tian Pei, Tianyu Sun, T. Wang, Wangding Zeng, Wen Liu, Wenfeng Liang, Wenjun Gao, Wenqin Yu, Wentao Zhang, W. L. Xiao, Wei An, Xiaodong Liu, Xiaohan Wang, Xiaokang Chen, Xiaotao Nie, Xin Cheng, Xin Liu, Xin Xie, Xingchao Liu, Xinyu Yang, Xinyuan Li, Xuecheng Su, Xuheng Lin, X. Q. Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xiaowen Sun, Xiaoxiang Wang, Xinnan Song, Xinyi Zhou, Xianzu Wang, Xinxia Shan, Y. K. Li, Y. Q. Wang, Y. X. Wei, Yang Zhang, Yanhong Xu, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi Yu, Yichao Zhang, Yifan Shi, Yiliang Xiong, Ying He, Yishi Piao, Yisong Wang, Yixuan Tan, Yiyang Ma, Yiyuan Liu, Yongqiang Guo, Yuan Ou, Yuduan 12 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Wang, Yue Gong, Yuheng Zou, Yujia He, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan Liu, Yuyang Zhou, Y. X. Zhu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma, Ying Tang, Yukun Zha, Yuting Yan, Z. Z. Ren, Zehui Ren, Zhangli Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhicheng Ma, Zhigang Yan, Zhiyu Wu, Zihui Gu, Zijia Zhu, Zijun Liu, Zilin Li, Ziwei Xie, Ziyang Song, Zizheng Pan, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, and Zhen Zhang. Deepseek-r1 incentivizes reasoning in llms through reinforcement learning. Nature , 645(8081):633–638, 2025. ISSN 1476-4687. doi: 10.1038/s41586-025-09422-z. URL http://dx.doi.org/10.1038/s41586-025-09422-z .[20] Anthropic. Claude 3.7 sonnet’s extended thinking, 2025. URL https://www.anthropic.com/news/ visible-extended-thinking .[21] Google AI. Gemini thinking, 2025. URL https://ai.google.dev/gemini-api/docs/thinking .[22] Kyle Mahowald, Anna Ivanova, Idan Blank, Nancy Kanwisher, Joshua Tenenbaum, and Evelina Fedorenko. Dissociating language and thought in large language models: a cognitive perspective, 01 2023. [23] Gary Marcus and Ernest Davis. Hello, multimodal hallucinations, 2023. URL https://garymarcus.substack. com/p/hello-multimodal-hallucinations .[24] Mikael Brunila and Jack LaViolette. What company do words keep? revisiting the distributional semantics of J.R. firth & zellig Harris. In Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies , pages 4403–4417, Seattle, United States, July 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.naacl-main.327. URL 
+
+https://aclanthology.org/2022.naacl-main.327/ .[25] Zellig S. Harris. Distributional structure. WORD , 10(2-3):146–162, 1954. doi: 10.1080/00437956.1954.11659520. URL https://doi.org/10.1080/00437956.1954.11659520 .[26] Zellig S. Harris. Language and Information . Columbia University Press, New York, 1988. ISBN 9780231066624. [27] J. R. Firth. A synopsis of linguistic theory, 1930-1955. Studies in Linguistic Analysis , 1957. [28] J. R. Firth. Modes of meaning. Papers in Linguistics, 1934-1951 , pages 190–215, 1957. [29] J. R. Firth. Modes of meaning. Studies in Linguistic Analysis , 1957. [30] Payal Bajaj, Daniel Campos, Nick Craswell, Li Deng, Jianfeng Gao, Xiaodong Liu, Rangan Majumder, Andrew McNamara, Bhaskar Mitra, Tri Nguyen, Mir Rosenberg, Xia Song, Alina Stoica, Saurabh Tiwary, and Tong Wang. Ms marco: A human generated machine reading comprehension dataset, 2018. URL https://arxiv.org/abs/ 1611.09268 .[31] Qiao Jin, Bhuwan Dhingra, Zhengping Liu, William W. Cohen, and Xinghua Lu. Pubmedqa: A dataset for biomedical research question answering, 2019. URL https://arxiv.org/abs/1909.06146 .[32] Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and Jacob Steinhardt. Measuring massive multitask language understanding, 2021. URL https://arxiv.org/abs/2009.03300 .[33] James Kirkpatrick, Razvan Pascanu, Neil Rabinowitz, Joel Veness, Guillaume Desjardins, Andrei A. Rusu, Kieran Milan, John Quan, Tiago Ramalho, Agnieszka Grabska-Barwinska, Demis Hassabis, Claudia Clopath, Dharshan Kumaran, and Raia Hadsell. Overcoming catastrophic forgetting in neural networks. Proceedings of the National Academy of Sciences , 114(13):3521–3526, March 2017. ISSN 1091-6490. doi: 10.1073/pnas.1611835114. URL 
+
+http://dx.doi.org/10.1073/pnas.1611835114 .[34] Paul DiMaggio. Culture and cognition. Annual Review of Sociology , 23(Volume 23, 1997):263–287, 1997. ISSN 1545-2115. doi: https://doi.org/10.1146/annurev.soc.23.1.263. URL https://www.annualreviews. org/content/journals/10.1146/annurev.soc.23.1.263 .[35] Ken Paller and Anthony Wagner. Observing the transformation of experience into memory. Trends in cognitive sciences , 6:93–102, 03 2002. doi: 10.1016/S1364-6613(00)01845-3. [36] Yadin Dudai, Avi Karni, and Jan Born. The consolidation and transformation of memory. Neuron , 88:20–32, 10 2015. doi: 10.1016/j.neuron.2015.09.004. [37] Paul Portner. What is Meaning?: Fundamentals of Formal Semantics . Blackwell, Malden, MA, 2005. [38] Kazuma Hashimoto and Yoshimasa Tsuruoka. Adaptive joint learning of compositional and non-compositional phrase embeddings, 2016. URL https://arxiv.org/abs/1603.06067 .[39] Ignacio Iacobacci, Mohammad Taher Pilehvar, and Roberto Navigli. Embeddings for word sense disambiguation: An evaluation study. In Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 897–907, Berlin, Germany, August 2016. Association for Computational Linguistics. doi: 10.18653/v1/P16-1085. URL https://aclanthology.org/P16-1085/ .13 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+[40] Massimiliano Mancini, Jose Camacho-Collados, Ignacio Iacobacci, and Roberto Navigli. Embedding words and senses together via joint knowledge-enhanced training. In Proceedings of the 21st Conference on Computational Natural Language Learning (CoNLL 2017) , pages 100–111, Vancouver, Canada, August 2017. Association for Computational Linguistics. doi: 10.18653/v1/K17-1012. URL https://aclanthology.org/K17-1012/ .[41] Matthew E. Peters, Mark Neumann, Robert Logan, Roy Schwartz, Vidur Joshi, Sameer Singh, and Noah A. Smith. Knowledge enhanced contextual word representations. In Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP) , pages 43–54, Hong Kong, China, November 2019. Association for Computational Linguistics. doi: 10.18653/v1/D19-1005. URL https://aclanthology.org/D19-1005/ .[42] Wenhan Xiong, Jingfei Du, William Yang Wang, and Veselin Stoyanov. Pretrained encyclopedia: Weakly supervised knowledge-pretrained language model, 2019. URL https://arxiv.org/abs/1912.09637 .[43] Xiaozhi Wang, Tianyu Gao, Zhaocheng Zhu, Zhengyan Zhang, Zhiyuan Liu, Juanzi Li, and Jian Tang. KEPLER: A unified model for knowledge embedding and pre-trained language representation. Transactions of the Association for Computational Linguistics , 9:176–194, 2021. doi: 10.1162/tacl_a_00360. URL https://aclanthology. org/2021.tacl-1.11/ .[44] Mo Yu and Mark Dredze. Improving lexical embeddings with semantic knowledge. In Proceedings of the 52nd Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers) , pages 545–550, Baltimore, Maryland, June 2014. Association for Computational Linguistics. doi: 10.3115/v1/P14-2089. URL 
+
+https://aclanthology.org/P14-2089/ .[45] Karl Moritz Hermann and Phil Blunsom. The role of syntax in vector space models of compositional semantics. In Proceedings of the 51st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 894–904, Sofia, Bulgaria, August 2013. Association for Computational Linguistics. URL https: //aclanthology.org/P13-1088/ .[46] William Mann and Sandra Thompson. Rhetorical structure theory: A framework for the analysis of texts. Papers in Pragmatics; Vol 1, No 1 (1987) , 1, 01 1987. doi: 10.1075/iprapip.1.1.03tho. [47] Maite Taboada and William C. Mann. Rhetorical structure theory: looking back and moving ahead. Discourse Studies , 8:423 – 459, 2006. URL https://api.semanticscholar.org/CorpusID:2386531 .[48] Shibhansh Dohare, Harish Karnick, and Vivek Gupta. Text summarization using abstract meaning representation, 2017. URL https://arxiv.org/abs/1706.01678 .[49] Fuad Issa, Marco Damonte, Shay B. Cohen, Xiaohui Yan, and Yi Chang. Abstract Meaning Representation for paraphrase detection. In Proceedings of the 2018 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long Papers) , pages 442–452, New Orleans, Louisiana, June 2018. Association for Computational Linguistics. doi: 10.18653/v1/N18-1041. URL 
+
+https://aclanthology.org/N18-1041/ .[50] Laura Banarescu, Claire Bonial, Shu Cai, Madalina Georgescu, Kira Griffitt, Ulf Hermjakob, Kevin Knight, Philipp Koehn, Martha Palmer, and Nathan Schneider. Abstract Meaning Representation for sembanking. In Proceedings of the 7th Linguistic Annotation Workshop and Interoperability with Discourse , pages 178–186, Sofia, Bulgaria, August 2013. Association for Computational Linguistics. URL https://aclanthology.org/W13-2322/ .[51] Lisa Ehrlinger and Wolfram Wöß. Towards a definition of knowledge graphs, 09 2016. [52] Jeff Pan, Guido Vetere, Jose Manuel Gomez-Perez, and Honghan Wu. Exploiting linked data and knowledge graphs in large organisations, 01 2017. [53] George A. Miller. Wordnet: a lexical database for english. Commun. ACM , 38(11):39–41, November 1995. ISSN 0001-0782. doi: 10.1145/219717.219748. URL https://doi.org/10.1145/219717.219748 .[54] Karan Singhal, Tao Tu, Juraj Gottweis, Rory Sayres, Ellery Wulczyn, Mohamed Amin, Le Hou, Kevin Clark, {Stephen R.} Pfohl, Heather Cole-Lewis, Darlene Neal, {Qazi Mamunur} Rashid, Mike Schaekermann, Amy Wang, Dev Dash, {Jonathan H.} Chen, {Nigam H.} Shah, Sami Lachgar, {Philip Andrew} Mansfield, Sushant Prakash, Bradley Green, Ewa Dominowska, Blaise {Agüera y Arcas}, Nenad Tomašev, Yun Liu, Renee Wong, Christopher Semturs, {S. Sara} Mahdavi, {Joelle K.} Barral, {Dale R.} Webster, {Greg S.} Corrado, Yossi Matias, Shekoofeh Azizi, Alan Karthikesalingam, and Vivek Natarajan. Toward expert-level medical question answering with large language models. Nature Medicine , 31(3):943–950, March 2025. ISSN 1078-8956. doi: 10.1038/s41591-024-03423-7. [55] Neil C. Thompson, Kristjan Greenewald, Keeheon Lee, and Gabriel F. Manso. Deep learning’s diminishing returns: The cost of improvement is becoming unsustainable. IEEE Spectrum , 58(10):50–55, 2021. doi: 10.1109/MSPEC.2021.9563954. 14 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+# A A Formal Description of the Gyan Language Model 
+
+Gyan is a Hierarchical Hybrid Model. All levels of the hierarchy are Symbolic, except the lowest levels of hierarchy which may or may not rely on non-symbolic modeling. We describe the various components of the Gyan model in this method. 
+
+# B Knowledge Representation 
+
+B.1 Discourse Models B.1.1 Abstract Discourse Models 
+
+A Discourse Model is a blueprint used to define a specific class of documents, such as web documents, text books, legal contracts, legislation, scientific papers, resumes, etc. It contains the specifications to identify, parse and understand the structure and relationships between the structures, within any document that belongs to this Discourse Model. It is defined as the following 3-tuple: 
+
+DM = ( DM odel ID, DM , dDU DM , dDE DM )
+
+where: • DM odel ID are the identification rules • dDU DM is the collection and definition of all the various discourse units in DM .• dDE DM is the collection of all the properties and relationships between the discourse units in 
+
+DM .The DM odel ID,DM = {id 1, id 2, . . . , id n} is a collection of rules id i that determine whether a given document belongs to the Discourse Model DM . Each id i ∈ DM odel ID , id i : F → IDO can be modelled as a function that takes a file 
+
+f ∈ F and determines whether the document in the file belongs to DM through IDO = {ido 1, ido 2, . . . , id m}.Each ido i ∈ IDO is a tuple ido i = ( range i, tf i) where a range i is a representation of a range of offsets within the file f and tf i ∈ { true, f alse } is a flag on whether the contents of the file f within the range range i belongs to the 
+
+DM through a Boolean value. The dDU DM defines the set of fundamental and semantic block of discourse within DM . Each cdu i ∈ dDU DM is a 3-tuple of the form cdu i = ( N AM E, AT T R i, DET ECT i, ID i) where N AM E is the human-readable name of the cdu i, AT T R i = {a1, a 2, . . . , a γ } are a set of definitions of attributes associated with a discourse unit, 
+
+DET ECT i = {dt 1, dt 2, . . . , dt k} are a set of rules to detect the boundaries of each instance of cdu iinf and 
+
+ID i = {idf 1, idf 2, . . . , idf α} are a set of rules to identify the identif ier (e.g. clause 3.1(a), etc.) of each of the instance of cdu iinf ). A discourse unit definition du i ∈ dDU DM with the N AM E = Name can also be denoted as 
+
+N ame du .The dDE DM defines the set of different types of relationships between discourse units for this DM . Each bde i ∈ DM 
+
+is a 4-tuple of the form bde i = ( N AM E, REL DM , CAL DM , R DM ), where N AM E is the human-readable name of the bde i, REL DM is the set of all the relationships that can exist between two discourse units du i, du j ∈ dDU DM ,
+
+CAL DM is the calculus on all the relations rel i ∈ REL DM and RDM are the set of rules to detect the instances of relations between two instances of discourse units du i, du j ∈ dDU DM within a document. The CAL DM =
+
+{cal 1, cal 2, . . . , cal β } are a list of first-order logic rules on relations and discourse units. A discourse edge definition 
+
+de i ∈ dDE DM with the N AM E = Name can also be denoted as N ame DE .
+
+B.1.2 Default Textual Discourse Model 
+
+The Default Text Discourse Model DM DT is the most generic discourse model for text documents. Several, more complex Textual Discourse Models can be transformed into DM DT by mapping the discourse units and discourse units and discourse relations into those of DM DT .The discourse units definitions dDU DT ∈ DM DT contains definitions of discourse units like { Document DU ,
+
+Section DU , T opicCluster DU , Enumeration DU , Example DU , T able DU , F igure DU , . . . }. The discourse edge definitions dDE DT = dDE DT Struct ∪ dDE DT Disc are made up of two distinct sets of discourse edge definitions. The 15 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+dDE DT Struct contains information about the structural properties of discourse units or structural relations between them, e.g. dDE DT Struct = {Contains DE , P receeds DE , . . . }. The dDE DT Disc contains information about discourse properties or relationships between discourse units, like those from the Rhetorical Structure Theory, e.g. dDE DT Disc = {
+
+Elaboration DE , Justif ication DE , Background DE , Evidence DE , Summary DE , . . . }.
+
+B.1.3 Examples of other Textual Discourse Models 
+
+The Abstract Discourse Model DM harps on the fact that a document written with a particular type of intent or to serve a particular function will always have the same elements of discourse in them. These elements can be explicit or implicit. The DM can be instantiated to describe a wide variety of textual documents, including the most niche ones. Following are some examples: • Web Document Discourse Model DM W eb will hold information on discourse units like Header DU ,
+
+F ooter DU , N avigationalArea DU , Advertisements DU , M ainArticle DU , etc. and discourse edges 
+
+dDE W eb like Lef tOf DE , T opOf DE , DocumentLink DE , etc. • Research Paper Discourse Model DM Research will have units like Abstract DU , Conclusion DE ,
+
+M ethods DU , P riorW ork DU and edges like Citation DE , BibLink DE , etc. • Legal Contract Discourse Model DM LegalContracts will have units like Clause DU , Def initions DU ,
+
+Appendix DU and edges like Ammends DE and Cites DE .• Other examples include one for each of Resumes , Legislations , Regulations , User Manuals , Patent Documents ,every Tax Form , etc. 
+
+B.1.4 Multimodality in Abstract Discourse Models 
+
+The Discourse Model abstraction unifies documents with different underlying formats, such as a relational database (structured) and a text report (unstructured). This is achieved by defining a model DM whose universe of units, 
+
+dDU DM , contains specifications for discourse units from both sources, e.g. a P atientSaf etyReport DU row from a FDA Database and Document DU from the text report. The edge detection rules RDM in the discourse edge definitions dDE DM could determine a specific relation from a row (a particular instance of P atientSaf etyReport DU ), a column (an attribute ATTR in all the instances of 
+
+P atientSaf etyReport DU ) or a cell, to a part of the text report. The Discourse Model abstraction also generalizes to all modes of data - images, mathematical expressions, audio and other modes of data. The instantiation of the Discourse Models will have mode specific characterization, rules and implementations. 
+
+B.2 Knowledge B.2.1 Abstract Knowledge Bases 
+
+An Abstract Knowledge Base contains a schema of storing Knowledge in a structured form and is defined as: 
+
+KB = {N, R, X, CAL, KG, D Collection , Exp Collection }
+
+where: • N is the universe of all the normalized concepts, • R or the universe of all the possible relations, • X or the universe of all the contextual frames and • CAL or the calculus that contains all the relations between relations and concepts. The N or the Normalized Concepts Universe contains all the specifications of the concept it represents. Every concept 
+
+ni ∈ N is a tuple ni = ( spec text , spec audio , spec visual , n hypernym , attr i). The first three elements contain textual, audio and visual specifications of ni. These multi-modal specifications of the concept contain enough necessary information to correctly identify the concept from any instance of a discourse unit in any document. The nhypernym 
+
+contains references to all other nj ∈ N : nj ⪯hypernym ni, thereby making N a poset or a partially ordered set. The 
+
+attr i = {kv 1, kv 2, . . . , kv ϵ} is the set of all key-value pairs defining other constraints or properties of this concept. 16 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+The R or the universe of all possible relations contains all relations including semantic, episodic and procedural relations. Every ri ∈ R is a tuple ri = ( spec, r hypernym , attr i). The first element contains all the specs and information to detect the instance of the relation unambiguously. The rhypernym contains the references to all other 
+
+rj ∈ R : rj ⪯hypernym ri such that rj is either a hypernym of ri or is equivalent to it, thereby making R a partially ordered set. The attr i = {kv 1, kv 2, . . . kv ζ } is the set of all key-value pairs defining other constraints or properties of this relation. The X is the universe of all the possible semantic frames or dimensions, that provides completeness to a relation between two concepts. X = {FT emporal , F Spatial , F M odality , F Deontic , F Aspectual , . . . } is made up of multiple primitive frames, that can be combined to create a complete Contextual Frame cx = {f1, f 2, . . . , f η } where each 
+
+fi ∈ cx is a key-value pair of the primitive frame name and its value. The CAL is the relational calculus that enables reasoning and provides a means to generate new knowledge from existing ones. CAL = ( AX, IR ). AX or axioms are first-order logic statements about relations in R. IR are the inference rules that allow for deductions on relations in R and on contextual frames. Every inference rule ir ∈ Inf erenceRules is a tuple of ir i = ( P, C ) where P = {p1, p 2, . . . , p θ } are a series of first-order logic premises and C = {c1, c 2, . . . , c κ}
+
+are a series of first-order logic conclusions. The KG = ( NKG , E KG ) is the knowledge graph where the nodes are NKG ⊂ N and the edges are EKG . The edges ei,j ∈ EKG is the edge between ni, n j ∈ NKG and is represented by the tuple ei,j = ( ni, n j , r i,j , τ i,j ), where 
+
+∀ei,j ∈ EKG , r i,j ∈ R. An additional information with every relationship is the trace τi,j , that has the full physical trace of the source of this relation. This trace can be of two types: from a document or from an expert. Additionally, the relation could be coming from several documents and several experts as well. Therefore, every τk = {τk1 , τ k2 , . . . , τ kϵ }.The references to documents are stored within the DCollection and references to experts are stored within Exp Collection .In case of a document trace, every τkm is of the form {fm, v fm }, where fm is the reference to the physical file of the trace document and vfm is the exact logical document block within the trace document fm from where the relationship was either inferred or selected. All such traced documents are stored within the DCollection . In case of an expert annotation, every τkm is of the form {exp m, comments }, where exp m is a reference to the expert and comments contains some rational behind the addition of this relation into the Semantic Knowledge Net KN sem .Multiple instances of simpler Knowledge Base can come together to create a composite Knowledge Base instance. Every instance of a Knowledge Base is represented as kb i = {Ni, R i, X i, CAL i, KG i, D Collection,i }. Given two knowledge bases kb i and kb j , a composite knowledge base kb i,j = {Ni,j , R i,j , X i,j , CAL i,j , KG i,j , D Collection,i,j } is formed by taking a union of the corresponding constituents, while consolidating semantically equivalent entries, defined by the operator USem . Therefore, Ni,j = Ni ∪Sem Nj , Ri,j = Ri ∪Sem Rj , Xi,j = Xi ∪Sem Xj , CAL i,j = CAL i ∪Sem 
+
+CAL j , KG i,j = ( NKG,i ∪Sem NKG,j , E KG,i ∪Sem EKG,j ), DCollection,i,j = DCollection,i ∪Sem DCollection,j and 
+
+EXP Collection,i,j = EXP Collection, i ∪Sem EXP Collection,j .
+
+B.2.2 Universal Knowledge Net 
+
+Universal Knowledge Net (KN W ) is the repository of all the possible knowledge in the world, including the knowledge of all the discourse models. It comprises of KN W = { NW , RW , XW , CAL W , KN Sem , KN Epi , KN P roc , DM W ,
+
+DCollection, W , EXP Collection, W }, where NW is the collection of instances of all the concepts in the world, RW is the collection of instances of all the relationships in the world, XW is the collection of all the semantic frames in the world and CAL W = ( AX W , IR W ) is the calculus containing instances of all the axioms and inference rules in the world on NW , RW and XW .The KN Sem or the Semantic Knowledge Net models static, factual knowledge about concepts and their relationships, independent of time or specific events. The Semantic Knowledge Net is part of the Universal Knowledge Net and is defined by KN Sem = ( NSem , RSem , XSem , CAL Sem , KG Sem , DCollection,Sem , EXP Collection,Sem ),where NSem ⊂Sem NW , RSem ⊂Sem RW , XSem ⊂Sem XW , CAL Sem ⊂Sem CAL W , DCollection,Sem ⊂Sem 
+
+DCollection,W and EXP Collection,Sem ⊂Sem EXP Collection,W . Note that since KSem is a repository of only generalized, factual and foundational knowledge, the XSem = ∅.The KN Epi or the Episodic Knowledge Net models episodic knowledge of the world, such as events, states, etc.., and is described as the knowledge base KN Epi =(NEpi , R Epi , X Epi , CAL Epi , KG Epi , D Collection,Epi , EXP Collection,Epi ). All the properties of KN Epi are same as KN Sem , except that the XEpi ̸ = ∅ .The KN P roc or the Procedural Knowledge Net models knowledge about real world pro-cesses, instructions, workflows, etc. and is described as the knowledge base KN P roc =(NP roc , R P roc , X P roc , CAL P roc , KG P roc , D Collection,P roc , EXP Collection,P roc ). All the properties of KN P roc 
+
+17 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+are same as KN Sem , except that the XP roc ̸ = ∅ and the edges ei,j in KG P roc contain an additional property called procedural context . The edges ei,j ∈ EP roc in KG P roc of KN P roc are edges between ni, n j ∈ NW and are represented by the tuplee i,j = {ni, n j , r i,j , τ i,j , px i,j }. Some peculiar relations in the KN P roc include the ones like has step , requires input , is precondition f or , etc. The representation includes an additional property called 
+
+procedural context or: 
+
+px i,j = {f r i,j , seq i,j , conditionality i,j , precon i,j , postcon i,j }
+
+where: • f r i,j defines the contextual frames (as before), • conditionality i,j has details about logical branches like if else , etc., • precon i,j defines preconditions before a step of the procedure is to be executed and • postcon i,j defines postconditions after the step of the procedure is executed. The DM W or the Discourse Models Universe is the knowledge of all the discourse models in the universe. The DM W =
+
+{DM W , DM E W } is a graph where the nodes are the universe of Discourse Models DM W = {dm 1, dm 2, . . . , dm δ }
+
+and the edges are relations from DM E W between the discourse models themselves. The DM W models relationships between various discourse models, such as, DM LegalContract − − − − − specializes 99K DM T ext and DM W eb −− − − − links to 99K DM video . This graph structure allows for unifying inferences across document types and content present in different file-formats. 
+
+B.2.3 Null Knowledge Net 
+
+A Null Knowledge Net or KN ϕ, B = {NB , RB , XB , CAL B , KN Sem,ϕ , KN Epi,ϕ , KN P roc, Φ,
+
+DM M in ,DCollection, Φ, EXP Collection, Φ} is a state of a Knowledge Net when no knowledge has been added into the Knowledge Net. It contains an empty knowledge net, that contains a default set of base universal concepts NB , relations RB and frames 
+
+(XB ). It also contains no semantic (KN Sem, Φ), episodic (KN Epi, Φ) or procedural knowledge (KN P roc, Φ) as well. And therefore, it contains an empty document collection (DCollection, Φ) and the expert collection (EXP Collection, Φ).However, it contains a minimal universe of discourse models (DM M in ), which is format-specific default discourse models. The base concepts, relations and frames are a set of concepts and relations that has been identified by an implementation. Some examples of format-specific default discourse models include a collection of Textual Discourse Models for HTML, PDF, Imaged Document Discourse Model or Open Office formats, a minimal Image Discourse Model and a minimal Video Discourse Model. This Null Knowledge Net forms the basis of bootstrapping and iterative building of an instance of Knowledge Net from several documents. 
+
+B.3 Document B.3.1 Abstract Document Graph 
+
+The Abstract Document Graph or AG Doc is a multi-layered graph, which is computed in the context of the provided Knowledge Net or KN .
+
+AG Doc,KN = ( F, DM Doc , DG, C Doc , ED Doc )
+
+where: • F is the physical file that contains the document, • DM Doc is the Discourse Model from KN’s DM database to which Doc belongs, and • DG is the Discourse Graph of the Doc as constructed based on the DM Doc specifications. A Gyan Meaning Representation Graph for a document or Document GMR or Doc KN of a Document d is the instance of the Graph of the document, grounded on the knowledge net KN . Each file f ∈ F is a physical file that is broken down into a set of primitive graphical elements {e1, e 2, . . . , e α}. These can represent different things based on the format of a file. For example, for a PDF file, these could represent instances of text blocks, SVG graphics, etc.; for an image, this could represent blobs of objects in the form of pixel hulls, etc. The DM ∈ KN contains a collection of all the discourse models. Each dm ∈ DM in turn contains a list of id i which are rules to identify whether a document file fj belongs to dm. The Abstract Document Graph contains the reference of 18 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+DM Doc to which it belongs to, such that all the identification rules id j ∈ DM odel ID,DM are satisfied by the file and the document. This discourse model comes with a set of rules to identify discourse units and discourse edges through 
+
+dDU DM and dDE DM respectively. The DG = ( DU, DE ) or the Discourse Graph of the file f is the first layer of the Document Graph, which is defined by the graph with DU as nodes and DE as edges. All the du i ∈ DU and de i,j ∈ DE conform to types as specified in 
+
+dDU DM and dDE DM respectively. Every du i ∈ DM is a tuple du i = ( N AM E i, AT T R i, CG i) where N AM E i is the name of the type of the discourse unit, AT T R i = {kv 1, kv 2, . . . , kv β } are a collection of key-value pairs that provide values to various attributes of this discourse unit and CG i is the concept graph of all the concepts contained within du i. Similarly, every de i,j ∈ DE 
+
+is a tuple de i,j = {du i, du j , N AM E DM Doc ,i,j , r DM Doc ,i,j , AT T R i,j , x ij , x ij,norm } where the du i and du j are the discourse units within the document, N AM E DM Doc ,i,j is the name of the discourse relation between du i and du j ,
+
+rDM Doc ,i,j is the type of relationship as defined in dDE DM , AT T R i,j = {kv 1, kv 2, . . . , kv ϵ} is a set of key-value pairs for that provide values to the various attributes of this discourse edge and xij and xij,norm are the contextual frames of the relation between the discourse units. The CG i = ( CON i, ED i), or the Concept Graph of a Discourse Unit, is the second layer of the Document Graph with CON i ⊂ CDoc as nodes and ED i as edges. The scope of the CG i is the du i. The CON i = {ci1, c i2, . . . , c im }
+
+is a set of all the concepts that occur within the du i and ED i = {ed i1, ed i2, . . . , ed ik } is a set of all the edges between concepts of du i. Note that ∀du i ∈ DU, C Doc = ∪CON iandED Doc = ∪ED i.Every concept cij ∈ CON i, or a concept occurring within du i ∈ DU , is defined by the tuple cij =(cname , c norm , c attr , c trace ) where cname is the literal concept used within du i, cnorm is the reference to a nor-malized concept norm ∈ N from the provided knowledge net KN , cattr = {kv 1, kv 2, . . . , kv γ } is a set of key-value pairs of attributes and values and ctrace = {e1, e 2, . . . , e δ } is the reference to the primitive graphical elements in the file f containing the physical document, where the concept occurred. Every edge ed i,x,y ∈ ED i, or an edge between cix ∈ CON i and ciy ∈ CON i, is defined by the 5-tuple ed i,x,y =
+
+{cix , c iy , r i,norm , x i, x i,norm , type }, where ri,norm ∈ R ∈ KN is the reference to one of the sets of relations defined within the KN , xi is the contextual frame of this relationship, xi,norm ∈ X ∈ KN is the reference to one of the sets of contextual frames within the KN and type = {U nknown, Semantic, Episodic, P rocedural } is the type of information that this edge represents. There could be a concept cij whose cnorm = ϕ or null implying that it couldn’t be mapped to any of the normalized concepts. Similarly, there could be an edge ri,x,y whose ri,norm = ϕ and/or xi,norm = ϕ and/or type = ϕ, implying that the relation, frame and/or type couldn’t be normalized. In cases where a concept, relation or a frame is not normalized to the ones in the provided knowledge net, they are treated as localized and serves as an indication of incomplete context or knowledge within the KN .
+
+Contextual Dimensions of Document GMR : The frame and type can be considered as two dimensions based on which the multi-layered document semantic knowledge graph can be segmented into multiple graphs. Examples of segments can be past tense episodic document graph, semantic document graph, obligations document graph, etc. Each of these slices could serve explicit purpose for a particular use-case of inferencing or knowledge acquisition. Each dimension can be represented as Doc KN,x,type .
+
+Conceptual Abstraction of a Document GMR : A document’s semantic knowledge graph can be transformed into a conceptual abstraction by replacing all the concept nodes and relations with their hypernym. Note that all the concepts 
+
+CDoc and relations within ED Doc within the document belong to N ∈ KN and R ∈ KN and both N and R are ordered sets based on the relationship of hypernym. The space of all the conceptual abstractions of a document SKG is defined by CA DKN and Doc KN ∈ CA DKN . This conceptual abstraction becomes a key tool to perform analyses across multiple documents. 
+
+B.3.2 Knowledge Net from a Collection of Documents 
+
+A Single Document Base Knowledge Net or KN d,B is a Knowledge Net that is seeded with knowledge from a single, specific document. The KN d,B =
+
+{NB , R B , X B , CALC d, KN Sem,d , KN Epi,d , KN P roc,d , DM d, {d}, EXP Collection, Φ} is formed by taking the Document Graph of the Document DG d, Φ = ( F, DM d, DG, C d, ED d) and identifying generalizable semantic, episodic and procedural knowledge from d and populating it into a KN Φ,B .19 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+A Document Collection Base Knowledge Net or KN DC is a knowledge net that is formed by populating a KN Φ,B 
+
+with generalizable semantic, episodic and procedural knowledge from all the documents from a given collection of documents DC = {d1, d 2, . . . , d ζ }.
+
+B.3.3 Knowledge Store of a Collection of Documents Base Knowledge Net or KB DC whole Document Collection DCollection,D C contains the Document’s individual Semantic Knowledge Graphs. Therefore, if DC = {d1, d 2, . . . , d η }, then DCollection,D C = ∀di ∈ DC , ∪Doc di .The difference between Document Collection’s Base Knowledge Net and Document Collection’s Knowledge Store is the presence of and access to individual document’s semantic knowledge graphs. Therefore, KN DC =
+
+KN DC ∪collection {∀ di ∈ DC , Doc di }.
+
+# C Gyan Pipeline for Textual Content 
+
+C.1 Meaning Graph Encoder 
+
+Gyan’s Meaning Graph Encoder (Encoder ) for Textual Content takes a Knowledge Net ( KN ) and a physical file (F ) and generates a Document Semantic Graph ( Doc KN ) in the context of KN .
+
+Encoder : ( F × KN ) → Doc KN 
+
+The Encoder is a sequential pipeline of multiple steps, where the output of every step serves as the input of the next one. The whole process is summarized in Table 1. 
+
+C.1.1 Discourse Model Identification 
+
+Gyan’s DM ID or Discourse Model Identification takes a file f ∈ F and the knowledge base of all the Discourse Models ( DM ) from the Knowledge Net ( KN ) and identifies a single discourse model DM f that the document in the file belongs to. 
+
+DiscourseM odelId : F × DM KN → DM f
+
+The determination of the correct dm f involves running the file f through all the identification rules id i,j ∈
+
+DM odel ID,dm j , ∀ dm j ∈ DM KN , and finding the most appropriate dm f .
+
+C.1.2 Extraction 
+
+Gyan’s Extr : F × DM f → H or Extraction step is a function that maps a physical file F into an abstract document representation H, by leveraging the parsing rules from the document’s discourse model DM f . F can be of any file-format (pdf, docx, html, etc.), but H is an extensive representation (gyan-txt format) that can represent information from any type of content. A physical textual document f ∈ F is a finite, ordered set of primitive graphical elements e ∈ GE . Therefore, a physical file f with n graphical elements can be represented as f = {e1, e 2, . . . , e n}.Each graphical element e ∈ E is defined by the tuple ei = {co i, pos i, cet i, attr i}, where co i represents the contents of the element, pos i represents the physical position of the element within f , cet i ∈ dET represents the element type of this element, from a list of fixed element types (e.g. span, pdf block, SVG instructions, div tag, etc.) and attr i is collection of k attributes {attr i1 , attr i2 , . . . , attr ik } where every attr ij is a tuple {key ij , value ij } where key ij ∈ Kattr comes from a fixed set of attribute keys. The abstract document representation h ∈ H is a hierarchical tree-structure h = ( N, E ). N is a set of nodes ni,represents a logical document block (e.g. paragraph, table, section, etc.). E is a set of directed edges that define parent-child relationships between these logical document blocks, including their sequence and orders. Every logical document block ni ∈ N is defined by the tuple ni = ( bi, bli), where bj is a sequence of the native graphical elements e ∈ E from the physical file f and bli ∈ ˆL is a label from set of all the various types of logical document blocks like _ section , _ paragraph , _ table _cell , _ bullet _point , etc. The Extraction (f ) = ( Segmentation ◦ Classif ication ◦ Structuring )( f ) function is made up of three sub-functions. Segmentation : F × DM F → E takes the physical document f and extracts graphical elements ei ∈ E,20 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Doc KN = ( F, DM F , DG, C Doc , ED Doc )
+
+KN = ( N, R, X, CAL, KN Sem , KN Epi , KN P roc , DM, D C , EXP C )
+
+Encoder : F × KN → Doc KN 
+
+Encoder = DM ID ◦ Extr ◦ LingSimp ◦ ConceptDetect ◦ DGGen ◦ CGGen ◦ CF raming ◦ SemGrounding DM ID : F × KN → DM F
+
+Extr : F × DM F → HLingSimp : H → UConceptDetect : U → V × CDoc × RC Doc 
+
+DGGen : DM F × V × CDoc × RC Doc → DG × CDoc 
+
+CGGen : DG × KN × CDoc × RC Doc → Doc KN 
+
+CF raming : Doc KN × KN → Doc KN 
+
+SemGrounding : Doc × KN → Doc KN 
+
+Extr (f, dm f ) = Segmentation ◦ Classif ication ◦ Structuring Segmentation : F × DM F → EClassif ication : E × DM F → B × LStructuring : B × L × DM F → HLingSimp (h) = SentenceSegmentation ◦ N LP Analysis ◦ LinguisticAnalysis ◦ SimplicityT ransf ormation SentenceSegmentation : H → YN LP Analysis : Y → Y ′
+
+LinguisticAnalysis : Y ′ → Y ′′ 
+
+SimplicityT ransf ormation : Y ′′ → UConceptDetect (U, KN ) = CandidateConceptDetection ◦ Coref erenceResolution ◦ RelationCuesDetection CandidateConceptDetection : U → U ′
+
+Coref erenceResolution : U ′ × KN → U ′′ × CDoc 
+
+RelationCuesDetection : U ′′ × CDoc → V × CDoc × RC Doc 
+
+DGGen (DM F , V, C Doc , RC Doc ) = DiscourseU nitsDetection ◦ DiscourseRelationsDetection DiscourseU nitsDetection : DM F × V × CDoc → DU DiscourseRelationsDetection : DM F × V × RC Doc → DE DG = ( DU, DE )
+
+CGGen (DG, KN, C Doc , RC Doc ) = SentenceGraphGeneration ◦ SentenceGraphAggregation SentenceGraphGeneration : DG, KN, C Doc , RC Doc → DG × ED Doc 
+
+SentenceGraphAggregation : DG × ED Doc → Doc KN 
+
+Doc KN = ( F, DM F , DG, C Doc , ED Doc )
+
+CF raming (Doc KN , KN ) = F rameIdentif ication ◦ KnowledgeScoping F rameIdentif ication : ED Doc × KN → Doc KN , X Doc 
+
+KnowledgeScoping : Doc KN × KN × XDoc → ED Doc 
+
+SemGrounding (Doc KN , KN ) = ConceptGrounding ◦ RelationsGrounding ◦ F ramesGrounding ConceptGrounding : CDoc × KN → CDoc 
+
+RelationsGrouding : ED Doc × KN → ED Doc 
+
+F ramesGrounding : ED Doc × KN → ED Doc 
+
+Table 1: Compendium of Gyan Platform Operations 21 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+while leveraging the parsing rules from the discourse model DM F of the file. Classif ication : E × DM F → B × L
+
+leverages the rules from the discourse model of the document DM F and groups the extracted graphical elements into a sequence of logical document block bi ∈ B and provides it a label bli ∈ ˆL, thereby creating the nodes of the abstract document representation h. Structuring : B × L × DM F → H algorithm them analyses these logical document blocks and utilizing the specifications within the discourse model DM F of the document, organizes them into a tree hierarchy. 
+
+C.1.3 Linguistic Simplification 
+
+Gyan’s LingSimp : H → U or the Linguistic Simplification is a function that takes in the abstract document representation h ∈ H and creates a list of simplified sentence representations U by applying iterative, rules-based linguistic transformations. The function comprises of 4 sub-steps, defined by: 
+
+LingSimp (h) = 
+
+SentenceSegmentation ◦ N LP Analysis ◦ LinguisticAnalysis ◦ SimplicityT ransf ormation 
+
+The SentenceSegmention : H → Y function traverses the abstract document representation h ∈ H in the reading order and creates the text content tco i for each block ni ∈ N by concatenating the co i from every graphical element 
+
+e ∈ E from its logical document block bj . The output is an ordered list of sentences Y = {y1, y 2, . . . , y p}. Each sentence yk ∈ Y : yk = ( tk, src k) where tk is the raw text content of the sentence and src k contains the reference to the blocksb j , the graphical elements e ∈ E resulted in the construction of this block. This ensures the complete traceability of every sentence to the physical location in the file. The N LP Analysis : Y → Y ′ function applies a series of standard NLP steps to every yk ∈ Y to pro-duce an enriched sentence yk′ ∈ Y ′. Each yk′ = (yk, A k) contains the original sentence yk and Ak =(T okens, P OST ags, N amedEntities, DependencyP arseT ree, . . . ), which are a set of NLP-annotations. Each annotation is produced by employing a standard, licenced, open-source and state-of-the-art annotator available in the open-source community, with pre-processing simplification, pre-substitution, post-substitution and post-processing correction rules, which have been identified to fix some of the common errors committed by these annotators, by reviewing their source code, training data distributions and performance on hand-crafted datasets. The LinguisticAnalysis : Y ′ → Y ′′ function identifies grammatical categories and other advanced linguistic features by using the basic NLP annotations and curated Linguistic Rules for each feature. Every yk′′ ∈ Y ′′ is defined by the tuple yk′′ = ( yk′, L k) where yk′ ∈ Y ′ is the enriched version of the sentence yk ∈ Y and Lk =(V oice, Animacy, Case, Def initeness, Gender, M odality, Aspect, . . . ) is a set of linguistic attributes within the sentence yk′ ∈ Y .The SimplicityT ransf ormations : Y ′′ → U function applies a set of ordered transformation rules R = {r1, r 2, . . . }
+
+to each sentence yk′′ ∈ Y ′′ . This step is iterative; implying that every transformation application by a rule ri ∈ R,triggers a reapplication of transformation rules right from r1 ∈ R. The output is a final set of simplified sentences 
+
+U = {u1, u 2, . . . , y Φ} where the total number of sentences Φ may be greater than p. The rules handle important constructs in language like idioms, including others. 
+
+C.1.4 Concept Detection & Relation Cues Identification 
+
+Gyan’s ConceptDetection : U × KN → (V, C Doc , RC Doc ) function takes the simplified sentences ui ∈ U and creates ci ∈ CDoc within them, groups them into sets of same-concept referring concepts nci ∈ N and collects the remaining sentence segments rc i ∈ RC as Relation Cues. The ConceptDetect = CandidateCDetection ◦
+
+Coref Res ◦ RelationCuesDetect works in three sub-steps. The CandidateCDetection : U × KN → U ′ × CDoc function takes the simplified sentences U = {u1, u 2, . . . , u Φ}
+
+and the normalized concepts N ∈ KN and creates a set of annotated sentences U ′ = {u′
+
+> 1
+
+, u ′
+
+> 2
+
+, . . . , u ′
+
+> Φ
+
+}, where every 
+
+u′ 
+
+> k
+
+∈ U ′ is defined by the tuple u′ 
+
+> k
+
+= ( uk, C k) containing the original simplified sentence uk and a set of all the candidate concepts Ck. The candidate concepts space of the document CDoc = C1 ∪ C2 ∪ . . . ∪ CΦ is the union of all the concepts Ci from all the Φ simplified sentences from the document. The concepts ci are not just entities, but also include other nouns, noun-phrases and other compound predicates, based on rules on simple NLP annotations and advanced Linguistic annotations. Every ci ∈ CDoc is a tuple of ci = {cname , c norm , c attr , c trace }, as defined in the Abstract Document Model and in this step, the cnorm values are not calculated. The Coref Res : U ′ ×CDoc ×KN → CDoc function takes U ′ = {u′
+
+> 1
+
+, u ′
+
+> 2
+
+, . . . , u ′
+
+> Φ
+
+}, the normalized concepts N ∈ KN 
+
+and the previously extracted CDoc concepts and updates the cnorm value of every concept ci ∈ CDoc , either with a value ni ∈ N or to null . Note that multiple concepts ci ∈ CDoc could refer to the same normalized concept in N . The 22 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Coref Res function employs a series of rules on basic NLP and advanced linguistic annotations to determine which concepts are referring to the same concept. These rules may leverage the concept specification within N ∈ KN to infer more complex ways in which multiple concepts in the document infer to the same concept in N .The RelationCuesDetect : U ′ × CDoc × KN → V × CDoc × RC Doc takes all the concept-detected sentences 
+
+U ′ = {u′
+
+> 1
+
+, u ′
+
+> 2
+
+, . . . , u ′
+
+> Φ
+
+}, the document concepts CDoc and leverages the Knowledge Net to generate sentences V =
+
+{v1, v 2, . . . , v Φ}. Every sentence vi ∈ V is made up of a tuple vi = ( u′
+
+> i
+
+, rc i), where u′ 
+
+> i
+
+is the concept-detected sentence and rc i ∈ RC is a set of leftover phrases and sentence segments. The set RC = rc 1 ∪ rc 2 ∪ . . . rc Φ is the whole document’s set of relation cues. 
+
+C.1.5 Discourse Graph Generation 
+
+Gyan’s DGGen : ( DM F , V, C Doc , RC ) → DG or the Discourse Graph Generation function takes the analyses from the previous steps and applies the rules from the document’s discourse mode DM F to create a discourse graph 
+
+DG = ( DU, DE ), where DU is the set of all the discourse units within the document and DE is a set of all the discourse edges between a pair of discourse units du i, du j ∈ DU . The DGGen = DU Detection ◦ DRDetection 
+
+function contains two sub-steps. The DU Detection : DM F × V × CDoc → DU function performs the detection of various discourse units within the document, by applying discourse units detection rules from the document’s discourse model DM F . DU =
+
+{du 1, du 2, . . . , du z } is the set of all the identified discourse units within the document. Each du i ∈ DU is a tuple du i = ( name du i , attr du i , V du i , C du i )
+
+where: • name du i is the name of the discourse unit du i as described in the DM F . Examples include 
+
+Idea , Enumeration , Section , etc. • attr du i = {kv 1, kv 2, . . . , kv n} is a set of key value pairs where keys are specific attributes related to the discourse unit, ad defined in the discourse model of the document DM F .• Vdu i = {v1, v 2, . . . , v α} is a subset of V which are the simplified, concepts- and relation-cues-determined sentences from the document. • V = {Vdu 1 ∪ Vdu 2 ∪ . . . ∪ Vdu α }, implying that every sentence must be a part of at least one 
+
+DU .• ∀du i ∈ DU : |vdu u |̸ = 0 , implying that no discourse unit can be made up of no sentences. • ∀du i ∈ DU ∀vj , v k ∈ Vdu i : |vj |̸ ≡ | vk| implying that there is no assumption on the equality of number of sentences within any two discourse units of a document. • Cdu i = {cdu i1, c du i2, . . . , c du iβ } is a subset of all the concepts form the document CDoc that belong to the sentences Vdu i .In a document belonging to a typical textual discourse model, DUDetection starts by assigning every simplified sentence vi ∈ V as a discourse unit du i ∈ DU of name = Idea . Then, performs multiple iterations where it groups multiple discourse units from an iteration into a composite discourse unit, based on either mechanics-oriented rules or linguistics-oriented rules. These discourse units are then passed-on as inputs to the next iteration, until the output discourse units from every iteration are not the same as the input discourse units from that iteration. The DRDetection : V × CDoc × DU → DE function takes the discourse units created from the DUDetection step and applies rules in DM F to determine a set of edges DE .Every de i ∈ DE is a tuple de i,j = ( du i, du j , name i,j , r DM F , attr i,j )
+
+where: • du i, du j ∈ DU denotes the source and the target of the edge de i, j .• name i,j is the name of the edge, as specified in DM F .• rDM F is the relationship between the two discourse units, as specified in DM F .• attr i,j is a set of key-value pairs where the space of keys is as defined in the DM F and stores the values of these attributes for this instance of the discourse edge. In a document belonging to a typical textual discourse model, the attributes attr i,j stores information related to structure and reading order with values like Hierarchy _P arent , Hierarchy _Child , P receding , Structural _Coref erence ,etc. The relation rDM F stores the rhetorical relationship like Elaboration , Justif ication , Background ,
+
+Conclusion , etc. 23 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+C.1.6 Concept Graph Generation 
+
+Gyan’s CGGen : DG × KN × CDoc × RC Doc → Doc KN or the Concept Graph Generation function takes the discourse graph DG = ( DU, DE ) and converts it into a Document SKG Doc KN = ( F, DM F , DG, C Doc , ED Doc ).The function works by creating a concept graph of every sentence si ∈ Vj where Vj is the set of sentences of the discourse unit du j , and then aggregating it to form CG j = ( CON j , ED j ) or a Concept Graph for every discourse unit 
+
+du j ∈ DU . CGGen = SCGGen ◦ SCGAggr .The SCGGen : DU × KN × CDoc × RC Doc → DU × ED Doc or the Sentence Concept Graph Generation function works on every sentence vij ∈ Vi of all the sentences of the discourse unit du i for all du i ∈ DU and generations a 
+
+CG ij = ( CON ij , ED ij ) where the ck ∈ CON ij are a set of all the concepts in the sentence vij and the ed k,m ∈ ED ij 
+
+is an edge between the concept ck and cm.Every ck ∈ CON ij ⊂ CDoc is a tuple {cname , c norm , c attr , c trace }, as described in the Abstract Document Graph. Every edge ed k,m ∈ ED ij is represented with the quadruple ed k,m = ( ck, c m, r norm , x, x norm , type ), as described in the Abstract Document Graph. In this step, the x and xnorm are left unassigned and are populated in the Contextual Framing step. The rnorm and type of every ed k,m is evaluated from the relation cues rc ij ∈ RC Doc and is mapped to one of the relations R from the Knowledge Net KN .The SCGAggr : DG × ED Doc → Doc KN or the Sentence Concept Graph Aggregation function works on every discourse unit du i ∈ DU of the document and aggregates the concept graph CG ij of every sentence vj ∈ Vi in du i
+
+and aggregates it into a consolidated concept graph CG i = ( CON i, ED i) of the discourse unit du i. The process involves taking a semantic union of all the nodes and edges of the individual sentence concept graph. CON i =
+
+CON i1 ∪sem CON i2 ∪sem . . . ∪sem CON in where CON ij are the concepts from the concept graph of sentence 
+
+vij ∈ Vi of the discourse unit du i. Similarly, ED i = ED i1 ∪sem ED i2 ∪sem . . . ∪sem ED in .
+
+C.1.7 Contextual Framing 
+
+At this stage, the Document Semantic Graph Doc KN is a Discourse Graph DG as the first layer and every discourse unit du i ∈ DU in the DG has a concept graph CG i. Each concept graph has concepts normalized to a nk ∈ N ∈ KN 
+
+and each edge has relations normalized to rj ∈ R ∈ KN . The missing annotations include the x and xnorm which are the contextual frames of every relationship within the discourse graph and concept graph of every discourse unit of the discourse graph. Gyan’s CF raming : Doc KN × KN → Doc KN of the Contextual Framing function takes assigns the contextual frame x to every discourse and concept edge in Doc KN and maps them to the contextual frames space X in the 
+
+KN using linguistic rules and algorithms. The function works by identifying all the unique contextual frames xi
+
+within the document XDoc by with respect to the contextual frames within the Knowledge Net and then assigns a frame to every discourse and concept edge. These two sub-steps are modelled as: CF raming (Doc KN , KN ) = 
+
+F rameIdentif ication ◦ KnowledgeScoping .The F rameIdentif ication : Doc KN ×KN → Doc KN or the Frame Identification function works on all edges de i ∈
+
+DE and ed mn ∈ ED n ∈ du n ∈ DU , inspects all the linguistic features and populates a XDoc with {x1, x 2, . . . , x ϵ}
+
+where every xi is a tuple of {xi,norm , x i,def s }. The xi,def s = {kv 1, kv 2, . . . , kv γ } is a collection of key-value pairs where the keys belong to a fixed set of primitive frames (e.g. time , location , aspect , modality , etc.) and the values are explicit permissible values for each of those primitive frames. The xi,norm is a mapping of xi to one of the frames 
+
+xj ∈ X ∈ KN .The KnowledgeScoping : Doc KN × KN × XDoc → Doc KN or the Knowledge Scoping function takes all the identified and mapped frames XDoc and populates the x and xnorm values in every de i ∈ DE and ed mn ∈ ED n ∈
+
+du n ∈ DU .
+
+C.2 Semantic Grounding of a Document GMR in Gyan 
+
+The Gyan Encoder converts a file into a Document GMR Doc KN in the context of the provided knowledge net KN .This step continuously grounds the document to the KN with each and every step. This is known as continuous semantic grounding of the Document. However, depending on a use-case, it may be beneficial to encode the file into a document SKG using a null knowledge net KN Φ and then apply a knowledge net post-facto, a process known as 
+
+post-hoc semantic grounding of the document which is achieved through additional grounding functions in Gyan. Gyan’s SemGrounding : Doc KN Φ × KN → Doc KN or the semantic grounding function takes a document SKG Doc KN Φ that was grounded on a null knowledge net KN Φ and maps its concepts, relations and frames 24 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+from the Doc KN Φ to those of the provided knowledge net KN . SemGrounding = ConceptGrounding ◦
+
+RelationsGrounding ◦ F ramesGrounding .Each of the three grounding steps map the concepts, relations and frames from the document space to the space of the Knowledge Net KN . These steps utilize the ideas from the coreference resolution, concept linking, concept normalization and concept equivalence to map the components of the processed documents from one knowledge net (null knowledge net, in this case) to another. While a post-hoc grounding is fast, it is pertinent to note that performing a post-facto grounding of a document’s GMR comes with some limitations as there’s a collection of rules that can only be applied at the time of creating fundamental structures of the document’s GMR. In order to get past this limitation, the whole file can be subjected to continuous grounding through the Encoder with the provided KN . The trade-off is between time and completeness. 
+
+C.3 Knowledge Discovery & Building the Knowledge Net 
+
+The KnowledgeDiscoverer (or KD or just Discoverer ) performs the knowledge discovery and creates one or more Knowledge Net, including the Universal Knowledge Net. The fundamental Knowledge Discovery steps performed by the Discoverer are: 1. Starts with an input concept and a corpus 2. processes the documents in the corpus using the Meaning Encoder, 3. finds all the occurrences of the input concept, 4. classify each of the occurrences of these concepts into whether they are the dominant topics from the corresponding Discourse Units; a process we term as relevance determination 5. extracts the relation along with the context in which the relations always apply. 6. determination of whether the context is generic enough to occur in other cases 7. saves the relations in the knowledge net. This method results in a Knowledge Net that is grounded on the provided corpus. The corpus can be licensed content or freely available free-for-commercial-use content or content accumulated by an Enterprise over several years of operations. This way, an Enterprise Knowledge Net could be constructed in a manner such that its nuances can be captured in it. This also provides a way to Enterprises to attain an edge over other enterprises. This fundamental process of knowledge discovery enables the following methods to comprehensively build complex and comprehensive knowledge nets: 1. Build a knowledge net for a vocabulary of terms 2. Discover vocabulary from a corpus of documents and iteratively build a knowledge net. 3. Build a knowledge net from a series of provided dictionaries. 4. Incrementally, add discover and add a knowledge for a new concept to an existing knowledge net. 5. Add knowledge from a corpus of documents to an existing knowledge net 6. Add a knowledge net to an existing knowledge net Some of the common utilities within the Discoverer , following components can make the task of creating knowledge nets easier: 1. DiscoverV ocabulary utility to identify important concepts from a corpus of documents. 2. AggregateCorpus utility helps aggregate a corpus for a given concept from the web, by firing searches on a web search engine and collecting the documents from the sources that fulfill a certain source credibility criteria. 3. DetermineRelevance helps to identify documents and discourse units within the documents that presents a given concept as an important topic of discussion in them. 
+
+C.3.1 Gyan Base Knowledge Net 
+
+Gyan’s Base Knowledge Net is a repository of knowledge that tries to contain the full breadth of concepts in the world, with some/little depth. The process used to create the base knowledge net are: 25 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+1. Vocabulary was seeded from WordNet, KBPedia, ConceptNet, Cambridge English Dictionary and Oxford English Dictionary. 2. Concepts in the Vocabulary from various sources were disambiguated and linked to ensure that the senses are maintained. 3. Relations from KBPedia and ConceptNet were imported into the Base Knowledge Net. 4. Definitions were discovered for the concepts and were processed using the Meaning Encoder to add additional fundamental knowledge (e.g. hypernymy). 5. Wikipedia and Encyclopedia were sourced and converted into a corpus of HTML documents. A generic HTML Discourse Model was used to parse and pre-process all the contents into the documents. 6. Meaning Encoder was run on all the documents in the corpus and for every term in the vocabulary, relations were extracted from the relevant discourse units and saved in the Base Knowledge Net. 
+
+# D Knowledge Stores 
+
+Section 1.3.2 and 1.3.3 defines the fundamental difference between a Knowledge Net and Knowledge Store. Knowledge Stores are repository of Meaning Graphs and Knowledge from a collection of underlying documents, that can be queries on. Although a Universal Knowledge Net, a massive knowledge net introduced in 1.2.2, is the ideal way to simulate the knowledge and intelligence of the whole world, smaller and more practical knowledge nets have been proven to be completely useful to solve niche and domain or topic restricted problem. Our base knowledge net becomes a good and effective starting point for creating a knowledge net or knowledge store that covers and contains all the background knowledge for a given collection of documents. 
+
+D.1 Gyan Foundation Knowledge Stores 
+
+Gyan provides some foundation knowledge stores out of the box, that can either be used for a domain or can be used as a starting point to create a knowledge net or knowledge store for a deeper subject area. 
+
+D.1.1 Life Sciences Knowledge Store 
+
+Gyan’s Life Sciences Knowledge Store LS-KS is a store that is being used by the Life Sciences community to interact with the knowledge of most of the sub-fields of Life Sciences. The Life Sciences Knowledge Store was created using the following approach: 1. Seeded the LS-KS with the Base Knowledge Net. 2. Curated a vocabulary of important terms from the various sub-fields of life sciences. 3. Curated a list of encyclopedias and credible reference information for the various fields of Life Sciences. E.g. PubChem, Cleveland Clinic, etc. 4. Curated a list of all the research papers (full or abstract) for the various fields of Life Sciences. E.g. PubMed, Science Direct, etc. 5. Process the content and iteratively create a knowledge store. The LS-KS is available as a Sandbox and the access can be obtained by contacting the authors. The Sandbox also illustrates the efficacy of the Gyan’s approach to AI by presenting question samples from the PubMedQA dataset – both labelled and unlabeled. 
+
+D.1.2 USPTO Knowledge Store 
+
+Gyan’s USPTO Knowledge Store USPTO-KS is a store of all the US Patents and is being tested for use by Global Patent Research Analysts. Since the source here is unfragmented, unlike in the LS-KS , the USPTO-KS is built on top of the Base Knowledge Net with curated dictionaries and taxonomies of the various classification systems prescribed by the regulatory body. 
+
+D.2 Enterprise Knowledge Store 
+
+Enterprise Knowledge Store is a Knowledge Store that an enterprise builds by starting from the Gyan Base Knowledge Net and adding knowledge and information about concepts and data present in their ever-increasing enterprise repository. 26 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+Once created, these knowledge stores can be kept current by adding all incremental documents and information into it. Given that the model can handle multiple modes of data (even within texts), all strategic, tactical, as well as operational data can also make it to the Enterprise Knowledge Store. Several Enterprise-specific procedures can also be added to the Enterprise Knowledge Store to reflect a customized context. 
+
+# E Inferencing in the Gyan Model 
+
+E.1 Query Model 
+
+A query triggers Reasoning in Gyan. A query on a Knowledge Store is broken down into background, instruction, constraint concept graph and context concept graph. A complex query with multiple sub-queries is worked on independently and then the responses are merged back based on the instructions. • Background serves as a transient increment to the documents in a Knowledge Store. • Instruction can be classified into Retrieval, Analytical and Modification instructions. • Constraint Concept Graph is the concept graph of the main question and Context Concept Graph is the concept graph of the context. Constraints and Context are separated to make matching independent of the contextual connection as described in the query. • Retrieval Instructions include Verify, Find, Count and Describe. • Analytical Instructions include Compare, Aggregate, Find-Path and Summarize. • Modification Instructions include instructions to Update the Knowledge-Store with a Transient Background of the Instruction. A complex task is a procedure with a series of sequential sub-tasks, each of which is mapped to a particular instruction from Gyan’s Instruction Set. Knowledge Store augments the Instruction Set by being able to query more procedures from either the Procedural Knowledge Net of the Knowledge Store, or one derived from the Background of the Query. This is similar to the 
+
+extension interface for working with other AI agents through standardized or non-standardized protocols like MCP. Examples can be procedures to add two numbers or output a chunk of code in Java to sort a generic array. The outcomes of each of these Instructions are at least the Knowledge Sub-graphs and Discourse Unit Sub-Graphs 
+
+from the underlying Knowledge Stores . The synthesis operation involves Goal/Instruction specific presentation of the matched and returned sub-graphs. The synthesis methods are also procedures that can be defined within the Knowledge Store to produce the outcome with various features (e.g. completely extractive). As a specific example, the MCQ Answering Procedure involves creating one F indP ath Instruction for each option and then evaluating them based on the properties of the returned paths (if one exists) to find the best one. 
+
+E.2 Graph Equality and Similarity 
+
+Two graphs are isomorphic if they have the exact same nodes and edges through some mapping of nodes and edges of one graph to those of the other graph. Two graphs are homomorphic the connected nodes in one are either connected nodes in the other or are the same node in the other. A relational calculus applied on a graph produces a deductive closure of the graph. If two graphs have an isomorphic deductive closure, they are logically equivalent. In other words, two Graphs are logically equivalent if one can be transformed into another, through a series of transformations consistent with a Relational Calculus. Computational Complexities of Isomorphism Detection is O(mlogn ) for two graphs with m nodes and n edges, through the Weisfeiler-Leman (WL) Heuristic. SOTA Complexity of Subgraph Isomorphism between two graphs of dimensions 
+
+(n, m ) and (N, M ) is O(N n × n2). Best known implementations of Graph homomorphism detection have a complexity of the order of O(N n). Common subgraph isomorphism detection can only be completed in time proportional to 
+
+O(cn×N ), where c is the average degree of the nodes in the two graphs. Gyan implements computation of equality and various measures of similarity between two graphs very efficiently. One of the two graphs is a query graph, and the other one is large list of graphs of discourse units. The primary computation is to find all the discourse units that contain an isomorphic deductive closure of the query graph. We define this kind of graph search as an Inferential Sub-graph Search .27 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+The efficiency and scalability of Gyan’s implementation is a combination of powerful indexing mechanisms, the right amount of inference materialization, a fast implementation of a multi-pass refine and match steps and intelligent query-time inferencing. Linguistic breakdown of the document into context-containing discourse units ensures that there are no run-away inference closure computation. Logical segmentation break-down of a bigger graph into smaller sub-graphs (e.g. constraints and contexts) and graph kernels ensures fast retrieval of discourse units. 
+
+E.3 Inferences and Reasoning 
+
+Inferences are steps in reasoning. Reasoning can be classified into four foundational methods: deductive (e.g. expert systems), inductive (e.g. machine learning), abductive (e.g. Bayesian networks) and analogical (e.g. case-based reasoning). Deductive reasoning produces new relations. Inductive reasoning produces new rules. Abductive reasoning produces explanations. Analogical reasoning produces new analogies. Gyan implements the various types of reasoning through graph matching and graph projections throughout the various steps of the Platform. Deductive reasoning involves finding graphs from the rules or queries. Inductive reasoning involves finding similar graphs (observations) to create a generic knowledge graph or operate on them. Abductive reasoning requires searching sub-graphs and then finding connections or paths or performing deductive and inductive reasoning on/between the returned results. Analogical reasoning requires searching sub-graphs of the subjects (and their attributes) of comparison and then performing deductive and/or inductive reasoning on them. 
+
+# F Gyan Platform Reasoner 
+
+F.1 Knowledge Store Enrichment 
+
+Inference materialization is used to achieve heuristics-based completion of deductive closure. More edges are added. More rules are discovered, triggering addition of more edges. Concepts are classified, clustered, etc. Pre-computation of some properties like attributes, expansions, etc. 
+
+F.1.1 Gyan Query Encoder 
+
+Gyan’s QueryEncoder : U × KS → Q(IN S, BG, G Constraints , G Context ) query parser takes a user input U and a Knowledge store reference KS and produces a parsed query Q. As described earlier, a parsed query contains a background BG , an Instruction IN S , a concept graph of main constraints GConstraints and a concept graph of the contextual constraints GContext on the user input. The user input is always converted into a text for the purpose of encoding. Once converted into text, a pipeline similar to Gyan’s textual document encoder Encoder is run to encode the user input into Q.
+
+QueryEncoder : U × KS → QQ = ( IN S, BG, G Constraints , G Context )
+
+QueryEncoder (U, KS ) = LingSimplif y ◦ InputSegment ◦ InstructDetect ◦ CGGen 
+
+The main steps in QueryEncoder includes LinguisticSimplif ication on the contents of the input, followed by 
+
+InputSegmentation , InstructionDetection and ConceptGraph generation. 
+
+F.1.2 On-demand Knowledge Aggregation 
+
+A Knowledge Store may not contain the knowledge or tools to follow a user’s instructions. On-demand knowledge aggregation layers multiple knowledge stores in order to get access to knowledge and/or tools to execute a particular instruction. It starts with the user’s knowledge stores, followed by the Enterprise knowledge store, one of the various Gyan’s foundational knowledge stores and ultimately to a dynamic web knowledge store .The generation of dynamic web knowledge store starts with intelligently breaking the user’s query into search engine queries and identifying a set of focused high-authority sources that may contains information or tools to achieve the goal. The process also allows the users to define their own list of sources for a particular instruction. The subsequent step then fires the queries on the search engines on the specified or identified sources and collects all the search results. The selection of articles in this phase focuses on picking top N articles, but ensures that N is not too large, given the well-known problem of rapidly dropping relevance of articles from search engine results after a particular ranking. To ensure a good initial crop of relevant articles are accumulated, the intelligent search engine query formation incorporates a bunch of expansions so that even with a small N , enough articles are accumulated and cover all aspects 28 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+of the user’s instructions. Furthermore, a relevance algorithm assigns a degree of relevance to every article returned against the search query. Selecting the articles above a threshold of degree of relevance also ensures that the articles are on-point. A de-duplication step removes articles that contain redundant information. Once a good batch of articles is collected, a dynamic knowledge store containing the knowledge and information from these documents is created. The Knowledge Net required to accurately mine the knowledge from these documents in the user’s context is derived from one or more Knowledge Stores that the user has access to. This dynamic knowledge store is then used in the knowledge store chaining to identify the knowledge, procedures and tools to perform the specified task. Along with the query for which the dynamic knowledge store was generated, the user can fire other queries on this newly created dynamic knowledge store as well. These dynamic knowledge stores created by the users for one or more of their queries can be curated by the user to grow the context the user wants to create for their queries. Important or relevant documents from these dynamic knowledge stores can be added back to other knowledge stores by the user. 
+
+F.2 Synthesizer 
+
+As we will see in the following sections, all the reasoning tasks involve solving instances of Inferential Sub-graph Search . After the reasoning engine performs its graph matching operations, the raw result is a collection of subgraphs or Discourse Units. The Synthesizer is the final component in the query pipeline responsible for transforming this structured data into a final answer, formatted according to the initial Instruction. We define Synthesizer as a set of instruction-specific functions. Therefore: 
+
+Synthesize Instruction : Set < Inf erentialGraphIsomorphism > ×V erbosity → Answer .The Answer is a human-readable output that either performs the instructions or performs them and acknowledges or presents the outcome. The Synthesizer also takes a V erbosity parameter that dictates the length or the number of details in the output. For example, in a V erif y instruction, the shortest answer could be a simple and succinct T rue , but a more verbose answer could have details about the concepts and their relationships being subjected to verification. 
+
+F.3 Retrieval Tasks F.3.1 Verify 
+
+The V erif y instruction is a retrieval task used to confirm whether a specific statement is true, based on the knowledge store. It is the formal equivalent of a yes/no question. A Verify query is defined by: 
+
+QKN = ( IN S, G Constraint , G Context )
+
+where: • IN S = V erif y ,• GConstraints is the fully instantiated concept graph of facts to be verified • GContext defines the context and scope of the verification. Examples: Does Mitochondria play a role in remodeling lace plant leaves during programmed cell death? 
+
+Gyan Reasoner takes the GConstraints and GContext and performs a inferential subgraph isomorphism on the knowledge store. The search is successful if it finds at least one discourse unit whose deductive closure has a isomorphic graph of the constraints and context from the query. 
+
+Synthesizer V erif y for this task could output a True or a False, or a verbose paragraph like: "I found 12 instances in the knowledge store that confirm that Mitochondria play a role in remodeling lace plant leaves during programmed cell death." On another spectrum, it will explain the GConstraint by adding details on why, how etc. 
+
+F.3.2 Multiple Choice Questions 
+
+The SelectBest instruction is a bit more complex than the plain Verify instruction because it requires addi-tional processing after a bunch of Verify instructions of selecting the best option for the question. The IN S =
+
+29 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+(SelectBest, [Option − A, Option − B, . . . ]) and contains the references to all the options for the MCQ question. 
+
+T heG Constraints contains the stem of the question and the GContext is derived from the question itself. Gyan Reasoner breaks a SelectBest questions into as many Verify sub-queries as there are options in the MCQ. This is followed by performing the individual verification tasks. All the verification tasks, along with the graph matches, also return a plausibility score. This plausibility score is a combination of several metrics and measures of the underlying inferential subgraph isomorphism. The final answer is selected as the option with the best plausibility score. 
+
+Synthesizer SelectBest could simply output the final option or provide additional details around the selected option or every go over and beyond to explain why the other options were incorrect, depending on the Verbosity setting. 
+
+F.3.3 Find 
+
+The F ind instruction a core retrieval task that is used to find the value of an unknown variable or IN S =(F ind, [V ar 1, V ar 2, . . . ]) . The GConstraint is a partially instantiated concept graph and the GContext is a fully instantiated concept graph to define the scope of the query. Gyan Reasoner again solves this through the inferential subgraph isomorphism with the partially instantiated 
+
+GConstraint and the fully instantiated GContext concept graphs and returns all the matching sub-graphs and the discourse units. The Reasoner then performs projections on the returned sub-graphs and identifies the values of the variables. It also provides computes a plausibility score of the correctness of the output, based on various factors, including the trustworthiness of the source document(s) and the number of instances when the values of the variables that complete the sub-graph. The Synthesizer F ind could either output the values of the variables or the verbatim discourse-unit(s) or an assertive statement with the answer or details of the concepts in the question or any combination of the above. 
+
+F.4 Analytical Tasks F.4.1 Compare 
+
+The Compare instruction is a high-level analytical task. Gyan Reasoner doesn’t find a single pattern but instead performs a differential analysis between two or more entities based on the information in the knowledge store: 
+
+IN S = ( Compare, [ConceptA, ConceptB, . . . ]) 
+
+The GConstraints contains the fully instantiated concept graphs of the concepts to be differentiated and GContext might contain the scope of the concepts or comparison or both. Gyan Reasoner takes the concept graphs (constraints and contexts) of the concepts to be compared and creates a concept SKG of all the concepts that satisfy the constraints and are scoped by the context. The concept SKG contains all the details of the concepts within the Knowledge Store. The Reasoner, then, performs a differential analysis (another form of inferential subgraph isomorphism) on similar aspects of the concepts to determine whether they are similar or different. The information here is a series of similarities and differences between the concepts. The Synthesizer Compare in the simplest form could present a table with rows as the attributes and columns as the concepts. The values in every sell of this table could just be other concepts, full discourse units or elaborate details about the aspect and their relationship to the concepts. On the other hand, the output could be paragraphs of text describing these similarities and differences either as running text or hierarchical enumerations with or without sections and sub-section. 
+
+F.4.2 Find-Path 
+
+The F indP ath instruction is an analytical task used to discover the relationship between two concepts that may not be directly connected. For the FindPath instruction, the IN S = ( F indP ath, [ConceptA, ConceptB ]) . The 
+
+GConstraints typically contain the concept graphs of the two concepts and the GContext contain all the scopes and constraints either on the concepts or the required paths between them. Depending on the instruction, the instruction requires the Reasoner to find the most salient or shortest or longest chain of connections between them on one end and all the paths between them at the other end. It may also require finding paths that contain certain other concepts in the paths. Gyan Reasoner takes the concept graphs of the concepts, finds all of their instances within the knowledge store and then finds all the paths between all the instances of each pair, while applying the constraints. 30 Gyan: An Explainable Neuro-Symbolic Language Model A P REPRINT 
+
+The Synthesizer F indP ath in the simplest form can produce a Graph, or chain all the discourse units of the nodes in the paths as a listing or identify many more ways of synthesizing the information, depending on the verbosity settings. 
+
+F.4.3 Aggregate 
+
+The Aggregate instruction is a powerful analytical task used to group a set of concepts based on a shared property and then perform a calculation (like counting) on those groups. This usually requires working on top of other retrieval or analytical tasks to answer complex queries. In some scenarios, this task is also available to the Synthesizer to create insightful data points to accompany the answers to simpler questions, depending on the Verbosity levels. Essentially, an aggregate query can be implemented as a hierarchical query where the inner levels of the hi-erarchy provide retrieval instructions, and the outer levels of the query provide the aggregation instructions. 
+
+IN S = ( AGGREGAT E, [Query 1, Query 2, . . . ]) . The GConstraints and GContexts are typically empty in the outer Aggregate query but are fully or partially instantiated in the inner queries. Gyan Reasoner recursively calls itself to gather all the instances of the inner queries. Reasoner then performs various aggregations on the results and flags the ones with interesting characteristics. The Reasoner then outputs the outcomes of these aggregations. The Synthesizer Aggregation posses a number of options for producing the output. It may provide all the descriptions of the interesting and uninteresting aggregations. It may or may not provide details about the outcomes of the inner queries. It may choose to present the descriptive statistics of the inner or outer results. It may choose to include the detailed discourse units containing the outputs. All of this can be handled through a Verbosity parameter. 31
