@@ -1,0 +1,763 @@
+Title: A Deep Risk Estimator for Known Operator Learning
+
+URL Source: https://arxiv.org/pdf/2605.08517v1
+
+Published Time: Tue, 12 May 2026 00:27:53 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+# A Deep Risk Estimator for Known Operator Learning 
+
+Andreas Maier ∗ Md Hasan Paulina Conrad Paula Andrea Pérez Toro 
+
+Pattern Recognition Lab Friedrich-Alexander-Universität Erlangen-Nürnberg Erlangen, Germany 
+
+# Abstract 
+
+We describe an approach for estimating the statistical risk of deep networks that contain a mix of learned and known operators. Building on the maximal training error bounds previously established for known operator learning, we derive a deep risk estimator that connects the expected error of a layered network to the size of the training sample. The estimator decomposes the total risk into a sum over learned layers; every known operator contributes zero to this sum, while every learned layer adds an approximation term inspired by Barron’s classic work and an estimation term that decreases with the number of training samples. We are able to show that the bound shrinks whenever a learned layer is replaced by a known operator and that the corresponding sample requirement scales with the number of trainable parameters of the layer that is replaced. As an application, we use computed tomography as an example and compare an operator-aware filtered backprojection network with a fully connected substitute that collapses the entire reconstruction pipeline into a single learned dense matrix. The predicted parameter ratio coincides with the structural sparsity that the analytic decomposition into a circulant filter and a sparse backprojection exposes. We confirm the predicted scaling on CPU at small image scale and on GPU at medium image scale, all on the same scaling law. Beyond CT reconstruction, the estimator applies to physics-informed neural networks that hardcode a known physical operation in its architecture, and we expect the result to be of interest for a broad community working on operator-aware deep learning. Calibrating the per-layer constants on each sweep yields a bound that tracks the empirical test MSE, so the estimator can be used to predict how many training samples are required to reach a target error. Source code, configuration files, and the full-resolution training pipeline are publicly available at https://github.com/akmaier/KnownOperatorCT .
+
+# 1 Introduction 
+
+Pattern analysis and machine intelligence have largely been driven by tasks that mimic perceptual problems and are formulated as classification or regression on man-made labels Maier et al. [2019]. With the rise of deep learning, the same methods are now also applied to physics-driven problems such as computed tomography, where parts of the processing chain are not learned but rather analytically known and differentiable Würfl et al. [2018], Syben et al. [2019]. The general idea of known operator learning is to embed such operators directly into trainable pipelines instead of relearning them from data Maier et al. [2019, 2022]. The same idea underlies the hybrid physics-informed neural network (PINN) literature Raissi et al. [2019], Karniadakis et al. [2021], where governing equations, conservation laws, or known physical operators are hardcoded into the network architecture (rather than only enforced via a soft partial differential equation (PDE) residual loss term as in the canonical  
+
+> ∗Corresponding author: andreas.maier@fau.de .Preprint.
+> arXiv:2605.08517v1 [cs.LG] 8 May 2026
+
+PINN formulation), and where the sample efficiency of the resulting hybrid models is central to their appeal. Maier et al. [2019] have shown that incorporating known operators reduces the maximum training error bound of deep networks. While maximum error bounds capture worst-case behavior, they do not directly speak to the practical question of how the test error of an operator-aware network depends on the size of the training set. This question, however, is at the heart of the appeal of known operator learning: practitioners observe that operator-aware networks often work well with much less data than purely black-box counterparts, and a theoretical statement that captures this behavior is needed. In this paper, we derive a deep statistical risk estimator that connects the expected squared error of a layered network with known and learned operators to the size of its training sample. We formulate the estimator at the level of the network composition rather than for individual layers, and we use Barron-type per-layer risks as the only assumption on each learned layer. The resulting bound is a sum of layer terms; known operator layers contribute zero, while learned layers contribute an approximation term and an estimation term that decreases with the number of samples. To the knowledge of the authors, this is the first deep risk estimator that targets known operator networks specifically and that yields an explicit sample size dependence. The estimator is derived in this paper from first principles; the proof is given in full in Appendix A. Because the assumptions are layered Lipschitz continuity and a per-layer Barron-type bound on the learned blocks only, the same statement applies directly to any hybrid PINN that hardcodes a physical operation in its architecture. We illustrate the theorem on the computed tomography (CT) application of Maier et al. [2019] and Würfl et al. [2018], where an operator-aware filtered backprojection network reduces the trainable parameter count by orders of magnitude compared with a purely learned, fully connected substitute. How this dramatic parameter reduction translates into a corresponding reduction in training-data needs has so far been an empirical observation, without an explicit theoretical statement. The deep risk estimator developed in this paper closes that gap, and we confirm the predicted scaling on sample-efficiency sweeps at small, medium, and large image scale. 
+
+Contributions. This paper makes four contributions. 1. We state and prove a deep risk estimator for known operator networks that connects the expected squared error of a layered network to the size of its training sample. 2. We show that the estimator decomposes additively over layers and that every known operator removes one full layer term from the bound. 3. We argue that the bound is particularly useful for estimating the training-sample requirements of specific problems, and we calibrate it on a small pilot study to predict required sample sizes for a target error. 4. We apply the result to the CT reconstruction example of Maier et al. [2019] and provide a reproducible surrogate that confirms the predicted low-data advantage of the operator-aware model. 
+
+# 2 Related Work 
+
+Barron’s classical bound separates approximation and estimation for single hidden layer networks and is the closest classical reference for the present work Barron [1994]. More recent work has studied compositional and adaptive estimation in deep networks, but these results typically do not consider explicitly inserted known operators Schmidt-Hieber [2020], Chen [2024], Liu et al. [2025], Danhofer et al. [2025]. In the inverse problem community, operator learning, learned corrections, and stability analyses provide an adjacent theoretical framework Lunz et al. [2021], De Ryck and Mishra [2022], Molinaro et al. [2023], Evangelista et al. [2025], Alberti et al. [2026]. On the application side, deep learning has long been used as a complement to filtered backprojection in CT Würfl et al. [2016, 2018]. The known operator perspective of Maier et al. [2019] is particularly relevant here because it interprets each reconstruction step as a layer while preserving its analytic meaning, and it provides the maximum training error analysis that motivates the present deep risk estimator. 2x ˆu1 
+
+> learned
+> u2
+> known
+> ˆu3
+> learned
+> uL
+> known ˆfL(x)
+> · · ·
+
+Figure 1: Known operator networks blend analytic, fixed layers (gray) with trainable layers (green) inside a single compositional pipeline. The minimal requirement on a known operator is the existence of a sub-gradient with respect to its inputs, which makes the operator compatible with backpropagation Maier et al. [2019]. 
+
+# 3 Known Operator Networks 
+
+The general idea of known operator learning is to embed entire analytic operations into a learning problem instead of relearning them from data Maier et al. [2019, 2022]. Figure 1 shows the resulting compositional structure schematically. We refer to the input of the network as x ∈ RND +1 in the homogeneous notation of Maier et al. [2019] and write the target map as a layered composition 
+
+fL(x) = uL
+
+ uL−1(· · · u1(x) · · · ), (1) where each layer ul : Dl−1 → D l is a continuous function on compact domains Dl−1, Dl of the appropriate ambient dimensions, the input lies in D0, and fL(x) ∈ D L. The corresponding network is ˆfL(x) = ˆ uL
+
+ ˆuL−1(· · · ˆu1(x) · · · ), (2) and we denote the per-layer approximation error by el(xl) = ul(xl) − ˆul(xl) for xl ∈ D l−1. We say that layer l is a known operator if ˆul = ul on Dl−1, in which case el ≡ 0. We say that layer l is 
+
+learned if ˆul is a trainable function approximator. We make two assumptions on the layers and on the per-layer approximation error of the learned blocks; both are standard in the analysis of compositional function approximators. 
+
+Assumption 1 (Layer Lipschitz continuity and codomain invariance) . Each layer ul of the target function (1) is Lipschitz continuous with constant ℓl ≥ 0 on Dl−1. Each learned layer ˆul is Lipschitz continuous on Dl−1 and satisfies ˆul(Dl−1) ⊆ D l, so the composition ˆfL in Eq. (2) is well defined for every x ∈ D 0.
+
+Assumption 2 (Per-layer Barron-type risk) . Let ˆul denote the converged learned layer obtained from a training procedure on N samples. There exist a layer complexity Cl ≥ 0, an approximation width 
+
+nl ≥ 1, an effective number of trainable parameters pl ≥ 1, and a constant κl > 0 such that the expected squared layer error, taken at test time over inputs Xl drawn i.i.d. from a fixed evaluation distribution on Dl−1, satisfies 
+
+EXl ∥el(Xl)∥22 ≤ C2
+
+> l
+
+nl
+
++ κl
+
+pl log NN . (3) 
+
+The i.i.d. condition therefore applies to the test-time inputs of the converged layer; it does not constrain the training trajectory. 
+
+Assumption 2 is satisfied by the classical Barron bound for sigmoidal single hidden layer networks Barron [1994] and by several modern deep extensions Schmidt-Hieber [2020], Chen [2024], Liu et al. [2025]. We treat it here as the only requirement on each individual learned block; the deep risk estimator that follows is agnostic to which per-layer bound is chosen, as long as it has the form (3). 
+
+Notational note. Barron’s original statement Barron [1994] considers a single hidden layer with nl
+
+sigmoidal units and identifies the number of trainable parameters with the network width, pl = nl.The layer risk is expressed in O notation, which omits multiplication with positive constants and lower-order terms in N , nl, and pl. In Eq. (3) we separate the width nl from the parameter count 
+
+pl so that compositional layers with pl̸ = nl (for example a structurally constrained learned layer with shared weights) fit the same template, and we absorb every other constant into Cl and κl. The ratio pl/n l is a constant for any given compositional layer instance (it is determined by the layer’s architecture, not by N ). In particular, κl carries the input dimension of the layer and the multiplicative constants implicit in the O notation. This separation slightly changes the interpretation of Cl and κl
+
+relative to Barron’s: under nl = pl the parameter-sharing constraint of a structurally constrained layer would have to be packed into a per-architecture Barron complexity Cl, whereas allowing pl̸ = nl
+
+moves the constraint into the explicit parameter count and leaves Cl to encode only the function-class complexity. 34 A Deep Risk Estimator for Known Operator Learning 
+
+We are now interested in lifting the per-layer risk (3) to a risk bound on the whole network (2) . To do so, we first state how the network error decomposes layerwise and then apply Assumption 2 to the learned layers. 
+
+Theorem 1 (Deep Risk Estimator) . Let fL and ˆfL be defined by (1) and (2) on a compact domain 
+
+D ⊂ RND +1 and assume Assumption 1. Then for every input distribution on D the expected squared network error satisfies 
+
+EX ∥fL(X) − ˆfL(X)∥22 ≤
+
+> L
+
+X
+
+> l=1
+
+Al EXl ∥el(Xl)∥22, (4) 
+
+where the amplification factor is 
+
+Al =
+
+(
+
+2L−1 QLj=2 ℓ2 
+
+> j
+
+l = 1 ,
+
+2L−l+1 QLj=l+1 ℓ2 
+
+> j
+
+2 ≤ l ≤ L. (5) 
+
+If, in addition, every learned layer satisfies Assumption 2, then 
+
+EX ∥fL(X) − ˆfL(X)∥22 ≤ X
+
+> l∈L
+
+Al
+
+ C2
+
+> l
+
+nl
+
++ κl
+
+pl log NN
+
+
+
+, (6) 
+
+where L ⊆ { 1, . . . , L } is the index set of learned layers and known operator layers contribute zero to the sum. 
+
+The amplification factor Al depends only on the Lipschitz constants of the layers ul+1 , . . . , u L.As in the maximum error analysis of Maier et al. [2019], this means that the cascade structure of the problem itself decides how strongly an error introduced at layer l affects the network output. Each learned layer contributes one term that is composed of an approximation part C2 
+
+> l
+
+/n l and an estimation part κlpl log N/N . Eq. (6) is the key bridge between known operator learning and sample efficiency: it states that the expected error decreases at rate log N/N in the training sample size N ,with a constant that depends only on the structure of the learned layers. The proof is given in Appendix A. It proceeds by recursively expanding the network error, using the squared triangle inequality (a + b)2 ≤ 2a2 + 2 b2 at each layer together with the Lipschitz property of the true outer layer, and finally taking expectations. 
+
+Corollary 1 (Known operator reduction) . Replacing learned layer m by a known operator (i.e., setting ˆum = um, so em ≡ 0) removes the term AmE∥em∥22 from (4) .
+
+Corollary 1 formalizes the intuition that known operators help by removing learning targets, not by improving them. It is important to highlight that the corollary applies to both the approximation and the estimation contribution of the replaced layer; in particular, both vanish in layers with known operations. 
+
+Sample-size estimation for specific problems. The deep risk estimator is particularly useful when one wants to know how many training samples a specific problem requires to reach a target test error. Inverting Eq. (6) for N given a target ε turns the bound into a closed-form sample-size predictor. The per-layer constants Cl, n l, κ l in Eq. (6) are typically not known analytically for the architectures encountered in practice, but they are easy to calibrate on a small pilot study, after which the inverted bound serves as a safe-side estimate of the training-set size that is sufficient to reach a target accuracy. We make this calibration scheme explicit in the next section. 
+
+# 5 Computed Tomography Application 
+
+We reinterpret the classical filtered backprojection (FBP) pipeline as a layered network in the sense of Section 4, where each reconstruction step corresponds to a layer. This perspective lets us compare learning only a small correction to a known physical model (the operator-aware network) with learning the full inverse mapping from data (the fully connected network). 4x W          
+
+> learned
+> K
+> known
+> A⊤
+> known
+> ReLU
+> known yKO net
+> pKO = 2 .30 ·10 4
+> xdense M
+> learned
+> ReLU
+> known yFC net
+> pFC = 1 .51 ·10 9
+
+Figure 2: Computed tomography networks compared in this paper. The operator-aware network (top) trains only the diagonal weighting layer W, while the filter K, the backprojection A⊤, and the ReLU layer are known operators. The fully connected counterfactual (bottom) collapses the entire reconstruction pipeline into a single dense learned matrix M that maps projections directly to image pixels, followed by the same fixed ReLU. Trainable parameter counts above each learned layer correspond to a slice-wise 256 × 256 fan-beam discretization with 90 views and 256 detector bins. In computed tomography, we are interested in computing a reconstruction y ∈ RH·H from a set of projection images x ∈ RV ·B acquired at V views and B detector bins. Both are related by the X-ray transform A, Ay = x. The Moore–Penrose inverse of A gives rise to FBP Kak and Slaney [2001] 
+
+y = ReLU  A⊤KW x , (7) where W collects geometry-dependent diagonal weights, K implements the reconstruction filter, 
+
+A⊤ is the backprojection, and ReLU( ·) suppresses negative values Würfl et al. [2018], Maier et al. [2019]. Eq. (7) is a known operator network with four layers in the sense of Section 4: u1 = W, u2 = K,
+
+u3 = A⊤, and u4 = ReLU . In the operator-aware (KO) model of Würfl et al. [2018] and Maier et al. [2019], only W is treated as a learned layer; the remaining three layers are known operators. The fully connected (FC) counterfactual collapses the entire reconstruction pipeline into a single dense learned matrix M that maps projections directly to image pixels, followed by the same fixed ReLU, 
+
+ˆyFC = ReLU( M x ). Figure 2 contrasts the two architectures. 
+
+Where the operator-aware reduction comes from. We count the trainable parameters of each layer in Eq. (7) . The reconstruction filter K is a one-dimensional circulant convolution applied per view along the detector axis; it is fully specified by its O(B) frequency-domain coefficients and is hardcoded at run time, so it carries no trainable parameters. The backprojection A⊤ is sparse because only the rays that intersect a given image pixel contribute to it; like K it is hardcoded and carries no trainable parameters. The ReLU layer is parameter-free. The trainable footprint of the operator-aware network is therefore exactly W, a diagonal projection-domain weighting with one weight per detector bin and angle, pKO = V · B. The dense substitute M has none of this structure: it is an unconstrained matrix that maps each of the V · B measurements to each of the H2 image pixels, so pFC = H2 · V · B = H2 · pKO . The factor of H2 between the two trainable footprints is the parameter-count component of the structural sparsity exposed by the analytic decomposition. However, it does not yet deliver the complete picture. We now apply the deep risk estimator of Theorem 1 to both networks. In the operator-aware case, the filter, backprojection, and ReLU layers are known operators that contribute zero to Eq. (6) ,so the layer-W estimation term, amplified by A1, is the network’s total estimation contribution (Appendix C); in the fully connected case, only the single dense matrix M contributes. 
+
+Proposition 1 (Operator-aware versus fully connected sample complexity) . Consider the operator-aware filtered backprojection network with pKO = V · B trainable diagonal weights and the fully connected counterfactual with pFC = H2 · V · B trainable weights of the dense matrix M. With the layer amplifications AKO 1 = 8 ∥K∥22 ∥A⊤∥22 and AFC 1 = 2 derived in Appendix C, equating the network-level bounds of Eq. (6) for the two architectures at the same target error ε yields the sample-complexity double ratio 
+
+NFC / log NFC 
+
+NKO / log NKO 
+
+= AFC 1 κM pFC 
+
+AKO 1 κ1 pKO 
+
+· ε − AKO 1 C21 /n 1
+
+ε − AFC 1 C2
+
+> M
+
+/n M
+
+, (8) 5Table 1: Bound-inspired full-scale estimate for the CT application across image scales. Trainable parameter counts grow as H2 between the operator-aware (KO) and fully connected (FC) networks. The H ∈ { 8, 16 , 32 } columns correspond to the CPU surrogate sweeps of Section 6, the H ∈{128 , 256 } columns to the GPU sweeps, and the H = 512 column to the slice-wise setting of Würfl et al. [2018], Maier et al. [2019]. Adam state assumes 16 bytes per parameter (master weights, m, v,gradient).                                                                                                                           
+
+> Quantity H= 8 H= 16 H= 32 H= 128 H= 256 H= 512
+> V,B10 ,820 ,16 40 ,32 60 ,128 90 ,256 180 ,512
+> pKO 80 3.20 ·10 21.28 ·10 37.68 ·10 32.30 ·10 49.22 ·10 4
+> pFC 5.12 ·10 38.19 ·10 41.31 ·10 61.26 ·10 81.51 ·10 92.42 ·10 10
+> pFC /p KO =H264 256 1,024 1.64 ·10 46.55 ·10 42.62 ·10 5
+> KO FP32 weights 0.31 KiB 1.25 KiB 5.00 KiB 30 .0KiB 90 .0KiB 0.35 MiB KO Adam state 1.25 KiB 5.00 KiB 20 .0KiB 0.12 MiB 0.35 MiB 1.41 MiB FC FP32 weights 20 .0KiB 0.31 MiB 5.00 MiB 0.47 GiB 5.62 GiB 90 .0GiB FC Adam state 80 .0KiB 1.25 MiB 20 .0MiB 1.88 GiB 22 .5GiB 360 GiB
+
+valid for any target error ε above both architectures’ approximation budgets A1 C2/n . The first factor is a constant of the imaging geometry: under matched constants κ1 = κM it reduces to 
+
+H2/(4 ∥K∥22 ∥A⊤∥22), the parameter-count ratio folded with the operator-norm correction exposed by the analytic FBP decomposition. Computing the operator norms numerically is expensive but the ratio is fixed once the geometry is set. The second factor depends on the target error and on each architecture’s approximation budget A1 C2/n , and is unity exactly when the two budgets match. 
+
+Structural sparsity sets both factors. The same analytic decomposition into a circulant filter and a sparse backprojection produces both terms in Eq. (8) . The KO’s diagonal weighting only learns a residual correction over the analytic FBP, so its approximation error C21 /n 1 captures the irreducible noise plus a small structural residual; the dense FC, in contrast, must learn the complete inverse mapping from projections to image pixels through a single matrix, so its approximation error C2
+
+> M
+
+/n M
+
+also includes the entire structural complexity of the inverse problem that the operator-aware decom-position removes by construction. Both the parameter-count component of the structural-sparsity factor and the approximation-budget gap of the second factor are therefore consequences of the same structural sparsity, and both contribute multiplicatively to the dense network’s sample-complexity penalty. Table 1 reports the parameter-count component across H ∈ { 8, 16 , 32 , 128 , 256 , 512 }.
+
+The bound, regrouped for sample-budget use. The proxy log N/N above tracks how the esti-mation term shrinks with N but does not yet have absolute units. To turn Eq. (6) into a calibrated risk predictor, we regroup the per-layer constants Cl and κl from Assumption 2 into two empirically observable numbers per learned layer: 
+
+E ∥y − ˆy∥22 ≈ floor l
+
+| {z }     
+
+> noise +AlC2
+> l/n l
+
++ σl
+
+|{z}   
+
+> Alκlpl
+
+· log NN . (9) A pilot study gives floor l (lowest seen mean squared error (MSE) at large N , which absorbs the irreducible data noise and the residual approximation term AlC2 
+
+> l
+
+/n l) and σl (the slope of the test MSE against log N/N , which absorbs the geometry-dependent prefactor on the estimation term and any architecture-specific scale). These are the only two numbers needed to read a sample budget off the bound for that problem. 
+
+# 6 Experiments 
+
+We probe the deep risk estimator at five operating points spanning the surrogate and full-resolution regimes: a fully reproducible CPU surrogate at H ∈ { 8, 16 , 32 } with V = 1 .25 H equally spaced views and B = H detector bins, and two GPU sweeps at H ∈ { 128 , 256 } with V = 60 , 90 and 
+
+B = H. The CPU sweeps fit both architectures in closed form (ridge-regularised least squares with the regularisation coefficient chosen on a held-out validation set), use N ∈ { 4, 8, 16 , 32 , 64 }, and average over five seeds. The GPU sweeps train the operator-aware network with stochastic gradient 6Figure 3: Sample-efficiency sweeps at five operating points: CPU surrogate at H ∈ { 8, 16 , 32 } (top row, test mean squared error, five seeds) and GPU sweeps at H ∈ { 128 , 256 } (bottom row, test rRMSE 2, three seeds). Each panel overlays the calibrated bound floor l + σl(log N/N ) (dashed) per architecture. The dashed bound is an upper bound on the empirical curve in the data-driven regime; the floor gap between the two dashed lines visualises the approximation-budget factor of Proposition 1. Table 2: Calibration factors floor l and σl from Eq. (9) , fitted on each sweep by least squares. CPU rows use test MSE; GPU rows use test rRMSE 2. Two numbers per (architecture, sweep) drive both factors of Proposition 1.                                                                           
+
+> Sweep floor KO σKO floor FC σFC
+> H= 8 (CPU) 2.48 ·10 −38.51 ·10 −35.81 ·10 −36.86 ·10 −2
+> H= 16 (CPU) 9.52 ·10 −41.75 ·10 −28.54 ·10 −37.96 ·10 −2
+> H= 32 (CPU) 8.22 ·10 −44.15 ·10 −21.14 ·10 −28.63 ·10 −2
+> H= 128 (GPU) 3.02 ·10 −31.11 ·10 −22.26 ·10 −39.45 ·10 −2
+> H= 256 (GPU) 9.47 ·10 −46.32 ·10 −31.63 ·10 −39.94 ·10 −2
+
+descent and the fully connected baseline with ridge regression on a unified phantom pool, sweep 
+
+N ∈ { 4, 16 , 64 , 256 , 1024 , 2048 }, and average over three seeds. Implementation details for both regimes are documented in Appendix D. 
+
+Calibrated bound matches the data. Figure 3 shows the resulting empirical vs. calibrated the-oretical risk. The known operator network reaches its asymptotic test error quickly at every scale, while the fully connected baseline either plateaus at a higher floor (CPU sweeps and the largest GPU sweep at H = 256 ) or eventually crosses the operator-aware floor at large N (the GPU sweep at 
+
+H = 128 ). The two constants per (architecture, sweep) are obtained by a least-squares fit on the same data: floor l is the smallest mean error observed in the sweep, and σl is the no-intercept slope of (error − floor l) against log N/N . The resulting dashed calibrated bound from Eq. (9) tracks the empirical curve closely across each panel and clearly upper-bounds it in the low-N regime, where the safe-side character of the bound matters most. Table 2 reports the resulting calibration factors for all five (sweep, architecture) pairs. With a single per-architecture pair of constants, Eq. (6) is predictive of the empirical error on the same problem and can be inverted for a target sample size via Eq. (8). 7Table 3: Five operating points spanning the surrogate and full-resolution regimes. The parameter ratio 
+
+pFC /p KO = H2 holds at every point and is the parameter-count component of the structural-sparsity factor in Eq. (8).                                        
+
+> Operating point HVBpFC /p KO Outcome CPU sweep 810 864 KO dominates FC at every N
+> CPU sweep 16 20 16 256 KO dominates FC at every N
+> CPU sweep 32 40 32 1,024 KO dominates FC at every N
+> GPU sweep 128 60 128 16 ,384 KO dominates at small N; FC matches by N= 2 ,048
+> GPU sweep 256 90 256 65 ,536 KO dominates at every Ntested
+
+Two factors interact differently across scales. Across the five operating points, the structural-sparsity factor σFC /σ KO ranges over roughly 2 to 16 and the approximation-budget factor takes on a regime-dependent role (Table 2). On the CPU surrogate the FC’s floor stays markedly above the KO’s at every scale and the approximation-budget factor is therefore always greater than one. On the GPU sweeps the picture is more nuanced: at H = 128 the FC is given enough samples ( N = 2048 )that its floor falls slightly below the KO’s, so the approximation-budget factor at the FC’s eventual floor is below one; at H = 256 the FC has not reached the KO floor in the sample range we tested. In every case, the operator-aware network reaches its data-driven plateau much earlier than the dense FC, so for the realistic clinical-CT sample budget ( N in the low thousands of slices) inverting Eq. (8) predicts that the FC needs one to two orders of magnitude more samples than the KO to match the KO’s accuracy. 
+
+# 7 Discussion 
+
+The deep risk estimator of Theorem 1 connects the expected squared error of a known operator network to the size of its training sample, every known operator simply removes one layer term from the bound, and the additional sample requirement of a fully connected substitute scales with the parameters it introduces. In the CT application, the parameter ratio pFC /p KO = H2 has two practical consequences. First, the dense substitute needs H2 times more memory and compute than the operator-aware network to instantiate at all – this is the operational reason an H = 512 FC reconstruction does not fit on accessible single-GPU hardware (Table 1). The parameter ratio is therefore a hard memory and compute constraint, not just a sample-complexity quantity. Second, while the sheer magnitude of pFC /p KO suggests that the operator-aware network must be vastly more sample-efficient, the empirical sample-complexity gap is captured more tightly by the slope ratio 
+
+σFC /σ KO in Eq. (8) , which sits between two and ten across our sweeps (Table 2). The operator-aware network still wins clearly in the low-data regime – it reaches its asymptote with roughly an order of magnitude fewer samples than the dense baseline – but with sufficient data the dense matrix’s expressivity catches up and, at the H = 128 sparse-view operating point, surpasses the operator-aware floor. The known-operator FBP architecture of Maier et al. [2019] was designed for limited-angle CT, where the missing data is concentrated outside the measured angular range, rather than for sparse-view CT, where the missing data is distributed across all angles; that the dense matrix can find a better solution in the sparse-view regime once given enough data is consistent with this task-domain mismatch. The qualitative reconstructions in Appendix D.3 illustrate both ends of the trade-off. The present analysis has four limitations. First, Assumption 2 requires a Barron-type per-layer bound, and the constants κl and Cl may differ between blocks. Whether such a bound holds for a particular layer depends on its function class and activation, and characterizing the constants rigorously for non-sigmoidal modern architectures such as deep ReLU networks, transformers, or normalizing flows is itself an open research area; for the diagonal weighting layer in our CT example the bound reduces to the classical p log N/N rate of linear regression with p trainable parameters, so the Barron-type form holds without invoking the sigmoidal/ReLU activation argument. More broadly, the deep risk estimator is architecture-agnostic given Lipschitz continuity and a per-layer Barron-type bound on the learned blocks: convolutional layers and feedforward attention blocks satisfy these assumptions (the latter once a finite Lipschitz handle on softmax is enforced), while recurrent layers require a correct accounting of the recurrent unrolling, which we leave for future work. Second, the deep risk estimator gives an upper bound, so empirical tightness should not be overstated. The 8gap between bound and observed risk depends on how well the per-layer constants capture the true layer complexity, and overly optimistic constants can produce a tight-looking bound that does not generalize beyond the calibrated regime. Third, the closed-form reading of the structural-sparsity factor as H2/(4 ∥K∥22 ∥A⊤∥22) in Proposition 1 assumes matched Barron-type constants κ1 = κM
+
+between the operator-aware and the fully connected layer. In practice the two architectures need not share the same κ, and the empirical slopes σl in Table 2 absorb whatever mismatch is present together with the amplification factor Al; the closed-form expression should therefore be read as a matched-κ reference rather than a tight numerical prediction. The two-factor decomposition itself, by contrast, retains the empirical approximation-budget difference between the two architectures and does not assume a matched approximation budget. Fourth, Assumption 2’s i.i.d. condition refers to the test-time evaluation distribution of the converged learned layer; in pipelines with multiple consecutive learned layers trained end-to-end, the intermediate input distributions evolve during optimization, and the present analysis applies after convergence rather than to the training trajectory. The analysis does not replace stability or uncertainty analyses for safety-critical deployment Evangelista et al. [2025]. Although only the CT application is shown here, the deep risk estimator requires only layered Lipschitz continuity and a per-layer Barron-type bound for the learned blocks, so the same analysis applies to hybrid PINNs that hardcode analytic operators in the forward pass, motion-compensated reconstruction, computational magnetic resonance imaging, and computer-vision pipelines that embed analytic operators. 
+
+# 8 Conclusion 
+
+We extend the maximum training error analysis of Maier et al. [2019] to a deep risk estimator that connects the expected error of a known operator network to its training sample size. Every known operator removes one layer term from the bound. The resulting CT comparison decomposes into a structural-sparsity factor and an approximation-budget factor (Proposition 1). The parameter ratio 
+
+pFC /p KO = H2 is a hard memory and compute multiplier; the H = 512 dense substitute does not fit on accessible single-GPU hardware. It is, however, a poor sample-budget predictor on its own. The empirical slope ratio σFC /σ KO obtained from a small pilot study is a much tighter estimate of how much extra training data the dense network actually needs. Five sweeps at H ∈ { 8, 16 , 32 , 128 , 256 }
+
+confirm that the calibrated bound tracks the empirical test error closely and upper-bounds it in the low-data regime. The operator-aware network reaches its asymptote with roughly an order of magnitude fewer samples than the dense baseline. The dense baseline catches up at large N on the sparse-view operating point at H = 128 , consistent with the architectural mismatch between the limited-angle target of Maier et al. [2019] and our sparse-view experiments. Implementation details, hardware notes, and qualitative reconstructions are given in Appendix D; source code, configuration files, and the full-resolution GPU pipeline are publicly available at https://github.com/akmaier/ KnownOperatorCT . The next step is to extend the bound-centered analysis to additional hybrid-PINN families that hardcode analytic operators in the forward pass. 
+
+# Broader Impact 
+
+Positive impact comes from making reconstruction systems more data efficient and more interpretable, especially in data-scarce medical imaging settings. Beyond the CT example used in this paper, known operators are now heavily used in hybrid PINNs, where governing equations, conservation laws, or known physical operators are hardcoded directly into the network architecture (rather than only enforced via a soft PDE-residual loss as in the canonical PINN formulation of Raissi et al. [2019]). The deep risk estimator presented here applies to many of these hybrid PINNs, since its only requirements are layered Lipschitz continuity and a per-layer Barron-type bound on the learned blocks. The estimator therefore quantifies, in a sample-complexity sense, why hardcoding a known physical operation reduces the data requirements of the network: every fixed operator simply removes one full term from the bound. The work is therefore expected to be of interest for a broad community working on hybrid PINNs and operator-aware deep learning in scientific computing, computational imaging, and signal processing. Negative impact remains possible if theoretical sample efficiency claims are overgeneralized to safety-critical deployments without stability analysis, uncertainty quantification, or clinical validation. We therefore view the present results as a theoretical and methodological step, not as evidence that low-data CT systems are ready for clinical use. 9Acknowledgments 
+
+This work was supported by German Research Council (DFG) grant MA 4898/30-1. 
+
+# References 
+
+Giovanni S. Alberti, Ernesto De Vito, Tapio Helin, Matti Lassas, Luca Ratti, and Matteo Santacesaria. Learning sparsity-promoting regularizers for linear inverse problems. SIAM Journal on Mathematics of Data Science ,8(1):167–199, 2026. doi: 10.1137/24M1719785. Andrew R. Barron. Approximation and estimation bounds for artificial neural networks. Machine Learning , 14 (1):115–133, 1994. Zhengdao Chen. Neural Hilbert ladders: Multi-layer neural networks in function space. Journal of Machine Learning Research , 25(109):1–65, 2024. David A. Danhofer, Davide D’Ascenzo, Rafael Dubach, and Tomaso A. Poggio. Position: A theory of deep learning must include compositional sparsity. In Proceedings of the 42nd International Conference on Machine Learning , volume 267 of Proceedings of Machine Learning Research , pages 81199–81210, 2025. Tim De Ryck and Siddhartha Mishra. Generic bounds on the approximation error for physics-informed (and) operator learning. In Advances in Neural Information Processing Systems , volume 35, pages 10945–10958, 2022. Davide Evangelista, Elena Loli Piccolomini, Elena Morotti, and James G. Nagy. To be or not to be stable, that is the question: Understanding neural networks for inverse problems. SIAM Journal on Scientific Computing , 47 (1):C77–C99, 2025. doi: 10.1137/23M1586872. Avinash C. Kak and Malcolm Slaney. Principles of Computerized Tomographic Imaging . SIAM, 2001. George Em Karniadakis, Ioannis G. Kevrekidis, Lu Lu, Paris Perdikaris, Sifan Wang, and Liu Yang. Physics-informed machine learning. Nature Reviews Physics , 3(6):422–440, 2021. doi: 10.1038/s42254-021-00314-5. Hao Liu, Jiahui Cheng, and Wenjing Liao. Deep neural networks are adaptive to function regularity and data distribution in approximation and estimation. Journal of Machine Learning Research , 26(213):1–56, 2025. Sebastian Lunz, Andreas Hauptmann, Tanja Tarvainen, Carola-Bibiane Schönlieb, and Simon Arridge. On learned operator correction in inverse problems. SIAM Journal on Imaging Sciences , 14(1):92–127, 2021. doi: 10.1137/20M1338460. Andreas Maier, Harald Köstler, Marco Heisig, Patrick Krauss, and Seung Hee Yang. Known operator learning and hybrid machine learning in medical imaging—a review of the past, the present, and the future. Progress in Biomedical Engineering , 4(2):022002, 2022. Andreas K. Maier, Christopher Syben, Bernhard Stimpel, Tobias Würfl, Mathis Hoffmann, Frank Schebesch, Wei Fu, Lukas Mill, Leonhard Kling, and Silke Christiansen. Learning with known operators reduces maximum training error bounds. Nature Machine Intelligence , 1:373–380, 2019. doi: 10.1038/s42256-019-0077-5. Roberto Molinaro, Yunan Yang, Björn Engquist, and Siddhartha Mishra. Neural inverse operators for solving PDE inverse problems. In Proceedings of the 40th International Conference on Machine Learning , volume 202 of Proceedings of Machine Learning Research , pages 25105–25139, 2023. Maziar Raissi, Paris Perdikaris, and George Em Karniadakis. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational Physics , 378:686–707, 2019. doi: 10.1016/j.jcp.2018.10.045. Johannes Schmidt-Hieber. Nonparametric regression using deep neural networks with ReLU activation function. 
+
+The Annals of Statistics , 48(4), 2020. doi: 10.1214/19-AOS1875. Christopher Syben, Markus Michen, Bernhard Stimpel, Stephan Seitz, Stefan B. Ploner, and Andreas K. Maier. Technical note: PYRO-NN: Python reconstruction operators in neural networks. Medical Physics , 46(11): 5110–5115, 2019. doi: 10.1002/mp.13753. Tobias Würfl, Florin C. Ghesu, Vincent Christlein, and Andreas Maier. Deep learning computed tomography. In 
+
+Medical Image Computing and Computer-Assisted Intervention , pages 432–440. Springer, 2016. Tobias Würfl, Mathis Hoffmann, Vincent Christlein, Katharina Breininger, Yixing Huang, Mathias Unberath, and Andreas K. Maier. Deep learning computed tomography: Learning projection-domain weights from image domain in limited angle problems. IEEE Transactions on Medical Imaging , 37(6):1454–1463, 2018. doi: 10.1109/TMI.2018.2833499. 
+
+10 A Proof of Theorem 1 
+
+We prove Eq. (4) by induction on L. Throughout the proof, we use the squared triangle inequality 
+
+∥a + b∥22 ≤ 2∥a∥22 + 2 ∥b∥22, (10) which follows from the Cauchy–Schwarz inequality, and the Lipschitz property of the true outer layer 
+
+ul from Assumption 1, which gives 
+
+∥ul(a) − ul(b)∥2 ≤ ℓl ∥a − b∥2 for all a, b ∈ D l−1. (11) The codomain-invariance part of Assumption 1 guarantees that the intermediate representation 
+
+ˆfl−1(x) produced by the learned subnetwork lies in Dl−1, the domain on which ul is Lipschitz; the Lipschitz assumption on the learned layers ˆul themselves is used only through this codomain condition and is not invoked elsewhere in the proof. 
+
+Notation. We write δl(x) := fl(x) − ˆfl(x) for l = 0 , 1, . . . , L , with f0(x) = ˆf0(x) = x and 
+
+δ0(x) = 0. With this notation, the network error of interest is δL(x).
+
+Recursive identity. For l ≥ 1 we expand 
+
+δl(x) = fl(x) − ˆfl(x)= ul
+
+ fl−1(x) − ˆul
+
+  ˆfl−1(x)
+
+= ul
+
+ fl−1(x) − ul
+
+  ˆfl−1(x)| {z }
+
+> =: rl(x)
+
++ ul
+
+  ˆfl−1(x) − ˆul
+
+  ˆfl−1(x)| {z }
+
+> =el
+
+  ˆfl−1(x)
+
+
+
+. (12) By the Lipschitz property of the true outer layer ul in Eq. (11), 
+
+∥rl(x)∥2 ≤ ℓl ∥δl−1(x)∥2. (13) 
+
+Squared bound. Combining Eq. (12) with the squared triangle inequality (10), we obtain 
+
+∥δl(x)∥22 ≤ 2∥rl(x)∥22 + 2 ∥el( ˆfl−1(x)) ∥22
+
+≤ 2 ℓ2 
+
+> l
+
+∥δl−1(x)∥22 + 2 ∥el( ˆfl−1(x)) ∥22. (14) 
+
+Induction. We prove by induction that for l = 1 , 2, . . . , L 
+
+∥δl(x)∥22 ≤
+
+> l
+
+X
+
+> k=1
+
+A(l) 
+
+> k
+
+∥ek( ˆfk−1(x)) ∥22 with A(l) 
+
+> k
+
+=
+
+(
+
+2l−1 Qlj=2 ℓ2 
+
+> j
+
+k = 1 ,
+
+2l−k+1 Qlj=k+1 ℓ2 
+
+> j
+
+2 ≤ k ≤ l, (15) where the empty product for k = l equals 1, so A(l) 
+
+> l
+
+= 2 for l ≥ 2 and A(1) 1 = 1 .
+
+Base case (l = 1 ). Since δ0(x) ≡ 0 and ˆf0(x) = x, the recursive identity (12) gives δ1(x) = e1(x),so ∥δ1(x)∥22 = ∥e1(x)∥22 = A(1) 1 ∥e1(x)∥22 with A(1) 1 = 1 . The squared triangle inequality is not invoked at this step. 
+
+Inductive step. Assume Eq. (15) holds for l − 1. By Eq. (14), 
+
+∥δl(x)∥22 ≤ 2 ℓ2 
+
+> l
+
+∥δl−1(x)∥22 + 2 ∥el( ˆfl−1(x)) ∥22
+
+≤ 2 ℓ2
+
+> ll−1
+
+X
+
+> k=1
+
+A(l−1)  
+
+> k
+
+∥ek( ˆfk−1(x)) ∥22 + 2 ∥el( ˆfl−1(x)) ∥22
+
+=
+
+> l−1
+
+X
+
+> k=1
+
+
+
+2 ℓ2 
+
+> l
+
+A(l−1) 
+
+> k
+
+
+
+∥ek( ˆfk−1(x)) ∥22 + 2 ∥el( ˆfl−1(x)) ∥22. (16) For 2 ≤ k ≤ l − 1 we compute 2ℓ2 
+
+> l
+
+A(l−1)  
+
+> k
+
+= 2 ℓ2 
+
+> l
+
+· 2(l−1) −k+1 Ql−1 
+
+> j=k+1
+
+ℓ2 
+
+> j
+
+= 2 l−k+1 Qlj=k+1 ℓ2 
+
+> j
+
+=
+
+A(l) 
+
+> k
+
+. For k = 1 , 2ℓ2 
+
+> l
+
+A(l−1) 1 = 2 ℓ2 
+
+> l
+
+· 2l−2 Ql−1 
+
+> j=2
+
+ℓ2 
+
+> j
+
+= 2 l−1 Qlj=2 ℓ2 
+
+> j
+
+= A(l)1 (the special case l = 2 
+
+11 uses A(1) 1 = 1 , so 2ℓ22A(1) 1 = 2 ℓ22 = A(2) 1 ). For k = l the prefactor is 2 = A(l) 
+
+> l
+
+by definition. Substituting these identities into Eq. (16) gives 
+
+∥δl(x)∥22 ≤
+
+> l
+
+X
+
+> k=1
+
+A(l) 
+
+> k
+
+∥ek( ˆfk−1(x)) ∥22, (17) which completes the induction. Setting l = L and writing Ak := A(L) 
+
+> k
+
+yields 
+
+∥δL(x)∥22 ≤
+
+> L
+
+X
+
+> k=1
+
+Ak ∥ek( ˆfk−1(x)) ∥22. (18) 
+
+Expectation. Taking expectation over X ∈ D 0 on both sides of Eq. (18), 
+
+EX ∥δL(X)∥22 ≤
+
+> L
+
+X
+
+> k=1
+
+Ak EX ∥ek( ˆfk−1(X)) ∥22. (19) For each k, the inner expectation is over the distribution of the network’s intermediate input Xk := ˆfk−1(X), which lies in Dk−1 by the codomain-invariance part of Assumption 1. Renaming this expectation as EXk in Eq. (19) gives Eq. (4) of Theorem 1. 
+
+Reduction for known operators. If layer k is a known operator, ˆuk = uk on Dk−1, hence ek ≡ 0
+
+and EXk ∥ek(Xk)∥22 = 0 . Therefore the corresponding term of Eq. (4) vanishes. 
+
+Application of Assumption 2. For each learned layer k ∈ L , Assumption 2 bounds EXk ∥ek(Xk)∥22
+
+by C2 
+
+> k
+
+/n k + κkpk log N/N . Substituting this into Eq. (4) and dropping the zero terms of known operator layers gives Eq. (6). 
+
+# B Derivation of the Lipschitz Composition Bound 
+
+Theorem 1 uses the Lipschitz constants ℓl of the true layers ul. For completeness, we include the standard derivation of the multiplicative composition bound used in Section 4. 
+
+Lemma 1. Under Assumption 1, the Lipschitz constant of the composed function fl in Eq. (1) satisfies 
+
+ℓfl ≤
+
+> l
+
+Y
+
+> j=1
+
+ℓj . (20) 
+
+Proof. For x, ˜x ∈ D 0,
+
+∥fl(x) − fl(˜ x)∥2 = ∥ul(fl−1(x)) − ul(fl−1(˜ x)) ∥2
+
+≤ ℓl ∥fl−1(x) − fl−1(˜ x)∥2
+
+≤ ℓl · ℓl−1 · ∥ fl−2(x) − fl−2(˜ x)∥2
+
+...
+
+≤
+
+> l
+
+Y
+
+> j=1
+
+ℓj · ∥ x − ˜x∥2, (21) which gives Eq. (20). 
+
+# C Application to the CT Reconstruction Network 
+
+We apply Theorem 1 to the layered FBP reconstruction (7) . The four layers are u1 = W, u2 = K,
+
+u3 = A⊤, and u4 = ReLU . The Lipschitz constants are 
+
+ℓ1 = ∥W∥2, ℓ2 = ∥K∥2, ℓ3 = ∥A⊤∥2, ℓ4 = 1 , (22) 12 where the first three are operator norms of the corresponding linear maps and ℓ4 = 1 because ReLU 
+
+is 1-Lipschitz Maier et al. [2019]. With these constants the layer amplifications Al in Eq. (4) become 
+
+A1 = 2 L−1 · ℓ22 ℓ23 ℓ24 = 8 ∥K∥22 ∥A⊤∥22, (23) 
+
+A2 = 2 L−1 · ℓ23 ℓ24 = 8 ∥A⊤∥22, (24) 
+
+A3 = 2 L−2 · ℓ24 = 4 , (25) 
+
+A4 = 2 . (26) These values follow from the piecewise definition of Al in Eq. (5). 
+
+Operator-aware network. In the operator-aware network of Würfl et al. [2018], Maier et al. [2019], only W is learned; K, A⊤, and ReLU are known operators. By Theorem 1, the bound reduces to 
+
+EX∥y − ˆyKO ∥22 ≤ A1 EX1 ∥e1(X1)∥22 ≤ A1
+
+ C21
+
+n1
+
++ κ1
+
+pKO log NN
+
+
+
+, (27) with pKO = V · B = 180 · 512 = 92 ,160 trainable diagonal weights at the slice-wise setting of Würfl et al. [2018] and Maier et al. [2019] ( H = 512 , V = 180 , B = 512 ) and A1 = 8 ∥K∥22 ∥A⊤∥22.
+
+Fully connected counterfactual. The fully connected counterfactual collapses the entire reconstruc-tion pipeline into a single learned dense matrix M followed by a fixed ReLU, ˆyFC = ReLU( M x ).Its composition therefore has only two layers, uFC 1 = M and uFC 2 = ReLU , with ReLU being the only known operator. The amplification factor for the learned layer is 
+
+AFC 1 = 2 L−1 · ℓ22 = 2 , (28) since ReLU is 1-Lipschitz and L = 2 . By Theorem 1, the bound has only one learned-layer term: 
+
+EX∥y − ˆyFC ∥22 ≤ AFC 1
+
+ C2
+
+> M
+
+nM
+
++ κM
+
+pFC log NN
+
+
+
+, (29) with pFC = Npixels · Nmeasurements = H2 · V · B = 24 ,159 ,191 ,040 trainable weights at the same 
+
+H = 512 setting. The two amplification factors A1 (KO) and AFC 1 (FC) are not equal in general: 
+
+A1 depends on the operator norms ∥K∥2, ∥A⊤∥2 and therefore on the geometry, while AFC 1 = 2 is geometry-independent. 
+
+Network-level calibration constants. Grouping the layer-level constants of each architecture into the network-level floor and slope used by the calibrated bound of Section 5, 
+
+floor KO := A1 C21 /n 1, σKO := A1 κ1 pKO , (30) 
+
+floor FC := AFC 1 C2
+
+> M
+
+/n M, σFC := AFC 1 κM pFC , (31) the network-level bound for each architecture reads E∥y − ˆy∥22 ≤ floor + σ log N/N .
+
+Sample-complexity ratio at matched target error. Equating both bounds at the same target error 
+
+ε > max(floor KO , floor FC ) and solving each side for N/ log N yields the two-factor decomposition 
+
+NFC / log NFC 
+
+NKO / log NKO 
+
+= σFC 
+
+σKO 
+
+| {z } 
+
+> structural-sparsity factor
+
+· ε − floor KO 
+
+ε − floor FC 
+
+| {z }
+
+> approximation-budget factor
+
+. (32) Under matched Barron-type constants κ1 = κM, the structural-sparsity factor reduces to 
+
+σFC 
+
+σKO 
+
+= AFC 1 pFC 
+
+A1 pKO 
+
+= H2
+
+4 ∥K∥22 ∥A⊤∥22
+
+, (33) which is the parameter-count ratio H2 folded together with the operator-norm correction 
+
+1/(4 ∥K∥22 ∥A⊤∥22) that the analytic FBP decomposition exposes. The approximation-budget factor in Eq. (32) is unity exactly when the two architectures share the same approximation floor; whenever the dense matrix’s approximation budget at finite width is worse than the operator-aware diagonal weighting’s, the factor is greater than one and grows as the target error ε approaches the FC’s higher floor. Both factors are directly observable from the calibration table of Section 5 (Table 2); inverting Eq. (32) therefore turns Theorem 1 into a closed-form sample-budget predictor that demonstrates the importance of the empirical floor difference. 13 D Experimental details and qualitative results 
+
+The main paper reports sample-efficiency sweeps at five operating points: a CPU surrogate at 
+
+H ∈ { 8, 16 , 32 } and full-resolution GPU sweeps at H ∈ { 128 , 256 }. This appendix records the experimental details that did not fit into the body and presents qualitative reconstructions from the GPU sweeps. The structure of this appendix is as follows. Section D.1 describes the CPU surrogate setup (phantom generator, closed-form ridge fits, hyperparameter selection). Section D.2 describes the GPU sweeps (training protocol, dataset, evaluation metric). Section D.3 shows representative reconstructions at 
+
+H = 128 and H = 256 as a sanity check on the calibrated quantities reported in the main paper. Section D.4 closes with regime observations connecting the experimental data back to Proposition 1 of the main paper. 
+
+D.1 CPU surrogate details 
+
+The CPU surrogate of Section 6 uses random-ellipse phantoms at three image scales H ∈ { 8, 16 , 32 }
+
+with V = 1 .25 H equally spaced views and B = H detector bins. For each phantom in the pool we draw between one and four ellipses with random amplitudes in [0 .2, 1.0] , random centres in 
+
+[−0.5, 0.5] 2, random axis lengths in [0 .08 , 0.4] 2, and a random orientation; pixel intensities are clipped to [0 , 1.5] .The forward projection is implemented as a sum-along-rotated-rows operator computed in pixel space: for each view θ, the image is bilinearly rotated and summed along the first axis. This produces the discrete forward matrix A ∈ R(V ·B)×H·H . The fixed analytic inverse used by the operator-aware network is the Tikhonov-regularised pseudo-inverse A+ = ( A⊤A + 0 .1 I)−1A⊤, with the regularisation strength 0.1 chosen so that A⊤A + 0 .1 I is well-conditioned at every H. The fully connected baseline learns a single dense projection-to-image map M ∈ R(H·H)×(V ·B) with no fixed structure. Both architectures are fit in closed form by ridge-regularised least squares. For each (H, N, seed) 
+
+cell the regularisation coefficient is selected from the grid λ ∈ { 10 −6, 10 −4, 10 −2, 10 0, 10 2} on a held-out validation set of 32 phantoms; the test MSE is then evaluated on a separate test set of 128 
+
+phantoms. We sweep N ∈ { 4, 8, 16 , 32 , 64 } and average over five random seeds. The complete CPU surrogate sweep takes about 14 s on a recent x86 laptop. Per-seed test MSE values, the calibration constants of Table 2, and the script that produces the corresponding panels of Figure 3 are included in the release that accompanies the paper. 
+
+D.2 GPU sweep details 
+
+The GPU sweeps at H ∈ { 128 , 256 } use the same random-ellipse phantom population as the CPU surrogate, regenerated at the higher resolution. The geometry settings are V = 60 views and B = 128 
+
+detector bins at H = 128 , and V = 90 views and B = 256 detector bins at H = 256 , both with a 
+
+180 ◦ angular range. We average over three random seeds at every (H, N ) cell. 
+
+Training protocol. The operator-aware network is trained with stochastic gradient descent for 5,000 
+
+iterations at learning rate 2 · 10 −2 and batch size 4 at H = 128 (batch size 1 at H = 256 , reflecting the higher per-step memory cost). The fully connected baseline is fit by ridge regression over the same lambda grid as the CPU surrogate, with λ selected by hold-out validation on a separate 50 -phantom validation set. Both architectures share the same per-seed phantom pool, so the comparison is conducted on identical data. 
+
+Sample sizes. We sweep N ∈ { 4, 16 , 64 , 256 , 1024 , 2048 }. The sweep covers four orders of magnitude in N and lets us observe both the small-sample regime (where the operator-aware net-work’s structural prior pays off) and the large-sample regime (where the fully connected baseline’s representational flexibility eventually closes the gap at H = 128 ). 
+
+Evaluation metric. Test error is reported as relative root-mean-squared error (rRMSE) on a held-out test set of 50 phantoms, rRMSE = ∥y − ˆy∥2/∥y∥2. The calibrated bound from Eq. (9) has the 14 same shape regardless of whether the metric on the y-axis is MSE or rRMSE 2, with a different overall scaling absorbed into floor and σ. We use rRMSE 2 for the GPU panels of Figure 3. 
+
+Hardware. The GPU sweeps were executed on a shared compute cluster. The operator-aware sweeps at H ∈ { 128 , 256 } ran on a single NVIDIA Tesla V100 (16 GiB) per job. The fully connected baseline at H = 256 requires more weight memory than fits on a single V100 and was therefore trained on four NVIDIA RTX 6000 (24 GiB each) with PyTorch fully-sharded data-parallel (FSDP); the fully connected baseline at H = 128 fits on a single V100 and uses the same single-GPU configuration as the operator-aware sweeps. End-to-end wall-clock time for a single (H, N, seed) 
+
+cell ranges from a few minutes at the smallest sample sizes to a few hours at N = 2 ,048 , with the four-GPU FSDP runs at H = 256 at the upper end of this range. 
+
+D.3 Qualitative reconstructions 
+
+Figures 4 and 5 show two representative test phantoms at each operating point along with the reconstructions produced by the operator-aware and fully connected networks at every sample size. The KO reconstructions match the phantom outline at N = 4 and approach the ground truth by 
+
+N = 64 . The FC reconstructions are noisier at small N but close the gap as N grows; at H = 128 
+
+the FC eventually matches the KO visually by N = 2048 , while at H = 256 a residual blur is still visible at the largest sample size. 
+
+Figure 4: Reconstructions at H = 128 for the unified phantom pool with identical seeds. Two test phantoms (rows) under the operator-aware and fully connected networks at six sample sizes N . The KO reconstruction is already faithful at N = 4 ; the FC catches up around N = 1024 – 2048 .
+
+Figure 5: Reconstructions at H = 256 for the unified phantom pool with identical seeds. Two test phantoms (rows) under the operator-aware and fully connected networks at six sample sizes N . The KO reconstruction matches the phantom from N = 4 onwards; the FC remains visibly blurred even at N = 2048 , consistent with the larger approximation-budget gap reported in Table 2. The corresponding rRMSE-vs-N curves with calibrated-bound overlays are reproduced in the main paper as the bottom row of Figure 3. 
+
+D.4 Discussion of regimes observed across the five sweeps 
+
+Across the five operating points the calibrated bound holds as an upper bound on the empirical curve in the data-driven regime of every sweep, and the floor difference between the two architectures plays the role predicted by Proposition 1. Three regime observations are worth recording. First, on the CPU surrogate the FC’s approximation floor is consistently above the KO’s, and the approximation-budget factor of Eq. (8) is therefore consistently greater than one. The FC needs more samples to reach any target error than the KO at the same image scale. Second, on the GPU sweep at H = 128 the FC actually crosses the KO floor at the largest sample size in our grid: at N = 2 ,048 the FC reaches rRMSE ≈ 4.7 · 10 −2 while the KO has saturated 15 near 5.5 · 10 −2. The bound’s approximation-budget factor in this regime is below one, which the calibration in Table 2 directly reports ( floor FC < floor KO for the H = 128 GPU row). This shows that the operator-aware advantage is a sample-complexity statement, not an accuracy ceiling: with enough data the FC’s larger parameter count gives it an asymptotic edge, but the operator-aware network reaches the same accuracy with ∼ 30 × fewer samples in this case. Third, on the GPU sweep at H = 256 the FC’s floor is again above the KO’s within the N ≤ 2,048 
+
+range, and inverting the calibrated bound predicts that the FC needs roughly an order of magnitude more samples than the KO to reach the KO’s plateau. At realistic clinical-CT sample budgets ( N in the low thousands of slices) the operator-aware decomposition therefore remains the data-efficient choice across every scale we tested, with the gap most pronounced at the largest image sizes. 
+
+Parameter-count ratio versus slope ratio. The parameter ratio pFC /p KO = H2 should not be read as a sample-complexity ratio. As an architectural cost, H2 is a hard memory and compute multiplier: the dense substitute simply does not fit on accessible single-GPU hardware at H = 512 even before any training-set question is raised. As a sample-complexity proxy, however, H2 overstates the gap; the slope ratio σFC /σ KO from Eq. (8) sits between two and ten across our sweeps and is the empirically tighter predictor of how much extra data the dense network actually needs. 
+
+Low-data regime versus sparse-view expressivity. The operator-aware network wins clearly in the low-data regime — it reaches its asymptote with roughly an order of magnitude fewer samples than the dense baseline at every scale we test — but with sufficient data the dense matrix’s expressivity catches up. At the H = 128 sparse-view operating point the dense matrix surpasses the operator-aware floor at N = 2 ,048 (Figure 4). The known-operator FBP architecture of Maier et al. [2019] was designed for limited-angle CT, where the missing data is concentrated outside the measured angular range, rather than for sparse-view CT, where the missing data is distributed across all angles; that a dense matrix can find a better sparse-view solution once it has been given enough data is consistent with this task-domain mismatch and is directly visible in the qualitative reconstructions of Section D.3. 16

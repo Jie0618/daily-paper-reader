@@ -6,67 +6,61 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-14 ~ 2026-05-13
-- 运行时间：2026-05-13 07:56:34 UTC
+- 最新运行日期：2026-05-13
+- 运行时间：2026-05-13 20:53:26 UTC
 - 运行状态：成功
-- 本次总论文数：15
-- 精读区：3
+- 本次总论文数：13
+- 精读区：1
 - 速读区：12
 
 ### 今日简报（AI）
-今日深度探索了符号回归的算法演进与大模型数学推理的泛化边界。
-重点推荐引入“基因编辑”机制的 GESR 算法及模型选择标准研究，揭示了提升公式发现精度与 LLM 逻辑推理的关键。
-建议优先研读 GESR 论文以掌握符号回归的前沿演化策略，并关注如何通过高质量数学实例优化模型性能。
-- 详情：[/20260414-20260513/README](/20260414-20260513/README)
+今日聚焦 Agentic AI 在引力波探测中的突破，深度解析 13 篇 AI 与基础科学交叉的前沿进展。
+核心看点在于利用智能体发现可解释的物理代理模型，以及物理增强神经网络在偏微分方程求解中的新范式。
+推荐优先阅读 9.0 分的引力波研究，了解 AI 如何从海量数据中提炼出简洁的物理规律。
+- 详情：[/202605/13/README](/202605/13/README)
 
 ### 精读区论文标签
-1. [GESR: A Genetic Programming-Based Symbolic Regression Method with Gene Editing](/20260414-20260513/2605.10685v2-gesr-a-genetic-programming-based-symbolic-regression-method-with-gene-editing)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：基于遗传规划的符号回归用于发现数学定律
-2. [A Comparative Study of Model Selection Criteria for Symbolic Regression](/20260414-20260513/2605.11233v1-a-comparative-study-of-model-selection-criteria-for-symbolic-regression)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：符号回归中平衡准确性与复杂性的模型选择标准
-3. [EqOD: Symmetry-Informed Stability Selection for PDE Identification](/20260414-20260513/2605.11524v1-eqod-symmetry-informed-stability-selection-for-pde-identification)  
+1. [Discovery of Interpretable Surrogates via Agentic AI: Application to Gravitational Waves](/202605/13/2605.11280v1-discovery-of-interpretable-surrogates-via-agentic-ai-application-to-gravitational-waves)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：通过稀疏回归进行数据驱动的PDE识别
+   evidence：基于大语言模型的从数据构建可解释解析代理模型的工作流
 
 ### 速读区论文标签
-1. [A meshfree exterior calculus for generalizable and data-efficient learning of physics from point clouds](/20260414-20260513/2605.08436v1-a-meshfree-exterior-calculus-for-generalizable-and-data-efficient-learning-of-physics-from-point-clouds)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：从点云中进行高效的数据驱动物理学习
-2. [MathConstraint: Automated Generation of Verified Combinatorial Reasoning Instances for LLMs](/20260414-20260513/2605.08498v1-mathconstraint-automated-generation-of-verified-combinatorial-reasoning-instances-for-llms)  
+1. [Learning from Ramanujan: Elementary Approaches to Profound Ideas](/202605/13/2605.08484v1-learning-from-ramanujan-elementary-approaches-to-profound-ideas)  
    标签：评分：7.0/10、query:math-ai
-   evidence：自动生成经过验证的组合推理实例
-3. [Memorize Theorems, Not Instances: Probing SFT Generalization through Mathematical Reasoning](/20260414-20260513/2605.09270v1-memorize-theorems-not-instances-probing-sft-generalization-through-mathematical-reasoning)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：有监督微调中的数学推理与定理应用
-4. [Demystifying Deep Reinforcement Learning: A Neuro-Symbolic Framework for Interpretable Open RAN Automation](/20260414-20260513/2605.10648v1-demystifying-deep-reinforcement-learning-a-neuro-symbolic-framework-for-interpretable-open-ran-automation)  
+   evidence：重新证明并扩展拉马努金笔记中的恒等式
+2. [Physics-Informed Neural PDE Solvers via Spatio-Temporal MeanFlow](/202605/13/2605.08915v1-physics-informed-neural-pde-solvers-via-spatio-temporal-meanflow)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：将黑盒深度强化学习策略蒸馏为可解释的符号表示
-5. [Demystifying Deep Reinforcement Learning: A Neuro-Symbolic Framework for Interpretable Open RAN Automation](/20260414-20260513/2605.10648v2-demystifying-deep-reinforcement-learning-a-neuro-symbolic-framework-for-interpretable-open-ran-automation)  
+   evidence：用于物理状态的物理信息神经 PDE 求解器
+3. [CVEvolve: Autonomous Algorithm Discovery for Unstructured Scientific Data Processing](/202605/13/2605.11359v1-cvevolve-autonomous-algorithm-discovery-for-unstructured-scientific-data-processing)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：将深度强化学习策略蒸馏为可解释的符号表示
-6. [Anti-Self-Distillation for Reasoning RL via Pointwise Mutual Information](/20260414-20260513/2605.11609v1-anti-self-distillation-for-reasoning-rl-via-pointwise-mutual-information)  
+   evidence：自主发现科学数据处理算法
+4. [BoolXLLM: LLM-Assisted Explainability for Boolean Models](/202605/13/2605.12139v1-boolxllm-llm-assisted-explainability-for-boolean-models)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于数学推理和多步搜索的强化学习
-7. [From $P(y|x)$ to $P(y)$: Investigating Reinforcement Learning in Pre-train Space](/20260414-20260513/2604.14142v1-from-pyx-to-py-investigating-reinforcement-learning-in-pre-train-space)  
+   evidence：大模型辅助布尔公式的发现与解释
+5. [GSM-SEM: Benchmark and Framework for Generating Semantically Variant Augmentations](/202605/13/2605.07053v1-gsm-sem-benchmark-and-framework-for-generating-semantically-variant-augmentations)  
    标签：评分：6.0/10、query:math-ai
-   evidence：预训练空间中用于推理的强化学习
-8. [Gaussian Behavior and Geometric Gaps in Decompositions from Recurrences with Zero Coefficients](/20260414-20260513/2604.15447v1-gaussian-behavior-and-geometric-gaps-in-decompositions-from-recurrences-with-zero-coefficients)  
+   evidence：数学推理和公式重新计算的基准
+6. [Frequency Ordered Ratio Families Arising from the Factorization of $p_{m-1}+1$](/202605/13/2605.08256v1-frequency-ordered-ratio-families-arising-from-the-factorization-of-pm-11)  
    标签：评分：6.0/10、query:math-ai
-   evidence：数学恒等式与递推序列
-9. [MathNet: a Global Multimodal Benchmark for Mathematical Reasoning and Retrieval](/20260414-20260513/2604.18584v1-mathnet-a-global-multimodal-benchmark-for-mathematical-reasoning-and-retrieval)  
+   evidence：研究比例序列和素数分解结构
+7. [A Deep Risk Estimator for Known Operator Learning](/202605/13/2605.08517v1-a-deep-risk-estimator-for-known-operator-learning)  
    标签：评分：6.0/10、query:math-ai
-   evidence：数学推理与检索的多模态基准测试
-10. [Teaching Language Models to Think in Code](/20260414-20260513/2605.07237v2-teaching-language-models-to-think-in-code)  
+   evidence：包含学习算子和已知算子混合的深度网络
+8. [Lattice Deduction Transformers](/202605/13/2605.08605v1-lattice-deduction-transformers)  
    标签：评分：6.0/10、query:math-ai
-   evidence：以代码为中心的数学问题解决推理
-11. [Your Language Model is Its Own Critic: Reinforcement Learning with Value Estimation from Actor's Internal States](/20260414-20260513/2605.07579v2-your-language-model-is-its-own-critic-reinforcement-learning-with-value-estimation-from-actors-internal-states)  
+   evidence：用于逻辑演绎和符号推理的循环Transformer
+9. [Learning Theory of Transformers: Local-to-Global Approximation via Softmax Partition of Unity](/202605/13/2605.08811v1-learning-theory-of-transformers-local-to-global-approximation-via-softmax-partition-of-unity)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：Transformer用于回归任务的学习理论
+10. [Forge: Quality-Aware Reinforcement Learning for NP-Hard Optimization in LLMs](/202605/13/2605.08905v1-forge-quality-aware-reinforcement-learning-for-np-hard-optimization-in-llms)  
    标签：评分：6.0/10、query:math-ai
-   evidence：大语言模型在数学推理中的强化学习
-12. [A PyTorch Library of Turing-Complete Neural Networks](/20260414-20260513/2605.08150v1-a-pytorch-library-of-turing-complete-neural-networks)  
+   evidence：强化学习用于大语言模型的数学和优化任务
+11. [One for All: A Non-Linear Transformer can Enable Cross-Domain Generalization for In-Context Reinforcement Learning](/202605/13/2605.09727v1-one-for-all-a-non-linear-transformer-can-enable-cross-domain-generalization-for-in-context-reinforcement-learning)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于模拟符号机器的Transformer和循环网络架构
+   evidence：Transformer实现强化学习的跨域泛化
+12. [FormalRewardBench: A Benchmark for Formal Theorem Proving Reward Models](/202605/13/2605.10141v1-formalrewardbench-a-benchmark-for-formal-theorem-proving-reward-models)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：用于形式化定理证明和奖励模型的强化学习
 
 
 <div class="dpr-home-promo-card">
