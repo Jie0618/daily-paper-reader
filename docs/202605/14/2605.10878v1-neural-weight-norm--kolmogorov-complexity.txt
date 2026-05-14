@@ -1,0 +1,655 @@
+Title: Neural Weight Norm = Kolmogorov Complexity
+
+URL Source: https://arxiv.org/pdf/2605.10878v1
+
+Published Time: Tue, 12 May 2026 03:14:07 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+# Neural Weight Norm = Kolmogorov Complexity 
+
+Tiberiu Musat 
+
+ETH Zürich 
+
+tiberiu@musat.ai 
+
+# Abstract 
+
+Why does weight decay work? We prove that, in any fixed-precision regime, the smallest weight norm of a looped neural network outputting a binary string equals the Kolmogorov complexity of that string, up to a logarithmic factor. This implies that weight decay induces a prior matching Solomonoff’s universal prior, the optimal prior over computable functions, up to a polynomial factor. The result is norm-agnostic: in fixed precision, every weight norm collapses to the non-zero parameter count up to constants, so the same sandwich bound holds for any norm used as a regulariser. The proof has two short reductions: any program for a universal Turing machine can be encoded into neural weights at unit cost per program bit, and any fixed-precision network can be described by enumerating its non-zero parameters with logarithmic addressing overhead. Both bounds are tight up to constants, with the logarithmic factor realised by permutation encodings: a network whose parameters encode a permutation produces a string whose Kolmogorov complexity is the non-zero parameter count times its logarithm. The fixed-precision assumption is essential: with infinite precision, neural networks can encode non-computable functions and the weight norm loses its relevance. 
+
+# 1 Introduction 
+
+Why does weight decay [ 20 ] work? It is the most universally applied regulariser in modern deep learning. Removing it consistently degrades held-out performance [ 2 ]; including it, networks generalise far beyond what classical capacity-based theory predicts. Yet capacity-based learning theory, which characterises function classes, cannot tell a network trained with weight decay apart from one trained without: the function class is the same, the VC and Rademacher complexities are the same [ 38 , 28 ], and the same architectures that generalise on real data can be trained to memorise random labels [38]. Whatever explains weight decay, it is not about the size of the function class. A natural alternative is description-length theory: prefer hypotheses with short descriptions [ 32 , 11 ]. Its sharpest form is Kolmogorov complexity K(s) [ 19 , 37 , 6]: the length of the shortest program 
+
+p that outputs a string s on a fixed universal Turing machine U . This can be used to construct a 
+
+universal prior M (s) ∝ P    
+
+> p:U(p)= s
+
+2−| p|, dominated in its sum by 2−K(s), that yields Bayesian predictions asymptotically beating every computable predictor [ 37 , 17 , 21 ]. The catch has always been computability: M is incomputable, so the theory has lived as an asymptotic ideal rather than as a practical inductive bias one could actually train under. This paper closes the gap between the asymptotic ideal and the practical regulariser. We prove that, in any fixed-precision regime, the smallest weight norm of a Turing-complete looped neural network outputting a string s equals the Kolmogorov complexity K(s), up to a logarithmic factor. The same holds for any Lp norm raised to its corresponding power: in fixed precision, every weight norm controls the same underlying quantity, the count of non-zero parameters. 
+
+> arXiv:2605.10878v1 [cs.LG] 11 May 2026
+
+Main Theorem (informal). Let N (s) be the minimum number of non-zero param-eters in a fixed-precision looped neural network that halts and outputs s, and let 
+
+K(s) be the Kolmogorov complexity of s. Then 
+
+N (s) ≤ K(s) ≤ N (s) log N (s),
+
+up to constants and with both ends tight. The same sandwich transfers to every Lp
+
+weight norm, since ∥θ∥pp = Θ( N (θ)) in fixed precision. 
+
+The corollary. The weight decay penalty term is the negative log of a Gaussian prior. Up to the logarithmic factor of our bound, the induced prior on the network’s output is Solomonoff’s universal prior. The most reliable regulariser in modern deep learning is, asymptotically, the prior an idealised computationally-unbounded Bayesian agent would write down as optimal over the space of computable hypotheses. 
+
+Why the logarithmic factor is fundamental. The log factor is not an artefact of the proof; the network can actually exploit it. Each non-zero parameter buys Θ(log W ) bits of address space (where 
+
+W is the total non-zero count), and there are families of strings, the permutations being the canonical example, on which the network cashes out exactly that budget. For example, it is possible to encode a permutation π : [ N ] → [N ] as N ternary edges of a sparse permutation matrix and stream the matrix row by row. This way, the network uses Θ( N ) ternary parameters and emits a string of Kolmogorov complexity log 2 N ! = Θ( N log N ). Thus, the bounds are two-sided and tight. 
+
+The role of fixed precision. Fixed precision is the only neural regime in which the weight-norm-versus-K question has a non-trivial answer. Real-valued weights are super-Turing [ 36 ]: a finite-norm network decides non-recursively-enumerable languages, so K(s) = ∞ while ∥θ∥ is finite. Restricting to rational weights restores Turing-completeness but does not help: a single rational p/q has bounded magnitude with arbitrarily many bits of information in its numerator and denominator, so ∥θ∥ still fails to bound K [ 4]. Only fixed precision makes each weight a O(1) -bit object, locking magnitude and description length together so that the question even has content. Modern hardware uses fp16, bf16, int8, or int4 arithmetic and lives entirely in this regime. §2.3 develops the argument. 
+
+What is new. Each ingredient of our argument is well known. Looped transformers are Turing-complete at constant precision [ 24 , 25 , 9, 30 , 5]; sparse parameter vectors admit short descriptions; the universal prior dominates all computable predictors. What was missing is a quantitative two-sided 
+
+bound between an Lp weight norm of a fixed-precision network and the Kolmogorov complexity of its emitted string. The closest prior work all gets near this picture but differs along at least one axis: Schmidhuber [34] measured complexity by an external program emitting the weight matrix; Jacot [18] sandwiched a weighted L1 ResNet norm against binary circuit gate count for real-valued 
+
+networks; Shaw et al. [35] bridged transformer MDL to Kolmogorov complexity through a variational Gaussian-mixture posterior, not via an Lp norm. Section 6 compares along four axes in a single table. 
+
+Outline. §2 reviews Kolmogorov complexity, Solomonoff induction, and Turing-complete neural networks. §3 fixes the looped network model, the fixed-precision parameter space, and the neural complexity N (s). §4 states and proves the sandwich bound, including the permutation tightness witness. §5 derives the Solomonoff corollary and an MDL-style generalisation bound. §6 contrasts with prior work via a comparison table. §7 closes with limitations and conjectures. Detailed proofs and extensions are in the appendices. 
+
+# 2 Background 
+
+2.1 Kolmogorov complexity and the universal prior 
+
+Fix a universal self-delimiting Turing machine U , so that {p : U (p) halts } is a prefix-free code over 
+
+{0, 1} [23]. The (prefix) Kolmogorov complexity of s ∈ { 0, 1}∗ is 
+
+K(s) = min  |p| : p ∈ { 0, 1}∗, U (p) = s .
+
+The choice of U affects K only by an additive constant; we treat K as defined up to O(1) . The (plain) Kolmogorov complexity C(s) differs from K(s) by at most an additive logarithmic term, and all our asymptotic statements hold under either definition. 2Solomonoff’s universal prior is M (s) ∝ P    
+
+> p:U(p)= s
+
+2−| p|, dominated in its sum by 2−K(s), so 
+
+− log M (s) = K(s) + O(1) . Bayesian prediction with M asymptotically dominates every lower-semicomputable predictor; it is, in a precise sense, the optimal prior an unbounded reasoner can write down [37, 17, 21]. K is upper-semicomputable but not computable. 
+
+2.2 Looped neural networks and Turing completeness 
+
+We work with looped networks: a single feedforward block fθ iterated until a designated halt channel fires. This is the standard formalism for studying neural networks as computers [ 7 , 9] and captures the recurrent depth allocation used by Universal Transformers, deep equilibrium models, and chain-of-thought reasoning. A line of work establishes that modern neural architectures are Turing complete [ 29 , 30 , 5, 33 , 31 ]. Of particular relevance, Li and Wang [24 , 25] prove Turing completeness with constant bit-precision 
+
+arithmetic, allocating an unbounded tape via context length, and Giannou et al. [9] give explicit constant-width constructions that simulate arbitrary register machines. We use these to instantiate a universal looped network TU , of constant size in fixed precision, that on input p simulates U (p).Concrete instantiations are in any of the cited works; Appendix A fixes one. 
+
+2.3 Fixed precision is the only regime where the question makes sense 
+
+The fixed-precision condition is not a technical convenience. For weight norm to bound Kolmogorov complexity at all, the Lp norm ball must contain only finitely many representable weights. Every infinite-precision regime fails this test, and our bound is correspondingly vacuous in each. 
+
+Real weights are super-Turing. Siegelmann and Sontag [36] proved that recurrent networks with real-valued weights of bounded magnitude decide all languages in exponential time, including non-recursively-enumerable ones. For such networks K(s) = ∞ on the emitted language while ∥θ∥ is finite, so K(s) ≤ f (∥θ∥) is vacuous for any f .
+
+Rational or computable-real weights still break the bound. Restricting to rational weights recovers Turing-completeness without super-Turingness [ 36 ], but the K-complexity bound still fails for an information-theoretic reason: the ball {w ∈ Q : |w| ≤ B} is countably infinite for any B, so K(w)
+
+is unbounded over the ball. A single rational p/q with |p/q | ≤ B carries arbitrarily many bits of information via its numerator and denominator; the Siegelmann-Sontag construction witnesses exactly this, encoding a universal Turing machine into a few bounded-magnitude rationals. Balcázar et al. [4] place rational, computable-real, and real weight classes in a strict hierarchy indexed by the Kolmogorov complexity of the weights themselves. 
+
+Fixed precision is the unique resolution. In any fixed-precision regime, each non-zero weight is drawn from a finite alphabet of O(1) values; the Lp ball {θ : ∥θ∥p ≤ B} becomes a finite set whose log size bounds the Kolmogorov complexity of every weight vector inside it. Magnitude and description length scale together, so ∥θ∥p is the description length of θ up to constants. This is precisely what makes Theorem 4 possible. Fixed precision is also the regime in which deep learning actually runs (fp16, bf16, int8, int4), so the bound applies wherever neural networks are trained or deployed on real hardware. The fixed-precision assumption is not a simplifying choice but the substantive content of the result: looped fixed-precision is the only neural model in which the weight-norm-vs-Kolmogorov question has a non-trivial answer. 
+
+# 3 The Looped Neural Network Model 
+
+3.1 Streaming output Definition 1 (Looped neural network) . A looped neural network is a pair (θ, n ) where θ is the parameter vector of an L-layer feedforward network fθ : Rn → Rn with ReLU activations between layers, and n ∈ N is the state dimension. We designate three coordinates of Rn: coordinate 1 is the 
+
+halt channel halt , coordinate 2 is the emit channel emit , and coordinate 3 is the bit channel bit .The network is run from the canonical initial state x0 = 0 by the iteration xt+1 = fθ (xt) for 
+
+t = 0 , 1, 2, . . . . At each iteration t ≥ 1, in order: 31. If (xt)halt > 0, halt. 2. Otherwise, if (xt)emit > 0, append the bit 1[( xt)bit > 0] to the output. The network outputs s ∈ { 0, 1}∗ if it halts at some iteration τ with output bits accumulated so far equal to s. If the halt channel never fires, the output is undefined. The three-channel convention separates control flow (halt, emit) from data (bit). It lets the network spend an unbounded number of internal-computation iterations between emitted bits and so produce arbitrary-length outputs. It mirrors the way an autoregressive transformer streams tokens. A concrete realisation as a looped transformer is in Appendix A. 
+
+3.2 Fixed precision and the Lp collapse Definition 2 (Fixed-precision parameters) . Fix δ > 0 (resolution) and M < ∞ (magnitude bound). The fixed-precision parameter space is 
+
+Θδ,M = θ ∈ (δ · Z ∩ [−M, M ]) d : d ∈ N .
+
+The principal cases of interest fit this template: ternary (δ = M = 1 ), b-bit signed integer (δ = 1 ,
+
+M = 2 b−1 − 1), and b-bit signed dyadic (δ = 2 −b′
+
+, M a power of two, closest to fp16/bf16/int8 quantisation). All are Turing-complete [24, 9]. 
+
+The Lp collapse. The observation that makes our result norm-agnostic is the following: in any fixed-precision regime, every Lp norm to the pth power equals the non-zero parameter count up to constants. 
+
+δp · ∥ θ∥0 ≤ ∥ θ∥pp =
+
+> d
+
+X
+
+> i=1
+
+|θi|p ≤ M p · ∥ θ∥0 for all p ∈ [1 , ∞). (1) The lower bound holds because every non-zero |θi| ≥ δ; the upper bound because every |θi| ≤ M .For ternary parameters the bounds coincide ( ∥θ∥pp = ∥θ∥0 exactly); for any other fixed precision they coincide up to a multiplicative constant. Regularising with L1, the squared L2, or any Lp norm controls the same underlying quantity: the count of non-zero parameters. 
+
+3.3 Neural complexity Definition 3 (Neural complexity) . For s ∈ { 0, 1}∗,
+
+N (s) = inf 
+
+> θ
+
+∥θ∥0 : θ ∈ Θδ,M , θ outputs s .
+
+We treat (δ, M ) as fixed constants of the model and suppress them. Set N (s) = ∞ if no fixed-precision looped network outputs s.By Turing completeness in fixed precision, N (s) < ∞ iff s is computable. By (1), the Lp-norm minimum Np(s) := inf θ {∥ θ∥p : θ outputs s} satisfies Np(s)p = Θ( N (s)) , so N is the canonical quantity and bounds on any Lp norm follow as immediate corollaries. 
+
+# 4 The Sandwich Bound 
+
+Theorem 4 (Main) . Let s ∈ { 0, 1}∗ be computable. There exist constants cU , c d ≥ 0, depending on the universal Turing machine U , the architecture, and the precision (δ, M ) but not on s, such that 
+
+N (s) ≤ K(s) + cU , (2) 
+
+K(s) ≤ cd · N (s) log 2 N (s) + cd. (3) 
+
+The same sandwich transfers to every Lp weight norm via the collapse ∥θ∥pp = Θ( N (θ)) (Proposi-tion 9). 
+
+The proof is two short reductions: one direction encodes any U -program into a network at unit cost per program bit; the other recovers a program from any fixed-precision network at O(log W ) bits per non-zero parameter. We give the body proofs in §4.1; tightness, including the permutation witness, in §4.2; full proofs in Appendices B and C. 44.1 The two reductions Lemma 5 (Programs → networks) . For every program p ∈ { 0, 1}∗ such that U (p) halts, there is a fixed-precision looped network whose output equals U (p) and whose non-zero parameter count is at most |p| + cU , where cU ≥ 0 is a constant independent of p.Proof. The idea: take a universal looped network and pre-load p into its input region via |p| scalar weights, one per program bit. Let TU be the looped network of Li and Wang [24] , Giannou et al. [9] that simulates U : when a program is placed in a designated input region of TU ’s state at iteration 1, TU halts and emits its output on the emit/bit channels. Write c′ 
+
+> U
+
+for the non-zero count of TU , a constant independent of p.Since our model fixes x0 = 0, we cannot place p in the initial state directly; we instead inject p into the residual stream once, at the first iteration, via a gate that fires only at t = 1 . Augment TU with two pieces: • An iteration-1 gate : a single state coordinate c with c(1) = 1 and c(t) = 0 for t ≥ 2, driven by a fixed two-line recurrence (Appendix B). O(1) non-zero parameters. • A routing layer : for each i ∈ [|p|], one ternary weight σi ∈ {− δ, +δ} from c to coordinate 
+
+3 + i of the state, with σi positive if pi = 1 and negative otherwise. Exactly |p| non-zero parameters. At t = 1 , the routing layer adds (σ1, . . . , σ |p|) to coordinates 4, . . . , 3 + |p|, depositing p into TU ’s input region; the residual stream then carries p forward unchanged. At t ≥ 2, c = 0 and the routing layer contributes nothing, so TU runs on the loaded program. The constant-precision construction of Li and Wang [24] requires the program to be spread across positions rather than packed into a single position (each position holds only O(1) bits at constant width), so each routing weight is best read as a position-specific bias on a distinct sequence position; their tape encoding needs Θ( |p|) positions, matching the Θ( |p|) routing weights here. 
+
+∥θp∥0 = c′
+
+> U
+
+|{z} 
+
+> TU
+
++ |p|
+
+|{z} 
+
+> routing
+
++ O(1) 
+
+| {z } 
+
+> gate
+
+= |p| + cU , cU := c′ 
+
+> U
+
++ O(1) .
+
+Choosing p as a shortest U -program for s gives N (s) ≤ K(s) + cU .
+
+Lemma 6 (Networks → programs) . There is a constant cd > 0 such that every fixed-precision looped network θ ∈ Θδ,M with ∥θ∥0 ≥ 1 that outputs s satisfies 
+
+K(s) ≤ cd · ∥ θ∥0 log 2 ∥θ∥0 + cd.
+
+Proof. A fixed-precision network is a finite, discrete object: W non-zero parameters, each a tuple (location, value). We exhibit a self-delimiting encoding of θ of length O(W log W ) bits, then prepend a constant-size simulator. 
+
+Address space. Every non-zero parameter touches at most two neurons, so the W non-zero parameters together touch at most 2W distinct neurons. Prune unused neurons and renumber. After pruning, each parameter is specified by a tuple 
+
+  layer index , source neuron , target neuron , value  ∈ [W ] × [2 W ] × [2 W ] × V ,
+
+where V := ( δZ ∩ [−M, M ]) \ { 0} has size O(1) . The number of layers needed is at most W
+
+(collapse empty layers). Each tuple takes ≤ 3 log 2 W + O(1) bits in fixed-width binary. For W
+
+tuples plus O(log W ) self-delimited metadata, the total encoding length is 3W log 2 W + O(W ) bits. 
+
+Simulator. A constant-size program Π parses the encoding, reconstructs θ, and simulates the network forward at fixed precision until the halt channel fires, emitting the bits accumulated on the emit/bit channels. Prepending Π gives a self-delimited program ˆp(θ) for U with U (ˆ p(θ)) = s and |ˆp(θ)| ≤ 
+
+cdW log 2 W + cd for cd = max(3 + ε, |Π|).Hence K(s) ≤ | ˆp(θ)| ≤ cdW log W + cd. Appendix C gives the explicit encoding. 54.2 Both bounds are tight 
+
+The upper bound is met by an explicit construction: Lemma 5 produces, for every computable s, a fixed-precision looped network outputting s with at most K(s) + cU non-zero parameters. We now show the lower bound’s logarithmic factor is met as well, by exhibiting a family of strings on which 
+
+K(s) = Θ( N (s) log N (s)) .
+
+The permutation example. Let π : [ N ] → [N ] be a permutation and Pπ ∈ { 0, 1}N ×N its permutation matrix. Define sπ ∈ { 0, 1}N 2
+
+to be the row-major serialisation of Pπ . Two facts: (i) 
+
+K(sπ ) = log 2 N ! + O(log N ) = Θ( N log N ) for typical π, since π 7 → sπ is a bijection and there are N ! permutations. (ii) A looped network with Θ( N ) ternary parameters can output sπ by scanning 
+
+(i, j ) ∈ [N ]2 and emitting (Pπ )i,j at each step. Of these Θ( N ) parameters, exactly N encode the choice of π through their positions (each a +1 entry of Pπ , contributing log 2 N bits of address-space information); the remaining Θ( N ) are a π-independent control circuit shared across all permutations. So N (sπ ) = Θ( N ), giving 
+
+K(sπ ) = Θ  N (sπ ) log N (sπ ),
+
+which saturates (3) up to constants. Appendix D gives the explicit construction and shows why a binary-output variant of the same example would, by contrast, fail to saturate. 
+
+Why the log factor is fundamental. Each non-zero parameter pays log W bits to specify its location among the Θ( W 2) possible (source, target) pairs in a sparse layout, and the permutation family realises this entire budget. The bound is two-sided and tight for unstructured architectures. 
+
+Could architectural structure improve it? Restricting the per-parameter address space to some 
+
+weff (W ) ≪ W 2 would in principle tighten the log factor to log weff . Encoding obstructs this: with x0 = 0 the program must live in the weights, and natural restrictions sacrifice that capacity. Translation-invariant convolutions tie all kernel weights at a given offset across positions, fitting only O(1) bits of program in the kernel; fixed-width fixed-precision MLPs are finite-state; looped transformers can encode arbitrary programs via the routing trick of Lemma 5, but those routing weights themselves use weff = Θ( W ). Identifying a natural Turing-complete architecture with 
+
+weff ≪ W is an open question. 
+
+# 5 Implications 
+
+5.1 The induced output prior matches Solomonoff’s 
+
+The L2 weight-decay penalty λ 
+
+> 2
+
+∥θ∥22 is the negative log of a Gaussian prior π(θ) ∝ exp( − λ 
+
+> 2
+
+∥θ∥22)
+
+on weights. By (1), the Gaussian and the sparsity prior π0(θ) ∝ 2−∥ θ∥0 agree up to a constant factor in the exponent: δ2 ∥θ∥0 ≤ − log 2 π(θ) ≤ M 2 ∥θ∥0. Equivalently, π(θ) = π0(θ)β(θ) for some 
+
+β(θ) ∈ [δ2, M 2].
+
+What is compared. We compare the induced output prior 
+
+Q(s) := X    
+
+> θ:θoutputs s
+
+π(θ)
+
+against Solomonoff’s universal prior M (s). Q(s) is the marginal probability of emitting s under the joint distribution given by π on θ together with the network’s deterministic output map. This is a statement about the prior at the level of outputs, not about training: standard SGD with L2 weight decay performs MAP estimation of θ, not Bayesian marginalisation; the claim below is that the prior 
+
+itself , viewed at the level of the network’s output, coincides with Solomonoff’s up to a logarithmic factor. 
+
+Corollary 7 (Induced prior matches Solomonoff) . Let π(θ) ∝ 2−∥ θ∥22 on Θδ,M (or, up to multiplica-tive constants in (δ, M ), any Lp analogue), and let Q(s) = P     
+
+> θ:θoutputs s
+
+π(θ). There exist constants 
+
+α, β > 0 (depending on (δ, M ) and the architecture but not on s) such that, for every computable s,
+
+2−K(s)−α ≤ Q(s) ≤ 2−K(s)/(β log K(s)) .
+
+6Equivalently, − log Q(s) ∈ [K(s)/(β log K(s)) , K(s) + α] for every computable s, where Solomonoff’s prior satisfies − log M (s) = K(s) + O(1) [ 23 ]. The induced output prior under L2 weight decay matches Solomonoff’s in the exponent up to a logarithmic factor, with constants uniform in s. To our knowledge, this is the first quantitative two-sided link between a regulariser used in practice and the universal prior. Proof in Appendix H. 
+
+5.2 An MDL-style generalisation bound 
+
+The encoding ˆp(θ) of Lemma 6 is a prefix-free injection into {0, 1}∗ with |ˆp(θ)| ≤ cd ∥θ∥0 log ∥θ∥0 +
+
+cd, so by the Kraft inequality the assignment π(θ) := 2 −| ˆp(θ)| is sub-distributional. Plugging π into the standard Occam-bound / PAC-Bayes argument [3, 26] gives the following. 
+
+Proposition 8 (MDL generalisation bound) . Fix a confidence level η ∈ (0 , 1) . With probability at least 1 − η over a sample S of size m, every fixed-precision network θ ∈ Θδ,M satisfies 
+
+L(θ) ≤ ˆL(θ) + eO
+
+s
+
+cd ∥θ∥22 log ∥θ∥22 + log(1 /η )
+
+m
+
+ ,
+
+where L, ˆL are population and empirical risk and eO hides factors logarithmic in m, 1/η , and the precision (δ, M ).
+
+The novelty is conceptual rather than quantitative: existing PAC-Bayes compression bounds [ 3, 26 ]achieve the same shape via more elaborate compression schemes; the bound here uses no compression beyond the trivial one given by the weights themselves, and the complexity penalty ∥θ∥22 log ∥θ∥22 is expressed in the same units as the universal prior of Corollary 7. 
+
+5.3 Empirical predictions 
+
+The result suggests testable conjectures about deep learning practice. None of these is established here; they are predictions the theorem makes that prior quantisation-aware training and sparsity literature [16, 12, 15, 27] positions us to test directly. • Simple data benefits more from weight decay. Tasks whose targets have low Kolmogorov complexity (algorithmic reasoning, regular languages, structured prediction) should gain more from L2 weight decay than tasks whose targets are essentially random. • Quantisation strengthens the bias. For deeply quantised networks (int4, int8), ∥θ∥22 tracks non-zero parameter count exactly [ 16 , 12 ], so quantisation-aware sparse training is a more direct implementation of the induced output prior than full-precision weight decay. • Effective complexity scales as ∥θ∥22 log ∥θ∥22. The right effective complexity for predicting generalisation, in the spirit of Arora et al. [3] , should be the log-augmented squared L2 norm, not raw parameter count or unaugmented norm. • Looped depth helps low-K targets. Networks whose computation budget grows with input difficulty (looped transformers, deep equilibrium models, chain-of-thought) should outper-form fixed-depth feedforward networks on targets of bounded but variable Kolmogorov complexity, since the looped model spends description length on state rather than on depth. • Sparsity-inducing priors converge to the same prior in fixed precision. L1 weight decay, magnitude pruning [ 12 ], and variational dropout [ 27 ] all promote sparse weights; by (1), in fixed precision they target the same underlying ∥θ∥0 and therefore induce equivalent output priors up to constants. 
+
+# 6 Related Work 
+
+We summarise the closest work in Table 1 and discuss in turn. 
+
+Schmidhuber 1997: K-complexity of the weights themselves. Schmidhuber [34] measured a network’s complexity as the length of an external program (in a fixed universal language) that emits 7Table 1: Comparison of weight-norm-vs-complexity bounds. “Two-sided” indicates whether both directions of a sandwich are proved.                                 
+
+> Reference Quantity bounded Regulariser Precision Two-sided?
+> Schmidhuber [34] K-complexity of weight matrix Levin search over external program Any No Hinton and van Camp [13] Description length of noisy weights Variational MDL Noisy No Hochreiter and Schmid-huber [14] Description length Flat-minima width Limited No Arora et al. [3] , Lotfi et al. [26] Generalisation gap Compression rate Quantised One-sided Jacot [18] Binary circuit gate count of approximated func-tion Weighted L1 ResNet norm Real-valued Yes
+> Shaw et al. [35] K-complexity of distri-bution Variational MDL (Gaussian mixture) Variational One-sided (asymp. optimal)
+> This paper K-complexity of emit-ted string Any Lpnorm Any fixed pre-cision Yes
+
+the weight matrix, then performed Levin search over those programs. The complexity quantity there is the description length of the external program, not a norm of the weights. Our result is in a sense the converse: under fixed precision, the network’s own Lp weight norm is itself such a description length, up to a logarithmic factor, with no external program necessary. 
+
+Jacot 2025: closest analog, different complexity. Jacot [18] proved a sandwich between a weighted L1 norm of real-valued ResNets and the binary circuit gate count of the function being 
+
+ε-approximated, with equivalence “within a power of 2” of the optimal circuit. Read in parallel: Jacot bounds gate count (combinational complexity) of a real-valued ResNet ε-approximating a real function; we bound Kolmogorov complexity (Turing complexity) of a fixed-precision looped network exactly emitting a string. The architectures differ (feedforward ResNet vs. looped); the precision differs (real-valued vs. fixed); the complexity quantity differs (gates vs. programs); the regulariser differs (weighted L1 vs. any Lp). The two results together suggest that a weight-norm-flavoured quantity is the right complexity measure across a range of architectures and idealisations, with the specific complexity it equals determined by the precision and architecture. 
+
+Shaw et al. 2026: closest in motivation, different in mechanism. Shaw et al. [35] construct an asymptotically optimal MDL objective for transformers via a bridge to prefix Turing machines, achieving description-length optimality up to an additive constant. Their description length is the negative log marginal likelihood under a Gaussian-mixture variational posterior over weights. They optimise a learned variational MDL objective and prove asymptotic optimality of that objective; we show that the squared L2 weight norm itself , used directly as a regulariser, is already within a logarithmic factor of optimal. The mechanisms are different (variational MDL vs. direct weight norm), but the two papers converge on the picture that standard transformer training is closer to optimal MDL than the absence of prior theory would suggest. 
+
+Universal induction and meta-learning. Solomonoff [37] , Hutter [17] , Legg and Hutter [21] establish the optimality of the universal prior. Grau-Moya et al. [10] show that meta-trained trans-formers can amortise Solomonoff induction empirically. None of these gives a quantitative bound between a weight-space regulariser and the universal prior, which is what Corollary 7 provides. 
+
+MDL, flat minima, compression bounds. Hinton and van Camp [13] and Hochreiter and Schmid-huber [14] relate generalisation to the precision required to express the weights: their description length is bits-to-represent-noisy-weights, not a norm. Arora et al. [3] and Lotfi et al. [26] compress trained networks to obtain non-vacuous generalisation bounds, bounding the generalisation gap rather than the Kolmogorov complexity of the emitted string. Theorem 4 unifies these: in fixed precision, 8the L2 norm directly counts the structural information in the weights, and a generalisation bound is then a one-step consequence (§5). 
+
+Turing completeness at fixed precision. The simulation results we depend on are Pérez et al. [29 , 30] , Bhattamishra et al. [5] , Roberts [33] , Qiu et al. [31] , Li and Wang [24 , 25] , Giannou et al. [9] , Dehghani et al. [7] . Of these, Li and Wang [24 , 25] are most relevant, since they explicitly handle the constant-bit-precision regime our model captures. 
+
+Classical complexity-Kolmogorov links. The address-space argument underlying our log factor (each non-zero parameter buys log W bits of structural information through its position) has a long prehistory in complexity theory. Boolean circuit Kolmogorov complexity [ 1] studies the analogous question for circuits emitting strings, with a similar log factor for wire-indexing. Our contribution is to specialise this principle to the fixed-precision neural setting and to recover the matching upper bound via a Turing-complete construction. 
+
+Quantisation and sparsity. A practical literature on quantisation-aware training [ 16 , 12 ] and sparsity-inducing priors [ 27 , 8, 15 ] operationalises the regime where (1) is tightest. These methods target ∥θ∥0 either directly (pruning) or indirectly (through quantised L2 or Bayesian-sparsity priors); our result identifies the underlying complexity quantity they implicitly control. 
+
+# 7 Discussion 
+
+Limitations. The bound is asymptotic and we do not attempt to make the constants cU , c d small; they will be large for realistic universal Turing machines, so the result is conceptual rather than predictive at small scales. Our model is restricted to looped networks emitting a single string from 
+
+x0 = 0; standard supervised-learning settings (feedforward networks, batched inputs, training losses) require adaptations we do not pursue here, such as loop unrolling for feedforward and designated state coordinates for inputs and labels. Corollary 7 concerns the induced output prior Q(s), not what gradient descent finds; closing the gap between minimum-norm networks and trained networks is the natural next step. The theorem and its predictions are not validated experimentally. Spectral and operator norms control Lipschitz constants rather than information content, and their relation to K(s)
+
+remains open. 
+
+Two takeaways. (1) The result is genuinely about the fixed-precision regime. It is the discreteness of Θδ,M that gives a finite description length, and the analog limit [ 36 ] shows no such bound can hold without it. (2) The result is genuinely about any Lp norm. The proof concerns the count of non-zero parameters, and the L1-vs-L2 distinction collapses in fixed precision (1). The penalty’s behaviour during training depends on p; the resulting Kolmogorov-complexity profile does not. 
+
+Conjectures. 
+
+1. Weight norm tracks data complexity. For networks trained to fit a dataset S with L2 weight decay, ∥θ∥22 at convergence tracks K(S) in expectation, with the ratio bounded above by a constant as model width and depth grow. 2. Flat minima are downstream. The flat-minima phenomenon [ 14 ] is a consequence of the weight-norm-as-description-length correspondence: minima of low Lp norm are minima of low description length, and small description length is precisely the condition under which the loss landscape is locally flat in MDL coordinates. 3. Effective complexity is log-augmented. The right effective complexity for predicting general-isation scales as ∥θ∥22 log ∥θ∥22, not as raw parameter count or as unaugmented norm. 
+
+Conclusion. In any fixed-precision regime, the smallest Lp weight norm of a looped network outputting s equals K(s) up to a logarithmic factor, realised by permutation encodings. L2 weight decay therefore matches Solomonoff’s universal prior on outputs up to a polynomial factor in 2K(s).Modern deep learning’s most reliable regulariser is a tractable proxy for the most powerful idealised inductive bias known. 9References 
+
+[1] Eric Allender. When worlds collide: derandomization, lower bounds, and Kolmogorov com-plexity. Foundations of Software Technology and Theoretical Computer Science , 2001. [2] Maksym Andriushchenko, Francesco D’Angelo, Aditya Varre, and Nicolas Flammarion. Why do we need weight decay in modern deep learning?, 2024. URL https://openreview.net/ forum?id=RKh7DI23tz .[3] Sanjeev Arora, Rong Ge, Behnam Neyshabur, and Yi Zhang. Stronger generalization bounds for deep nets via a compression approach. In International Conference on Machine Learning ,pages 254–263. PMLR, 2018. [4] José L. Balcázar, Ricard Gavaldà, and Hava T. Siegelmann. Computational power of neural networks: a characterization in terms of Kolmogorov complexity. IEEE Transactions on Information Theory , 43(4):1175–1183, 1997. [5] Satwik Bhattamishra, Arkil Patel, and Navin Goyal. On the computational power of transformers and its implications in sequence modeling. In Raquel Fernández and Tal Linzen, editors, 
+
+Proceedings of the 24th Conference on Computational Natural Language Learning , pages 455–475, Online, November 2020. Association for Computational Linguistics. doi: 10.18653/ v1/2020.conll-1.37. URL https://aclanthology.org/2020.conll-1.37/ .[6] Gregory J. Chaitin. On the length of programs for computing finite binary sequences: statistical considerations. Journal of the ACM , 16(1):145–159, 1969. [7] Mostafa Dehghani, Stephan Gouws, Oriol Vinyals, Jakob Uszkoreit, and Łukasz Kaiser. Uni-versal transformers. arXiv preprint arXiv:1807.03819 , 2018. [8] Jonathan Frankle and Michael Carbin. The lottery ticket hypothesis: Finding sparse, trainable neural networks. In International Conference on Learning Representations , 2019. [9] Angeliki Giannou, Shashank Rajput, Jy-yong Sohn, Kangwook Lee, Jason D Lee, and Dimitris Papailiopoulos. Looped transformers as programmable computers. In International Conference on Machine Learning , pages 11398–11442. PMLR, 2023. [10] Jordi Grau-Moya, Tim Genewein, Marcus Hutter, Laurent Orseau, Grégoire Delétang, Elliot Catt, Anian Ruoss, Li Kevin Wenliang, Christopher Mattern, Matthew Aitchison, and Joel Veness. Learning universal predictors. arXiv preprint arXiv:2401.14953 , 2024. [11] Peter D. Grünwald. The Minimum Description Length Principle . MIT Press, 2007. [12] Song Han, Huizi Mao, and William J. Dally. Deep compression: Compressing deep neural networks with pruning, trained quantization and huffman coding. In International Conference on Learning Representations , 2016. [13] Geoffrey E. Hinton and Drew van Camp. Keeping the neural networks simple by minimizing the description length of the weights. In Proceedings of the Sixth Annual Conference on Computational Learning Theory (COLT) , pages 5–13, 1993. [14] Sepp Hochreiter and Jürgen Schmidhuber. Flat minima. Neural Computation , 9(1):1–42, 1997. [15] Torsten Hoefler, Dan Alistarh, Tal Ben-Nun, Nikoli Dryden, and Alexandra Peste. Sparsity in deep learning: Pruning and growth for efficient inference and training in neural networks. 
+
+Journal of Machine Learning Research , 22(241):1–124, 2021. [16] Itay Hubara, Matthieu Courbariaux, Daniel Soudry, Ran El-Yaniv, and Yoshua Bengio. Quan-tized neural networks: Training neural networks with low precision weights and activations. 
+
+Journal of Machine Learning Research , 18(1):6869–6898, 2017. [17] Marcus Hutter. Universal Artificial Intelligence: Sequential Decisions based on Algorithmic Probability . Springer, 2005. [18] Arthur Jacot. Deep learning as a convex paradigm of computation: Minimizing circuit size with resnets. arXiv preprint arXiv:2511.20888 , 2025. 10 [19] Andrei N Kolmogorov. Three approaches to the quantitative definition ofinformation’. Problems of information transmission , 1(1):1–7, 1965. [20] Anders Krogh and John Hertz. A simple weight decay can improve generalization. Advances in Neural Information Processing Systems , 4, 1991. [21] Shane Legg and Marcus Hutter. Universal intelligence: A definition of machine intelligence. 
+
+Minds and Machines , 17(4):391–444, 2007. [22] Leonid A. Levin. Universal sequential search problems. Problems of Information Transmission ,9(3):265–266, 1973. [23] Ming Li and Paul Vitányi. An Introduction to Kolmogorov Complexity and Its Applications .Springer, 3 edition, 2008. [24] Qian Li and Yuyi Wang. Constant bit-size transformers are turing complete. In D. Belgrave, C. Zhang, H. Lin, R. Pascanu, P. Koniusz, M. Ghassemi, and N. Chen, editors, Advances in Neural Information Processing Systems , volume 38, pages 62273–62292. Curran Associates, Inc., 2025. URL https://proceedings.neurips.cc/paper_files/paper/2025/file/ 59d501de2e283999feb3bbca259ca4d1-Paper-Conference.pdf .[25] Qian Li and Yuyi Wang. Efficient turing machine simulation with transformers. In The Fourteenth International Conference on Learning Representations , 2026. URL https:// openreview.net/forum?id=bxVuILo1xx .[26] Sanae Lotfi, Marc Finzi, Sanyam Kapoor, Andres Potapczynski, Micah Goldblum, and An-drew Gordon Wilson. Pac-bayes compression bounds so tight that they can explain generaliza-tion. In Advances in Neural Information Processing Systems , 2022. [27] Dmitry Molchanov, Arsenii Ashukha, and Dmitry Vetrov. Variational dropout sparsifies deep neural networks. International Conference on Machine Learning , 2017. [28] Vaishnavh Nagarajan and J. Zico Kolter. Uniform convergence may be unable to explain generalization in deep learning. In Advances in Neural Information Processing Systems , 2019. [29] Jorge Pérez, Javier Marinkovi´ c, and Pablo Barceló. On the turing completeness of modern neural network architectures. In International Conference on Learning Representations , 2019. URL https://openreview.net/forum?id=HyGBdo0qFm .[30] Jorge Pérez, Pablo Barceló, and Javier Marinkovic. Attention is turing-complete. Journal of Machine Learning Research , 22(75):1–35, 2021. URL http://jmlr.org/papers/v22/ 20-302.html .[31] Ruizhong Qiu, Zhe Xu, Wenxuan Bao, and Hanghang Tong. Ask, and it shall be given: On the turing completeness of prompting. In Y. Yue, A. Garg, N. Peng, F. Sha, and R. Yu, editors, International Conference on Learning Representations , volume 2025, pages 6286– 6309, 2025. URL https://proceedings.iclr.cc/paper_files/paper/2025/file/ 123d3e814e257e0781e5d328232ead9b-Paper-Conference.pdf .[32] Jorma Rissanen. Modeling by shortest data description. Automatica , 14(5):465–471, 1978. [33] Jesse Roberts. How powerful are decoder-only transformer neural models? In 2024 International Joint Conference on Neural Networks (IJCNN) , pages 1–8, 2024. doi: 10.1109/IJCNN60899. 2024.10651286. [34] Jürgen Schmidhuber. Discovering neural nets with low kolmogorov complexity and high generalization capability. Neural Networks , 10(5):857–873, 1997. ISSN 0893-6080. doi: https://doi.org/10.1016/S0893-6080(96)00127-X. URL https://www.sciencedirect.com/ science/article/pii/S089360809600127X .[35] Peter Shaw, James Cohan, Jacob Eisenstein, and Kristina Toutanova. Bridging kolmogorov com-plexity and deep learning: Asymptotically optimal description length objectives for transformers. In International Conference on Learning Representations , 2026. arXiv:2509.22445. 11 [36] Hava T. Siegelmann and Eduardo D. Sontag. On the computational power of neural nets. 
+
+Journal of Computer and System Sciences , 50(1):132–150, 1995. [37] Ray J Solomonoff. A formal theory of inductive inference. part i. Information and control , 7(1): 1–22, 1964. [38] Chiyuan Zhang, Samy Bengio, Moritz Hardt, Benjamin Recht, and Oriol Vinyals. Understanding deep learning requires rethinking generalization. In International Conference on Learning Representations , 2017. 
+
+# A A Concrete Looped Neural Network Model 
+
+We instantiate Definition 1 as a ternary-weight looped transformer, mirroring Giannou et al. [9] with the constant-bit-precision quantisation of Li and Wang [24] . The model is the same as in those works modulo the explicit identification of the halt, emit, and bit channels. 
+
+Architecture. A single transformer block applied iteratively, with: a multi-head self-attention layer with h heads of dimension dh and ternary key/query/value projection matrices; a two-layer feedforward network with hidden width df , ReLU activation, and ternary weights and biases; and residual connections around both sub-layers. The state at iteration t is X(t) ∈ Rn×d. The first row is the control row ; its coordinate 1 is the halt channel, coordinate 2 is the emit channel, coordinate 3 is the bit channel. Initial state X(0) = 0.
+
+Ternary precision. All parameters lie in {− 1, 0, +1 }. Activations are clipped to {− A, . . . , +A}
+
+for a constant A and rounded after each non-linearity, so the entire computation lives in a finite alphabet. Li and Wang [24] prove that this regime supports Turing-complete simulation; we use their construction as our universal looped network TU .
+
+Adaptation to other precisions. The construction is invariant under uniform rescaling of weights and clipping bounds: replacing (θ, A ) with (δθ, δA ) preserves all transitions, so the same architecture instantiates Definition 2 in any Θδ,M with δ ≤ 1 ≤ M .
+
+# B Detailed Proof of the Upper Bound 
+
+We expand the construction of Lemma 5. 
+
+The universal looped network TU . Let TU be the ternary looped transformer of Appendix A, of total parameter count dU and non-zero count c′ 
+
+> U
+
+= ∥TU ∥0. By construction [ 24 ], TU has a designated 
+
+program region consisting of coordinates {4, 5, . . . , 3 + ℓmax } of the control row for some maximum program length ℓmax that grows with the simulation. (In the constant-bit-precision construction of Li and Wang [24] , ℓmax scales with the input sequence length; for our purposes we treat ℓmax as effectively unbounded by feeding a long enough scratch sequence.) When TU is run with the bits of a program p ∈ { 0, 1}m initialised at positions 4, . . . , 3 + m of the control row, TU halts (control-row coordinate 1 becomes positive) at some finite iteration τ and emits the bits of U (p) on the emit/bit channels of the control row, provided U (p) is defined. 
+
+Program-loading module. We construct θp by augmenting TU with two pieces: a constant-size 
+
+iteration-1 indicator that fires only on the first iteration, and a routing layer containing exactly one ternary parameter per program bit. 
+
+(i) Iteration-1 indicator. Add two scratch coordinates c1, c 2 to the state, both initialised to 0. Their FFN updates implement the recurrences 
+
+c(t+1) 2 = clip [0 ,1] 
+
+ c(t)2 + 1 , c(t+1) 1 = ReLU  1 − c(t)2
+
+.
+
+Tracing from c(0) 1 = c(0) 2 = 0 :• t = 1 : c(1) 2 = 1 , c(1) 1 = ReLU(1 − 0) = 1 .12 • t ≥ 2: c2 stays at 1, so c(t)1 = ReLU(1 − 1) = 0 .So c(t)1 = 1[t = 1] . The recurrences use four ternary parameters total (one self-connection on c2,one bias on c2, one cross-weight −1 from c2 to c1, one bias +1 on c1) plus reuse of the standard activation clipping primitive of Li and Wang [24]. Cost: O(1) p-independent non-zeros. 
+
+(ii) Program-routing layer. For each i ∈ { 1, . . . , |p|} , place a single ternary parameter σi ∈ {− δ, +δ}
+
+on the weight from c1 to coordinate 3 + i of the control row, with σi = + δ if pi = 1 and σi = −δ
+
+if pi = 0 . The contribution to coordinate 3 + i of the residual stream at iteration t is therefore 
+
+σi · c(t)1 = σi · 1[t = 1] .Trace the residual stream at the program region (coordinates 4, . . . , 3 + |p|): 
+
+X(0) 3+ i = 0 , X(1) 3+ i = X(0) 3+ i + σi = σi, X(t)3+ i = X(t−1) 3+ i + 0 = σi for t ≥ 2.
+
+The program bits land in the program region at iteration 1 and persist for TU ’s subsequent simulation. Activation thresholding maps ±δ → ± 1, the ternary encoding of program bits TU expects. 
+
+Position-spread encoding. The construction writes |p| ternary parameters to |p| distinct coordinates of TU ’s state. In the constant-precision transformer of Li and Wang [24] , these |p| coordinates correspond to |p| distinct sequence positions, one program bit per position: at constant model width 
+
+d, a single position holds only O(d) = O(1) bits, so an arbitrarily long program cannot fit in a single position and must be spread across Θ( |p|) positions of the input sequence. Each σi thus acts as a position-specific bias, breaking translation invariance via a parameter dedicated to position i.
+
+Cost. The routing layer uses exactly |p| ternary parameters, one per program bit. No other per-bit overhead. 
+
+Counting non-zero parameters. 
+
+∥θp∥0 = c′
+
+> U
+
+|{z} 
+
+> TU
+
++ |p|
+
+|{z} 
+
+> routing
+
++ O(1) 
+
+| {z } 
+
+> iter-1 indicator
+
+= |p| + cU ,
+
+where cU := c′ 
+
+> U
+
++ O(1) collects all p-independent overhead. 
+
+Conclusion. Choosing p to be a shortest U -program for s, |p| = K(s), gives N (s) ≤ ∥ θp∥0 ≤
+
+K(s) + cU , proving (2). 
+
+# C Detailed Proof of the Lower Bound 
+
+We give the self-delimiting encoding ˆp : Θ δ,M → { 0, 1}∗ of Lemma 6. 
+
+Step 1: enumerate non-zero parameters. List the W = ∥θ∥0 non-zero parameters as Λ( θ) = 
+
+{(ℓj , u j , v j , w j )}Wj=1 , where ℓj ∈ N is a layer index, uj , v j ∈ N are source and target neuron indices, and wj ∈ V := ( δZ ∩ [−M, M ]) \ { 0} is the value. The value alphabet V has size 2⌊M/δ ⌋ = O(1) .
+
+Step 2: prune and relabel. Neurons not appearing in any uj , v j contribute no computation and may be removed; the network’s output is unchanged. After pruning, the set of distinct neuron indices has cardinality n ≤ 2W . Layers with no non-zero parameter may be collapsed; the number of layers is at most L′ ≤ W . Relabel neurons and layers by order-preserving bijections to {1, . . . , n } and 
+
+{1, . . . , L ′}.
+
+Step 3: encode. The description ˆp(θ) consists of: • A self-delimiting prefix encoding the integer W (Elias-style): log 2 W + 2 log 2 log 2 W +
+
+O(1) = O(log W ) bits. • The state dimension n and number of layers L′ in O(log W ) bits each. • Architecture metadata (head count, hidden width, activation choice) in O(1) bits. 13 • For each j ∈ [W ], the tuple (ℓj , u j , v j , w j ) in 
+
+⌈log 2 L′⌉ + 2 ⌈log 2 n⌉ + ⌈log 2 |V|⌉ ≤ 3 log 2 W + O(1) 
+
+bits, fixed-width binary; the widths are derivable from the prefix and so need not be transmitted. The total length is 3W log 2 W + O(W ) bits. 
+
+Step 4: simulator program. Let Π be a constant-size program for U that: 1. Parses the self-delimited prefix to recover W, n, L ′, and the architecture metadata. 2. Parses the W tuples to reconstruct θ ∈ Θδ,M .3. Initialises X(0) = 0 and iterates the network forward at fixed precision, applying each layer’s linear update plus ReLU and the activation discretisation specified by the architecture. 4. At each iteration t ≥ 1, after each layer is applied: if (X(t))halt > 0, halt; otherwise, if 
+
+(X(t))emit > 0, emit 1[( X(t))bit > 0] .
+
+Π is fixed, with constant size |Π| independent of θ.
+
+Step 5: assembly. The complete program is ˆp(θ) = Π · encoding (θ) (concatenation, parseable on 
+
+U since Π knows where its own code ends). Then U (ˆ p(θ)) = s and 
+
+|ˆp(θ)| ≤ | Π| + 3 W log 2 W + O(W ) ≤ cdW log 2 W + cd
+
+for cd = max(3 + ε, |Π|) and all W ≥ 1. Hence K(s) ≤ cd ∥θ∥0 log ∥θ∥0 + cd; taking the infimum over θ outputting s gives (3). 
+
+# D The Permutation Tightness Witness 
+
+We give the explicit construction underlying the permutation example in §4.2. The clean choice of output format is the one-hot row-major serialisation of the permutation matrix; this avoids any bit-extraction circuit and keeps the construction at Θ( N ) non-zero parameters. 
+
+Setup. Fix N ∈ N and a permutation π : [ N ] → [N ]. Let Pπ ∈ { 0, 1}N ×N denote its permutation matrix: (Pπ )i,π (i) = 1 and zeros elsewhere. Define 
+
+sπ = ( Pπ )1,1 (Pπ )1,2 · · · (Pπ )1,N (Pπ )2,1 · · · (Pπ )N,N ∈ { 0, 1}N 2
+
+,
+
+the row-major serialisation of Pπ . The string sπ has length N 2 with exactly N ones and N 2 − N
+
+zeros. 
+
+Kolmogorov complexity. The map π 7 → sπ is a bijection, so describing sπ is equivalent to describing π. Counting gives K(sπ ) ≥ log 2 N ! − O(1) for at least half of all permutations, and the universal upper bound gives K(sπ ) ≤ log 2 N ! + O(log N ). Hence 
+
+K(sπ ) = log 2 N ! + O(log N ) = Θ( N log N ) for typical (and worst-case) π. 
+
+Construction. We exhibit a ternary looped network θπ that outputs sπ with ∥θπ ∥0 = Θ( N ). All 
+
+π-dependence is concentrated in exactly N non-zero parameters; the remaining Θ( N ) non-zero parameters realise a fixed π-independent control circuit. 
+
+State coordinates. The state has n = Θ( N ) coordinates: • Coordinates 1, 2, 3: halt, emit, bit channels. • Coordinates 4, . . . , 3 + N : row indicator r ∈ RN , a one-hot vector for the current row index 
+
+i ∈ [N ].• Coordinates 4 + N, . . . , 3 + 2 N : column scanner c ∈ RN , a one-hot vector for the current column index j ∈ [N ].14 • One scratch coordinate m: the match indicator , equal to (Pπ )i,j at the current (i, j ).
+
+Permutation parameters ( π-dependent, exactly N non-zeros). For each i ∈ [N ], place a single +1 
+
+ternary parameter in the network’s “edge table”: specifically, a weight from row coordinate ri to a hidden unit hi, and the column scanner c is wired into hi via a π-dependent permutation map. The N
+
+weights Wπ [k, π (k)] = +1 encode the choice of π; their positions carry log 2 N ! bits of information. 
+
+Match circuit ( π-independent, Θ( N ) size). A fixed FFN sub-layer computes the bilinear form 
+
+m = r⊤Wπ c. The hidden layer has N units, the kth computing ReLU (rk + ( Wπ c)k − 1) (an AND of two {0, 1} values). The output combines all hidden units with +1 weights into the match channel. The fan-in from r is the identity ( N non-zero diagonal weights); the fan-in from c uses the 
+
+N permutation parameters; biases ( −1 per hidden unit) and the output projection ( +1 per hidden unit) contribute Θ( N ) further non-zero parameters, all π-independent. 
+
+Scanner advance ( π-independent, Θ( N ) size). A fixed sub-circuit advances c by one position per iteration via a cyclic-shift matrix on N coordinates ( N non-zero weights). When c wraps from position N back to position 1, the same circuit advances r by one position ( Θ( N ) further non-zero weights). When r wraps around, the halt channel fires (constant-size logic). 
+
+Emission. At each iteration, the emit channel is asserted (a constant bias) and the bit channel is set to the match indicator m. After N 2 iterations the row-major serialisation of Pπ has been streamed to the output and the halt channel fires. 
+
+Parameter count. 
+
+∥θπ ∥0 = N|{z} 
+
+> π-dependent
+
++ Θ( N )
+
+| {z } 
+
+> π-independent control
+
+= Θ( N ).
+
+The N π -dependent parameters encode the choice of permutation through their positions, contributing 
+
+log 2 N ! bits of information. The π-independent control circuit has fixed structure shared across all π
+
+and all N , but instantiates with Θ( N ) non-zero entries when N -dimensional one-hot encodings are used. 
+
+Conclusion. For typical (uniformly random) π, the construction shows 
+
+K(sπ ) = Θ( N log N ) = Θ  N (sπ ) log N (sπ ),
+
+saturating (3) up to constants. The logarithmic factor is essential: the N permutation parameters could not, by counting, identify π with fewer than log 2 N ! = Θ( N log N ) bits of positional information, and that is exactly what the network exploits to emit the N 2-bit string sπ .
+
+Remark on the binary-output variant. If one prefers the more familiar output format s′ 
+
+> π
+
+=
+
+π(1) π(2) · · · π(N ) written in binary (length N ⌈log 2 N ⌉, K-complexity still Θ( N log N )), the con-struction needs an additional bit-extraction circuit that converts the one-hot column indicator into its 
+
+log 2 N -bit binary representation. By the address-space argument of §4.2, any such fixed circuit on 
+
+N -dimensional one-hot vectors requires Θ( N log N ) non-zero parameters (equivalent to storing a 
+
+log 2 N × N readout matrix), so the binary variant gives N (s′ 
+
+> π
+
+) = Θ( N log N ). The Lp collapse and our main bound are unaffected, but the binary variant does not saturate the log factor. The one-hot variant above is the cleaner witness. 
+
+# E Lp Sandwich Bounds 
+
+Proposition 9 (Lp sandwich) . For every p ∈ [1 , ∞) and every computable s,
+
+Np(s)p ≤ M p(K(s) + cU ) and K(s) ≤ cd 
+
+> δp
+
+Np(s)p log( Np(s)p/δ p) + cd,
+
+where Np(s) = inf θ {∥ θ∥p : θ ∈ Θδ,M , θ outputs s}.Proof. By (1), δp ∥θ∥0 ≤ ∥ θ∥pp ≤ M p ∥θ∥0, so Np(s)p ≤ M pN (s) and N (s) ≤ N p(s)p/δ p.Substitute into Theorem 4. 15 Absorbing the precision constants: 
+
+L1 : N1(s) = ˜Θ( K(s)) , L2 : N2(s)2 = ˜Θ( K(s)) , Lp : Np(s)p = ˜Θ( K(s)) .
+
+Spectral and operator norms are not directly captured by parameter count: spectral regularisation controls Lipschitz constants rather than information content. The relationship between spectral norms and K(s) is left open. 
+
+# F Precision Regimes and the Limit of Vanishing Precision 
+
+Theorem 4 holds for any fixed precision; the constants depend on the dynamic range M/δ .
+
+Ternary ( δ = M = 1 ). Cleanest constants: per-entry description 3 log 2 W + 1 bits. 
+
+b-bit integer ( δ = 1 , M = 2 b−1 − 1). Per-entry 3 log 2 W + b bits. Linear in b.
+
+b-bit dyadic. Value alphabet of size 2b: per-entry 3 log 2 W + b bits. 
+
+Quantitative dependence. Both cU and cd scale as O(log 2(M/δ )) . Even at very fine precision, the sandwich bound holds with constants growing only as log( M/δ ), i.e., as the bit-width. 
+
+The limit δ → 0. The sandwich becomes vacuous: Siegelmann and Sontag [36] show some real-weight networks compute non-recursive functions with finite norm; for such networks K(s) = ∞
+
+while ∥θ∥2 is finite. The fixed-precision condition is what locks the result to the computable world. Since real hardware always uses finite precision, the bound applies to every regime that runs on actual deployments. 
+
+# G Levin Complexity and Bounded Halting Time 
+
+If we restrict halting time to ≤ T iterations, the construction of Lemma 5 translates a U -program p
+
+with running time T (p) into a network with halting time T ′(p) ≤ ρ · T (p), where ρ is the per-step 
+
+simulation overhead of TU : the number of looped-network iterations per U -step. By the constructions of Li and Wang [24] , Giannou et al. [9] , ρ is a constant independent of p, |p|, and the network state (it depends only on the architecture and on the universal Turing machine U ). The encoding of Lemma 6 adds log T ′ bits to record the iteration budget. Substituting T ′ = ρT and absorbing log ρ = O(1) into the constant gives 
+
+K(s) + log T ≤ O NT (s) log NT (s) + O(1) ,
+
+where NT (s) is the minimum non-zero parameter count of a network halting within T iterations and outputting s. The left-hand side is, up to constants, Levin’s Kt -complexity [ 22 ], Kt (s) = min p(|p| + log T (p)) . Time-bounded neural complexity coincides with Levin complexity up to log factors, with the multiplicative simulation overhead ρ of TU contributing only an additive 
+
+log ρ = O(1) to the bound. This form is most directly relevant to learning, since training procedures cap the running time of the learned model. 
+
+# H Proof of the Solomonoff Connection 
+
+The two priors and their equivalence. The Gaussian prior over fixed-precision weights, πL2 (θ) ∝
+
+2−∥ θ∥22 , and the sparsity prior, πL0 (θ) ∝ 2−∥ θ∥0 , agree up to constants in the exponent: by (1), 
+
+2−M 2∥θ∥0 ≤ 2−∥ θ∥22 ≤ 2−δ2∥θ∥0 for θ ∈ Θδ,M ,
+
+so πL2 (θ) = πL0 (θ)β(θ) for some β(θ) ∈ [δ2, M 2]. The same collapse gives the analogous relation between πL2 and πL1 (θ) ∝ 2−∥ θ∥1 . The calculation below uses πL0 for clarity; the result transfers to any Lp weight decay by absorbing the precision constants into α, β . Let 
+
+Q(s) = P     
+
+> θ:θoutputs s
+
+πL0 (θ).16 Uniformity of constants in s. The constants α, β in Corollary 7 depend on (δ, M ) and the architec-ture but not on s. This is automatic from the proof: the upper bound uses ∥θ∗∥0 ≤ K(s) + cU with 
+
+cU uniform; the lower bound uses ∥θ∥0 ≥ K(s)/(cd log K(s)) − O(1) with cd uniform, plus the geometric-series argument whose multiplicative slack depends only on the counting bound W O(W )
+
+and not on s.
+
+Lower bound on Q(s). By Lemma 5, some θ∗ outputs s with ∥θ∗∥0 ≤ K(s) + cU . So 
+
+Q(s) ≥ π(θ∗) = 2 −∥ θ∗∥0 ≥ 2−K(s)−cU .
+
+Upper bound on Q(s). By Lemma 6, every θ outputting s has ∥θ∥0 ≥ K(s)/(cd log K(s)) −O(1) .The number of distinct θ ∈ Θδ,M with ∥θ∥0 = W is at most W O(W ) (counting (location, value) tuples). Summing W O(W ) · 2−W over W ≥ K(s)/(cd log K(s)) gives a geometric series dominated by its first term: 
+
+Q(s) ≤ 2−K(s)/(cd log K(s))+ O(log K(s)) = 2 −K(s)/(c′  
+
+> dlog K(s))
+
+.
+
+Comparison with Solomonoff. The universal prior M satisfies − log M (s) = K(s) + O(1) [23 ]. The L2-weight-decay prior Q matches in the exponent up to the logarithmic factor of our bound: 
+
+− log Q(s) ∈ [K(s)/(c′ 
+
+> d
+
+log K(s)) , K (s) + cU ].
+
+# I Computability of N
+
+Proposition 10. N is upper-semicomputable but not computable. Proof. Upper-semicomputability. Enumerate fixed-precision looped networks in increasing ∥·∥ 0
+
+order, simulate each on x0 = 0 with progressively larger time bounds (dovetailing), and emit a new upper bound on N (s) each time a network halts and outputs s.
+
+Non-computability. By Theorem 4, N (s) = ˜Θ( K(s)) . If N were computable, K would be approximable to within a logarithmic factor by a computable function, contradicting the standard non-computability of K [23]. 17

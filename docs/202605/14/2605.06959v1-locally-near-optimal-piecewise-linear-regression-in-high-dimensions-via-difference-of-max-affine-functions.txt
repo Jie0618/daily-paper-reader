@@ -1,0 +1,2931 @@
+Title: Locally Near Optimal Piecewise Linear Regression in High Dimensions via Difference of Max-Affine Functions
+
+URL Source: https://arxiv.org/pdf/2605.06959v1
+
+Published Time: Mon, 11 May 2026 00:22:47 GMT
+
+Number of Pages: 32
+
+Markdown Content:
+# Locally Near Optimal Piecewise Linear Regression in High Dimensions via Difference of Max-Affine Functions 
+
+## Haitham Kanj, and Kiryung Lee ∗
+
+## Department of Electrical and Computer Engineering The Ohio State University, Columbus, OH, USA May 11, 2026 
+
+Keywords— Piecewise Linear; Tropical Rational Function; Nonlinear Regression. 
+
+Abstract 
+
+This paper presents a parametric solution to piecewise linear regression through the Adaptive Block Gradient Descent (ABGD) algorithm. The heart of the method is the parametrization of piecewise linear functions as the difference of max-affine (DoMA) functions. A non-asymptotic local convergence analysis for ABGD is provided un-der sub-Gaussian covariate and noise distributions. To initialize ABGD, we adapt a prior algorithm originally developed for the simpler setting of max-affine functions. When suitably initialized, ABGD converges linearly to an ϵ-accurate estimate given 
+
+eO(d max( σz /ϵ, 1) 2) observations where σ2 
+
+> z
+
+denotes the noise variance. This implies ex-act recovery given eO(d) samples in the noiseless case. Also, such a rate is shown to be minimax optimal up to logarithmic factors. Synthetic numerical results corrobo-rate the theoretical guarantees for ABGD. We also observe competitive performance compared to the state-of-the-art methods on real-world datasets. 
+
+# 1 Introduction 
+
+Nonlinear regression has been widely used in various applications from machine learn-ing and statistics [Gallant, 1975, Bates and Watts, 1988]. Established solutions to nonlinear regression can be categorized as non-parametric, semi-parametric, or fully parametric [Hardle and Mammen, 1993, Mahmoud, 2019]. Non-parametric regression assumes no prior knowledge of the nonlinear function that maps the covariates to the target variable. However, in the high-dimensional setting, this methodology suffers from significant estimation variance due to the scarcity of the data. On the other hand, fully parametric regression utilizes prior knowledge of the nonlinear function up 
+
+> ∗
+
+The authors are with the Department of Electrical and Computer Engineering at the Ohio State University (corresponding author: kanj.7@osu.edu). This work was supported in part by NSF CAREER Award CCF-1943201 and is currently submitted for review in the Journal of Information and Inference. 
+
+1
+
+> arXiv:2605.06959v1 [stat.ML] 7 May 2026
+
+Table 1: Comparison of nonlinear regression methodologies over different function classes with associated non-asymptotic sample size guarantees and runtimes.                                 
+
+> Method Modeling Assumption Sample Size Runtime Reference
+> Difference of Convex Continuous with bounded gradients O(ed)O(n5d2)Siahkamari et al. [2020] Adaptive Regression Splines Mtensor-product basis functions ∞O(ndM 2)Eckle and Schmidt-Hieber [2019] Nearest Neighbors Regression k-nearest piecewise constant O(ed)O(nd log k)Kpotufe [2011] Multi-Index Learning Depends on a covariate subspace poly( d)poly( d)Bietti et al. [2023] ReLU Deep Neural Network L-layer piecewise linear model ∞O(ndL )Li and Yuan [2017] Difference of Max-Affine k-segment piecewise linear O(d)O(nd 2ek)This paper
+
+to a few unknown model parameters, thus enabling low-cost and sample-efficient algo-rithms. However, a model mismatch can lead to a large estimation bias. Alternatively, semi-parametric regression introduces a flexible model for the covariate-target relation given as the composition of linear dimensionality reduction followed by a nonlinear function. Semi-parametric regression serves as a middle ground between the two previ-ous methodologies, by balancing the strengths and weaknesses. Ultimately, the choice of methodology should be guided by a researcher’s judgment according to their specific application. Regardless of the choice of methodology, limiting the class of nonlinear functions with respect to specific properties (e.g. continuity or smoothness) is necessary for the feasibility of regression. In this paper, we consider the class of continuous piecewise-linear (PL) functions. A useful property is that any function in this class can be written as the difference of two max-affine (convex piecewise linear) functions [Siahkamari et al., 2020, Proposition 1]. This parametrization is at the heart of the proposed method. PL functions enjoy interpretability by inherently partitioning the covariate domain and identifying the weight of each covariate in explaining the target variable. The parametric approach proposed in this paper limits the number of affine functions in the PL fit, thereby improving interpretability. Furthermore, it has been shown that PL functions can uniformly approximate any continuous nonlinear function with bounded gradients [Baˇ c´ ak and Borwein, 2011, Proposition 2.2]. 
+
+## 1.1 Connection to Tropical Algebra 
+
+PL functions can be viewed as objects from max-plus algebra, a special case of trop-ical algebra [Maragos et al., 2021, Zhang et al., 2018]. Specifically, max-affine and PL functions are referred to as tropical polynomials and tropical rational functions, respectively. Results from tropical algebra show that any deep neural network (DNN) with PL activations (e.g. rectified linear unit, or absolute value) can be rewritten as a difference of two max-affine functions. For example, consider a PL function written as a difference of max-affine functions with k1 and k2 affine segments, respectively. Then it has been shown that this PL function can be represented as an L-layer ReLU DNN where L ≤ ⌈ log 2 max( k1, k 2)⌉ + 2 [Zhang et al., 2012, Theorem 5.4]. Existing theoretical results from tropical algebra provide elegant geometric interpretations for PL regression, which will be elaborated in Section 7. 
+
+21.2 Relevant Work 
+
+We highlight relevant theoretical results on nonlinear regression. Siahkamari et al. [2020] proposes a non-parametric solution over the class of difference of convex func-tions. This method is agnostic to any knowledge about the nonlinear mapping within the class of difference of convex functions with bounded gradients. However, their method inherits the sample and computation requirements of non-parametric methods. Specifically, the sample complexity n scales exponentially in the ambient dimension d.Furthermore, their worst-case computational cost of O(n5d2) becomes infeasible for large datasets. More recently, Bietti et al. [2023] proposed a semi-parametric solution to nonlinear regression. They assumed that the covariate-target relation is the compo-sition of linear dimensionality reduction followed by an unknown nonlinear function. The authors study gradient flow under the following setup: (i) the covariates follow the multivariate Gaussian distribution, (ii) the target is noise-free, (iii) the number of samples is infinitely large (population level), and (iv) the step size is infinitesimal (continuous time). Under these conditions, Bietti et al. [2023, Theorem 3.25] pro-vided global convergence guarantees of gradient flow. However, regarding the sample complexity, they only provided a conjecture that it would scale as poly( d). 
+
+## 1.3 Contributions 
+
+This paper presents theoretical guarantees for the adaptive block gradient descent 
+
+(ABGD) algorithm for parametric PL regression. Since the adaptive step size formula is explicitly given for ABGD, no hyperparameter tuning is required. Furthermore, ABGD enjoys the computational cost of gradient-based methods as O(nd ) per itera-tion. The heart of ABGD is the parametrization of PL functions as the difference of two max-affine functions (DoMA), i.e. x 7 → max j ⟨βj , [x; 1] ⟩− max l⟨αl, [x; 1] ⟩. We pro-vide a non-asymptotic local convergence analysis for ABGD under sub-Gaussian noise when the covariate distribution satisfies sub-Gaussianity and anti-concentration prop-erties. We consider the scenario where no pair of ( βj , αl) for all j ∈ { 1, . . . , k 1} and 
+
+l ∈ { 1, . . . , k 2} achieves the two maxima in the DoMA function simultaneously with an overwhelming probability. In this case, a suitably initialized ABGD converges linearly to an ϵ-accurate estimate given O(d max( ϵ−2σ2 
+
+> z
+
+, 1)) observations where σ2 
+
+> z
+
+denotes the noise variance, thereby achieving optimal linear dependence on d up to logarithmic fac-tors. A comparison of existing methods for nonlinear regression is provided in Table 1. Our method is the first to balance to achieve a linear dependence of the sample size n
+
+on the ambient dimension at the cost of exponential runtime scaling in the model order 
+
+k. This runtime becomes quite reasonable when k ≪ max( n, d ), which we assume. 1
+
+The size of the basin for linear convergence depends on the geometric properties of the ground-truth parameters. In Section 6, we corroborate these theoretical guarantees and compare ABGD to relevant methods on real-world datasets. Compared to the semi-parametric and non-parametric methods described earlier, the parametric PL re-       
+
+> 1The runtime of our method reported in Table 1 as O(nd 2ek) assumes the randomized implementation of the PCA step for the initialization algorithm, which allows the quadratic dependence on the ambient dimension d.Also, the exponential dependence on kis due to a brute force net search, which could be replaced by a randomized search with O(k) runtime in practice.
+
+3gression by ABGD provides better sample complexity scaling and lower computational costs. Furthermore, we investigate methods to obtain initial estimates of the model parameters. We also present that the spectral method developed for max-affine can be extended to DoMA regression. In particular, we characterize the relation between subspaces spanned respectively by the pairwise differences and all parameter vectors. 
+
+## 1.4 Notation 
+
+We use lightface characters to denote scalars, lowercase boldface characters to denote column vectors, and uppercase boldface to denote matrices. We also adopt the symbols for the max and min operators in lattice theory, i.e. a ∨ b = max( a, b ) and a ∧ b =min( a, b ) for a, b ∈ R. We use multiple matrix norms. The Frobenius norm, the spectral norm, and the largest magnitude of entries will be respectively denoted by 
+
+∥ · ∥ F, ∥ · ∥ , and ∥ · ∥ ∞. We also reuse ∥ · ∥ for the Euclidean norm. We use a shorthand notation [ d] for the set {1, 2, . . . , d }. For a column vector x ∈ Rd, its sub-vector with the entries indexed by S ⊂ [d] is denoted by [ x]S . Similarly, for a matrix X ∈ Rd×d,its sub-matrix with the entries indexed by S1 × S 2 ⊂ [d] × [d] is denoted by [ X]S1,S2 .Finally, we denote by C, C 1, C 2, . . . universally absolute constants, not necessarily the same at each occurrence. 
+
+Figure 1: Examples of DoMA functions with ( β, α) partitioning R (left), R2 (middle) and R3 (right) with V denoting the boundary set, and Ci denoting the ith affine function activation set. 
+
+# 2 Problem statement 
+
+We parametrize the piecewise linear function f : Rd 7 → R for the covariate-target relation as 
+
+f (x; β, α) = max 
+
+> j∈[k1]
+
+⟨βj , [x; 1] ⟩ − max 
+
+> l∈[k2]
+
+⟨αl, [x; 1] ⟩, (1) where β := [ β1; . . . ; βk1 ] and α := [ α1; . . . ; αk2 ] collect the parameters for the corre-sponding affine functions. The resulting piecewise linear regression model is written as 
+
+yi = f (xi; β⋆, α⋆) + zi, ∀i = 1 , . . . , n, (2) 
+
+4Algorithm 1: (Adaptive Block Gradient Descent) 
+
+Input: Dataset {xi, y i}ni=1 , model orders ( k1, k 2), initial estimates β0 = [ β01 ; . . . ; β0 
+
+> k1
+
+], 
+
+α0 = [ α01; . . . ; α0 
+
+> k2
+
+], and stop criterion γ.
+
+repeat 1. βt+1  
+
+> j
+
+← βtj − μj (βt)∇βj ℓ  βt, αt ∀j ∈ [k1]
+
+2. αt+1  
+
+> l
+
+← αtl − μl(αt)∇αl ℓ  βt+1 , αt ∀l ∈ [k2]
+
+3. t ← t + 1 
+
+until max  ∥βt+1 − βt∥2/∥βt∥2, ∥αt+1 − αt∥2/∥αt∥2
+
+ ≤ γ
+
+Output: Final estimates bβ = [ βt
+
+> 1
+
+; . . . ; βtk1 ], and bα = [ αt
+
+> 1
+
+; . . . ; αtk2 ]
+
+where β⋆ and α⋆ are the ground-truth parameters, {xi}ni=1 (resp. {yi}ni=1 ) are the samples of covariates (resp. target), and {zi}ni=1 denote additive noise. To simplify notation, we introduce ξi := [ xi; 1] for all i ∈ [n]. Then the regression model in (2) is rewritten as a difference of max-linear functions model given by 
+
+yi = max 
+
+> j∈[k1]
+
+⟨ξi, β⋆j ⟩ − max 
+
+> l∈[k2]
+
+⟨ξi, α⋆l ⟩ + zi. (3) We consider the least squares estimator that minimizes the Mean Squared Error (MSE) loss function 
+
+ℓ (β, α) = 12n
+
+> n
+
+X
+
+> i=1
+
+
+
+yi − max 
+
+> j∈[k1]
+
+⟨ξi, βj ⟩ + max 
+
+> l∈[k2]
+
+⟨ξi, αl⟩
+
+2
+
+. (4) Since the loss function in (4) is non-convex and non-smooth, the parameter estimation requires a careful design of the optimization algorithm. We propose a variant of the block gradient descent algorithm and present its convergence analysis in the following sections. 
+
+# 3 Adaptive Block Gradient Descent Algorithm 
+
+The adaptive block gradient descent (ABGD) algorithm to minimize the loss func-tion in (4) is summarized in Algorithm 1. ABGD is a variant of the block gradi-ent descent algorithm, where the gradient is substituted by the generalized gradient [Hiriart-Urruty, 1979] and the step size varies across blocks adaptively with the iterates. To describe the algorithm, we introduce geometric objects derived from a max-affine function x 7 → max j∈[k]⟨θj , [x; 1] ⟩ of order k. On one hand, the jth affine function 
+
+⟨θj , [x; 1] ⟩ achieves the maximum on the set 
+
+Cj (θ) := {x ∈ Rd : ⟨[x; 1] , θj − θj′ ⟩ > 0, ∀j′̸ = j} (5) 
+
+5for j ∈ [k]. On the other hand, multiple affine functions achieve the maximum simul-taneously on the set 
+
+V(θ) := [ 
+
+> j′̸=j
+
+{x ∈ Rd : ⟨[x; 1] , θj − θj′ ⟩ = 0 },
+
+which is a null set with respect to any absolutely continuous probability measure. Then the embedding space Rd+1 is partitioned into the maximizer sets {C j (θ)}kj=1 and their boundaries in V(θ). Indeed, {C j (θ)}kj=1 and V(θ) respectively denote open cells and zero-set in a special instance of tropical algebra called the max-plus algebra [Maragos et al., 2021]. Figure 1 presents examples of these sets. Furthermore, we can define the collection of training sample indices that activate the affine model parameter βj as 
+
+Ij (β) = {i ∈ [n] : xi ∈ C j (β)} . (6) Each iteration of ABGD starts by updating the estimate of β = [ β1; . . . ; βk1 ] via the block-wise gradient step 
+
+βt+1  
+
+> j
+
+= βtj − μtj (βt)∇βj ℓ  βt, αt ,
+
+where the partial generalized gradient with respect to the variables in the jth block βj
+
+is written as 
+
+∇βj ℓ(β, α) = 1
+
+n
+
+X 
+
+> i∈I j(β)
+
+
+
+⟨ξi, βj ⟩ − max 
+
+> l∈[k2]
+
+⟨ξi, αl⟩ − yi
+
+
+
+ξi. (7) This is shown to be a valid generalized gradient by Kim and Lee [2024, Equation 7]. Using |I j (βt)| to denote the number of samples within the jth maximizer set, the step size used for updating the estimator for the jth block of βt is determined adaptively as 
+
+μj (βt) = 
+
+(
+
+n/ |I j (βt)| if |I j (βt)| ≥ 10 otherwise . (8) This step-size corresponds to the inverse of the empirical probability measure of the 
+
+jth maximizer set. Note that if |I j (βt)| = 0 then the affine model parameterized by 
+
+βtj is inactive and consequently not modified by a gradient step. Once the estimate for 
+
+β is completed, the estimator for α is updated similarly with βt+1 via the block-wise gradient step where the partial generalized gradient with respect to the lth block αl is written as 
+
+∇αl ℓ(β, α) = 1
+
+n
+
+X
+
+> i∈I l(α)
+
+
+
+⟨ξi, αl⟩ − max 
+
+> j∈[k1]
+
+⟨ξi, βj ⟩ + yi
+
+
+
+ξi
+
+and the step size is determined by (8) with βt substituted by αt. This update rule applies recursively until the algorithm converges by satisfying the stop condition for a small absolute constant γ > 0. 
+
+64 Theoretical Analysis of ABGD 
+
+We present the local convergence analysis of ABGD under a general class of covariate distributions that satisfy the following pair of properties. 
+
+Assumption 4.1 (Sub-Gaussianity) . The covariate vector x ∈ Rd is zero-mean, isotropic, and η-sub-Gaussian, i.e. there exists η > 0 such that 
+
+sup 
+
+> u∈Sd−1
+
+E [exp ( t⟨u, x⟩)] ≤ exp  t2η2/2 , ∀ t ∈ R,
+
+where ∥ · ∥ ψ2 and Sd−1 denote the sub-Gaussian norm and the unit sphere in ℓd
+
+> 2
+
+, re-spectively. 
+
+Assumption 4.2 (Anti-Concentration) . There exist γ, ζ > 0 such that the covariate vector x ∈ Rd satisfies 
+
+sup 
+
+> u∈Sd−1,λ ∈R
+
+P
+
+h
+
+(⟨u, x⟩ + λ)2 ≤ ϵ
+
+i
+
+≤ (γϵ )ζ , ∀ϵ > 0.
+
+On one hand, the Sub-Gaussian family is simply the collection of all densities that eventually (i.e., for any |x| > a > 0) admit a decay rate equal to or faster than exp( −x2). On the other hand, the Anti-Concentration property was shown to be satisfied by any log-concave distribution [Ghosh et al., 2019, Appendix G]. A non-exhaustive list of distributions that satisfy both properties is: (i) Gaussian (or Gaussian mixture), (ii) Uniform distribution on [ a, b ], ℓ2-sphere or any bounded set, (iii) Beta distribution, Beta( α, β ) with α = β, (iv) any distribution with bounded support (e.g. exponential, Laplace, Cauchy, etc), and (v) any mixture of these densities. Therefore, the scope of distributions we consider extends from the typical Gaussian assumption to include more non-trivial multi-modal distributions that can be encountered in machine learning applications and statistics. Next, the statement of the main theorem makes use of the following definitions. First, we define a class of parameters that satisfy some geometric properties. 
+
+Definition 4.3. Let κ > 0 and πmin , r ∈ [0 , 1] . We define Θ( κ, π min , r ) to be a col-lection of all [β; α] with β = [ β1; . . . ; βk1 ] ∈ Rk1(d+1) , α = [ α1; . . . ; αk2 ] ∈ Rk2(d+1) 
+
+satisfying the following properties: First, distinct weight vectors are separated by at least a discrepancy value κ, i.e. 
+
+min   
+
+> j′̸=j
+
+∥[βj − βj′ ]1: d∥2 ∧ min   
+
+> l′̸=l
+
+∥[αl − αl′ ]1: d∥2 ≥ κ. (9) 
+
+Second, the probability that any linear function achieves the maximum in (3) with random x is at least πmin , i.e. 
+
+min  
+
+> j∈[k1]
+
+P (x ∈ C j (β)) ∧ min  
+
+> l∈[k2]
+
+P (x ∈ C l(α)) ≥ πmin . (10) 
+
+Third, the probability that (βj , αl) achieves the two maxima in (1) simultaneously with random x is bounded as 
+
+P (x ∈ C j (β) ∩ Cl(α)) ≤ P (x ∈ C j (β)) 
+
+kr
+
+> 1
+
+∧ P (x ∈ C l(α)) 
+
+kr
+
+> 2
+
+,
+
+7for every affine pair (j, l ) ∈ [k1] × [k2]. We can now proceed with the statement of the main theorem. 
+
+Theorem 4.4. Suppose that {(xi, z i)}ni=1 are independent copies of a random tuple 
+
+(x, z ) where x ∈ Rd and z ∈ R are independent, x satisfies Assumptions 4.1–4.2 with parameters η, γ, ζ > 0, and z is zero-mean sub-Gaussian with variance σ2 
+
+> z
+
+. Then there exist absolute constants C1, C 2, c 3, R > 0, for which the following statement holds with probability at least 1 − ke −d for all [β⋆; α⋆] ∈ Θ( κ, π min , r ) with r ∈ (1 /2, 1] and 
+
+k = k1 ∨ k2. If k > c 3 and the initial estimates (β0, α0) satisfy 
+
+∥β0 − β⋆∥2 ∨ ∥ α0 − α⋆∥2 ≤ κρ (11) 
+
+with 
+
+ρ := 
+
+"
+
+Rπ 3/4min 
+
+4k2 · log −1/2 k2
+
+Rπ 3/4min 
+
+!# 
+
+∧ 14 (12) 
+
+and 
+
+n ≥ C1d  σ2 
+
+> z
+
+∨ 1 ∨ η4 k4π−4(1+ ζ−1)min , (13) 
+
+then the sequence (βt, αt)t∈N by ABGD satisfies 
+
+βt
+
+αt
+
+
+
+−
+
+β⋆
+
+α⋆
+
+ 22
+
+≤τ t
+
+β0
+
+α0
+
+
+
+−
+
+β⋆
+
+α⋆
+
+ 22
+
++ C2σ2 
+
+> z
+
+dk log( n/d )
+
+n (14) 
+
+for τ ∈ (0 , 1) determined by r, πmin , k, γ, ζ and R.
+
+The proof is deferred to Appendix A.1. Theorem 4.4 implies local linear convergence of a properly initialized ABGD under the assumed covariate model. The speed of convergence, determined by τ ∈ (0 , 1), is provided explicitly in (33). We next present three key interpretations of Theorem 4.4. 1. The minimax optimal linear scaling of the sample size n with respect to d is achieved up to the logarithmic factor log( n/d ) (see Lemma A.4 in the Appendix for the minimax lower bound). 2. In the “well-balanced” case, i.e. πmin = Ω(1 /k ), the size of the basin of attraction 
+
+ρ in (12) becomes Ω( k−11 /4). Therefore, the basin of attraction shrinks only by the orders k1, k 2 of the DoMA model. 3. In the well-balanced case, if x ∼ Normal( 0, Id), which implies ζ = 1 /2, γ = e,and η = 1, then the sample complexity requirement of n becomes O(( σ2 
+
+> z
+
+∨ 1) dk 8). 4. Consider the case when {βj }kj=1 and {αl}kl=1 are sampled independently from 
+
+N (0 , I d+1 ). In this case, we expect the model parameters to be highly uncorre-lated. This makes the linear regions of the first max-affine function partition all other linear regions of the second max-affine function, thus leading to r ≈ 1. In this case, for a normalized dataset, i.e. η ≈ 1, and we can have c3 = 1. In other words, for this scenario, Theorem 4.4 holds for any k ≥ 2 (the case when k = 1 reduces to linear regression). In general, the value of c3 depends on the quantity 
+
+ϕ(k; r) shown in (33). 
+
+810 0T10 110 210 310 0T10 110 210 310 0T10 110 210 3Normalized MSE 00.20.40.60.8(n, k ) = (500 , 4) (n, k ) = (1000 , 6) (n, k ) = (1500 , 8) Figure 2: Median of the normalized mean squared test error across 50 Monte Carlo it-erations for initialization (Algorithm 2, solid) followed by ABGD (Algorithm 1, dashed), when d ∈ { 50 , 60 , 70 } (blue, red, black) for different ( n, k ) pairs where k1 = k2 = k.
+
+Another important observation is that the class of DoMA functions captured by Theo-rem 4.4 is characterized by Θ( κ, π min , r ) presented in Definition 4.3. The conditions in (9) and (10) are general in the sense that Theorem 4.4 holds for any valid κ > 0, and 
+
+πmin ∈ (0 , 1]. However, the condition on the minimum intersection probability is only general when r = 0. The currently available proof techniques only allow the statement of Theorem 4.4 when r ∈ (1 /2, 1]. This range of r captures DoMA functions where each element in {C j (β)}k1 
+
+> j=1
+
+is properly partitioned by {C l(α)}k2 
+
+> l=1
+
+and vice versa. Note that Theorem 4.4 provides the performance guarantees of the parameter es-timation by ABGD. Ultimately, it is of interest to estimate the ground-truth DoMA function from the available samples. This motivates the following corollary, whose proof is deferred to Appendix A.3. 
+
+Corollary 4.5. Instate the assumptions of Theorem 4.4, let ( bβ, bα) denote the final parameter estimate by ABGD, and k = k1 ∨ k2. Then it holds with probability at least 
+
+1 − ke −d that 
+
+Ex
+
+
+
+f (x; bβ, bα) − f (x; β⋆, α⋆) 2
+
+≤ Cσ 2 
+
+> z
+
+dk log( n/d )
+
+n , (15) 
+
+where f is the DoMA function defined in (1) and x ∈ Rd is a random vector satisfying Assumptions 4.1 and 4.2, independent of everything else. 
+
+This corollary translates the parameter estimation error in Theorem 4.4 to the generalization error in predicting the ground-truth DoMA function in the expected squared loss and inherits the optimal linear scaling of n with respect to d.
+
+# 5 Initializing ABGD 
+
+Since the square loss in (4) poses a non-convex estimation problem, the local con-vergence result by Theorem 4.4 requires a suitable initialization within the basin of attraction of the ground truth DoMA function parameters. This section surveys recent techniques that might be adapted to obtain the desired initial estimates for DoMA regression. Toward this end, we first note that the DoMA function in (1) is a special instance of the class of multi-index models, i.e. there exists a nonlinear multivariate 
+
+9Algorithm 2: (Initialization Algorithm) 
+
+Input: Dataset {xi, y i}ni=1 , model orders ( k1, k 2), and repetition count T .
+
+1. Construct cm1 and cM2, the data-driven versions of m1 and M2 and let 
+
+cM = cm1cm⊤ 
+
+> 1
+
++ cM2.
+
+2. Construct bV ∈ Rd×(k1+k2−1) as the dominant eigen-space of cM .
+
+3. Randomly sample the subspace spanned by bV to get a candidate pair ( eβ, eα). 
+
+4. Refine ( eβ, eα) using a few ABGD iterations. 
+
+5. repeat ”3.” and ”4.” T times and select ( β0, α0) that minimizes (4). 
+
+Output: Initial estimates β0 = [ β01 ; . . . ; β0 
+
+> k1
+
+], and α0 = [ α01; . . . ; α0 
+
+> k2
+
+]. 
+
+function g : Rk1+k2 → R such that f in (1) is equivalently rewritten as f (x) = g(ΘTx)with Θ = [ β1, . . . , βk1 , α1, . . . , αk2 ]. Various computational methods to estimate the column space of Θ and their theoretical analysis have been developed [Li, 1991, Xia et al., 2002, Ghosh et al., 2021]. Most of these methods were originally developed for semi-parametric learning. However, a quantized search over the individual parameter vectors in the reduced subspace is feasible when k1 +k2 is small and g is known. Below, we discuss a subset of the subspace methods relevant to DoMA regression. Li [1991] proposed sliced inverse regression (SIR). When the covariates follow an elliptically symmetric distribution (e.g. Gaussian, logistic, and Student’s t), SIR esti-mates span( Θ) via principal component on the empirical version of Cov( E [x|y]) where 
+
+y ∈ R and x ∈ Rd denote the target and covariates. On the other hand, Xia et al. [2002] developed the outer product of gradients (OPG) based on the observation that the sample average of the outer product of the gradient, ∇xf (x) = Θ∇u g(u)|u=ΘTx,spans the column space of Θ. However, the guarantees for OPG [Xia et al., 2002, Con-dition 5 (b)] and SIR [Tan et al., 2018, Assumption 1] require a smoothness condition on E [x|y] which is not trivial to show for the DoMA functions. We motivate a proof direction for such conditions in the A On the other hand, the spectral method, which does not require the smoothness condition, has been widely used to obtain initial estimates for inverse problems, e.g. phase retrieval [Candes et al., 2015] and its generalization to max-affine regression [Ghosh et al., 2021]. In a nutshell, the spectral method constructs an empirical estimate 
+
+cM of a proxy matrix M with the observations of the covariate-target pairs so that 
+
+M spans the column space of Θ. A basis for span( Θ) is estimated as the dominant eigenvectors via principal component analysis on cM . In the remainder, we show that the proxy matrix M proposed by Ghosh et al. [2021] for max-affine regression can also be used for its generalization to the DoMA function in (1). The following lemma, proved in Appendix A.7, illustrates that the proxy matrix M spans a subspace spanned by the pairwise difference [ βj ]1: d − [αl]1: d for ( j, l ) ∈ [k1] × [k2] when the covariates are i.i.d. standard Gaussian. The Gaussianity of covariates is crucial to invoke Stein’s lemma for the calculation of expectations. 
+
+10 Lemma 5.1. Let x ∼ Normal( 0, Id) and y = f (x; β, α ) + z with f (·) defined from (1) 
+
+and z ∼ Normal( 0, σ 2 
+
+> z
+
+Id) independent of x. Define M = m1mT 
+
+> 1
+
++ M2 with 
+
+m1 = E [yx] , M2 = E y  xx T − Id
+
+ . (16) 
+
+Then m1 and M2 are explicitly written as 
+
+m1 = X
+
+> (j,l )∈[k1]×[k2]
+
+[βj − αl]1: d P (x ∈ C j (β) ∩ C l(α)) 
+
+and 
+
+M2 = X
+
+> (j,l )∈[k1]×[k2]
+
+[βj − αl]1: dE 1{x∈C j (β)∩C l(α)}xT .
+
+Note that the DoMA function in (1) remains the same when all parameter vectors are shifted by an arbitrary constant vector v ∈ Rd+1 . The next lemma shows that the span of the pairwise difference of parameter vectors indeed coincides with the span of all parameter vectors shifted by one of them. 
+
+Lemma 5.2. Let B = {βj }k1 
+
+> j=1
+
+and A = {αl}k2 
+
+> l=1
+
+be subsets of Rd+1 . Then we have 
+
+span ( B ⊖ A ) = span ( −v + ( B ∪ A )) , ∀v ∈ B ∪ A (17) 
+
+and 
+
+dim [span ( B ⊖ A )] ≤ k1 + k2 − 1, (18) 
+
+where ⊖ denotes the Minkowski set difference, i.e. the pairwise difference of elements from each set. 
+
+The proof of this lemma is deferred to Appendix A.8 and might be of independent interest. Furthermore, the proof of [Ghosh et al., 2021, Theorem 2] relies on the fact that every max-affine function is convex, which no longer holds for difference max-affine functions. Still, Lemmas 5.1 and 5.2 show that m1 and M2 are in the span of all the individual DoMA model parameters. This motivates us to adapt the initialization algorithm proposed by Ghosh et al. [2021] to our DoMA modeling as presented in Algorithm 2. This algorithm first estimates the span of all DoMA model parameters, then randomly samples this lower-dimensional subspace T times to select the best candidate to initialize ABGD. The total runtime cost of this algorithm is 
+
+O(nd 2 + d3 + nde k). In the original setting, this algorithm is guaranteed to recover a suitable initial estimate given O(d poly k) samples. Given our results in Lemmas 5.1 and 5.2, we conjecture the same non-asymptotic sample complexity to hold for DoMA initialization. In fact, one could also use OPG (the method by Xia et al. [2002]) in place of the first step of Algorithm 2 to construct an alternative to cM . OPG relies on local linear approximations and is asymptotically guaranteed to succeed with O(d)samples. This means our framework, compared to existing methods, is the first to scale efficiently to large datasets (since the compute cost is linear in the sample size n). Also, the cubic dependence on d can be reduced to a quadratic by implementing the PCA step of Algorithm 2 in a randomized fashion Rokhlin et al. [2010]. Furthermore, 
+
+11 100 1000 2000 3000 n50 100 150 200 d0− 12−1− 32−2− 52Figure 3: Median of log 10 E( bβ, bα) for different ( n,d) pairs using 50 Monte Carlo iterations for k1 = k2 = 3 when the covariates follow the Gaussian covariate distribution with σz =0.1. 
+
+our runtime scales exponentially in the fixed parameter k ≪ min( n, d ). Along the same lines, training ReLU neural networks, which is also piecewise linear, exhibits a similar exponential dependence on the network size and is NP-hard Froese and Hertrich [2023]. However, this is quite reasonable when we observe that k is the number of linear segments in each max-affine function in DoMA and is not the number of linear segments in the overall DoMA model. Since each linear region of the first max-affine function can partition every linear region of the second max-affine function, the overall DoMA function has kDoMA ∝ k × k = k2 linear segments. This means a choice of model order leads to a quadratically larger number of segments in the overall DoMA model. 
+
+# 6 Numerical Results 
+
+This section discusses the empirical performance of ABGD. First, we show the empir-ical success of Algorithm 2 in initializing ABGD. Figure 2 shows the median of the normalized mean squared error (MSE) across 50 Monte Carlo iterations for different values of ( n, d, k ) with initialization only (solid) and after ABGD (dashed). It is clear that when the number of random samples by the initialization algorithm, T , exceeds a certain threshold, the test MSE becomes negligible, indicating successful initialization and exact recovery of the model parameters by ABGD. Furthermore, we corroborate the theoretical guarantees in Theorem 4.4 with simulations. Notice that adding any constant vector v ∈ Rd+1 to all model parameters, i.e. {βj + v}k1 
+
+> j=1
+
+and {αl + v}k2
+
+> l=1
+
+,would result in an equivalent DoMA model in (3). Furthermore, any permutation of 
+
+12 Carsmall Cereal Reaction Moore Acetelyne 01234Normalized MSE Figure 4: Performance comparison of ABGD (blue), nonparametric difference of convex (green), k-nearest neighbors regression (yellow), multivariate adaptive regression splines (orange), and ReLU DNN (red) showing normalized MSE and 95% confidence intervals. 
+
+the parameters of each max-affine model would also lead to an equivalent PL model. Therefore, to measure the performance of the parameter estimation by Algorithm 1, we first solve for the optimal shift and permutation ambiguities as min 
+
+( k1X
+
+> j=1
+
+∥ bβπ1(j) − β⋆j + v∥22 +
+
+> k2
+
+X
+
+> l=1
+
+∥ bαl − α⋆π2(l) + v∥22 : v ∈ Rd+1 , π 1 ∈ Sk1 , π 2 ∈ Sk2
+
+)
+
+,
+
+(19) where Sk denotes the set of all permutations of [ k]. Then the relative error, E( bβ, bα), is defined as the minimum of (19) normalized by ∥[β⋆; α⋆]∥22. Figure 3 illustrates the median over 50 Monte Carlo iterations of the relative error E( bβ, bα) when the covariate dimension d varies versus the number of samples n for k1 = k2 = 3. The covariates and noise samples were generated following Normal( 0, Id) and Normal(0 , 10 −2) respec-tively. Figure 3 shows a sharp phase transition when the sample complexity n crosses a threshold scaling linearly with ambient dimension d. This is consistent with the sample complexity guarantee provided by Theorem 4.4. This Monte Carlo experiment ran for 72 hours on a server computer equipped with an Intel(R) Xeon(R) Gold 6330 CPU. Furthermore, we benchmark ABGD against relevant methods on the datasets avail-able in MATLAB’s Statistics and Machine Learning Toolbox. The benchmark datasets are of small sizes ( n ≤ 10 3 and d < 10 2) so that the comparison can include nonpara-metric methods that do not scale well to large dimensions. The methods we compare are: (i) ABGD on the DoMA model with k1 = k2 ≤ 4, (ii) non-parametric difference of convex (NDC) regression [Siahkamari et al., 2020], (iii) k-nearest neighbors with 
+
+k ≤ 10, (iv) Multivariate Adaptive Regression Splines [Jekabsons, 2011], and (v) L-layer ReLU DNN with L ≤ 4 and 4 neurons per layer. The choice of layers for the ReLU DNN was guided by the previously discussed equivalence with DoMA functions 
+
+13 NβN ˆβN ˆαNα⊖NβN ˆβ⊖N ˆαNαFigure 5: Consequence of overspecified orders in the DoMA regression: Newton polytope estimates (red) and groundtruth (black) with inactive parameters (green) for the 2D (top) and 3D (bottom) cases. 
+
+(L ≤ ⌈ log 2 max( k1, k 2)⌉ + 2 = 4). A random train-test split of (80% , 20%) was used, and the hyperparameters of each method were tuned via 5-fold cross-validation. We repeat this experiment 5 times and report the mean test error and the 95% confidence intervals in Figure 4. It is observed that ABGD performs competitively with NDC and outperforms existing methods. However, ABGD is much cheaper to solve than NDC, even with faster, more recent implementations [Siahkamari et al., 2022]. The imple-mentation of ABGD and all competing methods is available in our GitHub repository 
+
+> 2
+
+.
+
+# 7 Tropical Consequences 
+
+This section discusses geometric consequences for PL regression from tropical algebra. It has been shown that a DoMA function can be represented as an L-layer ReLU DNN where L ≤ ⌈ log 2 max( k1, k 2)⌉+2 [Zhang et al., 2012, Theorem 5.4]. This result is based on the observation that a DoMA function is a natural object from max-plus algebra called the tropical rational function . Furthermore, recall that a neuron in a ReLU DNN is called inactive if its weights do not have any influence on the output. We observe a similar interesting property for max-affine functions. Let Nβ = conv( {βj }kj=1 ) be the 
+
+Newton polytope from tropical algebra whose vertices are model parameters. Then a property from max-plus algebra states that two max-affine functions are equivalent if they share the same Newton polytope [Maragos et al., 2021, Eq. 15]. Therefore, the max-affine structure can artificially deactivate any affine function by simply placing it within the convex hull of other affine functions. For example, in a simple max-affine function given by max( −x, x, x/ 2) = max( −x, x ), the linear function x/ 2 is inactive. This property implies that DoMA models are equivalent if their max-affine parts share the same Newton polytopes. With ⊖ denoting the Minkowski set difference, Figure 5 provides geometric examples of this property where all model parameters interior to the normal cones (green) are inactive. This implies a major consequence for ABGD 
+
+> 2https://github.com/haitham-kanj/DoMA-Regression
+
+14 post-training, that is: any model parameter that can be written as a convex com-bination of other model parameters can be dropped; effectively, lossless compression 
+
+of the estimated DoMA model. This geometric result does not translate to ReLU DNNs since Newton polytopes are only defined through the difference of max-affine parametrization. 
+
+# 8 Conclusion 
+
+This paper presents ABGD, the first piecewise linear regression algorithm with the near minimax optimal sample complexity of eO(d). Our method also inherits the cost efficiency of gradient-based methods. An initialization algorithm is presented and is shown to successfully initialize ABGD. We test the performance of our approach on syn-thetic data, corroborating the theoretical rate, and showing competitive performance with existing SoTA methods for nonlinear regression on real-world data. Furthermore, even empirically competitive methods suffer from pessimistic theoretical guarantees imposed by the nature of their analysis. Finally, a geometric interpretation of DoMA models post ABGD training is provided through tropical algebra. 
+
+# Funding 
+
+This work was supported in part by an NSF grant (Award No. CCF 19-43201). 
+
+# References 
+
+Miroslav Baˇ c´ ak and Jonathan M Borwein. On difference convexity of locally Lipschitz functions. Optimization , 60(8-9):961–978, 2011. Douglas M Bates and Donald G Watts. Nonlinear regression analysis and its applica-tions , volume 2. Wiley New York, 1988. Alberto Bietti, Joan Bruna, and Loucas Pillaud-Vivien. On learning Gaussian multi-index models with gradient flow. arXiv preprint arXiv:2310.19793 , 2023. Emmanuel J Candes, Xiaodong Li, and Mahdi Soltanolkotabi. Phase retrieval via Wirtinger flow: Theory and algorithms. IEEE Transactions on Information Theory ,61(4):1985–2007, 2015. Monika Csikos, Andrey Kupavskii, and Nabil H Mustafa. Optimal bounds on the VC-dimension. arXiv preprint arXiv:1807.07924 , 2018. Sjoerd Dirksen. Tail bounds via generic chaining. Electron. J. Probab. , 20(53):1–29, 2015. Konstantin Eckle and Johannes Schmidt-Hieber. A comparison of deep networks with relu activation function and linear spline-type methods. Neural Networks , 110:232– 242, 2019. 
+
+15 Vincent Froese and Christoph Hertrich. Training neural networks is np-hard in fixed dimension. Advances in Neural Information Processing Systems , 36:44039–44049, 2023. Gallant. Nonlinear regression. The American Statistician , 29(2):73–81, 1975. Avishek Ghosh, Ashwin Pananjady, Adityanand Guntuboyina, and Kannan Ramchan-dran. Max-affine regression: Provable, tractable, and near-optimal statistical esti-mation. arXiv preprint arXiv:1906.09255 , 2019. Avishek Ghosh, Ashwin Pananjady, Adityanand Guntuboyina, and Kannan Ramchan-dran. Max-affine regression: Parameter estimation for Gaussian designs. IEEE Transactions on Information Theory , 2021. Wolfgang Hardle and Enno Mammen. Comparing nonparametric versus parametric regression fits. The Annals of Statistics , pages 1926–1947, 1993. JB Hiriart-Urruty. New concepts in nondifferentiable programming. M´ emoires de la Soci´ et´ e Math´ ematique de France , 60:57–85, 1979. Gints Jekabsons. Areslab: Adaptive regression splines toolbox for matlab/octave. URL: http://www. cs. rtu. lv/jekabsons , 2011. Haitham Kanj, Seonho Kim, and Kiryung Lee. Sparse max affine regression. arXiv preprint arXiv:2411.02225 , 2024. Seonho Kim and Kiryung Lee. Max-affine regression via first-order methods. SIAM Journal on Mathematics of Data Science , 6(2):534–552, 2024. Samory Kpotufe. k-nn regression adapts to local intrinsic dimension. Advances in neural information processing systems , 24, 2011. Ker-Chau Li. Sliced inverse regression for dimension reduction. Journal of the Amer-ican Statistical Association , 86(414):316–327, 1991. Yuanzhi Li and Yang Yuan. Convergence analysis of two-layer neural networks with relu activation. Advances in neural information processing systems , 30, 2017. Hamdy FF Mahmoud. Parametric versus semi and nonparametric regression models. 
+
+arXiv preprint arXiv:1906.10221 , 2019. Petros Maragos, Vasileios Charisopoulos, and Emmanouil Theodosis. Tropical geome-try and machine learning. Proceedings of the IEEE , 109(5):728–755, 2021. Mehryar Mohri, Afshin Rostamizadeh, and Ameet Talwalkar. Foundations of machine learning . MIT press, 2018. Vladimir Rokhlin, Arthur Szlam, and Mark Tygert. A randomized algorithm for prin-cipal component analysis. SIAM Journal on Matrix Analysis and Applications , 31 (3):1100–1124, 2010. 
+
+16 Ali Siahkamari, Aditya Gangrade, Brian Kulis, and Venkatesh Saligrama. Piecewise linear regression via a difference of convex functions. In International conference on machine learning , pages 8895–8904. PMLR, 2020. Ali Siahkamari, Durmus Alp Emre Acar, Christopher Liao, Kelly L Geyer, Venkatesh Saligrama, and Brian Kulis. Faster algorithms for learning convex functions. In 
+
+International Conference on Machine Learning , pages 20176–20194. PMLR, 2022. Michel Talagrand. Upper and lower bounds for stochastic processes , volume 60. Springer, 2014. Kean Ming Tan, Zhaoran Wang, Tong Zhang, Han Liu, and R Dennis Cook. A convex formulation for high-dimensional sparse sliced inverse regression. Biometrika , 105 (4):769–782, 2018. Yan Shuo Tan and Roman Vershynin. Phase retrieval via randomized Kaczmarz: the-oretical guarantees. Information and Inference: A Journal of the IMA , 8(1):97–123, 2019. Martin J Wainwright. High-dimensional statistics: A non-asymptotic viewpoint , vol-ume 48. Cambridge university press, 2019. Yingcun Xia, Howell Tong, Wai Keung Li, and Li-Xing Zhu. An adaptive estimation of dimension reduction space. Journal of the Royal Statistical Society Series B: Statistical Methodology , 64(3):363–410, 2002. Liwen Zhang, Gregory Naitzat, and Lek-Heng Lim. Tropical geometry of deep neu-ral networks. In International Conference on Machine Learning , pages 5824–5832. PMLR, 2018. Youwei Zhang, Alexandre d’Aspremont, and Laurent El Ghaoui. Sparse PCA: Con-vex relaxations, algorithms and applications. Handbook on Semidefinite, Conic and Polynomial Optimization , pages 915–940, 2012. 
+
+# A Technical Appendices and Supplementary Mate-rial 
+
+## A.1 Proof of Theorem 4.4 
+
+Without loss of generality, we assume that k = k1 = k2 to simplify the proof. The assertion in Theorem 4.4 follows if 
+
+∥βt+1 − β⋆∥ ≤ τ1∥βt − β⋆∥ + τ2∥αt − α⋆∥ (20) and 
+
+∥αt+1 − α⋆∥ ≤ τ1∥αt − α⋆∥ + τ2∥βt − β⋆∥ (21) 
+
+17 hold for some τ1, τ 2 ∈ (0 , 1/2). For notational simplicity, we make use of the following shorthands Btj = Cj (βt), B⋆j = Cj (β⋆), Atl = Cl(αt), A⋆l = Cl(α⋆),
+
+htj = βtj − β⋆j , vtjj ′ = βtj − βtj′ , v⋆jj ′ = β⋆j − β⋆j′ ,
+
+qtl = αtl − α⋆l , wtll ′ = αtl − αtl′ , w⋆ll ′ = α⋆l − α⋆l′
+
+(22) for all j, j ′, l, l ′ ∈ [k] and t ∈ { 0} ∪ N. Due to the symmetry of (20) and (21), if suffices to prove (20). The left-hand side of (20) is upper bounded as 
+
+∥βt+1 − β⋆∥22 ≤
+
+> k
+
+X
+
+> j=1
+
+∥βtj − β⋆j − ∇ βj ℓ(βtj )∥22 =
+
+> k
+
+X
+
+> j=1
+
+∥htj − μj (βt)∇βj ℓ(βtj )∥22. (23) The gradient in (23) can be expanded as 
+
+∇βj ℓ(βtj ) = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B tj }
+
+
+
+⟨ξi, βtj ⟩ − max 
+
+> q∈[k]
+
+⟨ξi, β⋆q ⟩ − max  
+
+> l∈[k]
+
+⟨ξi, αtl ⟩ + max 
+
+> p∈[k]
+
+⟨ξi, α⋆p⟩
+
+
+
+ξi
+
+= 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B tj }
+
+
+
+⟨ξi, βtj ⟩ − max 
+
+> q∈[k]
+
+⟨ξi, β⋆q ⟩
+
+
+
+ξi
+
+| {z }
+
+> atj
+
++ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B tj }
+
+
+
+− max  
+
+> l∈[k]
+
+⟨ξi, αtl ⟩ + max 
+
+> p∈[k]
+
+⟨ξi, α⋆p⟩
+
+
+
+ξi
+
+| {z }
+
+> btj
+
+. (24) Plugging (24) into (23), we obtain 
+
+∥βt+1 − β⋆∥22 ≤
+
+> k
+
+X
+
+> j=1
+
+ ∥htj − μj (βt)atj ∥2 + ∥μtj btj ∥2
+
+2
+
+≤ 2
+
+> k
+
+X
+
+> j=1
+
+∥htj − μj (βt)atj ∥22 + 2 
+
+> k
+
+X
+
+> j=1
+
+∥μj (βt)btj ∥22
+
+≤ τ1∥βt − β⋆∥ + 2 
+
+> k
+
+X
+
+> j=1
+
+∥μj (βt)btj ∥22, (25) where the last inequality follows from [Kanj et al., 2024, Theorem 2.3] since it is equivalent to a single gradient step in max-affine regression. Therefore, in order for (20) to follow from (25), it suffices to show that 
+
+> k
+
+X
+
+> j=1
+
+∥μj (βt)btj ∥22 ≤ τ2∥qtl ∥22 (26) 
+
+18 for some τ2 ∈ (0 , 1/2). Next, we can rewrite btj as 
+
+btj = 1
+
+n
+
+nX
+
+i=1 
+
+X
+
+l,p 
+
+1{xi∈B tj ∩A tl ∩A ⋆p}⟨ξi, α⋆p − αtl ⟩ξi
+
+= 1
+
+n
+
+nX
+
+i=1 
+
+X
+
+l,p 
+
+1{xi∈B tj ∩A tl ∩A ⋆p}⟨ξi, w⋆pl − qtl ⟩ξi
+
+= 1
+
+n
+
+nX
+
+i=1 
+
+X
+
+l,p l̸ =p
+
+1{xi∈B tj ∩A tl ∩A ⋆p}⟨ξi, w⋆pl ⟩ξi + 1
+
+n
+
+nX
+
+i=1 
+
+kX
+
+l=1 
+
+1{xi∈B tj ∩A tl }⟨ξi, −qtl ⟩ξi
+
+= 1
+
+n
+
+nX
+
+i=1 
+
+kX
+
+l=1 
+
+kX
+
+p=1 
+
+p̸=l
+
+1{xi∈B tj ∩A tl ∩A ⋆p}⟨ξi, w⋆pl ⟩ξi
+
+| {z }
+
+T j
+
+> 1
+
++ 1
+
+n
+
+nX
+
+i=1 
+
+kX
+
+l=1 
+
+kX
+
+j′=1 
+
+j′̸ =j
+
+1{xi∈B tj ∩B ⋆j′ ∩A tl }⟨ξi, −qtl ⟩ξi
+
+| {z }
+
+T j
+
+> 2
+
++ 1
+
+n
+
+nX
+
+i=1 
+
+kX
+
+l=1 
+
+1{xi∈B tj ∩B ⋆j ∩A tl ∩A ⋆l }⟨ξi, −qtl ⟩ξi
+
+| {z }
+
+T j
+
+> 3
+
++ 1
+
+n
+
+nX
+
+i=1 
+
+kX
+
+l=1 
+
+kX
+
+p=1 
+
+p̸=l
+
+1{xi∈B tj ∩B ⋆j ∩A tl ∩A ⋆p}⟨ξi, −qtl ⟩ξi
+
+| {z }
+
+T j
+
+> 4
+
+.
+
+(27) The summands T j
+
+1 , T j
+
+2 , and T j
+
+4 in the upper bound in (27) are uniformly upper-bounded with high probability as shown in the following lemma, the proof of which is deferred to Appendix A.4. 
+
+Lemma A.1. Instate of the assumptions of Theorem 4.4. It holds with probability 
+
+1 − ke −d that 
+
+max( ∥T j
+
+1 ∥, ∥T j
+
+2 ∥, ∥T j
+
+4 ∥)2 ≤ π2(1+ ζ−1)min 
+
+k
+
+kX
+
+l=1 
+
+∥qtl ∥2.
+
+The remaining summand T j
+
+3 is rewritten as 
+
+T j
+
+3 = 1
+
+n
+
+kX
+
+l=1 
+
+Ejl Ejl
+
+T(−qtl )where 
+
+Ejl := 
+
+h
+
+1{x1∈B tj ∩B ⋆j ∩A tl ∩A ⋆l }ξ1, . . . , 1{xn∈B tj ∩B ⋆j ∩A tl ∩A ⋆l }ξn
+
+i
+
+∈ R(d+1) ×n.
+
+Therefore, it follows that 
+
+T j
+
+3
+
+22
+
+≤
+
+kX
+
+l=1 
+
+1
+
+√n Ejl
+
+42
+
+qtl
+
+22 .
+
+19 For every fixed l ∈ [k], it holds with probability at least 1 − ke −d that 
+
+1
+
+√n Ejl
+
+> 42
+
+= λ2max 
+
+ 1
+
+n Ejl Ejl
+
+> T
+
+
+
+≤ C(η4 ∨ 1) 
+
+"
+
+P(x ∈ B ⋆j ∩ A ⋆l ) log e
+
+P(x ∈ B ⋆j ∩ A ⋆l )
+
+!| {z }
+
+> λjl
+
+!2
+
++ k−3π4(1+ ζ−1)min 
+
+#
+
+(28) since (13) implies that the result in each of Lemmas A.2 and A.3 holds with probability 1 − ke −d/2. Since β⋆ and α⋆ satisfy Definition (4.3) where β, α substituted by β⋆, α⋆,it follows that max  
+
+> l∈[k]
+
+λjl ≤ k−r P(x ∈ B ⋆j ) log ek r
+
+P(x ∈ B ⋆j )
+
+!
+
+, ∀j ∈ [k]. (29) The inequality in (29) is proved as follows: Fix j ∈ [k]. The left-hand side of (29) is written as the solution to the following optimization problem maximize 
+
+> {pl}kl=1
+
+max  
+
+> l∈[k]
+
+pl log( e/p l)subject to 
+
+> k
+
+X
+
+> l=1
+
+pl = P(x ∈ B ⋆j )0 ≤ pl ≤ k−r P(x ∈ B ⋆j ), l ∈ [k].
+
+(30) Since x 7 → x log( e/x ) is monotonically increasing when x ∈ [0 , 1], the maximizer to (30) also maximizes the following optimization maximize 
+
+> {pl}kl=1
+
+max  
+
+> l∈[k]
+
+pl
+
+subject to 
+
+> k
+
+X
+
+> l=1
+
+pl = P(x ∈ B ⋆j )0 ≤ pl ≤ k−r P(x ∈ B ⋆j ), l ∈ [k].
+
+(31) Since r ∈ [0 , 1], the feasible set of (31) is non-empty and its maximizer should satisfy 
+
+pl = k−r P(x ∈ B ⋆j ) for some l ∈ [k] thereby yielding the assertion in (29). Next, we show that the step size is upper-bounded with probability at least 1 − ke −d as 
+
+μj (βt) := 1
+
+> 1
+> n
+
+Pni=1 1{xi∈B tj }
+
+≤ 1
+
+P(x ∈ B tj ) − k−3/2π2(1+ ζ−1)min 
+
+≤ 1(1 − CR 2ζ k−2(1+ ζ−1))P(x ∈ B ⋆j ) − k−3/2π2(1+ ζ−1)min 
+
+≤ 2
+
+P(x ∈ B ⋆j ) (32) 
+
+20 where the first inequality follows from [Kanj et al., 2024, Lemma A.1], the second inequality follows from [Kanj et al., 2024, Lemma B.3], and the last inequality follows from a suitable choice of R > 0. Using the bounds in (28) and (32) yields that 
+
+> k
+
+X
+
+> j=1
+
+∥μj (βt)T j 
+
+> 3
+
+∥22 ≤ C(η4 ∨ 1) 
+
+
+
+k1−2r log 2(e−1k−r πmin ) + k−2π2+4 ζ−1
+
+> min
+
+ kX
+
+> l=1
+
+qtl 
+
+> 22
+
+.
+
+Finally, we derive an upper bound on the left-hand side of (26) given by 
+
+> k
+
+X
+
+> j=1
+
+∥μj (βt)btj ∥2 ≤ 4
+
+> k
+
+X
+
+> j=1
+> 4
+
+X
+
+> p=1
+
+∥μj (βt)T jp ∥2
+
+!
+
+≤
+
+h
+
+48 k−2ζ−1
+
++ C(η4 ∨ 1) 
+
+
+
+k1−2r log 2(e−1k−r πmin ) + k−4(1+ ζ−1)i | {z }
+
+> ϕ(k;r)
+> k
+
+X
+
+> l=1
+
+∥qtl ∥2,
+
+(33) where ϕ(k; r) is a nonnegative, monotonically decreasing function of k when r > 1/2. Therefore, for sufficiently large k, we can have ϕ(k; r) < 1/2 satisfying the requirement in (26) which concludes the proof. 
+
+## A.2 Supporting Lemmas for the Proof of Theorem 4.4 
+
+The first lemma provides an upper bound on the empirical average of the indicator function when activated by membership in the intersection of tropical open cells defined in (5). 
+
+Lemma A.2. Instate of the assumptions of Theorem 4.4. For every l, j ∈ [k], it holds with probability at least 1 − ke −d that 
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B ⋆j ∩A ⋆l } ≤ P  xi ∈ B ⋆j ∩ A ⋆l
+
+ + k−3/2π2(1+ ζ−1)min .
+
+Proof. For every fixed l, j ∈ [k], we have that 
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B tj ∩B ⋆j ∩A tl ∩A ⋆l } ≤
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B ⋆j ∩A ⋆l }.
+
+Let D be a collection of subsets in Rd. We denote the set of vectors whose entries are the indicator functions of D evaluated at samples {xi}ni=1 ⊂ Rd by 
+
+H(C, {xi}ni=1 ) :=   1{x1∈C}, . . . , 1{xn∈C}
+
+ : C ∈ D .
+
+The Sauer-Shelah lemma [Mohri et al., 2018, Section 3] implies sup 
+
+> x1,..., xn
+
+|H (D, {xi}ni=1 )| ≤ 
+
+ en 
+
+VC-dim( D)
+
+VC-dim( D)
+
+,
+
+21 where VC-dim( D) denotes the Vapnik-Chervonenkis dimension of D. Let Pk,d collect the intersections of k halfspaces in Rd. Since the VC-dim of a single halfspace in Rd is 
+
+d + 1 [Csikos et al., 2018, Theorem A], we have sup 
+
+> x1,..., xn
+
+|H (Pk,d , {xi}ni=1 )| ≤ 
+
+ en d + 1 
+
+k(d+1) 
+
+.
+
+We also have by [Csikos et al., 2018, Theorem A] that VC-dim( D1∩D 2) ≤ C VC-dim( D)for every D1, D2 ⊆ D . Therefore, using [Kim and Lee, 2024, Lemma SM1.3], we have with probability at least 1 − δ that sup   
+
+> B⋆j,A⋆l∈P k,d
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B ⋆j ∩A ⋆l } − P  xi ∈ B ⋆j ∩ A ⋆l
+
+ ≤ C
+
+r log(1 /δ ) + kd log( d/n )
+
+n .
+
+We proceed with the choice of δ = ke −d. Then, the sample complexity requirement in (13) yields the assertion in (A.2). The next lemma establishes an upper bound on the spectral norm of the empirical outer product when only a subset of summands are active. 
+
+Lemma A.3. Let δ ∈ (0 , 1/e ), α ∈ (0 , 1) , {xi}ni=1 be independent copies of η-sub-Gaussian vector x ∈ Rd. Then it holds with probability at least 1 − δ that 
+
+sup 
+
+> I:|I|≤ αn
+
+λmax 
+
+ 1
+
+n
+
+X
+
+> i∈I
+
+[xi; 1][ xi; 1] T
+
+
+
+≤ C(η2 ∨ 1) α log( e/α ), (34) 
+
+provided 
+
+n ≥ d ∨ log(1 /δ )
+
+α . (35) Lemma A.3 improves on the previous result [Tan and Vershynin, 2019, Theorem 5.7] by reducing the dependence on α from √α to α log( e/α ) in (34). 
+
+Proof of Lemma A.3. We follow most of the arguments in the proof by Tan and Ver-shynin [2019, Theorem 5.7] except a sharpened upper estimate of one geometric quan-tity. Define the set of vectors with at most αn support elements as 
+
+Snα := {s ∈ { 0, 1}n : ∥s∥1 ≤ αn } ,
+
+where αn ∈ N is assumed without loss of generality. Define a stochastic process ( Ys,v )indexed by s ∈ S nα and v ∈ Bd 
+
+> 2
+
+as 
+
+Ys,v =
+
+> n
+
+X
+
+> i=1
+
+[s]i⟨√dai, v⟩2,
+
+where {ai}ni=1 are independent copies of a that is uniformly distributed over the unit sphere Sd−1 in ℓd
+
+> 2
+
+. Tan and Vershynin [2019, Lemma 5.4] showed that Ys,v has mixed tail increments with respect to the metrics d1 and d2 respectively induced by the 
+
+22 corresponding norms ||| (s, v) ||| 1 := ∥s∥∞ ∨ ∥ v∥2 and ||| (s, v) ||| 2 := ∥s∥2 ∨ (√αn ∥v∥2), i.e. there exist absolute constants C1, C 2 > 0 such that 
+
+P  |Ys,v − Ys′,v′ | ≥ C1
+
+√ud 2(( s, v), (s′, v′)) + ud 1(( s, v), (s′, v′))  ≤ C2e−u
+
+holds for every ( s, v), (s′, v′) ∈ S nα × Bd 
+
+> 2
+
+. Therefore, due to the chaining bound by Dirksen [2015, Theorem 5], the supremum of Ys,v is upper-bounded as sup 
+
+> s,s′∈S nα
+> v,v′∈Bn
+> 2
+
+|Ys,v − Ys′,v′ | ≤ C
+
+
+
+γ2(Snα × Bd 
+
+> 2
+
+, d 2) + γ1(Snα × Bd 
+
+> 2
+
+, d 1)+ √udiam( Snα × Bd 
+
+> 2
+
+, d 2) + udiam( Snα × Bd 
+
+> 2
+
+, d 1)
+
+
+
+,
+
+with probability at least 1 − e−u for any u ≥ 1 where γ1 and γ2 denote the Talagrand functionals [Talagrand, 2014, Section 2.3], and diam( Snα × Bd 
+
+> 2
+
+, d k) denotes the diameter of Snα × Bd 
+
+> 2
+
+with respect to the metric dk for k = 1 , 2. We use the calculations on γ1
+
+and the diameters by Tan and Vershynin [2019] given by 
+
+γ1(Snα ×Bd 
+
+> 2
+
+, d 1) ≲ [αn log ( e/α ) + d] , diam( Snα ×Bn 
+
+> 2
+
+, d 1) = 2 , diam( Snα ×Bn 
+
+> 2
+
+, d 2) = 2 √αn, 
+
+(36) where f ≲ g denotes f ≤ Cg for some absolute constant C > 0. The only and important distinction is to get a sharpened upper bound on γ2 as follows. Using the Dudley bound, we have 
+
+γ2(Snα × Bd 
+
+> 2
+
+, d 2) ≲
+
+Z ∞
+
+> 0
+
+q
+
+log N (Snα × Bd 
+
+> 2
+
+, d 2, u )du 
+
+≤
+
+Z ∞
+
+> 0
+
+q
+
+log N (Snα , ∥ · ∥ 2, u )N (Bn 
+
+> 2
+
+, √αn ∥ · ∥ 2, u )du 
+
+≲
+
+Z ∞
+
+> 0
+
+plog N (Snα , ∥ · ∥ 2, u )du 
+
+| {z }
+
+> L1
+
++
+
+Z ∞
+
+> 0
+
+q
+
+log N (Bd 
+
+> 2
+
+, √αn ∥ · ∥ 2, u )du 
+
+| {z }
+
+> L2
+
+,
+
+where N denotes the covering number and the second inequality follows from the definition of d2. We further proceed by obtaining an upper bound on each of L1 and 
+
+L2. Define the set of all possible support vectors with cardinality αn as 
+
+I := {ζ ∈ { 0, 1}n : ∥ζ∥1 = αn } .
+
+Then the cardinality of this set is upper-bounded as |I| =   nαn 
+
+ ≤ (1 /α )αn using Stirling’s approximation. Let [0 , 1] ζ denote the unit cube in the coordinate set by ζ,i.e. [0 , 1] ζ := [ ζ]1[0 , 1] × · · · × [ζ]n[0 , 1] ,
+
+where [ζ]i[0 , 1] = 
+
+(
+
+[0 , 1] if [ ζ]i = 1 
+
+{0} if [ ζ]i = 0 .
+
+23 Then we have the following set inclusion relation 
+
+Snα ⊂ X
+
+> ζ∈I
+
+[0 , 1] ζ .
+
+Therefore, it follows that 
+
+L1 ≤
+
+Z 10
+
+plog N (Snα , ∥ · ∥ 2, u )du ≤
+
+Z 10
+
+log N
+
+X
+
+> ζ∈I
+
+[0 , 1] ζ , ∥ · ∥ 2, u 
+
+
+
+> 1/2
+
+du 
+
+≲
+
+Z 10
+
+plog |I| du + sup 
+
+> ζ∈I
+
+Z 10
+
+q
+
+log N ([0 , 1] ζ , ∥ · ∥ 2, u )du 
+
+≤ plog |I| +
+
+Z 10
+
+q
+
+log N  √αnB αn  
+
+> 2
+
+, ∥ · ∥ 2, u du 
+
+≤ pαn log(1 /α ) + √αn 
+
+Z 10
+
+q
+
+log N (Bαn  
+
+> 2
+
+, ∥ · ∥ 2, u )du 
+
+≤ pαn log(1 /α ) + αn ≤ √n + αn, 
+
+where the last inequality holds for α log(1 /α ) ≤ 1 for all α > 0. Combined with 
+
+L2 ≲ √αnd , we obtain 
+
+γ2(Snα × Bd 
+
+> 2
+
+, d 2) ≲ αn + √αnd. (37) Since Ys,0 = 0 for all s ∈ S nα , combining the previous results in (36) and the upper bound on γ2 in (37) yields that, for any u ≥ 1, it holds with probability at least 1 − e−u
+
+that sup  
+
+> s∈S nα,v∈Bn
+> 2
+
+Ys, v ≲ αn log( e/α ) + d + √αnd + √unα + u ≲ αn log( e/α ),
+
+where the last inequality follows from (35). 
+
+## A.3 Proof of Corollary 4.5 
+
+Let bβ = βt and bα = αt be the final estimates from ABGD with sufficiently large step count t. By the definition of the DoMA function in (1), we have 
+
+f (x; β, α) = f (x; β, 0) − f (x; 0, α), ∀α, β.
+
+Therefore, the left-hand side of (15) is upper-bounded as 
+
+Ex
+
+
+
+f (x; bβ, bα) − f (x; β⋆, α⋆) 2
+
+≤2Ex
+
+
+
+f (x; bβ, 0) − f (x; β⋆, 0) 2
+
++ 2 Ex
+
+h
+
+|f (x; 0, bα) − f (x; 0, α⋆)|2i
+
+. (38) 
+
+24 Let bBj = Cj ( bβ) and bB⋆j = Cj (β⋆) for all j ∈ [k]. Then the first summand of the right-hand side of (38) is bounded from above as 
+
+Ex
+
+
+
+f (x; bβ, 0) − f (x; β⋆, 0) 2
+
+≤E
+
+X
+
+> j,j ′∈[k]
+
+1{x∈ bBj ∩B ⋆j′ }⟨[x; 1] , bβj − β⋆j′ ⟩
+
+> 2
+
+
+
+≤ E
+
+X
+
+> j,j ′∈[k]
+
+1{x∈ bBj ∩B ⋆j′ }⟨[x; 1] , bhj ⟩
+
+> 2
+
+| {z }
+
+> (I)
+
++ E
+
+X 
+
+> j̸=j′∈[k]
+
+1{x∈ bBj ∩B ⋆j′ }⟨[x; 1] , v⋆jj ′ ⟩
+
+> 2
+
+| {z }
+
+> (II)
+
+,
+
+(39) where bhj = bβj − β⋆j and v⋆jj ′ = β⋆j − β⋆j′ . First, we derive a bound on (I) as (I) = E
+
+ X
+
+> j′∈[k]
+
+1{x∈B ⋆j′ }
+
+| {z }
+
+> =1
+
+X
+
+> j∈[k]
+
+1{x∈ bBj }⟨[x; 1] , bhj ⟩2
+
+ = E
+
+ X
+
+> j∈[k]
+
+1{x∈ bBj } bhT 
+
+> j
+
+[x; 1][ x; 1] T bhj
+
+
+
+≤ X
+
+> j∈[k]
+
+bhT 
+
+> j
+
+E [x; 1][ x; 1] T bhj = X
+
+> j∈[k]
+
+bhT 
+
+> j
+
+Id+1 bhj = X
+
+> j∈[k]
+
+bhj
+
+> 2
+
+= bβ − β⋆ 2
+
+, (40) where the first equality follows from 1{x∈ bBj1 ∩B ⋆j′
+
+> 1
+> }
+
+1{x∈ bBj2 ∩B ⋆j′
+
+> 2
+> }
+
+̸ = 0 only if j1 = j2 and 
+
+j′ 
+
+> 1
+
+= j′
+
+> 2
+
+, and the third equality follows from Assumption 4.1. Let bvjj ′ = bβj − bβj′ . Then we obtain an upper bound on (II) as (II) = E
+
+X 
+
+> j̸=j′∈[k]
+
+1{x∈ bBj ∩B ⋆j′ }⟨[x; 1] , v⋆jj ′ ⟩
+
+> 2
+
+ = E
+
+ X 
+
+> j̸=j′∈[k]
+
+1{x∈ bBj ∩B ⋆j′ }⟨[x; 1] , v⋆jj ′ ⟩2
+
+
+
+≤ 25γk 
+
+ πmin 
+
+16 
+
+1+ ζ−1 X 
+
+> j′̸=j∈[k]
+
+∥bvjj ′ − v⋆jj ′ ∥2 = 25γk 
+
+ πmin 
+
+16 
+
+1+ ζ−1 X 
+
+> j′̸=j∈[k]
+
+∥bhj − bhj′ ∥2
+
+≤ 25γk 
+
+ πmin 
+
+16 
+
+1+ ζ−1 X 
+
+> j′̸=j∈[k]
+
+
+
+∥bhj ∥2 + ∥bhj′ ∥2
+
+≤ 4( k − 1) 5γk 
+
+ πmin 
+
+16 
+
+1+ ζ−1
+
+bβ − β⋆ 2
+
+,
+
+(41) where the first inequality follows by taking the expectation of Kanj et al. [2024, Lemma B.5]. Plugging (I) and (II) into (39) yields 
+
+Ex
+
+
+
+f (x; bβ, 0) − f (x; β⋆, 0) 2
+
+≤
+
+ 8( k − 1) 4γk 
+
+ πmin 
+
+16 
+
+1+ ζ−1
+
++ 1 
+
+
+
+· bβ − β⋆ 2
+
+. (42) 
+
+25 By symmetry, we also have 
+
+Ex
+
+h
+
+|f (x; 0, bα) − f (x; 0, α⋆)|2i
+
+≤
+
+ 8( k − 1) 4γk 
+
+ πmin 
+
+16 
+
+1+ ζ−1
+
++ 1 
+
+
+
+· ∥ bα − α⋆∥2 . (43) By plugging (42) and (43) into (38), we obtain 
+
+Ex
+
+
+
+f (x; bβ, bα) − f (x; β⋆, α⋆) 2
+
+≤ 2
+
+ 8( k − 1) 4γk 
+
+ πmin 
+
+16 
+
+1+ ζ−1
+
++ 1 
+
+
+
+·
+
+ bβ
+
+bα
+
+
+
+−
+
+β⋆
+
+α⋆
+
+ 22
+
+≤ Cσ 2 
+
+> z
+
+d(k1 ∨ k2) log( n/d )
+
+n , (44) where the last inequality follows from Theorem 4.4. For sufficiently large t, the first term of the right-hand side in (14) is dominated by the second term, resulting in the upper bound in (44). 
+
+## A.4 Proof of Lemma A.1 
+
+We can rewrite the first term T j 
+
+> 1
+
+in (27) as 
+
+T j 
+
+> 1
+
+= 1
+
+n
+
+> k
+
+X
+
+> l=1
+> k
+
+X
+
+> p=1
+> p̸=l
+
+E1
+
+> p,l
+
+v1 
+
+> p,l
+
+(45) with 
+
+E1 
+
+> p,l
+
+:= [ 1{x1∈B tj ∩A tl ∩A ⋆p}ξ1, . . . , 1{xn∈B tj ∩A tl ∩A ⋆p}ξn]and 
+
+v1 
+
+> p,l
+
+:= [ 1{x1∈B tj ∩A tl ∩A ⋆p}⟨ξ1, w⋆pl ⟩, . . . , 1{xn∈B tj ∩A tl ∩A ⋆p}⟨ξn, w⋆pl ⟩]T.
+
+Since the summand vectors in (45) are pairwise orthogonal due to the exclusive indi-cator functions, we have 
+
+∥T j 
+
+> 1
+
+∥2 ≤ 1
+
+n2
+
+> k
+
+X
+
+> l=1
+> k
+
+X
+
+> p=1
+> p̸=l
+
+∥E1
+
+> p,l
+
+∥2∥v1
+
+> p,l
+
+∥2. (46) We first upper bound the factor ∥v1
+
+> p,l
+
+∥2 in each summand in the right-hand side of (46) as 1
+
+n ∥v1
+
+> p,l
+
+∥2 = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xn∈B tj ∩A tl ∩A ⋆p}⟨ξn, w⋆pl ⟩2 ≤ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xn∈A tl ∩A ⋆p}⟨ξn, w⋆pl ⟩2
+
+≤ 25γk 
+
+ πmin 
+
+16 
+
+1+ ζ−1
+
+∥wtpl − w⋆pl ∥2 = 25γk 
+
+ πmin 
+
+16 
+
+1+ ζ−1
+
+∥qtl − qtp∥2, (47) 
+
+26 where the second inequality follows since (13) invokes [Kim and Lee, 2024, Lemma SM2.7] with probability at least 1 − ke −d/2 and the last equality follows from the definitions in (22). Furthermore, we have 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B tj ∩A tl ∩A ⋆p} ≤ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈∩A tl ∩A ⋆p} ≤ C Rζ π1+ ζ−1
+
+> min
+
+k
+
+!2
+
+(48) where the second inequality holds since (13) invokes [Kim and Lee, 2024, Lemma SM2.7] with probability at least 1 − ke −d/2. Using (48) and [Tan and Vershynin, 2019, Theorem 5.7], we have with probability at least 1 − ke −d/2 that 1
+
+n ∥E1
+
+> p,l
+
+∥2 ≤ C(η2 ∨ 1) Rζ π1+ ζ−1
+
+> min
+
+k ≤ π1+ ζ−1
+
+> min
+
+k , (49) where the last inequality follows from a suitable choice of R > 0. Therefore, combining (47) and (49), we have that 
+
+∥T j 
+
+> 1
+
+∥2 = 25γk 2
+
+ 116 
+
+1+ ζ−1
+
+π2(1+ ζ−1)min 
+
+> k
+
+X
+
+> l=1
+> k
+
+X
+
+> p=1
+> p̸=l
+
+∥qtl −qtp∥2 ≤ 15γk 
+
+ 116 
+
+1+ ζ−1
+
+π2(1+ ζ−1)min 
+
+> k
+
+X
+
+> l=1
+
+∥qtl ∥2.
+
+(50) Similarly, the second term T j 
+
+> 2
+
+in (27) is rewritten as 
+
+T j 
+
+> 2
+
+= 1
+
+n
+
+> k
+
+X
+
+> l=1
+> k
+
+X 
+
+> j′=1
+> j′̸=j
+
+E2
+
+> j′,l
+
+(E2
+
+> j′,l
+
+)T(−atl ), where E2 
+
+> j′,l
+
+:= [ 1{x1∈B tj ∩B ⋆j′ ∩A tl }ξn, . . . , 1{x1∈B tj ∩B ⋆j′ ∩A tl }ξn].
+
+Similar to (48), we have 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B tj ∩B ⋆j′ ∩A tl } ≤ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B tj ∩B ⋆j′ } ≤ C Rζ π1+ ζ−1
+
+> min
+
+k
+
+!2
+
+, (51) where the second inequality follows since (13) invokes [Kim and Lee, 2024, Lemma SM2.7] with probability at least 1 −ke −d/2. Due to Tan and Vershynin [2019, Theorem 5.7], it holds with probability at least 1 − ke −d/2 that 1
+
+n ∥E2
+
+> p,l
+
+∥2 ≤ C(η2 ∨ 1) Rζ π1+ ζ−1
+
+> min
+
+k ≤ π1+ ζ−1
+
+> min
+
+k , (52) where the last inequality follows from a suitable choice of R > 0. Therefore, using (51) and (52) we have 
+
+∥T j 
+
+> 2
+
+∥2 =
+
+> k
+
+X
+
+> l=1
+> k
+
+X 
+
+> j′=1
+> j′̸=j
+
+∥E2
+
+> j′,l
+
+∥4∥atl ∥2/n 2 ≤ π2(1+ ζ−1)min 
+
+k
+
+> k
+
+X
+
+> l=1
+
+∥qtl ∥2. (53) 
+
+27 Finally, the last term T j 
+
+> 4
+
+in (27) is also rewritten as 
+
+T j 
+
+> 4
+
+= 1
+
+n
+
+> k
+
+X
+
+> l=1
+> k
+
+X
+
+> p=1
+> p̸=l
+
+E4
+
+> p,l
+
+(E4
+
+> p,l
+
+)T(−atl ),
+
+where 
+
+E4 
+
+> p,l
+
+:= [ 1{x1∈B tj ∩B ⋆j ∩A tl ∩A ⋆p}ξ1, . . . , 1{xn∈B tj ∩B ⋆j ∩A tl ∩A ⋆p}ξn].
+
+Similar to (48), we have 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈B tj ∩B ⋆j ∩A tl ∩A ⋆p} ≤ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1{xi∈A tl ∩A ⋆p} ≤ C Rζ π1+ ζ−1
+
+> min
+
+k
+
+!2
+
+, (54) where the second inequality follows since (13) invokes [Kim and Lee, 2024, Lemma SM2.7] with probability at least 1 −ke −d/2. Due to Tan and Vershynin [2019, Theorem 5.7], it holds with probability at least 1 − ke −d/2 that 1
+
+n ∥E4
+
+> p,l
+
+∥2 ≤ C(η2 ∨ 1) Rζ π1+ ζ−1
+
+> min
+
+k ≤ π1+ ζ−1
+
+> min
+
+k , (55) where the last inequality follows from a suitable choice of R > 0. Therefore, it follows from (54) and (55) that ∥T j 
+
+> 4
+
+∥2 is upper-bounded as 
+
+∥T j 
+
+> 4
+
+∥2 =
+
+> k
+
+X
+
+> l=1
+> k
+
+X 
+
+> j′=1
+> j′̸=j
+
+∥E4
+
+> j′,l
+
+∥4∥qtl ∥2/n 2 ≤ π2(1+ ζ−1)min 
+
+k
+
+> k
+
+X
+
+> l=1
+
+∥qtl ∥2. (56) Combining (50), (53), and (56) completes the proof. 
+
+## A.5 Minimax Lower Bound 
+
+The following lemma is a simple generalization of the minimax lower bound by Ghosh et al. [2021, Proposition] for max-affine regression to difference of max-affine regression. 
+
+Lemma A.4. Recall the difference of max-affine observation model written as 
+
+y = max 
+
+> j∈[k1]
+
+ β⊤ 
+
+> j
+
+[x; 1]  − max 
+
+> l∈[k2]
+
+ α⊤ 
+
+> l
+
+[x; 1]  + z, (57) 
+
+where x ∈ Rd has i.i.d. Gaussian entries with mean zero and unit variance, z is inde-pendent Gaussian noise with variance σ2 
+
+> z
+
+. Let B = [ β1, . . . , βk1 ] and A = [ α1, . . . , αk2 ]
+
+collect the parameters as columns. With the dataset {(xi, y i)}ni=1 , denote the design matrix by Ξ ∈ Rn×(d+1) with rows ξ⊤ 
+
+> i
+
+= [ xi; 1] ⊤. Then we have that 
+
+inf  
+
+> bB,bA
+
+sup 
+
+> B,A
+
+E
+
+ 1
+
+n Ξ( bB − B) 2F + 1
+
+n Ξ( bA − A) 2F
+
+
+
+≥ C σ2 
+
+> z
+
+(k1 + k2)dn . (58) 
+
+28 Proof. We proceed with a standard application of Fano’s method. Let the tolerance parameter be denoted by ϵ > 0. Define the local class of design-transformed parameter matrices: 
+
+F =
+
+n
+
+ΞB ∈ Rn×k1 , ΞA ∈ Rn×k2 : ∥ΞB∥F ≤ 4ϵpnk 1, ∥ΞA∥F ≤ 4ϵpnk 2
+
+o
+
+. (59) We construct a 2 ϵ√n-packing of each column space under the Frobenius norm as 
+
+{B1, . . . , BM , A1, . . . , AM }. This can be achieved by a ℓ2-norm 2 ϵ√n-packing of each column of B and A. By standard volumetric packing arguments, there exist packings with cardinality 2 M such that log M ≥ C(k1 + k2)( d + 1) . (60) For any two distinct packed elements ( Bj , Ai) and ( Bj , Aj ), we have 2ϵpk1 + k2 ≤ 1
+
+√n
+
+ ∥Ξ(Bi − Bj )∥2F + ∥Ξ(Ai − Aj )∥2F
+
+1/2 ≤ 8ϵpk1 + k2, (61) where the left inequality follows from the column space packing definition, and the right inequality follows from the maximum ℓ2 separation of the individual column packings. Thus, the packing elements are well-separated in the prediction space. With a slight abuse of notation, let max X denote the row-wise max-function on the matrix 
+
+X. Next, let P(B,A) denote the distribution of the observations under parameters (B, A), i.e. P(B,A) = Normal  max ΞB − max ΞA, σ 2 
+
+> z
+
+In
+
+. For two elements ( Bi, Ai)and ( Bj , Aj ), the KL divergence is bounded by 
+
+DKL 
+
+ P(Bi,Ai)|| P(Bj ,Aj )
+
+ ≤ 12σ2
+
+> z
+
+
+
+max  
+
+> j∈[k1]
+
+ΞBi − max  
+
+> l∈[k2]
+
+ΞAi
+
+
+
+−
+
+
+
+max  
+
+> j∈[k1]
+
+ΞBj − max  
+
+> l∈[k2]
+
+ΞAj
+
+ 22
+
+.
+
+(62) Using the fact that the row-wise max function is 1-Lipschitz with respect to its inputs in ℓ2 norm, we obtain 
+
+DKL 
+
+ P(Bi,Ai)|| P(Bj ,Aj )
+
+ ≤ 12σ2
+
+> z
+
+ ∥Ξ(Bi − Bj )∥2F + ∥Ξ(Ai − Aj )∥2F
+
+ . (63) From the packing construction, this yields the upper bound 
+
+DKL 
+
+ P(Bi,Ai)|| P(Bj ,Aj )
+
+ ≤ 32( k1 + k2)ϵ2nσ2
+
+> z
+
+. (64) Finally, Fano’s inequality requires that 1
+
+M 2
+
+X 
+
+> i,j ∈[M]
+
+DKL 
+
+ P(Bi,Ai)|| P(Bj ,Aj )
+
+ + log 2 ≤ 12 log M, (65) which is satisfied provided 
+
+ϵ2 ≤ C σ2 
+
+> z
+
+(d + 1) 
+
+n . (66) Then Fano’s method [Wainwright, 2019, Proposition 15.2] yields (58), which completes the proof. 
+
+29 Notice that since Ξ has i.i.d. Gaussian rows, by standard random matrix results, its singular values concentrate around √n. Hence, with high probability, ∥Ξ∆ ∥2 ≈ √n for any ∆ ∈ R(d+1) ×k. Thus, the prediction-norm lower bound converts into a parameter-norm lower bound of the same order as inf  
+
+> bB,bA
+
+sup 
+
+> B,A
+
+E
+
+
+
+( bB − B) 2F
+
++ ( bA − A) 2F
+
+
+
+≥ C σ2 
+
+> z
+
+(k1 + k2)dn . (67) 
+
+## A.6 Motivating the Smoothness of the Inverse Regression Curve with DoMA functions 
+
+Recall that the inverse regression curve (IRC) is defined as E[x|y]. The goal to show that, although DoMA functions are inherently non-smooth, m(y) can still be a smooth function of y. In what follows, we assume that x has a Lipschitz smooth sub-Gaussian distribution with bounded support B such that sup x∈B ∥x∥∞ ≤ L. For notational simplicity, we consider the max-affine model written as 
+
+y = max  
+
+> j∈[k]
+
+β⊤ 
+
+> j
+
+[x; 1] + z, 
+
+and the following calculation easily extends to the DoMA case. The IRC can be written as 
+
+E[x|y] = 
+
+> k
+
+X
+
+> j=1
+
+P(x ∈ C j (β)) E[x|y, x ∈ C j (β)] + P(x ∈ V (β)) E[x|y, x ∈ V (β)] =
+
+> k
+
+X
+
+> j=1
+
+P(x ∈ C j (β)) E[x|y − [βj ]d+1 = [ βj ]⊤
+
+> 1: d
+
+x + z, x ∈ C j (β)] , (68) where the last equality follows from P(x ∈ V (β)) = 0 since V(β) is a degenerate set and x has a Lipschitz smooth distribution, and the observation that 
+
+∥E[x|y, x ∈ V (β)] ∥∞ ≤ E[∥x∥∞|y, x ∈ V (β)] ≤ sup 
+
+> x∈B
+
+∥x∥∞ ≤ L < ∞.
+
+We have now shown in (68) that the IRC of a max-affine model can be expressed as a convex combination of the IRCs of linear models. The IRC of linear models with sub-Gaussian distributions is known to satisfy the required smoothness properties to invoke the guarantees by the sliced inverse regression method [Tan et al., 2018, Assumption 1]. The authors also specifically discuss the linear model in Example 1 of their numerical studies section. Overall, we expect max-affine models (and DoMA models by extension) to have smooth IRCs. This makes our DoMA model a good candidate for dimension reduction methods requiring such conditions such as sliced inverse regression and outer product of gradients (OPG) Xia et al. [2002]. However, the guarantees of such methods only apply in the asymptotic of the sample size and require careful tuning of additional hyperparameters that crucially impact the methods’ performance. For these reasons and other technical considerations, the spectral method by Ghosh et al. [2021] is adopted for initialization purposes in the main text. 
+
+30 A.7 Proof of Lemma 5.1 
+
+Let K = [ k1] × [k2]. Then we can rewrite the regression model in (3) as 
+
+y = X
+
+> (j,l )∈K
+
+1{x∈C j (β)∩C l(α)}⟨βj − αl, ξ⟩ + z. 
+
+Then the expression of m1 is equivalently rewritten as 
+
+m1 = E [yx]= X
+
+> (j,l )∈K
+
+E   1{x∈C j (β)∩C l(α)}⟨βj − αl, ξ⟩ + z x = X
+
+> (j,l )∈K
+
+E 1{x∈C j (β)∩C l(α)}⟨βj − αl, ξi⟩x
+
+= X
+
+> (j,l )∈K
+
+E 1{x∈C j (β)∩C l(α)}
+
+ [βj − αl]1: d = X
+
+> (j,l )∈K
+
+P (x ∈ C j (β) ∩ C l(α)) [ βj − αl]1: d ,
+
+where the second inequality follows from the independence of x and z, and the third equality follows from Stein’s Lemma for Gaussian vectors, i.e. E [g(x)x] = E [∇g(x)]. Similarly, the expectation in M2 is calculated as 
+
+M2 = E
+
+"  X
+
+> (j,l )∈K
+
+1{xi∈C j (β)∩C l(α)}⟨βj − αl, ξi⟩ + zi
+
+  xx T − Id
+
+ #
+
+=
+
+> d
+
+X
+
+> p=1
+
+E
+
+" X
+
+> (j,l )∈K
+
+1{xi∈C j (β)∩C l(α)}⟨βj − αl, ξi⟩ (x[x]p − ep)
+
+#
+
+eT
+
+> p
+
+=
+
+> d
+
+X
+
+> p=1
+
+E
+
+" X
+
+> (j,l )∈K
+
+1{xi∈C j (β)∩C l(α)}
+
+
+
+[βj − αl]T
+
+> 1: d
+
+x[x]px + [ βj − αl]d+1 [x]px
+
+− [βj − αl]1: dxe p − [βj − αl]d+1 ep
+
+#
+
+eT
+
+> p
+
+=
+
+> d
+
+X
+
+> p=1
+
+X
+
+> (j,l )∈K
+
+"
+
+[βj − αl]1: deT 
+
+> p
+
++ ep[βj − αl]T
+
+> 1: d
+
+
+
+E
+
+
+
+1{xi∈C j (β)∩C l(α)}x
+
+
+
++ [ βj − αl]d+1 epP (xi ∈ C j (β) ∩ C l(α)) − ep[βj − αl]T
+
+> 1: d
+
+E 1{xi∈C j (β)∩C l(α)}x
+
+− [βj − αl]d+1 epP (xi ∈ C j (β) ∩ C l(α)) 
+
+#
+
+eT
+
+> p
+
+=
+
+> d
+
+X
+
+> p=1
+
+X
+
+> (j,l )∈K
+
+[βj − αl]1: de⊤ 
+
+> p
+
+E 1{xi∈C j (β)∩C l(α)}x e⊤ 
+
+> p
+
+= X
+
+> (j,l )∈K
+
+[βj − αl]1: dE 1{xi∈C j (β)∩C l(α)}x⊤ ,
+
+where the second equality follows from the independence of x and z, and the third equality follows from Stein’s Lemma. 
+
+31 A.8 Proof of Lemma 5.2 
+
+We can assume without loss of generality that v = α1. Let ⊕ denote the Minkowski set addition. Then we have that span 
+
+
+
+{βj }k1 
+
+> j=1
+
+⊖ { αl}k2
+
+> l=1
+
+
+
+= span 
+
+
+
+{βj − v}k1 
+
+> j=1
+
+⊖ { αl − v}k2
+
+> l=1
+
+
+
+= span 
+
+
+
+{βj − v}k1 
+
+> j=1
+
+⊖
+
+
+
+0 ∪ { αl − v}k2
+
+> l=2
+
+ 
+
+= span 
+
+
+
+{βj − v}k1
+
+> j=1
+
+
+
+⊕ span 
+
+
+
+{βj − v}k1 
+
+> j=1
+
+⊖ { αl − v}k2
+
+> l=2
+
+
+
+= span 
+
+
+
+{βj − v}k1
+
+> j=1
+
+
+
+⊕ span 
+
+
+
+{αl − v}k2
+
+> l=2
+
+
+
+, (69) which yields the assertion in (17). The number of vectors used in the last line of (69) yields the bound in (18). 
+
+32
