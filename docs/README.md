@@ -6,58 +6,73 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-16
-- 运行时间：2026-05-16 20:44:27 UTC
+- 最新运行日期：2026-05-18
+- 运行时间：2026-05-18 20:37:59 UTC
 - 运行状态：成功
-- 本次总论文数：12
-- 精读区：1
-- 速读区：11
+- 本次总论文数：17
+- 精读区：5
+- 速读区：12
 
 ### 今日简报（AI）
-今日聚焦非自治复杂系统动力学，从 12 篇论文中深度复盘数据驱动的系统识别新范式。
-核心突破在于通过数据揭示复杂系统的动态演化规律，同时涵盖了数学文本自监督评分与物理启发式建模等前沿工具。
-推荐优先研读 9.0 分高分论文，掌握应对复杂多变系统建模的实战思路。
-- 详情：[/202605/16/README](/202605/16/README)
+今日精选 17 篇前沿成果，重点突破符号回归与科学发现的演化算法。
+满分论文《Diversified Residual Symbolic Regression》与 SMCEvolve 框架，通过多样化残差与蒙特卡洛进化显著提升了复杂规律的建模精度。
+建议关注 AI 在物理方程发现及数学自动形式化领域的跨界应用。
+- 详情：[/202605/18/README](/202605/18/README)
 
 ### 精读区论文标签
-1. [Revealing dynamics of non-autonomous complex systems from data](/202605/16/2605.13878v1-revealing-dynamics-of-non-autonomous-complex-systems-from-data)  
+1. [Diversified Residual Symbolic Regression](/202605/18/2605.15809v1-diversified-residual-symbolic-regression)  
+   标签：评分：10.0/10、query:sr-alg
+   evidence：多样化残差符号回归，用于从数据中稳健地发现表达式
+2. [SMCEvolve: Principled Scientific Discovery via Sequential Monte Carlo Evolution](/202605/18/2605.15308v1-smcevolve-principled-scientific-discovery-via-sequential-monte-carlo-evolution)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：数据驱动的复杂系统控制方程发现
+   evidence：通过程序演化和SMC进行原则性的科学发现
+3. [From LLM-Generated Conjectures to Lean Formalizations: Automated Polynomial Inequality Proving via Sum-of-Squares Certificates](/202605/18/2605.15445v1-from-llm-generated-conjectures-to-lean-formalizations-automated-polynomial-inequality-proving-via-sum-of-squares-certificates)  
+   标签：评分：9.0/10、query:math-ai
+   evidence：通过神经符号框架自动证明多项式不等式
+4. [Likelihood scoring for continuations of mathematical text: a self-supervised benchmark with tests for shortcut vulnerabilities](/202605/18/2605.10810v2-likelihood-scoring-for-continuations-of-mathematical-text-a-self-supervised-benchmark-with-tests-for-shortcut-vulnerabilities)  
+   标签：评分：8.0/10、query:math-ai
+   evidence：预测数学方程的基准
+5. [Hypothesis-driven construction of mesoscopic dynamics](/202605/18/2605.16211v1-hypothesis-driven-construction-of-mesoscopic-dynamics)  
+   标签：评分：8.0/10、query:sr-alg
+   evidence：学习介观动力学和演化方程
 
 ### 速读区论文标签
-1. [Likelihood scoring for continuations of mathematical text: a self-supervised benchmark with tests for shortcut vulnerabilities](/202605/16/2605.10810v1-likelihood-scoring-for-continuations-of-mathematical-text-a-self-supervised-benchmark-with-tests-for-shortcut-vulnerabilities)  
+1. [Multifidelity Gaussian process regression for solving nonlinear partial differential equations](/202605/18/2605.10383v1-multifidelity-gaussian-process-regression-for-solving-nonlinear-partial-differential-equations)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：用于求解非线性偏微分方程的多保真高斯过程回归
+2. [MathAtlas: A Benchmark for Autoformalization in the Wild](/202605/18/2605.14061v1-mathatlas-a-benchmark-for-autoformalization-in-the-wild)  
    标签：评分：7.0/10、query:math-ai
-   evidence：预测技术论文中数学公式后续内容的基准测试
-2. [Randomized Atomic Feature Models for Physics-Informed Identification of Dynamic Systems](/202605/16/2605.14351v1-randomized-atomic-feature-models-for-physics-informed-identification-of-dynamic-systems)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：利用原子特征进行物理信息驱动的动态系统识别
-3. [Optimal Pattern Detection Tree for Symbolic Rule-Based Classification](/202605/16/2605.14374v1-optimal-pattern-detection-tree-for-symbolic-rule-based-classification)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：用于人类可解释模式的符号规则发现
-4. [Reasoning-Aware Training for Time Series Forecasting](/202605/16/2605.08625v1-reasoning-aware-training-for-time-series-forecasting)  
+   evidence：研究生水平数学自动形式化的基准
+3. [How Twist Class Redundancy Drives the Prediction of Traces of Frobenius of Elliptic Curves](/202605/18/2605.14288v1-how-twist-class-redundancy-drives-the-prediction-of-traces-of-frobenius-of-elliptic-curves)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：预测数学对象的特征量及算术属性基准
+4. [Boosting Reinforcement Learning with Verifiable Rewards via Randomly Selected Few-Shot Guidance](/202605/18/2605.15012v1-boosting-reinforcement-learning-with-verifiable-rewards-via-randomly-selected-few-shot-guidance)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：用于数学和代码的可验证奖励强化学习
+5. [Correct-by-Construction G-Code Generation: A Neuro-Symbolic Approach via Separation Logic](/202605/18/2605.10568v1-correct-by-construction-g-code-generation-a-neuro-symbolic-approach-via-separation-logic)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：通过数学反馈生成结构化代码的神经符号方法
+6. [Rethinking Supervision Granularity: Segment-Level Learning for LLM-Based Theorem Proving](/202605/18/2605.11905v1-rethinking-supervision-granularity-segment-level-learning-for-llm-based-theorem-proving)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：使用大语言模型进行自动定理证明
+7. [LeanSearch v2: Global Premise Retrieval for Lean 4 Theorem Proving](/202605/18/2605.13137v1-leansearch-v2-global-premise-retrieval-for-lean-4-theorem-proving)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：Lean 4定理证明中的全局前提检索
+8. [Liquid Tree Automata](/202605/18/2605.13456v1-liquid-tree-automata)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：基于组件的逻辑查询合成
+9. [PI-SONet: A Physics-Informed Symplectic Operator Network for Real-Time Optimal Control of Multi-Agent Systems](/202605/18/2605.14332v1-pi-sonet-a-physics-informed-symplectic-operator-network-for-real-time-optimal-control-of-multi-agent-systems)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：将大语言模型推理集成到时间序列预测中
-5. [Beyond Language: Format-Agnostic Reasoning Subspaces in Large Language Models](/202605/16/2605.09496v1-beyond-language-format-agnostic-reasoning-subspaces-in-large-language-models)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：大语言模型中数学符号和符号系统的内部表示
-6. [Quantitative Linear Logic for Neuro-Symbolic Learning and Verification](/202605/16/2605.13845v1-quantitative-linear-logic-for-neuro-symbolic-learning-and-verification)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：神经符号学习与逻辑约束
-7. [Quantitative Linear Logic for Neuro-Symbolic Learning and Verification](/202605/16/2605.13845v2-quantitative-linear-logic-for-neuro-symbolic-learning-and-verification)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：用于嵌入逻辑约束的神经符号学习和可微逻辑
-8. [Test-Time Learning with an Evolving Library](/202605/16/2605.14477v1-test-time-learning-with-an-evolving-library)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：数学推理和代码生成的测试时学习
-9. [Learning from Failures: Correction-Oriented Policy Optimization with Verifiable Rewards](/202605/16/2605.14539v1-learning-from-failures-correction-oriented-policy-optimization-with-verifiable-rewards)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：具有可验证奖励的强化学习用于推理
-10. [Average Gradient Outer Product in kernel regression provably recovers the central subspace for multi-index models](/202605/16/2605.15082v1-average-gradient-outer-product-in-kernel-regression-provably-recovers-the-central-subspace-for-multi-index-models)  
+   evidence：物理信息算子学习用于哈密顿轨迹
+10. [Compositional Sparsity as an Inductive Bias for Neural Architecture Design](/202605/18/2605.14764v1-compositional-sparsity-as-an-inductive-bias-for-neural-architecture-design)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：从数据中恢复多指数多项式和低维结构
-11. [Eradicating Negative Transfer in Multi-Physics Foundation Models via Sparse Mixture-of-Experts Routing](/202605/16/2605.15179v1-eradicating-negative-transfer-in-multi-physics-foundation-models-via-sparse-mixture-of-experts-routing)  
+   evidence：提取稀疏依赖结构和组合稀疏性的可解释流水线
+11. [Logical Grammar Induction via Graph Kolmogorov Complexity: A Neuro-Symbolic Framework for Self-Healing Clinical Data Integrity](/202605/18/2605.15242v1-logical-grammar-induction-via-graph-kolmogorov-complexity-a-neuro-symbolic-framework-for-self-healing-clinical-data-integrity)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：用于归纳符号语法的神经符号框架
+12. [Transformer-like Inference from Optimal Control](/202605/18/2605.15608v1-transformer-like-inference-from-optimal-control)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：用于多物理场输运和偏微分方程机制的Transformer架构
+   evidence：从控制理论的第一性原理推导出类Transformer架构
 
 
 <div class="dpr-home-promo-card">

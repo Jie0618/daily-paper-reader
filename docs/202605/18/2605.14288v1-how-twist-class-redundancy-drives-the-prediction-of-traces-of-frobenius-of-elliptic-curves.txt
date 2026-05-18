@@ -1,0 +1,996 @@
+Title: How Twist Class Redundancy Drives the Prediction of Traces of Frobenius of Elliptic Curves
+
+URL Source: https://arxiv.org/pdf/2605.14288v1
+
+Published Time: Fri, 15 May 2026 00:36:57 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+TWIST CLASS REDUNDANCY DRIVES THE PREDICTION OF TRACES OF FROBENIUS OF ELLIPTIC CURVES  
+
+> ANGELICA BABEI, UJJAWAL SHAH, AND MALICK KEBE
+> Abstract. Recent interest in applying machine learning methods to predict invariants of mathe-matical objects has yielded models with surprisingly strong performance, including those predicting traces of Frobenius for elliptic curves. We demonstrate that the underlying datasets contain signifi-cant redundancy within quadratic twist classes, which alone is sufficient to produce highly accurate predictions. To ensure future models capture new arithmetic properties rather than potentially ex-ploiting these dataset artifacts, we introduce a benchmark dataset consisting exclusively of unique twist class representatives.
+
+1. Introduction 
+
+The advent of large databases of arithmetic objects, most notably the L-functions and Modular Forms Database (LMFDB) [19], has naturally led number theorists to ask whether machine learning (ML) can aid in the discovery of new mathematical phenomena. A significant success in this direction was the discovery of “murmurations” of elliptic curves, which are unexpected oscillatory patterns in the statistics of Frobenius traces, and which were first identified through ML-driven observation [14]. These efforts sparked intense activity, resulting in more than ten papers within two years that demonstrate murmurations across a variety of motivic objects, including modular forms, Maass forms, and Dirichlet characters [5, 6, 9, 11, 12, 18, 20, 23, 27]. Beyond murmurations, the use of ML has extended more broadly across number theory and arithmetic geometry. For example, recent studies have applied neural-network and tree-based models to predict ranks of elliptic curves from traces of Frobenius [16], to classify class groups [1] and Galois groups [17] of number fields, to predict the order of the Shafarevich-Tate group [3], or to predict traces of Frobenius of elliptic curves [4]. In [4], the authors investigate whether one can predict traces of Frobenius ap(E) for elliptic curves of bounded conductor based on nearby traces ( aq(E)) q< 100 ,q ̸ =p for elliptic curves of bounded conductor N (E) < 10 6. The study used transformer- and neural-network based models, and attained high Matthews Correlation Coefficients (MCC) for the magnitude |ap(E)| and for local properties such as ap(E) mod 2. While these results suggest that transformers can identify patterns in traces of Frobenius, the “black-box” nature of these models makes it difficult to determine whether they are learning deep arithmetic properties or simply exploiting statistical redundancies within the datasets. A source of such redundancy arises from families of quadratic twists. If E and Eχ are quadratic twists, then for all but finitely many primes p,
+
+ap(Eχ) = χ(p)ap(E),
+
+and hence 
+
+|ap(Eχ)| = |ap(E)|.
+
+A model that learns to identify the quadratic twist family of a curve can reduce the prediction problem to recovering signs from previously observed data. Motivated by this observation, we 
+
+> 1
+> arXiv:2605.14288v1 [math.NT] 14 May 2026
+
+propose an algorithm that uses the absolute values of a small collection of traces of Frobenius (|ap1 (E)|, . . . , |apk (E)|)as a proxy for identifying the quadratic twist family of E. The algorithm then predicts ap(E) by determining whether the training set contains a quadratic twist of E. We use this algorithm as a baseline test for the dataset of elliptic curves with N (E) < 10 6. While the original transformer models reached a maximum MCC of at most 0 .6 when predicting exact values, our algorithm significantly outperforms previously trained models, achieving an MCC of 0 .79. This suggests that much of the available predictive power in these datasets can be captured through twist identification. To move toward detecting more subtle, non-trivial arithmetic proper-ties, we introduce a refined dataset [2] that accounts for these redundancies. 2. Preliminaries 
+
+2.1. Elliptic curves. We recall a few preliminaries on elliptic curves. This material is standard, for example see [24]. An elliptic curve E over Q is a smooth, projective curve of genus 1 with a distinguished point at infinity, and can be described by a Weierstrass equation of the form (2.1) E : y2 = x3 + Ax + B, A, B ∈ Q,E is said to have good reduction at a prime p if the equation 2.1 defining E over Fp is nonsingular. 
+
+E has good reduction at all but finitely many primes. At such (finitely many) other primes, E is said to have bad reduction . The conductor N (E) is a product of powers of these primes with bad reduction, with exponents being dictated by whether E has multiplicative or additive reduction. We can associate to E an L-function with Euler product 
+
+L(E, s ) = Y
+
+> p
+
+Lp(E, s ).
+
+where if E has good reduction at p, the local factor, sometimes referred to as an Euler factor, is 
+
+Lp(E, s ) = 11 − ap(E)p−s + p1−2s .
+
+For a prime ℓ, we have a 2-dimensional representation ρE,ℓ : Gal( Q/Q) → GL 2(Zℓ) of the absolute Galois group Gal( Q/Q). At primes p̸ = ℓ where E has good reduction, the coefficient ap(E) is the 
+
+trace of the (arithmetic) Frobenius element Frob p under this representation 
+
+ap(E) = tr( ρE,ℓ (Frob p)) ,
+
+and is independent of ℓ. In fact, one has in such cases that 
+
+ap(E) = p + 1 − | E(Fp)|,
+
+where |E(Fp)| is the number of solutions of E over the finite field Fp.An isogeny between two elliptic curves is a non-constant rational map that is also a homomor-phism of algebraic groups. Being isogenous is an equivalence relation, and the set of all elliptic curves over Q isogenous to E makes up its isogeny class . Two elliptic curves over Q are isogenous if and only if they share the same L-function, meaning they have the exact same sequence ( ap)p prime .Given a quadratic Dirichlet character χ, the quadratic twist Eχ is an elliptic curve isomorphic to E over the quadratic field corresponding to χ. For all primes p of good reduction that do not divide the conductor of χ, the trace of Frobenius of the twist is given by 
+
+ap(Eχ) = χ(p)ap(E).
+
+Therefore, two quadratic twists share the exact same trace magnitudes, |ap(Eχ)| = |ap(E)|, at all but finitely many primes. 
+
+> 2
+
+In order to differentiate between curves in distinct twist classes, we use a twist hash as defined in Sec 4.3 of [7] and implemented in Magma [8, 25]. Specifically, given an elliptic curve E over Q,the twist hash of E is calculated as 
+
+h(E) ≡ X
+
+> 212 <p< 213
+
+cp|ap(E)| (mod P ),
+
+where P = 2 61 − 1 and cp = ⌊π P ep ⌋ with ep := # {q : 2 12 < q ≤ p, q prime }, and π = 3 .14 . . . .Here, cp corresponds to digits of π in base P . In datasets of size ≪ 261 , hash collisions are highly unlikely. 2.2. Clustering metrics. In section 3, we use a proxy for partitioning the curves into twist classes by the absolute values of the last k primes of the input ( |ap1 |, |ap2 |, . . . , |apk |). To measure how well this partition matches the true partition defined by the twist hash, we use standard external clustering metrics. Let Πtrue = {C1, . . . , C r}
+
+denote the true twist-hash partition and let Π(k) = {K1, . . . , K s}
+
+denote the partition induced by the last k primes. Write 
+
+nij = |Ci ∩ Kj |, ai =
+
+> s
+
+X
+
+> j=1
+
+nij , bj =
+
+> r
+
+X
+
+> i=1
+
+nij ,
+
+where n is the total number of curves. Our primary metric is the Adjusted Rand Index (ARI), which compares the two partitions at the level of pairs of observations [15]. In terms of the contingency table ( nij ), ARI is ARI(Π true , Π(k)) = 
+
+X
+
+> i,j
+
+nij 
+
+2
+
+
+
+−
+
+X
+
+> i
+
+ai
+
+2
+
+! X
+
+> j
+
+bj
+
+2
+
+n
+
+2
+
+
+
+12
+
+X
+
+> i
+
+ai
+
+2
+
+
+
++ X
+
+> j
+
+bj
+
+2
+
+ −
+
+X
+
+> i
+
+ai
+
+2
+
+! X
+
+> j
+
+bj
+
+2
+
+n
+
+2
+
+
+
+.
+
+This is our main criterion for selecting k, since it penalizes both accidental mergers of distinct twist-hash classes and oversplitting of repeated classes. We also report homogeneity , completeness , and V-measure , following Rosenberg and Hirschberg [22]. If C denotes the true class label and K the predicted cluster label, then 
+
+H(C) = −
+
+> r
+
+X
+
+> i=1
+
+ai
+
+n log 
+
+ ai
+
+n
+
+
+
+, H(K) = −
+
+> s
+
+X
+
+> j=1
+
+bj
+
+n log 
+
+ bj
+
+n
+
+
+
+,
+
+and 
+
+H(C | K) = −
+
+> s
+
+X
+
+> j=1
+> r
+
+X
+
+> i=1
+
+nij 
+
+n log 
+
+ nij 
+
+bj
+
+
+
+, H(K | C) = −
+
+> r
+
+X
+
+> i=1
+> s
+
+X
+
+> j=1
+
+nij 
+
+n log 
+
+ nij 
+
+ai
+
+
+
+,
+
+> 3
+
+with the usual convention that zero terms are omitted. Homogeneity and completeness are then defined by 
+
+h =
+
+
+
+1, if H(C) = 0 ,
+
+1 − H(C | K)
+
+H(C) , otherwise , c =
+
+
+
+1, if H(K) = 0 ,
+
+1 − H(K | C)
+
+H(K) , otherwise ,
+
+and the V-measure is their harmonic mean, 
+
+V =
+
+
+
+0, if h + c = 0 ,
+
+2hc h + c , otherwise .
+
+2.3. Comparison metrics. We further introduce three metrics to assess predictive accuracy and to quantify agreement between models. To evaluate predictive accuracy over a test set of size N
+
+with true values yi and predicted values ˆ yi, we utilize Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE), where MAE = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+|yi − ˆyi|, RMSE = 
+
+vuut 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+(yi − ˆyi)2
+
+Furthermore, to quantify the divergence between two distinct models (e.g., say Model A and Model B) yielding predictions ˆ y(A) 
+
+> i
+
+and ˆ y(B) 
+
+> i
+
+on the same test set, we define disagreement as the proportion of mismatched predictions: Disagreement = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+1
+
+
+
+ˆy(A)
+
+> i
+
+̸ = ˆ y(B)
+
+> i
+
+
+
+where 1 denotes the indicator function yielding 1 when the condition is true and 0 otherwise. 2.4. Performance metrics. In addition to accuracy, we utilize the Mathews correlation coefficient (MCC), especially in classification experiments with unbalanced classes. For binary classification experiments, the MCC [21] is defined as MCC = T P × T N − F P × F N 
+
+p(T P + F P )( T P + F N )( T N + F P )( T N + F N ) ,
+
+where T P, F P, T N and F N are the number of true positives, false positives, true negatives and false negatives, respectively. The MCC attains values in the range [ −1, 1], where 1 indicates perfect prediction, 0 indicates no correlation between predictions and true values, and −1 indicates perfectly wrong classification. In [13], the MCC is generalized for multiclass experiments by MCC = 
+
+P
+
+> k
+
+P
+
+> l
+
+P 
+
+> m
+
+Ckk Clm − Ckl Cmk 
+
+qP
+
+> k
+
+(P 
+
+> l
+
+Ckl )( P 
+
+> k′|k′̸=k
+
+P 
+
+> l′
+
+Ck′l′ )
+
+qP
+
+> k
+
+(P 
+
+> l
+
+Clk )( P 
+
+> k′|k′̸=k
+
+P 
+
+> l′
+
+Cl′k′ )
+
+,
+
+where Cij is the ( i, j ) entry in the confusion matrix C.Unlike accuracy, MCC remains informative under class imbalance, which is essential in our setting because the empirical distribution of ap(E) is highly non-uniform. 
+
+> 4
+
+2.5. Notation and conventions. For a real number x, we define the sign function sgn( x) as sgn( x) = 
+
+
+
+1, if x > 0,
+
+−1, if x < 0,
+
+0, if x = 0 .
+
+Given an elliptic curve E with traces of Frobenius ( a2, a 3, . . . , a 97 ), we define sgn( E) = (sgn( a2), sgn( a3), . . . , sgn( a97 )) .
+
+If we also specify a prime p, we define sgn( E, p ) = (sgn( a2), sgn( a3), . . . , \sgn( ap), . . . , sgn( a97 )) ,
+
+where we exclude sgn( ap) from the tuple sgn( E). 2.6. Data. We use data derived from ECQ8 [26], which consists of isogeny classes of curves of conductor N (E) < 10 8. The experiments in Section 3 use curves with conductor N (E) < 10 6, and we refer to this dataset as ECQ6 [10]. The specific data we use are the conductor N (E), the first 25 traces of Frobenius ( a2(E), a 3(E), . . . , a 97 (E)), and the equation of a curve in each isogeny class in order to compute the twist hash h(E). In each experiment to predict ap(E), we restrict ourselves to the set of curves of good reduction at p, i.e. the subset of curves whose conductor is not divisible by p.The dataset generated in Section 4 contains one curve per twist hash of elliptic curves with conductor up to 10 7. This dataset includes the conductor N (E), twist hash h(E), and the list of the first 1229 traces of Frobenius ( ap(E)) p< 10 4 .3. Predicting ap(E)In [4], the authors trained transformer-based models that could often correctly predict the mag-nitude of ap but struggled to distinguish the sign of ap. Because quadratic twists share magnitudes 
+
+|ap| at all but finitely many primes, this raises the question: could the high performance of these models be driven by the dataset allowing them to implicitly match curves to their quadratic twists, rather than learning deeper arithmetic properties? To demonstrate that this dataset artifact alone is sufficient to generate successful predictions, we construct a baseline algorithm that predicts ap(E) and its sign by explicitly exploiting twist class redundancies. We evaluate this approach through two parallel experiments. In the first experiment, we use as input both the traces of Frobenius ap and the twist hash described in Section 2.1. In the second experiment, we mimic the original experiments by only using the ap values to establish a proxy for the twist class. Specifically, the elliptic curves are instead grouped by the tuples (|ap1 |, . . . , |apk |) consisting of the absolute values of traces at the last k primes. In both cases, we use curves from ECQ6. 
+
+Remark. One could theoretically use j-invariants to partition the dataset into twist classes, since two quadratic twists E and Eχ share the same j-invariant. However, we would run into the issue that an isogeny class can, and often does, contain multiple isomorphism classes of curves over C.3.1. Predicting ap(E) via Twist Hashes. In this experiment, we predict ap(E) by grouping the elliptic curves into twist classes using the twist hash h(E). The steps are detailed in Algorithm 1. We use the ECQ6 dataset described in Section 2.6. For each prime p ∈ { 2, 3, 5, . . . , 97 }, we restrict to curves of good reduction at p (i.e., p ∤ N (E)), randomly shuffle the resulting set with a fixed seed, and reserve the last 10 ,000 curves as the test set T while the remaining curves form the training set X.The input then consists of the training set X and a test set T of elliptic curves, all having good reduction at a prime p < 100. Each curve is represented by its twist hash h(E) and its sequence 
+
+> 5
+
+of known traces of Frobenius ( aq(E)) q< 100 , q ̸ =p. Using this data, the algorithm predicts the missing trace ap(E) for each test curve through the following steps. 
+
+Step 0: Precomputation. The algorithm first precomputes the probabilistic distribution 
+
+P(p) of ap(E) on the training set, which serves as a fallback when no twist-hash match is available. Consequently, if a test curve’s twist hash does not appear in the training set, ap(E) is randomly sampled from this distribution. 
+
+> Step 0: Precomputation
+> Step 1: Sign-Pattern Indexing
+> Step 2: Matching Twist Hash & Majority Voting
+
+Step 1: Sign-Pattern Indexing. In this step we store the sign patterns between the curves in the training set that share same twist hash. For each pair of curves in X sharing the same twist hash, it records the pointwise product of their sign vectors. The result is a lookup table L that maps the sequence of relative signs at the known primes q̸ = p to the corresponding relative sign at the target prime p
+
+Example. To illustrate, consider two training curves E1, E 2 ∈ X belonging to the same twist class (i.e., h(E1) = h(E2)). For simplicity, suppose the algorithm is tasked to predict the third element in the sequence where p = 5, i.e, a5. Their traces of Frobenius differ only by sign. The value for a5 is shown in bold: 
+
+E1 = ( −2, 0, 4, −3, 4, −5, . . . )
+
+E2 = ( 2, 1, −4, 3, 4, 5, . . . )
+
+)
+
+Twist curves 
+
+Step 1.1. Extract the sign vectors: sgn( E1) = ( −1, 0, +1, −1, +1 , −1 . . . )sgn( E2) = (+1 , +1 , −1, +1 , +1 , +1 . . . )
+
+Step 1.2. Drop the a5 coordinate and take the pointwise product ( ∗): sgn( E1, p ) = ( −1, 0, −1, +1 , −1 . . . )sgn( E2, p ) = (+1 , +1 , +1 , +1 , +1 . . . )sgn( E1, E 2) = ( −1, 0, −1, +1 , −1 . . . )
+
+Step 1.3. Compute the target ( a5) sign relation: sgn 5(E1, E 2) = sgn( a5(E1)) · sgn( a5(E2)) = (+ 1)( −1) = −1.
+
+Step 1.4. Append the feature-to-target pair to the lookup list: 
+
+L ←
+
+
+
+(−1, 0, −1, +1 , −1, . . . )
+
+| {z }
+
+> sgn( E1,E 2)
+
+, −1
+
+|{z} 
+
+> sgn 5(E1,E 2)
+
+
+
+.
+
+Step 2: Matching Twist Hash and Majority Voting. For each test curve ET , the algorithm retrieves all training curves EX that share its twist hash. For each matched EX , the algorithm computes the relative sign pattern between ET and EX at the known primes. Querying the lookup table L with this pattern yields the predicted relative sign at p, which in turn provides a candidate value for ap(ET ). The algorithm aggregates these candidates and selects the most frequent value as the final prediction for ap(ET ). 
+
+> 6
+
+It is possible that a test curve ET matches a twist hash in the training set, but its specific relative sign pattern does not appear in L. In this case, the algorithm predicts ap(ET ) by sampling from the empirical distribution of ap(EX ) among those matched training curves. Finally, if multiple candidate values tie for the maximal frequency during the voting process, the algorithm breaks the tie by sampling from the tied candidates according to the initial probability distribution P(p). 
+
+Example. To illustrate step 2, suppose a test curve ET ∈ T shares the same twist hash as 
+
+EX ∈ X, i.e., h(ET ) = h(EX ): 
+
+ET = ( 2, −1, ?, 5, 6, −3, . . . )
+
+EX = ( −2, 1, −4, −5, 0, 3, . . . )
+
+Step 2.1. Store a5(EX ) and compute the relative sign pattern sgn( ET , E X ) = sgn( ET , 5) ∗
+
+sgn( EX , 5). sgn( ET , 5) = (+1 , −1, +1 , +1 , −1, . . . )sgn( EX , 5) = ( −1, +1 , −1, 0, +1 , . . . )sgn( ET , E X ) = ( −1, −1, −1, 0, −1, . . . )
+
+Step 2.2. Query this relative sign pattern sgn( ET , E X ) in the lookup table L. This retrieves all pairs ( Ei, E j ) such that sgn( ET , E X ) = sgn( Ei, E j ) and stores the occurrences of sgn 5(Ei, E j ) into a multi-set M . Suppose there are 100 such matches, distributed as follows: 
+
+M = {− 1, . . . , −1
+
+| {z }
+
+> 80 times
+
+, 0, . . . , 0
+
+| {z }
+
+> 20 times
+
+}
+
+Step 2.3. Count the occurrences in the multi-set M to form a frequency dictionary f req .
+
+f req ← {− 1 : 80 , 0 : 20 }
+
+Step 2.4. Compute the candidate values for the missing trace a5(ET ). Each key s ∈ f req encodes a relative sign, not an absolute trace. To recover candidate values for a5(ET ), we multiply each key in our frequency dictionary by the known value a5(EX ) = −4. 
+
+f req ← {− 1 ∗ a5(EX ) : 80 , 0 ∗ a5(EX ) : 20 }
+
+candidates = {4 : 80 , 0 : 20 }
+
+Step 2.5. Repeat Steps 2.1–2.5 for all training curves EX ∈ X sharing the twist hash h(ET ), and accumulate the resulting candidate frequencies into a global map. The final predicted trace, 
+
+ba5(ET ) is the candidate with the maximal aggregate vote count: 
+
+a5(ET ) = arg max  
+
+> n∈Z
+
+f req [n] = 4 .
+
+Figure 1 shows the results of Experiment 1, where Algorithm 1 starts with an MCC of 0 .6744 when predicting a2(E) and 0 .6483 when predicting a3(E), and plateaus at ≈ 0.79 for larger primes starting at p = 11. We specifically highlight the performance at a97 (E) (MCC = 0 .7905) to provide a direct comparison with the transformer models of [4], which were evaluated on a2(E), a3(E), and a97 (E). Those models achieved MCCs of 0 .5822, 0 .5205, and 0 .5137, respectively. Thus, our explicit twist-matching approach significantly outperforms the previously trained transformer models across the board. It is possible that the transformer models primarily derived their predictive capabilities by im-plicitly recognizing these twist classes. However, because the explicit twist hash was not provided as an input feature in [4], we cannot observe this mechanism directly. This motivates Experiment 2, where instead of using the twist hash directly, we group curves by tuples of absolute values (|ap1 (E)|, . . . , |apk (E)|) as a proxy for the twist class. We then examine how closely this proxy recovers the performance seen in Experiment 1. 
+
+> 7
+
+Figure 1. MCC of the sign-based twist class matching algorithm (Algorithm 1) for predicting ap(E) across primes p ∈ { 2, 3, . . . , 97 }, using the exact twist hash to group curves. 3.2. Approximating the twist hash partition from (|ap1 |, . . . , |apk |). We seek to closely ap-proximate the exact twist class grouping. To achieve this, we use the absolute values of the traces of Frobenius ( |ap1 (E)|, . . . , |apk (E)|) at the largest k primes as a proxy. We rely on larger primes because they are less likely to divide the conductor of the curve, meaning the curves more consis-tently exhibit good reduction at these primes. This makes the magnitudes of traces of Frobenius at larger primes a robust and reliable indicator of the twist class. If this heuristic is correct, a partition built from the largest primes should much more closely mirror the exact twist-hash partition than one built from the smallest primes. We therefore consider two choices: the k smallest and the k largest primes below 100. Figure 2 compares the resulting partitions against the twist-hash partition. The k largest primes recover the twist-hash partition substantially better, with ARI peaking near 0.85. Conversely, using the first 
+
+k primes yields rapidly diminishing results. This stark contrast validates our hypothesis. In our setting, ARI is the most informative overall score, since it continues to distinguish between good class recovery and later overfragmentation as k grows. By contrast, homogeneity, complete-ness, and V-measure are useful supporting summaries, but they can saturate rapidly in the presence of many small or singleton twist-hash classes. Furthermore, special care is needed because the true twist-hash partition contains many singleton classes. On this fully atomized singleton subset (where each curve forms its own class), the ARI behaves almost like a collision detector for the trace repre-sentation. Therefore, the genuine shared-class recovery problem is most accurately reflected by the ARI evaluated strictly on the multi-instance subset (i.e., the subset of curves whose true twist-hash class has a size of at least two). Figure 3 reports the homogeneity, completeness, and V-measure for the largest k primes, along-side the ARI. The three entropy-based scores rise quickly with k and are essentially saturated on 
+
+k ∈ [7 , 16], while the ARI is also near its maximum on the same range. We therefore restrict attention to k ∈ [7 , 16] for our proxy models in the remainder of the section. 3.3. A proxy algorithm for predicting ap(E). To construct a proxy algorithm for the twist-hash model of Section 3.1, we approximate the twist-hash partition using the tuples of absolute values ( |ap1 (E)|, . . . , |apk (E)|), and use these tuples as proxy keys in place of the twist hash in Algorithm 1. The resulting procedure is recorded as Algorithm 2 in the Appendix. 
+
+> 8
+
+Figure 2. Adjusted Rand Index (ARI) between the twist-hash partition and the partition of ECQ6 induced by tuples of absolute values ( |ap1 (E)|, . . . , |apk (E)|) as a function of k. The green curves uses the k largest primes below 100 while the blue uses the k smallest. The last k partition recovers the twist-hash classes substantially better, with ARI peaking near 0 .85 on k ∈ [7 , 16] while the first-k partition saturates near 0 .28 
+
+Figure 3. ARI, Homegeneity, Completeness and V-measure of the partitioning using the tuples of absolute values ( |ap1 (E)|, . . . , |apk (E)|). The range of k ∈ [7 , 16] yields the maximum score for all these metrics. 
+
+> 9
+
+Figure 4. Comparison of proxy models to the twist-hash model. Algorithm 2 differs from Algorithm 1 only in the key used to group curves. In place of the twist hash h(E), it uses the proxy key k(E) =  |ap1 (E)|, . . . , |apk (E)| formed from the absolute values of the traces at the k largest primes below 100. Steps 0, 1 and 2, as listed in Section 3.1, are otherwise unchanged, with proxy keys taking the role of twist hashes throughout. We run Algorithm 2 for each k ∈ [7 , 16] on ECQ6, using the same train/test split as in Ex-periment 1. Figure 4 shows that the per-prime MCC of every proxy model closely tracks that of the twist-hash model across all primes p ∈ [2 , 97]. To identify the proxy closest to the twist-hash model, we compute the MAE and RMSE between their per-prime MCC values. Table 3.1 reports these statistics, and k = 8 attains the smallest MAE. 
+
+Proxy (k) MAE RMSE Max Difference Mean Difference 
+
+7 0.0020 0.0025 0.0053 -0.0010 8 0.0019 0.0024 0.0056 -0.0013 9 0.0022 0.0026 0.0046 -0.0020 10 0.0023 0.0029 0.0058 -0.0021 11 0.0025 0.0030 0.0057 -0.0022 12 0.0032 0.0037 0.0062 -0.0030 13 0.0032 0.0038 0.0073 -0.0030 14 0.0041 0.0045 0.0076 -0.0041 15 0.0047 0.0052 0.0097 -0.0047 16 0.0071 0.0074 0.0111 -0.0070 
+
+Table 3.1. Proximity of proxy models to the twist-hash model with MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error). The closest proxy model by MAE is k = 8. Finally, we evaluate how frequently the k = 8 proxy model and the twist-hash model yield identical predictions for individual test curves. Measuring this disagreement is crucial, because even if two models achieve similar aggregate performance metrics, a high disagreement rate would indicate that their predictive power stems from different sources, causing them to predict entirely different subsets of curves correctly. As summarized in Figure 5 and Table 4.3 in the Appendix, the disagreement rate between the two models exceeds 10% at p = 2, but drops below 3% for p ≥ 29 and plateaus at ≈ 2% for higher primes. This strong, instance-level alignment confirms that our preferred choice of k = 8 is a highly faithful proxy for the explicit twist class. 
+
+> 10
+
+Figure 5. Agreement and disagreement between the twist model and proxy model (k = 8) 4. Towards Generalization Beyond Twist Classes 
+
+4.1. Evaluation of trained transformer models on unseen twist classes. The previous sections demonstrate that twist classes provide a massive predictive advantage. However, this leaves open the question of whether the transformer models’ predictions were based on the presence of multiple curves from the same twist class in both training and test set. In this subsection we investigate the models to predict ap(E) for p = 2 , 3 and 97 trained in [4] specifically on unseen twist classes. For each prime, we compared the observed exact-value MCC against a training-marginal null baseline. Under this null hypothesis, the baseline guesses are generated by sampling from the probability distribution P(p) of the training data. Evaluating at a significance level of α = 0 .01, the model demonstrated statistically significant exact-value predictive power across all three primes (p < 0.001). This proves that the transformer models capture structural signal beyond random prediction from the empirical distribution. In [4], the authors noticed that reducing the prediction modulo ℓ for ℓ = 2 , 4 resulted in a high performance of such models. We reproduce the experiment for the raw value, now reducing modulo 2, 3 and 4. For all three primes, the model exhibited its strongest predictive performance on 2-adic features, with parity ( ap mod 2) consistently yielding the highest performance (MCCs between 0 .293 and 0 .381), followed closely by the modulo 4 task, all being statistically significant (p < 0.001). While predictions reduced modulo 3 remained statistically significant across the board (p < 0.001), the model’s accuracy on 3-adic features was persistently weaker than its performance modulo 2 or modulo 4. The experiment details can be found in Table 4.1. 4.2. A dataset with a unique representative per twist class. As seen in Section 3, models that utilize the absolute values of the traces of Frobenius of the largest k primes as a proxy for the quadratic twist class of an elliptic curve, and use this feature as a look-up key, significantly outperform any trained models from [4]. Moreover, as described in subsection 4.1, the ML models performed substantially worse on the slice of the test set of curves with no quadratic twists in the training set. Despite this, the transformer models seem to learn additional properties of the sequences of traces of Frobenius. To account for the information contained in the presence of 
+
+> 11
+
+Prime Prediction Task Observed MCC Null Mean p-value 
+
+p = 2 ( n = 2904) Exact Value 0.102 0.0000 p < 0.001 ∗
+
+Parity ( ap mod 2) 0.303 −0.0005 p < 0.001 ∗
+
+Modulo 3 0.065 −0.0001 p < 0.001 ∗
+
+Modulo 4 0.108 0.0009 p < 0.001 ∗
+
+p = 3 ( n = 3293) Exact Value 0.117 −0.0005 p < 0.001 ∗
+
+Parity ( ap mod 2) 0.381 0.0000 p < 0.001 ∗
+
+Modulo 3 0.059 −0.0001 p < 0.001 ∗
+
+Modulo 4 0.183 0.0001 p < 0.001 ∗
+
+p = 97 ( n = 2031) Exact Value 0.023 0.0001 p < 0.001 ∗
+
+Parity ( ap mod 2) 0.294 0.0001 p < 0.001 ∗
+
+Modulo 3 0.047 −0.0005 p ≈ 0.004 ∗
+
+Modulo 4 0.138 −0.0003 p < 0.001 ∗
+
+> ∗
+
+Statistically significant at the α = 0 .01 level. 
+
+Table 4.1. Statistical significance of transformer predictions across multiple primes (p = 2 , 3, 97) on unseen twist classes, evaluated against a training-marginal null baseline (1 ,000 draws weighted by training set distributions). multiple twists, in this section we introduce a dataset, derived from ECQ8, consisting of exactly one representative per quadratic twist class of curves with conductor N (E) < 10 7.In particular, each curve in ECQ8 is represented by a choice of coefficients a1, a 2, a 3, a 4 and a6
+
+describing the Weierstrass equation y2 + a1xy + a3y = x3 + a2x2 + a4x + a6 of a curve in this isogeny class. Note that any two curves in the same isogeny class have the same twist hash. Once we compute the twist hash h(E), we only keep the isogeny class showing up first, which are ordered in ECQ8 in ascending order by conductor. Finally, we record the following data of isogeny invariants, consisting of the conductor N (E), the twist hash h(E), and the first 1229 traces of Frobenius (ap(E)) p< 10 4 . The dataset [2] is publicly available. 
+
+References 
+
+[1] M. Amir, Y.-H. He, K.-H. Lee, T. Oliver, and E. Sultanow. Machine learning class numbers of real quadratic fields. https://arxiv.org/pdf/2209.09283 , 2022. arXiv:math.NT:2209.09283. [2] Angelica Babei. Frobenius traces for a set of (quadratic) twist classes of elliptic curves of conductor up to 10 7,May 2026. [3] Angelica Babei, Barinder S. Banwait, AJ Fing, Xiaoyu Huang, and Deependra Singh. Machine learning ap-proaches to the shafarevich-tate group of elliptic curves. Advances in Theoretical and Mathematical Physics ,29(8):pp. 2353–2379, 2025. [4] Angelica Babei, Fran¸ cois Charton, Edgar Costa, Xiaoyu Huang, Kyu-Hwan Lee, David Lowry-Duda, Ashvni Narayanan, and Alexey Pozdnyakov. Learning euler factors of elliptic curves. Advances in Theoretical and Math-ematical Physics , 29(8):2327–2351, 2025. [5] Jonathan Bober, Andrew R. Booker, Min Lee, and David Lowry-Duda. Murmurations of modular forms in the weight aspect. http://arxiv.org/abs/2310.07746v1 , 2023. arXiv:math.NT:2310.07746v1. [6] Andrew R. Booker, Min Lee, David Lowry-Duda, Andrei Seymour-Howell, and Nina Zubrilina. Murmurations of Maass forms. http://arxiv.org/abs/2409.00765v1 , 2024. arXiv:math.NT:2409.00765v1. [7] Andrew R. Booker, Jeroen Sijsling, Andrew V. Sutherland, John Voight, and Dan Yasaki. A database of genus-2 curves over the rational numbers. LMS Journal of Computation and Mathematics , 19(A):235–254, 2016. [8] Wieb Bosma, John Cannon, and Catherine Playoust. The Magma algebra system. I. The user language. J. Symbolic Comput. , 24(3-4):235–265, 1997. Computational algebra and number theory (London, 1993). [9] Zvonimir Bujanovi´ c, Matija Kazalicki, and Lukas Novak. Murmurations of Mestre-Nagao sums. http://arxiv. org/abs/2403.17626v1 , 2024. arXiv:math.NT:2403.17626v1. 
+
+> 12
+
+[10] Edgar Costa. Frobenious traces for a set of isogeny classes of elliptic curves of conductor up to 10 6, June 2025. [11] Alex Cowan. Murmurations and explicit formulas. http://arxiv.org/abs/2306.10425v2 , 2023. arXiv:math.NT:2306.10425v2. [12] Alex Cowan. Murmurations and ratios conjectures. http://arxiv.org/abs/2408.12723v1 , 2024. arXiv:math.NT:2408.12723v1. [13] Jan Gorodkin. Comparing two k-category assignments by a k-category correlation coefficient. Computational biology and chemistry , 28(5-6):367–374, 2004. [14] Yang-Hui He, Kyu-Hwan Lee, Thomas Oliver, and Alexey Pozdnyakov. Murmurations of elliptic curves. Exper-imental Mathematics , pages 1–13, 2024. [15] Lawrence Hubert and Phipps Arabie. Comparing partitions. Journal of Classification , 2(1):193–218, 1985. [16] Matija Kazalicki and Domagoj Vlah. Ranks of elliptic curves and deep neural networks. Res. Number Theory ,9(3):Paper No. 53, 21, 2023. [17] K.-H. Lee and S. Lee. Machines learn number fields, but how? the case of galois groups. https://arxiv.org/ pdf/2508.06670 , 2025. arXiv:math.NT:2508.06670. [18] Kyu-Hwan Lee, Thomas Oliver, and Alexey Pozdnyakov. Murmurations of Dirichlet characters. International Mathematics Research Notices , 2025(1), 2025. [19] The LMFDB Collaboration. The L-functions and modular forms database. https://www.lmfdb.org , 2024. [On-line; accessed 29 December 2024]. [20] Kimball Martin. Distribution of local signs of modular forms and murmurations of Fourier coefficients. http: //arxiv.org/abs/2409.02338v1 , 2024. arXiv:math.NT:2409.02338v1. [21] Brian W Matthews. Comparison of the predicted and observed secondary structure of t4 phage lysozyme. 
+
+Biochimica et Biophysica Acta (BBA)-Protein Structure , 405(2):442–451, 1975. [22] Andrew Rosenberg and Julia Hirschberg. V-measure: A conditional entropy-based external cluster evaluation measure. In Proceedings of the 2007 Joint Conference on Empirical Methods in Natural Language Processing and Computational Natural Language Learning , pages 410–420, 2007. [23] Will Sawin and Andrew V. Sutherland. Murmurations for elliptic curves ordered by height. arXiv preprint , 2025. [24] Joseph H. Silverman. The arithmetic of elliptic curves , volume 106 of Graduate Texts in Mathematics . Springer, Dordrecht, second edition, 2009. [25] Andrew V. Sutherland. Magma repository. https://github.com/AndrewVSutherland/Magma , 2023. [26] Andrew Victor Sutherland. A set of isogeny classes of elliptic curves of conductor up to 10 8, September 2024. [27] Nina Zubrilina. Murmurations. http://arxiv.org/abs/2310.07681v1 , 2023. arXiv:math.NT:2310.07681v1. 
+
+> 13
+
+Appendix Table 4.2. Comparison of Twist Hash and Proxy ( k = 8) Models 
+
+Prime # of Good Conductors Twist Hash Model Proxy Model ( k = 8 )Probabilistically Predicted ∗
+
+Overall Correct ∗
+
+Deterministic MCC Overall MCC Probabilistically Predicted ∗
+
+Overall Correct ∗
+
+Deterministic MCC Overall MCC 
+
+2 722205 3177 7466 0.9834 0.6744 3198 7481 0.9830 0.6762 3 1210417 3489 7079 0.9839 0.6483 3513 7058 0.9847 0.6458 5 1996257 2561 7754 0.9909 0.7414 2579 7765 0.9910 0.7426 7 2466121 2328 7911 0.9907 0.7650 2344 7909 0.9909 0.7646 11 2932416 2188 8035 0.9935 0.7819 2202 8027 0.9931 0.7811 13 3057496 2165 8073 0.9979 0.7889 2176 8069 0.9979 0.7884 17 3207083 2171 8050 0.9967 0.7875 2185 8040 0.9965 0.7864 19 3259866 2140 8021 0.9952 0.7862 2157 8014 0.9953 0.7853 23 3330210 2124 8049 0.9949 0.7889 2139 8043 0.9948 0.7882 29 3396401 2133 8044 0.9970 0.7901 2145 8008 0.9969 0.7862 31 3412665 2128 8007 0.9950 0.7875 2141 8026 0.9957 0.7895 37 3447726 2144 8017 0.9978 0.7891 2157 8007 0.9982 0.7880 41 3465643 2142 8009 0.9984 0.7881 2156 7986 0.9980 0.7856 43 3472612 2144 7992 0.9976 0.7872 2160 8009 0.9981 0.7891 47 3485303 2138 8003 0.9968 0.7885 2152 7995 0.9966 0.7877 53 3499565 2145 8038 0.9995 0.7928 2154 7985 0.9988 0.7872 59 3511808 2132 8006 0.9977 0.7897 2146 7970 0.9976 0.7859 61 3515014 2138 8006 0.9984 0.7908 2155 7999 0.9987 0.7900 67 3524379 2160 7974 0.9988 0.7872 2173 7985 0.9992 0.7883 71 3529542 2119 7999 0.9963 0.7897 2136 7979 0.9957 0.7876 73 3531417 2133 8011 0.9991 0.7921 2149 7976 0.9992 0.7884 79 3536694 2139 8013 0.9976 0.7924 2155 7975 0.9976 0.7885 83 3540455 2135 7983 0.9976 0.7888 2151 7960 0.9969 0.7863 89 3544529 2143 7983 0.9992 0.7891 2163 7962 0.9992 0.7869 97 3550728 2141 7987 0.9984 0.7905 2159 7978 0.9991 0.7896 
+
+> ∗
+
+Denotes the number of correct predictions out of 10,000 total test samples. 
+
+Department of Mathematics, Howard University, 204 Academic Service Building B Washington, D.C. 20059 USA 
+
+Email address : angelica.babei@howard.edu 
+
+URL : https://angelicababei.com 
+
+Department of Electrical Engineering and Computer Science, Howard University, Washington, D.C. 20059 USA 
+
+Email address : ujjawal.shah@bison.howard.edu 
+
+Department of Mathematics, Howard University, 204 Academic Service Building B Washington, D.C. 20059 USA 
+
+Email address : malick.kebe@bison.howard.edu 
+
+14 Algorithm 1 Sign-based twist class matching classifier for predicting ap(E)
+
+Require: Training set X and test set T of elliptic curves with good reduction at a prime p < 100. The input in a row i is a sequence of the traces of Frobenius Xi = ( aq(E)) q< 100 ,q ̸ =p and twist hash h(E). The output is ap(Ei). 
+
+Ensure: Predictions ap(E) on the test set.  
+
+> 1:
+
+Step 0 (Precomputation).  
+
+> 2:
+
+Compute the probability distribution P(p) of ap(E) on the training set X. 
+
+> 3:
+
+Step 1 (Sign-Pattern Indexing).  
+
+> 4:
+
+for all E ∈ X do  
+
+> 5:
+
+Compute the pair   sgn( E, p ), sgn( ap(E)) , where sgn( E, p ) =   sgn( a2(E)) , sgn( a3(E)) , . . . , \sgn( ap(E)) , . . . , sgn( a97 (E)) ,
+
+where we exclude sgn( ap(E)) from the tuple sgn( E).  
+
+> 6:
+
+end for  
+
+> 7:
+
+Initialize an empty list L for lookup.  
+
+> 8:
+
+for each distinct twist hash h in X, and for each pair of curves ( E1, E 2) with h(E1) = h(E2) = h,
+
+do  
+
+> 9:
+
+Compute the pair   sgn( E1, E 2), sgn p(E1, E 2) where sgn( E1, E 2) = sgn( E1, p ) ∗ sgn( E2, p ),
+
+∗ denoting pointwise multiplication, and sgn p(E1, E 2) = sgn( ap(E1)) sgn( ap(E2)) . 
+
+> 10:
+
+Store the pair of   sgn( E1, E 2), sgn p(E1, E 2) in the list L. 
+
+> 11:
+
+end for  
+
+> 12:
+
+Step 2 (Matching Twist Hash and Majority Voting).  
+
+> 13:
+
+for each test curve ET ∈ T do  
+
+> 14:
+
+if h(ET ) is not found in X then  
+
+> 15:
+
+Predict ap(ET ) based on the probability distribution P(p).  
+
+> 16:
+
+else  
+
+> 17:
+
+Initialize a map freq : Z → Z≥0 with freq[ n] = 0 for all n ∈ Z. 
+
+> 18:
+
+Compute sgn( ET , p ) =   sgn( a2(ET )) , sgn( a3(ET )) , . . . , \sgn( ap(ET )) , . . . , sgn( a97 (ET )) . 
+
+> 19:
+
+for each curve EX ∈ X with h(EX ) = h(ET ) do  
+
+> 20:
+
+Compute   sgn( ET , E X ), a p(EX ). 
+
+> 21:
+
+if sgn( ET , E X ) occurs in the list L then  
+
+> 22:
+
+Find all pairs ( Ei, E j ) such that sgn( ET , E X ) = sgn( Ei, E j ). 
+
+> 23:
+
+for each pair ( Ei, E j ), do  
+
+> 24:
+
+Compute s = sgn p(Ei, E j ).  
+
+> 25:
+
+Update freq[ s · ap(EX )] ← freq[ s · ap(EX )] + 1.  
+
+> 26:
+
+end for  
+
+> 27:
+
+end if  
+
+> 28:
+
+end for  
+
+> 29:
+
+if freq is the constant zero map, then  
+
+> 30:
+
+Predict ap(ET ) by sampling from the empirical distribution of ap(EX ) over {EX ∈
+
+X | h(EX ) = h(ET )}. 
+
+> 31:
+
+else  
+
+> 32:
+
+Predict ap(ET ) = n where freq[ n] is maximal. If there are multiple such n, predict 
+
+ap(ET ) by sampling from the tied candidates according to P(p).  
+
+> 33:
+
+end if  
+
+> 34:
+
+end if  
+
+> 35:
+
+end for 
+
+> 15
+
+Algorithm 2 Sign-based matching classifier using proxy keys for predicting ap(E)
+
+Require: Training set X and test set T of elliptic curves with good reduction at a prime p < 100. The input in a row i is a sequence of the traces of Frobenius Xi = ( aq (E)) q< 100 ,q ̸ =p. The output is ap(Ei). 
+
+Ensure: Predictions ap(E) on the test set.  
+
+> 1:
+
+(Compute proxy keys for all curves).  
+
+> 2:
+
+for all curves E ∈ X ∪ T do  
+
+> 3:
+
+Compute the proxy key k(E) using the absolute values of the traces at the k largest primes: 
+
+k(E) =  |ap1 (E)|, . . . , |apk (E)| 
+
+> 4:
+
+end for  
+
+> 5:
+
+Step 0 (Precomputation).  
+
+> 6:
+
+Compute the probability distribution P(p) of ap(E) on the training set X. 
+
+> 7:
+
+Step 1 (Sign-Pattern Indexing).  
+
+> 8:
+
+for all E ∈ X do  
+
+> 9:
+
+Compute the pair   sgn( E, p ), sgn( ap(E)) , where sgn( E, p ) =   sgn( a2(E)) , sgn( a3(E)) , . . . , \sgn( ap(E)) , . . . , sgn( a97 (E)) ,
+
+where we exclude sgn( ap(E)) from the tuple sgn( E).  
+
+> 10:
+
+end for  
+
+> 11:
+
+Initialize an empty list L for lookup.  
+
+> 12:
+
+for each distinct proxy key k in X, and for each pair of curves ( E1, E 2) with k(E1) = k(E2) = k, do  
+
+> 13:
+
+Compute the pair   sgn( E1, E 2), sgn p(E1, E 2) where sgn( E1, E 2) = sgn( E1, p ) ∗ sgn( E2, p ),
+
+∗ denoting pointwise multiplication, and sgn p(E1, E 2) = sgn( ap(E1)) sgn( ap(E2)) . 
+
+> 14:
+
+Store the pair of   sgn( E1, E 2), sgn p(E1, E 2) in the list L. 
+
+> 15:
+
+end for  
+
+> 16:
+
+Step 2 (Matching Proxy key and Majority Voting).  
+
+> 17:
+
+for each test curve ET ∈ T do  
+
+> 18:
+
+if k(ET ) is not found in X then  
+
+> 19:
+
+Predict ap(ET ) based on the probability distribution P(p).  
+
+> 20:
+
+else  
+
+> 21:
+
+Initialize a map freq : Z → Z≥0 with freq[ n] = 0 for all n ∈ Z. 
+
+> 22:
+
+Compute sgn( ET , p ) =   sgn( a2(ET )) , sgn( a3(ET )) , . . . , \sgn( ap(ET )) , . . . , sgn( a97 (ET )) . 
+
+> 23:
+
+for each curve EX ∈ X with k(EX ) = k(ET ) do  
+
+> 24:
+
+Compute   sgn( ET , E X ), a p(EX ). 
+
+> 25:
+
+if sgn( ET , E X ) occurs in the list L then  
+
+> 26:
+
+Find all pairs ( Ei, E j ) such that sgn( ET , E X ) = sgn( Ei, E j ). 
+
+> 27:
+
+for each pair ( Ei, E j ), do  
+
+> 28:
+
+Compute s = sgn p(Ei, E j ).  
+
+> 29:
+
+Update freq[ s · ap(EX )] ← freq[ s · ap(EX )] + 1.  
+
+> 30:
+
+end for  
+
+> 31:
+
+end if  
+
+> 32:
+
+end for  
+
+> 33:
+
+if freq is the constant zero map, then  
+
+> 34:
+
+Predict ap(ET ) by sampling from the empirical distribution of ap(EX ) over {EX ∈ X |
+
+k(EX ) = k(ET )}. 
+
+> 35:
+
+else  
+
+> 36:
+
+Predict ap(ET ) = n where freq[ n] is maximal. If there are multiple such n, predict ap(ET ) by sampling from the tied candidates according to P(p).  
+
+> 37:
+
+end if  
+
+> 38:
+
+end if  
+
+> 39:
+
+end for 16 Table 4.3. Agreement and disagreement between the twist model and proxy model (k=8). 
+
+Prime Both Correct Twist Correct Proxy Wrong Proxy Correct Twist Wrong Both Wrong Disagreement (%) 
+
+2 6944 522 537 1997 10.59 3 6584 495 474 2447 9.69 5 7460 294 305 1941 5.99 7 7670 241 239 1850 4.80 11 7836 199 191 1774 3.90 13 7875 198 194 1733 3.92 17 7843 207 197 1753 4.04 19 7860 161 154 1825 3.15 23 7886 163 157 1794 3.20 29 7887 157 121 1835 2.78 31 7880 127 146 1847 2.73 37 7885 132 122 1861 2.54 41 7869 140 117 1874 2.57 43 7878 114 131 1877 2.45 47 7867 136 128 1869 2.64 53 7891 147 94 1868 2.41 59 7875 131 95 1899 2.26 61 7902 104 97 1897 2.01 67 7864 110 121 1905 2.31 71 7885 114 94 1907 2.08 73 7889 122 87 1902 2.09 79 7882 131 93 1894 2.24 83 7859 124 101 1916 2.25 89 7878 105 84 1933 1.89 97 7881 106 97 1916 2.03 
+
+> 17
+
+Table 4.4. Agreement and disagreement between the twist model and proxy model (k=7). 
+
+Prime Both Correct Twist Correct Proxy Wrong Proxy Correct Twist Wrong Both Wrong Disagreement (%) 
+
+2 6949 517 525 2009 10.42 3 6613 466 487 2434 9.53 5 7447 307 289 1957 5.96 7 7682 229 242 1847 4.71 11 7837 198 195 1770 3.93 13 7877 196 178 1749 3.74 17 7834 216 178 1772 3.94 19 7864 157 165 1814 3.22 23 7883 166 191 1760 3.57 29 7884 160 143 1813 3.03 31 7870 137 152 1841 2.89 37 7883 134 130 1853 2.64 41 7863 146 163 1828 3.09 43 7872 120 127 1881 2.47 47 7863 140 142 1855 2.82 53 7894 144 98 1864 2.42 59 7877 129 125 1869 2.54 61 7897 109 97 1897 2.06 67 7863 111 114 1912 2.25 71 7876 123 101 1900 2.24 73 7887 124 94 1895 2.18 79 7880 133 83 1904 2.16 83 7848 135 97 1920 2.32 89 7869 114 82 1935 1.96 97 7868 119 105 1908 2.24
