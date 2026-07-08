@@ -6,86 +6,63 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-07
-- 运行时间：2026-07-07 21:58:39 UTC
+- 最新运行日期：2026-07-08
+- 运行时间：2026-07-08 22:01:43 UTC
 - 运行状态：成功
-- 本次总论文数：22
-- 精读区：10
+- 本次总论文数：14
+- 精读区：2
 - 速读区：12
 
 ### 今日简报（AI）
-今日深度解析 22 篇 AI 交叉学科论文，重点聚焦符号回归初始化优化与电力系统动力学方程的自动化发现。
-- 详情：[/202607/07/README](/202607/07/README)
+今日聚焦动力系统建模与数学推理优化，深度解析 14 篇前沿成果。
+重点推荐：通过匹配转移算子
+- 详情：[/202607/08/README](/202607/08/README)
 
 ### 精读区论文标签
-1. [Evaluation of Population Initialization Methods for Genetic Programming-based Symbolic Regression](/202607/07/2606.31990v1-evaluation-of-population-initialization-methods-for-genetic-programming-based-symbolic-regression)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：评估符号回归种群初始化对准确性和复杂性的影响
-2. [Data-Driven Discovery of Multiscale Power System Oscillation Governing Equations Using SINDy-SENDAI](/202607/07/2607.03485v1-data-driven-discovery-of-multiscale-power-system-oscillation-governing-equations-using-sindy-sendai)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：利用SINDy从传感器数据中识别简洁的控制方程
-3. [Dictionaries, Not Darwin: Set-Level Selection Beats LLM Evolution in Scientific Equation Discovery](/202607/07/2607.04108v1-dictionaries-not-darwin-set-level-selection-beats-llm-evolution-in-scientific-equation-discovery)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：审计用于科学方程发现的大模型进化方法
-4. [Language models guide symbolic equation discovery by controlling search](/202607/07/2607.04156v1-language-models-guide-symbolic-equation-discovery-by-controlling-search)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：大语言模型引导的符号回归用于科学方程发现
-5. [Inverse-k Primordial Oscillations from a Symbolic Regression Search](/202607/07/2607.04925v1-inverse-k-primordial-oscillations-from-a-symbolic-regression-search)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：使用符号回归对原始特征进行无模板搜索
-6. [Structural functional identifiability and model discovery in differential equation models](/202607/07/2606.30289v1-structural-functional-identifiability-and-model-discovery-in-differential-equation-models)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：从观测数据中发现未知的方程和函数
-7. [Joint discovery of governing partial differential equations from multi-source datasets by competitive optimization](/202607/07/2606.30699v1-joint-discovery-of-governing-partial-differential-equations-from-multi-source-datasets-by-competitive-optimization)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：从多源观测数据中发现控制方程
-8. [AI-Assisted Discovery of Convex Relaxations via Dual Agents](/202607/07/2606.31182v1-ai-assisted-discovery-of-convex-relaxations-via-dual-agents)  
-   标签：评分：9.0/10、query:math-ai
-   evidence：AI驱动的数学常数与不等式发现
-9. [Differentiate the Evaluator, Not the Program: An Efficient Runtime Representation for Neuro-Symbolic Learning](/202607/07/2607.03574v1-differentiate-the-evaluator-not-the-program-an-efficient-runtime-representation-for-neuro-symbolic-learning)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：神经符号程序搜索的高效参数校准
-10. [Anomalous Partial Quotients in the Continued Fraction of $\sqrt{ζ(3)-S_N}$](/202607/07/2607.04077v1-anomalous-partial-quotients-in-the-continued-fraction-of-sqrt3-sn)  
-   标签：评分：9.0/10、query:math-ai
-   evidence：数学常数连分数中部分商的分析
+1. [Data-Adaptive Learning of Dynamical Systems by Matching Transfer Operators and Invariant Measures](/202607/08/2607.00391v1-data-adaptive-learning-of-dynamical-systems-by-matching-transfer-operators-and-invariant-measures)  
+   标签：评分：8.0/10、query:sr-alg
+   evidence：从轨迹数据中进行系统辨识和动力学学习
+2. [Reward Granularity in RLVR: Comparing Process and Outcome Reward Structures for Mathematical Reasoning in Small Language Models](/202607/08/2607.02869v1-reward-granularity-in-rlvr-comparing-process-and-outcome-reward-structures-for-mathematical-reasoning-in-small-language-models)  
+   标签：评分：8.0/10、query:math-ai
+   evidence：语言模型数学推理的强化学习
 
 ### 速读区论文标签
-1. [A Recurrence Based Summation Method for Ultra-Rapid Divergent Series and Renormalon Type Expansions](/202607/07/2607.00425v1-a-recurrence-based-summation-method-for-ultra-rapid-divergent-series-and-renormalon-type-expansions)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：发散级数和展开式的求和方法
-2. [Graph-Native Reinforcement Learning Enables Traceable Scientific Hypothesis Generation through Conceptual Recombination](/202607/07/2607.00924v1-graph-native-reinforcement-learning-enables-traceable-scientific-hypothesis-generation-through-conceptual-recombination)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：用于科学假设生成的强化学习
-3. [Symbolic Discovery of Iterative Algorithms: A Continuous Latent Space Bayesian Optimization Framework](/202607/07/2607.01552v1-symbolic-discovery-of-iterative-algorithms-a-continuous-latent-space-bayesian-optimization-framework)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：使用贝叶斯优化自动发现符号形式的迭代算法
-4. [A MacMahon Analysis View of 4 Diagonal DSPPs](/202607/07/2607.03912v1-a-macmahon-analysis-view-of-4-diagonal-dspps)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：新的母函数公式与q级数恒等式
-5. [BayesEvolve: Explicit Belief States for Autonomous Scientific Discovery](/202607/07/2606.30335v1-bayesevolve-explicit-belief-states-for-autonomous-scientific-discovery)  
+1. [ISM:Self-Improving Strategy Memory for Continual Mathematical Reasoning](/202607/08/2606.31191v1-ismself-improving-strategy-memory-for-continual-mathematical-reasoning)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：用于数学推理的符号工具和策略记忆
+2. [Explicit Series and a Certified Hybrid Evaluator for the $\ell_p$ Proximity Operator for $0<p<1$](/202607/08/2606.31951v1-explicit-series-and-a-certified-hybrid-evaluator-for-the-ellp-proximity-operator-for-0p1)  
+   标签：评分：7.0/10、query:math-ai
+   evidence：数学算子的显式级数和积分表示
+3. [Learning dynamical systems from noisy data with Weak-form Kernel Ridge Regression](/202607/08/2607.00257v1-learning-dynamical-systems-from-noisy-data-with-weak-form-kernel-ridge-regression)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：自主科学发现与假设提议
-6. [Beyond the Library: An Agentic Framework for Autoformalizing Research Mathematics](/202607/07/2606.31134v1-beyond-the-library-an-agentic-framework-for-autoformalizing-research-mathematics)  
+   evidence：利用弱形式核回归从噪声数据中学习动力系统
+4. [Geometry-Aware R-Structured Kolmogorov-Arnold Networks](/202607/08/2607.01449v1-geometry-aware-r-structured-kolmogorov-arnold-networks)  
    标签：评分：7.0/10、query:math-ai
-   evidence：使用大语言模型自动形式化研究数学
-7. [ISM:Self-Improving Strategy Memory for Continual Mathematical Reasoning](/202607/07/2606.31191v2-ismself-improving-strategy-memory-for-continual-mathematical-reasoning)  
+   evidence：用于学习非线性结构和逻辑约束的Kolmogorov-Arnold网络
+5. [Formalized $q$-series: The Rogers-Ramanujan Identities and Beyond](/202607/08/2607.01544v1-formalized-q-series-the-rogers-ramanujan-identities-and-beyond)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于数学推理的符号工具和策略模式
-8. [ISM:Self-Improving Strategy Memory for Continual Mathematical Reasoning](/202607/07/2606.31191v3-ismself-improving-strategy-memory-for-continual-mathematical-reasoning)  
+   evidence：q-级数与Rogers-Ramanujan恒等式的形式化
+6. [G-RRM: Guiding Symbolic Solvers with Recurrent Reasoning Models](/202607/08/2607.02491v1-g-rrm-guiding-symbolic-solvers-with-recurrent-reasoning-models)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于数学推理和符号工具的自我改进记忆系统
-9. [Why Struggle with Continuous Latents? Interpretable Discrete Latent Reasoning via Rendered Compression](/202607/07/2606.29712v1-why-struggle-with-continuous-latents-interpretable-discrete-latent-reasoning-via-rendered-compression)  
+   evidence：用神经模型引导符号求解器的神经符号方法
+7. [Beyond the Library: An Agentic Framework for Autoformalizing Research Mathematics](/202607/08/2606.31134v2-beyond-the-library-an-agentic-framework-for-autoformalizing-research-mathematics)  
    标签：评分：6.0/10、query:math-ai
-   evidence：通过强化学习和符号监督进行离散潜空间推理
-10. [ScaleAware-JEPA: Latent Representation for Discovery in Multiscale Physical Fields](/202607/07/2606.29723v1-scaleaware-jepa-latent-representation-for-discovery-in-multiscale-physical-fields)  
+   evidence：使用大语言模型代理对研究数学进行自动形式化
+8. [Explicit Fuzzy Logic in the Feed-Forward Layer: Self-Forgetting Quantifiers Discover Legible Grammatical-Licensing Detectors](/202607/08/2606.31845v1-explicit-fuzzy-logic-in-the-feed-forward-layer-self-forgetting-quantifiers-discover-legible-grammatical-licensing-detectors)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：具有显式模糊逻辑的Transformer架构用于发现
+9. [From Spectral Methods to Sample Complexity Bounds for Fourier Neural Operators](/202607/08/2607.00320v1-from-spectral-methods-to-sample-complexity-bounds-for-fourier-neural-operators)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：多尺度物理场发现的潜在表示
-11. [SABER-Math: Automated Benchmark for Information Retrieval Evaluation in Mathematics](/202607/07/2606.29894v1-saber-math-automated-benchmark-for-information-retrieval-evaluation-in-mathematics)  
+   evidence：学习耗散演化方程的解算子
+10. [A Multi-Resolution Finite-Volume Inspired Deep Learning Framework for Spatiotemporal Dynamics Prediction](/202607/08/2607.00460v1-a-multi-resolution-finite-volume-inspired-deep-learning-framework-for-spatiotemporal-dynamics-prediction)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：物理信息深度学习用于时空动力学
+11. [Wythoff-Fibonacci Sequences and a Perturbed Greedy Almost-involution](/202607/08/2607.00814v1-wythoff-fibonacci-sequences-and-a-perturbed-greedy-almost-involution)  
    标签：评分：6.0/10、query:math-ai
-   evidence：数学信息检索的自动基准测试
-12. [LatentRevise: Learning from Zero-Hit Reasoning](/202607/07/2606.29938v1-latentrevise-learning-from-zero-hit-reasoning)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：具有可验证奖励的推理强化学习
+   evidence：数学序列的显式公式
+12. [How Should Transformers Encode Numeric Values in Electronic Health Records?](/202607/08/2607.01391v1-how-should-transformers-encode-numeric-values-in-electronic-health-records)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：基于Transformer的算术任务数值编码
 
 
 <div class="dpr-home-promo-card">

@@ -1,0 +1,2917 @@
+Title: Formalized q-series: The Rogers-Ramanujan Identities and Beyond
+
+URL Source: https://arxiv.org/pdf/2607.01544v1
+
+Published Time: Fri, 03 Jul 2026 00:20:11 GMT
+
+Number of Pages: 36
+
+Markdown Content:
+FORMALIZED q-SERIES: THE ROGERS-RAMANUJAN IDENTITIES AND BEYOND 
+
+KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+Abstract. The theory of q-series and basic hypergeometric series plays a crucial role at the inter-section of combinatorics, number theory, and representation theory. From the classical partition identities of Euler and Jacobi to modern developments in class field theory, vertex operator alge-bras, and the Monstrous Moonshine conjecture, q-series provide the analytic framework for a wide range of profound applications. In this paper, we discuss the formalization of this theory in the Lean proof assistant, a process that requires careful design of scalable and versatile structures to reconcile formal algebraic identities with analytic convergence properties. We address these founda-tional challenges by focusing on the construction of q-Pochhammer symbols, q-binomial coefficients, Bailey’s Lemma and similar primitives. To demonstrate the utility of this work, we provide fully verified proofs of the Jacobi Triple Product formula and the celebrated Rogers-Ramanujan identi-ties, which serve as both historical and technical benchmarks for the field. This work establishes a rigorous computational foundation for the future formalization of mock theta functions, modular forms, and the diverse algebraic structures that underpin their applications across mathematics and physics. 
+
+1. Introduction and Statement of Results 
+
+Few families of functions are as hospitable, or as surprising, as q-series. At the most elementary level, they are power series in a parameter q; but already in Euler’s work on partitions and infinite products, this simple notation became a language for encoding arithmetic, combinatorial, and an-alytic phenomena. In the nineteenth century, Jacobi’s theta functions and triple product identity revealed that q-series also govern elliptic functions and modular transformations. In Ramanujan’s notebooks, and later in the work of Rogers, Schur, Bailey, Andrews, and many others, the subject acquired a distinctive character: identities that appear as innocent generating function manipula-tions often conceal deep structure in partition theory, modular forms, representation theory, and statistical mechanics. For general background on the classical theory and its combinatorial and hypergeometric aspects, see [4, 18, 39]. This breadth is also what makes the subject a natural test case for formalized mathematics. A 
+
+q-series identity may be read as an equality of formal power series, as a theorem about convergent analytic functions on the unit disk, as a statement about partitions, or as the character identity of an algebraic object like a Lie algebra. Human readers move between these interpretations with little comment; a proof assistant requires each transition to be explicit. Formalization therefore does more than certify a final equality: it exposes the definitions, coercions, convergence hypotheses, indexing conventions, and reusable lemmas on which the equality depends. Building on the success of formal proof in major mathematical projects and on the growth of shared libraries, this paper is a step in this direction for q-series. 
+
+Key words and phrases. q-series, Jacobi Triple Product, Rogers-Ramanujan identities. 2020 Mathematics Subject Classification. 68V20, 68V15, 05A30.  
+
+> 1
+> arXiv:2607.01544v1 [math.NT] 1 Jul 2026 2KENNY LAU, SEEWOO LEE, AND KEN ONO
+
+1.1. Some fundamental q-series. Our first benchmark is the Jacobi Triple Product, one of the foundational identities of the subject. It converts a bilateral theta series into an infinite product, and thereby supplies the bridge between additive and multiplicative descriptions of theta functions. Among its many consequences are Euler’s pentagonal number theorem, product expansions for classical theta functions, and the product formulae that underlie numerous partition identities and modular-form constructions. In this paper we formalize a proof of the following standard form of the identity, originally rooted in Jacobi’s theory of elliptic functions (for example, see [1, 2, 3, 4, 24]. 
+
+Theorem 1.1.1 (Jacobi Triple Product) . If we let q, z ∈ C with |q| < 1 and z̸ = 0 , then we have 
+
+∑
+
+> n∈Z
+
+(−1) nznqn(n−1)/2 =
+
+> ∞
+
+∏
+
+> m=1
+
+(1 − qm)(1 − zq m−1)(1 − z−1qm).
+
+This theorem plays a central role in framing Jacobi forms and half-integral weight modular forms (for example, see [9, 16]). Moreover, this identity is quite versatile, and easily leads to identities such as Euler’s “Pentagonal Number Theorem” (Theorem 6.1.1) 
+
+> ∞
+
+∏
+
+> n=1
+
+(1 − qn) = ∑
+
+> k∈Z
+
+(−1) kq 3k2+k 
+
+> 2
+
+,
+
+and Jacobi’s identity (Theorem 6.1.2) 
+
+> ∞
+
+∏
+
+> n=1
+
+(1 − qn)3 =
+
+> ∞
+
+∑
+
+> k=0
+
+(−1) k(2 k + 1) q k2+k 
+
+> 2
+
+.
+
+The analytic statement in Theorem 1.1.1 is the familiar mathematical formulation. The formal development separates the algebraic skeleton of the identity from the analytic hypotheses that justify the infinite sums and products. This separation is one of the central design themes of this paper. We next turn to the iconic q-series of Rogers and Ramanujan. These formulas first emerged from partition theory and now reverberate across combinatorics, number theory, representation theory, and physics. To this end, we begin by recalling the fundamental q-Pochhammer symbols (1.1.1) (a; q)n := 
+
+> n−1
+
+∏
+
+> j=0
+
+(1 − aq j ) and (a; q)∞ := 
+
+> ∞
+
+∏
+
+> j=0
+
+(1 − aq j ).
+
+The two Rogers–Ramanujan q-series are (1.1.2) G(q) := ∑
+
+> n≥0
+
+qn2
+
+(q; q)n
+
+and H(q) := ∑
+
+> n≥0
+
+qn(n+1) 
+
+(q; q)n
+
+.
+
+They satisfy the striking sum-product identities discovered by Rogers, rediscovered by Ramanujan, and given important finite forms by Schur [34, 35, 38]. a
+
+Theorem 1.1.2 (Rogers–Ramanujan identities) . As formal power series, we have 
+
+(1.1.3) G(q) = 1(q; q5)∞ (q4; q5)∞
+
+and H(q) = 1(q2; q5)∞ (q3; q5)∞
+
+. 
+
+> aSchur proved finite polynomial versions, from which the infinite product identities follow by taking the limit. THE ROGERS-RAMANUJAN IDENTITIES 3
+
+The Rogers–Ramanujan identities, and their proofs, are especially well-suited as a benchmark for a formal library. They require finite and infinite products, nontrivial reindexing of sums, control of convergence or formal limiting processes, and a precise interface between basic hypergeometric transformations and product expansions. They also connect to a large mathematical ecosystem: partition theory, solvable lattice models, conformal field theory, vertex operator algebras, and generalized Rogers–Ramanujan identities all use variants of these ideas [4, 7, 15, 17, 18, 26, 27, 20, 39]. Moreover, after multiplying by suitable fractional powers of q = e2πiτ , with τ ∈ H, the product sides become the level 5 modular functions (1.1.4) f1(τ ) := q−1/60 G(q) and f2(τ ) := q11/60 H(q),
+
+placing the identities directly in the web of modular forms and modular functions (see these refer-ences for background on modular forms and functions [14, 33, 37, 43]). The paper is organized as follows. In Section 3 we describe the mathematical architecture of the Lean development: the treatment of finite and infinite products, the definitions of q-Pochhammer symbols and q-binomial coefficients, and the formalization of Bailey pairs and Bailey’s Lemma. In Section 4 we explain the formalized proof of Theorem 1.1.1, emphasizing the translation between bilateral sums, products, and the theorem statement used by later sections. In Section 5 we prove Theorem 1.1.2 inside the library and describe how the proof tests the scalability of the preceding infrastructure. Finally, Section 8 records the role of the AxiomProver system in the project and gives reproducibility information for the formal artifact. AxiomProver is an AI system for mathematical research via formal proof that is currently under development by Axiom Math. 2. A prelude to formalization 
+
+The purpose of this section is to explain mathematical background and design principles for the library. The central formalization problem is that classical notation suppresses several distinctions: a finite product may later be sent to a limit, a formal product may be interpreted analytically, and the same symbol (a; q)n is used in rings, fields, normed algebras, and spaces of formal series. Our development is designed to make these transitions explicit while keeping the user-facing statements close to ordinary mathematical language. We work in Lean [13], building on mathlib [28], and isolate the reusable primitives needed for the Jacobi Triple Product, Bailey’s Lemma [6], and the Rogers–Ramanujan identities. 2.1. Mathematical Background. In this subsection we develop the necessary mathematical prerequisites we require. 2.1.1. Assumptions. All rings in this paper are assumed to be commutative. In accordance with Lean, N (the set of natural numbers) contains 0. When necessary, we denote N \ { 0} by N+, also in accordance with Lean. 2.1.2. Typeclass resolution. Lean has a built-in typeclass resolution system [40] which is very pow-erful. For example, a field is automatically a ring. Formally, if we assume (F : Type*) [Field F] , then Lean can automatically populate the type Ring F (with the mathematically correct term). This means that definitions and theorems only have to be stated with the most general typeclass assumptions, and then they will be able to be applied in a wide variety of situations. To this end, 
+
+(a; q)n is defined over commutative rings, and (a; q)∞ is defined over any commutative ring that also has a topological space structure, without any requirement of compatibility between the ring and the topology. Namely, in Lean syntax we have the following definitions. 4 KENNY LAU, SEEWOO LEE, AND KEN ONO                         
+
+> RogersRamanujan/NumberTheory/QTheory/Defs.lean
+> def qPochhammer {R} [CommRing R] (a q : R) (n : ℕ) : R := ∏ i ∈ range n, (1 - a * q ^ i)
+> RogersRamanujan/NumberTheory/QTheory/Defs.lean
+> def qPochhammerInf {R} [TopologicalSpace R] [CommRing R] (a q : R) : R:= ∏'[conditional ℕ] i, (1 - a * q ^ i)
+
+2.1.3. Analytic vs. Algebraic. Theorems in q-series are often stated analytically, in terms of q ∈ C,and where power series represent analytic functions on the unit complex disc. However, those objects are difficult to work with algebraically, for example if we consider the ring of power se-ries, then asking about convergence puts an extra level of complication. For example, the set of convergent (with a fixed radius) power series in q is not closed under the natural q-adic topology. Therefore, we have decided to completely transform the theory into an algebraic one, and replace the analytic objects with non-archimedean rings. As it turns out, even the assumption of being non-archimedean is still too weak if we want 
+
+(a; q)∞ to actually converge, since the non-archimedean axiom does not put any constraint on the multiplicative structure. We know that q should be topologically nilpotent, so that the multipli-cands 1 − aq n tends to 1. However, this does not guarantee convergence, even for non-archimedean rings (see the counterexample in Theorem 9.2.3). To this end, we define a new class of rings which that we call StrongNonarchimedeanRing in the project. Recall that a non-archimedean ring is a topological ring where the set of open additive subgroups forms a basis of the neighborhoods of 0.A strongly non-archimedean ring is a topological ring where the set of open additive subrings without unity forms a basis of the neighborhoods of 0.                    
+
+> RogersRamanujan/Topology/Algebra/Nonarchimedean/Strong.lean
+> class StrongNonarchimedeanRing (R) [Ring R] [TopologicalSpace R] : Prop extends NonarchimedeanRing R where exists_mul_subset_self (U : Set R) (hU : U ∈ 𝓝 0) : ∃ V : Set R, 0 ∈ V ∧ IsOpen V∧ V ⊆ U ∧ V * V ⊆ V
+
+In this class of rings we recover a classical theorem: if ∑ an converges absolutely, then ∏(1 + an)
+
+converges. This theorem is well-known for complex numbers but for non-archimedean settings, it turns out that we need strong non-archimedean ring to recover the theorem. Namely, we have that if an → 0, then ∏(1 + an) converges.               
+
+> RogersRamanujan/Topology/Algebra/Nonarchimedean/Strong.lean
+> theorem multipliable_one_add_of_tendsto_zero {R} [CommRing R] [UniformSpace R] [CompleteSpace R] [StrongNonarchimedeanRing R] [IsUniformAddGroup R] {a : ℕ →R} (ha :Tendsto a atTop (𝓝 0)) : Multipliable (1 + a ·) :=
+
+It is tempting to resort to “linear topology” b, which is a common mistake. This is in fact not general enough, as the q-adic topology on the field of Laurent series is not a linear topology, but we would want to talk about negative powers such as (−q−1; q)∞. 
+
+> bhttps://leanprover-community.github.io/mathlib4_docs/Mathlib/Topology/Algebra/LinearTopology.html# IsLinearTopology THE ROGERS-RAMANUJAN IDENTITIES 5
+
+2.1.4. Universal rings. Identities can often be abstracted to a “universal ring”, i.e. a polynomial-like ring where that identity holds, and then every other instance of that identity in any ring can be derived from universal ring homomorphisms. For example, the identity 
+
+x2 − y2 = ( x − y)( x + y)
+
+takes place in Z[x, y ] which can then be mapped to any commutative ring with two chosen elements 
+
+a and b to deduce a2 − b2 = ( a − b)( a + b). We can think of the one equality in the universal ring as the “main ingredient” of this identity. This might apply to the Jacobi triple product identity, but the authors have not found an easy and clean approach, which complicates our approach to the Jacobi triple product identity. On the other hand, we will not face these issues for the two Rogers–Ramanujan identities. This will be explained more in Section 5.3. The authors found an alternative pathway to extract the main ingredient of the Jacobi triple product identity: as a natural-indexed family of equalities in ZJqK,which have natural combinatorial interpretations. This will be explained more in Lemma 4.1.3. 2.1.5. A new theory of multivariate Laurent series. We often need to “borrow” negative powers to make proofs easier. For example, the statement itself of Jacobi triple product mentions a−1, and the proof is easier if we involve q−1.The authors failed to find satisfactory theories of multivariate Laurent series, so we have invented the following implementation as mathlib already supports Hahn series c, defined for an ordered additive group Γ over a base ring R. It consists of functions Γ → R whose support is well-founded under the order. We then set Γ to be finitely supported functions from the set of formal variables to Z, and the ordering is by the sum, which we call the total degree: 
+
+• f < g iff ∑ 
+
+> i
+
+fi < ∑ 
+
+> i
+
+gi.
+
+• f ≤ g iff ∑ 
+
+> i
+
+fi < ∑ 
+
+> i
+
+gi or f = g.Then, well-founded subsets are those whose total degree is bounded below, and at each degree, there are only finitely many contributors. Its “ring of integers” are the functions whose support have non-negative total degrees, and is strictly bigger than the power series (for non-trivial situations). For example, note that xy −1 has total degree 0. The authors found this theory satisfactory because the ring of integers contains the power series, coefficients can be extracted from each element, and the ring is complete under the topology induced by “total degrees”. 2.2. Design Principles; formal, algebraic, and analytic considerations. Before we consider concrete formalization, we offer further comments that explicate some of the choices we make later. 2.2.1. The philosophy of junk value. People often talk about functions with a restricted domain. For example, the square-root “function” √x is considered to be defined only for x ≥ 0. This introduces type-theoretic baggage as from a type-theory standpoint, x could a priori be any real number, so a completely literal translation of this into Lean would mean that every time you take the square root of x, you have to include a proof of x ≥ 0. This is why mathlib chose a different path [10]: in mathlib, Real.sqrt d is defined for all real numbers, by taking on the junk value 0 for negative inputs. The advantage of this approach is the separation of data and proofs , which among other things makes statements look cleaner. In light of this, we found that in this project we often need to talk about multiplicative inverses, but we again do not want to always have to provide the proof that an element is invertible, so we  
+
+> chttps://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/HahnSeries/Basic.html
+> dhttps://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/SpecialFunctions/Sqrt.html#Real. sqrt 6KENNY LAU, SEEWOO LEE, AND KEN ONO
+
+have invented a function bInv x which returns the both-sided inverse of x if it exists, and the junk value 1 otherwise.          
+
+> RogersRamanujan/Algebra/Group/Units/Basic.lean
+> def bInv {α} [Monoid α] (x : α) : α := open scoped Classical in if h : IsUnit x then ↑h.unit⁻¹ else 1
+
+However, it is not always beneficial to separate data and proofs. For example, sometimes it makes proving less efficient. To this end, mathlib has both versions when it comes to topological summation. HasSum f a e means that the (suitably defined) limit of summing over the values of the function f is a, which inherently is the proof, whereas tsum f is a total function with junk value so that tsum f returns an arbitrary limit of the above sum if it exists, and the junk value 0 otherwise. We found that for this project both are useful to have. 2.3. Previous formalizations of q-series and related topics. As of the time of writing this paper, there is no formalization of a proper q-theory in mathlib (version v4.30.0). However, there are some formalizations of relevant theory as separate projects. Notably, RepoProver [19] formal-ized Grinberg’s algebraic combinatorics textbook [22], where Chapter 4 of the book introduces partitions, q-binomial coefficients, Jacobi triple product identity, and Euler’s pentagonal number theorem. These are all (auto)formalized by RepoProver g, but there are some differences with our formalization. First, their version of Jacobi triple product formula is the following: for a, b ∈ Z with a > 0 and 
+
+a ≥ | b|, and u, v ∈ Q with (2.3.1) 
+
+> ∞
+
+∏
+
+> n=1
+
+(1 + u2n−1vx (2 n−1) a+b)(1 + u2n−1v−1x(2 n−1) a−b)(1 − u2nx2na ) = ∑
+
+> l∈Z
+
+ul2
+
+vlxal 2+bl .
+
+(See Theorem 4.3.2 of [22] and its proof.) The assumptions on a and b are needed to ensure that all the exponents in (2.3.1) are nonnegative, so that the identity holds in QJxK. Then the original Jacobi triple product identity can be recovered with q = ux a and z = vx b, which holds in Z[z±]JqK
+
+(see jacobi_triple_product_fps' ). For comparison, the formalization we offer (i.e., Theorem 4.1.4) holds for more general rings (StrongNonarchimedeanRing ). In case of Euler’s pentagonal number theorem, RepoProver formal-ized it as an identity of power series over Q, while our formalization (Theorem 6.1.1) again holds for any NonarchimedeanRing . Wang also formalized pentagonal number theorem h in Lean. One version holds for general T2 topological ring, which requires summability and convergence of relevant infi-nite series and product as hypothesis (see pentagonalNumberTheorem_generic ). Another version is as identity over power series ring over T2 topological ring, which is more general than RepoProver’s formalization (see pentagonalNumberTheorem_intPos_powerSeries ), but still not as general as ours. The Jacobi triple product formula, Euler’s Pentagonal number theorem, and Rogers–Ramanujan identities are also formalized in Isabelle [23] by Eberl [29, 30, 31]. The proof of Jacobi triple product  
+
+> ehttps://leanprover-community.github.io/mathlib4_docs/Mathlib/Topology/Algebra/InfiniteSum/Defs.html# HasSum
+> fhttps://leanprover-community.github.io/mathlib4_docs/Mathlib/Topology/Algebra/InfiniteSum/Defs.html# tsum
+> ghttps://github.com/facebookresearch/algebraic-combinatorics
+> hhttps://github.com/wwylele/PentagonalNumberTheorem
+
+THE ROGERS-RAMANUJAN IDENTITIES 7
+
+formula follows Ramanujans’ original argument in his lost notebook [8] using Ramanujan’s theta function 
+
+f (a, b ) = 
+
+> ∞
+
+∑
+
+> n=−∞
+
+an(n+1) 2 bn(n−1) 2 ,
+
+where the final result is stated for complex numbers (see ramanujan_theta_triple_product_complex 
+
+and jacobi_theta_nome_triple_product_complex ), and the pentagonal number theorem follows from it. The proof of Rogers–Ramanujan identity follows the argument in [5], whereas our work makes fundamental use of Bailey’s lemma. Instead, it proves certain finite identities and take limits of them, and apply Jacobi triple product formula to complete the proof. 3. Formalizing q-series 
+
+3.1. Finite products, infinite products, and controlled limits. In mathlib, taking a finite product of elements requires a commutative monoid. Then, arbitrary product i requires a topology, and is defined using filters and can be optionally customized using summation filters. We first state the definition in full generality, and then specialize to two cases that are often used. 
+
+Definition 3.1.1. A summation filter j on α is a filter L on |α|<ω , the set of finite subsets of α,often assumed to satisfy the following two conditions: (1) ∅ /∈ L
+
+(2) For any finite set S ⊆ α, {T ∈ | α|<ω | T ⊇ S} ∈ L.
+
+Definition 3.1.2. Define “ y ∈ β is a product of f : α → β under the summation filter L” to mean that for any neighborhood U of y, there is S0 ∈ L, such that for any S ∈ S0, the finite product ∏ 
+
+> x∈S
+
+f (x) is in U .k
+
+Note that such y is not necessary unique, unless β is a T2-space. 
+
+Definition 3.1.3. The unconditional summation filter on α is the summation filter generated by {T ∈ | α|<ω | T ⊇ S} for S ∈ | α|<ω .l
+
+Note that unless specified otherwise, the unconditional summation filter is assumed when we talk about arbitrary products. 
+
+Definition 3.1.4. The conditional summation filter on N is the summation filter generated by 
+
+{[0 , n ] | n ≥ N } for N ∈ N.m
+
+Note that it is defined more generally, but we often only need the one for N. We now explain their names:  
+
+> ihttps://leanprover-community.github.io/mathlib4_docs/Mathlib/Topology/Algebra/InfiniteSum/Defs.html# tprod
+> jhttps://leanprover-community.github.io/mathlib4_docs/Mathlib/Topology/Algebra/InfiniteSum/ SummationFilter.html#SummationFilter
+> khttps://leanprover-community.github.io/mathlib4_docs/Mathlib/Topology/Algebra/InfiniteSum/Defs.html# HasProd
+> lhttps://leanprover-community.github.io/mathlib4_docs/Mathlib/Topology/Algebra/InfiniteSum/ SummationFilter.html#SummationFilter.unconditional
+> mhttps://leanprover-community.github.io/mathlib4_docs/Mathlib/Topology/Algebra/InfiniteSum/ SummationFilter.html#SummationFilter.conditional 8KENNY LAU, SEEWOO LEE, AND KEN ONO
+
+Theorem 3.1.5. The unconditional summation filter picks out unconditional convergence, in the sense that y ∈ β is unconditionally a product of f : α → β iff for any neighborhood U of y, there is a finite set S ⊆ α, such that for any finite T ⊇ S, the finite product ∏ 
+
+> x∈T
+
+f (x) is in U .The conditional summation filter picks out conditional convergence, in the sense that f : N → β
+
+has product y ∈ β iff lim n→∞ 
+
+(∏ n−1 
+
+> i=0
+
+f (i)) = y.
+
+3.2. Basic objects of q-theory and their functorial behavior. We formalized the following 
+
+q-integer, q-factorial, q-binomial coefficients, and q-Pochhammer symbol, as building blocks. 
+
+Definition 3.2.1. The q-integer [n]q := ∑n−1 
+
+> i=0
+
+qi, where n ∈ N and q ∈ R where R is an arbitrary commutative semiring. Here we make the decision that q would be an element of a ring-like object, rather than a formal variable. 
+
+Definition 3.2.2. The q-factorial [n]q! := ∏ni=1 [i]q, with the same assumptions as above. 
+
+Definition 3.2.3. The q-binomial coefficients, which we have chosen to define recursively to better adhere to Lean’s internal structure: (3.2.1) 
+
+[n
+
+> 0
+
+] 
+
+> q
+
+:= 1 
+
+[ 0
+
+> k+1
+
+] 
+
+> q
+
+:= 1 
+
+[n+1 
+
+> k+1
+
+] 
+
+> q
+
+:= [nk
+
+] 
+
+> q
+
++ qk+1 [ nk+1 
+
+]
+
+> q
+
+with the same assumptions as above. 
+
+Definition 3.2.4. Now we assume R is a commutative ring, because we require subtraction. Then, the finite q-Pochhammer symbol is (a; q)n := ∏n−1 
+
+> i=0
+
+(1 − aq i).
+
+Definition 3.2.5. Now additionally assume R has a topology. Then, we define the infinite q-Pochhammer symbol (a; q)∞ to be the conditional infinite product ∏∞
+
+> i=0
+
+(1 − aq i). Note that if it exists, then it is equal to lim n→∞ (a; q)n. In compliance with mathlib’s philosophy of junk values, the value is assigned to be 1 if the product does not exist. Note that in actual applications in this paper, we can prove unconditional convergence of the product; see Lemma 3.3.6.                                                                       
+
+> RogersRamanujan/NumberTheory/QTheory/Defs.lean
+> def qInt {R} [CommSemiring R] (q : R) (n : ℕ) :R := ∑ i ∈ range n, q ^ idef qFactorial {R} [CommSemiring R] (q : R) (n : ℕ) : R := ∏ i ∈ range n, qInt q (i + 1) def qChoose {R} [CommSemiring R] (q : R) : ℕ→ℕ→R| _, 0 => 1| 0, _ + 1 => 0| n + 1, k + 1 => qChoose qn k + q ^ (k + 1) *qChoose q n (k + 1) def qPochhammer {R} [CommRing R] (a q : R) (n : ℕ) : R := ∏ i ∈ range n, (1 - a * q ^ i) def qPochhammerInf {R} [TopologicalSpace R] [CommRing R] (a q : R) : R:= ∏'[conditional ℕ] i, (1 - a * q ^ i) THE ROGERS-RAMANUJAN IDENTITIES 9
+
+Notation 3.2.6. Apart from the notation (a; q)n and (a; q)∞ for the finite and infinite q-Pochhammer symbol respectively, we also write (a)n and (a)∞ respectively when q is clear. 
+
+We make the same convenience in the Lean code, where the former notations are available upon 
+
+> open QTheory
+
+, and the latter upon open QTheoryUnsafe . They are called “unsafe” because referring by the name q is inherently fragile. Every object defined here is functorial. To be precise, we have the following. 
+
+Theorem 3.2.7. If S is a commutative (semi)ring and f : R → S is a (semi)ring homomorphism, then we have the following four identities: 
+
+(3.2.2) f ([ n]q) = [ n]f (q)
+
+(3.2.3) f ([ n]q!) = [ n]f (q)!
+
+(3.2.4) f
+
+([nr
+
+]
+
+> q
+
+)
+
+=
+
+[nr
+
+] 
+
+> f(q)
+
+(3.2.5) f (( a; q)n) = ( f (a); f (q)) n
+
+We delay stating the functoriality of the infinite q-Pochhammer product (a; q)∞ until Lemma 3.3.7. 3.3. An exposition of strongly non-archimedean rings. Since this is a new mathematical object, we briefly describe its definition and properties. Recall that a non-archimedean ring is a topological ring such that the set of open additive subgroups forms a basis of the neighborhood filter of 0. In other words, if U is a neighborhood of 
+
+0, then there is an open additive subgroup V such that V ⊆ U .
+
+Definition 3.3.1. A strongly non-archimedean ring is a topological ring such that for any neighborhood U of 0, there is an open subrng V such that V ⊆ U . A subrng (subring without identity) is a subset containing 0 and is closed under addition, negation, and multiplication, but does not necessarily contain 1.Examples of such rings are abundant. 
+
+Example 3.3.2. Any normed ring satisfying the ultrametric inequality, such as Qp, R(( q)) , is strongly non-archimedean. More generally, our new construction of the ring of multivariate Laurent series is also strongly non-archimedean. This corresponds to the following in Lean syntax:       
+
+> RogersRamanujan/Topology/MetricSpace/Ultra/Basic.lean
+> instance {F} [NormedField F] [IsUltrametricDist F] : StrongNonarchimedeanRing F
+> RogersRamanujan/RingTheory/MvLaurentSeries/Basic.lean
+> instance {σ R} [Ring R] : StrongNonarchimedeanRing (MvLaurentSeries σ R)
+
+Example 3.3.3. Since ideals are subrngs, any topological ring R with an open subring R0 such that R is R0-linearly topologized is strongly non-archimedean. Here R0-linearly topologized means that open ideals of R0 form a neighborhood basis of 0. So in particular, all Huber rings are strongly non-archimedean. 10 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+This corresponds to the following in Lean syntax:     
+
+> RogersRamanujan/Topology/Algebra/Nonarchimedean/Strong.lean
+> instance IsLinearTopology.instStrongNonarchimedeanRing {R} [Ring R] [TopologicalSpace R] [IsTopologicalRing R] [IsLinearTopology R R] : StrongNonarchimedeanRing R
+
+Example 3.3.4. An arbitrary product of strongly non-archimedean rings is strongly non-archimedean. This gives us the fact that not all strongly non-archimedean rings are Huber rings. See Section 9.1 for more details. A very useful property of complete non-archimedean rings R is that for any sequence f : N → R,∑ f converges iff lim n→∞ f (n) = 0 . Here we list useful properties of strongly non-archimedean rings R that are not enjoyed by all non-archimedean rings (see Theorem 9.2.2): 
+
+Theorem 3.3.5. Let (an)n∈N be a sequence in R.If lim n→∞ an = 0 , then lim n→∞ 
+
+∏n−1 
+
+> i=0
+
+ai = 0 .As a very useful special case, if q is topologically nilpotent, then lim n→∞ qn = 0 , and since multiplication is continuous, we get lim n→∞ aq n = 0 , and so by the previous property, we have 
+
+lim n→∞ anq(n
+
+> 2
+
+) = 0 .Assuming R is complete, if lim n→∞ an = 0 , then ∏
+
+> n
+
+(1 + an) converges unconditionally.                              
+
+> RogersRamanujan/Topology/Algebra/Nonarchimedean/Strong.lean
+> theorem prod_tendsto_zero {R} [CommRing R] [TopologicalSpace R] [StrongNonarchimedeanRing R] (a : ℕ → R) (ha :Tendsto a atTop (𝓝 0)) : Tendsto (∏ i ∈ range ·, a i) atTop (𝓝 0) := by
+> RogersRamanujan/Topology/Algebra/Nonarchimedean/Strong.lean
+> theorem multipliable_one_add_of_tendsto_zero {R} [CommRing R] [UniformSpace R] [CompleteSpace R] [StrongNonarchimedeanRing R] [IsUniformAddGroup R] {a : ℕ →R} (ha :Tendsto a atTop (𝓝 0)) : Multipliable (1 + a ·) :=
+
+We then have: 
+
+Lemma 3.3.6 (Existence of infinite q-Pochhammer symbol) . If R is a complete strongly non-archimedean ring and a, q ∈ R with q topologically nilpotent, then (a; q)∞ := ∏
+
+> n
+
+(1 − aq n) exists unconditionally. Proof. lim n→∞ qn = 0 , so lim n→∞ aq n = 0 , so by the third fact above, ∏
+
+> n
+
+(1 − aq n) converges unconditionally. □            
+
+> RogersRamanujan/NumberTheory/QTheory/StrongNonarchimedean.lean
+> theorem multipliable_one_sub_mul_pow {R} [CommRing R] [UniformSpace R] [CompleteSpace R] [StrongNonarchimedeanRing R] [IsUniformAddGroup R] {a q : R} (hq : IsTopologicallyNilpotent q) : Multipliable (1 -a * q ^ ·) :=
+
+Lemma 3.3.7 (Functoriality of infinite q-Pochhammer symbol) . Let R be a complete strongly non-archimedean ring, and let S be a ring that is a T2 space, and let f : R → S be a ring homomorphism THE ROGERS-RAMANUJAN IDENTITIES 11 
+
+that is continuous, and let a, q ∈ R with q topologically nilpotent. Then: 
+
+(3.3.1) f (( a; q)∞) = ( f (a); f (q)) ∞
+
+RogersRamanujan/NumberTheory/QTheory/StrongNonarchimedean.lean 
+
+theorem map_qPochhammerInf {R S F} [CommRing R] [UniformSpace R] [StrongNonarchimedeanRing R] [CompleteSpace R] [IsUniformAddGroup R] [CommRing S] [TopologicalSpace S] [T2Space S] [FunLike F R S] [RingHomClass F R S] (f : F) (hf : Continuous f) (a : R) {q : R} (hq : IsTopologicallyNilpotent q) : f (a; q)_∞ = (f a; f q)_∞ := 
+
+3.4. q-binomial coefficients and finite q-identities. The identities in this section do not involve topology (i.e. arbitrary sum or product), so we can just assume that R is a commutative ring. As a result, we can also treat each identity as taking place in the universal ring Z[vars ] where vars is the (finite) set of variables involved. 
+
+Lemma 3.4.1 (q-Binomial theorem) .
+
+(3.4.1) (a)n =
+
+> n
+
+∑
+
+> k=0
+
+[nk
+
+]
+
+> q
+
+(−a)kq k(k−1) 2
+
+RogersRamanujan/NumberTheory/QTheory/Basic.lean 
+
+theorem qPochhammer_eq_sum_qChoose {R} [CommRing R] {a q : R} {n : ℕ} :(a; q)_n = ∑ k ∈ range (n + 1), qChoose q n k * (-a) ^ k * q ^ k.choose 2 := 
+
+Proof. Induction on n. □
+
+Lemma 3.4.2 (q-Cauchy identity) .
+
+(3.4.2) (uv )n =
+
+> n
+
+∑
+
+> k=0
+
+[nk
+
+]
+
+> q
+
+(u)kvk(v)n−k
+
+RogersRamanujan/NumberTheory/QTheory/Basic.lean 
+
+theorem qPochhammer_mul_eq_sum_qChoose {R} [CommRing R] {q : R} (u v : R) (n : ℕ) : (u * v; q)_n = ∑ k ∈ range (n + 1), qChoose q n k * (u; q)_k * v ^ k * (v; q)_(n - k) := 
+
+Proof. Induction on n, using [n + 1 
+
+k + 1 
+
+]
+
+> q
+
+= qn−k
+
+[nk
+
+]
+
+> q
+
++
+
+[ nk + 1 
+
+]
+
+> q
+
+and (a)n+1 = ( a)n · (1 − aq n). □
+
+Lemma 3.4.3. For n, k, s with s ≤ k, we have 
+
+(3.4.3) 
+
+[nk
+
+]
+
+> q
+
+[ks
+
+]
+
+> q
+
+=
+
+[ns
+
+]
+
+> q
+
+[n − sk − s
+
+]
+
+> q
+
+RogersRamanujan/NumberTheory/QTheory/Basic.lean 
+
+theorem qChoose_mul {R} [CommRing R] (q : R) n k s : ℕ (hsk : s ≤ k) : qChoose q n k * qChoose q k s = qChoose q n s * qChoose q (n - s) (k - s) := 12 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+Proof. By the identity [nk
+
+]
+
+> q
+
+= [n]q![k]q![ n − k]q!,
+
+one can easily check that both sides are equal to [n]q ![n−k]q ![ k−s]q ! . □
+
+The following lemma will be used to prove q-Pfaff–Saalschütz identity (see Theorem 3.5.10). 
+
+Lemma 3.4.4. 
+
+(3.4.4) (ac )n(bc )n =
+
+> n
+
+∑
+
+> k=0
+
+[nk
+
+]
+
+> q
+
+(a)k(b)kck(c)n−k(abcq k)n−k                        
+
+> RogersRamanujan/NumberTheory/QTheory/HypergeometricSeries.lean
+> theorem sum_qChoose_mul_qPochhammer_eq_qPochhammer_mul {R} [CommRing R] (a b c q : R) (n : ℕ) :∑ k ∈ Finset.range (n + 1), qChoose q n k * (a)_k * (b)_k * c ^ k * (c)_(n -k) * (a * b * c * q ^ k)_(n - k) = (a * c)_n * (b * c)_n :=
+
+Proof. Applying Lemma 3.4.2 to u = bq k and v = ac , we can write (3.4.5) (abcq k)n−k =
+
+> n−k
+
+∑
+
+> r=0
+
+[n − kr
+
+]
+
+> q
+
+(bq k)r(ac )r(ac )n−k−r
+
+and the right hand side becomes 
+
+> n
+
+∑
+
+> k=0
+> n−k
+
+∑
+
+> r=0
+
+[nk
+
+]
+
+> q
+
+[n − kr
+
+]
+
+> q
+
+(a)k(b)kck(c)n−k(bq k)r(ac )r(ac )n−k−r
+
+=
+
+> n
+
+∑
+
+> k=0
+> n−k
+
+∑
+
+> r=0
+
+[ nk + r
+
+]
+
+> q
+
+[k + rk
+
+]
+
+> q
+
+(a)k(b)k+rarck+r(c)n−k(ac )n−k−r
+
+=
+
+> n
+
+∑
+
+> m=0
+
+[ nm
+
+]
+
+> q
+
+(b)mcm(c)n−m(ac )n−mm∑
+
+> k=0
+
+[mk
+
+]
+
+> q
+
+(a)kam−k(cq n−m)m−k.
+
+Here we rearranged the double sums, where m = k +r for the second equality. We also used Lemma (3.4.3), (b)k(bq k)r = ( b)k+r and (c)n−k = ( c)n−m(cq n−m)m−k. By Lemma 3.4.2 to u = cq n−m and 
+
+v = a, the inner sum becomes 
+
+> m
+
+∑
+
+> k=0
+
+[mk
+
+]
+
+> q
+
+(a)kam−k(cq n−m)m−k = ( acq n−m)m.
+
+Plugging this into the last sum and using (ac )n−m(acq n−m)m = ( ac )n gives 
+
+(ac )nn∑
+
+> m=0
+
+[ nm
+
+]
+
+> q
+
+(b)mcm(c)n−m = ( ac )n(bc )n
+
+by Lemma 3.4.2 again. □THE ROGERS-RAMANUJAN IDENTITIES 13 
+
+3.5. Infinite q-identities. Theorems in this section do involve topology, by using the infinite 
+
+q-Pochhammer symbol. As a result, they should be assumed to be taking place in a complete strongly non-archimedean ring R, so that the infinite q-Pochhammer symbols exist by theorem 3.3.6, assuming q is topologically nilpotent. We introduce two lemmas to manipulate these objects. 
+
+Lemma 3.5.1 (Shifting lemma) .
+
+(3.5.1) (a; q)∞(a; q)−1 
+
+> m
+
+= ( aq m; q)∞
+
+Proof. Substitute the definitions. □
+
+RogersRamanujan/NumberTheory/QTheory/StrongNonarchimedean.lean 
+
+theorem qPochhammerInf_shift_eq_bInv_qPochhammer_mul {R} [CommRing R] [UniformSpace R] [CompleteSpace R] [StrongNonarchimedeanRing R] [IsUniformAddGroup R] {a q : R} (hq : IsTopologicallyNilpotent q) (ha : IsUnit (a; q)_∞) (m : ℕ) : (a * q ^ m; q)_∞ = bInv (a; q)_m * (a; q)_∞ := 
+
+Lemma 3.5.2 (Splitting lemma) . For any natural number n ∈ N:
+
+(3.5.2) (a; q)∞ = ( a; qn)∞(aq ; qn)∞ · · · (aq n−1; qn)∞
+
+Proof. Substitute the definitions. □
+
+RogersRamanujan/NumberTheory/QTheory/StrongNonarchimedean.lean 
+
+theorem qPochhammerInf_eq_prod_range {R} [CommRing R] [UniformSpace R] [CompleteSpace R] [StrongNonarchimedeanRing R] [IsUniformAddGroup R] {a q : R} {m : ℕ} (hm : m ≠ 0) (hq : IsTopologicallyNilpotent q) : (a; q)_∞ = ∏ j ∈ Finset.range m, (a * q ^ j; q ^ m)_∞ := 
+
+To prove Bailey’s lemma, one needs several transformation formulas for q-hypergeometric series, which we introduce here. 
+
+Definition 3.5.3 (q-hypergeometric series) . Let r, s ≥ 0. The q-hypergeometric series rϕs is defined as (3.5.3) rϕs (a0, . . . , a r−1; b0, . . . , b s−1; q, t ) := 
+
+> ∞
+
+∑
+
+> n=0
+
+(a0)n · · · (ar−1)n
+
+(q)n(b0)n · · · (bs−1)n
+
+(
+
+(−1) nq n(n−1) 2
+
+)s+1 −r
+
+tn
+
+RogersRamanujan/NumberTheory/QTheory/HypergeometricSeries.lean 
+
+def qHypergeometricInner {R} [CommRing R] (q : R) {r s : ℕ} (a : Fin r → R) (b : Fin s → R) (t : R) (e n : ℕ) := (∏ i, (a i)_n) * bInv (q)_n * (∏ j, bInv (b j)_n) * ((-1) ^ n * q ^ n.choose 2) ^ e * t ^ n def qHypergeometric {R} [CommRing R] [TopologicalSpace R] (q : R) {r s : ℕ} (a : Fin r → R) (b : Fin s → R) (t : R) : R := ∑' n, qHypergeometricInner q a b t (s + 1 - r) n
+
+In this paper, we will mostly focus on the case when r = s + 1 . The most basic identity is the 
+
+q-binomial series identity on 1ϕ0. But we first need a lemma: 14 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+Lemma 3.5.4 (Infinite q-Binomial theorem) . Assume (a)∞ exists, i.e. (a)n converges as n → ∞ ,and q topologically nilpotent. Then: 
+
+(3.5.4) (a)∞ =
+
+> ∞
+
+∑
+
+> n=0
+
+(q)−1 
+
+> n
+
+(−a)nq(n
+
+> 2
+
+)
+
+RogersRamanujan/NumberTheory/QTheory/BinomialTheorem.lean 
+
+def qPochhammerInfInner {R} [CommRing R] (a q : R) (k : ℕ) : R := bInv (q; q)_k * (a ^ k * q ^ k.choose 2) theorem qPochhammerInf_eq_tsum {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [StrongNonarchimedeanRing R] [CompleteSpace R] [T2Space R] {a q : R} (hq : IsTopologicallyNilpotent q := by simp) : (a; q)_∞ = ∑' k, qPochhammerInfInner (-a) q k := 
+
+Proof. Take limit as n → ∞ of both sides of 3.4.1, noting that: (3.5.5) lim 
+
+> n→∞
+
+[nk
+
+]
+
+> q
+
+= ( q)−1
+
+> k
+
+while being careful with uniform convergence arguments, and then rename k to n. □
+
+We can use Lemma 3.5.4 to prove the following identity for 1ϕ0.
+
+Theorem 3.5.5 (q-Binomial Series Identity) .
+
+(3.5.6) 1ϕ0(a; q, t ) := 
+
+> ∞
+
+∑
+
+> n=0
+
+(a)n
+
+(q)n
+
+tn = (at )∞
+
+(t)∞
+
+RogersRamanujan/NumberTheory/QTheory/BinomialTheorem.lean 
+
+theorem qPochhammerInf_div_qPochhammerInf_eq_tsum {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [StrongNonarchimedeanRing R] [CompleteSpace R] [T2Space R] {a q z : R} (hz : IsTopologicallyNilpotent z := by simp) (hq : IsTopologicallyNilpotent q := by simp) : ((a * z); q)_∞ * bInv ((z; q)_∞) = ∑' n, (a; q)_n * bInv (q; q)_n * z ^ n := 
+
+Proof. The standard proof over C shows that the middle and the last term of (3.5.6) satisfy the same functional equation and agree at t = 0 , to conclude that they are the same by complex analysis (e.g. see [3, p. 10]). In our case (for more general ring R), we first use the infinite 
+
+q-Binomial theorem (Lemma 3.5.4) for at :(3.5.7) (at )∞ =
+
+> ∞
+
+∑
+
+> n=0
+
+(q)−1 
+
+> n
+
+(−at )nq(n
+
+> 2
+
+)
+
+Then, multiply ∑∞
+
+> m=0
+
+(q)−1 
+
+> m
+
+tm to both sides: (3.5.8) (at )∞∞∑
+
+> m=0
+
+(q)−1 
+
+> m
+
+tm =
+
+( ∞∑
+
+> k=0
+
+(q)−1 
+
+> k
+
+(−at )kq(k
+
+> 2
+
+)
+
+) ( ∞∑
+
+> m=0
+
+(q)−1 
+
+> m
+
+tm
+
+)THE ROGERS-RAMANUJAN IDENTITIES 15 
+
+Expanding the double-sum, and grouping by n := k + m:(3.5.9) (at )∞∞∑
+
+> m=0
+
+(q)−1 
+
+> m
+
+tm =
+
+> ∞
+
+∑
+
+> n=0
+
+(q)−1 
+
+> n
+
+tnn∑
+
+> k=0
+
+[nk
+
+]
+
+> q
+
+(−a)kq(k
+
+> 2
+
+)
+
+Then simplifying using the finite q-binomial theorem (3.4.1): (3.5.10) (at )∞∞∑
+
+> m=0
+
+(q)−1 
+
+> m
+
+tm =
+
+> ∞
+
+∑
+
+> n=0
+
+(a)n
+
+(q)n
+
+tn
+
+Now substituting a = 1 gives: (3.5.11) (t)∞∞∑
+
+> m=0
+
+(q)−1 
+
+> m
+
+tm = 1 
+
+which gives us: (3.5.12) (t)−1 
+
+> ∞
+
+=
+
+> ∞
+
+∑
+
+> m=0
+
+(q)−1 
+
+> m
+
+tm
+
+So in conclusion, we have (3.5.13) (at )∞
+
+(t)∞
+
+=
+
+> ∞
+
+∑
+
+> n=0
+
+(a)n
+
+(q)n
+
+tn
+
+as required. □
+
+We extract Equation 3.5.12 above as a lemma: 
+
+Lemma 3.5.6 (Expansion of inverse infinite q-Pochhammer symbol) . If a and q are both topolog-ically nilpotent, then we have 
+
+(3.5.14) (a)−1 
+
+> ∞
+
+=
+
+> ∞
+
+∑
+
+> m=0
+
+(q)−1 
+
+> m
+
+am                       
+
+> RogersRamanujan/NumberTheory/QTheory/BinomialTheorem.lean
+> theorem bInv_qPochhammerInf_eq_tsum {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [StrongNonarchimedeanRing R] [CompleteSpace R] [T2Space R] {a q :R} (ha : IsTopologicallyNilpotent a:= by simp) (hq : IsTopologicallyNilpotent q:= by simp) : bInv ((a; q)_∞) = ∑' n, bInv (q; q)_n * a ^ n :=
+
+Another important identity is the following Heine’s identity for 2ϕ1.
+
+Theorem 3.5.7 (Heine) . For x, y, a, t, q ∈ R with y, t, q topologically nilpotent, we have 
+
+(3.5.15) 2ϕ1(x, y ; ay ; q, t ) = (y)∞(xt )∞
+
+(ay )∞(t)∞
+
+> 2
+
+ϕ1(a, t ; xt ; q, y ).
+
+In particular, when y is invertible, taking z = ay gives 
+
+(3.5.16) 2ϕ1(x, y ; z; q, t ) = (y)∞(xt )∞
+
+(z)∞(t)∞
+
+> 2
+
+ϕ1
+
+( zy , t ; xt ; q, y 
+
+)
+
+.16 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+RogersRamanujan/NumberTheory/QTheory/HypergeometricSeries.lean 
+
+theorem qHypergeometric_Heine' {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [StrongNonarchimedeanRing R] [T2Space R] {x y a q t : R} (hq : IsTopologicallyNilpotent q) (ht : IsTopologicallyNilpotent t) (hy : IsTopologicallyNilpotent y) (hxt : IsUnit (x * t)_∞) (hay : IsUnit (a * y)_∞) : ₂φ₁(x, y; a * y; q, t) =(y)_∞ * (x * t)_∞ * bInv (a * y)_∞ * bInv (t)_∞ * ₂φ₁(a, t; x * t; q, y) := theorem qHypergeometric_Heine {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [StrongNonarchimedeanRing R] [T2Space R] {x y z q t : R} (hq : IsTopologicallyNilpotent q) (ht : IsTopologicallyNilpotent t) (hy : IsTopologicallyNilpotent y) (hxt : IsUnit (x * t)_∞) (hyu : IsUnit y) (hzu : IsUnit (z)_∞) : ₂φ₁(x, y; z; q, t) =(y)_∞ * (x * t)_∞ * bInv (z)_∞ * bInv (t)_∞ * ₂φ₁(z * bInv y, t; x * t; q, y) := 
+
+Proof. By Theorem 3.5.5, we can prove that (3.5.17) (ay )∞
+
+(y)∞
+
+2ϕ1(x, y ; ay ; q, t ) = 
+
+∞∑
+
+n,m =0 
+
+(x)n(a)m
+
+(q)n(q)m
+
+tnymqnm 
+
+where the right hand side is symmetric under a ↔ x and y ↔ t, which gives (3.5.18) (ay )∞
+
+(y)∞
+
+2ϕ1(x, y ; ay ; q, t ) = (xt )∞
+
+(t)∞
+
+2ϕ1(a, t ; xt ; q, y ).
+
+Now set z = ay to get (3.5.16). □
+
+Heine’s identity can be used to prove the following q-analogue of Gauss’s identity for 2ϕ1.
+
+Theorem 3.5.8 (q-Gauss) . For x, y, t, q ∈ R with y, t, q topologically nilpotent, we have 
+
+(3.5.19) 2ϕ1 (x, y ; xyt ; q, t ) = (xt )∞ (yt )∞
+
+(xyt )∞ (t)∞
+
+.
+
+In particular, when x, y are invertible, taking z = xyt gives 
+
+(3.5.20) 2ϕ1
+
+(
+
+x, y ; z; q, zxy 
+
+)
+
+=
+
+( zx
+
+)
+
+∞
+
+( zy
+
+)
+
+∞
+
+(z)∞
+
+( zxy 
+
+)
+
+∞
+
+.
+
+RogersRamanujan/NumberTheory/QTheory/HypergeometricSeries.lean 
+
+theorem qHypergeometric_Gauss' {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [StrongNonarchimedeanRing R] [T2Space R] {x y q t : R} (hq : IsTopologicallyNilpotent q) (ht : IsTopologicallyNilpotent t) (hy : IsTopologicallyNilpotent y) (hxt : IsUnit (x * t)_∞) (hxyt : IsUnit (x * y * t)_∞) : ₂φ₁(x, y; x * y * t; q, t) = (x * t)_∞ * (y * t)_∞ * bInv (x * y * t)_∞ * bInv (t)_∞ := theorem qHypergeometric_Gauss {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [StrongNonarchimedeanRing R] [T2Space R] THE ROGERS-RAMANUJAN IDENTITIES 17 
+
+{x y q z : R} (hxu : IsUnit x) (hyu : IsUnit y) (hq : IsTopologicallyNilpotent q) (hzxy : IsTopologicallyNilpotent (z * bInv x * bInv y)) (hy : IsTopologicallyNilpotent y) (hz : IsUnit (z)_∞) (hzy : IsUnit (z * bInv y)_∞) :₂φ₁(x, y; z; q, z * bInv x * bInv y) =(z * bInv x)_∞ * (z * bInv y)_∞ * bInv (z)_∞ * bInv (z * bInv x * bInv y)_∞ := 
+
+Proof. It follows by applying Theorem 3.5.7 with t = zxy and using Theorem 3.5.5. □
+
+We also proved the q-Pfaff–Saalschütz identity on 3ϕ2, which will be used in the proof of Bailey’s lemma for q-series. 
+
+Theorem 3.5.9 (q-Pfaff–Saalschütz) .
+
+(3.5.21) 3ϕ2
+
+(
+
+x, y, q −n; z, xyq 1−n
+
+z ; q, q 
+
+)
+
+=
+
+( zx
+
+)
+
+> n
+
+( zy
+
+)
+
+> n
+
+(z)n
+
+( zxy 
+
+)
+
+> n
+
+RogersRamanujan/NumberTheory/QTheory/HypergeometricSeries.lean 
+
+theorem qHypergeometric_PfaffSaalschutz {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [StrongNonarchimedeanRing R] [T2Space R] {q : R} (hq : IsTopologicallyNilpotent q) (x y z : R) (n : ℕ) (hqu : IsUnit q) (hxu : IsUnit x) (hyu : IsUnit y) (hzu : IsUnit z) (hz : ∀ k, IsUnit (z)_k) (hxyqz : ∀ k, IsUnit (x * y * q * (bInv q) ^ n * bInv z)_k) (hzxy : IsTopologicallyNilpotent (z * bInv x * bInv y)) : ₃φ₂(x, y, (bInv q) ^ n; z, x * y * q * (bInv q) ^ n * bInv z; q, q) = (z * bInv x)_n * (z * bInv y)_n * bInv (z)_n * bInv (z * bInv x * bInv y)_n := 
+
+The standard proof of Theorem 3.5.9 is obtained by comparing the coefficients of tn in the following Roger’s identity (3.5.22) 2ϕ1
+
+( zx, zy ; z; xyt q
+
+)
+
+=
+
+> ∞
+
+∑
+
+> n=0
+
+( zxy 
+
+)
+
+> n
+
+(xyt z
+
+)n
+
+(q)n
+
+> 2
+
+ϕ1(x, y ; z; q, t ).
+
+(e.g. see [41]). Instead, we proved a denominator-cleared version of the identity, which does not include inverses. In particular, the identity is purely algebraic and we do not require any topology on the ring R.
+
+Theorem 3.5.10 (q-Pfaff–Saalschütz, deonominator-cleared version) .
+
+(3.5.23) 
+
+> n
+
+∑
+
+> k=0
+
+(x)k(y)k(qn+1 −k)k
+
+( zxy 
+
+)k
+
+(qk+1 )n−k(zq k)n−k
+
+( zxy 
+
+)
+
+> n−k
+
+= ( q)n
+
+( zx
+
+)
+
+> n
+
+( zy
+
+)
+
+> n
+
+RogersRamanujan/NumberTheory/QTheory/HypergeometricSeries.lean 
+
+theorem qPfaffSaalschutz_denom_cleared {R} [CommRing R] {q : R} (x y z : R) (n : ℕ) (hx : IsUnit x) (hy : IsUnit y) : let c := z * bInv x * bInv y∑ k ∈ Finset.range (n + 1), 18 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+(x)_k * (y)_k * (q ^ (n + 1 - k))_k *c ^ k * (q ^ (k + 1))_(n - k) * (z * q ^ k)_(n - k) * (c)_(n - k) = (q)_n * (z * bInv x)_n * (z * bInv y)_n := 
+
+Proof. Applying Lemma 3.4.4 it to a = x, b = y, and c = zxy gives (3.5.24) 
+
+> n
+
+∑
+
+> k=0
+
+[nk
+
+]
+
+> q
+
+(x)k(y)k
+
+( zxy 
+
+)k ( zxy 
+
+)
+
+> n−k
+
+(zq k)n−k =
+
+( zx
+
+)
+
+> n
+
+( zy
+
+)
+
+> n
+
+.
+
+Now, multiply both sides by (q)n and use (3.5.25) (qn+1 −k)k(qk+1 )n−k = ( q)n
+
+[nk
+
+]
+
+> q
+
+to get the desired identity. □
+
+3.6. Bailey pairs, Bailey’s Lemma, and reusable transformation machinery. We call that two sequences (αn, β n)n≥0 form a Bailey pair with respect to a if the following identity holds for all 
+
+n ≥ 0:(3.6.1) βn =
+
+> n
+
+∑
+
+> r=0
+
+αr
+
+(q)n−r(aq )n+r
+
+It is straightforward to formalize the above definition of Bailey pair: 
+
+RogersRamanujan/NumberTheory/QTheory/Bailey.lean 
+
+def Bailey.IsBaileyPair {R} [CommRing R] (a q : R) (α β : ℕ → R) : Prop := ∀ (n : ℕ), β n = ∑ r ∈ range (n + 1), α r * bInv (qPochhammer q q (n - r)) * bInv (qPochhammer (a * q) q (n + r)) 
+
+Bailey lemma states that one can produce a new Bailey pair from an old Bailey pair. 
+
+Lemma 3.6.1 (Bailey lemma) . Let (αn, β n) is a Bailey pair with respect to a and ρ1, ρ 2 are parameters, then 
+
+α′ 
+
+> n
+
+:= (ρ1; q)n(ρ2; q)n
+
+(aq ρ1 ; q)n(aq ρ2 ; q)n
+
+( aq ρ1ρ2
+
+)n
+
+αn(3.6.2) 
+
+β′ 
+
+> n
+
+=
+
+> n
+
+∑
+
+> j=0
+
+(ρ1; q)j (ρ2; q)j
+
+( aq ρ1ρ2 ; q
+
+)
+
+> n−j
+
+(aq ρ1 ; q)n(aq ρ2 ; q)n(q; q)n−j
+
+( aq ρ1ρ2
+
+)j
+
+βj(3.6.3) 
+
+also form a Bailey pair with respect to a, i.e. 
+
+(3.6.4) 
+
+> n
+
+∑
+
+> j=0
+
+(ρ1; q)j (ρ2; q)j
+
+( aq ρ1ρ2 ; q
+
+)
+
+> n−j
+
+(aq ρ1 ; q)n(aq ρ2 ; q)n(q; q)n−j
+
+( aq ρ1ρ2
+
+)j
+
+βj =
+
+> n
+
+∑
+
+> j=0
+
+(ρ1; q)j (ρ2; q)j
+
+(aq ρ1 ; q)j (aq ρ2 ; q)j (q)n−j (aq )n+j
+
+( aq ρ1ρ2
+
+)j
+
+αj
+
+RogersRamanujan/NumberTheory/QTheory/Bailey.lean 
+
+theorem Bailey.qBaileyLemma {R} [CommRing R] (a q : R) (α β α' β' : ℕ → R) (h : IsBaileyPair a q α β) THE ROGERS-RAMANUJAN IDENTITIES 19 
+
+(ρ₁ ρ₂ : R) (hρ₁ : IsUnit ρ₁) (hρ₂ : IsUnit ρ₂) (hq : IsUnit q) (hqpoc : ∀ k, IsUnit (q)_k) (haqpoc : ∀ k, IsUnit (a * q)_k) (haqρ₁ : ∀ k, IsUnit (a * q * bInv ρ₁)_k) (haqρ₂ : ∀ k, IsUnit (a * q * bInv ρ₂)_k) (hα' : ∀ n, α' n = (ρ₁)_n * (ρ₂)_n * (a * q * bInv (ρ₁ * ρ₂)) ^ n *bInv (a * q * bInv ρ₁)_n * bInv (a * q * bInv ρ₂)_n * α n) (hβ' : ∀ n, β' n = ∑ j ∈ range (n + 1), (ρ₁)_j * (ρ₂)_j * (a * q * bInv (ρ₁ * ρ₂))_(n - j) * (a * q * bInv (ρ₁ * ρ₂)) ^ j *bInv (a * q * bInv ρ₁)_n * bInv (a * q * bInv ρ₂)_n * bInv ((q)_(n - j)) * β j) : IsBaileyPair a q α' β' := 
+
+The standard proof of Bailey lemma is based on the following simple lemma on infinite double sum: 
+
+Lemma 3.6.2. If α, β, γ, δ, u, v are sequences satisfying 
+
+βn =
+
+> n
+
+∑
+
+> r=0
+
+αrun−rvn+r(3.6.5) 
+
+γn =
+
+> ∞
+
+∑
+
+> r=n
+
+δrur−nvr+n(3.6.6) 
+
+then we have 
+
+(3.6.7) 
+
+> ∞
+
+∑
+
+> n=0
+
+αnγn =
+
+> ∞
+
+∑
+
+> n=0
+
+βnδn.
+
+RogersRamanujan/NumberTheory/QTheory/Bailey.lean 
+
+theorem Bailey.bailey_lemma_basic {R} [CommSemiring R] [TopologicalSpace R] [IsTopologicalSemiring R] [T3Space R] (u v α β γ δ : ℕ → R) (hγ : ∀ n, Summable fun r ↦ if n ≤ r then δ r * u (r - n) * v (r + n) else 0) (hswap : Summable (Function.uncurry fun n r : ℕ ↦if n ≤ r then α n * δ r * u (r - n) * v (r + n) else 0)) (hαβ : ∀ n, β n = ∑ r ∈ range (n + 1), α r * u (n - r) * v (n + r)) (hγδ : ∀ n, γ n = ∑' r, if n ≤ r then δ r * u (r - n) * v (r + n) else 0) : ∑' n, α n * γ n = ∑' n, β n * δ n := 
+
+Lemma 3.6.2 can be proved by changing the order of double summation [3, Theorem 3.1]. This can hold in generality where R is a topological commutative ring which is a T3-space, where latter condition is required to change the order of the double sum ( Summable.tsum_comm ). Then the standard proof of Lemma 3.6.1 follows by taking (3.6.8) un = 1(q)n
+
+, vn = 1(aq )n
+
+, δn = (ρ1)n(ρ2)n(q−N )nqn
+
+(ρ1ρ2q−N /a)n
+
+where the corresponding γn is (3.6.9) γn = (aq /ρ1)N (aq /ρ2)N (−1) n(ρ1)n(ρ2)n(q−N )n
+
+(aq )N (aq /ρ1ρ2)N (aq /ρ1)n(aq /ρ2)n(aq N +1 )n
+
+( aq ρ1ρ2
+
+)n
+
+qnN − n(n−1) 220 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+by Theorem 3.5.9. Instead, we used Theorem 3.5.10 ( qPfaffSaalschutz_denom_cleared ) to prove the Bailey lemma. In particular, we only need to assume the invertibility of q-Pochhammer symbols, and we do not need any topology on R.The “limiting“ version of Bailey lemma is obtained by taking ρ1, ρ 2 → ∞ . In particular, we have (3.6.10) lim  
+
+> a→∞
+
+a−n(a)n = lim 
+
+> n→∞
+
+(a−1 − 1)( a−1 − q) · · · (a−1 − qn−1) = ( −1) nq n(n−1) 2
+
+and (3.6.11) lim 
+
+> a→0
+
+(a)n = 1 .
+
+After taking the limit, (3.6.2) and (3.6.3) becomes 
+
+α′ 
+
+> n
+
+= αn · (q n(n−1) 2 )2 · anqn = anqn2
+
+αn(3.6.12) 
+
+β′ 
+
+> n
+
+=
+
+> n
+
+∑
+
+> j=0
+
+qj(j−1) 
+
+(q)n−j
+
+· aj qj βj =
+
+> n
+
+∑
+
+> j=0
+
+aj qj2
+
+(q)n−j
+
+βj(3.6.13) and we get the following lemma. 
+
+Lemma 3.6.3 (Bailey Lemma, ρ1, ρ 2 → ∞ ). Let (αn, β n) be a Bailey pair. Define α′ 
+
+> n
+
+and β′ 
+
+> n
+
+as 
+
+α′ 
+
+> n
+
+= anqn2
+
+αn, β′ 
+
+> n
+
+=
+
+> n
+
+∑
+
+> j=0
+
+aj qj2
+
+(q)n−j
+
+βj(3.6.14) 
+
+Then (α′
+
+> n
+
+, β ′
+
+> n
+
+) also forms a Bailey pair, i.e. 
+
+(3.6.15) 
+
+> n
+
+∑
+
+> j=0
+
+βj aj qj2
+
+(q)n−j
+
+=
+
+> n
+
+∑
+
+> r=0
+
+αrarqr2
+
+(q)n−r(aq )n+r
+
+RogersRamanujan/NumberTheory/QTheory/Bailey.lean 
+
+theorem Bailey.qBaileyLemma_limit {R} [CommRing R] (a q : R) (α β α' β' : ℕ → R) (h : IsBaileyPair a q α β) (hqpoc : ∀ k, IsUnit (q)_k) (haqpoc : ∀ k, IsUnit (a * q)_k) (hα' : ∀ n, α' n = a ^ n * q ^ (n ^ 2) * α n) (hβ' : ∀ n, β' n = ∑ j ∈ range (n + 1), a ^ j * q ^ (j ^ 2) * bInv (q)_(n - j) * β j) : IsBaileyPair a q α' β' := 
+
+If we further take the limit n → ∞ in (3.6.15), we have (a)n → (a)∞ for any a, hence 
+
+Lemma 3.6.4 (Bailey Lemma, ρ1, ρ 2 → ∞ , n → ∞ ). Let (αn, β n) be a Bailey pair. Then 
+
+(3.6.16) 
+
+> ∞
+
+∑
+
+> j=0
+
+aj qj2
+
+βj = 1(aq )∞∞∑
+
+> r=0
+
+arqr2
+
+αr
+
+RogersRamanujan/NumberTheory/QTheory/Bailey.lean 
+
+theorem Bailey.qBaileyLemma_limit' {R} [CommRing R] (a q : R) [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [T2Space R] [StrongNonarchimedeanRing R] (α β : ℕ → R) (h : IsBaileyPair a q α β) (hq : IsTopologicallyNilpotent q) (haq : IsTopologicallyNilpotent (a * q)) (hα : Tendsto (fun r ↦ a ^ r * q ^ (r ^ 2) * α r) atTop (𝓝 0)) : ∑' j, a ^ j * q ^ (j ^ 2) * β j = bInv (a * q)_∞ * ∑' r, a ^ r * q ^ (r ^ 2) * α r := THE ROGERS-RAMANUJAN IDENTITIES 21 
+
+Although the above informal argument is easy to understand, formalizing it is not, since we are working over a general topological ring, not just for power series ring over C. Instead, we followed slightly different approaches, based on the following auxiliary lemmas. 
+
+Lemma 3.6.5. We have that 
+
+(3.6.17) 
+
+> n
+
+∑
+
+> k=0
+
+zkqk(k−1) 
+
+[nk
+
+]
+
+> q
+
+(zq k)n−k = 1 
+
+RogersRamanujan/NumberTheory/QTheory/BinomialTheorem.lean 
+
+theorem qBinomial_qPochhammer_sum {R} [CommRing R] {q : R} (n : ℕ) (z : R) : ∑ k ∈ range (n + 1), z ^ k * q ^ (k * (k - 1)) * qChoose q n k * (z * q ^ k; q)_(n - k) = 1 := 
+
+Proof. Let S(z, n ) be the left hand side of (3.6.17). We can prove that (3.6.18) S(z, n + 1) = (1 − zq n)S(z, n ) + zq nS(zq, n ),
+
+and applying induction on n concludes the proof. □
+
+Lemma 3.6.6. We have that 
+
+(3.6.19) 
+
+> ∞
+
+∑
+
+> k=0
+
+zkqk(k−1) (zq k)∞
+
+(q)k
+
+= 1 
+
+RogersRamanujan/NumberTheory/QTheory/BinomialTheorem.lean 
+
+theorem qBinomial_qPochhammer_tsum {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [StrongNonarchimedeanRing R] [CompleteSpace R] [T2Space R] {q z : R} (hq : IsTopologicallyNilpotent q) : ∑' k, z ^ k * q ^ (k * (k - 1)) * bInv (q; q)_k * (z * q ^ k; q)_∞ = 1 := 
+
+Proof. Define lk := zkqk(k−1) (zq k)∞/( q)k. Using Lemma 3.6.5, we can prove that (3.6.20) (zq n)∞ =
+
+> n
+
+∑
+
+> k=0
+
+lk(qn−k+1 )k.
+
+Also, we have (3.6.21) lim 
+
+> n→∞
+> n
+
+∑
+
+> k=0
+
+lk(( qn−k+1 )k − 1) = 0 ,
+
+where combining these gives ∑∞ 
+
+> k=0
+
+= 1 , which is (3.6.19). □
+
+To prove Lemma 3.6.3, plugging in βn = ∑nr=0   
+
+> αr
+> (q)n−r(aq )n+r
+
+to (3.6.15) and rearranging the sum gives 
+
+> n
+
+∑
+
+> j=0
+> j
+
+∑
+
+> r=0
+
+αr
+
+(q)j−r(aq )j+r
+
+aj qj2
+
+(q)n−j
+
+=
+
+> n
+
+∑
+
+> r=0
+
+αrn∑
+
+> j=r
+
+aj qj2
+
+(q)j−r(aq )j+r(q)n−j
+
+> ?
+
+=
+
+> n
+
+∑
+
+> r=0
+
+αrarqr2
+
+(q)n−r(aq )n+r
+
+,
+
+so it is enough to show that (3.6.22) 
+
+> n
+
+∑
+
+> j=r
+
+aj qj2
+
+(q)j−r(aq )j+r(q)n−j
+
+=
+
+> n−r
+
+∑
+
+> j=0
+
+aj+rq(j+r)2
+
+(q)j (aq )j+2 r(q)n−r−j
+
+= arqr2
+
+(q)n−r(aq )n+r
+
+,22 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+which follows from Lemma 3.6.5 applied to z = aq 2r+1 and n ← n + r.One can prove Lemma 3.6.3 ( qBaileyLemma_limit ) by rearranging double sum and applying Lemma 3.6.5 for z = aq 2r+1 . The proof of Lemma 3.6.4 ( qBaileyLemma_limit' ) uses Lemma 3.6.2, by applying it to the sequences 
+
+un = 1(q; q)n
+
+, vn = 1(aq ; q)n
+
+, γn = anqn2
+
+(aq ; q)∞
+
+, δn = anqn2
+
+In this case, the equation (3.6.5) corresponds to (αn, β n) being a Bailey pair (with respect to a), while (3.6.6) corresponds to the identity (3.6.23) anqn2
+
+(aq )n
+
+=
+
+> ∞
+
+∑
+
+> r=n
+
+arqr2
+
+(q)r−n(aq )r+n
+
+which follows from Lemma 3.6.6, applied to z = aq 2n+1 .3.7. A strategy for generalizing to non-archimedean rings. Identities involving (a; q)∞
+
+where q ∈ R is topologically nilpotent require R to be a complete strongly non-archimedean ring in order for (a; q)∞ to exist. But in some applications, everything involved is topologically nilpotent. In that case, we will be able to drop the “strongly” condition from the theorems. This is possible using a technical construction, which we will call a “partial” universal property of (multivariate) power series. 
+
+Definition 3.7.1. Let R be a set with multiplication, zero, and a topology. Then a subset S ⊆ R
+
+is called (topologically) bounded if for every neighborhood U of 0R, there exists a neighborhood 
+
+V of 0R such that SV ⊆ U . See [21, Definition 8.3.8].                    
+
+> RogersRamanujan/Topology/Algebra/Nonarchimedean/Bounded.lean
+> structure Set.TopologicallyBounded {R} [Zero R] [Mul R] [TopologicalSpace R] (S : Set R) : Prop where exists_mul_subset {U :Set R} (hU : U ∈ 𝓝 0) : ∃ V∈ 𝓝 0, (S * V : Set R) ⊆ U
+
+Now we state the “partial universal property”: 
+
+Theorem 3.7.2. Let R be a ring, and S be a non-archimedean ring, and (xi)i∈I be a sequence in 
+
+S that is “jointly topologically nilpotent”, and f : R → S be a ring homomorphism with bounded range. Then we obtain a canonical continuous ring homomorphism f : RJxi | i ∈ IK → S sending 
+
+xi to xi and r ∈ R to f (r). The topology on RJxiK here is the jointly xi-adic topology. 
+
+We do not need the full generality of the above theorem since our index sets in our application are always finite, in which case the undefined “jointly topologically nilpotent” condition is equivalent to each element being topologically nilpotent.                    
+
+> RogersRamanujan/RingTheory/MvPowerSeries/Evaluation.lean
+> def MvPowerSeries.eval {R Sσ} [Semiring R] [CommRing S] [UniformSpace S] [IsUniformAddGroup S] [NonarchimedeanRing S] [CompleteSpace S] [T2Space S] (f : R →+* S) (q : σ → S) : MvPowerSeries σ R →+* S := THE ROGERS-RAMANUJAN IDENTITIES 23
+
+4. The formalized proof of the Jacobi Triple Product 
+
+The Jacobi Triple Product is the first major stress test for this work because its proof forces the formal development to coordinate several forms of the same identity. On paper, one often passes freely between theta series, products indexed from 0 or 1, and normalized variants obtained by replacing z with −z or shifting the exponent of q. In Lean, these normalizations become explicit lemmas about reindexing, multiplication by units, and equality of infinite products or formal series. This section describes the chosen proof of Theorem 1.1.1, the exact formal statement from which it is derived, and the lemmas that make the statement usable in later applications. 4.1. The mathematical proof selected for formalization. We first restate the theorem in terms of q-Pochhammer symbols to connect to more of the existing infrastructure: (4.1.1) (q)∞(a)∞(a−1q)∞ = ∑
+
+> n∈Z
+
+(−a)nq n(n−1) 2
+
+Then we make the observation that the choice of having a and a−1q here are rather arbitrary: (1) We require a to be invertible here, but we don’t really use its inverse a−1, but rather we just use a−1q. (This holds true even for the right hand side!) (2) In actual applications for example, we might apply this to (q5; q5)∞(q2; q5)∞(q3; q5)∞, inside say ZJqK, where if we take the variables literally we end up with (q, a ) := ( q5, q 2), but q2 is not invertible! In light of these observations we make the following generalization, for b, c, q ∈ R satisfying 
+
+bc = q:(4.1.2) (q)∞(b)∞(c)∞ = ∑
+
+> n∈Z
+
+e−b, −c(n)q(|n| 
+
+> 2
+
+)
+
+where: (4.1.3) eb,c (n) := 
+
+{
+
+bn n ≥ 0
+
+c−n n ≤ 0
+
+We note further that there is a natural imbalance in the amount of negative signs and they are trivially equivalent but in the actual Lean code we have chosen to put the negative signs on the left hand side. 
+
+Assumption 4.1.1. We assume that R is a complete strongly non-archimedean ring and q is topologically nilpotent, but we do not put any assumptions on b and c.
+
+In the following we will explain the proof, as well as how its “core essence” is a countable family of power series identities. 
+
+Lemma 4.1.2. Assume that a and q are both topologically nilpotent and invertible. Then Equation 4.1.1 holds, i.e.: 
+
+(4.1.4) (q)∞(a)∞(a−1q)∞ = ∑
+
+> n∈Z
+
+(−a)nq n(n−1) 2
+
+In our formalization we put the negative signs on the left hand side instead: 24 KENNY LAU, SEEWOO LEE, AND KEN ONO                            
+
+> RogersRamanujan/NumberTheory/QTheory/JacobiTripleProduct/NilpotentUnit.lean
+> theorem jacobi_triple_product_units_of_isTopologicallyNilpotent {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [StrongNonarchimedeanRing R] [T2Space R] {a q : Rˣ} (hq : IsTopologicallyNilpotent (q : R) := by simp) (ha : IsTopologicallyNilpotent (a : R) := by simp) : ((q : R))_∞ * ((-(a⁻¹ * q) :R))_∞ *((-a : R))_∞ = ∑' n : ℤ, (↑(a ^ n) * ↑(q ^ choose n2) : R) :=
+
+Proof. This follows [11, Chapter 9]. We first expand (a−1q)∞ using Lemma 3.5.4: (4.1.5) (a−1q)∞ =
+
+> ∞
+
+∑
+
+> m=0
+
+(q)−1 
+
+> m
+
+(−a−1q)mq(m 
+
+> 2
+
+)
+
+Now multiply by (q)∞, and transform using the shifting formula (Lemma 3.5.1): (4.1.6) (q)∞(a−1q)∞ =
+
+> ∞
+
+∑
+
+> m=0
+
+(qm+1 )∞(−a−1q)mq(m 
+
+> 2
+
+)
+
+Now the key of this proof: since (qm+1 )∞ = 0 for m < 0, we are free to take the sum over m ∈ Z
+
+instead: (4.1.7) (q)∞(a−1q)∞ = ∑
+
+> m∈Z
+
+(qm+1 )∞(−a−1q)mq(m 
+
+> 2
+
+)
+
+And now once again expand (qm+1 )∞ using Lemma 3.5.4: (4.1.8) (q)∞(a−1q)∞ = ∑
+
+> m∈Z
+> ∞
+
+∑
+
+> k=0
+
+(q)−1 
+
+> k
+
+(−qm+1 )kq(k
+
+> 2
+
+)(−a−1q)mq(m 
+
+> 2
+
+)
+
+Grouping terms and simplifying: (4.1.9) (q)∞(a−1q)∞ = ∑
+
+> m∈Z
+> ∞
+
+∑
+
+> k=0
+
+(q)−1 
+
+> k
+
+(−1) k+ma−mq(k+m+1 2 )
+
+Using the variable transformation n := −(m + k) (eliminating m), noting (−n+1 2
+
+) = (n
+
+> 2
+
+):(4.1.10) (q)∞(a−1q)∞ = ∑
+
+> n∈Z
+> ∞
+
+∑
+
+> k=0
+
+(q)−1 
+
+> k
+
+(−a)nakq(n
+
+> 2
+
+)
+
+Factoring out into double sum and then using the expansion of (a)−1 
+
+> ∞
+
+in Lemma 3.5.6: (4.1.11) (q)∞(a−1q)∞ = ( a)−1
+
+> ∞
+
+∑
+
+> n∈Z
+
+(−a)nq(n
+
+> 2
+
+)
+
+which upon rearranging gives us the identity desired, i.e.: (4.1.12) (q)∞(a)∞(a−1q)∞ = ∑
+
+> n∈Z
+
+(−a)nq n(n−1) 2
+
+□
+
+Now we extract the “core essence” of this theorem, which is a countable family of power series identities, that will assist us in proving the more general theorem: THE ROGERS-RAMANUJAN IDENTITIES 25 
+
+Lemma 4.1.3. We have a family of identities indexed by ℓ ∈ N:
+
+(4.1.13) 
+
+> ∞
+
+∑
+
+> k=0
+
+(q)−1 
+
+> k
+
+(q)−1
+
+> k+ℓ
+
+qk(k+ℓ) = ( q)−1             
+
+> ∞
+> RogersRamanujan/NumberTheory/QTheory/JacobiTripleProduct/PowerSeriesIdentity.lean
+> theorem tsum_bInv_qPochhammer_mul_bInv_qPochhammer_mul_pow (R) [CommRing R] (n : ℕ) : ∑' k, bInv (X (R := R); X)_k * bInv (X; X)_(k + n) * X ^ (k * (k + n)) = bInv (X; X)_∞ :=
+
+Proof. Move (q)∞ to the right hand side from Lemma 4.1.2 to obtain (using a := −a): (4.1.14) (−a)∞(−a−1q)∞ = ( q)−1
+
+> ∞
+
+∑
+
+> n∈Z
+
+anq n(n−1) 2
+
+Expand the left hand sides using the expansion for infinite q-Pochhammer (Lemma 3.5.4): (4.1.15) 
+
+> ∞
+
+∑
+
+> k=0
+> ∞
+
+∑
+
+> m=0
+
+(q)−1 
+
+> k
+
+(q)−1 
+
+> m
+
+ak(a−1q)mq(k
+
+> 2
+
+)+(m 
+
+> 2
+
+) = ( q)−1
+
+> ∞
+
+∑
+
+> n∈Z
+
+anq n(n−1) 2
+
+Extract the aℓ coefficient from both sides. For the left hand side, each summand gives ak−m, so the solutions to k − m = ℓ are indexed by (k, m ) := ( j + ℓ, j ) where j ∈ N is a free variable. (4.1.16) 
+
+> ∞
+
+∑
+
+> j=0
+
+(q)−1
+
+> j+ℓ
+
+(q)−1 
+
+> j
+
+qj+(j+ℓ 
+
+> 2
+
+)+(j
+
+> 2
+
+) = ( q)−1 
+
+> ∞
+
+q(ℓ
+
+> 2
+
+)
+
+Canceling q(ℓ
+
+> 2
+
+) from both sides gives the identity as desired: (4.1.17) 
+
+> ∞
+
+∑
+
+> j=0
+
+(q)−1
+
+> j+ℓ
+
+(q)−1 
+
+> j
+
+qj(j+ℓ) = ( q)−1
+
+> ∞
+
+□
+
+We note further that: 
+
+• Extracting the a−ℓ coefficients does not give us more identities. 
+
+• All the coefficients here are natural numbers, so they are in fact identities in NJqK (or less strongly, ZJqK). By Strategy 3.7.2, we can in fact generalize these identities to any non-archimedean ring. 
+
+• Since the coefficients are in N, these identities can be interpreted combinatorially. Then we can reverse all of the steps above to arrive at the more generalized form above: 
+
+Theorem 4.1.4. Equation 4.1.2 holds. Namely, we have that 
+
+(4.1.18) (q)∞(b)∞(c)∞ = ∑
+
+> n∈Z
+
+e−b, −c(n)q(|n| 
+
+> 2
+
+)
+
+where 
+
+(4.1.19) eb,c (n) := 
+
+{
+
+bn n ≥ 0
+
+c−n n ≤ 026 KENNY LAU, SEEWOO LEE, AND KEN ONO                                              
+
+> RogersRamanujan/NumberTheory/QTheory/JacobiTripleProduct/Basic.lean
+> def abPow {R} [Pow R ℕ] (a b : R) (n : ℤ) :R := match n with | (n :ℕ) => a^ n | Int.negSucc n => b ^ (n + 1) theorem jacobi_triple_product' {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [StrongNonarchimedeanRing R] [T2Space R] {a b q :R} (hq :IsTopologicallyNilpotent q) (hab : a * b = q) : (q; q)_∞ * (a; q)_∞ *(b; q)_∞ =∑' n: ℤ, abPow (-a) (-b) n * q ^ n.natAbs.choose 2 :=
+
+5. The formalized proof of the Rogers–Ramanujan Identities 
+
+The Rogers–Ramanujan identities are the main demonstration that the preceding definitions form a working theory. Their proof is not simply a long calculation: it uses a transformation mechanism, keeps track of two parallel q-series, and ends by identifying the resulting products with the two residue classes modulo 5 appearing in Theorem 1.1.2. The formal proof therefore tests whether the library can support the standard mathematical workflow: define the relevant Bailey pair, apply Bailey’s Lemma, simplify the resulting sums, invoke the product machinery, and present the final identities as clean formal-power-series equalities. 5.1. The Bailey-pair input for the two identities. For the first Rogers–Ramanujan identity, we use the following Bailey pair with respect to a = 1 :
+
+α1,n =
+
+{1 n = 0 (−1) nq(n
+
+> 2
+
+)(1 + qn) n > 0
+
+(5.1.1) 
+
+β1,n = δn, 0 =
+
+{
+
+1 n = 0 0 n > 0
+
+(5.1.2) 
+
+Theorem 5.1.1. We have that the sequence (α1,n , β 1,n ) forms a Bailey pair, where α1,0 = 1 and 
+
+(5.1.3) 0 = 1(q)2
+
+> n
+
++
+
+> n
+
+∑
+
+> r=1
+
+(−1) rq(r
+
+> 2
+
+)(1 + qr)(q)n−r(q)n+r
+
+for n > 0.                                 
+
+> RogersRamanujan/NumberTheory/QTheory/RogersRamanujan.lean
+> def RogersRamanujan.α₁ {R} [Ring R] (q : R) (n : ℕ) : R := if n = 0 then 1 else (-1) ^ n * q ^ n.choose 2 * (1 + q ^ n) def RogersRamanujan.β {R} [Zero R] [One R] (n : ℕ) : R := if n = 0 then 1 else 0 theorem isBaileyPair_α₁_β {R} [CommRing R] {q :R} (hpu : ∀ k, IsUnit (q; q)_(k)) : IsBaileyPair 1 q (α₁ q) β :=
+
+Proof. See [3, Section 3.5]. Proof uses q-Binomial theorem. □THE ROGERS-RAMANUJAN IDENTITIES 27 
+
+The following Bailey pair is used for the second Rogers–Ramanujan identity with respect to 
+
+a = q (here β2,n = β1,n ): 
+
+α2,n = ( −1) nq(n
+
+> 2
+
+)[2 n + 1] q = (−1) nq(n
+
+> 2
+
+)(1 − q2n+1 )1 − q
+
+(5.1.4) 
+
+β2,n = δn, 0 =
+
+{
+
+1 n = 0 0 n > 0
+
+(5.1.5) 
+
+Theorem 5.1.2. We have that the sequence (α2,n , β 2,n ) forms a Bailey pair, where α2,0 = 1 and 
+
+(5.1.6) 0 = 
+
+> n
+
+∑
+
+> r=0
+
+(−1) rq(r
+
+> 2
+
+)[2 r + 1] q
+
+(q)n−r(q2)n+r
+
+for n > 0.
+
+RogersRamanujan/NumberTheory/QTheory/RogersRamanujan.lean 
+
+def RogersRamanujan.α₂ {R} [CommRing R] (q : R) (n : ℕ) : R := (-1) ^ n * q ^ n.choose 2 * qInt q (2 * n + 1) theorem isBaileyPair_α₂_β {R} [CommRing R] {q : R} (hpu : ∀ k, IsUnit (q; q)_(k)) : IsBaileyPair q q (α₂ q) β := 
+
+Proof. See [3, Section 3.5]. □
+
+5.2. Informal proof of Rogers–Ramanujan identities. To derive Rogers–Ramanujan iden-tities, we apply Bailey lemma twice to the above Bailey pairs (α1,n , β 1,n ) and (α2,n , β 2,n ). More precisely, if we apply Lemma 3.6.3 to (α1,n , β 1,n ), we obtain a new Bailey pair 
+
+α′ 
+
+> 1,n
+
+=
+
+{1 n = 0 
+
+qn2
+
+· (−1) nq(n
+
+> 2
+
+)(1 + qn) n > 0
+
+(5.2.1) 
+
+β′ 
+
+> 1,n
+
+= 1(q)n
+
+.(5.2.2) 
+
+RogersRamanujan/NumberTheory/QTheory/RogersRamanujan.lean 
+
+def RogersRamanujan.αt₁ {R} [Ring R] (q : R) (n : ℕ) : R := q ^ (n ^ 2) * α₁ q n def RogersRamanujan.βt {R} [CommRing R] (q : R) (n : ℕ) : R := bInv (q; q)_n theorem isBaileyPair_αt₁_βt {R} [CommRing R] {q : R} (hpu : ∀ k, IsUnit (q; q)_(k)) : IsBaileyPair 1 q (αt₁ q) (βt q) := qBaileyLemma_limit 1 q (α₁ q) β (αt₁ q) (βt q) (isBaileyPair_α₁_β hpu) hpu (by simpa) (by simp [αt₁]) (by simp [βt, β]) 28 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+Applying Lemma 3.6.4 to (α′
+
+> 1,n
+
+, β ′
+
+> 1,n
+
+) gives 
+
+> ∞
+
+∑
+
+> j=0
+
+qj2
+
+(q)j
+
+= 1(q)∞∞∑
+
+> r=0
+
+qr2
+
+α′
+
+> 1,r
+
+= 1(q)∞
+
++ 1(q)∞∞∑
+
+> r=1
+
+(−1) rq2r2+(r
+
+> 2
+
+)(1 + qr)= 1(q)∞
+
+(
+
+1 + 
+
+> ∞
+
+∑
+
+> r=1
+
+(−1) rq 52 r2− r 
+
+> 2
+
++
+
+> ∞
+
+∑
+
+> r=1
+
+(−1) rq 52 r2+ r
+
+> 2
+
+)
+
+= 1(q)∞
+
+∑
+
+> r∈Z
+
+(−1) rq 52 r2− r
+
+> 2
+
+(5.2.3) Set a = q2, b = q3 and q ← q5 in Jacobi triple product formula gives 
+
+(q5; q5)∞(q2; q5)∞(q3; q5)∞ = ∑
+
+> n≥0
+
+(−q2)nq5(n
+
+> 2
+
+) + ∑
+
+> n> 0
+
+(−q3)nq5(n
+
+> 2
+
+)= ∑
+
+> n≥0
+
+(−1) nq 52 n2− n 
+
+> 2
+
++ ∑
+
+> n> 0
+
+(−1) nq 52 n2+ n
+
+> 2
+
+= ∑
+
+> n∈Z
+
+(−1) nq 52 n2− n
+
+> 2
+
+(5.2.4) Comparing (5.2.3) and (5.2.4) gives the first Rogers–Ramanujan identity (5.2.5) G(q) = 
+
+> ∞
+
+∑
+
+> j=0
+
+qj2
+
+(q; q)j
+
+= (q5; q5)∞(q2; q5)∞(q3; q5)∞
+
+(q; q)∞
+
+= 1(q; q5)∞(q4; q5)∞
+
+.
+
+where the last equality follows from the splitting lemma (Lemma 3.5.2): (5.2.6) (q; q)∞ = ( q; q5)∞(q2; q5)∞(q3; q5)∞(q4; q5)∞(q5; q5)∞.
+
+RogersRamanujan/NumberTheory/QTheory/RogersRamanujan.lean 
+
+theorem first_rogers_ramanujan_hasSum_strong {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [T2Space R] [StrongNonarchimedeanRing R] {q : R} (hq : IsTopologicallyNilpotent q) :HasSum (fun j ↦ q ^ j ^ 2 * bInv (q; q)_j) (bInv (q; q^5)_∞ * bInv (q^4; q^5)_∞) := 
+
+Similarly, applying Lemma 3.6.3 to (α2,n , β 2,n ) gives a new Bailey pair (with respect to a = q)
+
+α′ 
+
+> 2,n
+
+= ( −1) nqn2+n+(n
+
+> 2
+
+)[2 n + 1] q(5.2.7) 
+
+β′ 
+
+> 2,n
+
+= 1(q)n
+
+.(5.2.8) 
+
+RogersRamanujan/NumberTheory/QTheory/RogersRamanujan.lean 
+
+def RogersRamanujan.αt₂ {R} [CommRing R] (q : R) (n : ℕ) : R := (-1) ^ n * q ^ (n ^ 2 + n + n.choose 2) * qInt q (2 * n + 1) theorem isBaileyPair_αt₂_βt {R} [CommRing R] {q : R} (hpu : ∀ k, IsUnit (q; q)_(k)) : IsBaileyPair q q (αt₂ q) (βt q) := THE ROGERS-RAMANUJAN IDENTITIES 29 
+
+qBaileyLemma_limit q q (α₂ q) β (αt₂ q) (βt q) (isBaileyPair_α₂_β hpu) hpu (fun k ↦ And.right <| by simpa [qPochhammer_succ] using hpu (k + 1)) (by grind [αt₂, α₂]) (by simp [β, βt]) 
+
+Applying Lemma 3.6.4 to (α′
+
+> 2,n
+
+, β ′
+
+> 2,n
+
+) gives (5.2.9) 
+
+> ∞
+
+∑
+
+> j=0
+
+qj2+j
+
+(q; q)j
+
+= 1(q2; q)∞∞∑
+
+> r=0
+
+qr2+rα′ 
+
+> 2,r
+
+= 1 − q
+
+(q; q)∞∞∑
+
+> r=0
+
+(−1) rq 52 r2+ 32 r[2 r + 1] q
+
+By (1 − q) · [2 r + 1] q = 1 − q2r+1 , the right hand side become (5.2.10) 1(q; q)∞∞∑
+
+> r=0
+
+(−1) rq 52 r2+ 32 r(1 − q2r+1 ) = 1(q; q)∞
+
+∑
+
+> r∈Z
+
+(−1) rq 52 r2+ 32 r.
+
+Applying Jacobi triple product to a = q and b = q4 (and again q ← q5) gives (5.2.11) (q5; q5)∞(q; q5)∞(q4; q5)∞ = ∑
+
+> n∈Z
+
+(−1) nq 52 n2+ 32 n
+
+and comparing with (5.2.10) and applying (5.2.6) implies the second Rogers–Ramanujan identity. 
+
+RogersRamanujan/NumberTheory/QTheory/RogersRamanujan.lean 
+
+theorem second_rogers_ramanujan_hasSum_strong {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [T2Space R] [StrongNonarchimedeanRing R] {q : R} (hq : IsTopologicallyNilpotent q) :HasSum (fun j ↦ q ^ (j * (j + 1)) * bInv (q; q)_j) (bInv (q ^ 2; q ^ 5)_∞ * bInv (q ^ 3; q ^ 5)_∞) := 
+
+5.3. Relaxing the strongly non-archimedean condition. Since these identities only involve 
+
+q which is topologically nilpotent, they can be seen as identities in ZJqK (or even NJqK), and by Strategy 3.7.2 they can be generalized to non-archimedean rings: 
+
+RogersRamanujan/NumberTheory/QTheory/RogersRamanujan.lean 
+
+theorem first_rogers_ramanujan {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [T2Space R] [NonarchimedeanRing R] {q : R} (hq : IsTopologicallyNilpotent q) :∑' j, q ^ (j ^ 2) * bInv (q; q)_(j) = bInv (q; q^5)_∞ * bInv (q^4; q^5)_∞ := theorem second_rogers_ramanujan {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [CompleteSpace R] [T2Space R] [NonarchimedeanRing R] {q : R} (hq : IsTopologicallyNilpotent q) :∑' j, q ^ (j * (j + 1)) * bInv (q; q)_j = bInv (q ^ 2; q ^ 5)_∞ * bInv (q ^ 3; q ^ 5)_∞ := 
+
+6. Bonus: Two Identities 
+
+As a bonus, we derive the well-celebrated Pentagonal Number Theorem (Theorem 6.1.1) and Jacobi’s identity (Theorem 6.1.2) as a corollary of the Jacobi Triple Product identity (Theorem 4.1.4). 30 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+6.1. Proof and Lean verification. Here we prove and Lean verify two iconic identities. 
+
+Theorem 6.1.1 (Pentagonal number theorem) .
+
+(6.1.1) (q; q)∞ = ∑
+
+> k∈Z
+
+(−1) kq 3k2−k 
+
+> 2
+
+= 1 − q − q2 + q5 + q7 + · · · 
+
+Proof. We first apply Lemma 3.5.2 to split (q; q)∞ into (q; q3)∞(q2; q3)∞(q3; q3)∞.We then apply Jacobi Triple Product (Theorem 4.1.4) to (b, c, q ) := ( q, q 2, q 3) to obtain: (6.1.2) (q3; q3)∞(q; q3)∞(q2; q3)∞ = ∑
+
+> n∈Z
+
+e−q, −q2 (n)( q3)(|n| 
+
+> 2
+
+)
+
+where recall that: (6.1.3) e−q, −q2 (n) := 
+
+{
+
+(−q)n n ≥ 0(−q2)−n n ≤ 0
+
+Then the theorem follows by comparing each term, i.e. for n ≥ 0 we have: (6.1.4) (−q)n(q3)(n
+
+> 2
+
+) = ( −1) n 3n2 − n
+
+2
+
+and (indexing the negative part by −n): (6.1.5) (−q2)n(q3)(n
+
+> 2
+
+) = ( −1) n 3n2 + n
+
+2
+
+□
+
+We once again use Theorem 3.7.2 to generalize this to non-archimedean rings.                 
+
+> RogersRamanujan/NumberTheory/QTheory/Pentagonal.lean
+> theorem tsum_qPochhammerInf_self {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [NonarchimedeanRing R] [CompleteSpace R] [T2Space R] {q : R} (hq : IsTopologicallyNilpotent q := by simp) : ∑' k : ℤ, k.negOnePow • q ^ pentagonal k = (q; q)_∞ :=
+
+Theorem 6.1.2 (Jacobi’s identity) .
+
+(6.1.6) (q; q)3 
+
+> ∞
+
+= ∑
+
+> k∈N
+
+(−1) k(2 k + 1) q k(k+1) 2
+
+Proof. We would apply Jacobi triple product (Theorem 4.1.4) to (1 , q, q ), but the first factor of 
+
+(1; q)∞ is 1 − 1 = 0 , so we would need to cancel that factor formally. This means we first adjoin a formal invertible element t so that 1−t is regular, i.e. multiplication by 1 − t is injective. In the actual Lean code, we consider the ring R[t, t −1]JqK where t is the formal invertible element. Then Jacobi triple product (Theorem 4.1.4) on (t, t −1q, q ) gives us: (6.1.7) (t; q)∞(t−1q; q)∞(q; q)∞ = ∑
+
+> n∈Z
+
+e−t, −t−1q(n)q(|n| 
+
+> 2
+
+)
+
+The left hand side contains 1 − t as the first factor of (t; q)∞, and the right hand side can be grouped ( 0 with 1, then −1 with 2, then −2 with 3, etc.) to form: (6.1.8) (1 − t) − t−1q(1 − t3) + t−2q3(1 − t5) + · · · THE ROGERS-RAMANUJAN IDENTITIES 31 
+
+so that 1 − t can also be factored from the right hand side, giving us: (6.1.9) (tq ; q)∞(t−1q; q)∞(q; q)∞ = ∑
+
+> k∈N
+
+(−1) kt−k(1 + t + · · · + t2n)q(n+1 2 )
+
+where substituting t = 1 then gives us the desired Equation 6.1.6. □                        
+
+> RogersRamanujan/NumberTheory/QTheory/JacobiTriangular.lean
+> theorem tsum_qPochhammerInf_self_pow_three {R} [CommRing R] [UniformSpace R] [IsUniformAddGroup R] [NonarchimedeanRing R] [CompleteSpace R] [T2Space R] {q : R} (hq :IsTopologicallyNilpotent q := by simp) : ∑' k : ℕ, (-1) ^ k* (2 * k + 1) *q^ (k + 1).choose 2 = (q; q)_∞ ^ 3 :=
+
+7. Future formalization directions 
+
+We believe that our formalization will be useful for future formalization projects. For example, our formalization of Jacobi triple product can be used to prove important results on partition numbers, such as Ramanujan congruence p(5 n + 4) ≡ 0 ( mod 5) . Also, we already have Dedekind eta function n and Jacobi theta function o in mathlib , and combined with Jacobi triple product, we will be able to prove identities between them and also prove sum of two and four squares identities. Further applications come from Bailey’s Lemma. Although we only give one (major) application of it, Rogers–Ramanujan identities, Bailey lemma can be used to prove vast of identities on q-series that appear in several contexts (for example, see [1, 3, 6, 8, 9, 20, 39]). Bailey’s lemma is one of the central mechanisms in the theory of q-series, providing a systematic way to generate infinite families of identities from a single Bailey pair. Its most classical application is the proof and discovery of Rogers–Ramanujan-type identities as mentioned here. However, the applications also include many generalizations such as the Andrews–Gordon identities. Beyond product-sum identities, Bailey’s lemma has also been used to derive partition identities, transformations of basic hypergeometric series, and identities connected with mock theta functions and modular forms. In this sense, it serves not merely as a proof technique, but as a powerful engine for producing new structure throughout the theory of q-series. At last, since we formalized q-theory in (strongly) non-archimedean rings, this will allow us to formalize theory of p-adic or mod p modular forms, or modular forms over general rings, in the sense of Katz [32] or Serre [36]. These will be crucial if one wants to formalize general results on congruences of coefficients of modular forms. 8. Appendix: The AxiomProver system 
+
+This appendix describes the AxiomProver system as it was used in the project. The goal is to make clear which parts of the development are mathematical design choices, which parts are conventional Lean engineering, and which parts were assisted by AxiomProver. We record the system’s role in proposing intermediate lemmas, organizing proof dependencies, and accelerating routine formal steps, while emphasizing that the theorems reported in the paper are certified by the Lean kernel and by the accompanying formal artifact. The appendix is intended to help readers reproduce the development and to clarify how such systems can support, rather than replace, mathematical judgment.  
+
+> nhttps://leanprover-community.github.io/mathlib4_docs/Mathlib/NumberTheory/ModularForms/DedekindEta.html
+> ohttps://leanprover-community.github.io/mathlib4_docs/Mathlib/NumberTheory/ModularForms/JacobiTheta/ OneVariable.html 32 KENNY LAU, SEEWOO LEE, AND KEN ONO
+
+8.1. Overview of AxiomProver. AxiomProver is an AI system currently under development at Axiom Math. We submitted various problems to AxiomProver throughout the process of mak-ing the Rogers–Ramanujan repository, which then autonomously produced formalizations. These problems and formalizations are described in Section 8.2. 8.2. Artifacts. In each subsection we describe the input and output of AxiomProver. These are hosted in https://github.com/AxiomMath/RogersRamanujan-artifacts .8.2.1. Jacobi Triple Product. We asked AxiomProver to prove the Jacobi Triple Product identity (Theorem 1.1.1). As AxiomProver was under development, we provided fragments of drafts of the RogersRamanujan library. 
+
+• Input: 
+
+– Draft versions of DiscreteEval.lean , QTheory.lean , and TruncPoly.lean (not provided ). 
+
+– chapter9.tex : A tex reproduction of [11, Chapter 9]. 
+
+– problem.lean : A (human) formalized statement of the problem without proof. 
+
+• Environment: We used Lean 4.26.0 with mathlib 4.26.0. 
+
+• Output: It then produced solution.lean , a formal proof matching problem.lean .8.2.2. Limit of topologically nilpotent elements. We asked AxiomProver to prove that, in a strongly non-archimedean ring, the limit of a convergent sequence of topologically nilpotent elements is again topologically nilpotent. In the actual library we generalized it to that the set of topologically nilpotent elements is closed, but it did not fit the scope of this paper. 
+
+• Input: 
+
+– problem.lean : A formal statement of the question without proof. 
+
+• Environment: We used Lean 4.28.0 with mathlib 4.28.0 and the RogersRamanujan library. 
+
+• Output: It then produced solution.lean , a formal proof matching problem.lean .8.2.3. Finding an open subring. While we were developing the theory of strongly non-archimedean rings, we asked ourselves if they are just all given by Huber pairs. We then proposed that if so, the open subring would be given by the “nilpotent-stable” elements, i.e. (8.2.1) R0 := {t ∈ R | ∀ x ∈ R, x topologically nilpotent = ⇒ tx topologically nilpotent }
+
+We then asked AxiomProver whether R0 is open in general, where we only asked about non-archimedean rings. AxiomProver provided the counter-example (Q2)N, which happened to be strongly non-archimedean anyway. See 9.1 for more discussion. 
+
+• Input: 
+
+– problem.lean : A formal statement of the question without proof, presented in the negative. 
+
+• Environment: We used Lean 4.28.0 with mathlib 4.28.0. 
+
+• Output: It then produced solution.lean , a formal proof of the negative, matching problem.lean .8.2.4. Pentagonal Number Theorem. We asked AxiomProver to prove the Pentagonal Number Theorem (Theorem 6.1.1). 
+
+• Input: 
+
+– task.md : A short description of the task. 
+
+• Environment: We used Lean 4.30.0 with mathlib 4.30.0 and the RogersRamanujan library. 
+
+• Output: It then produced problem.lean , a formal statement of the task, and solution.lean ,a formal proof matching problem.lean .THE ROGERS-RAMANUJAN IDENTITIES 33 
+
+8.2.5. Jacobi’s Identity. We asked AxiomProver to prove Jacobi’s identity (Theorem 6.1.2). 
+
+• Input: 
+
+– task.md : A short description of the task. 
+
+• Environment: We used Lean 4.30.0 with mathlib 4.30.0 and the RogersRamanujan library. 
+
+• Output: It then produced problem.lean , a formal statement of the task, and solution.lean ,a formal proof matching problem.lean .8.2.6. Proof of q-Pfaff–Saalschütz identity. The proof of Lemma 3.4.4 and Theorem 3.5.10, the denominator-cleared version of q-Pfaff–SaalSchütz identity, is autoformalized by AxiomProver. 
+
+• Input: 
+
+– problem.lean : A formal statement of the task 
+
+• Environment: We used Lean 4.31.0 with mathlib 4.31.0. 
+
+• Output: It then produced solution.lean , a formal proof matching problem.lean .9. Appendix: Counterexamples 
+
+9.1. Finding an open subring. (Q2)N is a source of counter-examples for many claims regarding strongly non-archimedean rings. See Section 3.3 for why it is strongly non-archimedean. For example, the set of power-bounded elements is (Z2)N, which is not open. 9.2. A non-archimedean ring that is not strongly non-archimedean. We produce R with 
+
+a, q ∈ R such that: 
+
+• R is a complete non-archimedean ring. 
+
+• q is topologically nilpotent. 
+
+• But (a; q)∞ does not exist. We start with Qp and its usual p-adic norm ∥ · ∥ p, which allows us to define a family of extended norms (i.e. norms that can take the value ∞) on (Qp)N, indexed by N ∈ N+:(9.2.1) ∥x∥N := sup 
+
+> n
+
+(
+
+p−n3/N ∥xn∥p
+
+)
+
+Now let Ap := {x | ∀ N, ∥x∥N < ∞} , so that each ∥ · ∥ N becomes an actual norm. We then let these norms generate a topology on Ap, so that for any given sequence (xn)n ∈ Ap, we have xn → 0
+
+as n → ∞ iff for all N ∈ N+ we have lim n→∞ ∥xn∥N = 0 .                
+
+> RogersRamanujan/Counterexamples/NotStrong.lean
+> def NotStrong.FrechetSpace (p : ℕ) [Fact p.Prime] : Type := { x : ℕ → ℚ_[p] // ∀N: ℕ+, ∃M: ℝ, ∀ n, frechet N x n ≤ M }
+
+Lemma 9.2.1. Ap is a non-archimedean ring under that topology. In particular, multiplication is continuous. Proof. The only non-trivial part to check is the continuity of multiplication, which follows from: (9.2.2) p−n3/N ∥xnyn∥ =
+
+(
+
+p−n3/(2 N )∥xn∥
+
+) ( 
+
+p−n3/(2 N )∥yn∥
+
+)
+
+□34 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+RogersRamanujan/Counterexamples/NotStrong.lean 
+
+instance {p : ℕ} [Fact p.Prime] : NonarchimedeanRing (FrechetSpace p) 
+
+Now let ap := ( p−n2
+
+)n and qp := ( p)n. We know that ap ∈ Ap because lim n→∞ pn2− n3 
+
+> N
+
+= 0 for any fixed N ∈ N+. Similarly we have qp ∈ Ap. We also know that qp is topologically nilpotent by an explicit computation. 
+
+RogersRamanujan/Counterexamples/NotStrong.lean 
+
+theorem NotStrong.FrechetSpace.isTopologicallyNilpotent_p (p : ℕ) [Fact p.Prime] : IsTopologicallyNilpotent (p : FrechetSpace p) := 
+
+However, ∥(ap)m(qp)(m 
+
+> 2
+
+)∥N = sup n
+
+(
+
+p− n3 
+
+> N+mn 2−
+
+(m 
+
+> 2
+
+))
+
+is a simple optimization problem, optimized by n = 2mN  
+
+> 3
+
+(with marginal errors due to using integers), and putting N := 1 gives us: (9.2.3) ∥(ap)m(qp)(m 
+
+> 2
+
+)∥1 ≈ 427 m3 −
+
+(m
+
+2
+
+)
+
+which does not go to 0 as m → ∞ , so (ap)m(qp)(m 
+
+> 2
+
+) does not go to 0 as m → ∞ .
+
+RogersRamanujan/Counterexamples/NotStrong.lean 
+
+theorem NotStrong.FrechetSpace.not_tendsto_a_pow_mul_p_pow_choose_two_zero {p : ℕ} [Fact p.Prime] : ¬Tendsto (fun n ↦ (a p ^ n * p ^ n.choose 2)) atTop (𝓝 0) := 
+
+From this we can already deduce: 
+
+Theorem 9.2.2. Ap is not strongly non-archimedean. Proof. Follows from Theorem 3.3.5. □
+
+RogersRamanujan/Counterexamples/NotStrong.lean 
+
+theorem NotStrong.FrechetSpace.not_strongNonarchimedean (p : ℕ) [Fact p.Prime] : ¬StrongNonarchimedeanRing (FrechetSpace p) := 
+
+But we can obtain a stronger result: 
+
+Theorem 9.2.3. (ap; qp)∞ does not exist. Proof. If it exists, it would be lim m→∞ (ap; qp)m, and since Ap is non-archimedean, the limit exists if and only if lim m→∞ (( ap; qp)m − (ap; qp)m+1 ) = 0 , but: 
+
+∥(ap; qp)m − (ap; qp)m+1 ∥1 = sup n
+
+(
+
+p−n3
+
+( ∏m−1 
+
+> i=0
+
+∥1 − p−n2+i∥p
+
+)
+
+∥p−n2+m∥p
+
+)
+
+≥ p−(√m)3+∑mi=0 (( √m)2−i)
+
+= pm(m+1) 2 −m3/2 
+
+which goes to ∞ as m → ∞ . (For the step involving √m, it can be made rigorous by only considering the subsequence where m is a perfect square.) □THE ROGERS-RAMANUJAN IDENTITIES 35     
+
+> RogersRamanujan/Counterexamples/NotStrong.lean
+> theorem NotStrong.FrechetSpace.not_tendsto_qPochhammer {p : ℕ} [Fact p.Prime] (L : FrechetSpace p) : ¬Tendsto ((a p; p)_·) atTop (𝓝 L) :=
+
+References 
+
+[1] G. E. Andrews, An analytic generalization of the Rogers–Ramanujan identities for odd moduli , Proc. Natl. Acad. Sci. USA 71 (1974), no. 10, 4082–4085. 2, 31 [2] G. E. Andrews, Problems and prospects for basic hypergeometric functions , in R. Askey (ed.), Theory and Application of Special Functions , Academic Press, New York, 1975, 191–224. 2 [3] G. E. Andrews, q-Series: Their development and application in analysis, number theory, combinatorics, physics, and computer algebra , American Mathematical Soc., 1986 2, 14, 19, 26, 27, 31 [4] G. E. Andrews, The Theory of Partitions , Encyclopedia of Mathematics and its Applications, vol. 2, Addison– Wesley, Reading, MA, 1976; reprinted by Cambridge Univ. Press, 1998. 1, 2, 3 [5] G. E. Andrews and K. Eriksson. Integer Partitions . Cambridge University Press, 2004. 7 [6] W. N. Bailey, Identities of the Rogers–Ramanujan type , Proc. London Math. Soc. (2) 50 (1949), 1–10. 3, 31 [7] R. J. Baxter, Exactly Solved Models in Statistical Mechanics , Academic Press, London, 1982. 3 [8] B. C. Berndt. Ramanujan’s Notebooks . Springer New York, 1991. 7, 31 [9] K. Bringmann, A. Folsom, K. Ono, and L. Rolen, Harmonic Maass Forms and Mock Modular Forms: Theory and Applications , American Mathematical Society Colloquium Publications, Vol. 64, American Mathematical Society, Providence, RI, 2017. 2, 31 [10] K. Buzzard, Division by zero in type theory: a FAQ , Xena Project blog, 2020. https://xenaproject.wordpress. com/2020/07/05/division-by-zero-in-type-theory-a-faq/ . 5 [11] Chan, H. H. (2009). Analytic Number Theory for Undergraduates. In Monographs in number theory. https://doi.org/10.1142/7252 24, 32 [12] E. A. Coddington and N. Levinson, Theory of Ordinary Differential Equations , McGraw–Hill, New York, 1955. [13] L. de Moura, S. Kong, J. Avigad, F. van Doorn, and J. von Raumer, The Lean theorem prover (system description) , in Automated Deduction – CADE-25 , Lecture Notes in Computer Science, vol. 9195, Springer, Cham, 2015, 378–388. 3 [14] F. Diamond and J. Shurman, A First Course in Modular Forms , Graduate Texts in Mathematics, vol. 228, Springer, New York, 2005. 3 [15] P. Di Francesco, P. Mathieu, and D. Sénéchal, Conformal Field Theory , Graduate Texts in Contemporary Physics, Springer, New York, 1997. 3 [16] M. Eichler and D. Zagier, The Theory of Jacobi Forms , Progress in Mathematics, Vol. 55, Birkhäuser Boston, Boston, MA, 1985. 2 [17] I. B. Frenkel, J. Lepowsky, and A. Meurman, Vertex Operator Algebras and the Monster , Pure and Applied Mathematics, Academic Press, Boston, 1988. 3 [18] G. Gasper and M. Rahman, Basic Hypergeometric Series , 2nd ed., Encyclopedia of Mathematics and its Applications, vol. 96, Cambridge Univ. Press, Cambridge, 2004. 1, 3 [19] F. Gloeckle, A. Rammal, C. Arnal, R. Munos, V. Cabannes, G. Synnaeve, A.Hayat, Automatic Textbook Formalization , arXiv preprint arXiv:2604.03071. 6 [20] M. J. Griffin, K. Ono, and S. O. Warnaar, A framework of Rogers–Ramanujan identities and their generaliza-tions , Duke Math. J. 165 (2016), no. 8, 1475–1527. 3, 31 [21] Gabber, O., and Ramero, L, Foundations for almost ring theory , arXiv preprint arXiv:math/0409584 (2004). 22 [22] D. Grinberg, An introduction to algebraic combinatorics , arXiv preprint arXiv:2506.00738 (2025). 6 [23] T. Nipkow, M. Wenzel, and L. C. Paulson, eds. Isabelle/HOL: a proof assistant for higher-order logic . Berlin, Heidelberg: Springer Berlin Heidelberg, 2002. 6 [24] C. G. J. Jacobi, Fundamenta nova theoriae functionum ellipticarum , Sumtibus Fratrum Borntraeger, Re-giomonti, 1829. 2 [25] W. P. Johnson. An introduction to q-analysis. Vol. 134. American Mathematical Soc., 2020. [26] V. G. Kac, Infinite-Dimensional Lie Algebras , 3rd ed., Cambridge Univ. Press, Cambridge, 1990. 3 36 KENNY LAU, SEEWOO LEE, AND KEN ONO 
+
+[27] J. Lepowsky and H. S. Li, Introduction to Vertex Operator Algebras and Their Representations , Progress in Mathematics, vol. 227, Birkhäuser, Boston, 2004. 3 [28] The mathlib Community, The Lean mathematical library , in Proceedings of the 9th ACM SIGPLAN International Conference on Certified Programs and Proofs (CPP 2020) , ACM, New York, 2020, 367–381. 3 [29] M. Eberl, Theta Functions, Archive of Formal Proofs , December 2024, https://isa-afp.org/entries/Theta_ Functions.html , Formal proof development. 6 [30] M. Eberl, The Partition Function and the Pentagonal Number Theorem, Archive of Formal Proofs , December 2024, https://isa-afp.org/entries/Pentagonal_Number_Theorem.html , Formal proof development. 6 [31] M. Eberl, The Rogers–Ramanujan Identities, Archive of Formal Proofs , December 2024, https://isa-afp.org/ entries/Rogers_Ramanujan.html , Formal proof development. 6 [32] N. M. Katz, P-adic properties of modular schemes and modular forms. Modular Functions of One Variable III: Proceedings International Summer School University of Antwerp, RUCA July 17–August 3, 1972. Berlin, Heidelberg: Springer Berlin Heidelberg, 1973. 69-190. 31 [33] K. Ono, The Web of Modularity: Arithmetic of the Coefficients of Modular Forms and q-series , CBMS Regional Conference Series in Mathematics, vol. 102, Amer. Math. Soc., Providence, RI, 2004. 3 [34] L. J. Rogers, Second memoir on the expansion of certain infinite products , Proc. London Math. Soc. 25 (1894), 318–343. 2 [35] L. J. Rogers and S. Ramanujan, Proof of certain identities in combinatory analysis , Proc. Cambridge Philos. Soc. 19 (1919), 211–216. 2 [36] J.-P. Serre, Formes modulaires et fonctions zêta p-adiques. Modular Functions of One Variable III: Proceed-ings International Summer School University of Antwerp, RUCA July 17–August 3, 1972. Berlin, Heidelberg: Springer Berlin Heidelberg, 1973. 191-268. 31 [37] B. Schoeneberg, Elliptic Modular Functions: An Introduction , Springer, Berlin, 1974. 3 [38] I. Schur, Ein Beitrag zur additiven Zahlentheorie und zur Theorie der Kettenbrüche , Sitzungsberichte der Königlich Preussischen Akademie der Wissenschaften zu Berlin (1917), 302–321. 2 [39] A. V. Sills, An Invitation to the Rogers–Ramanujan Identities , CRC Press, Boca Raton, FL, 2017. 1, 3, 31 [40] D. Selsam, S. Ullrich, and L. de Moura, Tabled typeclass resolution , arXiv preprint arXiv:2001.04301 (2020). 3 [41] G. N. Watson, A new proof of the Rogers–Ramanujan identities , J. London Math. Soc. 4 (1929), 4–9. 17 [42] H. S. Wilf, D. Zeilberger. An algorithmic proof theory for hypergeometric (ordinary and “q”) multisum/integral identities , Inventiones mathematicae 108, no. 1 (1992), 575-633. [43] D. Zagier, Elliptic Modular Forms , in The 1-2-3 of Modular Forms (J. H. Bruinier, G. van der Geer, G. Harder, and D. Zagier, eds.), Universitext, Springer, Berlin, 2008, 67–84. 3 
+
+Axiom Math, 124 University Avenue, Palo Alto, CA 94301 
+
+Email address : kenny@axiommath.ai 
+
+Department of Mathematics, University of California—Berkeley, Berkeley, CA 94720 
+
+Email address : seewoo5@berkeley.edu 
+
+Axiom Math, 124 University Avenue, Palo Alto, CA 94301
