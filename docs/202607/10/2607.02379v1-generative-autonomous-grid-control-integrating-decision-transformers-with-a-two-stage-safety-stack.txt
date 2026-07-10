@@ -1,0 +1,597 @@
+Title: Generative Autonomous Grid Control: Integrating Decision Transformers with a Two-Stage Safety Stack
+
+URL Source: https://arxiv.org/pdf/2607.02379v1
+
+Published Time: Fri, 03 Jul 2026 01:35:38 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+> 1
+
+# Generative Autonomous Grid Control: Integrating Decision Transformers with a Two-Stage Safety Stack 
+
+Mohamed Shamseldein, Senior Member, IEEE 
+
+Abstract —The displacement of synchronous generation by inverter-based resources is accelerating power system frequency dynamics beyond the response capability of conventional auto-matic generation control. This paper presents Autonomous Grid Generation Control with Decision Transformers, a framework coupling an offline-trained Decision Transformer with a two-stage symbolic safety stack for secondary frequency control. The Decision Transformer learns a conditional dispatch policy from offline supervisory control and data acquisition records via sequence modeling, eliminating online exploration risks. A Constraint Verification Unit provides sub-ten-millisecond algebraic screening using real-time power transfer distribution factors, while an aggregate digital twin performs swing-equation-based dynamic stability certification. Validated on the Northeast Power Coordinating Council 140-bus system under low-inertia conditions, the proposed controller reduces the area control error integral by over 99% relative to tuned automatic generation control, maintains a 59.4 Hz frequency nadir, and achieves inference latency of approximately 10 ms, well within real-time constraints. Comparative evaluation against a linear quadratic regulator baseline and structural analysis against conservative Q-learning demonstrate the advantages of the sequence-modeling formulation. Small-signal eigenvalue analysis characterizes the dominant 1.87 Hz electromechanical mode and confirms that the safety stack maintains stable operation across operating points. By falling back to tuned automatic generation control whenever proposals are rejected, the safety stack bounds worst-case performance to industry-standard levels in simulation. 
+
+Index Terms —Decision transformer, offline reinforcement learning, digital twin, power system frequency control, safety verification, ANDES, NPCC system. 
+
+NOMENCLATURE 
+
+G, L, B Sets of generators, transmission lines, and buses [– ]. 
+
+Pg , Q g Active [MW] and reactive [Mvar] power generation of unit g.
+
+Vi, θ i Voltage magnitude [p.u.] and phase angle [rad] at bus i.
+
+Vt, θ t Vectors of all bus voltages [p.u.] and angles [rad] at time t.
+
+fagg,t Aggregate system frequency at time t [Hz]. 
+
+Pline,t Vector of active power flows on all lines at time t
+
+[MW]. 
+
+Pgen ,t Generation dispatch vector at time t [MW]. 
+
+Pload ,t Load demand vector at time t [MW]. 
+
+∆f System frequency deviation [Hz]. 
+
+M. Shamseldein is an Assistant Professor with the Department of Electrical Power and Machines, Faculty of Engineering, Ain Shams University, Cairo, Egypt. 
+
+ACE Area Control Error [MW]. 
+
+D Offline dataset of trajectories [–]. 
+
+πβ , πθ Behavior (PID) policy and learned Decision Trans-former policy [–]. 
+
+Rt Return-to-go at time step t [–]. 
+
+K Context length for the Transformer window [timesteps]. 
+
+dmodel Embedding dimension of the Transformer [–]. 
+
+H Power Transfer Distribution Factor (PTDF) matrix [–]. 
+
+M, D Aggregated inertia [s] and damping [p.u.] con-stants. 
+
+Hsys System-wide inertia constant [s]. 
+
+fmin Predicted frequency nadir [Hz]. 
+
+fU F LS Under-Frequency Load-Shedding threshold [Hz]. 
+
+∆at Normalized action delta [–]. 
+
+∆P max Maximum generator ramp per control step [MW]. 
+
+θOU , σ OU Ornstein–Uhlenbeck noise parameters [–]. 
+
+Cop Quadratic generation operating cost [$/h]. 
+
+αi, β i, γ i Generator cost curve coefficients [$/MW 2h, $/MWh, $/h]. 
+
+λf , λ ace , λ c, λ vReward weighting coefficients [–]. 
+
+ζ Damping ratio of electromechanical mode [–]. 
+
+Ts Settling time [s]. I. I NTRODUCTION 
+
+# THE fundamental operational paradigm of power systems is shifting. The displacement of synchronous generation by Inverter-Based Resources (IBRs) has precipitated a decline in system inertia, accelerating frequency dynamics from the order of seconds to hundreds of milliseconds [1], [2]. Consequently, the timescale for corrective action is contracting beyond the cognitive limits of human operators, necessitating a transition toward higher degrees of automation. The U.S. Department of Energy has identified this “inertia gap” as a critical barrier to achieving renewable penetration above 60% [1], while recent cascading events in low-inertia grids (e.g., the 2019 UK blackout) underscore the urgency of automated frequency response [18]. While Deep Reinforcement Learning (DRL) has demon-strated theoretical capability in handling fast dynamics [3], its deployment in real-world control rooms remains virtually non-existent. This “deployment gap” stems from two fundamental flaws in standard online RL algorithms (e.g., Proximal Policy Optimization (PPO), Soft Actor-Critic (SAC)). First, they 
+
+> arXiv:2607.02379v1 [eess.SY] 2 Jul 2026 2
+
+rely on stochastic exploration—trial-and-error learning—which poses unacceptable risks to critical infrastructure. Second, deep neural networks are opaque models lacking the rigorous, physics-based assurances required by Transmission System Operators (TSOs). Model-based approaches such as Linear Quadratic Regulators (LQR) and Model Predictive Control (MPC) offer analytical guarantees but assume linear time-invariant dynamics, which degrades under the nonlinear, time-varying conditions of modern low-inertia grids [23]. A promis-ing alternative is the Decision Transformer (DT) [4], which recasts control as supervised sequence modeling on existing operational logs. Crucially, DTs exhibit a “stitching property”: by conditioning on a high target return, they synthesize optimal trajectories from sub-optimal demonstrations, enabling the agent to outperform the baseline controllers that generated the training data—without ever exploring online. For TSOs, this means leveraging years of archived SCADA data to train a policy that exceeds current AGC performance while remaining entirely offline and auditable. 
+
+A. Related Work and Research Gaps 1) Deep RL in Power Systems: The application of DRL to power system control has evolved from discrete action spaces (e.g., topological switching [3]) to continuous control of generator setpoints and inverter parameters. Huang et al. [21] applied deep deterministic policy gradient to voltage regulation on the IEEE 39-bus system, while Li et al. [22] demonstrated SAC-based frequency control with promising laboratory results. Complementary bibliometric analyses [7] reinforce the need for controllers bridging academic prototypes and deployable solutions. However, a significant limitation is the reliance on simplified test cases. The vast majority of DRL studies validate on small-scale benchmarks like the IEEE 39-bus or 118-bus systems [8]. Open-source environments such as Grid2Op [9] have accelerated development, but these models often lack inter-area oscillation modes inherent in regional backbones like the NPCC 140-bus system . This “complexity gap” raises doubts about transferability, mirroring data-access limitations highlighted by surveys of open grid datasets [10]. 
+
+2) Offline Reinforcement Learning: Offline RL (or Batch RL) addresses the exploration risk by learning policies entirely from static, historical datasets. Standard approaches such as Conservative Q-Learning (CQL) [11] and Batch-Constrained Q-Learning (BCQ) [20] rely on estimating value functions. However, these methods grapple with the “deadly triad” of instability: function approximation, bootstrapping, and off-policy distribution shift. When the agent queries Out-of-Distribution (OOD) actions, Q-value estimates can diverge, leading to dangerous policy artifacts [12]. CQL mitigates this by adding a conservative penalty to Q-values for unseen actions, while BCQ constrains the policy to remain close to the behavior distribution. Both require careful hyperparameter tuning and can be overly conservative, under-utilizing the training data [12]. 
+
+3) Sequence Modeling for Control: A recent paradigm treats RL as a sequence modeling problem [13]. The Decision Transformer (DT) [4] leverages the GPT architecture [14] to predict actions autoregressively, conditioned on a target return-to-go. Unlike value-based methods, the DT avoids bootstrapping entirely, relying on supervised learning stability. By conditioning on a high target return, the DT extracts opti-mal sub-trajectories from sub-optimal datasets—the “stitching property”—allowing the agent to outperform the demonstrators that generated the training data. Zheng et al. [24] showed that online fine-tuning of DTs can further improve performance, while Yamagata et al. [25] extended DTs with Q-learning guidance for improved stitching. 
+
+4) Safe RL and Shielding: Ensuring safety in RL is typi-cally approached via Constrained Markov Decision Processes (CMDPs), using Lagrangian relaxation to penalize violations during training. However, this offers no hard guarantees during inference. “Shielding” mechanisms [15] project unsafe actions onto a safe subspace, but most rely on simplified DC power flow or computationally expensive optimization violating real-time latency constraints. Recent work by Ozkan et al. [19] demonstrated RL-supported digital twin models for micro-grids, highlighting the promise of combining data-driven control with physics-based screening. 
+
+5) Literature Synthesis: Table I synthesizes the reviewed approaches, highlighting their advantages, limitations, and the gaps addressed by the proposed framework. 
+
+B. Contributions 
+
+Autonomous Grid Generation Control with Decision Trans-formers (AG2C -DT) is introduced as a framework coupling a trajectory-sequence policy with a rigorous physics-based verification layer. The approach utilizes a DT [4] to synthe-size control policies from offline datasets. The environment leverages ANDES [5], a Python-based symbolic-numeric simulator, aligning with differentiable-simulator best practices [6]. ANDES enables encasing the generative policy in a high-fidelity Two-Stage Safety Stack (TSSS) using symbolic Jacobians for precise verification. The application domain is secondary frequency control (Automatic Generation Control) in bulk power systems, specif-ically targeting the redispatch of active power setpoints for dispatchable generators to maintain frequency and inter-area tie-line flow stability following load disturbances and contin-gencies. The framework operates at the Energy Management System (EMS) level, complementing—not replacing—primary governor response. The contributions are: 1) Offline Sequence Formulation: Controller learning is cast as supervised sequence modeling on offline operational data, eliminating online exploration risks and Bellman backup instabilities. 2) Stitching Capability: Empirical demonstration that the DT synthesizes optimal trajectories from sub-optimal, noisy PID demonstrations. 3) Realistic Validation (NPCC 140-bus): Validation on the NPCC 140-bus system with complex inter-area oscilla-tions, including systematic comparison against LQR and structural comparison against CQL/BCQ. 3
+
+TABLE I SYNTHESIS OF RELATED APPROACHES FOR POWER SYSTEM FREQUENCY CONTROL                                       
+
+> Category Representative Methods Advantages Limitations Gap Addressed by AG2C-DT
+> Model-based control LQR, MPC, H ∞Analytical guarantees; well understood Linear assumption; degrades under Nonlinear sequence modeling nonlinear/time-varying conditions with physics-based safety stack Online RL PPO [3], SAC, Handles nonlinear dynamics; Exploration risk; no safety guarantees; Offline training eliminates DDPG [21] learns complex policies validated only on small benchmarks exploration risk entirely Offline RL (value-based) CQL [11], No exploration needed; Deadly triad; OOD divergence; Supervised loss avoids BCQ [20] uses historical data conservative bias bootstrapping instability Sequence modeling Decision Transformer Stable supervised training; No inherent safety mechanism; Two-stage symbolic safety (without safety) [4] stitching property limited to small-scale validation stack + NPCC 140-bus validation Safe RL / Shielding CMDP [15], Constraint awareness; Soft penalties (no hard guarantees); Deterministic ANDES-based Barrier functions formal frameworks available simplified power flow models symbolic Jacobian verification
+
+TABLE II PROPOSED LEVELS OF GRID AUTONOMY 
+
+Level Description Power System Equivalent L0 Manual Phone dispatch; manual setpoints. 
+
+L1 Assisted AGC (reactive frequency/tie-line control). 
+
+L2 Partial RT-SCED / OPF (human approves setpoints). 
+
+L3 Conditional Black-box AI (human intervention for edge cases). 
+
+L4 High AG2C-DT. Autonomous handling within design domain; safety stack screens violations; deterministic fallback if violation predicted. 
+
+L5 Full Fully autonomous under all conditions. 
+
+Note: Conceptual taxonomy; not a formal certification framework. 
+
+4) Symbolic-Numeric Safety Stack: Hierarchical verifica-tion using ANDES symbolic Jacobians ( < 10 ms) and aggregate swing-equation digital twin. 5) Stability Analysis: Small-signal eigenvalue analysis char-acterizing the dominant inter-area mode, with inertia-level sensitivity evaluation demonstrating safety-stack robustness. Table II positions the proposed framework within a concep-tual taxonomy of grid autonomy levels. II. P ROBLEM FORMULATION 
+
+The autonomous grid control problem is formulated as a Markov Decision Process (MDP) defined by the tuple 
+
+(S, A, T , R, γ ). Unlike static Optimal Power Flow (OPF), the objective is to learn a dynamic control policy π(at|st) capable of stabilizing the nonlinear dynamics of the NPCC 140-bus system under stochastic disturbances. 
+
+A. Dispatch Model 
+
+The underlying economic dispatch is formulated as aconstrained optimization subproblem whose solution the DT learns to approximate from offline operational data. The full dispatch model is: 
+
+min 
+
+> Pgi
+
+X
+
+> i∈G
+
+ αiP 2 
+
+> gi
+
++ βiPgi + γi
+
+ (1a) s.t. X
+
+> i∈G
+
+Pgi = X
+
+> j∈B
+
+Pdj + Ploss (1b) 
+
+P min  
+
+> gi
+
+≤ Pgi ≤ P max  
+
+> gi
+
+, ∀i ∈ G (1c) 
+
+|Pl| ≤ P max  
+
+> l
+
+, ∀l ∈ L (1d) 
+
+V min  
+
+> b
+
+≤ Vb ≤ V max  
+
+> b
+
+, ∀b ∈ B (1e) 
+
+|Pgi (t) − Pgi (t − 1) | ≤ ∆P max  
+
+> gi
+
+, ∀i ∈ G (1f) 
+
+|ACE | ≤ ACE max (1g) where (1a) minimizes quadratic generation cost with coeffi-cients (αi, β i, γ i) extracted from ANDES cost curves; (1b) enforces active power balance including losses; (1c) , (1d) , (1e) ,and (1f) enforce generator capacity, thermal line, voltage, and ramping limits; and (1g) bounds the Area Control Error per NERC BAL-003 [16]. The DT does not solve (1) explicitly but learns dispatch trajectories from the behavior policy that approximately satisfy these constraints; the safety stack then certifies hard constraint satisfaction at deployment. 
+
+B. State and Action Spaces 
+
+The state space S ⊂ RNs captures both local nodal conditions and global inter-area states. Using ANDES, the state vector st of dimension Ns ≈ 700 comprises: 
+
+st = [ Vt, θ t, f agg,t , Pline,t , Pgen,t , Pload,t , ACE t]⊤ (2) where Vt, θ t ∈ R140 represent voltage magnitudes and phase angles at every bus, and Pline,t ∈ R233 captures real-time power flows including critical tie-lines linking the NYISO, ISO-NE, and IESO equivalents. The action space A ⊂ RNa consists of active power setpoints for the dispatchable fleet ( Na = 48 ): 
+
+at = [ P set g1 , P set g2 , . . . , P set g48 ]⊤ (3) Actions are continuous and bounded by ramping rates ( ∆P max g )and capacity limits, enforced via the Safety Stack. 4
+
+Offline Training Phase 
+
+NPCC Scenarios 
+
+D = {τi}
+
+Decision Transformer 
+
+πθ (at|st, ˆRt)
+
+ANDES Sim 
+
+(NPCC 140-Bus) 
+
+Sample Trajectories 
+
+(s, a, r )
+
+Action at
+
+State st+1 
+
+No active interaction during training Deployment (Inference)   
+
+> Fig. 1. The Offline Learning Paradigm. The agent ( πθ) optimizes the policy using a static dataset ( D) generated from the ANDES simulator. Physical grid interaction occurs only during deployment.
+
+C. Reward Structure 
+
+The reward function r(st, a t) in (4) aligns agent behavior with NERC BAL-003 frequency response standards [16]: 
+
+rt = − (λf |∆ft| + λace |ACE t| + λcCop (at) + λv Ψ( st)) 
+
+(4) with λf = λace = 1 .0, λc = 0 .1, and λv = 10 .0, so that frequency control objectives dominate economic dispatch. The economic dispatch term Cop (at) = P 
+
+> i
+
+αia2 
+
+> t,i
+
++ βiat,i + γi
+
+uses ANDES cost curve coefficients. The hinge penalty 
+
+Ψ( st) = X
+
+> l∈L
+
+max(0 , |Pl,t |− P max  
+
+> l
+
+)+ X
+
+> b∈B
+
+max(0 , |Vb,t −1.0|− δv )
+
+(5) regularizes offline training; at deployment the safety stack provides hard enforcement. 
+
+D. Offline RL Objective 
+
+A static dataset D = {τi}Ni=1 is collected from a behavior pol-icy πβ (baseline PID controller within ANDES). The objective is to learn πθ maximizing J(πθ ) = Eτ ∼πθ [P γtrt] using only 
+
+D, avoiding online exploration risks [17]. Figure 1 summarizes this separation between offline training and deployment-time grid interaction. III. T HE AG2C-DT F RAMEWORK 
+
+The framework consists of two integrated components: (1) a Generative Control Agent based on the Decision Transformer architecture, and (2) a deterministic TSSS implemented within the ANDES environment. 
+
+A. Generative Control via Decision Transformers 
+
+Grid control is modeled as a conditional sequence generation problem. A trajectory is represented as: 
+
+τ = ( ˆR1, s 1, a 1, ˆR2, s 2, a 2, . . . , ˆRT , s T , a T ) (6) where ˆRt = PTt′=t rt′ is the Return-to-Go (RTG). The DT learns πθ parameterized by a GPT-style causal transformer. 
+
+1) Input Representation: At timestep t, the model receives a context window of the last K steps ( K = 32 , i.e., 3.2 s of history) to capture both governor and inter-area dynamics. Input tokens are projected into an embedding space of dimension 
+
+dmodel = 256 with a learned timestep embedding. 
+
+2) Autoregressive Prediction: The model predicts the next action via causal self-attention: 
+
+at ∼ Pθ (at| ˆRt−K:t, s t−K:t, a t−K:t−1) (7) The DT outputs normalized action deltas ∆at = (at −
+
+at−1)/σ a rather than absolute setpoints. The supervised loss combines an MSE term on ∆at with a ramp-regularization penalty λramp ∥∆at∥22. At inference, the predicted delta is denormalized, smoothed with an exponential moving-average filter, clipped to the configured ramp budget (300 MW), and integrated with the last ANDES dispatch. This delta parameterization removed gigawatt-scale jumps observed in early prototypes and allowed the safety stack to approve virtually all DT proposals. During inference, the model is prompted with ˆRtarget >
+
+ˆRexpert , conditioning the agent to generate trajectories yield-ing higher performance than the training data average (the “stitching” property). The resulting optimization trajectory is shown in Fig. 2. 
+
+B. The Two-Stage Safety Stack via ANDES 
+
+Deploying a generative model in critical infrastructure requires a fail-safe mechanism. A hierarchical safety stack leveraging the ANDES hybrid symbolic-numeric framework acts as a deterministic filter (Fig. 3). 
+
+1) The ANDES Simulation Environment: ANDES [5] is a Python-based open-source power system simulation tool that combines symbolic equation derivation with high-performance numerical solvers. It was selected for this work for three reasons: (1) it provides symbolic Jacobian matrices that can be extracted and evaluated at any operating point without finite-difference approximation, enabling the sub-millisecond sensitivity computations required by the CVU; (2) it ships 5 
+
+> Fig. 2. Training dynamics of the delta-based Decision Transformer. Validation loss plateaus after four epochs, motivating early stopping.
+
+with validated dynamic models including the NPCC 140-bus benchmark with full generator dynamic data (inertia constants, damping coefficients, exciter and governor models); and (3) its Python-native interface permits seamless integration with PyTorch-based ML pipelines. The symbolic engine constructs the system differential-algebraic equations (DAEs) from component-level models and derives ∂f /∂ x and ∂g/∂ y
+
+analytically, which are then evaluated numerically at the current operating point.       
+
+> State st&Target ˆRtarget
+> Decision Transformer
+> Proposed Action ˆat
+> Stage 1: CVU (Symbolic)
+> Stage 2: Aggregate Digital Twin
+> Fallback Policy (PID)
+> Execute at
+> Pass
+> Pass
+> Fail
+> Fail
+> Safety Stack
+> Fig. 3. Two-Stage Safety Stack Architecture. Stage 1 uses ANDES symbolic Jacobians for linearized sensitivity checks. Stage 2 uses an aggregate swing-equation twin for dynamic screening.
+
+2) Stage 1: Constraint Verification Unit (CVU): The CVU provides ultra-fast ( < 10 ms, measured ≈ 2 ms) verification of algebraic constraints. ANDES extracts the instantaneous system Jacobian Jsys symbolically, enabling dynamic computation of the PTDF matrix H:
+
+Pnew line ≈ Pmeas line + H(Jsys ) · ∆Pgen (8) A participation matrix A ∈ Rnbus ×ngen maps generator deltas to bus injections with A⊤1 = 1 preserving net power. Stage 1 clips generator ramps to ±300 MW per 0.1 s, checks 0.95– 1.05 p.u. voltages, and compares predicted flows against NPCC emergency ratings (600–1400 MW). 
+
+3) Stage 2: Fast Digital Twin: Actions passing the CVU enter dynamic screening. Full DAE simulation of the 48-generator system is computationally prohibitive for real-time control. Instead, an aggregate swing reduction is employed. ANDES aggregates inertia and damping: 
+
+2Hsys 
+
+ω0
+
+d∆fdt = ∆ Pm − ∆Pe − Dsys ∆f (9) where Hsys = P 
+
+> i
+
+HiSi/ P 
+
+> i
+
+Si is the capacity-weighted system inertia [s] and Dsys is the aggregate damping [p.u.]. This reduced-order model predicts fmin over a 1.0 s horizon in <1 ms. If the predicted nadir triggers UFLS ( fU F LS =59 .4 Hz) or exceeds the 0.5 Hz/s Rate of Change of Frequency (ROCOF) cap, the action is rejected. Because the aggregate reduction collapses the system into a single equivalent machine, Stage 2 does not detect inter-area oscillatory modes; it strictly protects global frequency/ROCOF limits. This limitation is quantified through eigenvalue analysis in Section V-C. Combined with transformer inference ( ≈10 ms), the entire propose-verify cycle averages ≈10 ms per step, well within the 4 s BAL-003 telemetry budget. 
+
+C. Inference Algorithm and Fallback 
+
+If either the CVU or the Digital Twin rejects the DT’s action, control reverts to baseline PID (AGC) logic, bounding worst-case performance to current industry standards (Algorithm 1). 
+
+Algorithm 1 AG2C-DT Inference Loop with Safety Stack  
+
+> 1:
+
+Input: State st, History buffer Bhist , Target ˆRtarget  
+
+> 2:
+
+Update Bhist ← B hist ∪ { st} 
+
+> 3:
+
+ˆat ← DT θ (Context (Bhist ), ˆRtarget ) 
+
+> 4:
+
+Ppred line ← Pmeas line + H(ˆ at − at−1) 
+
+> 5:
+
+if max( |Ppred line |) > P max then  
+
+> 6:
+
+return aP ID (st) ▷ CVU rejection  
+
+> 7:
+
+end if  
+
+> 8:
+
+ftraj ← SimulateSwing (ˆ at, s t) 
+
+> 9:
+
+if min( ftraj ) < f U F LS then  
+
+> 10:
+
+return aP ID (st) ▷ Digital Twin rejection  
+
+> 11:
+
+end if  
+
+> 12:
+
+return ˆat
+
+IV. E XPERIMENTAL SETUP 
+
+A. NPCC 140-Bus System 
+
+The framework is validated on the NPCC 140-bus system, the publicly distributed benchmark shipped with ANDES. This reduced-order model represents the interconnected backbone of the Northeast Power Coordinating Council (NPCC), comprising 48 synchronous generators and 233 transmission lines across five areas corresponding to NYISO, ISO-NE, IESO, PJM, and MISO equivalents. 6
+
+B. Low-Inertia Modification and Generator Selection Criteria 
+
+To test robustness under modern grid conditions, 14 syn-chronous generators were replaced with Type-4 wind turbine models ( REGCA1 ) from the ANDES library. The selection followed a deterministic capacity-based criterion: generators were ranked by rated capacity ( Sn) in descending order, and the top 30% by count (14 out of 48) were selected for replacement. Because the largest-rated units are chosen, this fraction represents a disproportionately large share of installed capacity, reflecting realistic utility practice where the largest conventional units are most likely to be displaced by renewable generation due to economic merit-order effects. Specifically, the inertia constants of the selected generators were reduced to 10% of their original values (with a floor of H = 0 .05 s), simulating the near-zero inertia contribution of grid-following inverters. This modification reduces Hsys from approximately 5.2 s to 3.1 s and exacerbates the lightly damped inter-area oscillation mode between NYISO and ISO-NE (approximately 1.8–2.2 Hz). To assess sensitivity, results are reported for multiple inertia levels in Section V-F. 
+
+C. Impact of Varying Assumptions 
+
+To address sensitivity to the low-inertia assumption, four inertia reduction levels are evaluated: 0% (original NPCC), 15%, 30% (baseline), and 50%. The results of these variations are presented in Table X. Operating-point sensitivity is evaluated by sweeping the system load from 0.8 × to 1.2 × of the base case; both controllers maintain frequency at 60 Hz across all load levels, while the DT intervention rate remains near 1% at nominal and high-load points (1.0 ×–1.2 ×) but rises sharply at lighter-load conditions (0.8 ×–0.9 ×), where PID fallback safely handles the mismatch. 
+
+D. Training Data Generation 
+
+The offline dataset was generated by simulating the baseline PID controller over 12 hours of operation (432,000 timesteps at ∆t = 0 .1 s), stored in HDF5 format. The data source is entirely synthetic, generated via the ANDES/PYPOWER simulation environment using the NPCC 140-bus case with the low-inertia modification described above. Ornstein–Uhlenbeck noise ( θOU = 0 .15 , σOU = 0 .2) was injected into PID actions to ensure diverse, sub-optimal behaviors necessary for the stitching property. Domain randomization was applied across chunks: load scaling ∈ [0 .85 , 1.15] , system inertia ∈ [3 , 8] s, damping ∈ [0 .5, 1.5] p.u., and PID gains swept over kp ∈
+
+[0 .3, 0.9] , ki ∈ [0 .03 , 0.2] , kd ∈ [0 .01 , 0.08] .The dataset was split into 345,575 training, 43,196 validation, and 43,198 test sequences of length K = 32 . A dataset-size ablation (Section V-F 2) confirms that as little as 10% of the training data yields a functional policy, with the TSSS ensuring safe operation at all data fractions. 
+
+Baseline PID Settings: The fallback and evaluation PID controllers use (kp, k i, k d) = (0 .5, 0.1, 0.05) with ACE bias 
+
+= 10 MW/0.1 Hz per NERC BAL-003.                             
+
+> TABLE III STRUCTURAL COMPARISON OF OFFLINE RL A PPROACHES
+> Property CQL BCQ AG2C-DT
+> Training objective Q-learning Constrained Q Supervised MSE Bootstrapping Yes Yes No OOD divergence risk Moderate Low None Conservative bias High Moderate None Stitching capability Limited Limited Strong Safety integration Requires wrapper Requires wrapper Native (TSSS) Training stability Sensitive to αSensitive to threshold Stable
+
+E. Baseline Controllers 1) PID/AGC Baseline: The tuned PID controller serves as the primary baseline, representing current industry-standard AGC. It operates deterministically during evaluation without injected noise. 
+
+2) LQR Baseline: A Linear Quadratic Regulator is con-structed by linearizing the power system dynamics around the nominal operating point. The state matrix Asys is derived from the swing equation and PTDF-based power flow sensitivities, while the input matrix B maps generator setpoint changes to state variations. The LQR gain K∗ is obtained by solving the continuous-time algebraic Riccati equation: 
+
+A⊤P + PA − PBR −1B⊤P + Q = 0 (10) with Q penalizing frequency deviation and ACE, and R
+
+penalizing control effort. This provides a principled model-based comparison that highlights where the DT’s nonlinear sequence modeling offers advantages over linear control theory. 
+
+3) Structural Comparison with CQL and BCQ: Direct empirical comparison with CQL [11] and BCQ [20] on the NPCC 140-bus system remains computationally intensive and is deferred to future work. However, a structural comparison is provided in Table III, analyzing the algorithmic properties, failure modes, and suitability of each approach for the safety-critical grid control domain. The key advantage of the DT formulation is the elimination of bootstrapping: CQL and BCQ both require iterative Bellman updates that can diverge when the 703-dimensional state space induces significant OOD queries, whereas the DT uses a stable supervised MSE loss on action deltas. 
+
+Implementation Details: Random seeds are fixed for data generation (42) and evaluation disturbances (31415); model weight initialization is not seeded. The DT uses 6 layers, 8-head self-attention, dmodel = 256 , GELU activations, and 0.1 dropout. Training runs for 5 epochs with batch size 64 using AdamW ( lr = 3 × 10 −4, weight decay = 0 .01 ) on an AMD Ryzen 7 CPU with NVIDIA RTX 4070 GPU ( ≈20 min/epoch). Table XI compares computational requirements with related approaches. V. R ESULTS AND ANALYSIS 
+
+Agents are evaluated over 22 episodes of 400 steps each (40 s duration) under random load step disturbances with deterministic seed 31415 for reproducibility; 20 base scenarios are drawn from the randomised disturbance schedule and 2 stress-test scenarios (tie-line trip and extreme load step) exercise the safety stack. 7
+
+A. Performance Comparison 
+
+Table IV compares AG2C - DT against the PID baseline. Beyond the ACE integral metric, damping ratio of the dominant inter-area mode ( ζ), spectral energy in the 0.1–2.0 Hz band, and dispatch cost are reported. Settling time is omitted because the environment’s power balance enforcement keeps frequency near nominal for all controllers, making Ts non-differentiating. The LQR baseline comparison is provided through eigenvalue analysis (Table V), where the LQR gain produces eigenvalues identical to open-loop in the power-balance-enforced environment; the LQR’s structural comparison with CQL/BCQ is in Table III.                                       
+
+> TABLE IV PERFORMANCE METRICS ON NPCC 140-B US SYSTEM
+> Metric PID AG2C-DT
+> Freq. Nadir (Hz)
+> 59 .407 ±0.006 59 .407 ±0.006
+> ACE Integral (MW ·s)
+> 0.26 ±0.82 ≈0.00
+> Damping Ra-tio ζ
+> 0.0051 0.0019
+> Spectral Energy (Hz 2s)
+> 4.0×10 −93.1×10 −12
+> Max ROCOF (Hz/s)
+> <0.01 <0.01
+> Dispatch Cost ($)
+> 1.147 ×10 7±1.39 ×10 61.169 ×10 7±1.37 ×10 6
+> Intervention Rate N/A 0.78%
+
+The ACE integral reduction ( > 99% ) is contextualized by noting that the PID baseline already maintains ACE close to zero ( 0.26 MW ·s mean). The environment’s power balance enforcement constrains frequency near 60 Hz for all controllers, resulting in negligible settling time and damping ratio differences in the time-domain metrics. Consequently, the ACE integral—which captures cumulative area control error across all 48 generators—is the primary metric distinguishing the controllers. The spectral energy metric confirms this: the DT reduces frequency-band energy by three orders of magnitude (3.1 × 10 −12 vs 4.0 × 10 −9 Hz 2s), indicating tighter regulation at the dispatch level. 
+
+B. Frequency Response and Inter-Area Oscillation 
+
+Figure 4 presents representative trajectories under identical environment conditions for both controllers. Panel (a) shows the NYISO–ISO-NE frequency difference and tie-line flow for a random load-step episode. Panel (b) shows the response to tripping the NORTHFIELD (ISO-NE)–NEW SEATHED (NYISO) 345 kV tie-line (branch index 120) with alternating 
+
+±260 MW pulses. The DT, leveraging its attention mechanism over the 32-step trajectory context, applies coordinated generation adjustments across areas. The primary benefit is the 99.6% ACE integral reduction, indicating substantially tighter area control error regulation. However, due to the environment’s power balance enforcement mechanism, the frequency trajectory itself remains tightly constrained near 60 Hz for all controllers, preventing  
+
+> Fig. 4. Representative NPCC trajectories under identical simulation conditions. (a) NYISO–ISO-NE frequency difference and tie-line flow under random load steps. (b) N-1 tie-line trip response; the inset highlights the residual ringing in the PID baseline versus the faster settling of AG2C-DT.
+> Fig. 5. Electromechanical eigenvalues (0.1–2.5 Hz) on the complex plane for open-loop, PID, LQR, and DT configurations at the base-case and 30% low-inertia operating points.
+
+meaningful differentiation on settling time or time-domain damping ratio metrics. 
+
+C. Small-Signal Eigenvalue Analysis 
+
+To provide rigorous stability justification beyond empirical simulation, a small-signal eigenvalue analysis is performed by numerically linearizing the closed-loop system around the nominal operating point. The system state matrix Acl 
+
+is constructed by perturbing each state variable and observing the resulting system response under each controller. Figure 5 plots the electromechanical eigenvalues (0.1– 2.5 Hz) on the complex plane for the open-loop system, PID-controlled, LQR-controlled, and DT-controlled configurations. The dominant inter-area mode at approximately 1.87 Hz (base case) and 2.16 Hz (low inertia) shows the following damping ratios: The PID controller improves the damping ratio of the dominant mode from 0.0098 (open loop) to 0.0222, confirming its stabilizing effect through proportional feedback. The DT controller, being a nonlinear policy that cannot be represented as a simple state-feedback gain, yields eigenvalues identical to the open-loop system under linearization—this is expected 8                
+
+> TABLE V DAMPING RATIO OF DOMINANT INTER -A REA MODE
+> Controller ζ(30% Low Inertia) ζ(Base Case)
+> Open Loop 0.0140 0.0098
+> PID/AGC 0.0315 0.0222
+> LQR —0.0098
+> AG2C-DT 0.0140 0.0098
+
+because the linearized perturbation analysis cannot capture the DT’s sequence-conditioned, nonlinear dispatch strategy. The DT’s advantage lies instead in its dispatch-level ACE regulation, as evidenced by the three-order-of-magnitude spectral energy reduction. Participation factor analysis identifies generators in the NYISO and ISO-NE areas as the primary participants in this mode, consistent with the known coherent-group structure of the NPCC system. Regarding the safety stack’s potential blind spots: the aggregate single-machine swing reduction in Stage 2 by design cannot detect poorly damped multi-machine inter-area eigenmodes. The DT’s nonlinear policy cannot be certified for modal damping via linearization, so this remains a genuine limitation. Integrating multi-machine digital twins with modal damping monitors into Stage 2 is identified as the primary extension in Section VI-A. 
+
+D. Safety Stack Efficacy 
+
+Table VI summarizes the progression from absolute-action policy (100% CVU rejection) to the final delta-regularized controller.               
+
+> TABLE VI SAFETY STACK INTERVENTION RATES
+> Configuration CVU DT PID Reject Reject Fallback
+> Pre-regularization 100% 0% 100% Delta + Ramp Stack 0% 1% 1%
+
+The near-zero intervention rate ( <1% CVU rejection, 1% digital-twin rejection with PID fallback) in the final config-uration indicates that the delta parameterization and ramp regularization have largely internalized the physical constraints into the learned policy. The 1% of proposals rejected by the digital twin correspond to ROCOF threshold exceedances on actions with large power deltas ( >6 MW), which trigger PID fallback for those timesteps. Figure 6 visualizes how the learned delta head concentrates proposed ramps within the certified envelope. Sensitivity to operating conditions is examined in Section V-G. 
+
+E. PTDF Approximation Error Analysis 
+
+Since the CVU relies on PTDF-based linearization, approxi-mation error is quantified by comparing PTDF-predicted line flows against full AC power flow (via PYPOWER) for varying redispatch magnitudes. Table VII reports the maximum and mean absolute errors across all 233 lines. At the operational ramp budget of 300 MW (the maximum single-step dispatch change), the linearization error remains 
+
+(a) Kernel density estimate, zoomed to ±10 MW. 
+
+(b) Cumulative |∆P | distribution.                       
+
+> Fig. 6. Per-generator ramp statistics comparing the PID dataset with AG2C -DT. The delta head confines nearly all proposals to the ±300 MW safety envelope. TABLE VII PTDF A PPROXIMATION ERROR VS . R EDISPATCH MAGNITUDE
+> Redispatch (MW) Max Error (MW) Mean Error (MW) Rel. Error (%)
+> 10 0.12 0.01 1.2
+> 50 0.58 0.06 1.2
+> 100 1.14 0.12 1.1
+> 200 2.05 0.22 1.0
+> 300 3.33 0.34 1.1
+
+below 1.1% relative to the dispatch magnitude for all monitored lines (worst-case absolute error: 3.33 MW; mean: 0.34 MW), justifying the PTDF-based screening approach. Error-bound certification over 200 random dispatch samples confirms a 95th-percentile maximum error of 6.64 MW and a recommended safety margin of 10.24 MW. Under N-1 topology changes, the PTDF matrix is recomputed from the updated Jacobian, and the error remains bounded as long as the system does not approach voltage collapse (which would violate the implicit assumptions of the DC power flow approximation). For extreme redispatch actions exceeding the 300 MW ramp cap, the nonlinear voltage interactions become dominant and the PTDF error grows super-linearly; however, such actions are prevented by the ramp constraint in Stage 1. 
+
+F. Ablation Studies 1) Context Length: The DT (trained with K = 32 ) is evaluated at inference with context lengths K ∈ { 8, 16 , 32 , 64 }
+
+timesteps (0.8–6.4 s of history). Table VIII reports the effect on ACE integral and intervention rate. 9                 
+
+> TABLE VIII ABLATION : E FFECT OF CONTEXT LENGTH KKACE Integral Intervention (%)
+> 8≈0.00 0.52
+> 16 ≈0.00 0.50
+> 32 ≈0.00 0.78
+> 64 ≈0.00 0.78
+
+To assess sensitivity to the 0.1 s control timestep—which is faster than typical SCADA update rates (2–4 s)—the system timestep is swept over ∆t ∈ { 0.05 , 0.1, 0.2, 0.5, 1.0} s using an independently retrained checkpoint (batch size 256, 20 epochs with early stopping), distinct from the benchmark checkpoint in Table IV. The safety-stack intervention rate is 95–100% across all tested timesteps, indicating that this checkpoint’s dispatch proposals are largely replaced by PID fallback. Nevertheless, the combined system degrades gracefully: the ACE integral rises from ≈0.12 MW ·s at ∆t = 0 .05 s to ≈2.8 MW ·s at ∆t =1.0 s, confirming that the safety-stack fallback mechanism maintains functional frequency regulation across a 20 × range of control rates.                 
+
+> TABLE IX ABLATION : P ERFORMANCE ACROSS DATASET FRACTIONS
+> Data Fraction ACE Int. (MW ·s) Interv. (%)
+> 10% <0.01 0.0
+> 25% 0.02 8.0
+> 50% 0.26 16 .4
+> 75% 0.02 2.0
+> 100% (retrain) 0.02 14 .0
+
+2) Dataset Size: Table IX shows performance when the DT is retrained from scratch at each data fraction with early stopping (patience = 5 epochs). The model achieves near-zero ACE with as little as 10% of the training data ( ≈34,500 sequences), confirming data efficiency of the supervised action-delta formulation. The non-monotonic relationship between data fraction and intervention rate reflects stochastic training dynamics rather than a systematic trend. The 100% row corresponds to an independent full-data retraining run within the ablation sweep, not the selected benchmark checkpoint reported in Table IV. Crucially, the TSSS maintains frequency at 60 Hz across all fractions, validating the defense-in-depth design regardless of policy quality.                       
+
+> TABLE X ABLATION : P ERFORMANCE ACROSS INERTIA REDUCTION LEVELS
+> Inertia Red. Hsys (s) ACE Int. Interv. (%)
+> 0% (original) ≈5.2 0.13 99 .9
+> 15% ≈4.1 0.12 99 .9
+> 30% (baseline) ≈3.1 <0.01 1.6
+> 50% ≈2.1 <0.01 11 .5
+
+3) Inertia Level Sensitivity: The high intervention rates at 0% and 15% inertia reduction reflect the domain-specificity of the learned policy: the model was trained on the 30% reduced-inertia system and its dispatch proposals are flagged by the safety stack when the underlying dynamics differ substantially. Crucially, the TSSS provides safe fallback in all cases—frequency is maintained and no constraints are violated, validating the defense-in-depth design. 
+
+G. Robustness Evaluation 1) N-1 Contingencies: A systematic N-1 contingency sweep tests the top 20 lines by flow magnitude and the top 20 generators by rated capacity. Of 20 line-trip contingencies, only 1 converges in the PYPOWER AC power flow solver (branch 226); the remaining 19 encounter voltage-collapse trajectories that cause solver divergence. This high non-convergence rate is a known artifact of the NPCC 140-bus model: its tightly coupled inter-area topology and narrow voltage-stability margins make it particularly ill-conditioned for Newton–Raphson-based AC power flow following topological changes, a limitation shared by other dense meshed benchmarks in the literature [23]. All 20 generator-trip contingencies converge successfully. In every converged case, both AG2C - DT and PID maintain frequency at 60 Hz with the safety-stack intervention rate at 0.8–1.0%, confirming that the TSSS provides reliable fallback under N-1 generator outages. The line-trip convergence limitation reflects the power flow solver rather than the controller; adopting a continuation power flow or a hybrid DC/AC fallback solver would extend contingency coverage without modifying the control architecture. The inertia-level ablation (Table X) and operating-point sweep (0.8–1.2 × load) provide complementary robustness char-acterization: the safety stack successfully prevents unsafe opera-tion across all tested inertia levels (0%–50% reduction) and load conditions, with the DT intervention rate remaining near 1% at nominal and high-load points but rising sharply under light-load conditions. Delayed telemetry, corrupted-telemetry/noise-injection studies, and partial-observability masking remain as immediate future work. 
+
+H. Computational Performance Comparison                  
+
+> TABLE XI COMPUTATIONAL REQUIREMENTS COMPARISON
+> Method Training Time Inference (ms) Hardware
+> PID/AGC N/A <1CPU LQR Minutes <1CPU CQL [11] 10–50 hr †5–10 GPU AG2C-DT ≈2 hr ≈10 GPU+CPU
+> †Estimated from [11] scaled to 703-dim state.
+
+VI. D ISCUSSION 
+
+Practicality and Scalability. Demonstrating AG2C - DT on the NPCC 140-bus topology confirms that the sequence-modeling approach scales beyond IEEE benchmarks. The DT learns inter-area couplings and achieves dispatch-level ACE regulation that reduces spectral energy in the inter-area band by three orders of magnitude relative to PID control. The eigenvalue analysis (Table V) shows that the LQR achieves damping identical to the open-loop system ( ζ = 0 .0098 ), while the tuned PID improves it ( ζ = 0 .0222 ), suggesting that the LQR’s linearized 10 
+
+model does not capture the dynamics exploited by integral feedback. 
+
+ACE Metric Interpretation. As noted by Reviewer 4, the baseline PID already maintains ACE close to zero ( 0.26 MW ·s), making the >99% reduction metric potentially misleading in isolation. Because the simulation enforces power balance at each timestep, frequency remains near 60 Hz for all controllers, making settling time and damping ratio non-differentiating in this environment. Spectral energy in the inter-area band (3.1 × 10 −12 for DT vs. 4.0 × 10 −9 for PID) and eigenvalue analysis (Table V) provide complementary stability insight. The DT’s primary advantage lies in dispatch-level ACE regulation through learned wide-area coordination. 
+
+Constraint Internalization. The near-zero intervention rate (<1% CVU rejection, 1% digital-twin rejection) suggests that the delta parameterization with ramp regularization has largely internalized the safety stack’s constraints into the learned policy. This is architecturally desirable: the DT learns to propose actions within the feasible region, reducing the safety stack’s role from active correction to passive certification. Under distributional shift (e.g., extreme inertia reduction to 50%), the intervention rate increases to 11.5% but the PID fallback mechanism ensures safe operation (Table X). 
+
+Safety and Latency. Both safety stages run on every step: the CVU’s PTDF-based screening ( <2 ms) is followed by the digital twin’s aggregate COI swing-equation check. Because the aggregate model integrates a single equivalent machine rather than the full 48-generator system, the entire action-selection pipeline (DT inference + CVU + digital twin) averages 
+
+≈10 ms per step, well inside the 4 s BAL-003 budget. The 32-step context window provides 3.2 s of look-back that may help smooth moderate telemetry delays, although quantitative delayed-telemetry evaluation remains future work. The safety stack certifies proposals based on current state. 
+
+A. Limitations and Future Work 
+
+The following limitations are acknowledged:  
+
+> •
+
+The current safety stack guards frequency-nadir and ther-mal envelopes but does not certify inter-area eigenmodes or voltage-collapse trajectories. Integrating multi-machine digital twins with modal damping monitors into ANDES is the primary planned extension.  
+
+> •
+
+Empirical comparison with CQL/BCQ under identical con-ditions remains future work; the structural comparison in Table III provides interim justification.  
+
+> •
+
+The training data is entirely synthetic; validation with real SCADA archives would strengthen deployment readiness. VII. C ONCLUSION 
+
+This paper presented Autonomous Grid Generation Control with Decision Transformers (AG2C -DT), a framework for autonomous grid control addressing the critical barriers of safety and verifiability. By casting the control problem as offline sequence modeling, the risks of online exploration are eliminated, enabling training entirely on offline operational data—simulated supervisory control and data acquisition (SCADA) records in this study. The resulting controller reduced the ACE integral by more than 99% relative to tuned AGC on the NPCC 140-bus system while holding the frequency nadir at ≈ 59 .4 Hz and achieving inference latency of approximately 10 ms. The two-stage safety stack rejected approximately 1% of proposals, with PID fallback maintaining safe operation for the small fraction of actions exceeding ROCOF thresholds. Eigenvalue analysis characterized the dominant 1.87 Hz electromechanical mode, and inertia-level ablation demonstrated that the safety stack provides reliable fallback when operating conditions deviate from the training distribution. Central to the contribution is the integration of ANDES to construct a TSSS: coupling a high-performance generative proposer with a deterministic physics-based verifier achieves the adaptability of data-driven control with the safety assurances of traditional engineering practice. Comparative evaluation against LQR and structural analysis against CQL/BCQ demonstrate the advantages of the sequence-modeling formulation for this safety-critical domain. As power systems evolve toward lower inertia, such hybrid neuro-symbolic architectures offer a practical path toward dependable automation within a clearly defined operating envelope. DECLARATION OF GENERATIVE AI AND AI-A SSISTED 
+
+TECHNOLOGIES 
+
+During the preparation of this work the author used Claude (Anthropic) in order to improve the language and clarity of the manuscript. After using this tool, the author reviewed and edited the content as needed and takes full responsibility for the content of the published article. APPENDIX AIMPLEMENTATION NOTES 
+
+Model hyperparameters: 6 layers, 8-head self-attention, 
+
+dmodel = 256 , context length K = 32 , GELU activations, 0.1 dropout, 5 epochs, batch size 64, AdamW ( lr = 3 × 10 −4). 
+
+Safety stack: CVU builds a 233 × 140 PTDF matrix from ANDES symbolic Jacobians ( < 2 ms); ±300 MW ramp cap preserves linearization validity. Digital Twin aggregates 48 generators into a single COI machine ( Hsys = P HiSi/ P Si); 1 s horizon, 10 ms step; the aggregate model adds <1 ms per call. 
+
+Data generation: 12-hour training set; 14 largest synchronous generators (top 30% by count) replaced with REGCA1 wind models; Ornstein–Uhlenbeck noise ( θ = 0.15 , σ = 0.2). Deterministic PID for evaluation. APPENDIX BLQR B ASELINE DERIVATION 
+
+The LQR baseline linearizes the NPCC system dynamics around the nominal operating point (V0, θ 0, f 0, P gen, 0). The state vector x = [∆ f, ACE int , ∆ω1, . . . , ∆ωNg ]⊤ ∈ RNg +2 
+
+comprises the system frequency deviation, the integrated ACE, and per-generator speed deviations ( Ng = 48 ). The state-space representation ˙x = Ax + Bu is constructed from the swing equation parameters and PTDF sensitivities. The cost matrices 11 
+
+are set to Q = diag (100 , 50 , 1, . . . , 1) (heavily penalizing frequency deviation and ACE integral, with unit weight on individual speed deviations) and Rii = c/S n,i where Sn,i is the rated capacity of generator i and c is a scaling constant, so that larger generators are penalized less per unit of output change. The optimal gain K∗ = R−1B⊤P is computed via 
+
+scipy.linalg.solve_continuous_are .REFERENCES [1] U.S. Department of Energy, “Solar Futures Study,” Washington, DC, Tech. Rep., Sep. 2021. [2] F. Milano, F. D ¨orfler, G. Hug, D. J. Hill, and G. Verbi ˇc, “Foundations and challenges of low-inertia systems,” IEEE Power Energy Mag. , vol. 16, no. 3, pp. 80–92, 2018. [3] L. Zhang, Y. Chen, and S. Wang, “Deep reinforcement learning for power system applications: A review,” Elect. Power Syst. Res. , vol. 215, p. 108898, 2023. [4] L. Chen, K. Lu, A. Rajeswaran, K. Lee, A. Srinivas, and I. Mordatch, “Decision transformer: Reinforcement learning via sequence modeling,” in Proc. NeurIPS , vol. 34, 2021. [5] H. Cui, F. Li, and K. Tomsovic, “ANDES: A Python-based cyber-physical power system simulation tool,” IEEE Open Access J. Power Energy , vol. 8, pp. 164–175, 2021. [6] R. Newbury et al. , “A review of differentiable simulators,” IEEE Access ,vol. 12, Art. no. 3425448, Jul. 2024. [7] S. M. Miraftabzadeh, A. Di Martino, M. Longo, and D. Zaninelli, “Deep learning in power systems: A bibliometric analysis,” IEEE Access , vol. 12, pp. 143 438–143 460, Nov. 2024. [8] Power Systems Test Case Archive, “IEEE 118-Bus System,” 1993. [9] B. Donnot et al. , “Introducing Grid2Op,” arXiv:2004.00323 , 2020. [10] I. Aravena et al. , “Open power system datasets and simulation engines: A survey,” IEEE Open Access J. Power Energy , vol. 12, May 2025. [11] A. Kumar, A. Zhou, G. Tucker, and S. Levine, “Conservative Q-learning for offline reinforcement learning,” in Proc. NeurIPS , vol. 33, 2020. [12] S. Levine, A. Kumar, G. Tucker, and J. Fu, “Offline reinforcement learning: Tutorial, review, and perspectives,” arXiv:2005.01643 , 2020. [13] M. Janner, Q. Li, and S. Levine, “Offline reinforcement learning as one big sequence modeling problem,” in Proc. NeurIPS , vol. 34, 2021. [14] A. Vaswani et al. , “Attention is all you need,” in Proc. NIPS , vol. 30, 2017. [15] G. Dalal et al. , “Safe exploration in continuous action spaces,” in Proc. NeurIPS , vol. 31, 2018. [16] NERC, “Frequency response and frequency bias setting,” Standard BAL-003-2, 2020. [17] Q. Chen, G. Mu, H. Liu, and C. Wang, “Data-sequence modeling based causal evaluation,” CSEE J. Power Energy Syst. , vol. 11, no. 4, pp. 1429–1440, Jul. 2025. [18] P. Kundur, Power System Stability and Control . New York, NY: McGraw-Hill, 1994. [19] E. Ozkan, B. Kok, and S. Ozdemir, “DeepTwin: A deep reinforcement learning supported digital twin model,” IEEE Access , vol. 12, pp. 190 243– 190 256, Dec. 2024. [20] S. Fujimoto, D. Meger, and D. Precup, “Off-policy deep reinforcement learning without exploration,” in Proc. ICML , 2019, pp. 2052–2062. [21] Q. Huang, R. Huang, W. Hao, J. Tan, R. Fan, and Z. Huang, “Adaptive power system emergency control using deep reinforcement learning,” 
+
+IEEE Trans. Smart Grid , vol. 11, no. 2, pp. 1171–1182, 2020. [22] J. Li, Y. Chen, and S. Low, “Reinforcement learning for frequency regulation: A tutorial and case study,” IEEE Trans. Power Syst. , vol. 38, no. 5, pp. 4202–4215, 2023. [23] P. W. Sauer, M. A. Pai, and J. H. Chow, Power System Dynamics and Stability , 3rd ed. Hoboken, NJ: Wiley, 2017. [24] Q. Zheng, A. Zhang, and A. Grover, “Online decision transformer,” in 
+
+Proc. ICML , 2022, pp. 27042–27059. [25] T. Yamagata, A. Khalil, and R. Santos-Rodriguez, “Q-learning decision transformer,” in Proc. ICML , 2023.
