@@ -6,73 +6,59 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-10
-- 运行时间：2026-07-10 20:35:52 UTC
+- 最新运行日期：2026-07-11
+- 运行时间：2026-07-11 20:54:59 UTC
 - 运行状态：成功
-- 本次总论文数：17
-- 精读区：5
+- 本次总论文数：12
+- 精读区：0
 - 速读区：12
 
 ### 今日简报（AI）
-今日精选 17 篇论文，重点攻克符号回归框架 DeepPySR 与贝叶斯后验参数退化检测两大满分课题。
-符号推理与动态剪枝技术正显著提升科学发现的效率，同时 SageMath 增强的 LLM 智能体在数学计算中展现出强劲实力。
-推荐关注 AI 驱动的科学建模新范式，尝试利用符号化方法提升复杂系统的可解释性。
-- 详情：[/202607/10/README](/202607/10/README)
+今日速读 12 篇前沿论文，深度聚焦物理启发式机器学习与几何代数在复杂动力学建模中的应用。
+重点关注 SO(3) 等变矢量律中几何代数层的性能边界，以及利用结构化正则提升学习真实世界辛动力学的新路径。
+建议关注物理约束与高维时空数据结合的建模趋势，探索几何代数在处理对称性任务中的实战潜力。
+- 详情：[/202607/11/README](/202607/11/README)
 
 ### 精读区论文标签
-1. [DeepPySR -- A Symbolic Regression Framework with Dynamic Pruning, Pareto Selection, and Hierarchical Composition for Real-World Scientific Discovery](/202607/10/2607.08150v1-deeppysr----a-symbolic-regression-framework-with-dynamic-pruning-pareto-selection-and-hierarchical-composition-for-real-world-scientific-discovery)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：具有帕累托选择和分层组合的符号回归框架
-2. [DegenDetector: Symbolic Recovery of Parameter Degeneracies in Bayesian Posteriors](/202607/10/2607.08755v1-degendetector-symbolic-recovery-of-parameter-degeneracies-in-bayesian-posteriors)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：使用符号回归将参数退化识别为闭式符号方程
-3. [RL Post-Training Builds Compositional Reasoning Strategies](/202607/10/2607.07646v1-rl-post-training-builds-compositional-reasoning-strategies)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：符号重写任务中组合推理的强化学习后期训练
-4. [Discrete Faà di Bruno via Möbius Inversion](/202607/10/2607.07742v1-discrete-fa-di-bruno-via-mbius-inversion)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：通过Möbius反演推导离散Faà di Bruno公式
-5. [From Solvers to Research: Large Language Model-Driven Formal Mathematics at the Research Frontier](/202607/10/2607.07779v1-from-solvers-to-research-large-language-model-driven-formal-mathematics-at-the-research-frontier)  
-   标签：评分：8.0/10、query:math-ai
-   evidence：LLM驱动的形式数学用于发现新定理
+- 本次无精读推荐。
 
 ### 速读区论文标签
-1. [Graph Neural Networks for the Graphical Bootstrap](/202607/10/2607.03109v1-graph-neural-networks-for-the-graphical-bootstrap)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：用于数学相关器计算的图神经网络和Transformer
-2. [Evaluating SageMath-Augmented LLM Agents for Computational and Experimental Mathematics](/202607/10/2607.06820v1-evaluating-sagemath-augmented-llm-agents-for-computational-and-experimental-mathematics)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：用于计算数学和公式验证的LLM智能体
-3. [Mechanistic Interpretability for Neural Networks: Circuits, Sparse Features and Symbolic Reasoning](/202607/10/2607.07316v1-mechanistic-interpretability-for-neural-networks-circuits-sparse-features-and-symbolic-reasoning)  
-   标签：评分：7.0/10、query:math-ai
-   evidence：神经网络中的机械可解释性与符号推理
-4. [Neural-Spectral Discovery of Rotating Black Holes Beyond General Relativity](/202607/10/2607.07418v1-neural-spectral-discovery-of-rotating-black-holes-beyond-general-relativity)  
+1. [Physically-Relevant Information Learning in High-Dimensional Time-Derivatives Spaces](/202607/11/2607.05127v3-physically-relevant-information-learning-in-high-dimensional-time-derivatives-spaces)  
    标签：评分：7.0/10、query:sr-alg
-   evidence：发现广义相对论之外的黑洞解
-5. [Finding Simple Proofs for First-Order Optimization](/202607/10/2607.08753v1-finding-simple-proofs-for-first-order-optimization)  
+   evidence：学习复杂动力系统的物理特性
+2. [When Do Geometric Algebra Layers Beat Scalarization? A Controlled Study on SO(3)-Equivariant Vector Laws](/202607/11/2607.06634v1-when-do-geometric-algebra-layers-beat-scalarization-a-controlled-study-on-so3-equivariant-vector-laws)  
    标签：评分：7.0/10、query:math-ai
-   evidence：自动发现优化的简单证明结构
-6. [Generative Autonomous Grid Control: Integrating Decision Transformers with a Two-Stage Safety Stack](/202607/10/2607.02379v1-generative-autonomous-grid-control-integrating-decision-transformers-with-a-two-stage-safety-stack)  
+   evidence：用于学习向量定律的神经网络架构
+3. [CaLiSym: Learning Symplectic Dynamics of Real-World Systems through Structured Canonical Lifts](/202607/11/2607.06824v1-calisym-learning-symplectic-dynamics-of-real-world-systems-through-structured-canonical-lifts)  
+   标签：评分：7.0/10、query:sr-alg
+   evidence：数据驱动的物理动力学发现与辛学习
+4. [PIEFS: Physics-Informed Eigenfunction Features with Learnable Scaling](/202607/11/2607.03692v1-piefs-physics-informed-eigenfunction-features-with-learnable-scaling)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：将决策Transformer与用于代数筛选的符号安全栈集成
-7. [Mitigating Numerical Stiffness in Least-Squares Formulations of Elliptic PDEs for Physics-Informed Neural Networks](/202607/10/2607.02726v1-mitigating-numerical-stiffness-in-least-squares-formulations-of-elliptic-pdes-for-physics-informed-neural-networks)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于学习偏微分方程解的物理信息神经网络
-8. [SHiPPO: Recurrent Memory with Transported Polynomial Projections](/202607/10/2607.03055v1-shippo-recurrent-memory-with-transported-polynomial-projections)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：用于循环记忆的多项式投影和Sylvester动力学
-9. [Physically-Relevant Information Learning in High-Dimensional Time-Derivatives Spaces](/202607/10/2607.05127v1-physically-relevant-information-learning-in-high-dimensional-time-derivatives-spaces)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：在高维时间导数空间中学习物理相关信息
-10. [InvWeaver: Deductive Feedback for Invariant Synthesis in Interacting-Loop Programs](/202607/10/2607.05478v1-invweaver-deductive-feedback-for-invariant-synthesis-in-interacting-loop-programs)  
+   evidence：具有谱归纳偏置的物理信息神经表示学习
+5. [Why Pure Reasoning is Not Enough: Nature as the Source of Mathematical Innovation](/202607/11/2607.04505v1-why-pure-reasoning-is-not-enough-nature-as-the-source-of-mathematical-innovation)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于合成不变量的神经符号框架
-11. [ssys: Exact algebraic recasting of ODE models into S-system or GMA form](/202607/10/2607.05607v1-ssys-exact-algebraic-recasting-of-ode-models-into-s-system-or-gma-form)  
+   evidence：自然界作为数学创新和物理定律的来源
+6. [Mechanism-level routing failure in LLMs over Lean-verified algebraic structures](/202607/11/2607.04534v1-mechanism-level-routing-failure-in-llms-over-lean-verified-algebraic-structures)  
    标签：评分：6.0/10、query:math-ai
-   evidence：利用符号提升对ODE模型进行精确代数重构
-12. [Learning Stable Controlled Dynamical Systems via Input-Contraction Neural Differential Models](/202607/10/2607.05718v1-learning-stable-controlled-dynamical-systems-via-input-contraction-neural-differential-models)  
+   evidence：大模型在Lean验证代数结构上的表现
+7. [FormalRx: Rectify and eXamine Semantic Failures in Autoformalization](/202607/11/2607.04655v1-formalrx-rectify-and-examine-semantic-failures-in-autoformalization)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：数学推理中自动形式化的诊断评估
+8. [PDEFlow: Autonomous Agentic PDE Pipelines for Neural Operator Learning and Solver-Free Inference](/202607/11/2607.05134v1-pdeflow-autonomous-agentic-pde-pipelines-for-neural-operator-learning-and-solver-free-inference)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：从观测数据中学习动力系统
+   evidence：将PDE描述转化为神经算子求解器的自主代理流水线
+9. [Weak-to-Strong Generalization via Direct On-Policy Distillation](/202607/11/2607.05394v2-weak-to-strong-generalization-via-direct-on-policy-distillation)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：具有可验证奖励的强化学习用于推理
+10. [Physics-Informed Neural Embeddings of PDE Solution Families](/202607/11/2607.06348v1-physics-informed-neural-embeddings-of-pde-solution-families)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：物理信息神经网络嵌入用于偏微分方程解族
+11. [Intrinsic Green's Learning: Supervised Learning on Manifolds via Inverse PDE](/202607/11/2607.07034v1-intrinsic-greens-learning-supervised-learning-on-manifolds-via-inverse-pde)  
+   标签：评分：6.0/10、query:sr-alg
+   evidence：学习逆偏微分方程的源项
+12. [Multiplication Beyond Groups: Stratified Fourier Mechanisms in Transformer Circuits](/202607/11/2607.07066v1-multiplication-beyond-groups-stratified-fourier-mechanisms-in-transformer-circuits)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：Transformer 线路学习模乘法和代数结构
 
 
 <div class="dpr-home-promo-card">
