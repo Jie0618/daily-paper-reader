@@ -6,59 +6,44 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-11
-- 运行时间：2026-07-11 20:54:59 UTC
+- 最新运行日期：2026-07-12
+- 运行时间：2026-07-12 21:14:31 UTC
 - 运行状态：成功
-- 本次总论文数：12
+- 本次总论文数：7
 - 精读区：0
-- 速读区：12
+- 速读区：7
 
 ### 今日简报（AI）
-今日速读 12 篇前沿论文，深度聚焦物理启发式机器学习与几何代数在复杂动力学建模中的应用。
-重点关注 SO(3) 等变矢量律中几何代数层的性能边界，以及利用结构化正则提升学习真实世界辛动力学的新路径。
-建议关注物理约束与高维时空数据结合的建模趋势，探索几何代数在处理对称性任务中的实战潜力。
-- 详情：[/202607/11/README](/202607/11/README)
+今日速览 7 篇跨学科前沿，深度解析装饰排列组合数学与 AI 符号方法的时代演进。
+核心看点在于利用装饰排列重新定义 $q$-错排数，以及高维时空导数空间中的物理相关信息学习。
+建议关注组合数学新视角及符号 AI 的复兴趋势，以拓宽算法设计的理论边界。
+- 详情：[/202607/12/README](/202607/12/README)
 
 ### 精读区论文标签
 - 本次无精读推荐。
 
 ### 速读区论文标签
-1. [Physically-Relevant Information Learning in High-Dimensional Time-Derivatives Spaces](/202607/11/2607.05127v3-physically-relevant-information-learning-in-high-dimensional-time-derivatives-spaces)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：学习复杂动力系统的物理特性
-2. [When Do Geometric Algebra Layers Beat Scalarization? A Controlled Study on SO(3)-Equivariant Vector Laws](/202607/11/2607.06634v1-when-do-geometric-algebra-layers-beat-scalarization-a-controlled-study-on-so3-equivariant-vector-laws)  
+1. [Revisiting $q$-Derangement Numbers via Decorated Permutations](/202607/12/2607.04798v1-revisiting-q-derangement-numbers-via-decorated-permutations)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于学习向量定律的神经网络架构
-3. [CaLiSym: Learning Symplectic Dynamics of Real-World Systems through Structured Canonical Lifts](/202607/11/2607.06824v1-calisym-learning-symplectic-dynamics-of-real-world-systems-through-structured-canonical-lifts)  
-   标签：评分：7.0/10、query:sr-alg
-   evidence：数据驱动的物理动力学发现与辛学习
-4. [PIEFS: Physics-Informed Eigenfunction Features with Learnable Scaling](/202607/11/2607.03692v1-piefs-physics-informed-eigenfunction-features-with-learnable-scaling)  
+   evidence：人机协作发现数学对合关系
+2. [Physically-Relevant Information Learning in High-Dimensional Time-Derivatives Spaces](/202607/12/2607.05127v2-physically-relevant-information-learning-in-high-dimensional-time-derivatives-spaces)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：具有谱归纳偏置的物理信息神经表示学习
-5. [Why Pure Reasoning is Not Enough: Nature as the Source of Mathematical Innovation](/202607/11/2607.04505v1-why-pure-reasoning-is-not-enough-nature-as-the-source-of-mathematical-innovation)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：自然界作为数学创新和物理定律的来源
-6. [Mechanism-level routing failure in LLMs over Lean-verified algebraic structures](/202607/11/2607.04534v1-mechanism-level-routing-failure-in-llms-over-lean-verified-algebraic-structures)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：大模型在Lean验证代数结构上的表现
-7. [FormalRx: Rectify and eXamine Semantic Failures in Autoformalization](/202607/11/2607.04655v1-formalrx-rectify-and-examine-semantic-failures-in-autoformalization)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：数学推理中自动形式化的诊断评估
-8. [PDEFlow: Autonomous Agentic PDE Pipelines for Neural Operator Learning and Solver-Free Inference](/202607/11/2607.05134v1-pdeflow-autonomous-agentic-pde-pipelines-for-neural-operator-learning-and-solver-free-inference)  
+   evidence：学习复杂物理系统的结构与动力学
+3. [The Changing Role of Symbolic Methods in Artificial Intelligence](/202607/12/2607.05168v1-the-changing-role-of-symbolic-methods-in-artificial-intelligence)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：将PDE描述转化为神经算子求解器的自主代理流水线
-9. [Weak-to-Strong Generalization via Direct On-Policy Distillation](/202607/11/2607.05394v2-weak-to-strong-generalization-via-direct-on-policy-distillation)  
+   evidence：显式符号推理在人工智能中的作用
+4. [Mathematical methods of reinforcement learning](/202607/12/2607.06935v1-mathematical-methods-of-reinforcement-learning)  
    标签：评分：6.0/10、query:math-ai
-   evidence：具有可验证奖励的强化学习用于推理
-10. [Physics-Informed Neural Embeddings of PDE Solution Families](/202607/11/2607.06348v1-physics-informed-neural-embeddings-of-pde-solution-families)  
+   evidence：强化学习中的数学结构与算法
+5. [Accurate, Interdisciplinary and Transparent Structure-property Understanding with Deep Native Structural Reasoning](/202607/12/2607.07708v1-accurate-interdisciplinary-and-transparent-structure-property-understanding-with-deep-native-structural-reasoning)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：物理信息神经网络嵌入用于偏微分方程解族
-11. [Intrinsic Green's Learning: Supervised Learning on Manifolds via Inverse PDE](/202607/11/2607.07034v1-intrinsic-greens-learning-supervised-learning-on-manifolds-via-inverse-pde)  
+   evidence：通过科学原理和物理约束解释结构证据
+6. [Physics-Informed Machine Learning Under Small-Data Constraints: Lessons from Abrasive Waterjet Milling](/202607/12/2607.07863v1-physics-informed-machine-learning-under-small-data-constraints-lessons-from-abrasive-waterjet-milling)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：学习逆偏微分方程的源项
-12. [Multiplication Beyond Groups: Stratified Fourier Mechanisms in Transformer Circuits](/202607/11/2607.07066v1-multiplication-beyond-groups-stratified-fourier-mechanisms-in-transformer-circuits)  
+   evidence：小数据约束下的物理集成与机器学习
+7. [Statistical Estimation of higher Dedekind Numbers](/202607/12/2607.08446v1-statistical-estimation-of-higher-dedekind-numbers)  
    标签：评分：6.0/10、query:math-ai
-   evidence：Transformer 线路学习模乘法和代数结构
+   evidence：数学常数的统计估计与改进
 
 
 <div class="dpr-home-promo-card">
