@@ -6,67 +6,54 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-14
-- 运行时间：2026-07-14 21:42:56 UTC
+- 最新运行日期：2026-07-15
+- 运行时间：2026-07-15 21:41:27 UTC
 - 运行状态：成功
-- 本次总论文数：15
-- 精读区：6
+- 本次总论文数：11
+- 精读区：2
 - 速读区：9
 
 ### 今日简报（AI）
-今日精选 15 篇前沿论文，重点聚焦 LLM 在偏微分方程（PDE）发现及复杂逻辑推理中的突破性应用。
-满分力作 LLM-PDESR 通过符号假设生成实现了鲁棒的物理规律发现，同时多智能体框架在数学竞赛与 ARC-AGI 推理中展现出极高潜力。
-建议关注 LLM 与物理验证、符号推理的深度结合，这是通往高精度科学智能的关键路径。
-- 详情：[/202607/14/README](/202607/14/README)
+今日聚焦 AI 驱动的科学发现，深度解析了随机动力学的符号恢复与机械世界模型的自主演进。
+重点关注如何利用
+- 详情：[/202607/15/README](/202607/15/README)
 
 ### 精读区论文标签
-1. [LLM-PDESR: Robust PDE Discovery via Subdomain Weighted Residuals and LLM-Guided Symbolic Hypothesis Generation](/202607/14/2607.10546v1-llm-pdesr-robust-pde-discovery-via-subdomain-weighted-residuals-and-llm-guided-symbolic-hypothesis-generation)  
-   标签：评分：10.0/10、query:sr-alg
-   evidence：利用大语言模型引导的符号假设生成从噪声数据中发现偏微分方程
-2. [All you need is SAMPAT](/202607/14/2607.09235v1-all-you-need-is-sampat)  
+1. [Symbolic Weak-form Recovery of 2-D Stochastic Generators](/202607/15/2607.12502v1-symbolic-weak-form-recovery-of-2-d-stochastic-generators)  
    标签：评分：9.0/10、query:sr-alg
-   evidence：近似值表示为封闭且紧凑的代数表达式
-3. [Discovering Latent Response Laws in Forced Physical Systems](/202607/14/2607.09801v1-discovering-latent-response-laws-in-forced-physical-systems)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：发现物理系统中的控制方程和潜在响应规律
-4. [Hyperbolic Arcsine Kernels, Finite Fourier Filters, and Quartic Central Binomial Harmonic Sums](/202607/14/2607.09904v1-hyperbolic-arcsine-kernels-finite-fourier-filters-and-quartic-central-binomial-harmonic-sums)  
-   标签：评分：9.0/10、query:math-ai
-   evidence：涉及pi和中心二项式系数的恒等式
-5. [GAE: Graph-Augmented Evolution for Scientific Discovery via Reinforcement Optimization](/202607/14/2607.10127v1-gae-graph-augmented-evolution-for-scientific-discovery-via-reinforcement-optimization)  
-   标签：评分：9.0/10、query:sr-alg
-   evidence：用于科学发现中演化程序搜索的强化学习优化元控制器
-6. [Neural Discovery of Memory and Nonlocal Kernels in Integro-Differential Equations with Constrained Kolmogorov--Arnold Networks](/202607/14/2607.11110v1-neural-discovery-of-memory-and-nonlocal-kernels-in-integro-differential-equations-with-constrained-kolmogorov--arnold-networks)  
+   evidence：从轨迹数据中符号化恢复随机生成器
+2. [From Observation to Insight: Mechanistic World Models and the Quest for Autonomous Discovery](/202607/15/2607.12474v1-from-observation-to-insight-mechanistic-world-models-and-the-quest-for-autonomous-discovery)  
    标签：评分：8.0/10、query:sr-alg
-   evidence：发现积分微分方程中的记忆和非局部核
+   evidence：揭示用于科学发现的可重用解释机制
 
 ### 速读区论文标签
-1. [ARCANA: A Reflective Multi-Agent Program Synthesis Framework for ARC-AGI-2 Reasoning](/202607/14/2607.09059v1-arcana-a-reflective-multi-agent-program-synthesis-framework-for-arc-agi-2-reasoning)  
+1. [Adaptive Search in Collatz Exponent-Code Space via 2-adic and 3-adic Constraints](/202607/15/2607.10041v1-adaptive-search-in-collatz-exponent-code-space-via-2-adic-and-3-adic-constraints)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于推理的程序合成与符号执行
-2. [ProofCouncil: An LLM Agent for Solving Open Mathematical Problems](/202607/14/2607.09474v1-proofcouncil-an-llm-agent-for-solving-open-mathematical-problems)  
+   evidence：数学猜想符号空间中的自适应进化搜索
+2. [On a Class of Hypergeometric Sums via Recurrences and Product Binomial-Harmonic Identities](/202607/15/2607.10135v2-on-a-class-of-hypergeometric-sums-via-recurrences-and-product-binomial-harmonic-identities)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于解决开放数学问题和推理的LLM智能体
-3. [Reinforcement Learning with Verifiable Physics: Post-training LLMs with Continuous Rewards](/202607/14/2607.10474v1-reinforcement-learning-with-verifiable-physics-post-training-llms-with-continuous-rewards)  
+   evidence：推导超几何级数恒等式和递推关系
+3. [Knowledge- and Gradient-Guided Reinforcement Learning for Parametrized Action Markov Decision Processes](/202607/15/2607.12924v1-knowledge--and-gradient-guided-reinforcement-learning-for-parametrized-action-markov-decision-processes)  
    标签：评分：7.0/10、query:math-ai
-   evidence：用于可验证数学推理和物理的强化学习
-4. [A Symbolic Neural CPU for Quantization-Simulated Writeback and Interpretable Program Execution](/202607/14/2607.10021v1-a-symbolic-neural-cpu-for-quantization-simulated-writeback-and-interpretable-program-execution)  
-   标签：评分：6.0/10、query:math-ai
-   evidence：用于可解释执行的符号神经网络架构
-5. [Are We Ready for AI-Driven Discovery? AI Verification Before the Next Fundamental Physics Breakthrough](/202607/14/2607.10039v1-are-we-ready-for-ai-driven-discovery-ai-verification-before-the-next-fundamental-physics-breakthrough)  
+   evidence：结合符号动作和领域知识的强化学习
+4. [Feature Learning for the High Dimensional Stationary Schödinger Equation with Deep Ritz Method](/202607/15/2607.06369v1-feature-learning-for-the-high-dimensional-stationary-schdinger-equation-with-deep-ritz-method)  
    标签：评分：6.0/10、query:sr-alg
-   evidence：基础物理突破的AI验证
-6. [On a Class of Hypergeometric Sums via Recurrences and Product Binomial-Harmonic Identities](/202607/14/2607.10135v1-on-a-class-of-hypergeometric-sums-via-recurrences-and-product-binomial-harmonic-identities)  
+   evidence：利用深度学习求解薛定谔方程
+5. [Learning Linear Temporal Specifications from Demonstrations with Uncertainty](/202607/15/2607.10918v1-learning-linear-temporal-specifications-from-demonstrations-with-uncertainty)  
    标签：评分：6.0/10、query:math-ai
-   evidence：超几何级数与二项式-调和恒等式的研究
-7. [Arisca: A Parameterized Symbolic Algebra Framework for Arithmetic Circuit Verification](/202607/14/2607.10257v1-arisca-a-parameterized-symbolic-algebra-framework-for-arithmetic-circuit-verification)  
+   evidence：从数据中学习极小LTL公式
+6. [Efficient Test-Time Optimization for Multi-Agent Proof Autoformalization](/202607/15/2607.11307v1-efficient-test-time-optimization-for-multi-agent-proof-autoformalization)  
    标签：评分：6.0/10、query:math-ai
-   evidence：多元多项式的符号代数框架
-8. [TreeThink: A Modular Tree Search Library for Mathematical Reasoning with LLMs](/202607/14/2607.11258v1-treethink-a-modular-tree-search-library-for-mathematical-reasoning-with-llms)  
+   evidence：数学证明自动形式化的多智能体框架
+7. [SCOPE-RL: Optimizing Reasoning Paths Before and After Success](/202607/15/2607.11506v1-scope-rl-optimizing-reasoning-paths-before-and-after-success)  
    标签：评分：6.0/10、query:math-ai
-   evidence：用于神经定理证明和数学推理的树搜索库
-9. [Invariant Learning Dynamics of Transformers in Inductive Reasoning Tasks](/202607/14/2607.11875v1-invariant-learning-dynamics-of-transformers-in-inductive-reasoning-tasks)  
-   标签：评分：6.0/10、query:sr-alg
-   evidence：Transformer在归纳推理任务中的学习动力学
+   evidence：强化学习用于优化难题中的推理路径
+8. [Invariant Learning Dynamics of Transformers in Inductive Reasoning Tasks](/202607/15/2607.11875v2-invariant-learning-dynamics-of-transformers-in-inductive-reasoning-tasks)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：用于归纳推理和符号任务的Transformer架构
+9. [FormalAnalyticGeo: A Neural-Symbolic Based Framework for Multimodal Analytic Geometry Problem Generation](/202607/15/2607.12982v1-formalanalyticgeo-a-neural-symbolic-based-framework-for-multimodal-analytic-geometry-problem-generation)  
+   标签：评分：6.0/10、query:math-ai
+   evidence：使用形式语言生成几何问题的神经符号框架
 
 
 <div class="dpr-home-promo-card">
